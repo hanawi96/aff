@@ -1,0 +1,13 @@
+{
+  "name": "referral-form",
+  "version": "1.0.0",
+  "description": "Referral Form for Me & Be Affiliate Program",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step required for static site'",
+    "start": "echo 'Static site - no start command needed'"
+  },
+  "keywords": ["referral", "affiliate", "form"],
+  "author": "hanawi96",
+  "license": "MIT"
+}
