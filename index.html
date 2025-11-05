@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký Cộng Tác Viên - Mẹ & Bé</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'mom-pink': '#f8b4cb',
+                        'mom-blue': '#a8d8ea',
+                        'mom-purple': '#d4a5d4',
+                        'warm-beige': '#f5f1eb'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-warm-beige via-white to-mom-blue/20 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full flex items-center justify-center">
+                        <i class="fas fa-heart text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-mom-pink to-mom-purple bg-clip-text text-transparent">
+                        Mẹ & Bé Affiliate
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-2xl">
+        <!-- Hero Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full mb-4 shadow-lg">
+                <i class="fas fa-baby text-white text-3xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                Trở Thành Cộng Tác Viên
+            </h2>
+            <p class="text-gray-600 text-lg leading-relaxed">
+                Tham gia cùng chúng tôi để chia sẻ những sản phẩm tuyệt vời dành cho mẹ và bé. 
+                <span class="text-mom-pink font-semibold">Kiếm thu nhập</span> từ việc giới thiệu sản phẩm mà bạn yêu thích!
+            </p>
+        </div>
+
+        <!-- Benefits Section -->
+        <div class="grid md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-pink/20">
+                <div class="w-12 h-12 bg-mom-pink/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-dollar-sign text-mom-pink text-xl"></i>
+                </div>
+                <h3 class="font-semibold text-gray-800 mb-2">Hoa Hồng Hấp Dẫn</h3>
+                <p class="text-sm text-gray-600">Lên đến 15% cho mỗi đơn hàng thành công</p>
+            </div>
+            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-blue/20">
+                <div class="w-12 h-12 bg-mom-blue/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-clock text-mom-blue text-xl"></i>
+                </div>
+                <h3 class="font-semibold text-gray-800 mb-2">Thời Gian Linh Hoạt</h3>
+                <p class="text-sm text-gray-600">Làm việc theo thời gian của bạn</p>
+            </div>
+            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-purple/20">
+                <div class="w-12 h-12 bg-mom-purple/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-users text-mom-purple text-xl"></i>
+                </div>
+                <h3 class="font-semibold text-gray-800 mb-2">Cộng Đồng Hỗ Trợ</h3>
+                <p class="text-sm text-gray-600">Được hỗ trợ 24/7 từ team</p>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div class="text-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Đăng Ký Ngay</h3>
+                <p class="text-gray-600">Điền thông tin để bắt đầu hành trình cộng tác viên</p>
+            </div>
+
+            <form id="referralForm" class="space-y-6">
+                <!-- Personal Info -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user text-mom-pink mr-2"></i>Họ và Tên *
+                        </label>
+                        <input type="text" name="fullName" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50"
+                               placeholder="Nguyễn Thị Lan">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone text-mom-blue mr-2"></i>Số Điện Thoại *
+                        </label>
+                        <input type="tel" name="phone" required 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50"
+                               placeholder="0901234567">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-mom-purple mr-2"></i>Email *
+                    </label>
+                    <input type="email" name="email" required 
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50"
+                           placeholder="example@gmail.com">
+                </div>
+
+                <!-- Location -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt text-mom-pink mr-2"></i>Tỉnh/Thành Phố *
+                        </label>
+                        <select name="city" required 
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50">
+                            <option value="">Chọn tỉnh/thành</option>
+                            <option value="Hà Nội">Hà Nội</option>
+                            <option value="TP.HCM">TP. Hồ Chí Minh</option>
+                            <option value="Đà Nẵng">Đà Nẵng</option>
+                            <option value="Hải Phòng">Hải Phòng</option>
+                            <option value="Cần Thơ">Cần Thơ</option>
+                            <option value="Khác">Tỉnh khác</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-birthday-cake text-mom-blue mr-2"></i>Tuổi
+                        </label>
+                        <select name="age" 
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50">
+                            <option value="">Chọn độ tuổi</option>
+                            <option value="18-25">18-25 tuổi</option>
+                            <option value="26-30">26-30 tuổi</option>
+                            <option value="31-35">31-35 tuổi</option>
+                            <option value="36-40">36-40 tuổi</option>
+                            <option value="40+">Trên 40 tuổi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Experience -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-star text-mom-purple mr-2"></i>Kinh Nghiệm Bán Hàng Online
+                    </label>
+                    <select name="experience" 
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50">
+                        <option value="">Chọn mức độ kinh nghiệm</option>
+                        <option value="Mới bắt đầu">Mới bắt đầu</option>
+                        <option value="Dưới 1 năm">Dưới 1 năm</option>
+                        <option value="1-2 năm">1-2 năm</option>
+                        <option value="Trên 2 năm">Trên 2 năm</option>
+                    </select>
+                </div>
+
+                <!-- Social Media -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fab fa-facebook text-mom-pink mr-2"></i>Link Facebook Cá Nhân
+                    </label>
+                    <input type="url" name="facebook" 
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50"
+                           placeholder="https://facebook.com/yourprofile">
+                </div>
+
+                <!-- Motivation -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-heart text-mom-blue mr-2"></i>Lý Do Muốn Trở Thành Cộng Tác Viên
+                    </label>
+                    <textarea name="motivation" rows="4" 
+                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50 resize-none"
+                              placeholder="Chia sẻ lý do bạn muốn tham gia chương trình cộng tác viên..."></textarea>
+                </div>
+
+                <!-- Terms -->
+                <div class="flex items-start space-x-3">
+                    <input type="checkbox" id="terms" name="terms" required 
+                           class="mt-1 w-5 h-5 text-mom-pink border-gray-300 rounded focus:ring-mom-pink">
+                    <label for="terms" class="text-sm text-gray-600 leading-relaxed">
+                        Tôi đồng ý với <a href="#" class="text-mom-pink hover:underline">điều khoản và điều kiện</a> 
+                        của chương trình cộng tác viên và cam kết tuân thủ các quy định về bán hàng.
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Đăng Ký Ngay</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Success Message (Hidden by default) -->
+        <div id="successMessage" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mt-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-green-800">Đăng Ký Thành Công!</h3>
+                    <p class="text-green-600">Chúng tôi sẽ liên hệ với bạn trong vòng 24h. Cảm ơn bạn đã tham gia!</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white/50 backdrop-blur-sm mt-16 py-8">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full flex items-center justify-center">
+                    <i class="fas fa-heart text-white text-sm"></i>
+                </div>
+                <span class="text-gray-600 font-medium">Mẹ & Bé Affiliate Program</span>
+            </div>
+            <p class="text-gray-500 text-sm">
+                © 2024 - Chương trình cộng tác viên dành cho mẹ bỉm sữa
+            </p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
