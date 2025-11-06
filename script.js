@@ -38,26 +38,27 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add timestamp
             data.timestamp = new Date().toLocaleString('vi-VN');
 
-            // Send to Cloudflare Worker
-            const response = await fetch('/api/submit', {
+            // Send to Google Apps Script
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
+            
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors', // Important for Google Apps Script
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(data)
             });
 
-            if (response.ok) {
-                // Show success message
-                form.style.display = 'none';
-                successMessage.classList.remove('hidden');
-                successMessage.scrollIntoView({ behavior: 'smooth' });
+            // Google Apps Script with no-cors always returns opaque response
+            // So we assume success if no error is thrown
+            // Show success message
+            form.style.display = 'none';
+            successMessage.classList.remove('hidden');
+            successMessage.scrollIntoView({ behavior: 'smooth' });
 
-                // Add celebration animation
-                createCelebration();
-            } else {
-                throw new Error('Submission failed');
-            }
+            // Add celebration animation
+            createCelebration();
 
         } catch (error) {
             console.error('Error:', error);

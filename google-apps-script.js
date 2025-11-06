@@ -7,13 +7,13 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     // Get or create the spreadsheet
-    const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Thay bằng ID của Google Sheets bạn vừa tạo
+    const spreadsheetId = '1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o';
     const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
     
-    // Get or create the sheet
-    let sheet = spreadsheet.getSheetByName('Referral Registrations');
+    // Get or create the sheet (sử dụng tên sheet "DS REF" như bạn đã tạo)
+    let sheet = spreadsheet.getSheetByName('DS REF');
     if (!sheet) {
-      sheet = spreadsheet.insertSheet('Referral Registrations');
+      sheet = spreadsheet.insertSheet('DS REF');
       
       // Add headers if it's a new sheet
       const headers = [
