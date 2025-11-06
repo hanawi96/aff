@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -7,7 +8,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Đăng Ký Cộng Tác Viên - Mẹ & Bé</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -23,20 +23,26 @@
         }
     </script>
 </head>
+
 <body class="bg-gradient-to-br from-warm-beige via-white to-mom-blue/20 min-h-screen">
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-16 max-w-2xl">
         <!-- Hero Section -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full mb-4 shadow-lg">
-                <i class="fas fa-baby text-white text-3xl"></i>
+            <div
+                class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full mb-4 shadow-lg">
+                <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                </svg>
             </div>
             <h2 class="text-3xl font-bold text-gray-800 mb-4">
                 Trở Thành Cộng Tác Viên
             </h2>
             <p class="text-gray-600 text-lg leading-relaxed">
-                Tham gia cùng chúng tôi để chia sẻ những sản phẩm tuyệt vời dành cho mẹ và bé. 
-                <span class="text-mom-pink font-semibold">Kiếm thu nhập</span> từ việc giới thiệu sản phẩm mà bạn yêu thích!
+                Tham gia cùng chúng tôi để chia sẻ những sản phẩm tuyệt vời dành cho mẹ và bé.
+                <span class="text-mom-pink font-semibold">Kiếm thu nhập</span> từ việc giới thiệu sản phẩm mà bạn yêu
+                thích!
             </p>
         </div>
 
@@ -44,21 +50,34 @@
         <div class="grid md:grid-cols-3 gap-4 mb-8">
             <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-pink/20">
                 <div class="w-12 h-12 bg-mom-pink/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-dollar-sign text-mom-pink text-xl"></i>
+                    <svg class="w-6 h-6 text-mom-pink" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </div>
                 <h3 class="font-semibold text-gray-800 mb-2">Hoa Hồng Hấp Dẫn</h3>
                 <p class="text-sm text-gray-600">Lên đến 15% cho mỗi đơn hàng thành công</p>
             </div>
             <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-blue/20">
                 <div class="w-12 h-12 bg-mom-blue/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-clock text-mom-blue text-xl"></i>
+                    <svg class="w-6 h-6 text-mom-blue" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </div>
                 <h3 class="font-semibold text-gray-800 mb-2">Thời Gian Linh Hoạt</h3>
                 <p class="text-sm text-gray-600">Làm việc theo thời gian của bạn</p>
             </div>
             <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-purple/20">
                 <div class="w-12 h-12 bg-mom-purple/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-users text-mom-purple text-xl"></i>
+                    <svg class="w-6 h-6 text-mom-purple" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
                 </div>
                 <h3 class="font-semibold text-gray-800 mb-2">Cộng Đồng Hỗ Trợ</h3>
                 <p class="text-sm text-gray-600">Được hỗ trợ 24/7 từ team</p>
@@ -76,33 +95,44 @@
                 <!-- Personal Info -->
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-user text-mom-pink mr-2"></i>Họ và Tên *
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 text-mom-pink mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            Họ và Tên *
                         </label>
-                        <input type="text" name="fullName" required 
-                               value="yên"
-                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50"
-                               placeholder="Nguyễn Thị Lan">
+                        <input type="text" name="fullName" required value="yên"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50"
+                            placeholder="Nguyễn Thị Lan">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-phone text-mom-blue mr-2"></i>Số Điện Thoại *
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                            </svg>
+                            Số Điện Thoại *
                         </label>
-                        <input type="tel" name="phone" required 
-                               value="0386190596"
-                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50"
-                               placeholder="0901234567">
+                        <input type="tel" name="phone" required value="0386190596"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50"
+                            placeholder="0901234567">
                     </div>
                 </div>
 
                 <!-- Location -->
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-map-marker-alt text-mom-pink mr-2"></i>Tỉnh/Thành Phố *
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 text-mom-pink mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            Tỉnh/Thành Phố *
                         </label>
-                        <select name="city" required 
-                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50">
+                        <select name="city" required
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50">
                             <option value="">Chọn tỉnh/thành</option>
                             <option value="Hà Nội">Hà Nội</option>
                             <option value="TP.HCM" selected>TP. Hồ Chí Minh</option>
@@ -113,11 +143,16 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-birthday-cake text-mom-blue mr-2"></i>Tuổi
+                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            Tuổi
                         </label>
-                        <select name="age" 
-                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50">
+                        <select name="age"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50">
                             <option value="">Chọn độ tuổi</option>
                             <option value="18-25">18-25 tuổi</option>
                             <option value="26-30" selected>26-30 tuổi</option>
@@ -130,11 +165,15 @@
 
                 <!-- Experience -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-star text-mom-purple mr-2"></i>Kinh Nghiệm Bán Hàng Online
+                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 text-mom-purple mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Kinh Nghiệm Bán Hàng Online
                     </label>
-                    <select name="experience" 
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50">
+                    <select name="experience"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50">
                         <option value="">Chọn mức độ kinh nghiệm</option>
                         <option value="Mới bắt đầu">Mới bắt đầu</option>
                         <option value="Dưới 1 năm">Dưới 1 năm</option>
@@ -145,28 +184,36 @@
 
                 <!-- Motivation -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-heart text-mom-blue mr-2"></i>Lý Do Muốn Trở Thành Cộng Tác Viên
+                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                        <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Lý Do Muốn Trở Thành Cộng Tác Viên
                     </label>
-                    <textarea name="motivation" rows="4" 
-                              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50 resize-none"
-                              placeholder="Chia sẻ lý do bạn muốn tham gia chương trình cộng tác viên..."></textarea>
+                    <textarea name="motivation" rows="4"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50 resize-none"
+                        placeholder="Chia sẻ lý do bạn muốn tham gia chương trình cộng tác viên..."></textarea>
                 </div>
 
                 <!-- Terms -->
                 <div class="flex items-start space-x-3">
-                    <input type="checkbox" id="terms" name="terms" required 
-                           class="mt-1 w-5 h-5 text-mom-pink border-gray-300 rounded focus:ring-mom-pink">
+                    <input type="checkbox" id="terms" name="terms" required
+                        class="mt-1 w-5 h-5 text-mom-pink border-gray-300 rounded focus:ring-mom-pink">
                     <label for="terms" class="text-sm text-gray-600 leading-relaxed">
-                        Tôi đồng ý với <a href="#" class="text-mom-pink hover:underline">điều khoản và điều kiện</a> 
+                        Tôi đồng ý với <a href="#" class="text-mom-pink hover:underline">điều khoản và điều kiện</a>
                         của chương trình cộng tác viên và cam kết tuân thủ các quy định về bán hàng.
                     </label>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" 
-                        class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2">
-                    <i class="fas fa-paper-plane"></i>
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 text-white font-extrabold py-5 px-8 rounded-xl flex items-center justify-center space-x-3 text-xl shadow-xl uppercase tracking-wide">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
                     <span>Đăng Ký Ngay</span>
                 </button>
             </form>
@@ -176,7 +223,11 @@
         <div id="successMessage" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mt-6">
             <div class="flex items-center space-x-3">
                 <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-check text-green-600 text-xl"></i>
+                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-green-800">Đăng Ký Thành Công!</h3>
@@ -190,8 +241,13 @@
     <footer class="bg-white/50 backdrop-blur-sm mt-16 py-8">
         <div class="container mx-auto px-4 text-center">
             <div class="flex items-center justify-center space-x-3 mb-4">
-                <div class="w-8 h-8 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full flex items-center justify-center">
-                    <i class="fas fa-heart text-white text-sm"></i>
+                <div
+                    class="w-8 h-8 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </div>
                 <span class="text-gray-600 font-medium">Mẹ & Bé Affiliate Program</span>
             </div>
@@ -203,4 +259,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>

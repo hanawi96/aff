@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Auto-fill demo data for testing (comment out in production)
     const DEMO_MODE = true; // Set to false to disable auto-fill
-    
+
     if (DEMO_MODE) {
         const demoData = {
             fullName: 'Nguyễn Thị Yến',
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const originalText = submitButton.innerHTML;
 
         // Show loading state
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang gửi...';
+        submitButton.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang gửi...';
         submitButton.disabled = true;
 
         try {
@@ -76,10 +76,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Send to Google Apps Script
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
-            
+
             console.log('Sending data to Google Apps Script:', data);
             console.log('URL:', GOOGLE_SCRIPT_URL);
-            
+
             // Send with proper CORS handling
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
@@ -89,14 +89,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify(data),
                 redirect: 'follow'
             });
-            
+
             console.log('Response status:', response.status);
             console.log('Response ok:', response.ok);
-            
+
             // Check response
             const responseText = await response.text();
             console.log('Raw response:', responseText);
-            
+
             let result;
             try {
                 result = JSON.parse(responseText);
@@ -104,27 +104,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('JSON parse error:', parseError);
                 throw new Error('Invalid response from server');
             }
-            
+
             console.log('Parsed response:', result);
-            
+
             if (!result.success) {
                 throw new Error(result.error || 'Failed to save data');
             }
-            
+
             // Validate response data - ensure we have the referral code and URL
             if (!result.referralCode || !result.referralUrl) {
                 console.error('Missing referral data in response:', result);
                 console.error('Full result object:', JSON.stringify(result, null, 2));
                 throw new Error('Server did not return referral information');
             }
-            
+
             const refCode = result.referralCode;
             const refUrl = result.referralUrl;
-            
+
             console.log('✓ Referral Code:', refCode);
             console.log('✓ Referral URL:', refUrl);
             console.log('✓ Full Name:', data.fullName);
-            
+
             // Show success modal with referral code
             console.log('Calling showSuccessModal with:', { refCode, refUrl, fullName: data.fullName });
             showSuccessModal(refCode, refUrl, data.fullName);
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Simple and clean modal design for moms
         modalOverlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-y-auto" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 
                 <!-- Header - Clean & Simple -->
                 <div class="pt-8 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white">
@@ -247,8 +247,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     <!-- Subtitle -->
                     <p class="text-gray-600 text-base leading-relaxed">
-                        Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ')[0]}</span> đã tin tưởng! 
-                        <span class="text-green-600 font-medium">Shop sẽ liên hệ xác nhận đơn hàng sớm nhất</span> ❤️
+                        Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span> đã tin tưởng! 
+                        <span class="text-green-600 font-medium">Em sẽ liên hệ với chị ngay để xác nhận và hướng dẫn chị ạ!!!</span> ❤️
                     </p>
                 </div>
 
@@ -257,22 +257,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     <!-- Referral Link -->
                     <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
-                        <label class="text-xs text-gray-600 font-medium block mb-2">LINK GIỚI THIỆU CỦA BẠN</label>
+                        <label class="text-xs text-gray-600 font-medium flex items-center gap-1.5 mb-2">
+                            <svg class="w-4 h-4 text-pink-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd" d="M19.902 4.098a3.75 3.75 0 0 0-5.304 0l-4.5 4.5a3.75 3.75 0 0 0 1.035 6.037.75.75 0 0 1-.646 1.353 5.25 5.25 0 0 1-1.449-8.45l4.5-4.5a5.25 5.25 0 1 1 7.424 7.424l-1.757 1.757a.75.75 0 1 1-1.06-1.06l1.757-1.757a3.75 3.75 0 0 0 0-5.304Zm-7.389 4.267a.75.75 0 0 1 1-.353 5.25 5.25 0 0 1 1.449 8.45l-4.5 4.5a5.25 5.25 0 1 1-7.424-7.424l1.757-1.757a.75.75 0 1 1 1.06 1.06l-1.757 1.757a3.75 3.75 0 1 0 5.304 5.304l4.5-4.5a3.75 3.75 0 0 0-1.035-6.037.75.75 0 0 1-.354-1Z" clip-rule="evenodd" />
+                            </svg>
+                            LINK GIỚI THIỆU CỦA BẠN
+                        </label>
                         <div class="flex items-center space-x-2 bg-white rounded-lg p-3 mb-3">
                             <input type="text" value="${refUrl}" readonly 
                                 class="flex-1 text-sm text-gray-700 bg-transparent outline-none min-w-0">
                             <button onclick="copyRefUrl('${refUrl}')" 
-                                class="px-4 py-2 bg-mom-pink text-white rounded-lg text-sm hover:bg-mom-pink/90 transition-colors font-medium flex-shrink-0">
-                                <i class="fas fa-copy mr-1"></i>Copy
+                                class="px-4 py-2 bg-pink-600 text-white rounded-lg text-sm hover:bg-pink-700 transition-colors font-bold flex-shrink-0 flex items-center gap-1 shadow-md">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                                </svg>
+                                Copy
                             </button>
                         </div>
                         
                         <!-- Commission Calculator Button -->
                         <button onclick="showCommissionModal()" 
-                            class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-2">
-                            <i class="fas fa-calculator"></i>
+                            class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
+                            </svg>
                             <span>Xem Cách Tính Hoa Hồng</span>
                         </button>
+                        
+                        <!-- Contact Note -->
+                        <div class="mt-3 flex items-start gap-2 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="text-xs text-gray-700 leading-relaxed">
+                                Có thắc mắc gì, vui lòng liên hệ với em Ánh qua Zalo: 
+                                <a href="https://zalo.me/0972483892" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+                                    0972.483.892
+                                </a> hoặc  <a href="https://zalo.me/0386190596" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+                                    0386.190.596
+                                </a> ạ
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Simple Info -->
@@ -301,7 +328,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="shareToFacebook('${refUrl}')" 
                             class="bg-[#1877f2] text-white py-3 rounded-xl text-sm font-medium hover:bg-[#166fe5] transition-colors flex items-center justify-center space-x-2">
-                            <i class="fab fa-facebook-f"></i>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
                             <span>Chia Sẻ</span>
                         </button>
                         <button onclick="closeSuccessModal()" 
@@ -380,8 +409,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.showCommissionModal = function () {
         // Update URL with hash
-        window.history.pushState({modal: 'commission'}, '', '#cach-tinh-hoa-hong');
-        
+        window.history.pushState({ modal: 'commission' }, '', '#cach-tinh-hoa-hong');
+
         // Create commission modal
         const commissionModal = document.createElement('div');
         commissionModal.id = 'commissionModal';
@@ -390,16 +419,20 @@ document.addEventListener('DOMContentLoaded', function () {
         commissionModal.style.paddingBottom = 'max(2rem, env(safe-area-inset-bottom))';
 
         commissionModal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden flex flex-col" style="max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden flex flex-col" style="max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 <!-- Header -->
                 <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
                     <h2 class="text-base sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
                     <div class="flex items-center gap-2">
                         <button onclick="shareCommissionPage()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Chia sẻ">
-                            <i class="fas fa-share-alt text-white text-sm"></i>
+                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+                            </svg>
                         </button>
                         <button onclick="closeCommissionModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Đóng">
-                            <i class="fas fa-times text-white text-sm"></i>
+                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -414,7 +447,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <p class="text-3xl font-bold text-green-600">15%</p>
                             </div>
                             <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                <i class="fas fa-percentage text-green-500 text-xl"></i>
+                                <svg class="w-7 h-7 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -536,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.location.hash === '#cach-tinh-hoa-hong') {
             window.history.back();
         }
-        
+
         const modal = document.getElementById('commissionModal');
         if (modal) {
             modal.remove(); // Instant close, no animation
@@ -546,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.shareCommissionPage = function () {
         const shareUrl = window.location.origin + window.location.pathname + '#cach-tinh-hoa-hong';
         const shareText = 'Xem cách tính hoa hồng 15% khi trở thành cộng tác viên!';
-        
+
         // Check if Web Share API is available (mobile)
         if (navigator.share) {
             navigator.share({
@@ -744,7 +779,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Hash routing for commission modal
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     // Check if URL has commission hash on page load
     if (window.location.hash === '#cach-tinh-hoa-hong') {
         showCommissionModal();
@@ -752,7 +787,7 @@ window.addEventListener('load', function() {
 });
 
 // Handle browser back/forward buttons
-window.addEventListener('popstate', function(e) {
+window.addEventListener('popstate', function (e) {
     if (window.location.hash === '#cach-tinh-hoa-hong') {
         // Open modal if hash is present
         if (!document.getElementById('commissionModal')) {
