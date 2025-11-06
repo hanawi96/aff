@@ -6,7 +6,7 @@ export async function onRequestPost(context) {
     const data = await request.json();
     
     // Validate required fields
-    if (!data.fullName || !data.phone || !data.email) {
+    if (!data.fullName || !data.phone) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Missing required fields'

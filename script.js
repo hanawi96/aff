@@ -10,11 +10,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const demoData = {
             fullName: 'Nguyễn Thị Yến',
             phone: '0901234567',
-            email: 'yen.nguyen@example.com',
             city: 'Hà Nội',
             age: '26-30',
             experience: '1-2 năm',
-            facebook: 'https://facebook.com/yen.nguyen',
             motivation: 'Tôi muốn có thêm thu nhập để chăm sóc gia đình và chia sẻ những sản phẩm tốt cho mẹ và bé.'
         };
 

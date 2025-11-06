@@ -23,33 +23,69 @@ function doPost(e) {
     let sheet = spreadsheet.getSheetByName('DS REF');
     if (!sheet) {
       sheet = spreadsheet.insertSheet('DS REF');
+    }
 
-      // Add headers if it's a new sheet
+    // Kiểm tra xem sheet có header chưa (kiểm tra cell A1)
+    const firstCell = sheet.getRange(1, 1).getValue();
+    const needsHeader = !firstCell || firstCell === '';
+
+    if (needsHeader) {
+      // Add headers
       const headers = [
         'Thời Gian',
         'Họ Tên',
         'Số Điện Thoại',
-        'Email',
         'Tỉnh/Thành',
         'Tuổi',
         'Kinh Nghiệm',
-        'Facebook',
         'Lý Do',
         'Mã Ref',
         'Trạng Thái'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-      // Format headers
+      // Format headers - Nổi bật và đẹp hơn
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
-      headerRange.setBackground('#f8b4cb');
+
+      // Background gradient effect với màu hồng đậm hơn
+      headerRange.setBackground('#e91e63'); // Material Pink 500
       headerRange.setFontWeight('bold');
-      headerRange.setFontColor('white');
+      headerRange.setFontColor('#ffffff');
+      headerRange.setFontSize(11);
+      headerRange.setFontFamily('Arial');
       headerRange.setHorizontalAlignment('center');
       headerRange.setVerticalAlignment('middle');
 
+      // Thêm border cho header
+      headerRange.setBorder(
+        true, true, true, true, true, true,
+        '#c2185b', // Material Pink 700 - darker border
+        SpreadsheetApp.BorderStyle.SOLID_MEDIUM
+      );
+
+      // Tăng chiều cao của header row
+      sheet.setRowHeight(1, 35);
+
+      // Set column widths cho dễ đọc
+      sheet.setColumnWidth(1, 150);  // Thời Gian
+      sheet.setColumnWidth(2, 180);  // Họ Tên
+      sheet.setColumnWidth(3, 120);  // Số Điện Thoại
+      sheet.setColumnWidth(4, 120);  // Tỉnh/Thành
+      sheet.setColumnWidth(5, 100);  // Tuổi
+      sheet.setColumnWidth(6, 130);  // Kinh Nghiệm
+      sheet.setColumnWidth(7, 300);  // Lý Do
+      sheet.setColumnWidth(8, 120);  // Mã Ref
+      sheet.setColumnWidth(9, 100);  // Trạng Thái
+
       // Freeze header row
       sheet.setFrozenRows(1);
+
+      // Thêm filter cho header
+      sheet.getRange(1, 1, 1, headers.length).createFilter();
+
+      Logger.log('✅ Header đã được tạo thành công!');
+    } else {
+      Logger.log('ℹ️ Header đã tồn tại, bỏ qua việc tạo mới');
     }
 
     // Generate unique referral code
@@ -64,11 +100,9 @@ function doPost(e) {
       data.timestamp || new Date().toLocaleString('vi-VN'),
       data.fullName || '',
       data.phone || '',
-      data.email || '',
       data.city || '',
       data.age || '',
       data.experience || '',
-      data.facebook || '',
       data.motivation || '',
       refCode, // Referral Code
       'Mới' // Status
@@ -80,16 +114,49 @@ function doPost(e) {
     // Get the last row that was just added
     const lastRow = sheet.getLastRow();
 
-    // Format the newly added row - căn giữa
+    // Format the newly added row
     const dataRange = sheet.getRange(lastRow, 1, 1, rowData.length);
-    dataRange.setHorizontalAlignment('center');
-    dataRange.setVerticalAlignment('middle');
 
-    // Optional: Add borders for better visibility
-    dataRange.setBorder(true, true, true, true, true, true, '#e0e0e0', SpreadsheetApp.BorderStyle.SOLID);
+    // Căn giữa các cột trừ cột "Lý Do" (cột 7)
+    for (let col = 1; col <= rowData.length; col++) {
+      const cell = sheet.getRange(lastRow, col);
+      if (col === 7) { // Cột "Lý Do" - căn trái
+        cell.setHorizontalAlignment('left');
+      } else {
+        cell.setHorizontalAlignment('center');
+      }
+      cell.setVerticalAlignment('middle');
+    }
 
-    // Auto-resize columns
-    sheet.autoResizeColumns(1, rowData.length);
+    // Thêm màu nền xen kẽ cho dễ đọc (zebra striping)
+    if (lastRow % 2 === 0) {
+      dataRange.setBackground('#f9f9f9'); // Light gray cho hàng chẵn
+    } else {
+      dataRange.setBackground('#ffffff'); // White cho hàng lẻ
+    }
+
+    // Format cột "Trạng Thái" (cột 9) với màu nổi bật
+    const statusCell = sheet.getRange(lastRow, 9);
+    statusCell.setBackground('#fff3cd'); // Light yellow
+    statusCell.setFontColor('#856404'); // Dark yellow text
+    statusCell.setFontWeight('bold');
+
+    // Format cột "Mã Ref" (cột 8) với màu nổi bật
+    const refCodeCell = sheet.getRange(lastRow, 8);
+    refCodeCell.setBackground('#e3f2fd'); // Light blue
+    refCodeCell.setFontColor('#1565c0'); // Dark blue text
+    refCodeCell.setFontWeight('bold');
+    refCodeCell.setFontFamily('Courier New'); // Monospace font cho code
+
+    // Thêm border cho row
+    dataRange.setBorder(
+      true, true, true, true, false, false,
+      '#e0e0e0',
+      SpreadsheetApp.BorderStyle.SOLID
+    );
+
+    // Set row height
+    sheet.setRowHeight(lastRow, 30);
 
     // Send notification email (optional)
     try {
