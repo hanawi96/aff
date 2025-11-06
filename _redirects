@@ -1,3 +1,0 @@
-# Redirects for Cloudflare Pages
-/    /index.html   200
-/*   /index.html   404

@@ -7,7 +7,11 @@
     "build": "cp -r . dist/ || xcopy . dist\\ /E /I",
     "start": "echo 'Static site - no start command needed'"
   },
-  "keywords": ["referral", "affiliate", "form"],
+  "keywords": [
+    "referral",
+    "affiliate",
+    "form"
+  ],
   "author": "hanawi96",
   "license": "MIT"
 }

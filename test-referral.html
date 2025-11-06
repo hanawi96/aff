@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Referral System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #f8b4cb, #d4a5d4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Referral System</h1>
+        
+        <div class="info">
+            <strong>Mục đích:</strong> Test xem Google Apps Script có trả về đúng referralCode và referralUrl không
+        </div>
+
+        <button onclick="testReferralSystem()">Test Đăng Ký</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testReferralSystem() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Đang gửi request...';
+            resultDiv.className = '';
+
+            try {
+                const testData = {
+                    fullName: 'Nguyễn Văn Test',
+                    phone: '0901234567',
+                    email: 'test@example.com',
+                    city: 'Hà Nội',
+                    age: '26-30',
+                    experience: 'Mới bắt đầu',
+                    facebook: 'https://facebook.com/test',
+                    motivation: 'Test hệ thống',
+                    timestamp: new Date().toLocaleString('vi-VN')
+                };
+
+                console.log('Sending test data:', testData);
+
+                const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
+
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify(testData),
+                    redirect: 'follow'
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    throw new Error('Invalid JSON response: ' + responseText);
+                }
+
+                console.log('Parsed result:', result);
+
+                // Display result
+                let output = '✅ SUCCESS!\n\n';
+                output += 'Response Data:\n';
+                output += JSON.stringify(result, null, 2);
+                output += '\n\n';
+                output += '📋 Referral Code: ' + (result.referralCode || 'MISSING!') + '\n';
+                output += '🔗 Referral URL: ' + (result.referralUrl || 'MISSING!') + '\n';
+
+                if (!result.referralCode || !result.referralUrl) {
+                    output += '\n⚠️ WARNING: Missing referral data!';
+                    resultDiv.className = 'error';
+                } else {
+                    resultDiv.className = 'success';
+                }
+
+                resultDiv.textContent = output;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.textContent = '❌ ERROR:\n\n' + error.message + '\n\nCheck console for details.';
+                resultDiv.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>

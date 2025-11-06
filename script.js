@@ -3,11 +3,49 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('referralForm');
     const successMessage = document.getElementById('successMessage');
 
+    // Auto-fill demo data for testing (comment out in production)
+    const DEMO_MODE = true; // Set to false to disable auto-fill
+    
+    if (DEMO_MODE) {
+        const demoData = {
+            fullName: 'Nguyễn Thị Yến',
+            phone: '0901234567',
+            email: 'yen.nguyen@example.com',
+            city: 'Hà Nội',
+            age: '26-30',
+            experience: '1-2 năm',
+            facebook: 'https://facebook.com/yen.nguyen',
+            motivation: 'Tôi muốn có thêm thu nhập để chăm sóc gia đình và chia sẻ những sản phẩm tốt cho mẹ và bé.'
+        };
+
+        // Fill form with demo data
+        Object.keys(demoData).forEach(key => {
+            const input = form.querySelector(`[name="${key}"]`);
+            if (input) {
+                input.value = demoData[key];
+                // Add a visual indicator that this is demo data
+                input.style.backgroundColor = '#fffbeb'; // Light yellow
+            }
+        });
+
+        // Check the terms checkbox
+        const termsCheckbox = form.querySelector('#terms');
+        if (termsCheckbox) {
+            termsCheckbox.checked = true;
+        }
+
+        console.log('🧪 DEMO MODE: Form auto-filled with test data');
+    }
+
     // Add smooth animations
     const inputs = document.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
         input.addEventListener('focus', function () {
             this.parentElement.classList.add('transform', 'scale-105');
+            // Remove demo background on focus
+            if (DEMO_MODE) {
+                this.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+            }
         });
 
         input.addEventListener('blur', function () {
@@ -41,54 +79,60 @@ document.addEventListener('DOMContentLoaded', function () {
             // Send to Google Apps Script
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
             
-            // Try with CORS first, fallback to no-cors
-            let success = false;
+            console.log('Sending data to Google Apps Script:', data);
+            console.log('URL:', GOOGLE_SCRIPT_URL);
             
+            // Send with proper CORS handling
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: JSON.stringify(data),
+                redirect: 'follow'
+            });
+            
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            // Check response
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            let result;
             try {
-                // First attempt: with CORS
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    success = true;
-                }
-            } catch (corsError) {
-                console.log('CORS failed, trying no-cors mode...');
-                
-                // Second attempt: no-cors mode
-                try {
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    
-                    // With no-cors, we assume success if no error is thrown
-                    success = true;
-                } catch (noCorsError) {
-                    throw new Error('Failed to submit form');
-                }
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                throw new Error('Invalid response from server');
             }
             
-            if (success) {
-                // Show success message
-                form.style.display = 'none';
-                successMessage.classList.remove('hidden');
-                successMessage.scrollIntoView({ behavior: 'smooth' });
-
-                // Add celebration animation
-                createCelebration();
-            } else {
-                throw new Error('Submission failed');
+            console.log('Parsed response:', result);
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to save data');
             }
+            
+            // Validate response data - ensure we have the referral code and URL
+            if (!result.referralCode || !result.referralUrl) {
+                console.error('Missing referral data in response:', result);
+                console.error('Full result object:', JSON.stringify(result, null, 2));
+                throw new Error('Server did not return referral information');
+            }
+            
+            const refCode = result.referralCode;
+            const refUrl = result.referralUrl;
+            
+            console.log('✓ Referral Code:', refCode);
+            console.log('✓ Referral URL:', refUrl);
+            console.log('✓ Full Name:', data.fullName);
+            
+            // Show success modal with referral code
+            console.log('Calling showSuccessModal with:', { refCode, refUrl, fullName: data.fullName });
+            showSuccessModal(refCode, refUrl, data.fullName);
+
+            // Add celebration animation
+            createCelebration();
 
         } catch (error) {
             console.error('Error:', error);
@@ -167,6 +211,104 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Show success modal with referral information
+    function showSuccessModal(refCode, refUrl, fullName) {
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'successModal';
+        modalOverlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6';
+        modalOverlay.style.animation = 'fadeIn 0.3s ease-out';
+        modalOverlay.style.paddingTop = 'max(2rem, env(safe-area-inset-top))';
+        modalOverlay.style.paddingBottom = 'max(2rem, env(safe-area-inset-bottom))';
+
+        // Simple and clean modal design for moms
+        modalOverlay.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden flex flex-col" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+                
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center space-x-2 sm:space-x-3">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow flex-shrink-0">
+                            <i class="fas fa-check text-mom-pink text-base sm:text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <h2 class="text-base sm:text-lg font-bold text-white">Chúc mừng ${fullName.split(' ')[0]}!</h2>
+                            <p class="text-white/90 text-xs sm:text-sm">Đã trở thành cộng tác viên</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content - Scrollable -->
+                <div class="p-4 sm:p-6 overflow-y-auto flex-1 modal-content-scroll">
+
+                    <!-- Referral Link -->
+                    <div class="bg-mom-pink/10 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+                        <label class="text-xs text-gray-600 font-medium block mb-2">LINK GIỚI THIỆU CỦA BẠN</label>
+                        <div class="flex items-center space-x-2 bg-white rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
+                            <input type="text" value="${refUrl}" readonly 
+                                class="flex-1 text-xs sm:text-sm text-gray-700 bg-transparent outline-none min-w-0">
+                            <button onclick="copyRefUrl('${refUrl}')" 
+                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-mom-pink text-white rounded-lg text-xs sm:text-sm hover:bg-mom-pink/90 transition-colors font-medium flex-shrink-0">
+                                <i class="fas fa-copy mr-1"></i><span class="hidden xs:inline">Copy</span><span class="xs:hidden">Copy</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Commission Calculator Button -->
+                        <button onclick="showCommissionModal()" 
+                            class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-1.5 sm:space-x-2">
+                            <i class="fas fa-calculator text-xs sm:text-sm"></i>
+                            <span>Xem Cách Tính Hoa Hồng</span>
+                        </button>
+                    </div>
+
+                    <!-- Simple Info -->
+                    <div class="bg-blue-50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+                        <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-700">
+                            <div class="flex items-start space-x-2 sm:space-x-3">
+                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                                <p>Chia sẻ link với bạn bè</p>
+                            </div>
+                            <div class="flex items-start space-x-2 sm:space-x-3">
+                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                                <p>Nhận 15% hoa hồng mỗi đơn</p>
+                            </div>
+                            <div class="flex items-start space-x-2 sm:space-x-3">
+                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
+                                <p>Khách mua trong vòng 7 ngày được tính hoa hồng</p>
+                            </div>
+                            <div class="flex items-start space-x-2 sm:space-x-3">
+                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></div>
+                                <p>Chúng tôi sẽ liên hệ trong 24h</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                        <button onclick="shareToFacebook('${refUrl}')" 
+                            class="bg-[#1877f2] text-white py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-medium hover:bg-[#166fe5] transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
+                            <i class="fab fa-facebook-f text-sm sm:text-base"></i>
+                            <span>Chia Sẻ</span>
+                        </button>
+                        <button onclick="closeSuccessModal()" 
+                            class="bg-gray-100 text-gray-700 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-medium hover:bg-gray-200 transition-colors">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modalOverlay);
+
+        // Add click outside to close
+        modalOverlay.addEventListener('click', function (e) {
+            if (e.target === modalOverlay) {
+                closeSuccessModal();
+            }
+        });
+    }
+
     // Celebration animation
     function createCelebration() {
         const colors = ['#f8b4cb', '#a8d8ea', '#d4a5d4'];
@@ -194,7 +336,200 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Add CSS for confetti animation
+    // Global functions for modal actions
+    window.copyRefCode = function (code) {
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('✓ Đã copy mã giới thiệu!');
+        });
+    };
+
+    window.copyRefUrl = function (url) {
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('✓ Đã copy link giới thiệu!');
+        });
+    };
+
+    window.shareToFacebook = function (url) {
+        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        window.open(fbUrl, '_blank', 'width=600,height=400');
+    };
+
+    window.closeSuccessModal = function () {
+        const modal = document.getElementById('successModal');
+        if (modal) {
+            modal.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
+    };
+
+    window.showCommissionModal = function () {
+        // Create commission modal
+        const commissionModal = document.createElement('div');
+        commissionModal.id = 'commissionModal';
+        commissionModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 sm:p-6';
+        commissionModal.style.paddingTop = 'max(2rem, env(safe-area-inset-top))';
+        commissionModal.style.paddingBottom = 'max(2rem, env(safe-area-inset-bottom))';
+
+        commissionModal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden flex flex-col" style="max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
+                    <h2 class="text-base sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
+                    <button onclick="closeCommissionModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0">
+                        <i class="fas fa-times text-white text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Content - Scrollable -->
+                <div class="p-4 sm:p-5 overflow-y-auto flex-1 modal-content-scroll">
+                    <!-- Commission Rate Card -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 mb-4 border border-green-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-600 mb-1">Tỷ Lệ Hoa Hồng</p>
+                                <p class="text-3xl font-bold text-green-600">15%</p>
+                            </div>
+                            <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-percentage text-green-500 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rule 1: 7 Days -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-center space-x-2 mb-3">
+                            <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                <span class="text-white font-bold text-sm">1</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-base">Mã Lưu 7 Ngày</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 text-center px-4">Khi khách click vào link của bạn, mã giới thiệu được lưu trong 7 ngày. Bất kỳ đơn hàng nào trong 7 ngày đó đều tính hoa hồng cho bạn.</p>
+                        
+                        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
+                            <p class="text-sm text-gray-700 font-medium mb-2">Ví dụ:</p>
+                            <div class="space-y-1.5 text-sm">
+                                <p class="text-gray-600">• Ngày 1: Chị Lan click vào link của bạn</p>
+                                <p class="text-gray-600">• Ngày 3: Chị Lan mua đồ 800k → Bạn nhận 120k</p>
+                                <p class="text-gray-600">• Ngày 6: Chị Lan mua thêm 500k → Bạn nhận 75k</p>
+                                <p class="text-blue-600 font-medium">• Ngày 7: Chị Lan click lại link → Gia hạn thêm 7 ngày</p>
+                                <p class="text-gray-600">• Ngày 10: Chị Lan mua 600k → Bạn vẫn nhận 90k</p>
+                                <p class="text-green-600 font-semibold mt-2 pt-2 border-t border-blue-300">✓ Tổng: 285.000đ hoa hồng</p>
+                                <p class="text-xs text-gray-500 italic mt-1">💡 Click lại link = Gia hạn thêm 7 ngày mới</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rule 2: Exclude Shipping -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-center space-x-2 mb-3">
+                            <div class="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                <span class="text-white font-bold text-sm">2</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-base">Tính Trên Giá Sản Phẩm</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 text-center px-4">Hoa hồng được tính trên giá trị sản phẩm, không bao gồm phí ship.</p>
+                        
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-3.5 border border-purple-200">
+                            <p class="text-xs font-medium text-purple-700 mb-2.5 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                </svg>
+                                Ví dụ:
+                            </p>
+                            
+                            <div class="space-y-1.5 text-sm">
+                                <div class="flex justify-between items-center py-1.5 px-2.5 bg-white/60 rounded">
+                                    <span class="text-gray-600">Giá sản phẩm</span>
+                                    <span class="font-semibold text-gray-800">1.000.000đ</span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center py-1.5 px-2.5 bg-white/60 rounded">
+                                    <span class="text-gray-600">Phí ship</span>
+                                    <span class="font-semibold text-gray-800">30.000đ</span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center py-1 px-2.5 text-xs border-t border-purple-200/50 mt-2 pt-2">
+                                    <span class="text-gray-500">Tổng khách trả</span>
+                                    <span class="text-gray-600">1.030.000đ</span>
+                                </div>
+                                
+                                <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg mt-2 p-2.5">
+                                    <div class="flex justify-between items-center mb-1.5">
+                                        <span class="text-white font-medium flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Hoa hồng 15%
+                                        </span>
+                                        <span class="text-white font-bold text-lg">150.000đ</span>
+                                    </div>
+                                    <div class="text-white/90 text-xs bg-white/10 rounded px-2 py-1">
+                                        1.000.000đ × 15% = 150.000đ
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-gray-500 mt-2.5 pl-1">* Tính trên 1.000.000đ (không tính ship 30k)</p>
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 mb-2 border border-green-200">
+                        <p class="text-sm text-gray-700 font-medium mb-2">📌 Tóm Tắt:</p>
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <p>• Link có hiệu lực 7 ngày</p>
+                            <p>• Hoa hồng 15% trên giá sản phẩm</p>
+                            <p>• Thanh toán cuối mỗi tháng</p>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <!-- Footer - Fixed at bottom -->
+                <div class="p-4 sm:p-5 pt-3 border-t border-gray-100 flex-shrink-0 bg-white">
+                    <button onclick="closeCommissionModal()" 
+                        class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all">
+                        Đã Hiểu
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(commissionModal);
+
+        // Click outside to close
+        commissionModal.addEventListener('click', function (e) {
+            if (e.target === commissionModal) {
+                closeCommissionModal();
+            }
+        });
+    };
+
+    window.closeCommissionModal = function () {
+        const modal = document.getElementById('commissionModal');
+        if (modal) {
+            modal.remove(); // Instant close, no animation
+        }
+    };
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[60]';
+        toast.style.animation = 'slideInRight 0.3s ease-out';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    }
+
+    // Add CSS for animations
     const style = document.createElement('style');
     style.textContent = `
         @keyframes fall {
@@ -208,11 +543,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         
-        .form-container {
-            animation: slideInUp 0.6s ease-out;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
-        @keyframes slideInUp {
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        @keyframes slideUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
@@ -220,6 +561,70 @@ document.addEventListener('DOMContentLoaded', function () {
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+        
+        /* Mobile modal optimization */
+        @supports (padding: max(0px)) {
+            .modal-safe-area {
+                padding-top: max(1rem, env(safe-area-inset-top));
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+        }
+        
+        /* Smooth scrolling for modal content */
+        .modal-content-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+        
+        /* Spinner animation for loading button */
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
             }
         }
     `;
