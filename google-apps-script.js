@@ -7,7 +7,7 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     
     // Get or create the spreadsheet
-    const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Replace with your spreadsheet ID
+    const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Thay bằng ID của Google Sheets bạn vừa tạo
     const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
     
     // Get or create the sheet
@@ -82,7 +82,7 @@ function doPost(e) {
 
 function sendNotificationEmail(data) {
   try {
-    const emailAddress = 'your-email@gmail.com'; // Replace with your email
+    const emailAddress = 'your-email@gmail.com'; // Thay bằng email của bạn để nhận thông báo
     const subject = '🎉 Đăng Ký Cộng Tác Viên Mới';
     
     const htmlBody = `

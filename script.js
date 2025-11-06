@@ -38,8 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add timestamp
             data.timestamp = new Date().toLocaleString('vi-VN');
             
-            // Send to Cloudflare Worker
-            const response = await fetch('/api/submit', {
+            // Send to Google Apps Script
+            // Thay YOUR_WEB_APP_URL bằng URL từ Google Apps Script deployment
+            const GOOGLE_SCRIPT_URL = 'YOUR_WEB_APP_URL';
+            
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
