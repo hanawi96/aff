@@ -6,6 +6,9 @@ function doPost(e) {
     // Parse the incoming data
     const data = JSON.parse(e.postData.contents);
     
+    // Log for debugging
+    console.log('Received data:', data);
+    
     // Get or create the spreadsheet
     const spreadsheetId = '1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o';
     const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
@@ -60,24 +63,36 @@ function doPost(e) {
     // Send notification email (optional)
     sendNotificationEmail(data);
     
-    // Return success response
-    return ContentService
+    // Return success response with CORS headers
+    const output = ContentService
       .createTextOutput(JSON.stringify({
         success: true,
         message: 'Data saved successfully'
       }))
       .setMimeType(ContentService.MimeType.JSON);
+    
+    return output;
       
   } catch (error) {
     console.error('Error:', error);
     
-    return ContentService
+    const output = ContentService
       .createTextOutput(JSON.stringify({
         success: false,
         error: error.toString()
       }))
       .setMimeType(ContentService.MimeType.JSON);
+    
+    return output;
   }
+}
+
+// Handle GET requests (for testing)
+function doGet(e) {
+  return ContentService
+    .createTextOutput('Google Apps Script is working!')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
 }
 
 function sendNotificationEmail(data) {

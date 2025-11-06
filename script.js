@@ -41,24 +41,54 @@ document.addEventListener('DOMContentLoaded', function () {
             // Send to Google Apps Script
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
             
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Important for Google Apps Script
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
+            // Try with CORS first, fallback to no-cors
+            let success = false;
+            
+            try {
+                // First attempt: with CORS
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    success = true;
+                }
+            } catch (corsError) {
+                console.log('CORS failed, trying no-cors mode...');
+                
+                // Second attempt: no-cors mode
+                try {
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    // With no-cors, we assume success if no error is thrown
+                    success = true;
+                } catch (noCorsError) {
+                    throw new Error('Failed to submit form');
+                }
+            }
+            
+            if (success) {
+                // Show success message
+                form.style.display = 'none';
+                successMessage.classList.remove('hidden');
+                successMessage.scrollIntoView({ behavior: 'smooth' });
 
-            // Google Apps Script with no-cors always returns opaque response
-            // So we assume success if no error is thrown
-            // Show success message
-            form.style.display = 'none';
-            successMessage.classList.remove('hidden');
-            successMessage.scrollIntoView({ behavior: 'smooth' });
-
-            // Add celebration animation
-            createCelebration();
+                // Add celebration animation
+                createCelebration();
+            } else {
+                throw new Error('Submission failed');
+            }
 
         } catch (error) {
             console.error('Error:', error);
