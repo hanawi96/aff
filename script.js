@@ -242,56 +242,56 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="p-4 sm:p-6 overflow-y-auto flex-1 modal-content-scroll">
 
                     <!-- Referral Link -->
-                    <div class="bg-mom-pink/10 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+                    <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
                         <label class="text-xs text-gray-600 font-medium block mb-2">LINK GIỚI THIỆU CỦA BẠN</label>
-                        <div class="flex items-center space-x-2 bg-white rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
+                        <div class="flex items-center space-x-2 bg-white rounded-lg p-3 mb-3">
                             <input type="text" value="${refUrl}" readonly 
-                                class="flex-1 text-xs sm:text-sm text-gray-700 bg-transparent outline-none min-w-0">
+                                class="flex-1 text-sm text-gray-700 bg-transparent outline-none min-w-0">
                             <button onclick="copyRefUrl('${refUrl}')" 
-                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-mom-pink text-white rounded-lg text-xs sm:text-sm hover:bg-mom-pink/90 transition-colors font-medium flex-shrink-0">
-                                <i class="fas fa-copy mr-1"></i><span class="hidden xs:inline">Copy</span><span class="xs:hidden">Copy</span>
+                                class="px-4 py-2 bg-mom-pink text-white rounded-lg text-sm hover:bg-mom-pink/90 transition-colors font-medium flex-shrink-0">
+                                <i class="fas fa-copy mr-1"></i>Copy
                             </button>
                         </div>
                         
                         <!-- Commission Calculator Button -->
                         <button onclick="showCommissionModal()" 
-                            class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 rounded-lg text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-1.5 sm:space-x-2">
-                            <i class="fas fa-calculator text-xs sm:text-sm"></i>
+                            class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-2">
+                            <i class="fas fa-calculator"></i>
                             <span>Xem Cách Tính Hoa Hồng</span>
                         </button>
                     </div>
 
                     <!-- Simple Info -->
-                    <div class="bg-blue-50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
-                        <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-700">
-                            <div class="flex items-start space-x-2 sm:space-x-3">
-                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                    <div class="bg-blue-50 rounded-xl p-4 mb-4">
+                        <div class="space-y-3 text-sm text-gray-700">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
                                 <p>Chia sẻ link với bạn bè</p>
                             </div>
-                            <div class="flex items-start space-x-2 sm:space-x-3">
-                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
                                 <p>Nhận 15% hoa hồng mỗi đơn</p>
                             </div>
-                            <div class="flex items-start space-x-2 sm:space-x-3">
-                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
                                 <p>Khách mua trong vòng 7 ngày được tính hoa hồng</p>
                             </div>
-                            <div class="flex items-start space-x-2 sm:space-x-3">
-                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></div>
                                 <p>Chúng tôi sẽ liên hệ trong 24h</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Buttons -->
-                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <button onclick="shareToFacebook('${refUrl}')" 
-                            class="bg-[#1877f2] text-white py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-medium hover:bg-[#166fe5] transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
-                            <i class="fab fa-facebook-f text-sm sm:text-base"></i>
+                            class="bg-[#1877f2] text-white py-3 rounded-xl text-sm font-medium hover:bg-[#166fe5] transition-colors flex items-center justify-center space-x-2">
+                            <i class="fab fa-facebook-f"></i>
                             <span>Chia Sẻ</span>
                         </button>
                         <button onclick="closeSuccessModal()" 
-                            class="bg-gray-100 text-gray-700 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-medium hover:bg-gray-200 transition-colors">
+                            class="bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
                             Đóng
                         </button>
                     </div>
@@ -365,6 +365,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.showCommissionModal = function () {
+        // Update URL with hash
+        window.history.pushState({modal: 'commission'}, '', '#cach-tinh-hoa-hong');
+        
         // Create commission modal
         const commissionModal = document.createElement('div');
         commissionModal.id = 'commissionModal';
@@ -377,9 +380,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- Header -->
                 <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
                     <h2 class="text-base sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
-                    <button onclick="closeCommissionModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0">
-                        <i class="fas fa-times text-white text-sm"></i>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="shareCommissionPage()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Chia sẻ">
+                            <i class="fas fa-share-alt text-white text-sm"></i>
+                        </button>
+                        <button onclick="closeCommissionModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Đóng">
+                            <i class="fas fa-times text-white text-sm"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Content - Scrollable -->
@@ -510,11 +518,53 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.closeCommissionModal = function () {
+        // Remove hash from URL
+        if (window.location.hash === '#cach-tinh-hoa-hong') {
+            window.history.back();
+        }
+        
         const modal = document.getElementById('commissionModal');
         if (modal) {
             modal.remove(); // Instant close, no animation
         }
     };
+
+    window.shareCommissionPage = function () {
+        const shareUrl = window.location.origin + window.location.pathname + '#cach-tinh-hoa-hong';
+        const shareText = 'Xem cách tính hoa hồng 15% khi trở thành cộng tác viên!';
+        
+        // Check if Web Share API is available (mobile)
+        if (navigator.share) {
+            navigator.share({
+                title: 'Cách Tính Hoa Hồng',
+                text: shareText,
+                url: shareUrl
+            }).catch(() => {
+                // User cancelled or error, fallback to copy
+                copyToClipboard(shareUrl);
+            });
+        } else {
+            // Fallback: Copy to clipboard
+            copyToClipboard(shareUrl);
+        }
+    };
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('✓ Đã copy link chia sẻ!');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('✓ Đã copy link chia sẻ!');
+        });
+    }
 
     function showToast(message) {
         const toast = document.createElement('div');
@@ -629,6 +679,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     `;
     document.head.appendChild(style);
+});
+
+// Hash routing for commission modal
+window.addEventListener('load', function() {
+    // Check if URL has commission hash on page load
+    if (window.location.hash === '#cach-tinh-hoa-hong') {
+        showCommissionModal();
+    }
+});
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', function(e) {
+    if (window.location.hash === '#cach-tinh-hoa-hong') {
+        // Open modal if hash is present
+        if (!document.getElementById('commissionModal')) {
+            showCommissionModal();
+        }
+    } else {
+        // Close modal if hash is removed
+        const modal = document.getElementById('commissionModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
 });
 
 // Smooth scroll for better UX
