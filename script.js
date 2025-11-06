@@ -221,23 +221,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Simple and clean modal design for moms
         modalOverlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden flex flex-col" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-y-auto" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
-                    <div class="flex items-center space-x-2 sm:space-x-3">
-                        <div class="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow flex-shrink-0">
-                            <i class="fas fa-check text-mom-pink text-base sm:text-lg"></i>
-                        </div>
-                        <div class="text-left">
-                            <h2 class="text-base sm:text-lg font-bold text-white">Chúc mừng ${fullName.split(' ')[0]}!</h2>
-                            <p class="text-white/90 text-xs sm:text-sm">Đã trở thành cộng tác viên</p>
+                <!-- Header - Clean & Simple -->
+                <div class="pt-8 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white">
+                    <!-- Success Icon -->
+                    <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-5">
+                        <div class="relative">
+                            <!-- Animated Circle -->
+                            <svg class="w-20 h-20" viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="36" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="226" stroke-dashoffset="0" style="animation: drawCircle 0.6s ease-out forwards;"/>
+                            </svg>
+                            <!-- Checkmark -->
+                            <svg class="w-10 h-10 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: checkmark 0.4s 0.4s ease-out forwards; opacity: 0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
                         </div>
                     </div>
+                    
+                    <!-- Title with Emoji -->
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                        <span>🎉</span>
+                        <span>Đăng ký thành công!</span>
+                    </h2>
+                    
+                    <!-- Subtitle -->
+                    <p class="text-gray-600 text-base leading-relaxed">
+                        Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ')[0]}</span> đã tin tưởng! 
+                        <span class="text-green-600 font-medium">Shop sẽ liên hệ xác nhận đơn hàng sớm nhất</span> ❤️
+                    </p>
                 </div>
 
-                <!-- Content - Scrollable -->
-                <div class="p-4 sm:p-6 overflow-y-auto flex-1 modal-content-scroll">
+                <!-- Content -->
+                <div class="p-6">
 
                     <!-- Referral Link -->
                     <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
@@ -609,6 +625,54 @@ document.addEventListener('DOMContentLoaded', function () {
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounce-slow {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .animate-bounce-slow {
+            animation: bounce-slow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes drawCircle {
+            from {
+                stroke-dashoffset: 226;
+            }
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        
+        @keyframes checkmark {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
             }
         }
         
