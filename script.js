@@ -35,22 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('🧪 DEMO MODE: Form auto-filled with test data');
     }
 
-    // Add smooth animations
-    const inputs = document.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function () {
-            this.parentElement.classList.add('transform', 'scale-105');
-            // Remove demo background on focus
-            if (DEMO_MODE) {
-                this.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-            }
-        });
-
-        input.addEventListener('blur', function () {
-            this.parentElement.classList.remove('transform', 'scale-105');
-        });
-    });
-
     // Form submission
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
