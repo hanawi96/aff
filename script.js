@@ -205,46 +205,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Simple and clean modal design for moms
         modalOverlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto relative" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full relative flex flex-col" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 
-                <!-- Close Button -->
-                <button onclick="closeSuccessModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors z-10">
-                    <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-                
-                <!-- Header - Clean & Simple -->
-                <div class="pt-8 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white">
-                    <!-- Success Icon -->
-                    <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-5">
-                        <div class="relative">
-                            <!-- Animated Circle -->
-                            <svg class="w-20 h-20" viewBox="0 0 80 80">
-                                <circle cx="40" cy="40" r="36" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="226" stroke-dashoffset="0" style="animation: drawCircle 0.6s ease-out forwards;"/>
-                            </svg>
-                            <!-- Checkmark -->
-                            <svg class="w-10 h-10 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: checkmark 0.4s 0.4s ease-out forwards; opacity: 0;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                <!-- Sticky Header - Compact (Always visible) -->
+                <div id="stickyHeader" class="sticky top-0 z-20 bg-white border-b border-gray-200 px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between rounded-t-2xl transition-all duration-300" style="box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                         </div>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-800">Đăng ký thành công!</h3>
                     </div>
-                    
-                    <!-- Title with Emoji -->
-                    <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
-                        <span>🎉</span>
-                        <span>Đăng ký thành công!</span>
-                    </h2>
-                    
-                    <!-- Subtitle -->
-                    <p class="text-gray-600 text-base leading-relaxed">
-                        Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span> đã tin tưởng! 
-                        <span class="text-green-600 font-medium">Em sẽ liên hệ với chị ngay để xác nhận và hướng dẫn chị ạ!!!</span> ❤️
-                    </p>
+                    <button onclick="closeSuccessModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
                 </div>
+                
+                <!-- Scrollable Content Area -->
+                <div id="modalScrollArea" class="overflow-y-auto flex-1">
+                    <!-- Header - Full (Shows at top) -->
+                    <div id="fullHeader" class="pt-6 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white transition-all duration-300">
+                        <!-- Success Icon -->
+                        <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-5">
+                            <div class="relative">
+                                <!-- Animated Circle -->
+                                <svg class="w-20 h-20" viewBox="0 0 80 80">
+                                    <circle cx="40" cy="40" r="36" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="226" stroke-dashoffset="0" style="animation: drawCircle 0.6s ease-out forwards;"/>
+                                </svg>
+                                <!-- Checkmark -->
+                                <svg class="w-10 h-10 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: checkmark 0.4s 0.4s ease-out forwards; opacity: 0;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- Title with Emoji -->
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                            <span>🎉</span>
+                            <span>Đăng ký thành công!</span>
+                        </h2>
+                        
+                        <!-- Subtitle -->
+                        <p class="text-gray-600 text-base leading-relaxed">
+                            Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span> đã tin tưởng! 
+                            <span class="text-green-600 font-medium">Em sẽ liên hệ với chị ngay để xác nhận và hướng dẫn chị ạ!!!</span> ❤️
+                        </p>
+                    </div>
 
-                <!-- Content -->
-                <div class="p-6">
+                    <!-- Content -->
+                    <div class="p-6">
 
                     <!-- Referral Link -->
                     <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
@@ -330,17 +342,21 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </div>
 
-                    <!-- Buttons -->
-                    <div class="grid grid-cols-2 gap-3">
+                    </div>
+                </div>
+                
+                <!-- Footer - Sticky -->
+                <div class="p-3 sm:p-6 pt-2 sm:pt-4 border-t border-gray-100 bg-white rounded-b-2xl flex-shrink-0">
+                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
                         <a href="${refUrl}" target="_blank"
-                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-2">
+                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
                             </svg>
                             <span>Xem Cửa Hàng</span>
                         </a>
                         <a href="https://docs.google.com/spreadsheets/d/1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o/edit?gid=525952340#gid=525952340" target="_blank"
-                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-2">
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
@@ -353,6 +369,14 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         document.body.appendChild(modalOverlay);
+
+        // Add scroll handler for sticky header
+        const scrollArea = document.getElementById('modalScrollArea');
+        const stickyHeader = document.getElementById('stickyHeader');
+        const fullHeader = document.getElementById('fullHeader');
+        const fullHeaderCloseBtn = document.getElementById('fullHeaderCloseBtn');
+
+        // Sticky header is always visible, no scroll handler needed
 
         // Add click outside to close
         modalOverlay.addEventListener('click', function (e) {
@@ -443,20 +467,13 @@ document.addEventListener('DOMContentLoaded', function () {
         commissionModal.innerHTML = `
             <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden flex flex-col" style="max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 <!-- Header -->
-                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
-                    <h2 class="text-base sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
-                    <div class="flex items-center gap-2">
-                        <button onclick="shareCommissionPage()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Chia sẻ">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
-                            </svg>
-                        </button>
-                        <button onclick="closeCommissionModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Đóng">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-                    </div>
+                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between flex-shrink-0">
+                    <h2 class="text-sm sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
+                    <button onclick="closeCommissionModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Đóng">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
                 </div>
 
                 <!-- Content - Scrollable -->
@@ -561,17 +578,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 
                 <!-- Footer - Fixed at bottom -->
-                <div class="p-4 sm:p-5 pt-3 border-t border-gray-100 flex-shrink-0 bg-white">
-                    <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 sm:p-5 pt-2 sm:pt-3 border-t border-gray-100 flex-shrink-0 bg-white">
+                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
                         <a href="https://zalo.me/g/gvqvxu828" target="_blank"
-                            class="bg-blue-500 text-white py-3 rounded-xl font-medium hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center space-x-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            class="bg-blue-500 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-base font-medium hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center space-x-1.5 sm:space-x-2">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
                             </svg>
                             <span>Tham gia nhóm Zalo</span>
                         </a>
                         <button onclick="closeCommissionModal()" 
-                            class="bg-gradient-to-r from-mom-pink to-mom-purple text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all">
+                            class="bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-base font-medium hover:shadow-lg transition-all">
                             Đã Hiểu
                         </button>
                     </div>
