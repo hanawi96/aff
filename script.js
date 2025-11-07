@@ -205,7 +205,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Simple and clean modal design for moms
         modalOverlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto relative" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
+                
+                <!-- Close Button -->
+                <button onclick="closeSuccessModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors z-10">
+                    <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
                 
                 <!-- Header - Clean & Simple -->
                 <div class="pt-8 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white">
@@ -247,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </svg>
                             LINK GIỚI THIỆU CỦA BẠN
                         </label>
-                        <div class="flex items-center space-x-2 bg-white rounded-lg p-3 mb-3">
+                        <div class="flex items-center space-x-2 bg-white rounded-lg p-3 mb-2">
                             <input type="text" value="${refUrl}" readonly 
                                 class="flex-1 text-sm text-gray-700 bg-transparent outline-none min-w-0">
                             <button onclick="copyRefUrl('${refUrl}')" 
@@ -259,16 +266,31 @@ document.addEventListener('DOMContentLoaded', function () {
                                 Copy
                             </button>
                         </div>
-                        
-                        <!-- Commission Calculator Button -->
-                        <button onclick="showCommissionModal()" 
-                            class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
-                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
+                        <div id="copyMessage" class="hidden mb-3 p-2 bg-green-100 text-green-700 text-sm rounded-lg flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                             </svg>
-                            <span>Xem Cách Tính Hoa Hồng</span>
-                        </button>
+                            <span>✓ Đã copy link giới thiệu!</span>
+                        </div>
+                        
+                        <!-- Commission Calculator & Zalo Group Buttons -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showCommissionModal()" 
+                                class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Xem Hoa Hồng</span>
+                            </button>
+                            <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                                class="bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-600 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
+                                </svg>
+                                <span>Nhóm Zalo</span>
+                            </a>
+                        </div>
                         
                         <!-- Contact Note -->
                         <div class="mt-3 flex items-start gap-2 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
@@ -295,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                             <div class="flex items-start space-x-3">
                                 <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
-                                <p>Nhận 15% hoa hồng mỗi đơn</p>
+                                <p>Nhận 10% hoa hồng mỗi đơn</p>
                             </div>
                             <div class="flex items-start space-x-3">
                                 <div class="w-2 h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
@@ -310,17 +332,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     <!-- Buttons -->
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="shareToFacebook('${refUrl}')" 
-                            class="bg-[#1877f2] text-white py-3 rounded-xl text-sm font-medium hover:bg-[#166fe5] transition-colors flex items-center justify-center space-x-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        <a href="${refUrl}" target="_blank"
+                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
                             </svg>
-                            <span>Chia Sẻ</span>
-                        </button>
-                        <button onclick="closeSuccessModal()" 
-                            class="bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
-                            Đóng
-                        </button>
+                            <span>Xem Cửa Hàng</span>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o/edit?gid=525952340#gid=525952340" target="_blank"
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Danh sách CTV</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -372,7 +398,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.copyRefUrl = function (url) {
         navigator.clipboard.writeText(url).then(() => {
-            showToast('✓ Đã copy link giới thiệu!');
+            // Hiển thị thông báo ngay dưới button
+            const message = document.getElementById('copyMessage');
+            if (message) {
+                message.classList.remove('hidden');
+                // Tự động ẩn sau 3 giây
+                setTimeout(() => {
+                    message.classList.add('hidden');
+                }, 3000);
+            }
         });
     };
 
@@ -384,16 +418,20 @@ document.addEventListener('DOMContentLoaded', function () {
     window.closeSuccessModal = function () {
         const modal = document.getElementById('successModal');
         if (modal) {
-            modal.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => {
-                modal.remove();
-            }, 300);
+            modal.remove();
         }
     };
 
     window.showCommissionModal = function () {
         // Update URL with hash
         window.history.pushState({ modal: 'commission' }, '', '#cach-tinh-hoa-hong');
+
+        // Tính ngày hiện tại
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth() + 1;
+        const year = today.getFullYear();
+        const currentDate = day + '/' + month + '/' + year;
 
         // Create commission modal
         const commissionModal = document.createElement('div');
@@ -425,48 +463,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="p-4 sm:p-5 overflow-y-auto flex-1 modal-content-scroll">
                     <!-- Commission Rate Card -->
                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 mb-4 border border-green-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs text-gray-600 mb-1">Tỷ Lệ Hoa Hồng</p>
-                                <p class="text-3xl font-bold text-green-600">15%</p>
-                            </div>
-                            <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                <svg class="w-7 h-7 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            Tỉ lệ hoa hồng cập nhật ngày <span class="font-semibold text-green-600">${currentDate}</span> là: <span class="text-2xl font-bold text-green-600">10%</span>
+                        </p>
                     </div>
 
-                    <!-- Rule 1: 7 Days -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-center space-x-2 mb-3">
-                            <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                <span class="text-white font-bold text-sm">1</span>
-                            </div>
-                            <h3 class="font-bold text-gray-800 text-base">Mã Lưu 7 Ngày</h3>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-3 text-center px-4">Khi khách click vào link của bạn, mã giới thiệu được lưu trong 7 ngày. Bất kỳ đơn hàng nào trong 7 ngày đó đều tính hoa hồng cho bạn.</p>
-                        
-                        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
-                            <p class="text-sm text-gray-700 font-medium mb-2">Ví dụ:</p>
-                            <div class="space-y-1.5 text-sm">
-                                <p class="text-gray-600">• Ngày 1: Chị Lan click vào link của bạn</p>
-                                <p class="text-gray-600">• Ngày 3: Chị Lan mua đồ 800k → Bạn nhận 120k</p>
-                                <p class="text-gray-600">• Ngày 6: Chị Lan mua thêm 500k → Bạn nhận 75k</p>
-                                <p class="text-blue-600 font-medium">• Ngày 7: Chị Lan click lại link → Gia hạn thêm 7 ngày</p>
-                                <p class="text-gray-600">• Ngày 10: Chị Lan mua 600k → Bạn vẫn nhận 90k</p>
-                                <p class="text-green-600 font-semibold mt-2 pt-2 border-t border-blue-300">✓ Tổng: 285.000đ hoa hồng</p>
-                                <p class="text-xs text-gray-500 italic mt-1">💡 Click lại link = Gia hạn thêm 7 ngày mới</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Rule 2: Exclude Shipping -->
+                    <!-- Rule 1: Exclude Shipping -->
                     <div class="mb-4">
                         <div class="flex items-center justify-center space-x-2 mb-3">
                             <div class="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                <span class="text-white font-bold text-sm">2</span>
+                                <span class="text-white font-bold text-sm">1</span>
                             </div>
                             <h3 class="font-bold text-gray-800 text-base">Tính Trên Giá Sản Phẩm</h3>
                         </div>
@@ -504,12 +510,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
                                             </svg>
-                                            Hoa hồng 15%
+                                            Hoa hồng 10%
                                         </span>
-                                        <span class="text-white font-bold text-lg">150.000đ</span>
+                                        <span class="text-white font-bold text-lg">100.000đ</span>
                                     </div>
                                     <div class="text-white/90 text-xs bg-white/10 rounded px-2 py-1">
-                                        1.000.000đ × 15% = 150.000đ
+                                        1.000.000đ × 10% = 100.000đ
                                     </div>
                                 </div>
                             </div>
@@ -518,12 +524,36 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </div>
 
+                    <!-- Rule 2: 7 Days -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-center space-x-2 mb-3">
+                            <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                <span class="text-white font-bold text-sm">2</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-base">Mã Lưu 7 Ngày</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 text-center px-4">Khi khách click vào link của bạn, mã giới thiệu được lưu trong 7 ngày. Bất kỳ đơn hàng nào trong 7 ngày đó đều tính hoa hồng cho bạn.</p>
+                        
+                        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
+                            <p class="text-sm text-gray-700 font-medium mb-2">Ví dụ:</p>
+                            <div class="space-y-1.5 text-sm">
+                                <p class="text-gray-600">• Ngày 1: Chị Lan click vào link của bạn</p>
+                                <p class="text-gray-600">• Ngày 3: Chị Lan mua đồ 800k → Bạn nhận 80k</p>
+                                <p class="text-gray-600">• Ngày 6: Chị Lan mua thêm 500k → Bạn nhận 50k</p>
+                                <p class="text-blue-600 font-medium">• Ngày 7: Chị Lan click lại link → Gia hạn thêm 7 ngày</p>
+                                <p class="text-gray-600">• Ngày 10: Chị Lan mua 600k → Bạn vẫn nhận 60k</p>
+                                <p class="text-green-600 font-semibold mt-2 pt-2 border-t border-blue-300">✓ Tổng: 190.000đ hoa hồng</p>
+                                <p class="text-xs text-gray-500 italic mt-1">💡 Click lại link = Gia hạn thêm 7 ngày mới</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Summary -->
                     <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 mb-2 border border-green-200">
                         <p class="text-sm text-gray-700 font-medium mb-2">📌 Tóm Tắt:</p>
                         <div class="space-y-1 text-sm text-gray-600">
                             <p>• Link có hiệu lực 7 ngày</p>
-                            <p>• Hoa hồng 15% trên giá sản phẩm</p>
+                            <p>• Hoa hồng 10% trên giá sản phẩm không tính phí ship</p>
                             <p>• Thanh toán cuối mỗi tháng</p>
                         </div>
                     </div>
@@ -532,10 +562,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 <!-- Footer - Fixed at bottom -->
                 <div class="p-4 sm:p-5 pt-3 border-t border-gray-100 flex-shrink-0 bg-white">
-                    <button onclick="closeCommissionModal()" 
-                        class="w-full bg-gradient-to-r from-mom-pink to-mom-purple text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all">
-                        Đã Hiểu
-                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                            class="bg-blue-500 text-white py-3 rounded-xl font-medium hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
+                            </svg>
+                            <span>Tham gia nhóm Zalo</span>
+                        </a>
+                        <button onclick="closeCommissionModal()" 
+                            class="bg-gradient-to-r from-mom-pink to-mom-purple text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all">
+                            Đã Hiểu
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -564,7 +603,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.shareCommissionPage = function () {
         const shareUrl = window.location.origin + window.location.pathname + '#cach-tinh-hoa-hong';
-        const shareText = 'Xem cách tính hoa hồng 15% khi trở thành cộng tác viên!';
+        const shareText = 'Xem cách tính hoa hồng 10% khi trở thành cộng tác viên!';
 
         // Check if Web Share API is available (mobile)
         if (navigator.share) {
