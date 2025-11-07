@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- Scrollable Content Area -->
                 <div id="modalScrollArea" class="overflow-y-auto flex-1">
                     <!-- Header - Full (Shows at top) -->
-                    <div id="fullHeader" class="pt-6 pb-6 px-6 text-center bg-gradient-to-b from-green-50 to-white transition-all duration-300">
+                    <div id="fullHeader" class="pt-6 px-6 text-center bg-gradient-to-b from-green-50 to-white transition-all duration-300">
                         <!-- Success Icon -->
                         <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-5">
                             <div class="relative">
