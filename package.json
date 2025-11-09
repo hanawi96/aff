@@ -1,17 +1,24 @@
 {
-  "name": "referral-form",
+  "name": "ctv-system",
   "version": "1.0.0",
-  "description": "Referral Form for Me & Be Affiliate Program",
-  "main": "index.html",
+  "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé",
+  "main": "public/index.html",
   "scripts": {
-    "build": "cp -r . dist/ || xcopy . dist\\ /E /I",
-    "start": "echo 'Static site - no start command needed'"
+    "dev": "npx http-server public -p 8080 -o",
+    "build": "echo 'Static site - no build needed'",
+    "deploy:netlify": "netlify deploy --dir=public --prod",
+    "deploy:vercel": "vercel --prod public",
+    "deploy:cloudflare": "wrangler pages publish public --project-name=ctv-system"
   },
   "keywords": [
     "referral",
     "affiliate",
-    "form"
+    "ctv",
+    "me-be"
   ],
   "author": "hanawi96",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }

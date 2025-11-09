@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const successMessage = document.getElementById('successMessage');
 
     // Auto-fill demo data for testing (comment out in production)
-    const DEMO_MODE = true; // Set to false to disable auto-fill
+    const DEMO_MODE = CONFIG.DEMO_MODE;
 
     if (DEMO_MODE) {
         const demoData = {
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data.timestamp = new Date().toLocaleString('vi-VN');
 
             // Send to Google Apps Script
-            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFpYcootskJtEtW_spvZvvHlkQJG-8G_0bfkNMEcsAfD37xrIc9KQ9kllQBF9tch6x/exec';
+            const GOOGLE_SCRIPT_URL = CONFIG.GOOGLE_SCRIPT_URL;
 
             console.log('Sending data to Google Apps Script:', data);
             console.log('URL:', GOOGLE_SCRIPT_URL);
@@ -104,14 +104,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const refCode = result.referralCode;
             const refUrl = result.referralUrl;
+            const orderCheckUrl = result.orderCheckUrl; // ⭐ Nhận link tra cứu đơn hàng
 
             console.log('✓ Referral Code:', refCode);
             console.log('✓ Referral URL:', refUrl);
+            console.log('✓ Order Check URL:', orderCheckUrl);
             console.log('✓ Full Name:', data.fullName);
 
             // Show success modal with referral code
-            console.log('Calling showSuccessModal with:', { refCode, refUrl, fullName: data.fullName });
-            showSuccessModal(refCode, refUrl, data.fullName);
+            console.log('Calling showSuccessModal with:', { refCode, refUrl, orderCheckUrl, fullName: data.fullName });
+            showSuccessModal(refCode, refUrl, orderCheckUrl, data.fullName);
 
             // Add celebration animation
             createCelebration();
@@ -194,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Show success modal with referral information
-    function showSuccessModal(refCode, refUrl, fullName) {
+    function showSuccessModal(refCode, refUrl, orderCheckUrl, fullName) {
         // Create modal overlay
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'successModal';
@@ -349,19 +351,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="p-3 sm:p-6 pt-2 sm:pt-4 border-t border-gray-100 bg-white rounded-b-2xl flex-shrink-0">
                     <div class="grid grid-cols-2 gap-2 sm:gap-3">
                         <a href="${refUrl}" target="_blank"
-                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-1.5">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
                             </svg>
-                            <span>Xem Cửa Hàng</span>
+                            <span class="hidden sm:inline">Cửa Hàng</span>
+                            <span class="sm:hidden">Shop</span>
                         </a>
                         <a href="https://docs.google.com/spreadsheets/d/1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o/edit?gid=525952340#gid=525952340" target="_blank"
-                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-1.5 sm:space-x-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-1.5">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                             </svg>
-                            <span>Danh sách CTV</span>
+                            <span class="hidden sm:inline">DS CTV</span>
+                            <span class="sm:hidden">CTV</span>
                         </a>
                     </div>
                 </div>
