@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Google Apps Script Web App URL
     const GOOGLE_SCRIPT_URL = CONFIG.GOOGLE_SCRIPT_URL;
 
+    // Pagination state
+    let currentPage = 1;
+    let itemsPerPage = 2; // Giảm xuống 2 để test giao diện phân trang
+    let allOrders = [];
+    let currentReferralCode = '';
+
     // Kiểm tra URL có mã CTV không và tự động load
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromUrl = urlParams.get('code');
@@ -86,8 +92,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Display results
-            displayResults(result.orders, referralCode);
+            // Store orders and display with pagination
+            allOrders = result.orders;
+            currentReferralCode = referralCode;
+            currentPage = 1;
+            displayResults(referralCode);
 
         } catch (error) {
             console.error('Error:', error);
@@ -225,17 +234,17 @@ document.addEventListener('DOMContentLoaded', function () {
         errorState.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    function displayResults(orders, referralCode) {
+    function displayResults(referralCode) {
         hideAllStates();
 
-        console.log('Orders data:', orders);
+        console.log('Orders data:', allOrders);
 
-        // Calculate summary
-        const totalOrders = orders.length;
+        // Calculate summary (for all orders)
+        const totalOrders = allOrders.length;
         let totalRevenue = 0;
         let totalCommission = 0;
 
-        orders.forEach(order => {
+        allOrders.forEach(order => {
             const amount = parseAmount(order.totalAmount);
             console.log('Order amount:', order.totalAmount, '-> Parsed:', amount);
             totalRevenue += amount;
@@ -247,20 +256,101 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
         document.getElementById('totalCommission').textContent = formatCurrency(totalCommission);
 
+        // Get orders for current page
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const ordersToDisplay = allOrders.slice(startIndex, endIndex);
+
         // Populate orders table
         const tableBody = document.getElementById('ordersTableBody');
         tableBody.innerHTML = '';
 
-        orders.forEach(order => {
+        ordersToDisplay.forEach(order => {
             const row = createOrderRow(order);
             tableBody.appendChild(row);
         });
+
+        // Update pagination
+        updatePagination();
 
         // Hiển thị nút sao chép link
         showCopyLinkButton(referralCode);
 
         resultsContainer.classList.remove('hidden');
     }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+        const paginationContainer = document.getElementById('paginationContainer');
+        
+        // Show/hide pagination based on number of orders
+        if (allOrders.length <= itemsPerPage) {
+            paginationContainer.classList.add('hidden');
+            return;
+        }
+        
+        paginationContainer.classList.remove('hidden');
+
+        // Update page info
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(currentPage * itemsPerPage, allOrders.length);
+        document.getElementById('pageInfo').textContent = `${startIndex}-${endIndex}`;
+        document.getElementById('totalOrdersCount').textContent = allOrders.length;
+
+        // Update prev/next buttons
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+
+        // Generate page numbers
+        const pageNumbersContainer = document.getElementById('pageNumbers');
+        pageNumbersContainer.innerHTML = '';
+
+        // Show max 5 page numbers
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            pageBtn.className = i === currentPage 
+                ? 'px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg text-sm font-medium'
+                : 'px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors';
+            
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                displayResults(currentReferralCode);
+                // Scroll to top of results
+                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            
+            pageNumbersContainer.appendChild(pageBtn);
+        }
+    }
+
+    // Pagination button handlers
+    document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            displayResults(currentReferralCode);
+            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    document.getElementById('nextPageBtn').addEventListener('click', () => {
+        const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            displayResults(currentReferralCode);
+            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
 
     // Hàm hiển thị và xử lý nút sao chép link
     function showCopyLinkButton(referralCode) {
