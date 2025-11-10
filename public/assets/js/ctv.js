@@ -13,7 +13,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentPage = 1;
     let itemsPerPage = 10; // 10 đơn hàng mỗi trang
     let allOrders = [];
+    let filteredOrders = [];
     let currentReferralCode = '';
+    let currentFilter = 'all'; // 'all' hoặc 'today'
 
     // Kiểm tra URL có mã CTV không và tự động load
     const urlParams = new URLSearchParams(window.location.search);
@@ -94,8 +96,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Store orders and display with pagination
             allOrders = result.orders;
+            filteredOrders = result.orders;
             currentReferralCode = referralCode;
             currentPage = 1;
+            currentFilter = 'all';
             displayResults(referralCode);
 
         } catch (error) {
@@ -288,8 +292,9 @@ document.addEventListener('DOMContentLoaded', function () {
         hideAllStates();
 
         console.log('Orders data:', allOrders);
+        console.log('Filtered orders:', filteredOrders);
 
-        // Calculate summary (for all orders)
+        // Calculate summary (for all orders, not filtered)
         const totalOrders = allOrders.length;
         let totalRevenue = 0;
         let totalCommission = 0;
@@ -306,19 +311,40 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
         document.getElementById('totalCommission').textContent = formatCurrency(totalCommission);
 
-        // Get orders for current page
+        // Get orders for current page (from filtered orders)
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const ordersToDisplay = allOrders.slice(startIndex, endIndex);
+        const ordersToDisplay = filteredOrders.slice(startIndex, endIndex);
 
         // Populate orders table
         const tableBody = document.getElementById('ordersTableBody');
         tableBody.innerHTML = '';
 
-        ordersToDisplay.forEach(order => {
-            const row = createOrderRow(order);
-            tableBody.appendChild(row);
-        });
+        // Check if no orders found (especially for "today" filter)
+        if (ordersToDisplay.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = `
+                <td colspan="4" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-600 text-lg font-medium mb-1">
+                            ${currentFilter === 'today' ? 'Hôm nay bạn chưa có đơn hàng nào cả?' : 'Chưa có đơn hàng nào'}
+                        </p>
+                        <p class="text-gray-500 text-sm">
+                            ${currentFilter === 'today' ? 'Hãy cố gắng hơn nha! 💪' : 'Hãy bắt đầu chia sẻ link để có đơn đầu tiên'}
+                        </p>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(emptyRow);
+        } else {
+            ordersToDisplay.forEach(order => {
+                const row = createOrderRow(order);
+                tableBody.appendChild(row);
+            });
+        }
 
         // Update pagination
         updatePagination();
@@ -327,11 +353,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updatePagination() {
-        const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+        const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
         const paginationContainer = document.getElementById('paginationContainer');
         
         // Show/hide pagination based on number of orders
-        if (allOrders.length <= itemsPerPage) {
+        if (filteredOrders.length <= itemsPerPage) {
             paginationContainer.classList.add('hidden');
             return;
         }
@@ -340,9 +366,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update page info
         const startIndex = (currentPage - 1) * itemsPerPage + 1;
-        const endIndex = Math.min(currentPage * itemsPerPage, allOrders.length);
+        const endIndex = Math.min(currentPage * itemsPerPage, filteredOrders.length);
         document.getElementById('pageInfo').textContent = `${startIndex}-${endIndex}`;
-        document.getElementById('totalOrdersCount').textContent = allOrders.length;
+        document.getElementById('totalOrdersCount').textContent = filteredOrders.length;
 
         // Update prev/next buttons
         const prevBtn = document.getElementById('prevPageBtn');
@@ -391,13 +417,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.getElementById('nextPageBtn').addEventListener('click', () => {
-        const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+        const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
             displayResults(currentReferralCode);
             resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });
+
+    // Filter orders function
+    window.filterOrders = function(filter) {
+        console.log('Filter changed to:', filter);
+        currentFilter = filter;
+        currentPage = 1;
+
+        // Update tab active state
+        document.getElementById('filterAllTime').classList.toggle('active', filter === 'all');
+        document.getElementById('filterToday').classList.toggle('active', filter === 'today');
+
+        // Filter orders
+        if (filter === 'today') {
+            const today = new Date();
+            const todayStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+            
+            filteredOrders = allOrders.filter(order => {
+                return order.orderDate && order.orderDate.includes(todayStr);
+            });
+            
+            console.log('Today orders:', filteredOrders.length);
+        } else {
+            filteredOrders = allOrders;
+        }
+
+        displayResults(currentReferralCode);
+    };
 
     function parseAmount(value) {
         if (!value) return 0;
