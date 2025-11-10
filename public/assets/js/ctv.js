@@ -222,9 +222,9 @@ document.addEventListener('DOMContentLoaded', function () {
         topPerformersContainer.innerHTML = stats.topPerformers.map((performer, index) => {
             const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
             const colors = [
-                'from-yellow-100 to-orange-100 border-yellow-300',
-                'from-gray-100 to-slate-200 border-gray-300',
-                'from-orange-100 to-amber-100 border-orange-300',
+                'from-yellow-50 to-orange-50 border-yellow-200',
+                'from-gray-50 to-slate-100 border-gray-200',
+                'from-orange-50 to-amber-50 border-orange-200',
                 'from-blue-50 to-cyan-50 border-blue-200',
                 'from-purple-50 to-pink-50 border-purple-200'
             ];
@@ -232,16 +232,16 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log(`  ${medals[index]} ${performer.referralCode}: ${performer.orderCount} đơn, ${formatCurrency(performer.totalRevenue)}`);
             
             return `
-                <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r ${colors[index]} rounded-xl border mb-3 hover:shadow-md transition-all">
+                <div class="flex items-center justify-between p-3 bg-gradient-to-r ${colors[index]} rounded-lg border mb-2 last:mb-0 hover:shadow-sm transition-shadow">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <div class="text-2xl sm:text-3xl flex-shrink-0">${medals[index]}</div>
+                        <div class="text-2xl flex-shrink-0 drop-shadow-sm">${medals[index]}</div>
                         <div class="flex-1 min-w-0">
-                            <p class="font-bold text-gray-800 text-sm sm:text-base truncate">${performer.referralCode}</p>
-                            <p class="text-xs text-gray-600">${performer.orderCount} đơn hàng</p>
+                            <p class="font-bold text-gray-800 text-sm truncate">${performer.referralCode}</p>
+                            <p class="text-xs text-gray-600">${performer.orderCount} đơn</p>
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0 ml-2">
-                        <p class="font-bold text-green-600 text-sm sm:text-base">${formatCurrency(performer.totalRevenue)}</p>
+                        <p class="font-bold text-green-600 text-sm">${formatCurrency(performer.totalRevenue)}</p>
                         <p class="text-xs text-gray-500">${formatCurrency(performer.commission)}</p>
                     </div>
                 </div>
