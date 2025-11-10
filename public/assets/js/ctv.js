@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Pagination state
     let currentPage = 1;
-    let itemsPerPage = 2; // Giảm xuống 2 để test giao diện phân trang
+    let itemsPerPage = 10; // 10 đơn hàng mỗi trang
     let allOrders = [];
     let currentReferralCode = '';
 
