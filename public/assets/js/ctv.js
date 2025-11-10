@@ -233,20 +233,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 'from-purple-50 to-pink-50 border-purple-200'
             ];
             
-            console.log(`  ${medals[index]} ${performer.referralCode}: ${performer.orderCount} đơn, ${formatCurrency(performer.totalRevenue)}`);
+            // Che 4 ký tự cuối của mã CTV
+            const maskedCode = performer.referralCode.length > 4 
+                ? performer.referralCode.slice(0, -4) + '****'
+                : performer.referralCode;
+            
+            console.log(`  ${medals[index]} ${maskedCode}: ${performer.orderCount} đơn, ${formatCurrency(performer.totalRevenue)}`);
             
             return `
                 <div class="flex items-center justify-between p-3 bg-gradient-to-r ${colors[index]} rounded-lg border mb-2 last:mb-0 hover:shadow-sm transition-shadow">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="text-2xl flex-shrink-0 drop-shadow-sm">${medals[index]}</div>
                         <div class="flex-1 min-w-0">
-                            <p class="font-bold text-gray-800 text-sm truncate">${performer.referralCode}</p>
+                            <p class="font-bold text-gray-800 text-sm truncate">${maskedCode}</p>
                             <p class="text-xs text-gray-600">${performer.orderCount} đơn</p>
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0 ml-2">
-                        <p class="font-bold text-green-600 text-sm">${formatCurrency(performer.totalRevenue)}</p>
-                        <p class="text-xs text-gray-500">${formatCurrency(performer.commission)}</p>
+                        <p class="font-bold text-gray-800 text-sm">${formatCurrency(performer.totalRevenue)}</p>
+                        <p class="text-xs text-green-600 font-medium">Hoa hồng: ${formatCurrency(performer.commission)}</p>
                     </div>
                 </div>
             `;
