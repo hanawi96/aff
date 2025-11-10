@@ -11,7 +11,7 @@ const CONFIG = {
 
   // Sheet ID của đơn hàng
   ORDER_SHEET_ID: '1CmfyZg1MCPCv0_RnlBOOf0HIev4RPg4DK43veMGyPJM',
-  ORDER_SHEET_NAME: 'Form responses 1', // Tên sheet mặc định của Google Form
+  ORDER_SHEET_NAME: 'Đơn Hàng', // Tên sheet chứa đơn hàng
 
   // Mapping cột trong sheet đơn hàng (theo ảnh)
   ORDER_COLUMNS: {
@@ -25,7 +25,10 @@ const CONFIG = {
     paymentMethod: 7,  // Cột H - Hướng Thanh Toán
     status: 8,         // Cột I - Ghi Chú
     referralCode: 9    // Cột J - Mã Referral
-  }
+  },
+
+  // Tỷ lệ hoa hồng (10%)
+  COMMISSION_RATE: 0.1
 };
 
 function doPost(e) {
@@ -281,7 +284,7 @@ function doPost(e) {
 }
 
 // Generate unique referral code
-function generateReferralCode(fullName) {
+function generateReferralCode(_fullName) {
   // Tạo mã CTV với format: CTV + 6 chữ số ngẫu nhiên
   let randomCode = '';
   for (let i = 0; i < 6; i++) {
@@ -352,6 +355,18 @@ function doGet(e) {
           success: true,
           orders: orders,
           referralCode: referralCode
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // API: Lấy thống kê dashboard
+    if (action === 'getDashboardStats') {
+      const stats = getDashboardStats();
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          stats: stats
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -707,7 +722,7 @@ function testGetRecentOrders() {
 function testGetOrders() {
   try {
     // Lấy mã referral đầu tiên từ sheet đơn hàng để test
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    const spreadsheet = spreadsheet.openById(CONFIG.ORDER_SHEET_ID);
     const sheet = spreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
     const data = sheet.getDataRange().getValues();
 
@@ -800,4 +815,184 @@ function testCTVRegistration() {
 
   const result = doPost(mockEvent);
   Logger.log('Test result:', result.getContent());
+}
+
+// Get dashboard statistics
+function getDashboardStats() {
+  try {
+    Logger.log('🚀 getDashboardStats() called');
+
+    // Mở spreadsheet CTV
+    Logger.log('📂 Opening CTV spreadsheet: ' + CONFIG.CTV_SHEET_ID);
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+    Logger.log('✅ CTV sheet opened: ' + ctvSheet.getName());
+
+    // Mở spreadsheet đơn hàng
+    Logger.log('📂 Opening Order spreadsheet: ' + CONFIG.ORDER_SHEET_ID);
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    const orderSheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+    Logger.log('✅ Order sheet opened: ' + orderSheet.getName());
+
+    // Đếm tổng số CTV (trừ header)
+    const ctvData = ctvSheet.getDataRange().getValues();
+    const totalCTV = ctvData.length - 1; // Trừ dòng header
+    Logger.log('👥 Total CTV: ' + totalCTV);
+
+    // Lấy tất cả đơn hàng
+    const orderData = orderSheet.getDataRange().getValues();
+    const rows = orderData.slice(1);
+    Logger.log('📦 Total order rows: ' + rows.length);
+
+    // Tìm index của cột referralCode
+    const cols = CONFIG.ORDER_COLUMNS;
+    Logger.log('📍 Referral code column index: ' + cols.referralCode);
+
+    // Lọc các đơn hàng có mã referral
+    const ordersWithRef = rows.filter(row => {
+      const refCode = row[cols.referralCode];
+      return refCode && refCode.toString().trim() !== '';
+    });
+    Logger.log('✅ Orders with referral code: ' + ordersWithRef.length);
+
+    const totalOrders = ordersWithRef.length;
+    let totalRevenue = 0;
+
+    // Tính tổng doanh số
+    ordersWithRef.forEach(row => {
+      const amount = parseAmount(row[cols.totalAmount]);
+      totalRevenue += amount;
+    });
+    Logger.log('💰 Total revenue: ' + totalRevenue);
+
+    const totalCommission = totalRevenue * CONFIG.COMMISSION_RATE;
+    Logger.log('💵 Total commission: ' + totalCommission);
+
+    // Tính top performers
+    const performerMap = {};
+
+    ordersWithRef.forEach(row => {
+      const refCode = row[cols.referralCode].toString().trim();
+      const amount = parseAmount(row[cols.totalAmount]);
+
+      if (!performerMap[refCode]) {
+        performerMap[refCode] = {
+          referralCode: refCode,
+          orderCount: 0,
+          totalRevenue: 0,
+          commission: 0
+        };
+      }
+
+      performerMap[refCode].orderCount++;
+      performerMap[refCode].totalRevenue += amount;
+      performerMap[refCode].commission += amount * CONFIG.COMMISSION_RATE;
+    });
+
+    // Chuyển thành array và sắp xếp theo doanh số
+    const topPerformers = Object.values(performerMap)
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 5); // Lấy top 5
+
+    Logger.log('🏆 Top performers count: ' + topPerformers.length);
+    topPerformers.forEach((p, i) => {
+      Logger.log(`  ${i + 1}. ${p.referralCode}: ${p.orderCount} orders, ${p.totalRevenue} revenue`);
+    });
+
+    const result = {
+      totalCTV: totalCTV,
+      totalOrders: totalOrders,
+      totalRevenue: totalRevenue,
+      totalCommission: totalCommission,
+      topPerformers: topPerformers
+    };
+
+    Logger.log('✅ Dashboard stats result: ' + JSON.stringify(result));
+    return result;
+
+  } catch (error) {
+    Logger.log('❌ Error in getDashboardStats: ' + error.toString());
+    Logger.log('❌ Error stack: ' + error.stack);
+    return {
+      totalCTV: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      totalCommission: 0,
+      topPerformers: []
+    };
+  }
+}
+
+// Test dashboard stats
+function testGetDashboardStats() {
+  const stats = getDashboardStats();
+  Logger.log('Dashboard Stats:');
+  Logger.log(JSON.stringify(stats, null, 2));
+}
+
+
+// Test function - Run this in Apps Script to debug
+function debugDashboardStats() {
+  Logger.log('=== DEBUG DASHBOARD STATS ===');
+
+  // Test CONFIG
+  Logger.log('CONFIG.CTV_SHEET_ID: ' + CONFIG.CTV_SHEET_ID);
+  Logger.log('CONFIG.CTV_SHEET_NAME: ' + CONFIG.CTV_SHEET_NAME);
+  Logger.log('CONFIG.ORDER_SHEET_ID: ' + CONFIG.ORDER_SHEET_ID);
+  Logger.log('CONFIG.ORDER_SHEET_NAME: ' + CONFIG.ORDER_SHEET_NAME);
+  Logger.log('CONFIG.ORDER_COLUMNS.referralCode: ' + CONFIG.ORDER_COLUMNS.referralCode);
+  Logger.log('CONFIG.ORDER_COLUMNS.totalAmount: ' + CONFIG.ORDER_COLUMNS.totalAmount);
+  Logger.log('CONFIG.COMMISSION_RATE: ' + CONFIG.COMMISSION_RATE);
+
+  try {
+    // Test CTV Sheet
+    Logger.log('\n--- Testing CTV Sheet ---');
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    Logger.log('✅ CTV Spreadsheet opened: ' + ctvSpreadsheet.getName());
+
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+    Logger.log('✅ CTV Sheet opened: ' + ctvSheet.getName());
+
+    const ctvData = ctvSheet.getDataRange().getValues();
+    Logger.log('CTV Data rows: ' + ctvData.length);
+    Logger.log('CTV Headers: ' + JSON.stringify(ctvData[0]));
+    if (ctvData.length > 1) {
+      Logger.log('First CTV row: ' + JSON.stringify(ctvData[1]));
+    }
+
+    // Test Order Sheet
+    Logger.log('\n--- Testing Order Sheet ---');
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    Logger.log('✅ Order Spreadsheet opened: ' + orderSpreadsheet.getName());
+
+    const orderSheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+    Logger.log('✅ Order Sheet opened: ' + orderSheet.getName());
+
+    const orderData = orderSheet.getDataRange().getValues();
+    Logger.log('Order Data rows: ' + orderData.length);
+    Logger.log('Order Headers: ' + JSON.stringify(orderData[0]));
+
+    if (orderData.length > 1) {
+      Logger.log('First order row: ' + JSON.stringify(orderData[1]));
+
+      // Check referral code column
+      const refCodeIndex = CONFIG.ORDER_COLUMNS.referralCode;
+      Logger.log('Referral code column index: ' + refCodeIndex);
+      Logger.log('First order referral code: ' + orderData[1][refCodeIndex]);
+
+      // Check total amount column
+      const amountIndex = CONFIG.ORDER_COLUMNS.totalAmount;
+      Logger.log('Total amount column index: ' + amountIndex);
+      Logger.log('First order total amount: ' + orderData[1][amountIndex]);
+    }
+
+    // Test getDashboardStats
+    Logger.log('\n--- Testing getDashboardStats() ---');
+    const stats = getDashboardStats();
+    Logger.log('Result: ' + JSON.stringify(stats, null, 2));
+
+  } catch (error) {
+    Logger.log('❌ ERROR: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+  }
 }

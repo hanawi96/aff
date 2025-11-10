@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Tự động tìm kiếm khi có mã trong URL
         searchOrders(codeFromUrl.toUpperCase());
     } else {
-        // Nếu không có mã CTV trong URL, load 10 đơn hàng mới nhất
-        loadRecentOrders();
+        // Nếu không có mã CTV trong URL, load dashboard
+        loadDashboard();
     }
 
     searchForm.addEventListener('submit', async function (e) {
@@ -104,111 +104,161 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Hàm load 10 đơn hàng mới nhất
-    async function loadRecentOrders() {
-        const recentLoadingState = document.getElementById('recentLoadingState');
-        const recentOrdersContent = document.getElementById('recentOrdersContent');
-        const recentOrdersSection = document.getElementById('recentOrdersSection');
+    // Hàm load dashboard
+    async function loadDashboard() {
+        console.log('🚀 loadDashboard() called');
+        
+        const dashboardLoadingState = document.getElementById('dashboardLoadingState');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const dashboardSection = document.getElementById('dashboardSection');
+
+        console.log('📍 Dashboard elements:', {
+            loadingState: dashboardLoadingState ? 'found' : 'NOT FOUND',
+            content: dashboardContent ? 'found' : 'NOT FOUND',
+            section: dashboardSection ? 'found' : 'NOT FOUND'
+        });
 
         try {
-            // Fetch recent orders from Google Sheets
-            const url = `${GOOGLE_SCRIPT_URL}?action=getRecentOrders&limit=10&t=${Date.now()}`;
-            console.log('Fetching recent orders from:', url);
+            // Fetch dashboard stats from Google Sheets
+            const url = `${GOOGLE_SCRIPT_URL}?action=getDashboardStats&t=${Date.now()}`;
+            console.log('📡 Fetching dashboard stats from:', url);
 
             const response = await fetch(url, {
                 cache: 'no-cache'
             });
+
+            console.log('📥 Response status:', response.status);
+            console.log('📥 Response ok:', response.ok);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const contentType = response.headers.get('content-type');
+            console.log('📄 Content-Type:', contentType);
+            
             if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('❌ Response is not JSON:', text);
                 throw new Error('Server trả về dữ liệu không đúng định dạng');
             }
 
             const result = await response.json();
-            console.log('Recent orders result:', result);
+            console.log('✅ Dashboard stats result:', result);
+            console.log('📊 Stats data:', result.stats);
 
-            if (result.success && result.orders && result.orders.length > 0) {
-                displayRecentOrders(result.orders);
-                recentLoadingState.classList.add('hidden');
-                recentOrdersContent.classList.remove('hidden');
+            if (result.success) {
+                console.log('✅ Success! Displaying dashboard...');
+                displayDashboard(result.stats);
+                dashboardLoadingState.classList.add('hidden');
+                dashboardContent.classList.remove('hidden');
             } else {
-                // Nếu không có đơn hàng, ẩn section
-                recentOrdersSection.classList.add('hidden');
+                console.warn('⚠️ Result success = false, showing empty dashboard');
+                // Nếu có lỗi, vẫn hiển thị dashboard với số 0
+                displayDashboard({
+                    totalCTV: 0,
+                    totalOrders: 0,
+                    totalRevenue: 0,
+                    totalCommission: 0,
+                    topPerformers: []
+                });
+                dashboardLoadingState.classList.add('hidden');
+                dashboardContent.classList.remove('hidden');
             }
 
         } catch (error) {
-            console.error('Error loading recent orders:', error);
-            // Ẩn section nếu có lỗi
-            recentOrdersSection.classList.add('hidden');
+            console.error('❌ Error loading dashboard:', error);
+            console.error('❌ Error stack:', error.stack);
+            // Hiển thị dashboard với số 0 nếu có lỗi
+            displayDashboard({
+                totalCTV: 0,
+                totalOrders: 0,
+                totalRevenue: 0,
+                totalCommission: 0,
+                topPerformers: []
+            });
+            dashboardLoadingState.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
         }
     }
 
-    // Hàm hiển thị đơn hàng mới nhất
-    function displayRecentOrders(orders) {
-        const tableBody = document.getElementById('recentOrdersTableBody');
-        tableBody.innerHTML = '';
-
-        orders.forEach(order => {
-            const row = createRecentOrderRow(order);
-            tableBody.appendChild(row);
+    // Hàm hiển thị dashboard
+    function displayDashboard(stats) {
+        console.log('🎨 displayDashboard() called with stats:', stats);
+        
+        // Update stats cards
+        console.log('📝 Updating stats cards...');
+        document.getElementById('dashTotalCTV').textContent = stats.totalCTV || 0;
+        document.getElementById('dashTotalOrders').textContent = stats.totalOrders || 0;
+        document.getElementById('dashTotalRevenue').textContent = formatCurrency(stats.totalRevenue || 0);
+        document.getElementById('dashTotalCommission').textContent = formatCurrency(stats.totalCommission || 0);
+        
+        console.log('✅ Stats cards updated:', {
+            totalCTV: stats.totalCTV,
+            totalOrders: stats.totalOrders,
+            totalRevenue: stats.totalRevenue,
+            totalCommission: stats.totalCommission
         });
+
+        // Display top performers
+        const topPerformersContainer = document.getElementById('topPerformersContainer');
+        console.log('🏆 Top performers container:', topPerformersContainer ? 'found' : 'NOT FOUND');
+        console.log('🏆 Top performers data:', stats.topPerformers);
+        
+        if (!stats.topPerformers || stats.topPerformers.length === 0) {
+            console.log('⚠️ No top performers, showing empty state');
+            topPerformersContainer.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    </svg>
+                    <p class="text-gray-500 text-sm">Chưa có dữ liệu CTV</p>
+                </div>
+            `;
+            return;
+        }
+
+        console.log(`✅ Displaying ${stats.topPerformers.length} top performers`);
+        topPerformersContainer.innerHTML = stats.topPerformers.map((performer, index) => {
+            const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+            const colors = [
+                'from-yellow-100 to-orange-100 border-yellow-300',
+                'from-gray-100 to-slate-200 border-gray-300',
+                'from-orange-100 to-amber-100 border-orange-300',
+                'from-blue-50 to-cyan-50 border-blue-200',
+                'from-purple-50 to-pink-50 border-purple-200'
+            ];
+            
+            console.log(`  ${medals[index]} ${performer.referralCode}: ${performer.orderCount} đơn, ${formatCurrency(performer.totalRevenue)}`);
+            
+            return `
+                <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r ${colors[index]} rounded-xl border mb-3 hover:shadow-md transition-all">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="text-2xl sm:text-3xl flex-shrink-0">${medals[index]}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-gray-800 text-sm sm:text-base truncate">${performer.referralCode}</p>
+                            <p class="text-xs text-gray-600">${performer.orderCount} đơn hàng</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-2">
+                        <p class="font-bold text-green-600 text-sm sm:text-base">${formatCurrency(performer.totalRevenue)}</p>
+                        <p class="text-xs text-gray-500">${formatCurrency(performer.commission)}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        console.log('✅ Dashboard display complete!');
     }
-
-    // Hàm tạo row cho đơn hàng mới nhất
-    function createRecentOrderRow(order) {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50 transition-colors';
-
-        const amount = parseAmount(order.totalAmount);
-
-        tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap">
-                <button onclick="searchByCode('${order.referralCode}')" 
-                    class="text-sm font-medium text-mom-pink hover:text-mom-purple transition-colors">
-                    ${order.referralCode || 'N/A'}
-                </button>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">${order.orderId || 'N/A'}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">${order.orderDate || 'N/A'}</div>
-            </td>
-            <td class="px-6 py-4">
-                <div class="text-sm text-gray-900">${order.products || 'N/A'}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right">
-                <div class="text-sm font-medium text-gray-900">${formatCurrency(amount)}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
-                ${getStatusBadge(order.status)}
-            </td>
-        `;
-
-        return tr;
-    }
-
-    // Hàm tìm kiếm theo mã CTV (được gọi từ onclick)
-    window.searchByCode = function(code) {
-        referralCodeInput.value = code;
-        updateUrlWithCode(code);
-        searchOrders(code);
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
 
     function hideAllStates() {
         loadingState.classList.add('hidden');
         errorState.classList.add('hidden');
         resultsContainer.classList.add('hidden');
-        // Ẩn recent orders section khi search
-        const recentOrdersSection = document.getElementById('recentOrdersSection');
-        if (recentOrdersSection) {
-            recentOrdersSection.classList.add('hidden');
+        // Ẩn dashboard section khi search
+        const dashboardSection = document.getElementById('dashboardSection');
+        if (dashboardSection) {
+            dashboardSection.classList.add('hidden');
         }
     }
 
@@ -272,9 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update pagination
         updatePagination();
-
-        // Hiển thị nút sao chép link
-        showCopyLinkButton(referralCode);
 
         resultsContainer.classList.remove('hidden');
     }
@@ -352,42 +399,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hàm hiển thị và xử lý nút sao chép link
-    function showCopyLinkButton(referralCode) {
-        const copyLinkContainer = document.getElementById('copyLinkContainer');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
-
-        copyLinkContainer.classList.remove('hidden');
-
-        // Xóa event listener cũ (nếu có)
-        const newBtn = copyLinkBtn.cloneNode(true);
-        copyLinkBtn.parentNode.replaceChild(newBtn, copyLinkBtn);
-
-        // Thêm event listener mới
-        newBtn.addEventListener('click', async function () {
-            const shareUrl = `${window.location.origin}${window.location.pathname}?code=${referralCode}`;
-
-            try {
-                await navigator.clipboard.writeText(shareUrl);
-
-                // Thay đổi text tạm thời
-                const originalText = newBtn.querySelector('span').textContent;
-                newBtn.querySelector('span').textContent = '✓ Đã sao chép!';
-                newBtn.classList.add('bg-green-100', 'text-green-600');
-                newBtn.classList.remove('bg-blue-50', 'text-blue-600');
-
-                setTimeout(() => {
-                    newBtn.querySelector('span').textContent = originalText;
-                    newBtn.classList.remove('bg-green-100', 'text-green-600');
-                    newBtn.classList.add('bg-blue-50', 'text-blue-600');
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-                alert('Không thể sao chép link. Vui lòng thử lại!');
-            }
-        });
-    }
-
     function parseAmount(value) {
         if (!value) return 0;
 
@@ -420,32 +431,64 @@ document.addEventListener('DOMContentLoaded', function () {
         const commission = amount * CONFIG.COMMISSION_RATE;
 
         tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">${order.orderId || 'N/A'}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">${order.orderDate || 'N/A'}</div>
             </td>
-            <td class="px-6 py-4">
-                <div class="text-sm text-gray-900">${order.customerName || 'N/A'}</div>
-                <div class="text-sm text-gray-500">${order.customerPhone || ''}</div>
-            </td>
-            <td class="px-6 py-4">
-                <div class="text-sm text-gray-900">${order.products || 'N/A'}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right">
+            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-right">
                 <div class="text-sm font-medium text-gray-900">${formatCurrency(amount)}</div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right">
+            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-right">
                 <div class="text-sm font-bold text-green-600">${formatCurrency(commission)}</div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
-                ${getStatusBadge(order.status)}
+            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-center">
+                <button onclick='showOrderDetail(${JSON.stringify(order).replace(/'/g, "&apos;")})' 
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
             </td>
         `;
 
         return tr;
     }
+
+    // Show order detail modal
+    window.showOrderDetail = function(order) {
+        const amount = parseAmount(order.totalAmount);
+        const commission = amount * CONFIG.COMMISSION_RATE;
+
+        // Populate modal with order data
+        document.getElementById('modalOrderId').textContent = order.orderId || 'N/A';
+        document.getElementById('modalOrderDate').textContent = order.orderDate || 'N/A';
+        document.getElementById('modalCustomerName').textContent = order.customerName || 'N/A';
+        document.getElementById('modalCustomerPhone').textContent = order.customerPhone || 'N/A';
+        document.getElementById('modalProducts').textContent = order.products || 'N/A';
+        document.getElementById('modalTotalAmount').textContent = formatCurrency(amount);
+        document.getElementById('modalCommission').textContent = formatCurrency(commission);
+        
+        // Update status badge
+        const statusHtml = getStatusBadge(order.status);
+        document.getElementById('modalOrderStatus').innerHTML = statusHtml;
+
+        // Show modal
+        document.getElementById('orderDetailModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+    };
+
+    // Close order detail modal
+    window.closeOrderDetailModal = function() {
+        document.getElementById('orderDetailModal').classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scroll
+    };
+
+    // Close modal when clicking outside
+    document.getElementById('orderDetailModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeOrderDetailModal();
+        }
+    });
 
     function getStatusBadge(status) {
         const statusMap = {
@@ -456,11 +499,13 @@ document.addEventListener('DOMContentLoaded', function () {
             'Đã hủy': 'bg-red-100 text-red-800'
         };
 
-        const colorClass = statusMap[status] || 'bg-gray-100 text-gray-800';
+        // Nếu không có status hoặc status rỗng, mặc định là "Đã xác nhận"
+        const displayStatus = status && status.trim() !== '' ? status : 'Đã xác nhận';
+        const colorClass = statusMap[displayStatus] || 'bg-blue-100 text-blue-800';
 
         return `
             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${colorClass}">
-                ${status || 'N/A'}
+                ${displayStatus}
             </span>
         `;
     }
