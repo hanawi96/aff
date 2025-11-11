@@ -555,12 +555,12 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Referral code:', referralCode);
         console.log('Phone:', phone);
 
-        // Calculate summary (for all orders, not filtered)
-        const totalOrders = allOrders.length;
+        // Calculate summary (based on filtered orders)
+        const totalOrders = filteredOrders.length;
         let totalRevenue = 0;
         let totalCommission = 0;
 
-        allOrders.forEach(order => {
+        filteredOrders.forEach(order => {
             const amount = parseAmount(order.totalAmount);
             console.log('Order amount:', order.totalAmount, '-> Parsed:', amount);
             totalRevenue += amount;
