@@ -65,6 +65,7 @@ function doPost(e) {
       'Thời Gian',
       'Họ Tên',
       'Số Điện Thoại',
+      'Email',           // ⭐ Thêm cột Email
       'Tỉnh/Thành',
       'Tuổi',
       'Kinh Nghiệm',
@@ -104,13 +105,14 @@ function doPost(e) {
       sheet.setColumnWidth(1, 150);  // Thời Gian
       sheet.setColumnWidth(2, 180);  // Họ Tên
       sheet.setColumnWidth(3, 120);  // Số Điện Thoại
-      sheet.setColumnWidth(4, 120);  // Tỉnh/Thành
-      sheet.setColumnWidth(5, 100);  // Tuổi
-      sheet.setColumnWidth(6, 130);  // Kinh Nghiệm
-      sheet.setColumnWidth(7, 300);  // Lý Do
-      sheet.setColumnWidth(8, 120);  // Mã Ref
-      sheet.setColumnWidth(9, 100);  // Trạng Thái
-      sheet.setColumnWidth(10, 150); // Đơn Hàng Của Bạn ⭐
+      sheet.setColumnWidth(4, 200);  // Email ⭐
+      sheet.setColumnWidth(5, 120);  // Tỉnh/Thành
+      sheet.setColumnWidth(6, 100);  // Tuổi
+      sheet.setColumnWidth(7, 130);  // Kinh Nghiệm
+      sheet.setColumnWidth(8, 300);  // Lý Do
+      sheet.setColumnWidth(9, 120);  // Mã Ref
+      sheet.setColumnWidth(10, 100); // Trạng Thái
+      sheet.setColumnWidth(11, 150); // Đơn Hàng Của Bạn ⭐
 
       // Freeze header row
       sheet.setFrozenRows(1);
@@ -141,8 +143,11 @@ function doPost(e) {
         newColumnRange.setVerticalAlignment('middle');
 
         // Set width cho cột mới
-        if (lastColumn < 10) {
-          sheet.setColumnWidth(10, 150); // Đơn Hàng Của Bạn
+        if (lastColumn < 4) {
+          sheet.setColumnWidth(4, 200); // Email
+        }
+        if (lastColumn < 11) {
+          sheet.setColumnWidth(11, 150); // Đơn Hàng Của Bạn
         }
 
         Logger.log('✅ Đã thêm cột mới vào header!');
@@ -165,6 +170,7 @@ function doPost(e) {
       data.timestamp || new Date().toLocaleString('vi-VN'),
       data.fullName || '',
       data.phone || '',
+      data.email || '',  // ⭐ Thêm email
       data.city || '',
       data.age || '',
       data.experience || '',
@@ -183,10 +189,10 @@ function doPost(e) {
     // Format the newly added row
     const dataRange = sheet.getRange(lastRow, 1, 1, rowData.length);
 
-    // Căn giữa các cột trừ cột "Lý Do" (cột 7)
+    // Căn giữa các cột trừ cột "Lý Do" (cột 8)
     for (let col = 1; col <= rowData.length; col++) {
       const cell = sheet.getRange(lastRow, col);
-      if (col === 7) { // Cột "Lý Do" - căn trái
+      if (col === 8) { // Cột "Lý Do" - căn trái
         cell.setHorizontalAlignment('left');
       } else {
         cell.setHorizontalAlignment('center');
@@ -201,21 +207,21 @@ function doPost(e) {
       dataRange.setBackground('#ffffff'); // White cho hàng lẻ
     }
 
-    // Format cột "Trạng Thái" (cột 9) với màu nổi bật
-    const statusCell = sheet.getRange(lastRow, 9);
+    // Format cột "Trạng Thái" (cột 10) với màu nổi bật
+    const statusCell = sheet.getRange(lastRow, 10);
     statusCell.setBackground('#fff3cd'); // Light yellow
     statusCell.setFontColor('#856404'); // Dark yellow text
     statusCell.setFontWeight('bold');
 
-    // Format cột "Mã Ref" (cột 8) với màu nổi bật
-    const refCodeCell = sheet.getRange(lastRow, 8);
+    // Format cột "Mã Ref" (cột 9) với màu nổi bật
+    const refCodeCell = sheet.getRange(lastRow, 9);
     refCodeCell.setBackground('#e3f2fd'); // Light blue
     refCodeCell.setFontColor('#1565c0'); // Dark blue text
     refCodeCell.setFontWeight('bold');
     refCodeCell.setFontFamily('Courier New'); // Monospace font cho code
 
-    // ⭐ Format cột "Đơn Hàng Của Bạn" (cột 10) với hyperlink
-    const orderLinkCell = sheet.getRange(lastRow, 10);
+    // ⭐ Format cột "Đơn Hàng Của Bạn" (cột 11) với hyperlink
+    const orderLinkCell = sheet.getRange(lastRow, 11);
 
     // Cách 1: Dùng RichText (an toàn nhất)
     try {
