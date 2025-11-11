@@ -61,25 +61,87 @@
                         <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                         <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                     </svg>
-                    <span>Mã CTV của bạn</span>
+                    <span>Mã CTV hoặc Số Điện Thoại</span>
                 </label>
 
                 <form id="searchForm" class="relative">
-                    <input type="text" id="referralCode" placeholder="Nhập mã CTV để tra cứu (VD: CTV123456)" required
+                    <input type="text" id="referralCode"
+                        placeholder="Nhập mã CTV (VD: CTV123456) hoặc SĐT (VD: 0386190596)" required
                         class="w-full pl-4 pr-32 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white text-base font-medium placeholder-gray-400">
 
-                    <button type="submit"
+                    <button type="submit" id="searchButton"
                         class="absolute right-1.5 top-1/2 -translate-y-1/2 px-5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-md hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <!-- Search Icon (default) -->
+                        <svg id="searchIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
-                        <span class="hidden sm:inline">Tra cứu</span>
+                        <!-- Loading Spinner (hidden by default) -->
+                        <svg id="loadingSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span class="hidden sm:inline" id="searchButtonText">Tra cứu</span>
                     </button>
+                </form>
+
+                <!-- Hint text - Moved here -->
+                <p class="mt-2 text-xs text-gray-500 flex items-start gap-1.5">
+                    <svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span>Nhập <strong>mã CTV</strong> (VD: CTV123456) hoặc <strong>SDT</strong> đăng ký (VD:
+                        0386190596)</span>
+                </p>
+
+                <!-- CTV Info - Inline (Hidden by default) -->
+                <div id="ctvInfoInline" class="hidden mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Thông tin CTV</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm text-gray-600 flex-wrap">
+                        <!-- Tên -->
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span id="ctvNameInline" class="font-semibold text-gray-900">-</span>
+                        </span>
+                        <span class="text-gray-300">|</span>
+                        <!-- Số điện thoại -->
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span id="ctvPhoneInline" class="font-semibold text-gray-900">-</span>
+                        </span>
+                        <span class="text-gray-300">|</span>
+                        <!-- Địa chỉ -->
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span id="ctvAddressInline" class="font-semibold text-gray-900">-</span>
+                        </span>
+                    </div>
+                </div>
             </div>
-        </div>
-        </form>
-        </div>
         </div>
 
         <!-- Dashboard Section (Default View) -->
@@ -97,83 +159,80 @@
 
             <!-- Dashboard Content -->
             <div id="dashboardContent" class="hidden space-y-5">
-                <!-- Dashboard Header -->
+                <!-- Dashboard Header - Simplified -->
                 <div class="text-center">
-                    <h2
-                        class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                        <svg class="w-7 h-7 sm:w-8 sm:h-8 text-purple-600" fill="none" viewBox="0 0 24 24"
-                            stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
-                        </svg>
-                        <span
-                            class="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-                            Tổng Quan Hệ Thống
-                        </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                        Tổng Quan Hệ Thống
                     </h2>
                     <p class="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
                         Thống kê realtime về cộng tác viên, đơn hàng và hoa hồng trong hệ thống
                     </p>
                 </div>
 
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Stats Cards - Simplified -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Total CTVs -->
                     <div
-                        class="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow flex flex-col items-center justify-center text-center">
-                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                            </svg>
+                        class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 shadow-sm border border-purple-100 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                </svg>
+                            </div>
                         </div>
-                        <p class="text-xs font-medium text-white/80 mb-1">Tổng CTV</p>
-                        <p id="dashTotalCTV" class="text-2xl font-bold text-white">0</p>
+                        <p class="text-xs font-medium text-gray-600 mb-1">Tổng CTV</p>
+                        <p id="dashTotalCTV" class="text-2xl font-bold text-gray-900">0</p>
                     </div>
 
                     <!-- Total Orders -->
                     <div
-                        class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow flex flex-col items-center justify-center text-center">
-                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                            </svg>
+                        class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-5 shadow-sm border border-blue-100 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                </svg>
+                            </div>
                         </div>
-                        <p class="text-xs font-medium text-white/80 mb-1">Tổng Đơn</p>
-                        <p id="dashTotalOrders" class="text-2xl font-bold text-white">0</p>
+                        <p class="text-xs font-medium text-gray-600 mb-1">Tổng Đơn</p>
+                        <p id="dashTotalOrders" class="text-2xl font-bold text-gray-900">0</p>
                     </div>
 
                     <!-- Total Revenue -->
                     <div
-                        class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow flex flex-col items-center justify-center text-center">
-                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        class="bg-gradient-to-br from-green-50 to-white rounded-xl p-5 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
                         </div>
-                        <p class="text-xs font-medium text-white/80 mb-1">Doanh Số</p>
-                        <p id="dashTotalRevenue" class="text-lg font-bold text-white leading-tight">0đ</p>
+                        <p class="text-xs font-medium text-gray-600 mb-1">Doanh Số</p>
+                        <p id="dashTotalRevenue" class="text-xl font-bold text-gray-900">0đ</p>
                     </div>
 
                     <!-- Total Commission -->
                     <div
-                        class="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow flex flex-col items-center justify-center text-center">
-                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
-                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        class="bg-gradient-to-br from-amber-50 to-white rounded-xl p-5 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
                         </div>
-                        <p class="text-xs font-medium text-white/80 mb-1">Hoa Hồng</p>
-                        <p id="dashTotalCommission" class="text-lg font-bold text-white leading-tight">0đ</p>
+                        <p class="text-xs font-medium text-gray-600 mb-1">Hoa Hồng</p>
+                        <p id="dashTotalCommission" class="text-xl font-bold text-gray-900">0đ</p>
                     </div>
                 </div>
 
@@ -326,68 +385,88 @@
 
         <!-- Results Container -->
         <div id="resultsContainer" class="hidden">
-            <!-- Filter Tabs -->
-            <div class="flex justify-center mb-6">
-                <div class="inline-flex bg-gray-100 rounded-lg p-1">
+            <!-- Collaborator Info Box - Hidden (now shown inline in search box) -->
+            <div id="collaboratorInfoBox" class="hidden"></div>
+
+            <!-- Filter Tabs - Redesigned -->
+            <div class="flex justify-center mb-8">
+                <div class="inline-flex bg-white rounded-2xl p-1.5 shadow-md border border-gray-200">
                     <button id="filterAllTime" onclick="filterOrders('all')"
-                        class="filter-tab active px-5 py-2.5 text-sm font-medium rounded-md transition-all">
-                        Từ trước đến nay
+                        class="filter-tab active px-8 py-3 text-sm font-semibold rounded-xl transition-none relative overflow-hidden">
+                        <span class="relative z-10">Từ trước đến nay</span>
                     </button>
                     <button id="filterToday" onclick="filterOrders('today')"
-                        class="filter-tab px-5 py-2.5 text-sm font-medium rounded-md transition-all">
-                        Hôm nay
+                        class="filter-tab px-8 py-3 text-sm font-semibold rounded-xl transition-none relative overflow-hidden">
+                        <span class="relative z-10">Hôm nay</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 justify-items-center max-w-5xl mx-auto">
-                <div class="bg-white/70 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-mom-pink/20">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Tổng Đơn Hàng</p>
-                            <p class="text-2xl font-bold text-gray-800" id="totalOrders">0</p>
-                        </div>
-                        <div class="w-12 h-12 bg-mom-pink/20 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-mom-pink" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/70 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-mom-blue/20">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Tổng Doanh Số</p>
-                            <p class="text-2xl font-bold text-gray-800" id="totalRevenue">0đ</p>
-                        </div>
-                        <div class="w-12 h-12 bg-mom-blue/20 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-mom-blue" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
+            <!-- Summary Cards - Responsive Layout -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                <!-- Card 1: Tổng Đơn Hàng -->
                 <div
-                    class="col-span-2 md:col-span-1 bg-white/70 backdrop-blur-sm rounded-xl p-5 shadow-lg border border-green-200">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Hoa Hồng Dự Kiến</p>
-                            <p class="text-2xl font-bold text-green-600" id="totalCommission">0đ</p>
+                    class="bg-white rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <span class="text-xs sm:text-sm font-medium text-gray-600">Tổng Đơn Hàng</span>
+                            <div
+                                class="w-8 h-8 sm:w-10 sm:h-10 bg-pink-100 rounded-xl flex items-center justify-center">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" fill="currentColor"
+                                    viewBox="0 0 20 20">
+                                    <path
+                                        d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                </svg>
+                            </div>
                         </div>
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        <div class="flex items-baseline gap-2">
+                            <span id="totalOrders" class="text-2xl sm:text-4xl font-bold text-gray-900">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Tổng Doanh Số -->
+                <div
+                    class="bg-white rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <span class="text-xs sm:text-sm font-medium text-gray-600">Tổng Doanh Số</span>
+                            <div
+                                class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor"
+                                    viewBox="0 0 20 20">
+                                    <path
+                                        d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="totalRevenue" class="text-xl sm:text-3xl font-bold text-gray-900">0đ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Hoa Hồng Dự Kiến -->
+                <div
+                    class="col-span-2 sm:col-span-1 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-200">
+                    <div class="flex flex-col">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <span class="text-xs sm:text-sm font-medium text-green-700">Hoa Hồng Dự Kiến</span>
+                            <div
+                                class="w-8 h-8 sm:w-10 sm:h-10 bg-green-200 rounded-xl flex items-center justify-center">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-700" fill="currentColor"
+                                    viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="totalCommission" class="text-xl sm:text-3xl font-bold text-green-700">0đ</span>
                         </div>
                     </div>
                 </div>
@@ -595,19 +674,38 @@
             animation: slideUp 0.3s ease-out;
         }
 
-        /* Filter Tabs */
+        /* Filter Tabs - Modern Design */
         .filter-tab {
             color: #6B7280;
+            background: transparent;
+            position: relative;
         }
 
         .filter-tab.active {
-            background: linear-gradient(to right, #9333EA, #EC4899);
+            background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
             color: white;
-            box-shadow: 0 2px 4px rgba(147, 51, 234, 0.2);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), 0 2px 4px rgba(236, 72, 153, 0.2);
         }
 
-        .filter-tab:not(.active):hover {
-            background: #E5E7EB;
+        .filter-tab.active::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 0.75rem;
+            padding: 2px;
+            background: linear-gradient(135deg, #A855F7, #EC4899);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+        }
+
+        /* Line clamp for address */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
     </style>
 

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Hiển Thị Thông Tin CTV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Test Hiển Thị Thông Tin CTV</h1>
+        
+        <!-- Box thông tin CTV giống như trong trang chính -->
+        <div id="collaboratorInfoBox" class="mb-6">
+            <div class="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-2xl shadow-lg border border-purple-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        <h3 class="text-base font-bold text-white">Thông Tin Cộng Tác Viên</h3>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Họ Tên -->
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1">Họ và Tên</p>
+                                <p id="ctvName" class="text-sm font-bold text-gray-800 truncate">Đang tải...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Số Điện Thoại -->
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1">Số Điện Thoại</p>
+                                <p id="ctvPhone" class="text-sm font-bold text-gray-800">Đang tải...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Địa Chỉ -->
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-600 mb-1">Địa Chỉ</p>
+                                <p id="ctvAddress" class="text-sm font-bold text-gray-800 line-clamp-2">Đang tải...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test buttons -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-bold mb-4">Test Cases</h2>
+            <div class="space-y-3">
+                <button onclick="testCase1()" class="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Test 1: Thông tin đầy đủ (yên, 386190596, TP.HCM)
+                </button>
+                <button onclick="testCase2()" class="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    Test 2: Thông tin null (fallback)
+                </button>
+                <button onclick="testCase3()" class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    Test 3: Thông tin "Chưa cập nhật" (fallback)
+                </button>
+                <button onclick="testCase4()" class="w-full px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                    Test 4: Không có SĐT (hiển thị ****)
+                </button>
+                <button onclick="testCase5()" class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    Test 5: SĐT ngắn (hiển thị ****)
+                </button>
+                <button onclick="testCase6()" class="w-full px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">
+                    Test 6: Tên viết thường (nguyễn văn a)
+                </button>
+                <button onclick="testCase7()" class="w-full px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600">
+                    Test 7: Tên viết HOA (TRẦN THỊ B)
+                </button>
+            </div>
+        </div>
+
+        <!-- Console log -->
+        <div class="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-sm">
+            <div id="console" class="whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+
+    <script>
+        // Copy hàm displayCollaboratorInfo từ ctv.js
+        function displayCollaboratorInfo(ctvInfo) {
+            log('📋 displayCollaboratorInfo called with:', ctvInfo);
+            
+            // Viết hoa chữ cái đầu của tên
+            const capitalizeName = (name) => {
+                if (!name) return name;
+                
+                // Tách các từ bằng khoảng trắng
+                return name.split(' ')
+                    .map(word => {
+                        if (!word) return word;
+                        // Viết hoa chữ cái đầu, viết thường phần còn lại
+                        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                    })
+                    .join(' ');
+            };
+            
+            // Che 4 số cuối của số điện thoại
+            const maskPhone = (phone) => {
+                if (!phone) return '****';
+                
+                let phoneStr = phone.toString().trim();
+                
+                // Nếu là "****" thì giữ nguyên
+                if (phoneStr === '****') return '****';
+                
+                // Nếu là số điện thoại (chỉ chứa số)
+                if (/^\d+$/.test(phoneStr)) {
+                    // Thêm số 0 ở đầu nếu chưa có (số điện thoại VN)
+                    if (!phoneStr.startsWith('0') && phoneStr.length === 9) {
+                        phoneStr = '0' + phoneStr;
+                        log('📱 Added leading 0 to phone:', phoneStr);
+                    }
+                    
+                    // Nếu đủ dài (>= 4 số), che 4 số cuối
+                    if (phoneStr.length >= 4) {
+                        return phoneStr.slice(0, -4) + '****';
+                    }
+                    // Nếu quá ngắn, trả về ****
+                    return '****';
+                }
+                
+                // Nếu là text khác, trả về ****
+                return '****';
+            };
+
+            // Đảm bảo có giá trị mặc định
+            const defaultInfo = {
+                name: 'Cộng tác viên',
+                phone: '****',
+                address: 'Xem trong đơn hàng'
+            };
+
+            const finalInfo = {
+                name: (ctvInfo && ctvInfo.name) ? capitalizeName(ctvInfo.name) : defaultInfo.name,
+                phone: (ctvInfo && ctvInfo.phone) ? ctvInfo.phone : defaultInfo.phone,
+                address: (ctvInfo && ctvInfo.address) ? ctvInfo.address : defaultInfo.address
+            };
+
+            // Cập nhật thông tin vào box
+            const nameEl = document.getElementById('ctvName');
+            const phoneEl = document.getElementById('ctvPhone');
+            const addressEl = document.getElementById('ctvAddress');
+
+            if (nameEl) {
+                nameEl.textContent = finalInfo.name;
+            }
+            
+            if (phoneEl) {
+                phoneEl.textContent = maskPhone(finalInfo.phone);
+            }
+            
+            if (addressEl) {
+                addressEl.textContent = finalInfo.address;
+            }
+
+            log('✅ CTV info displayed:', {
+                name: nameEl ? nameEl.textContent : 'element not found',
+                phone: phoneEl ? phoneEl.textContent : 'element not found',
+                address: addressEl ? addressEl.textContent : 'element not found'
+            });
+        }
+
+        // Test cases
+        function testCase1() {
+            clearLog();
+            log('🧪 Test Case 1: Thông tin đầy đủ');
+            displayCollaboratorInfo({
+                name: 'yên',
+                phone: '386190596',
+                address: 'TP.HCM'
+            });
+        }
+
+        function testCase6() {
+            clearLog();
+            log('🧪 Test Case 6: Tên viết thường');
+            displayCollaboratorInfo({
+                name: 'nguyễn văn a',
+                phone: '901234567',
+                address: 'Hà Nội'
+            });
+        }
+
+        function testCase7() {
+            clearLog();
+            log('🧪 Test Case 7: Tên viết HOA');
+            displayCollaboratorInfo({
+                name: 'TRẦN THỊ B',
+                phone: '912345678',
+                address: 'Đà Nẵng'
+            });
+        }
+
+        function testCase2() {
+            clearLog();
+            log('🧪 Test Case 2: Thông tin null');
+            displayCollaboratorInfo(null);
+        }
+
+        function testCase3() {
+            clearLog();
+            log('🧪 Test Case 3: Thông tin "Chưa cập nhật"');
+            displayCollaboratorInfo({
+                name: 'Chưa cập nhật',
+                phone: 'Chưa cập nhật',
+                address: 'Chưa cập nhật'
+            });
+        }
+
+        function testCase4() {
+            clearLog();
+            log('🧪 Test Case 4: Không có SĐT');
+            displayCollaboratorInfo({
+                name: 'CTV PARTNER001',
+                phone: '****',
+                address: 'Xem trong đơn hàng'
+            });
+        }
+
+        function testCase5() {
+            clearLog();
+            log('🧪 Test Case 5: SĐT ngắn (123)');
+            displayCollaboratorInfo({
+                name: 'Test User',
+                phone: '123',
+                address: 'Test Address'
+            });
+        }
+
+        // Console helpers
+        function log(...args) {
+            const consoleEl = document.getElementById('console');
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+            ).join(' ');
+            consoleEl.textContent += message + '\n';
+            console.log(...args);
+        }
+
+        function clearLog() {
+            document.getElementById('console').textContent = '';
+        }
+
+        // Auto run test 1 on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testCase1, 500);
+        });
+    </script>
+</body>
+</html>

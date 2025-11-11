@@ -18,13 +18,15 @@ const CONFIG = {
     orderId: 0,        // Cột A - Mã Đơn Hàng
     orderDate: 1,      // Cột B - Ngày Đặt
     customerName: 2,   // Cột C - Tên Khách Hàng
-    customerPhone: 3,  // Cột D - Số Điện Thoại
+    customerPhone: 3,  // Cột D - Số Điện Thoại (Khách hàng)
     address: 4,        // Cột E - Địa Chỉ
     products: 5,       // Cột F - Chi Tiết Sản Phẩm
     totalAmount: 6,    // Cột G - TỔNG KHÁCH PHẢI TRẢ
-    paymentMethod: 7,  // Cột H - Hướng Thanh Toán
+    paymentMethod: 7,  // Cột H - Phương Thức Thanh Toán
     status: 8,         // Cột I - Ghi Chú
-    referralCode: 9    // Cột J - Mã Referral
+    referralCode: 9,   // Cột J - Mã Referral
+    commission: 10,    // Cột K - Hoa Hồng
+    ctvPhone: 11       // Cột L - SĐT CTV (⭐ ĐÚNG INDEX)
   },
 
   // Tỷ lệ hoa hồng (10%)
@@ -348,13 +350,96 @@ function doGet(e) {
       }
 
       // Get orders from Google Sheets
+      Logger.log('📦 Getting orders for referral code: ' + referralCode);
       const orders = getOrdersByReferralCode(referralCode);
+      Logger.log('📊 Found ' + orders.length + ' orders');
+
+      // Get CTV info
+      Logger.log('👤 Getting CTV info for referral code: ' + referralCode);
+      const ctvInfo = getCTVInfoByReferralCode(referralCode);
+      Logger.log('📋 CTV Info result: ' + JSON.stringify(ctvInfo));
+
+      const response = {
+        success: true,
+        orders: orders,
+        referralCode: referralCode,
+        ctvInfo: ctvInfo
+      };
+
+      Logger.log('📤 Sending response with ctvInfo: ' + (ctvInfo ? 'YES' : 'NO'));
+      Logger.log('📤 Response: ' + JSON.stringify(response));
+
+      return ContentService
+        .createTextOutput(JSON.stringify(response))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ⭐ API MỚI: Lấy đơn hàng theo số điện thoại CTV
+    if (action === 'getOrdersByPhone') {
+      const phone = e.parameter.phone;
+
+      if (!phone) {
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            error: 'Số điện thoại không được để trống'
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Chuẩn hóa số điện thoại (bỏ số 0 đầu)
+      const normalizedPhone = normalizePhone(phone);
+      Logger.log('🔍 Searching orders for normalized phone: ' + normalizedPhone);
+
+      // ⭐ PHƯƠNG ÁN TỐI ƯU: Tìm đơn hàng trực tiếp theo SĐT CTV trong sheet đơn hàng
+      const orders = getOrdersByPhoneDirectly(normalizedPhone);
+
+      if (!orders || orders.length === 0) {
+        // Nếu không tìm thấy, thử phương án 2: Tìm mã CTV từ sheet DS REF
+        Logger.log('⚠️ No orders found directly, trying to find via CTV sheet...');
+        const referralCode = getReferralCodeByPhone(normalizedPhone);
+
+        if (!referralCode) {
+          return ContentService
+            .createTextOutput(JSON.stringify({
+              success: false,
+              error: 'Không tìm thấy đơn hàng với số điện thoại: ' + phone
+            }))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+
+        // Lấy đơn hàng theo mã CTV
+        const ordersByRefCode = getOrdersByReferralCode(referralCode);
+
+        // Get CTV info
+        const ctvInfo = getCTVInfoByPhone(normalizedPhone);
+
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: true,
+            orders: ordersByRefCode,
+            referralCode: referralCode,
+            phone: phone,
+            ctvInfo: ctvInfo,
+            method: 'via_ctv_sheet'
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Lấy mã CTV từ đơn hàng đầu tiên (nếu có)
+      const referralCode = orders.length > 0 ? orders[0].referralCode : '';
+
+      // Get CTV info
+      const ctvInfo = getCTVInfoByPhone(normalizedPhone);
 
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
           orders: orders,
-          referralCode: referralCode
+          referralCode: referralCode,
+          phone: phone,
+          ctvInfo: ctvInfo,
+          method: 'direct_phone_lookup'
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -573,6 +658,393 @@ function parseAmount(amountValue) {
   }
 }
 
+// ⭐ Helper function: Chuẩn hóa số điện thoại (bỏ số 0 đầu)
+function normalizePhone(phone) {
+  if (!phone) return '';
+
+  // Chuyển thành string và loại bỏ khoảng trắng, dấu gạch ngang
+  let normalized = phone.toString().trim().replace(/[\s\-]/g, '');
+
+  // Bỏ số 0 ở đầu nếu có
+  if (normalized.startsWith('0')) {
+    normalized = normalized.substring(1);
+  }
+
+  return normalized;
+}
+
+// ⭐ Hàm mới: Lấy thông tin CTV theo số điện thoại
+function getCTVInfoByPhone(normalizedPhone) {
+  try {
+    Logger.log('🔍 Getting CTV info for phone: ' + normalizedPhone);
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      Logger.log('❌ CTV sheet not found');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    const data = ctvSheet.getDataRange().getValues();
+    Logger.log('📊 Total rows in CTV sheet: ' + data.length);
+
+    if (data.length <= 1) {
+      Logger.log('⚠️ No CTV data found');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    // Tìm index các cột cần thiết
+    const headers = data[0];
+    Logger.log('📋 Headers: ' + JSON.stringify(headers));
+
+    const phoneColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('điện thoại') ||
+        h.toString().toLowerCase().includes('sđt') ||
+        h.toString().toLowerCase().includes('phone'))
+    );
+    const nameColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('họ tên') ||
+        h.toString().toLowerCase().includes('họ và tên') ||
+        h.toString().toLowerCase().includes('tên'))
+    );
+    const addressColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('tỉnh') ||
+        h.toString().toLowerCase().includes('thành') ||
+        h.toString().toLowerCase().includes('địa chỉ'))
+    );
+
+    Logger.log('📍 Column indexes - Phone: ' + phoneColumnIndex +
+      ', Name: ' + nameColumnIndex +
+      ', Address: ' + addressColumnIndex);
+
+    if (phoneColumnIndex === -1) {
+      Logger.log('❌ Phone column not found');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    // Tìm CTV với số điện thoại khớp
+    Logger.log('🔎 Searching for phone: ' + normalizedPhone);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowPhone = row[phoneColumnIndex];
+
+      if (!rowPhone) continue;
+
+      const normalizedRowPhone = normalizePhone(rowPhone);
+      Logger.log(`  Row ${i}: Comparing "${normalizedRowPhone}" === "${normalizedPhone}"`);
+
+      if (normalizedRowPhone === normalizedPhone) {
+        const ctvInfo = {
+          name: nameColumnIndex !== -1 && row[nameColumnIndex] ? row[nameColumnIndex].toString() : 'Chưa cập nhật',
+          phone: rowPhone.toString(),
+          address: addressColumnIndex !== -1 && row[addressColumnIndex] ? row[addressColumnIndex].toString() : 'Chưa cập nhật'
+        };
+
+        Logger.log('✅ Found CTV info: ' + JSON.stringify(ctvInfo));
+        return ctvInfo;
+      }
+    }
+
+    Logger.log('❌ No matching CTV found for phone: ' + normalizedPhone);
+    return {
+      name: 'Không tìm thấy',
+      phone: normalizedPhone,
+      address: 'Không tìm thấy'
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in getCTVInfoByPhone: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return {
+      name: 'Lỗi: ' + error.toString(),
+      phone: 'Lỗi',
+      address: 'Lỗi'
+    };
+  }
+}
+
+// ⭐ Hàm mới: Lấy thông tin CTV theo mã referral
+function getCTVInfoByReferralCode(referralCode) {
+  try {
+    Logger.log('🔍 Getting CTV info for referral code: ' + referralCode);
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      Logger.log('❌ CTV sheet not found');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    const data = ctvSheet.getDataRange().getValues();
+    Logger.log('📊 Total rows in CTV sheet: ' + data.length);
+
+    if (data.length <= 1) {
+      Logger.log('⚠️ No CTV data found');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    // Tìm index các cột cần thiết
+    const headers = data[0];
+    Logger.log('📋 Headers: ' + JSON.stringify(headers));
+
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+    const nameColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('họ tên') ||
+        h.toString().toLowerCase().includes('họ và tên') ||
+        h.toString().toLowerCase().includes('tên'))
+    );
+    const phoneColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('điện thoại') ||
+        h.toString().toLowerCase().includes('sđt') ||
+        h.toString().toLowerCase().includes('phone'))
+    );
+    const addressColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('tỉnh') ||
+        h.toString().toLowerCase().includes('thành') ||
+        h.toString().toLowerCase().includes('địa chỉ'))
+    );
+
+    Logger.log('📍 Column indexes - RefCode: ' + refCodeColumnIndex +
+      ', Name: ' + nameColumnIndex +
+      ', Phone: ' + phoneColumnIndex +
+      ', Address: ' + addressColumnIndex);
+
+    if (refCodeColumnIndex === -1) {
+      Logger.log('❌ Referral code column not found in headers');
+      return {
+        name: 'Chưa cập nhật',
+        phone: 'Chưa cập nhật',
+        address: 'Chưa cập nhật'
+      };
+    }
+
+    // Tìm CTV với mã referral khớp
+    Logger.log('🔎 Searching for referral code: ' + referralCode.toUpperCase());
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowRefCode = row[refCodeColumnIndex];
+
+      if (!rowRefCode) continue;
+
+      const normalizedRowRefCode = rowRefCode.toString().trim().toUpperCase();
+      const normalizedSearchCode = referralCode.toString().trim().toUpperCase();
+
+      Logger.log(`  Row ${i}: Comparing "${normalizedRowRefCode}" === "${normalizedSearchCode}"`);
+
+      if (normalizedRowRefCode === normalizedSearchCode) {
+        const ctvInfo = {
+          name: nameColumnIndex !== -1 && row[nameColumnIndex] ? row[nameColumnIndex].toString() : 'Chưa cập nhật',
+          phone: phoneColumnIndex !== -1 && row[phoneColumnIndex] ? row[phoneColumnIndex].toString() : 'Chưa cập nhật',
+          address: addressColumnIndex !== -1 && row[addressColumnIndex] ? row[addressColumnIndex].toString() : 'Chưa cập nhật'
+        };
+
+        Logger.log('✅ Found CTV info: ' + JSON.stringify(ctvInfo));
+        return ctvInfo;
+      }
+    }
+
+    Logger.log('❌ No matching CTV found for referral code: ' + referralCode);
+    return {
+      name: 'Không tìm thấy',
+      phone: 'Không tìm thấy',
+      address: 'Không tìm thấy'
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in getCTVInfoByReferralCode: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return {
+      name: 'Lỗi: ' + error.toString(),
+      phone: 'Lỗi',
+      address: 'Lỗi'
+    };
+  }
+}
+
+// ⭐ Hàm mới: Lấy đơn hàng trực tiếp theo số điện thoại CTV (PHƯƠNG ÁN TỐI ƯU)
+function getOrdersByPhoneDirectly(normalizedPhone) {
+  try {
+    Logger.log('🔍 Searching orders directly by CTV phone: ' + normalizedPhone);
+
+    // Mở spreadsheet đơn hàng
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    let orderSheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+
+    if (!orderSheet) {
+      orderSheet = orderSpreadsheet.getSheets()[0];
+      Logger.log('Không tìm thấy sheet "' + CONFIG.ORDER_SHEET_NAME + '", sử dụng sheet: ' + orderSheet.getName());
+    }
+
+    // Lấy tất cả dữ liệu
+    const data = orderSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      Logger.log('Sheet đơn hàng không có dữ liệu');
+      return [];
+    }
+
+    // Tìm index của cột "SĐT CTV" hoặc "Số Điện Thoại CTV"
+    const headers = data[0];
+    Logger.log('📋 Headers: ' + JSON.stringify(headers));
+
+    let ctvPhoneColumnIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('sđt ctv') ||
+        h.toString().toLowerCase().includes('số điện thoại ctv') ||
+        h.toString().toLowerCase().includes('phone ctv') ||
+        h.toString().toLowerCase().includes('sdt ctv'))
+    );
+
+    // Nếu không tìm thấy, thử dùng config
+    if (ctvPhoneColumnIndex === -1 && CONFIG.ORDER_COLUMNS.ctvPhone !== undefined) {
+      ctvPhoneColumnIndex = CONFIG.ORDER_COLUMNS.ctvPhone;
+      Logger.log('⚠️ Không tìm thấy cột SĐT CTV trong header, sử dụng config index: ' + ctvPhoneColumnIndex);
+    }
+
+    Logger.log('📍 CTV Phone column index: ' + ctvPhoneColumnIndex);
+
+    if (ctvPhoneColumnIndex === -1) {
+      Logger.log('❌ Không tìm thấy cột SĐT CTV trong sheet đơn hàng');
+      return [];
+    }
+
+    // Lọc các đơn hàng có SĐT CTV khớp
+    const orders = [];
+    const cols = CONFIG.ORDER_COLUMNS;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowCtvPhone = row[ctvPhoneColumnIndex];
+
+      if (!rowCtvPhone) continue;
+
+      // Chuẩn hóa số điện thoại trong sheet
+      const normalizedRowPhone = normalizePhone(rowCtvPhone);
+
+      Logger.log(`  Row ${i}: Comparing ${normalizedRowPhone} === ${normalizedPhone}`);
+
+      if (normalizedRowPhone === normalizedPhone) {
+        const rawAmount = row[cols.totalAmount];
+        const parsedAmount = parseAmount(rawAmount);
+
+        Logger.log(`  ✅ Match found! Order: ${row[cols.orderId]}, Amount: ${parsedAmount}`);
+
+        orders.push({
+          orderId: row[cols.orderId] || '',
+          orderDate: formatDate(row[cols.orderDate]),
+          customerName: row[cols.customerName] || '',
+          customerPhone: row[cols.customerPhone] || '',
+          products: row[cols.products] || '',
+          totalAmount: parsedAmount,
+          status: row[cols.status] || '',
+          referralCode: row[cols.referralCode] ? row[cols.referralCode].toString().trim() : ''
+        });
+      }
+    }
+
+    Logger.log(`✅ Found ${orders.length} orders for phone: ${normalizedPhone}`);
+    return orders;
+
+  } catch (error) {
+    Logger.log('❌ Error in getOrdersByPhoneDirectly: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return [];
+  }
+}
+
+// ⭐ Hàm mới: Tìm mã CTV từ số điện thoại (PHƯƠNG ÁN DỰ PHÒNG)
+function getReferralCodeByPhone(normalizedPhone) {
+  try {
+    Logger.log('🔍 Searching for CTV with phone: ' + normalizedPhone);
+
+    // Mở spreadsheet CTV
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      Logger.log('❌ CTV sheet not found');
+      return null;
+    }
+
+    // Lấy tất cả dữ liệu
+    const data = ctvSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      Logger.log('⚠️ No CTV data found');
+      return null;
+    }
+
+    // Tìm index của cột "Số Điện Thoại" và "Mã Ref"
+    const headers = data[0];
+    const phoneColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('điện thoại')
+    );
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+
+    Logger.log('📍 Phone column index: ' + phoneColumnIndex);
+    Logger.log('📍 RefCode column index: ' + refCodeColumnIndex);
+
+    if (phoneColumnIndex === -1 || refCodeColumnIndex === -1) {
+      Logger.log('❌ Required columns not found');
+      return null;
+    }
+
+    // Duyệt qua các dòng để tìm số điện thoại khớp
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowPhone = row[phoneColumnIndex];
+
+      if (!rowPhone) continue;
+
+      // Chuẩn hóa số điện thoại trong sheet
+      const normalizedRowPhone = normalizePhone(rowPhone);
+
+      Logger.log(`  Comparing: ${normalizedRowPhone} === ${normalizedPhone}`);
+
+      if (normalizedRowPhone === normalizedPhone) {
+        const refCode = row[refCodeColumnIndex];
+        Logger.log('✅ Found matching CTV! RefCode: ' + refCode);
+        return refCode ? refCode.toString().trim() : null;
+      }
+    }
+
+    Logger.log('❌ No matching CTV found');
+    return null;
+
+  } catch (error) {
+    Logger.log('❌ Error in getReferralCodeByPhone: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return null;
+  }
+}
+
 function sendNotificationEmail(data) {
   try {
     const emailAddress = 'your-email@gmail.com'; // Thay bằng email của bạn để nhận thông báo
@@ -722,8 +1194,8 @@ function testGetRecentOrders() {
 function testGetOrders() {
   try {
     // Lấy mã referral đầu tiên từ sheet đơn hàng để test
-    const spreadsheet = spreadsheet.openById(CONFIG.ORDER_SHEET_ID);
-    const sheet = spreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    const sheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
     const data = sheet.getDataRange().getValues();
 
     if (data.length <= 1) {
@@ -995,4 +1467,281 @@ function debugDashboardStats() {
     Logger.log('❌ ERROR: ' + error.toString());
     Logger.log('Stack: ' + error.stack);
   }
+}
+
+// ⭐ Test 6: Kiểm tra tra cứu theo số điện thoại
+function testGetOrdersByPhone() {
+  try {
+    Logger.log('========================================');
+    Logger.log('TEST: Tra cứu đơn hàng theo số điện thoại');
+    Logger.log('========================================\n');
+
+    // Lấy số điện thoại từ CTV đầu tiên để test
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+    const ctvData = ctvSheet.getDataRange().getValues();
+
+    if (ctvData.length <= 1) {
+      Logger.log('⚠️ Không có dữ liệu CTV để test');
+      return false;
+    }
+
+    // Tìm cột số điện thoại và mã ref
+    const headers = ctvData[0];
+    const phoneColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('điện thoại')
+    );
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+
+    if (phoneColumnIndex === -1 || refCodeColumnIndex === -1) {
+      Logger.log('❌ Không tìm thấy cột cần thiết');
+      return false;
+    }
+
+    // Lấy số điện thoại và mã ref từ dòng đầu tiên
+    const testPhone = ctvData[1][phoneColumnIndex];
+    const expectedRefCode = ctvData[1][refCodeColumnIndex];
+
+    Logger.log('📱 Test với số điện thoại: ' + testPhone);
+    Logger.log('🎯 Mã CTV mong đợi: ' + expectedRefCode);
+
+    // Test 1: Chuẩn hóa số điện thoại
+    Logger.log('\n--- Test 1: Chuẩn hóa số điện thoại ---');
+    const normalized1 = normalizePhone('0386190596');
+    Logger.log('normalizePhone("0386190596") = "' + normalized1 + '" (expected: "386190596")');
+
+    const normalized2 = normalizePhone('386190596');
+    Logger.log('normalizePhone("386190596") = "' + normalized2 + '" (expected: "386190596")');
+
+    const normalized3 = normalizePhone('0901 234 567');
+    Logger.log('normalizePhone("0901 234 567") = "' + normalized3 + '" (expected: "901234567")');
+
+    // Test 2: Tìm mã CTV từ số điện thoại
+    Logger.log('\n--- Test 2: Tìm mã CTV từ số điện thoại ---');
+    const foundRefCode = getReferralCodeByPhone(normalizePhone(testPhone));
+
+    if (foundRefCode) {
+      Logger.log('✅ Tìm thấy mã CTV: ' + foundRefCode);
+      if (foundRefCode === expectedRefCode) {
+        Logger.log('✅ Mã CTV khớp với mong đợi!');
+      } else {
+        Logger.log('⚠️ Mã CTV không khớp. Mong đợi: ' + expectedRefCode);
+      }
+    } else {
+      Logger.log('❌ Không tìm thấy mã CTV');
+      return false;
+    }
+
+    // Test 3: Lấy đơn hàng theo số điện thoại
+    Logger.log('\n--- Test 3: Lấy đơn hàng theo số điện thoại ---');
+    const orders = getOrdersByReferralCode(foundRefCode);
+    Logger.log('✅ Tìm thấy ' + orders.length + ' đơn hàng');
+
+    if (orders.length > 0) {
+      Logger.log('Chi tiết đơn hàng đầu tiên:');
+      Logger.log(JSON.stringify(orders[0], null, 2));
+    }
+
+    Logger.log('\n========================================');
+    Logger.log('✅ TEST HOÀN TẤT!');
+    Logger.log('========================================');
+
+    return true;
+
+  } catch (error) {
+    Logger.log('❌ Lỗi test: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return false;
+  }
+}
+
+// Test tất cả chức năng mới
+function testPhoneFeature() {
+  Logger.log('🚀 BẮT ĐẦU TEST CHỨC NĂNG TRA CỨU THEO SỐ ĐIỆN THOẠI\n');
+
+  const result = testGetOrdersByPhone();
+
+  if (result) {
+    Logger.log('\n🎉 TẤT CẢ TEST ĐỀU PASS!');
+  } else {
+    Logger.log('\n❌ CÓ TEST BỊ LỖI, VUI LÒNG KIỂM TRA LẠI!');
+  }
+}
+
+// ⭐ TEST NHANH: Kiểm tra thông tin CTV với PARTNER001
+function testCTVInfoQuick() {
+  Logger.log('╔════════════════════════════════════════╗');
+  Logger.log('║   TEST NHANH - THÔNG TIN CTV          ║');
+  Logger.log('╚════════════════════════════════════════╝\n');
+
+  // Test 1: Lấy thông tin CTV theo mã
+  Logger.log('📋 Test 1: getCTVInfoByReferralCode("PARTNER001")');
+  const ctvInfo1 = getCTVInfoByReferralCode('PARTNER001');
+  Logger.log('Result: ' + JSON.stringify(ctvInfo1, null, 2));
+  Logger.log('');
+
+  // Test 2: Lấy thông tin CTV theo SĐT
+  Logger.log('📋 Test 2: getCTVInfoByPhone("386190596")');
+  const ctvInfo2 = getCTVInfoByPhone('386190596');
+  Logger.log('Result: ' + JSON.stringify(ctvInfo2, null, 2));
+  Logger.log('');
+
+  // Test 3: API getOrders
+  Logger.log('📋 Test 3: API getOrders với PARTNER001');
+  const mockEvent = {
+    parameter: {
+      action: 'getOrders',
+      referralCode: 'PARTNER001'
+    }
+  };
+
+  const response = doGet(mockEvent);
+  const result = JSON.parse(response.getContent());
+
+  Logger.log('API Response:');
+  Logger.log('  success: ' + result.success);
+  Logger.log('  orders count: ' + (result.orders ? result.orders.length : 0));
+  Logger.log('  ctvInfo: ' + JSON.stringify(result.ctvInfo, null, 2));
+  Logger.log('');
+
+  // Kết luận
+  Logger.log('╔════════════════════════════════════════╗');
+  if (result.ctvInfo && result.ctvInfo.name !== 'Chưa cập nhật') {
+    Logger.log('║   ✅ THÀNH CÔNG - CTV INFO FOUND      ║');
+  } else {
+    Logger.log('║   ❌ THẤT BẠI - CTV INFO NOT FOUND    ║');
+  }
+  Logger.log('╚════════════════════════════════════════╝');
+}
+
+
+// ⭐ Test DEBUG: Kiểm tra sheet đơn hàng có cột SĐT CTV không
+function debugOrderSheetStructure() {
+  try {
+    Logger.log('========================================');
+    Logger.log('DEBUG: Kiểm tra cấu trúc sheet đơn hàng');
+    Logger.log('========================================\n');
+
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    const orderSheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+    const orderData = orderSheet.getDataRange().getValues();
+
+    Logger.log('📋 Headers: ' + JSON.stringify(orderData[0]));
+    Logger.log('📊 Total rows: ' + orderData.length);
+
+    // Tìm cột SĐT CTV
+    const headers = orderData[0];
+    const ctvPhoneIndex = headers.findIndex(h =>
+      h && (h.toString().toLowerCase().includes('sđt ctv') ||
+        h.toString().toLowerCase().includes('số điện thoại ctv') ||
+        h.toString().toLowerCase().includes('phone ctv') ||
+        h.toString().toLowerCase().includes('sdt ctv'))
+    );
+
+    Logger.log('\n📍 Tìm kiếm cột SĐT CTV...');
+    Logger.log('   Index tìm thấy: ' + ctvPhoneIndex);
+
+    if (ctvPhoneIndex !== -1) {
+      Logger.log('✅ Tìm thấy cột: "' + headers[ctvPhoneIndex] + '" tại index ' + ctvPhoneIndex);
+
+      // Hiển thị 10 số điện thoại đầu tiên
+      Logger.log('\n📱 10 số điện thoại CTV đầu tiên:');
+      for (let i = 1; i <= Math.min(10, orderData.length - 1); i++) {
+        const phone = orderData[i][ctvPhoneIndex];
+        const normalized = normalizePhone(phone);
+        const orderId = orderData[i][0];
+        Logger.log(`  Row ${i} (Order ${orderId}): "${phone}" → normalized: "${normalized}"`);
+      }
+
+      // Tìm số điện thoại 386190596
+      Logger.log('\n🔍 Tìm kiếm số điện thoại 386190596...');
+      let found = false;
+      for (let i = 1; i < orderData.length; i++) {
+        const phone = orderData[i][ctvPhoneIndex];
+        const normalized = normalizePhone(phone);
+        if (normalized === '386190596') {
+          Logger.log(`✅ Tìm thấy tại row ${i}!`);
+          Logger.log(`   Order ID: ${orderData[i][0]}`);
+          Logger.log(`   SĐT gốc: "${phone}"`);
+          Logger.log(`   SĐT chuẩn hóa: "${normalized}"`);
+          found = true;
+        }
+      }
+      if (!found) {
+        Logger.log('❌ KHÔNG tìm thấy số điện thoại 386190596 trong sheet!');
+      }
+
+    } else {
+      Logger.log('❌ KHÔNG tìm thấy cột SĐT CTV!');
+      Logger.log('\n💡 Các cột hiện có:');
+      headers.forEach((h, i) => {
+        Logger.log(`   [${i}] ${h}`);
+      });
+    }
+
+    Logger.log('\n========================================');
+
+  } catch (error) {
+    Logger.log('❌ Lỗi: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+  }
+}
+
+// Test với số điện thoại cụ thể
+function testPhoneNumber386190596() {
+  Logger.log('🧪 Testing phone: 386190596\n');
+
+  const orders = getOrdersByPhoneDirectly('386190596');
+
+  Logger.log('📊 Kết quả: ' + orders.length + ' đơn hàng');
+
+  if (orders.length > 0) {
+    Logger.log('✅ Thành công! Chi tiết:');
+    orders.forEach((order, i) => {
+      Logger.log(`\nĐơn ${i + 1}:`);
+      Logger.log(JSON.stringify(order, null, 2));
+    });
+  } else {
+    Logger.log('❌ Không tìm thấy đơn hàng!');
+    Logger.log('💡 Chạy hàm debugOrderSheetStructure() để kiểm tra cấu trúc sheet');
+  }
+}
+
+
+// ⭐⭐⭐ TEST SIÊU NHANH - Chạy hàm này để debug
+function testCTVInfoDebug() {
+  Logger.log('═══════════════════════════════════════');
+  Logger.log('🔍 DEBUG: Kiểm tra getCTVInfoByReferralCode');
+  Logger.log('═══════════════════════════════════════\n');
+
+  const testCode = 'PARTNER001';
+  Logger.log('🎯 Testing with code: ' + testCode);
+  Logger.log('');
+
+  const result = getCTVInfoByReferralCode(testCode);
+
+  Logger.log('📊 RESULT:');
+  Logger.log('  Type: ' + typeof result);
+  Logger.log('  Is null: ' + (result === null));
+  Logger.log('  Is undefined: ' + (result === undefined));
+  Logger.log('  JSON: ' + JSON.stringify(result, null, 2));
+
+  if (result) {
+    Logger.log('');
+    Logger.log('📋 DETAILS:');
+    Logger.log('  name: "' + result.name + '"');
+    Logger.log('  phone: "' + result.phone + '"');
+    Logger.log('  address: "' + result.address + '"');
+
+    Logger.log('');
+    Logger.log('✅ VALIDATION:');
+    Logger.log('  Has name: ' + (!!result.name && result.name !== 'Chưa cập nhật' && result.name !== 'Không tìm thấy'));
+    Logger.log('  Has phone: ' + (!!result.phone && result.phone !== 'Chưa cập nhật'));
+    Logger.log('  Has address: ' + (!!result.address && result.address !== 'Chưa cập nhật'));
+  }
+
+  Logger.log('');
+  Logger.log('═══════════════════════════════════════');
 }

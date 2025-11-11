@@ -17,34 +17,85 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentReferralCode = '';
     let currentFilter = 'all'; // 'all' hoặc 'today'
 
-    // Kiểm tra URL có mã CTV không và tự động load
+    // Kiểm tra URL có mã CTV hoặc SĐT không và tự động load
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromUrl = urlParams.get('code');
 
     if (codeFromUrl) {
-        referralCodeInput.value = codeFromUrl.toUpperCase();
-        // Tự động tìm kiếm khi có mã trong URL
-        searchOrders(codeFromUrl.toUpperCase());
+        referralCodeInput.value = codeFromUrl;
+        
+        // Tự động nhận diện và tìm kiếm
+        const isPhone = /^0?\d{9,10}$/.test(codeFromUrl);
+        
+        if (isPhone) {
+            console.log('🔍 Auto-search by phone from URL:', codeFromUrl);
+            searchOrdersByPhone(codeFromUrl);
+        } else {
+            console.log('🔍 Auto-search by referral code from URL:', codeFromUrl);
+            searchOrders(codeFromUrl.toUpperCase());
+        }
     } else {
         // Nếu không có mã CTV trong URL, load dashboard
         loadDashboard();
     }
 
+    // Helper function to show/hide loading state
+    function setButtonLoading(isLoading) {
+        const searchButton = document.getElementById('searchButton');
+        const searchIcon = document.getElementById('searchIcon');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const searchButtonText = document.getElementById('searchButtonText');
+
+        if (isLoading) {
+            // Show loading
+            searchIcon.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            if (searchButtonText) searchButtonText.textContent = 'Đang tìm...';
+            if (searchButton) searchButton.disabled = true;
+        } else {
+            // Hide loading
+            searchIcon.classList.remove('hidden');
+            loadingSpinner.classList.add('hidden');
+            if (searchButtonText) searchButtonText.textContent = 'Tra cứu';
+            if (searchButton) searchButton.disabled = false;
+        }
+    }
+
     searchForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        const referralCode = referralCodeInput.value.trim().toUpperCase();
+        const input = referralCodeInput.value.trim();
 
-        if (!referralCode) {
-            showError('Vui lòng nhập mã Referral');
+        if (!input) {
+            showError('Vui lòng nhập mã CTV hoặc số điện thoại');
             return;
         }
 
-        // Cập nhật URL với mã CTV
-        updateUrlWithCode(referralCode);
+        // Show loading
+        setButtonLoading(true);
 
-        // Thực hiện tìm kiếm
-        await searchOrders(referralCode);
+        try {
+            // Tự động nhận diện: Mã CTV hay số điện thoại?
+            const isPhone = /^0?\d{9,10}$/.test(input); // Số điện thoại VN: 0xxxxxxxxx hoặc xxxxxxxxx
+            
+            if (isPhone) {
+                console.log('🔍 Detected phone number:', input);
+                // Cập nhật URL với số điện thoại
+                updateUrlWithCode(input);
+                // Tìm kiếm theo số điện thoại
+                await searchOrdersByPhone(input);
+            } else {
+                console.log('🔍 Detected referral code:', input);
+                const referralCode = input.toUpperCase();
+                // Cập nhật URL với mã CTV
+                updateUrlWithCode(referralCode);
+                // Tìm kiếm theo mã CTV
+                await searchOrders(referralCode);
+            }
+        } finally {
+            // Hide loading (always execute, even if error)
+            setButtonLoading(false);
+        }
     });
 
     // Hàm cập nhật URL
@@ -54,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
         window.history.pushState({}, '', newUrl);
     }
 
-    // Hàm tìm kiếm đơn hàng
+    // Hàm tìm kiếm đơn hàng theo mã CTV
     async function searchOrders(referralCode) {
         // Show loading
         hideAllStates();
@@ -83,7 +134,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const result = await response.json();
-            console.log('Result:', result);
+            console.log('📦 Full API Response:', result);
+            console.log('📋 CTV Info from backend:', result.ctvInfo);
+            console.log('📊 CTV Info type:', typeof result.ctvInfo);
+            console.log('📊 CTV Info is null?', result.ctvInfo === null);
+            console.log('📊 CTV Info is undefined?', result.ctvInfo === undefined);
 
             if (!result.success) {
                 throw new Error(result.error || 'Có lỗi xảy ra');
@@ -100,7 +155,104 @@ document.addEventListener('DOMContentLoaded', function () {
             currentReferralCode = referralCode;
             currentPage = 1;
             currentFilter = 'all';
+            
+            // Hiển thị thông tin CTV với fallback
+            let ctvInfo = result.ctvInfo;
+            
+            console.log('🔍 Checking ctvInfo validity...');
+            console.log('  - ctvInfo exists?', !!ctvInfo);
+            console.log('  - ctvInfo.name:', ctvInfo?.name);
+            console.log('  - ctvInfo.phone:', ctvInfo?.phone);
+            console.log('  - ctvInfo.address:', ctvInfo?.address);
+            
+            // Nếu không có ctvInfo hoặc ctvInfo rỗng, tạo fallback từ mã CTV
+            if (!ctvInfo || !ctvInfo.name || ctvInfo.name === 'Chưa cập nhật' || ctvInfo.name === 'Không tìm thấy') {
+                console.warn('⚠️ No CTV info from backend, using fallback');
+                console.warn('   Reason:', !ctvInfo ? 'ctvInfo is null/undefined' : 
+                            !ctvInfo.name ? 'ctvInfo.name is empty' : 
+                            `ctvInfo.name is "${ctvInfo.name}"`);
+                ctvInfo = {
+                    name: 'CTV ' + referralCode,
+                    phone: '****', // Sẽ hiển thị là ****
+                    address: 'Xem trong đơn hàng'
+                };
+                console.log('📝 Fallback ctvInfo:', ctvInfo);
+            } else {
+                console.log('✅ Using backend ctvInfo:', ctvInfo);
+            }
+            
+            displayCollaboratorInfo(ctvInfo);
             displayResults(referralCode);
+
+        } catch (error) {
+            console.error('Error:', error);
+            showError(error.message || 'Có lỗi xảy ra khi tải dữ liệu');
+        }
+    }
+
+    // ⭐ Hàm mới: Tìm kiếm đơn hàng theo số điện thoại
+    async function searchOrdersByPhone(phone) {
+        // Show loading
+        hideAllStates();
+        loadingState.classList.remove('hidden');
+
+        try {
+            // Fetch orders from Google Sheets by phone
+            const url = `${GOOGLE_SCRIPT_URL}?action=getOrdersByPhone&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+            console.log('📞 Fetching orders by phone from:', url);
+
+            const response = await fetch(url, {
+                cache: 'no-cache'
+            });
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Response is not JSON:', text);
+                throw new Error('Server trả về dữ liệu không đúng định dạng. Vui lòng kiểm tra lại Google Apps Script đã deploy chưa.');
+            }
+
+            const result = await response.json();
+            console.log('Result:', result);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Có lỗi xảy ra');
+            }
+
+            if (!result.orders || result.orders.length === 0) {
+                showError(`Không tìm thấy đơn hàng nào với số điện thoại: ${phone}`);
+                return;
+            }
+
+            // Store orders and display with pagination
+            allOrders = result.orders;
+            filteredOrders = result.orders;
+            currentReferralCode = result.referralCode; // Lưu mã CTV tìm được
+            currentPage = 1;
+            currentFilter = 'all';
+            
+            // Hiển thị thông tin CTV với fallback
+            let ctvInfo = result.ctvInfo;
+            
+            // Nếu không có ctvInfo hoặc ctvInfo rỗng, tạo fallback
+            if (!ctvInfo || !ctvInfo.name || ctvInfo.name === 'Chưa cập nhật' || ctvInfo.name === 'Không tìm thấy') {
+                console.warn('⚠️ No CTV info from backend, using fallback');
+                ctvInfo = {
+                    name: result.referralCode ? ('CTV ' + result.referralCode) : 'Cộng tác viên',
+                    phone: phone || '****', // Hiển thị SĐT tìm kiếm hoặc ****
+                    address: 'Xem trong đơn hàng'
+                };
+            }
+            
+            displayCollaboratorInfo(ctvInfo);
+            
+            // Hiển thị kết quả với thông tin số điện thoại
+            displayResults(result.referralCode, phone);
 
         } catch (error) {
             console.error('Error:', error);
@@ -111,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Hàm load dashboard
     async function loadDashboard() {
         console.log('🚀 loadDashboard() called');
-        
+
         const dashboardLoadingState = document.getElementById('dashboardLoadingState');
         const dashboardContent = document.getElementById('dashboardContent');
         const dashboardSection = document.getElementById('dashboardSection');
@@ -140,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const contentType = response.headers.get('content-type');
             console.log('📄 Content-Type:', contentType);
-            
+
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await response.text();
                 console.error('❌ Response is not JSON:', text);
@@ -189,14 +341,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Hàm hiển thị dashboard
     function displayDashboard(stats) {
         console.log('🎨 displayDashboard() called with stats:', stats);
-        
+
         // Update stats cards
         console.log('📝 Updating stats cards...');
         document.getElementById('dashTotalCTV').textContent = stats.totalCTV || 0;
         document.getElementById('dashTotalOrders').textContent = stats.totalOrders || 0;
         document.getElementById('dashTotalRevenue').textContent = formatCurrency(stats.totalRevenue || 0);
         document.getElementById('dashTotalCommission').textContent = formatCurrency(stats.totalCommission || 0);
-        
+
         console.log('✅ Stats cards updated:', {
             totalCTV: stats.totalCTV,
             totalOrders: stats.totalOrders,
@@ -208,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const topPerformersContainer = document.getElementById('topPerformersContainer');
         console.log('🏆 Top performers container:', topPerformersContainer ? 'found' : 'NOT FOUND');
         console.log('🏆 Top performers data:', stats.topPerformers);
-        
+
         if (!stats.topPerformers || stats.topPerformers.length === 0) {
             console.log('⚠️ No top performers, showing empty state');
             topPerformersContainer.innerHTML = `
@@ -232,14 +384,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 'from-blue-50 to-cyan-50 border-blue-200',
                 'from-purple-50 to-pink-50 border-purple-200'
             ];
-            
+
             // Che 4 ký tự cuối của mã CTV
-            const maskedCode = performer.referralCode.length > 4 
+            const maskedCode = performer.referralCode.length > 4
                 ? performer.referralCode.slice(0, -4) + '****'
                 : performer.referralCode;
-            
+
             console.log(`  ${medals[index]} ${maskedCode}: ${performer.orderCount} đơn, ${formatCurrency(performer.totalRevenue)}`);
-            
+
             return `
                 <div class="flex items-center justify-between p-3 bg-gradient-to-r ${colors[index]} rounded-lg border mb-2 last:mb-0 hover:shadow-sm transition-shadow">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -256,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             `;
         }).join('');
-        
+
         console.log('✅ Dashboard display complete!');
     }
 
@@ -273,31 +425,135 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showError(message) {
         hideAllStates();
-        
+
         // Tạo message thân thiện hơn cho mẹ bỉm
         let friendlyMessage = message;
-        
+
         if (message.includes('Không tìm thấy đơn hàng')) {
-            // Extract mã CTV từ message
+            // Extract mã CTV hoặc SĐT từ message
             const codeMatch = message.match(/: (.+)$/);
             const code = codeMatch ? codeMatch[1] : '';
+
+            if (message.includes('số điện thoại')) {
+                friendlyMessage = `Số điện thoại <strong class="font-bold text-purple-600">${code}</strong> chưa có đơn hàng nào. ` +
+                    `Hãy bắt đầu chia sẻ link giới thiệu để nhận đơn đầu tiên nhé! 💪`;
+            } else {
+                friendlyMessage = `Mã CTV <strong class="font-bold text-purple-600">${code}</strong> chưa có đơn hàng nào. ` +
+                    `Hãy bắt đầu chia sẻ link giới thiệu để nhận đơn đầu tiên nhé! 💪`;
+            }
+        } else if (message.includes('Không tìm thấy cộng tác viên')) {
+            // Extract SĐT từ message
+            const phoneMatch = message.match(/: (.+)$/);
+            const phone = phoneMatch ? phoneMatch[1] : '';
             
-            friendlyMessage = `Mã CTV <strong class="font-bold text-purple-600">${code}</strong> chưa có đơn hàng nào. ` +
-                            `Hãy bắt đầu chia sẻ link giới thiệu để nhận đơn đầu tiên nhé! 💪`;
+            friendlyMessage = `Không tìm thấy cộng tác viên với số điện thoại <strong class="font-bold text-purple-600">${phone}</strong>. ` +
+                `Vui lòng kiểm tra lại số điện thoại hoặc <a href="/" class="text-pink-600 hover:underline font-semibold">đăng ký làm CTV</a> nếu bạn chưa đăng ký! 😊`;
         }
-        
+
         document.getElementById('errorMessage').innerHTML = friendlyMessage;
         errorState.classList.remove('hidden');
-        
+
         // Scroll to error message
         errorState.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    function displayResults(referralCode) {
+    // Hàm hiển thị thông tin cộng tác viên
+    function displayCollaboratorInfo(ctvInfo) {
+        console.log('📋 displayCollaboratorInfo called with:', ctvInfo);
+        
+        // Viết hoa chữ cái đầu của tên
+        const capitalizeName = (name) => {
+            if (!name) return name;
+            
+            // Tách các từ bằng khoảng trắng
+            return name.split(' ')
+                .map(word => {
+                    if (!word) return word;
+                    // Viết hoa chữ cái đầu, viết thường phần còn lại
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                })
+                .join(' ');
+        };
+        
+        // Che 4 số cuối của số điện thoại
+        const maskPhone = (phone) => {
+            if (!phone) return '****';
+            
+            let phoneStr = phone.toString().trim();
+            
+            // Nếu là "****" thì giữ nguyên
+            if (phoneStr === '****') return '****';
+            
+            // Nếu là số điện thoại (chỉ chứa số)
+            if (/^\d+$/.test(phoneStr)) {
+                // Thêm số 0 ở đầu nếu chưa có (số điện thoại VN)
+                if (!phoneStr.startsWith('0') && phoneStr.length === 9) {
+                    phoneStr = '0' + phoneStr;
+                    console.log('📱 Added leading 0 to phone:', phoneStr);
+                }
+                
+                // Nếu đủ dài (>= 4 số), che 4 số cuối
+                if (phoneStr.length >= 4) {
+                    return phoneStr.slice(0, -4) + '****';
+                }
+                // Nếu quá ngắn, trả về ****
+                return '****';
+            }
+            
+            // Nếu là text khác, trả về ****
+            return '****';
+        };
+
+        // Đảm bảo có giá trị mặc định
+        const defaultInfo = {
+            name: 'Cộng tác viên',
+            phone: '****',
+            address: 'Xem trong đơn hàng'
+        };
+
+        const finalInfo = {
+            name: (ctvInfo && ctvInfo.name) ? capitalizeName(ctvInfo.name) : defaultInfo.name,
+            phone: (ctvInfo && ctvInfo.phone) ? ctvInfo.phone : defaultInfo.phone,
+            address: (ctvInfo && ctvInfo.address) ? ctvInfo.address : defaultInfo.address
+        };
+
+        // Cập nhật thông tin vào inline box (trong search box)
+        const nameInlineEl = document.getElementById('ctvNameInline');
+        const phoneInlineEl = document.getElementById('ctvPhoneInline');
+        const addressInlineEl = document.getElementById('ctvAddressInline');
+        const inlineBoxEl = document.getElementById('ctvInfoInline');
+
+        if (nameInlineEl) {
+            nameInlineEl.textContent = finalInfo.name;
+        }
+        
+        if (phoneInlineEl) {
+            phoneInlineEl.textContent = maskPhone(finalInfo.phone);
+        }
+        
+        if (addressInlineEl) {
+            addressInlineEl.textContent = finalInfo.address;
+        }
+
+        // Hiển thị inline box
+        if (inlineBoxEl) {
+            inlineBoxEl.classList.remove('hidden');
+        }
+
+        console.log('✅ CTV info displayed inline:', {
+            name: nameInlineEl ? nameInlineEl.textContent : 'element not found',
+            phone: phoneInlineEl ? phoneInlineEl.textContent : 'element not found',
+            address: addressInlineEl ? addressInlineEl.textContent : 'element not found'
+        });
+    }
+
+    function displayResults(referralCode, phone = null) {
         hideAllStates();
 
         console.log('Orders data:', allOrders);
         console.log('Filtered orders:', filteredOrders);
+        console.log('Referral code:', referralCode);
+        console.log('Phone:', phone);
 
         // Calculate summary (for all orders, not filtered)
         const totalOrders = allOrders.length;
@@ -360,13 +616,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function updatePagination() {
         const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
         const paginationContainer = document.getElementById('paginationContainer');
-        
+
         // Show/hide pagination based on number of orders
         if (filteredOrders.length <= itemsPerPage) {
             paginationContainer.classList.add('hidden');
             return;
         }
-        
+
         paginationContainer.classList.remove('hidden');
 
         // Update page info
@@ -378,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update prev/next buttons
         const prevBtn = document.getElementById('prevPageBtn');
         const nextBtn = document.getElementById('nextPageBtn');
-        
+
         prevBtn.disabled = currentPage === 1;
         nextBtn.disabled = currentPage === totalPages;
 
@@ -389,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Show max 5 page numbers
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(totalPages, startPage + 4);
-        
+
         if (endPage - startPage < 4) {
             startPage = Math.max(1, endPage - 4);
         }
@@ -397,17 +653,17 @@ document.addEventListener('DOMContentLoaded', function () {
         for (let i = startPage; i <= endPage; i++) {
             const pageBtn = document.createElement('button');
             pageBtn.textContent = i;
-            pageBtn.className = i === currentPage 
+            pageBtn.className = i === currentPage
                 ? 'px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg text-sm font-medium'
                 : 'px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors';
-            
+
             pageBtn.addEventListener('click', () => {
                 currentPage = i;
                 displayResults(currentReferralCode);
                 // Scroll to top of results
                 resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
-            
+
             pageNumbersContainer.appendChild(pageBtn);
         }
     }
@@ -431,7 +687,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Filter orders function
-    window.filterOrders = function(filter) {
+    window.filterOrders = function (filter) {
         console.log('Filter changed to:', filter);
         currentFilter = filter;
         currentPage = 1;
@@ -444,11 +700,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filter === 'today') {
             const today = new Date();
             const todayStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-            
+
             filteredOrders = allOrders.filter(order => {
                 return order.orderDate && order.orderDate.includes(todayStr);
             });
-            
+
             console.log('Today orders:', filteredOrders.length);
         } else {
             filteredOrders = allOrders;
@@ -513,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Show order detail modal
-    window.showOrderDetail = function(order) {
+    window.showOrderDetail = function (order) {
         const amount = parseAmount(order.totalAmount);
         const commission = amount * CONFIG.COMMISSION_RATE;
 
@@ -525,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('modalProducts').textContent = order.products || 'N/A';
         document.getElementById('modalTotalAmount').textContent = formatCurrency(amount);
         document.getElementById('modalCommission').textContent = formatCurrency(commission);
-        
+
         // Update status badge
         const statusHtml = getStatusBadge(order.status);
         document.getElementById('modalOrderStatus').innerHTML = statusHtml;
@@ -536,13 +792,13 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Close order detail modal
-    window.closeOrderDetailModal = function() {
+    window.closeOrderDetailModal = function () {
         document.getElementById('orderDetailModal').classList.add('hidden');
         document.body.style.overflow = ''; // Restore scroll
     };
 
     // Close modal when clicking outside
-    document.getElementById('orderDetailModal').addEventListener('click', function(e) {
+    document.getElementById('orderDetailModal').addEventListener('click', function (e) {
         if (e.target === this) {
             closeOrderDetailModal();
         }
