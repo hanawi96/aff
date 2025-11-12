@@ -20,7 +20,9 @@ CTV/
 │       └── discounts.json           # Mã giảm giá
 │
 ├── google-apps-script/              # Google Apps Script code
-│   └── order-handler.js             # Xử lý đơn hàng & tra cứu CTV
+│   ├── order-handler.js             # Xử lý đơn hàng & tra cứu CTV
+│   ├── test-email.js                # Test gửi email ✉️
+│   └── EMAIL-SETUP.md               # Hướng dẫn cấu hình email
 │
 ├── functions/                       # Cloudflare Workers / Serverless
 │   └── api/                         # API endpoints
@@ -37,6 +39,20 @@ CTV/
 
 ```
 
+## ✨ Tính Năng Mới: Email Chào Mừng CTV
+
+Khi cộng tác viên đăng ký thành công, hệ thống sẽ **tự động gửi email** bao gồm:
+
+✅ Thông báo chúc mừng và chào mừng  
+✅ Mã referral của cộng tác viên  
+✅ Link giới thiệu sản phẩm  
+✅ Button để kiểm tra danh sách đơn hàng  
+✅ Hướng dẫn cách thức hoạt động  
+✅ Ví dụ tính hoa hồng  
+✅ Thông tin liên hệ hỗ trợ  
+
+**Xem hướng dẫn cấu hình:** `google-apps-script/EMAIL-SETUP.md`
+
 ## 🚀 Cài Đặt Nhanh (5 Phút)
 
 ### ⚡ Xem hướng dẫn chi tiết: `docs/CAU-HINH-NHANH.md`
@@ -47,6 +63,7 @@ CTV/
 3. Deploy Google Apps Script
 4. Cập nhật URL trong `public/assets/js/config.js`
 5. Test hệ thống
+6. **[MỚI]** Test email: Chạy `testWelcomeEmail()` trong `test-email.js`
 
 ## 🚀 Cài Đặt & Triển Khai
 
@@ -76,6 +93,7 @@ Nếu muốn URL ngắn gọn hơn (`/ctv` thay vì `/ctv/`), cấu hình trong 
 
 - **Deploy hệ thống:** Xem file `docs/DEPLOY.md` ⭐
 - **Cấu hình hệ thống CTV:** Xem file `docs/HUONG-DAN-CTV.md`
+- **Cấu hình email:** Xem file `google-apps-script/EMAIL-SETUP.md` ✉️
 - **Xử lý lỗi:** Xem file `docs/HUONG-DAN-SUA-LOI.md`
 
 ## 🔗 Liên Kết Quan Trọng

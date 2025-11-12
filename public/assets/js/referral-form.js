@@ -229,36 +229,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- Scrollable Content Area -->
                 <div id="modalScrollArea" class="overflow-y-auto flex-1">
                     <!-- Header - Full (Shows at top) -->
-                    <div id="fullHeader" class="pt-6 px-6 text-center bg-gradient-to-b from-green-50 to-white transition-all duration-300">
+                    <div id="fullHeader" class="pt-8 px-6 pb-6 text-center bg-white transition-all duration-300">
                         <!-- Success Icon -->
-                        <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-5">
-                            <div class="relative">
-                                <!-- Animated Circle -->
-                                <svg class="w-20 h-20" viewBox="0 0 80 80">
-                                    <circle cx="40" cy="40" r="36" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="226" stroke-dashoffset="0" style="animation: drawCircle 0.6s ease-out forwards;"/>
-                                </svg>
-                                <!-- Checkmark -->
-                                <svg class="w-10 h-10 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: checkmark 0.4s 0.4s ease-out forwards; opacity: 0;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                            </div>
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
                         </div>
                         
-                        <!-- Title with Emoji -->
-                        <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
-                            <span>🎉</span>
-                            <span>Đăng ký thành công!</span>
-                        </h2>
+                        <!-- Title -->
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">Đăng ký thành công!</h2>
                         
                         <!-- Subtitle -->
-                        <p class="text-gray-600 text-base leading-relaxed">
-                            Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span> đã tin tưởng! 
-                            <span class="text-green-600 font-medium">Em sẽ liên hệ với chị ngay để xác nhận và hướng dẫn chị ạ!!!</span> ❤️
+                        <p class="text-sm text-gray-600 mb-6">
+                            Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span>! Em sẽ liên hệ với chị ngay ạ ❤️
                         </p>
+
+                        <!-- Referral Code - Simple Center Display -->
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-8 border border-purple-200/50 shadow-sm">
+                            <div class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-3">Mã Cộng Tác Viên</div>
+                            <div class="text-5xl font-bold text-purple-600 mb-5 tracking-widest font-mono">${refCode}</div>
+                            
+                            <!-- Copy Success Message -->
+                            <div id="copyCodeMessage" class="hidden mb-3 p-2 bg-green-100 text-green-700 text-sm rounded-lg flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>✓ Đã sao chép mã!</span>
+                            </div>
+                            
+                            <button onclick="copyRefCode('${refCode}')" 
+                                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 active:scale-95 transition-all shadow-md hover:shadow-lg">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                                </svg>
+                                Sao chép mã
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Content -->
-                    <div class="p-6">
+                    <div class="px-6 pb-6">
 
                     <!-- Referral Link -->
                     <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
@@ -417,10 +429,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Toast notification function
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[70] flex items-center gap-2';
+        toast.innerHTML = `
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
     // Global functions for modal actions
     window.copyRefCode = function (code) {
         navigator.clipboard.writeText(code).then(() => {
-            showToast('✓ Đã copy mã giới thiệu!');
+            // Hiển thị thông báo ngay phía trên button
+            const message = document.getElementById('copyCodeMessage');
+            if (message) {
+                message.classList.remove('hidden');
+                // Tự động ẩn sau 3 giây
+                setTimeout(() => {
+                    message.classList.add('hidden');
+                }, 3000);
+            }
         });
     };
 
@@ -859,3 +897,36 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// Motivation preset selection
+window.selectMotivation = function(button, text) {
+    const textarea = document.getElementById('motivationText');
+    const currentValue = textarea.value.trim();
+    
+    // Toggle selection
+    const isSelected = button.classList.contains('selected');
+    
+    if (isSelected) {
+        // Deselect - remove this text from textarea
+        const lines = currentValue.split('\n').filter(line => line.trim() !== text);
+        textarea.value = lines.join('\n').trim();
+        button.classList.remove('selected', 'border-mom-pink', 'bg-mom-pink/20', 'text-mom-pink', 
+                                  'border-mom-blue', 'bg-mom-blue/20', 'text-mom-blue',
+                                  'border-mom-purple', 'bg-mom-purple/20', 'text-mom-purple');
+        button.classList.add('border-gray-300', 'bg-white');
+    } else {
+        // Select - add text to textarea
+        const newValue = currentValue ? currentValue + '\n' + text : text;
+        textarea.value = newValue;
+        
+        // Add selected styling based on button's hover color
+        button.classList.remove('border-gray-300', 'bg-white');
+        if (button.classList.contains('hover:border-mom-pink')) {
+            button.classList.add('selected', 'border-mom-pink', 'bg-mom-pink/20', 'text-mom-pink');
+        } else if (button.classList.contains('hover:border-mom-blue')) {
+            button.classList.add('selected', 'border-mom-blue', 'bg-mom-blue/20', 'text-mom-blue');
+        } else if (button.classList.contains('hover:border-mom-purple')) {
+            button.classList.add('selected', 'border-mom-purple', 'bg-mom-purple/20', 'text-mom-purple');
+        }
+    }
+};

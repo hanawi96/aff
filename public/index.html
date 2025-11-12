@@ -129,10 +129,13 @@
                     </label>
                     <input type="email" name="email"
                         class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50"
-                        placeholder="email@example.com">
+                        placeholder="email@gmail.com">
                     <p class="mt-1.5 text-xs text-gray-500 flex items-start">
-                        <svg class="w-3.5 h-3.5 text-blue-500 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        <svg class="w-3.5 h-3.5 text-blue-500 mr-1 mt-0.5 flex-shrink-0" fill="currentColor"
+                            viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd" />
                         </svg>
                         <span>Nhập email nếu muốn nhận thông báo khi có đơn hàng mới</span>
                     </p>
@@ -210,9 +213,38 @@
                         </svg>
                         Lý Do Muốn Trở Thành Cộng Tác Viên
                     </label>
-                    <textarea name="motivation" rows="4"
-                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50 resize-none"
-                        placeholder="Chia sẻ lý do bạn muốn tham gia chương trình cộng tác viên..."></textarea>
+
+                    <!-- Preset Buttons -->
+                    <div class="mb-3 flex flex-wrap gap-2">
+                        <button type="button" onclick="selectMotivation(this, 'Muốn có thêm thu nhập')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-pink hover:bg-mom-pink/10 hover:text-mom-pink transition-all duration-200 bg-white">
+                            💰 Kiếm thêm tiền
+                        </button>
+                        <button type="button" onclick="selectMotivation(this, 'Thời gian linh hoạt, làm tại nhà')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-blue hover:bg-mom-blue/10 hover:text-mom-blue transition-all duration-200 bg-white">
+                            🏠 Học bán hàng online
+                        </button>
+                        <button type="button" onclick="selectMotivation(this, 'Yêu thích sản phẩm mẹ và bé')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-purple hover:bg-mom-purple/10 hover:text-mom-purple transition-all duration-200 bg-white">
+                            ❤️ Thích thì làm
+                        </button>
+                        <button type="button"
+                            onclick="selectMotivation(this, 'Muốn chia sẻ sản phẩm tốt với mọi người')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-pink hover:bg-mom-pink/10 hover:text-mom-pink transition-all duration-200 bg-white">
+                            🤝 Chia sẻ giá trị
+                        </button>
+                        <button type="button" onclick="selectMotivation(this, 'Có kinh nghiệm bán hàng online')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-blue hover:bg-mom-blue/10 hover:text-mom-blue transition-all duration-200 bg-white">
+                            📱 Rảnh rỗi nhiều
+                        </button>
+                        <button type="button" onclick="selectMotivation(this, 'Muốn xây dựng cộng đồng mẹ bỉm')"
+                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-purple hover:bg-mom-purple/10 hover:text-mom-purple transition-all duration-200 bg-white">
+                            👶 Không gì cả!!!
+                        </button>
+                    </div>
+
+                    <!-- Hidden input to store selected motivations -->
+                    <input type="hidden" id="motivationText" name="motivation" value="">
                 </div>
 
                 <!-- Terms -->

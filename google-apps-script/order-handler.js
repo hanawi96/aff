@@ -254,11 +254,18 @@ function doPost(e) {
     // Set row height
     sheet.setRowHeight(lastRow, 30);
 
-    // Send notification email (optional)
+    // ⭐ Gửi email chào mừng cho CTV (nếu có email)
+    try {
+      sendWelcomeEmailToCTV(data, refCode, refUrl, orderCheckUrl);
+    } catch (emailError) {
+      Logger.log('❌ Lỗi gửi email chào mừng CTV: ' + emailError.toString());
+    }
+
+    // Gửi email thông báo cho admin (optional)
     try {
       sendNotificationEmail(data);
     } catch (emailError) {
-      Logger.log('Email error: ' + emailError.toString());
+      Logger.log('❌ Lỗi gửi email thông báo admin: ' + emailError.toString());
     }
 
     // Return success response with referral code
@@ -1051,6 +1058,250 @@ function getReferralCodeByPhone(normalizedPhone) {
   }
 }
 
+// ⭐ Gửi email chào mừng cho cộng tác viên
+function sendWelcomeEmailToCTV(data, refCode, refUrl, _orderCheckUrl) {
+  try {
+    // Kiểm tra xem có email không
+    if (!data.email || data.email.trim() === '') {
+      Logger.log('⚠️ Không có email, bỏ qua gửi email chào mừng');
+      return;
+    }
+
+    const firstName = data.fullName.split(' ').slice(-1)[0]; // Lấy tên
+    const subject = '🎉 Chào mừng bạn trở thành Cộng Tác Viên!';
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chào mừng Cộng Tác Viên</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <!-- Main Container -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 100%;">
+          
+          <!-- Header with Gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%); padding: 40px 30px; text-align: center;">
+              <div style="background-color: rgba(255,255,255,0.2); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 40px;">🎉</span>
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Chúc Mừng ${firstName}!</h1>
+              <p style="color: rgba(255,255,255,0.95); margin: 10px 0 0; font-size: 16px;">Bạn đã trở thành Cộng Tác Viên của chúng tôi</p>
+            </td>
+          </tr>
+
+          <!-- Welcome Message -->
+          <tr>
+            <td style="padding: 30px;">
+              <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Xin chào <strong>${firstName}</strong>,
+              </p>
+              <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+                Cảm ơn bạn đã đăng ký trở thành Cộng Tác Viên của chúng tôi! Chúng tôi rất vui mừng được chào đón bạn vào đội ngũ. 
+                Dưới đây là thông tin quan trọng để bạn bắt đầu:
+              </p>
+            </td>
+          </tr>
+
+          <!-- Referral Code & Link Box - Combined -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #f3e5f5 0%, #fce4ec 100%); border-radius: 12px; border: 2px solid #e91e63; overflow: hidden;">
+                <!-- Mã CTV Section -->
+                <tr>
+                  <td style="padding: 25px 25px 20px; text-align: center;">
+                    <p style="color: #9c27b0; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px;">Mã Cộng Tác Viên Của Bạn</p>
+                    <div style="background-color: #ffffff; padding: 15px 20px; border-radius: 8px; display: inline-block; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                      <span style="font-size: 32px; font-weight: bold; color: #e91e63; font-family: 'Courier New', monospace; letter-spacing: 3px;">${refCode}</span>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Divider -->
+                <tr>
+                  <td style="padding: 0 25px;">
+                    <div style="height: 1px; background: linear-gradient(to right, transparent, #e91e63, transparent); opacity: 0.3;"></div>
+                  </td>
+                </tr>
+                
+                <!-- Link Giới Thiệu Section -->
+                <tr>
+                  <td style="padding: 20px 25px 25px;">
+                    <p style="color: #e65100; font-size: 13px; font-weight: bold; margin: 0 0 10px; text-align: center;">
+                      <span style="display: inline-block; background-color: rgba(255, 152, 0, 0.1); padding: 6px 12px; border-radius: 6px;">
+                        🔗 LINK GIỚI THIỆU CỦA BẠN
+                      </span>
+                    </p>
+                    <div style="background-color: #ffffff; padding: 12px 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                      <a href="${refUrl}" style="color: #1976d2; text-decoration: none; font-size: 14px; word-break: break-all; display: block;">${refUrl}</a>
+                    </div>
+                    <p style="color: #666; font-size: 12px; margin: 10px 0 0; text-align: center; font-style: italic;">
+                      💡 Copy link này và chia sẻ với bạn bè
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td style="padding: 0 30px 30px; text-align: center;">
+              <a href="https://t.me/+YOUR_GROUP_LINK" style="display: inline-block; background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 30px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);">
+                � Teham Gia Nhóm CTV
+              </a>
+            </td>
+          </tr>
+
+          <!-- How It Works -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <h2 style="color: #333; font-size: 20px; margin: 0 0 20px; text-align: center;">Cách Thức Hoạt Động</h2>
+              
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 15px; vertical-align: top; width: 60px;">
+                    <div style="background-color: #4CAF50; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px;">
+                      <span style="color: #ffffff; font-size: 18px; font-weight: bold;">1</span>
+                    </div>
+                  </td>
+                  <td style="padding: 15px;">
+                    <h3 style="color: #333; font-size: 16px; margin: 0 0 5px;">Chia sẻ link của bạn</h3>
+                    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.5;">Gửi link giới thiệu cho bạn bè, gia đình hoặc đăng lên mạng xã hội</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; vertical-align: top;">
+                    <div style="background-color: #2196F3; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px;">
+                      <span style="color: #ffffff; font-size: 18px; font-weight: bold;">2</span>
+                    </div>
+                  </td>
+                  <td style="padding: 15px;">
+                    <h3 style="color: #333; font-size: 16px; margin: 0 0 5px;">Khách hàng mua hàng</h3>
+                    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.5;">Khi khách hàng mua hàng qua link của bạn trong vòng 7 ngày</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; vertical-align: top;">
+                    <div style="background-color: #FF9800; width: 36px; height: 36px; border-radius: 50%; text-align: center; line-height: 36px;">
+                      <span style="color: #ffffff; font-size: 18px; font-weight: bold;">3</span>
+                    </div>
+                  </td>
+                  <td style="padding: 15px;">
+                    <h3 style="color: #333; font-size: 16px; margin: 0 0 5px;">Nhận hoa hồng 10%</h3>
+                    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.5;">Bạn nhận 10% hoa hồng trên giá trị sản phẩm (không tính phí ship)</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Commission Example -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 12px; padding: 20px; border: 2px solid #4caf50;">
+                <h3 style="color: #2e7d32; font-size: 16px; margin: 0 0 15px; text-align: center;">💰 Ví Dụ Hoa Hồng</h3>
+                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+                  <tr>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                      <span style="color: #666; font-size: 14px;">Giá sản phẩm</span>
+                    </td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                      <span style="color: #333; font-size: 14px; font-weight: bold;">1.000.000đ</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                      <span style="color: #666; font-size: 14px;">Phí ship</span>
+                    </td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                      <span style="color: #333; font-size: 14px;">30.000đ</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 15px; background-color: #4caf50;">
+                      <span style="color: #ffffff; font-size: 15px; font-weight: bold;">Hoa hồng của bạn (10%)</span>
+                    </td>
+                    <td style="padding: 12px 15px; background-color: #4caf50; text-align: right;">
+                      <span style="color: #ffffff; font-size: 18px; font-weight: bold;">100.000đ</span>
+                    </td>
+                  </tr>
+                </table>
+                <p style="color: #666; font-size: 12px; margin: 10px 0 0; text-align: center; font-style: italic;">* Hoa hồng tính trên giá sản phẩm, không bao gồm phí ship</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Important Notes -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; border-radius: 8px;">
+                <p style="color: #1565c0; font-size: 13px; font-weight: bold; margin: 0 0 10px;">📌 LƯU Ý QUAN TRỌNG</p>
+                <ul style="color: #555; font-size: 14px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                  <li>Link có hiệu lực 7 ngày kể từ khi khách hàng click</li>
+                  <li>Khách click lại link = gia hạn thêm 7 ngày mới</li>
+                  <li>Thanh toán hoa hồng vào cuối mỗi tháng</li>
+                  <li>Thanh toán chỉ từ 1 đơn hàng thành công</li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Contact Info -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <div style="background-color: #fff9c4; border-radius: 8px; padding: 15px; text-align: center;">
+                <p style="color: #f57f17; font-size: 14px; margin: 0 0 10px; font-weight: bold;">💬 Cần Hỗ Trợ?</p>
+                <p style="color: #666; font-size: 14px; margin: 0;">
+                  Liên hệ với chúng tôi qua Zalo: 
+                  <a href="https://zalo.me/0972483892" style="color: #1976d2; text-decoration: none; font-weight: bold;">0972.483.892</a> hoặc 
+                  <a href="https://zalo.me/0386190596" style="color: #1976d2; text-decoration: none; font-weight: bold;">0386.190.596</a>
+                </p>
+                <p style="color: #666; font-size: 14px; margin: 10px 0 0;">
+                  Tham gia nhóm Zalo CTV: 
+                  <a href="https://zalo.me/g/gvqvxu828" style="color: #1976d2; text-decoration: none; font-weight: bold;">Nhóm Zalo</a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f5f5f5; padding: 20px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+              <p style="color: #999; font-size: 13px; margin: 0 0 5px;">© 2024 Mẹ & Bé - Chương Trình Cộng Tác Viên</p>
+              <p style="color: #999; font-size: 12px; margin: 0;">Email này được gửi tự động, vui lòng không trả lời</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    // Gửi email
+    MailApp.sendEmail({
+      to: data.email,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+
+    Logger.log('✅ Đã gửi email chào mừng đến: ' + data.email);
+
+  } catch (error) {
+    Logger.log('❌ Lỗi gửi email chào mừng: ' + error.toString());
+  }
+}
+
+// Gửi email thông báo cho admin (giữ nguyên)
 function sendNotificationEmail(data) {
   try {
     const emailAddress = 'your-email@gmail.com'; // Thay bằng email của bạn để nhận thông báo
@@ -1117,7 +1368,7 @@ function sendNotificationEmail(data) {
     });
 
   } catch (error) {
-    console.error('Email notification error:', error);
+    Logger.log('❌ Lỗi gửi email thông báo admin: ' + error.toString());
   }
 }
 
