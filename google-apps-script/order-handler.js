@@ -6,12 +6,12 @@
 // ============================================
 const CONFIG = {
   // Sheet ID của danh sách CTV
-  CTV_SHEET_ID: '1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o',
-  CTV_SHEET_NAME: 'DS REF',
+  CTV_SHEET_ID: '1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI',
+  CTV_SHEET_NAME: 'DS CTV',
 
   // Sheet ID của đơn hàng
-  ORDER_SHEET_ID: '1CmfyZg1MCPCv0_RnlBOOf0HIev4RPg4DK43veMGyPJM',
-  ORDER_SHEET_NAME: 'Đơn Hàng', // Tên sheet chứa đơn hàng
+  ORDER_SHEET_ID: '1XNdGOYAVYa4BdZFEVZicMLbX8nJ3J--2HPJjltD9r-k',
+  ORDER_SHEET_NAME: 'DS ĐƠN HÀNG', // Tên sheet chứa đơn hàng
 
   // Mapping cột trong sheet đơn hàng (theo ảnh)
   ORDER_COLUMNS: {
