@@ -47,6 +47,16 @@ function doPost(e) {
     // Log for debugging
     Logger.log('Received data: ' + JSON.stringify(data));
 
+    // ⭐ Kiểm tra xem có phải là update commission không
+    // Nếu có referralCode nhưng không có fullName/phone → đây là update commission
+    if (data.referralCode && data.commissionRate !== undefined && !data.fullName && !data.phone) {
+      Logger.log('🔄 Detected commission update request');
+      const result = updateCommissionInSheet(data.referralCode, data.commissionRate);
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Get or create the spreadsheet
     const spreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
 
@@ -65,14 +75,15 @@ function doPost(e) {
       'Thời Gian',
       'Họ Tên',
       'Số Điện Thoại',
-      'Email',           // ⭐ Thêm cột Email
+      'Email',
       'Tỉnh/Thành',
       'Tuổi',
       'Kinh Nghiệm',
       'Lý Do',
       'Mã Ref',
+      'Hoa Hồng',
       'Trạng Thái',
-      'Đơn Hàng Của Bạn' // ⭐ Cột mới
+      'Đơn Hàng Của Bạn'
     ];
 
     if (needsHeader) {
@@ -111,8 +122,9 @@ function doPost(e) {
       sheet.setColumnWidth(7, 130);  // Kinh Nghiệm
       sheet.setColumnWidth(8, 300);  // Lý Do
       sheet.setColumnWidth(9, 120);  // Mã Ref
-      sheet.setColumnWidth(10, 100); // Trạng Thái
-      sheet.setColumnWidth(11, 150); // Đơn Hàng Của Bạn ⭐
+      sheet.setColumnWidth(10, 100); // Hoa Hồng
+      sheet.setColumnWidth(11, 100); // Trạng Thái
+      sheet.setColumnWidth(12, 150); // Đơn Hàng Của Bạn
 
       // Freeze header row
       sheet.setFrozenRows(1);
@@ -146,38 +158,48 @@ function doPost(e) {
         if (lastColumn < 4) {
           sheet.setColumnWidth(4, 200); // Email
         }
+        if (lastColumn < 10) {
+          sheet.setColumnWidth(10, 100); // Hoa Hồng
+        }
         if (lastColumn < 11) {
-          sheet.setColumnWidth(11, 150); // Đơn Hàng Của Bạn
+          sheet.setColumnWidth(11, 100); // Trạng Thái
+        }
+        if (lastColumn < 12) {
+          sheet.setColumnWidth(12, 150); // Đơn Hàng Của Bạn
         }
 
         Logger.log('✅ Đã thêm cột mới vào header!');
       }
     }
 
-    // Generate unique referral code
-    const refCode = generateReferralCode(data.fullName || 'USER');
+    // ⭐ Sử dụng referralCode từ Cloudflare Worker (nếu có), nếu không thì tạo mới
+    const refCode = data.referralCode || generateReferralCode(data.fullName || 'USER');
     const refUrl = 'https://shopvd.store/?ref=' + refCode;
 
     // ⭐ Tạo link tra cứu đơn hàng cho CTV
     const orderCheckUrl = 'https://shopvd.store/ctv/?code=' + refCode;
 
-    Logger.log('Generated RefCode: ' + refCode);
+    Logger.log('RefCode: ' + refCode + (data.referralCode ? ' (from Worker)' : ' (generated)'));
     Logger.log('Generated RefUrl: ' + refUrl);
     Logger.log('Generated OrderCheckUrl: ' + orderCheckUrl);
 
     // Prepare the row data
+    const commissionRate = data.commissionRate || 0.1;
+    const commissionPercent = (commissionRate * 100).toFixed(0) + '%';
+
     const rowData = [
       data.timestamp || new Date().toLocaleString('vi-VN'),
       data.fullName || '',
       data.phone || '',
-      data.email || '',  // ⭐ Thêm email
+      data.email || '',
       data.city || '',
       data.age || '',
       data.experience || '',
       data.motivation || '',
       refCode, // Referral Code
+      commissionPercent, // Commission Rate
       'Mới', // Status
-      'Xem ngay' // ⭐ Text cho link đơn hàng
+      'Xem ngay' // Text cho link đơn hàng
     ];
 
     // Add the data to the sheet
@@ -207,8 +229,15 @@ function doPost(e) {
       dataRange.setBackground('#ffffff'); // White cho hàng lẻ
     }
 
-    // Format cột "Trạng Thái" (cột 10) với màu nổi bật
-    const statusCell = sheet.getRange(lastRow, 10);
+    // Format cột "Hoa Hồng" (cột 10) với màu nổi bật
+    const commissionCell = sheet.getRange(lastRow, 10);
+    commissionCell.setBackground('#d1f2eb'); // Light green
+    commissionCell.setFontColor('#0d6832'); // Dark green text
+    commissionCell.setFontWeight('bold');
+    commissionCell.setHorizontalAlignment('center');
+
+    // Format cột "Trạng Thái" (cột 11) với màu nổi bật
+    const statusCell = sheet.getRange(lastRow, 11);
     statusCell.setBackground('#fff3cd'); // Light yellow
     statusCell.setFontColor('#856404'); // Dark yellow text
     statusCell.setFontWeight('bold');
@@ -220,8 +249,8 @@ function doPost(e) {
     refCodeCell.setFontWeight('bold');
     refCodeCell.setFontFamily('Courier New'); // Monospace font cho code
 
-    // ⭐ Format cột "Đơn Hàng Của Bạn" (cột 11) với hyperlink
-    const orderLinkCell = sheet.getRange(lastRow, 11);
+    // ⭐ Format cột "Đơn Hàng Của Bạn" (cột 12) với hyperlink
+    const orderLinkCell = sheet.getRange(lastRow, 12);
 
     // Cách 1: Dùng RichText (an toàn nhất)
     try {
@@ -467,6 +496,36 @@ function doGet(e) {
           stats: stats
         }))
         .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ⭐ API MỚI: Lấy tất cả CTV cho trang admin
+    if (action === 'getAllCTV') {
+      Logger.log('📋 Getting all CTV for admin dashboard');
+      const result = getAllCTVForAdmin();
+
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ⭐ API: Cập nhật commission rate (từ Cloudflare)
+    if (action === 'updateCommission') {
+      try {
+        const postData = JSON.parse(e.postData.contents);
+        const result = updateCommissionInSheet(postData.referralCode, postData.commissionRate);
+
+        return ContentService
+          .createTextOutput(JSON.stringify(result))
+          .setMimeType(ContentService.MimeType.JSON);
+      } catch (error) {
+        Logger.log('❌ Error updating commission: ' + error.toString());
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            error: error.toString()
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
     // Default response
@@ -2001,4 +2060,367 @@ function testCTVInfoDebug() {
 
   Logger.log('');
   Logger.log('═══════════════════════════════════════');
+}
+
+
+// ============================================
+// ADMIN FUNCTIONS - Hàm cho trang quản trị
+// ============================================
+
+// ⭐ Lấy tất cả CTV kèm thống kê cho admin
+function getAllCTVForAdmin() {
+  try {
+    Logger.log('🚀 getAllCTVForAdmin() started');
+
+    // Mở spreadsheet CTV
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      Logger.log('❌ CTV sheet not found');
+      return {
+        success: false,
+        error: 'Không tìm thấy sheet CTV'
+      };
+    }
+
+    // Lấy tất cả dữ liệu CTV
+    const ctvData = ctvSheet.getDataRange().getValues();
+    Logger.log('📊 Total CTV rows: ' + ctvData.length);
+
+    if (ctvData.length <= 1) {
+      Logger.log('⚠️ No CTV data found');
+      return {
+        success: true,
+        ctvList: [],
+        stats: {
+          totalCTV: 0,
+          activeCTV: 0,
+          newCTV: 0,
+          totalCommission: 0
+        }
+      };
+    }
+
+    // Tìm index các cột
+    const headers = ctvData[0];
+    const timeColumnIndex = headers.findIndex(h => h && h.toString().toLowerCase().includes('thời gian'));
+    const nameColumnIndex = headers.findIndex(h => h && (h.toString().toLowerCase().includes('họ tên') || h.toString().toLowerCase().includes('tên')));
+    const phoneColumnIndex = headers.findIndex(h => h && (h.toString().toLowerCase().includes('điện thoại') || h.toString().toLowerCase().includes('sđt')));
+    const emailColumnIndex = headers.findIndex(h => h && h.toString().toLowerCase().includes('email'));
+    const cityColumnIndex = headers.findIndex(h => h && (h.toString().toLowerCase().includes('tỉnh') || h.toString().toLowerCase().includes('thành')));
+    const refCodeColumnIndex = headers.findIndex(h => h && h.toString().toLowerCase().includes('ref'));
+    const statusColumnIndex = headers.findIndex(h => h && h.toString().toLowerCase().includes('trạng thái'));
+
+    Logger.log('📍 Column indexes - Time: ' + timeColumnIndex + ', Name: ' + nameColumnIndex + ', Phone: ' + phoneColumnIndex + ', RefCode: ' + refCodeColumnIndex);
+
+    // Lấy tất cả đơn hàng để tính thống kê
+    const orderSpreadsheet = SpreadsheetApp.openById(CONFIG.ORDER_SHEET_ID);
+    const orderSheet = orderSpreadsheet.getSheetByName(CONFIG.ORDER_SHEET_NAME);
+    const orderData = orderSheet ? orderSheet.getDataRange().getValues() : [];
+
+    // Tạo map đếm đơn hàng và hoa hồng theo mã CTV
+    const orderMap = {};
+    if (orderData.length > 1) {
+      const cols = CONFIG.ORDER_COLUMNS;
+      for (let i = 1; i < orderData.length; i++) {
+        const row = orderData[i];
+        const refCode = row[cols.referralCode];
+
+        if (!refCode || refCode.toString().trim() === '') continue;
+
+        const normalizedRefCode = refCode.toString().trim().toUpperCase();
+        const amount = parseAmount(row[cols.totalAmount]);
+        const commission = amount * CONFIG.COMMISSION_RATE;
+
+        if (!orderMap[normalizedRefCode]) {
+          orderMap[normalizedRefCode] = {
+            orderCount: 0,
+            totalRevenue: 0,
+            totalCommission: 0
+          };
+        }
+
+        orderMap[normalizedRefCode].orderCount++;
+        orderMap[normalizedRefCode].totalRevenue += amount;
+        orderMap[normalizedRefCode].totalCommission += commission;
+      }
+    }
+
+    Logger.log('📦 Order map created with ' + Object.keys(orderMap).length + ' CTV codes');
+
+    // Xử lý dữ liệu CTV
+    const ctvList = [];
+    let activeCTV = 0;
+    let newCTV = 0;
+    let totalCommission = 0;
+
+    // Tính ngày đầu tháng này
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    for (let i = 1; i < ctvData.length; i++) {
+      const row = ctvData[i];
+
+      // Bỏ qua dòng trống
+      if (!row[nameColumnIndex] && !row[phoneColumnIndex]) continue;
+
+      const refCode = row[refCodeColumnIndex] ? row[refCodeColumnIndex].toString().trim() : '';
+      const normalizedRefCode = refCode.toUpperCase();
+      const orderStats = orderMap[normalizedRefCode] || { orderCount: 0, totalRevenue: 0, totalCommission: 0 };
+      const hasOrders = orderStats.orderCount > 0;
+
+      // Đếm CTV hoạt động
+      if (hasOrders) {
+        activeCTV++;
+        totalCommission += orderStats.totalCommission;
+      }
+
+      // Đếm CTV mới tháng này
+      const timestamp = row[timeColumnIndex];
+      if (timestamp) {
+        try {
+          const registrationDate = new Date(timestamp);
+          if (registrationDate >= firstDayOfMonth) {
+            newCTV++;
+          }
+        } catch (e) {
+          // Ignore date parsing errors
+        }
+      }
+
+      // Thêm vào danh sách
+      ctvList.push({
+        timestamp: row[timeColumnIndex] || '',
+        fullName: row[nameColumnIndex] || '',
+        phone: row[phoneColumnIndex] || '',
+        email: row[emailColumnIndex] || '',
+        city: row[cityColumnIndex] || '',
+        referralCode: refCode,
+        status: row[statusColumnIndex] || 'Mới',
+        hasOrders: hasOrders,
+        orderCount: orderStats.orderCount,
+        totalRevenue: orderStats.totalRevenue,
+        totalCommission: orderStats.totalCommission
+      });
+    }
+
+    Logger.log('✅ Processed ' + ctvList.length + ' CTV records');
+    Logger.log('📊 Stats - Total: ' + ctvList.length + ', Active: ' + activeCTV + ', New: ' + newCTV);
+
+    return {
+      success: true,
+      ctvList: ctvList,
+      stats: {
+        totalCTV: ctvList.length,
+        activeCTV: activeCTV,
+        newCTV: newCTV,
+        totalCommission: totalCommission
+      }
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in getAllCTVForAdmin: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Test function cho admin API
+function testGetAllCTVForAdmin() {
+  Logger.log('========================================');
+  Logger.log('TEST: getAllCTVForAdmin()');
+  Logger.log('========================================\n');
+
+  const result = getAllCTVForAdmin();
+
+  Logger.log('Success: ' + result.success);
+  if (result.success) {
+    Logger.log('Total CTV: ' + result.ctvList.length);
+    Logger.log('Stats: ' + JSON.stringify(result.stats, null, 2));
+
+    if (result.ctvList.length > 0) {
+      Logger.log('\nFirst CTV:');
+      Logger.log(JSON.stringify(result.ctvList[0], null, 2));
+    }
+  } else {
+    Logger.log('Error: ' + result.error);
+  }
+
+  Logger.log('\n========================================');
+}
+
+// ============================================
+// SYNC FUNCTIONS - Đồng bộ từ Cloudflare
+// ============================================
+
+// Cập nhật commission rate trong Google Sheets
+function updateCommissionInSheet(referralCode, commissionRate) {
+  try {
+    Logger.log('🔄 Updating commission in sheet for: ' + referralCode);
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      throw new Error('CTV sheet not found');
+    }
+
+    const data = ctvSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      throw new Error('No data in sheet');
+    }
+
+    // Tìm cột Mã Ref và Hoa Hồng
+    const headers = data[0];
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+    const commissionColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('hoa hồng')
+    );
+
+    if (refCodeColumnIndex === -1) {
+      throw new Error('Referral code column not found');
+    }
+
+    if (commissionColumnIndex === -1) {
+      throw new Error('Commission column not found');
+    }
+
+    Logger.log('📍 RefCode column: ' + refCodeColumnIndex + ', Commission column: ' + commissionColumnIndex);
+
+    // Tìm dòng có mã CTV khớp
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      const rowRefCode = data[i][refCodeColumnIndex];
+
+      if (rowRefCode && rowRefCode.toString().trim().toUpperCase() === referralCode.toUpperCase()) {
+        // Tìm thấy! Update commission
+        const commissionPercent = (commissionRate * 100).toFixed(0) + '%';
+        const cell = ctvSheet.getRange(i + 1, commissionColumnIndex + 1);
+        cell.setValue(commissionPercent);
+
+        // Format cell
+        cell.setBackground('#d1f2eb');
+        cell.setFontColor('#0d6832');
+        cell.setFontWeight('bold');
+        cell.setHorizontalAlignment('center');
+
+        Logger.log('✅ Updated commission to ' + commissionPercent + ' at row ' + (i + 1));
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw new Error('CTV not found with code: ' + referralCode);
+    }
+
+    return {
+      success: true,
+      message: 'Commission updated in Google Sheets',
+      referralCode: referralCode,
+      commissionRate: commissionRate
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in updateCommissionInSheet: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Test function
+function testUpdateCommission() {
+  const result = updateCommissionInSheet('CTV481406', 0.15);
+  Logger.log('Result: ' + JSON.stringify(result, null, 2));
+}
+
+// Cập nhật thông tin CTV trong Google Sheets
+function updateCTVInSheet(data) {
+  try {
+    Logger.log('🔄 Updating CTV in sheet: ' + data.referralCode);
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      throw new Error('CTV sheet not found');
+    }
+
+    const sheetData = ctvSheet.getDataRange().getValues();
+
+    if (sheetData.length <= 1) {
+      throw new Error('No data in sheet');
+    }
+
+    // Tìm các cột
+    const headers = sheetData[0];
+    const refCodeCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('ref'));
+    const nameCol = headers.findIndex(h => h && (h.toString().toLowerCase().includes('họ tên') || h.toString().toLowerCase().includes('tên')));
+    const phoneCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('điện thoại'));
+    const emailCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('email'));
+    const cityCol = headers.findIndex(h => h && (h.toString().toLowerCase().includes('tỉnh') || h.toString().toLowerCase().includes('thành')));
+    const ageCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('tuổi'));
+    const expCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('kinh nghiệm'));
+    const commissionCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('hoa hồng'));
+    const statusCol = headers.findIndex(h => h && h.toString().toLowerCase().includes('trạng thái'));
+
+    // Tìm dòng có mã CTV khớp
+    let found = false;
+    for (let i = 1; i < sheetData.length; i++) {
+      const rowRefCode = sheetData[i][refCodeCol];
+
+      if (rowRefCode && rowRefCode.toString().trim().toUpperCase() === data.referralCode.toUpperCase()) {
+        // Tìm thấy! Update thông tin
+        const row = i + 1;
+
+        if (nameCol !== -1) ctvSheet.getRange(row, nameCol + 1).setValue(data.fullName || '');
+        if (phoneCol !== -1) ctvSheet.getRange(row, phoneCol + 1).setValue(data.phone || '');
+        if (emailCol !== -1) ctvSheet.getRange(row, emailCol + 1).setValue(data.email || '');
+        if (cityCol !== -1) ctvSheet.getRange(row, cityCol + 1).setValue(data.city || '');
+        if (ageCol !== -1) ctvSheet.getRange(row, ageCol + 1).setValue(data.age || '');
+        if (expCol !== -1) ctvSheet.getRange(row, expCol + 1).setValue(data.experience || '');
+        if (statusCol !== -1) ctvSheet.getRange(row, statusCol + 1).setValue(data.status || 'Mới');
+
+        if (commissionCol !== -1 && data.commissionRate !== undefined) {
+          const commissionPercent = (data.commissionRate * 100).toFixed(0) + '%';
+          const cell = ctvSheet.getRange(row, commissionCol + 1);
+          cell.setValue(commissionPercent);
+          cell.setBackground('#d1f2eb');
+          cell.setFontColor('#0d6832');
+          cell.setFontWeight('bold');
+          cell.setHorizontalAlignment('center');
+        }
+
+        Logger.log('✅ Updated CTV at row ' + row);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw new Error('CTV not found with code: ' + data.referralCode);
+    }
+
+    return {
+      success: true,
+      message: 'CTV updated in Google Sheets',
+      referralCode: data.referralCode
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in updateCTVInSheet: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
 }

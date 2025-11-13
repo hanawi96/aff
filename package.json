@@ -1,24 +1,35 @@
 {
   "name": "ctv-system",
-  "version": "1.0.0",
-  "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé",
-  "main": "public/index.html",
+  "version": "2.0.0",
+  "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé (Cloudflare D1)",
+  "main": "worker.js",
   "scripts": {
     "dev": "npx http-server public -p 8080 -o",
+    "dev:worker": "wrangler dev",
     "build": "echo 'Static site - no build needed'",
-    "deploy:netlify": "netlify deploy --dir=public --prod",
-    "deploy:vercel": "vercel --prod public",
-    "deploy:cloudflare": "wrangler pages publish public --project-name=ctv-system"
+    "deploy": "wrangler deploy",
+    "deploy:pages": "wrangler pages publish public --project-name=ctv-system",
+    "db:create": "wrangler d1 create ctv-database",
+    "db:migrate": "wrangler d1 execute ctv-database --file=database/schema.sql",
+    "db:query": "wrangler d1 execute ctv-database --command",
+    "db:backup": "wrangler d1 export ctv-database --output=database/backup.sql",
+    "migrate:sheets": "node database/migrate-from-sheets.js",
+    "logs": "wrangler tail",
+    "test": "echo 'No tests yet'"
   },
   "keywords": [
     "referral",
     "affiliate",
     "ctv",
-    "me-be"
+    "me-be",
+    "cloudflare",
+    "d1",
+    "workers"
   ],
   "author": "hanawi96",
   "license": "MIT",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "wrangler": "^3.0.0"
   }
 }

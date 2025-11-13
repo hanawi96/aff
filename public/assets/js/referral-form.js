@@ -58,17 +58,17 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add timestamp
             data.timestamp = new Date().toLocaleString('vi-VN');
 
-            // Send to Google Apps Script
-            const GOOGLE_SCRIPT_URL = CONFIG.GOOGLE_SCRIPT_URL;
+            // Send to Cloudflare Worker API
+            const API_URL = CONFIG.API_URL + '/api/submit';
 
-            console.log('Sending data to Google Apps Script:', data);
-            console.log('URL:', GOOGLE_SCRIPT_URL);
+            console.log('Sending data to API:', data);
+            console.log('URL:', API_URL);
 
             // Send with proper CORS handling
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
+            const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'text/plain',
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(data),
                 redirect: 'follow'
