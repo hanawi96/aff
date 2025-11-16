@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 data[key] = value;
             }
 
-            // Add timestamp
-            data.timestamp = new Date().toLocaleString('vi-VN');
+            // Add timestamp (UTC)
+            data.timestamp = new Date().toISOString();
 
             // Send to Cloudflare Worker API
             const API_URL = CONFIG.API_URL + '/api/submit';

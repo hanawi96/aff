@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="../assets/css/settings.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .setting-card {
+            transition: all 0.3s ease;
+        }
+        .setting-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        .section-divider {
+            position: relative;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .section-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+        }
+        .section-divider span {
+            position: relative;
+            background: white;
+            padding: 0 1rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        <div class="flex flex-col h-full">
+            <!-- Logo -->
+            <div class="px-6 py-5 border-b border-gray-200">
+                <h1 class="text-xl font-semibold text-gray-900">Admin Panel</h1>
+                <p class="text-xs text-gray-500 mt-1">Quản lý hệ thống</p>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-3 py-4 overflow-y-auto">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Danh sách CTV</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <span>Sản phẩm</span>
+                </a>
+                <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Khách hàng</span>
+                </a>
+                
+                <div class="my-3 border-t border-gray-200"></div>
+                
+                <a href="analytics.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Phân tích Kinh doanh</span>
+                </a>
+                <a href="profit-report.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Báo cáo Lãi Lỗ</span>
+                </a>
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-white bg-indigo-600 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Cài đặt Chi phí</span>
+                </a>
+            </nav>
+
+            <!-- User Info -->
+            <div class="px-3 py-4 border-t border-gray-200">
+                <div class="flex items-center gap-3 px-3 py-2">
+                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900">Admin</p>
+                        <p class="text-xs text-gray-500">admin@ctv.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">Cài đặt Hệ thống</h1>
+                            <p class="text-sm text-gray-500 mt-1">Quản lý chi phí đóng gói, thuế và cấu hình hệ thống</p>
+                        </div>
+                    </div>
+                    <button onclick="location.reload()" class="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span class="font-medium">Làm mới</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Left Column: Packaging Config -->
+                <div class="xl:col-span-2 space-y-6">
+                    <!-- Packaging Costs Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden setting-card">
+                        <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-6 py-5 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                        <span class="text-2xl">📦</span>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-xl font-bold text-gray-900">Chi phí Đóng gói</h2>
+                                        <p class="text-sm text-gray-600 mt-0.5">Cấu hình giá vật liệu đóng gói</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="settingsForm" class="p-6 space-y-6">
+                            <!-- Per-Product Costs -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-4">
+                                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-base font-semibold text-gray-900">Chi phí theo sản phẩm</h3>
+                                    <span class="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">Nhân với số lượng</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>🧵</span>
+                                                <span>Dây đỏ</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="red_string" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                                placeholder="100">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1.5 ml-1">Chi phí 1 sợi dây/sản phẩm</p>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>👷</span>
+                                                <span>Tiền công</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="labor_cost" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                                placeholder="5000">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1.5 ml-1">Tiền công làm 1 sản phẩm</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Per-Order Costs -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-4">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-base font-semibold text-gray-900">Chi phí đóng gói</h3>
+                                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Cố định mỗi đơn</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>📦</span>
+                                                <span>Túi zip</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="bag_zip" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="500">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>🎁</span>
+                                                <span>Túi rút đỏ</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="bag_red" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="1000">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>📦</span>
+                                                <span>Hộp đựng hàng</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="box_shipping" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="3000">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>💌</span>
+                                                <span>Thiệp cảm ơn</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="thank_card" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="300">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>📄</span>
+                                                <span>Giấy in</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="paper_print" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="200">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center gap-2">
+                                                <span>🚚</span>
+                                                <span>Chi phí ship mặc định</span>
+                                            </span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="default_shipping_cost" min="0" step="1" required
+                                                class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="25000">
+                                            <span class="input-icon text-gray-400 font-medium">đ</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1.5 ml-1">Giá trị gợi ý khi tạo đơn</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview -->
+                            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-100">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-sm font-semibold text-indigo-900">Ví dụ tính toán</p>
+                                </div>
+                                <div class="text-sm text-gray-700 space-y-2 bg-white/60 rounded-lg p-3">
+                                    <p id="preview1" class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                                        <span>Đơn 1 sản phẩm: -</span>
+                                    </p>
+                                    <p id="preview3" class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                                        <span>Đơn 3 sản phẩm: -</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-3 pt-2">
+                                <button type="submit" id="saveBtn"
+                                    class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span>Lưu cài đặt</span>
+                                </button>
+                                <button type="button" onclick="location.reload()"
+                                    class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all">
+                                    Hủy
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tax Settings Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden setting-card">
+                        <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 px-6 py-5 border-b border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                    <span class="text-2xl">💰</span>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Cài đặt Thuế</h2>
+                                    <p class="text-sm text-gray-600 mt-0.5">Quản lý tỷ lệ thuế áp dụng cho đơn hàng</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="taxForm" class="p-6 space-y-6">
+                            <!-- Current Tax Rate -->
+                            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border-2 border-emerald-200">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-1">Tỷ lệ thuế hiện tại</h3>
+                                        <p class="text-sm text-gray-600">Áp dụng cho tất cả đơn hàng mới</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <!-- Skeleton -->
+                                        <div id="currentTaxRateSkeleton" class="skeleton h-12 w-24 rounded ml-auto"></div>
+                                        <!-- Real content -->
+                                        <div id="currentTaxRate" class="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent hidden">-</div>
+                                        <p class="text-xs text-gray-500 mt-1">Trên tổng doanh thu</p>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-700 bg-white/70 rounded-lg p-4">
+                                    <p class="font-semibold mb-2 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>Lưu ý quan trọng:</span>
+                                    </p>
+                                    <ul class="space-y-1.5 ml-6 list-disc text-gray-600">
+                                        <li>Thuế được tính trên tổng doanh thu (bao gồm cả phí ship)</li>
+                                        <li>Mỗi đơn hàng lưu thuế tại thời điểm tạo đơn</li>
+                                        <li>Thay đổi thuế chỉ ảnh hưởng đến đơn hàng mới</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- New Tax Rate Input -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-900 mb-3">
+                                    Cập nhật tỷ lệ thuế mới
+                                </label>
+                                <div class="flex gap-3 items-start">
+                                    <div class="flex-1">
+                                        <div class="relative">
+                                            <input type="number" id="newTaxRate" min="0" max="100" step="0.1"
+                                                class="w-full px-4 py-2.5 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-lg font-semibold transition-all"
+                                                placeholder="1.5">
+                                            <span class="absolute right-4 top-2.5 text-gray-400 text-lg font-bold">%</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2 ml-1">Nhập tỷ lệ % (ví dụ: 1.5 cho 1.5%, 2 cho 2%)</p>
+                                    </div>
+                                    <button type="button" onclick="updateTaxRate()"
+                                        class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 whitespace-nowrap flex items-center gap-2 flex-shrink-0">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Cập nhật</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tax Calculation Example -->
+                            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <p class="text-sm font-semibold text-amber-900">Ví dụ tính thuế</p>
+                                </div>
+                                <div class="text-sm text-gray-700 space-y-2 bg-white/60 rounded-lg p-3">
+                                    <p class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                                        <span>Đơn hàng 100.000đ + Ship 30.000đ = Doanh thu 130.000đ</span>
+                                    </p>
+                                    <!-- Skeleton -->
+                                    <div id="taxExampleSkeleton" class="skeleton h-5 w-full rounded"></div>
+                                    <!-- Real content -->
+                                    <p id="taxExample" class="font-semibold text-amber-900 flex items-center gap-2 hidden">
+                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                                        <span>Đang tải...</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column: Quick Info & Tips -->
+                <div class="space-y-6">
+                    <!-- Quick Stats -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden setting-card">
+                        <div class="bg-gradient-to-r from-pink-50 to-rose-50 px-5 py-4 border-b border-gray-100">
+                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                </svg>
+                                <span>Thống kê nhanh</span>
+                            </h3>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-xl">📦</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-600">Tổng chi phí</p>
+                                        <p class="text-sm font-bold text-gray-900">Đóng gói</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p id="totalPackagingCost" class="text-lg font-bold text-blue-600">-</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-xl">💰</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-600">Tỷ lệ thuế</p>
+                                        <p class="text-sm font-bold text-gray-900">Hiện tại</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <!-- Skeleton -->
+                                    <div id="currentTaxRateSummarySkeleton" class="skeleton h-7 w-16 rounded ml-auto"></div>
+                                    <!-- Real content -->
+                                    <p id="currentTaxRateSummary" class="text-lg font-bold text-emerald-600 hidden">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden setting-card">
+                        <div class="bg-gradient-to-r from-violet-50 to-purple-50 px-5 py-4 border-b border-gray-100">
+                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Mẹo hữu ích</span>
+                            </h3>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <div class="flex gap-3">
+                                <div class="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-sm">💡</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 mb-1">Cập nhật định kỳ</p>
+                                    <p class="text-xs text-gray-600">Kiểm tra và cập nhật giá vật liệu hàng tháng để đảm bảo tính chính xác</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <div class="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-sm">📊</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 mb-1">Theo dõi chi phí</p>
+                                    <p class="text-xs text-gray-600">Xem báo cáo lãi lỗ để phân tích chi phí đóng gói và tối ưu hóa</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <div class="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-sm">⚡</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 mb-1">Tự động tính toán</p>
+                                    <p class="text-xs text-gray-600">Hệ thống tự động tính chi phí đóng gói cho mỗi đơn hàng</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <div class="w-6 h-6 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span class="text-sm">🔒</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 mb-1">Lưu trữ lịch sử</p>
+                                    <p class="text-xs text-gray-600">Mỗi đơn hàng lưu giá tại thời điểm tạo, không bị ảnh hưởng khi thay đổi</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Help Card -->
+                    <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-start gap-3 mb-4">
+                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold mb-2">Cần hỗ trợ?</h3>
+                                <p class="text-sm text-white/90 mb-4">Liên hệ với chúng tôi nếu bạn cần trợ giúp về cài đặt hệ thống</p>
+                                <button class="px-4 py-2 bg-white text-indigo-600 rounded-lg font-medium text-sm hover:bg-white/90 transition-all">
+                                    Liên hệ hỗ trợ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/timezone-utils.js"></script>
+    <script src="../assets/js/settings.js"></script>
+</body>
+</html>

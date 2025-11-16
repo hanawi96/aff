@@ -3,18 +3,18 @@ let ctvData = null;
 let ordersData = [];
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 CTV Detail Page initialized');
-    
+
     // Get referral code from URL
     const urlParams = new URLSearchParams(window.location.search);
     const referralCode = urlParams.get('code');
-    
+
     if (!referralCode) {
         showError();
         return;
     }
-    
+
     loadCTVData(referralCode);
 });
 
@@ -22,37 +22,37 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadCTVData(referralCode) {
     try {
         showLoading();
-        
+
         // Load CTV info
         const ctvResponse = await fetch(`${CONFIG.API_URL}?action=getAllCTV&timestamp=${Date.now()}`);
         if (!ctvResponse.ok) throw new Error('Failed to load CTV data');
-        
+
         const ctvResult = await ctvResponse.json();
         if (!ctvResult.success) throw new Error(ctvResult.error || 'Failed to load CTV data');
-        
+
         // Find the specific CTV
         ctvData = ctvResult.ctvList.find(ctv => ctv.referralCode === referralCode);
         if (!ctvData) {
             showError();
             return;
         }
-        
+
         // Load orders for this CTV
         const ordersResponse = await fetch(`${CONFIG.API_URL}?action=getOrders&referralCode=${referralCode}&timestamp=${Date.now()}`);
         if (!ordersResponse.ok) throw new Error('Failed to load orders');
-        
+
         const ordersResult = await ordersResponse.json();
         if (ordersResult.success) {
             ordersData = ordersResult.orders || [];
         }
-        
+
         // Display data
         displayCTVInfo();
         displayOrders();
-        
+
         hideLoading();
         showContent();
-        
+
     } catch (error) {
         console.error('❌ Error loading CTV data:', error);
         hideLoading();
@@ -64,34 +64,45 @@ async function loadCTVData(referralCode) {
 function displayCTVInfo() {
     // Header
     document.getElementById('ctvCode').textContent = ctvData.referralCode;
-    
+
     // Avatar
     const initials = getInitials(ctvData.fullName);
     document.getElementById('ctvAvatar').textContent = initials;
-    
+
     // Basic info
     document.getElementById('ctvName').textContent = ctvData.fullName || 'N/A';
     document.getElementById('ctvPhone').textContent = ctvData.phone || 'N/A';
     document.getElementById('ctvEmail').textContent = ctvData.email || 'Chưa cập nhật';
-    
+
     // Status
     const statusElement = document.getElementById('ctvStatus');
     const statusInfo = getStatusInfo(ctvData);
     statusElement.textContent = statusInfo.text;
     statusElement.className = `px-4 py-2 inline-flex text-sm font-semibold rounded-full ${statusInfo.class}`;
-    
+
     // Details
     document.getElementById('ctvReferralCode').textContent = ctvData.referralCode;
     const commissionRate = (ctvData.commissionRate || 0.1) * 100;
     document.getElementById('ctvCommissionRate').textContent = `${commissionRate.toFixed(0)}%`;
     document.getElementById('ctvCity').textContent = ctvData.city || 'Chưa cập nhật';
     document.getElementById('ctvCreatedAt').textContent = formatDate(ctvData.timestamp);
-    
-    // Stats
+
+    // Stats - Calculate from product_total + shipping_fee for accurate revenue
     const totalOrders = ordersData.length;
-    const totalRevenue = ordersData.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const totalCommission = ordersData.reduce((sum, order) => sum + (order.commission || 0), 0);
-    
+    const totalRevenue = ordersData.reduce((sum, order) => {
+        const productTotal = order.product_total || 0;
+        const shippingFee = order.shipping_fee || 0;
+        return sum + productTotal + shippingFee;
+    }, 0);
+    const totalCommission = ordersData.reduce((sum, order) => {
+        // Recalculate commission based on current CTV commission_rate if available
+        if (order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
+            const productTotal = order.product_total || 0;
+            return sum + Math.round(productTotal * order.ctv_commission_rate);
+        }
+        return sum + (order.commission || 0);
+    }, 0);
+
     document.getElementById('totalOrders').textContent = totalOrders;
     document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
     document.getElementById('totalCommission').textContent = formatCurrency(totalCommission);
@@ -101,16 +112,16 @@ function displayCTVInfo() {
 function displayOrders() {
     const ordersTable = document.getElementById('ordersTable');
     const emptyOrders = document.getElementById('emptyOrders');
-    
+
     if (ordersData.length === 0) {
         ordersTable.classList.add('hidden');
         emptyOrders.classList.remove('hidden');
         return;
     }
-    
+
     ordersTable.classList.remove('hidden');
     emptyOrders.classList.add('hidden');
-    
+
     let html = `
         <table class="w-full">
             <thead class="bg-gray-50 border-b border-gray-200">
@@ -125,7 +136,7 @@ function displayOrders() {
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
     `;
-    
+
     ordersData.forEach((order, index) => {
         html += `
             <tr class="hover:bg-gray-50 transition-colors">
@@ -141,12 +152,12 @@ function displayOrders() {
             </tr>
         `;
     });
-    
+
     html += `
             </tbody>
         </table>
     `;
-    
+
     ordersTable.innerHTML = html;
 }
 
@@ -158,14 +169,14 @@ function getStatusInfo(ctv) {
             class: 'bg-green-100 text-green-800'
         };
     }
-    
+
     if (ctv.status === 'Mới') {
         return {
             text: 'Mới',
             class: 'bg-yellow-100 text-yellow-800'
         };
     }
-    
+
     return {
         text: 'Chưa có đơn',
         class: 'bg-gray-100 text-gray-800'
@@ -198,13 +209,8 @@ function formatCurrency(amount) {
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        return date.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        // Use timezone-utils to convert UTC to VN timezone
+        return toVNShortDate(dateString);
     } catch (e) {
         return dateString;
     }
@@ -213,15 +219,8 @@ function formatDate(dateString) {
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        return date.toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        // Use timezone-utils to convert UTC to VN timezone
+        return toVNDateString(dateString);
     } catch (e) {
         return dateString;
     }

@@ -1,0 +1,277 @@
+/* Settings Page Enhanced Styles */
+
+/* Smooth animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Card animations - DISABLED to prevent jank with skeleton loading */
+/* Cards now load instantly, only skeleton animates */
+.setting-card {
+    /* animation: slideInUp 0.4s ease-out; */
+}
+
+/* Removed staggered delays for smoother loading
+.setting-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.setting-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.setting-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+*/
+
+/* Input focus effects */
+input[type="number"]:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+/* Button hover effects */
+button {
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+button:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Gradient text animation */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.gradient-animate {
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+}
+
+/* Toast animation */
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+#toast.translate-x-0 {
+    animation: toastSlideIn 0.3s ease-out;
+}
+
+#toast.translate-x-full {
+    animation: toastSlideOut 0.3s ease-in;
+}
+
+/* Loading state */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1280px) {
+    .xl\:col-span-2 {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .setting-card {
+        margin-bottom: 1rem;
+    }
+    
+    .input-group {
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Stack buttons on mobile */
+    .flex.gap-3 {
+        flex-direction: column;
+    }
+    
+    .flex-1 {
+        width: 100%;
+    }
+}
+
+/* Print styles */
+@media print {
+    .setting-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    button,
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Accessibility improvements */
+input:focus-visible,
+button:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Hover effects for interactive elements */
+.hover-scale {
+    transition: transform 0.2s ease;
+}
+
+.hover-scale:hover {
+    transform: scale(1.02);
+}
+
+/* Badge animations */
+.stat-badge {
+    animation: slideInUp 0.5s ease-out;
+}
+
+/* Section divider animation */
+.section-divider::before {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Input icon positioning */
+.input-icon {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Prevent text selection on buttons */
+button {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Enhanced shadow on hover */
+.setting-card:hover {
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.15);
+}
+
+/* Smooth color transitions */
+* {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Override for specific elements that shouldn't transition */
+input,
+textarea,
+select {
+    transition-property: border-color, box-shadow;
+}

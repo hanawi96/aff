@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Cộng Tác Viên - Admin</title>
+    <title>Quản lý Khách hàng - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/admin.css">
     <script>
         tailwind.config = {
             theme: {
@@ -27,7 +28,6 @@
                 opacity: 0;
                 transform: translateY(10px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -48,7 +48,6 @@
             0% {
                 background-position: 200% 0;
             }
-
             100% {
                 background-position: -200% 0;
             }
@@ -76,7 +75,7 @@
 
             <!-- Navigation -->
             <nav class="flex-1 px-3 py-4 overflow-y-auto">
-                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-white bg-indigo-600 rounded-lg">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
@@ -88,19 +87,13 @@
                     </svg>
                     <span>Đơn hàng</span>
                 </a>
-                <a href="payments.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>Thanh toán CTV</span>
-                </a>
                 <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                     <span>Sản phẩm</span>
                 </a>
-                <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+                <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 mb-1 text-sm font-medium text-white bg-indigo-600 rounded-lg">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
@@ -155,13 +148,13 @@
                 <div class="flex justify-between items-center h-16">
                     <!-- Page Title -->
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900">Danh sách Cộng Tác Viên</h2>
-                        <p class="text-sm text-gray-500">Quản lý và theo dõi hoạt động CTV</p>
+                        <h2 class="text-xl font-bold text-gray-900">Quản Lý Khách Hàng</h2>
+                        <p class="text-sm text-gray-500">Theo dõi và phân tích khách hàng</p>
                     </div>
 
                     <!-- Actions -->
                     <div class="flex items-center space-x-3">
-                        <button onclick="refreshData()"
+                        <button onclick="loadCustomers()"
                             class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -176,86 +169,65 @@
         <!-- Main Content -->
         <main class="px-6 lg:px-8 py-8">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                <!-- Total CTV -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <!-- Total Customers -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng CTV</p>
-                            <div id="totalCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                            <p class="text-sm font-medium text-gray-600">Tổng khách hàng</p>
+                            <p id="totalCustomers" class="text-3xl font-bold text-gray-900 mt-2">0</p>
                         </div>
                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
                     </div>
                 </div>
 
-                <!-- Active CTV -->
+                <!-- New Customers -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Đang hoạt động</p>
-                            <div id="activeCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                            <p class="text-sm font-medium text-gray-600">Khách mới (30 ngày)</p>
+                            <p id="newCustomers" class="text-3xl font-bold text-gray-900 mt-2">0</p>
                         </div>
                         <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                             </svg>
                         </div>
                     </div>
                 </div>
 
-                <!-- New This Month -->
+                <!-- Total Revenue -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Mới tháng này</p>
-                            <div id="newCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                            <p class="text-sm font-medium text-gray-600">Tổng doanh thu</p>
+                            <p id="totalRevenue" class="text-3xl font-bold text-gray-900 mt-2">0đ</p>
                         </div>
                         <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                             <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                             </svg>
                         </div>
                     </div>
                 </div>
 
-                <!-- Total Commission -->
+                <!-- Average Order Value -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng hoa hồng</p>
-                            <div id="totalCommission" class="skeleton h-10 w-24 rounded mt-2"></div>
+                            <p class="text-sm font-medium text-gray-600">Giá trị TB/đơn</p>
+                            <p id="avgOrderValue" class="text-3xl font-bold text-gray-900 mt-2">0đ</p>
                         </div>
                         <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Orders -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
-                            <div id="totalOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
-                        </div>
-                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                            <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
                         </div>
                     </div>
@@ -268,7 +240,7 @@
                     <!-- Search -->
                     <div class="flex-1 max-w-md">
                         <div class="relative">
-                            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, SĐT, mã CTV..."
+                            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, số điện thoại..."
                                 class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
                             <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
@@ -280,22 +252,24 @@
 
                     <!-- Filters -->
                     <div class="flex items-center gap-3">
-                        <select id="statusFilter"
+                        <select id="segmentFilter"
                             class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="active">Đang hoạt động</option>
-                            <option value="new">Mới</option>
-                            <option value="inactive">Không hoạt động</option>
+                            <option value="all">Tất cả phân khúc</option>
+                            <option value="VIP">🌟 VIP (≥5 đơn)</option>
+                            <option value="Regular">💚 Regular (2-4 đơn)</option>
+                            <option value="New">🆕 New (1 đơn)</option>
+                            <option value="At Risk">⚠️ At Risk (>60 ngày)</option>
+                            <option value="Churned">💤 Churned (>90 ngày)</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <!-- CTV Table -->
+            <!-- Customers Table -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <!-- Table Header -->
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900">Danh Sách Cộng Tác Viên</h2>
+                    <h2 class="text-lg font-semibold text-gray-900">Danh Sách Khách Hàng</h2>
                 </div>
 
                 <!-- Loading State -->
@@ -313,87 +287,31 @@
                         <table class="w-full">
                             <thead class="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        STT</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Thông tin CTV</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Liên hệ</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Mã CTV</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <button onclick="toggleRateSort()"
-                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
-                                            <span>Tỷ lệ HH</span>
-                                            <svg id="rateSortIcon"
-                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                            </svg>
-                                        </button>
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Số DH</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <button onclick="toggleCommissionSort()"
-                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
-                                            <span>Tổng HH</span>
-                                            <svg id="commissionSortIcon"
-                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                            </svg>
-                                        </button>
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Trạng thái</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        <button onclick="toggleDateSort()"
-                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
-                                            <span>Ngày đăng ký</span>
-                                            <svg id="sortIcon"
-                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                            </svg>
-                                        </button>
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Thao tác</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phân khúc</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số đơn</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng chi tiêu</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn gần nhất</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody id="ctvTableBody" class="bg-white divide-y divide-gray-200">
+                            <tbody id="customersTableBody" class="bg-white divide-y divide-gray-200">
                                 <!-- Data will be inserted here -->
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Pagination -->
-                    <div id="paginationContainer"></div>
                 </div>
 
                 <!-- Empty State -->
                 <div id="emptyState" class="hidden p-12 text-center">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có cộng tác viên</h3>
-                    <p class="text-gray-500">Danh sách cộng tác viên sẽ hiển thị ở đây</p>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có khách hàng</h3>
+                    <p class="text-gray-500">Danh sách khách hàng sẽ hiển thị ở đây</p>
                 </div>
             </div>
         </main>
@@ -401,7 +319,7 @@
 
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/timezone-utils.js"></script>
-    <script src="../assets/js/admin.js"></script>
+    <script src="../assets/js/customers.js"></script>
 </body>
 
 </html>

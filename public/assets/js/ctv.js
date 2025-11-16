@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (codeFromUrl) {
         referralCodeInput.value = codeFromUrl;
-        
+
         // Tự động nhận diện và tìm kiếm
         const isPhone = /^0?\d{9,10}$/.test(codeFromUrl);
-        
+
         if (isPhone) {
             console.log('🔍 Auto-search by phone from URL:', codeFromUrl);
             searchOrdersByPhone(codeFromUrl);
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             // Tự động nhận diện: Mã CTV hay số điện thoại?
             const isPhone = /^0?\d{9,10}$/.test(input); // Số điện thoại VN: 0xxxxxxxxx hoặc xxxxxxxxx
-            
+
             if (isPhone) {
                 console.log('🔍 Detected phone number:', input);
                 // Cập nhật URL với số điện thoại
@@ -155,22 +155,22 @@ document.addEventListener('DOMContentLoaded', function () {
             currentReferralCode = referralCode;
             currentPage = 1;
             currentFilter = 'all';
-            
+
             // Hiển thị thông tin CTV với fallback
             let ctvInfo = result.ctvInfo;
-            
+
             console.log('🔍 Checking ctvInfo validity...');
             console.log('  - ctvInfo exists?', !!ctvInfo);
             console.log('  - ctvInfo.name:', ctvInfo?.name);
             console.log('  - ctvInfo.phone:', ctvInfo?.phone);
             console.log('  - ctvInfo.address:', ctvInfo?.address);
-            
+
             // Nếu không có ctvInfo hoặc ctvInfo rỗng, tạo fallback từ mã CTV
             if (!ctvInfo || !ctvInfo.name || ctvInfo.name === 'Chưa cập nhật' || ctvInfo.name === 'Không tìm thấy') {
                 console.warn('⚠️ No CTV info from backend, using fallback');
-                console.warn('   Reason:', !ctvInfo ? 'ctvInfo is null/undefined' : 
-                            !ctvInfo.name ? 'ctvInfo.name is empty' : 
-                            `ctvInfo.name is "${ctvInfo.name}"`);
+                console.warn('   Reason:', !ctvInfo ? 'ctvInfo is null/undefined' :
+                    !ctvInfo.name ? 'ctvInfo.name is empty' :
+                        `ctvInfo.name is "${ctvInfo.name}"`);
                 ctvInfo = {
                     name: 'CTV ' + referralCode,
                     phone: '****', // Sẽ hiển thị là ****
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 console.log('✅ Using backend ctvInfo:', ctvInfo);
             }
-            
+
             displayCollaboratorInfo(ctvInfo);
             displayResults(referralCode);
 
@@ -235,10 +235,10 @@ document.addEventListener('DOMContentLoaded', function () {
             currentReferralCode = result.referralCode; // Lưu mã CTV tìm được
             currentPage = 1;
             currentFilter = 'all';
-            
+
             // Hiển thị thông tin CTV với fallback
             let ctvInfo = result.ctvInfo;
-            
+
             // Nếu không có ctvInfo hoặc ctvInfo rỗng, tạo fallback
             if (!ctvInfo || !ctvInfo.name || ctvInfo.name === 'Chưa cập nhật' || ctvInfo.name === 'Không tìm thấy') {
                 console.warn('⚠️ No CTV info from backend, using fallback');
@@ -248,9 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     address: 'Xem trong đơn hàng'
                 };
             }
-            
+
             displayCollaboratorInfo(ctvInfo);
-            
+
             // Hiển thị kết quả với thông tin số điện thoại
             displayResults(result.referralCode, phone);
 
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Extract SĐT từ message
             const phoneMatch = message.match(/: (.+)$/);
             const phone = phoneMatch ? phoneMatch[1] : '';
-            
+
             friendlyMessage = `Không tìm thấy cộng tác viên với số điện thoại <strong class="font-bold text-purple-600">${phone}</strong>. ` +
                 `Vui lòng kiểm tra lại số điện thoại hoặc <a href="/" class="text-pink-600 hover:underline font-semibold">đăng ký làm CTV</a> nếu bạn chưa đăng ký! 😊`;
         }
@@ -460,11 +460,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Hàm hiển thị thông tin cộng tác viên
     function displayCollaboratorInfo(ctvInfo) {
         console.log('📋 displayCollaboratorInfo called with:', ctvInfo);
-        
+
         // Viết hoa chữ cái đầu của tên
         const capitalizeName = (name) => {
             if (!name) return name;
-            
+
             // Tách các từ bằng khoảng trắng
             return name.split(' ')
                 .map(word => {
@@ -474,16 +474,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .join(' ');
         };
-        
+
         // Che 4 số cuối của số điện thoại
         const maskPhone = (phone) => {
             if (!phone) return '****';
-            
+
             let phoneStr = phone.toString().trim();
-            
+
             // Nếu là "****" thì giữ nguyên
             if (phoneStr === '****') return '****';
-            
+
             // Nếu là số điện thoại (chỉ chứa số)
             if (/^\d+$/.test(phoneStr)) {
                 // Thêm số 0 ở đầu nếu chưa có (số điện thoại VN)
@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     phoneStr = '0' + phoneStr;
                     console.log('📱 Added leading 0 to phone:', phoneStr);
                 }
-                
+
                 // Nếu đủ dài (>= 4 số), che 4 số cuối
                 if (phoneStr.length >= 4) {
                     return phoneStr.slice(0, -4) + '****';
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Nếu quá ngắn, trả về ****
                 return '****';
             }
-            
+
             // Nếu là text khác, trả về ****
             return '****';
         };
@@ -526,11 +526,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (nameInlineEl) {
             nameInlineEl.textContent = finalInfo.name;
         }
-        
+
         if (phoneInlineEl) {
             phoneInlineEl.textContent = maskPhone(finalInfo.phone);
         }
-        
+
         if (addressInlineEl) {
             addressInlineEl.textContent = finalInfo.address;
         }

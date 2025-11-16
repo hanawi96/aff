@@ -5,6 +5,7 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let sortOrder = 'desc'; // 'desc' = mới nhất trước, 'asc' = cũ nhất trước, 'none' = không sắp xếp
 let commissionSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
+let rateSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -63,6 +64,7 @@ async function loadCTVData() {
             applySorting();
             updateSortIcon();
             updateCommissionSortIcon();
+            updateRateSortIcon();
             
             updateStats(data.stats || {});
             renderCTVTable();
@@ -84,25 +86,17 @@ function updateStats(stats) {
     const activeCTV = stats.activeCTV || allCTVData.filter(ctv => ctv.hasOrders).length;
     const newCTV = stats.newCTV || 0;
     const totalCommission = stats.totalCommission || 0;
+    
+    // Calculate total orders from all CTVs
+    const totalOrders = allCTVData.reduce((sum, ctv) => sum + (ctv.orderCount || 0), 0);
 
     // Update main stats - Remove skeleton and add text
     updateStatElement('totalCTV', totalCTV, 'text-3xl font-bold text-gray-900');
     updateStatElement('activeCTV', activeCTV, 'text-3xl font-bold text-green-600');
     updateStatElement('newCTV', newCTV, 'text-3xl font-bold text-purple-600');
     updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-3xl font-bold text-orange-600');
+    updateStatElement('totalOrders', totalOrders, 'text-3xl font-bold text-indigo-600');
 
-    // Update header stats
-    const totalCTVHeader = document.getElementById('totalCTVHeader');
-    const activeCTVHeader = document.getElementById('activeCTVHeader');
-    
-    // Remove skeleton and add text
-    totalCTVHeader.classList.remove('skeleton', 'h-8', 'w-12', 'rounded', 'mx-auto', 'mb-1');
-    totalCTVHeader.className = 'text-2xl font-bold text-admin-primary';
-    totalCTVHeader.textContent = totalCTV;
-    
-    activeCTVHeader.classList.remove('skeleton', 'h-8', 'w-12', 'rounded', 'mx-auto', 'mb-1');
-    activeCTVHeader.className = 'text-2xl font-bold text-admin-success';
-    activeCTVHeader.textContent = activeCTV;
 }
 
 // Helper function to update stat element
@@ -221,17 +215,27 @@ function createCTVRow(ctv, index) {
         </div>
     `;
 
-    // Hoa hồng hôm nay
-    const tdTodayCommission = document.createElement('td');
-    tdTodayCommission.className = 'px-6 py-4 whitespace-nowrap';
-    const todayCommission = ctv.todayCommission || 0;
-    const hasCommissionToday = todayCommission > 0;
-    tdTodayCommission.innerHTML = `
+    // Số đơn hàng
+    const tdOrderCount = document.createElement('td');
+    tdOrderCount.className = 'px-6 py-4 whitespace-nowrap text-center';
+    const orderCount = ctv.orderCount || 0;
+    const hasOrders = orderCount > 0;
+    tdOrderCount.innerHTML = `
+        <span class="inline-flex items-center justify-center px-3 py-1 text-sm font-bold rounded-full ${hasOrders ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-400'}">
+            ${orderCount}
+        </span>
+    `;
+
+    // Tổng hoa hồng
+    const tdTotalCommission = document.createElement('td');
+    tdTotalCommission.className = 'px-6 py-4 whitespace-nowrap';
+    const totalCommission = ctv.totalCommission || 0;
+    const hasCommission = totalCommission > 0;
+    tdTotalCommission.innerHTML = `
         <div class="flex items-center gap-2">
-            <span class="text-sm font-bold ${hasCommissionToday ? 'text-orange-600' : 'text-gray-400'}">
-                ${formatCurrency(todayCommission)}
+            <span class="text-sm font-bold ${hasCommission ? 'text-orange-600' : 'text-gray-400'}">
+                ${formatCurrency(totalCommission)}
             </span>
-            ${hasCommissionToday ? '<span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>' : ''}
         </div>
     `;
 
@@ -282,7 +286,8 @@ function createCTVRow(ctv, index) {
     tr.appendChild(tdContact);
     tr.appendChild(tdCode);
     tr.appendChild(tdCommissionRate);
-    tr.appendChild(tdTodayCommission);
+    tr.appendChild(tdOrderCount);
+    tr.appendChild(tdTotalCommission);
     tr.appendChild(tdStatus);
     tr.appendChild(tdDate);
     tr.appendChild(tdActions);
@@ -728,9 +733,11 @@ function toggleDateSort() {
 
 // Toggle commission sort
 function toggleCommissionSort() {
-    // Reset date sort
+    // Reset other sorts
     sortOrder = 'none';
+    rateSortOrder = 'none';
     updateSortIcon();
+    updateRateSortIcon();
     
     // Cycle through: desc -> asc -> none -> desc
     if (commissionSortOrder === 'desc') {
@@ -743,6 +750,33 @@ function toggleCommissionSort() {
     
     // Update icon
     updateCommissionSortIcon();
+    
+    // Apply sort
+    applySorting();
+    
+    // Reset to first page
+    currentPage = 1;
+    renderCTVTable();
+}
+
+function toggleRateSort() {
+    // Reset other sorts
+    sortOrder = 'none';
+    commissionSortOrder = 'none';
+    updateSortIcon();
+    updateCommissionSortIcon();
+    
+    // Cycle through: desc -> asc -> none -> desc
+    if (rateSortOrder === 'desc') {
+        rateSortOrder = 'asc';
+    } else if (rateSortOrder === 'asc') {
+        rateSortOrder = 'none';
+    } else {
+        rateSortOrder = 'desc';
+    }
+    
+    // Update icon
+    updateRateSortIcon();
     
     // Apply sort
     applySorting();
@@ -798,13 +832,46 @@ function updateCommissionSortIcon() {
     }
 }
 
+function updateRateSortIcon() {
+    const icon = document.getElementById('rateSortIcon');
+    if (!icon) return;
+    
+    if (rateSortOrder === 'desc') {
+        // Cao nhất trước - Arrow down
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+        icon.classList.remove('text-gray-400');
+        icon.classList.add('text-green-600');
+    } else if (rateSortOrder === 'asc') {
+        // Thấp nhất trước - Arrow up
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />';
+        icon.classList.remove('text-gray-400');
+        icon.classList.add('text-green-600');
+    } else {
+        // Không sắp xếp - Both arrows
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />';
+        icon.classList.remove('text-green-600');
+        icon.classList.add('text-gray-400');
+    }
+}
+
 // Apply sorting
 function applySorting() {
-    // Ưu tiên sắp xếp theo commission nếu đang active
-    if (commissionSortOrder !== 'none') {
+    // Ưu tiên sắp xếp theo rate nếu đang active
+    if (rateSortOrder !== 'none') {
         filteredCTVData.sort((a, b) => {
-            const commA = a.todayCommission || 0;
-            const commB = b.todayCommission || 0;
+            const rateA = a.commissionRate || 0;
+            const rateB = b.commissionRate || 0;
+            
+            if (rateSortOrder === 'desc') {
+                return rateB - rateA; // Cao nhất trước
+            } else {
+                return rateA - rateB; // Thấp nhất trước
+            }
+        });
+    } else if (commissionSortOrder !== 'none') {
+        filteredCTVData.sort((a, b) => {
+            const commA = a.totalCommission || 0;
+            const commB = b.totalCommission || 0;
             
             if (commissionSortOrder === 'desc') {
                 return commB - commA; // Cao nhất trước
@@ -858,15 +925,8 @@ function formatCurrency(amount) {
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            return dateString;
-        }
-        return date.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        // Use timezone-utils to convert UTC to VN timezone
+        return toVNShortDate(dateString);
     } catch (e) {
         return dateString;
     }

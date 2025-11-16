@@ -27,6 +27,10 @@ export default {
             if (request.method === 'GET') {
                 return await handleGet(action, url, env, corsHeaders);
             } else if (request.method === 'POST') {
+                // Check if action is in query string (for API calls with ?action=xxx)
+                if (action) {
+                    return await handlePostWithAction(action, request, env, corsHeaders);
+                }
                 return await handlePost(path, request, env, corsHeaders);
             }
 
@@ -70,6 +74,93 @@ async function handleGet(action, url, env, corsHeaders) {
             const ctvReferralCode = url.searchParams.get('referralCode');
             return await getCollaboratorInfo(ctvReferralCode, env, corsHeaders);
 
+        case 'verifyCTV':
+            const verifyCode = url.searchParams.get('code');
+            return await verifyCTVCode(verifyCode, env, corsHeaders);
+
+        case 'getAllProducts':
+            return await getAllProducts(env, corsHeaders);
+
+        case 'getProduct':
+            const productId = url.searchParams.get('id');
+            return await getProduct(productId, env, corsHeaders);
+
+        case 'searchProducts':
+            const searchQuery = url.searchParams.get('q');
+            return await searchProducts(searchQuery, env, corsHeaders);
+
+        case 'getAllCategories':
+            return await getAllCategories(env, corsHeaders);
+
+        case 'getCategory':
+            const categoryId = url.searchParams.get('id');
+            return await getCategory(categoryId, env, corsHeaders);
+
+        case 'getAllCustomers':
+            return await getAllCustomers(env, corsHeaders);
+
+        case 'getCustomerDetail':
+            const customerPhone = url.searchParams.get('phone');
+            return await getCustomerDetail(customerPhone, env, corsHeaders);
+
+        case 'searchCustomers':
+            const customerQuery = url.searchParams.get('q');
+            return await searchCustomers(customerQuery, env, corsHeaders);
+
+        case 'getPackagingConfig':
+            return await getPackagingConfig(env, corsHeaders);
+
+        case 'getProfitReport':
+            const period = url.searchParams.get('period') || 'month';
+            return await getProfitReport({ period }, env, corsHeaders);
+
+        case 'getDetailedAnalytics':
+            const analyticsPeriod = url.searchParams.get('period') || 'month';
+            return await getDetailedAnalytics({ period: analyticsPeriod }, env, corsHeaders);
+
+        case 'migrateOrdersToItems':
+            return await migrateOrdersToItems(env, corsHeaders);
+
+        case 'getTopProducts':
+            const topLimit = parseInt(url.searchParams.get('limit')) || 10;
+            const topPeriod = url.searchParams.get('period') || 'all';
+            const topStartDate = url.searchParams.get('startDate'); // Optional: custom start date from frontend
+            return await getTopProducts(topLimit, topPeriod, env, corsHeaders, topStartDate);
+
+        case 'getProductStats':
+            const statsProductId = url.searchParams.get('productId');
+            const statsPeriod = url.searchParams.get('period') || 'all';
+            const statsStartDate = url.searchParams.get('startDate'); // Optional: custom start date from frontend
+            return await getProductStats(statsProductId, statsPeriod, env, corsHeaders, statsStartDate);
+
+        case 'getProfitOverview':
+            const overviewPeriod = url.searchParams.get('period') || 'all';
+            const overviewStartDate = url.searchParams.get('startDate'); // Optional: custom start date from frontend
+            return await getProfitOverview(overviewPeriod, env, corsHeaders, overviewStartDate);
+
+        case 'getCurrentTaxRate':
+            return await getCurrentTaxRate(env, corsHeaders);
+
+        case 'updateTaxRate':
+            // This will be handled in POST
+            break;
+
+        case 'getCommissionsByMonth':
+            const month = url.searchParams.get('month');
+            return await getCommissionsByMonth(month, env, corsHeaders);
+
+        case 'getPaymentHistory':
+            const paymentReferralCode = url.searchParams.get('referralCode');
+            return await getPaymentHistory(paymentReferralCode, env, corsHeaders);
+
+        case 'getUnpaidOrders':
+            const unpaidReferralCode = url.searchParams.get('referralCode');
+            return await getUnpaidOrders(unpaidReferralCode, env, corsHeaders);
+
+        case 'getUnpaidOrdersByMonth':
+            const unpaidMonth = url.searchParams.get('month');
+            return await getUnpaidOrdersByMonth(unpaidMonth, env, corsHeaders);
+
         default:
             return jsonResponse({
                 success: false,
@@ -81,6 +172,37 @@ async function handleGet(action, url, env, corsHeaders) {
 // ============================================
 // POST REQUEST HANDLERS
 // ============================================
+
+async function handlePostWithAction(action, request, env, corsHeaders) {
+    // Read JSON body once
+    const data = await request.json();
+
+    switch (action) {
+        case 'createSPXOrder':
+            return await createSPXOrder(data, env, corsHeaders);
+        case 'getSPXTracking':
+            return await getSPXTracking(data, env, corsHeaders);
+        case 'getPackagingConfig':
+            return await getPackagingConfig(env, corsHeaders);
+        case 'updatePackagingConfig':
+            return await updatePackagingConfig(data, env, corsHeaders);
+        case 'updateTaxRate':
+            return await updateTaxRate(data, env, corsHeaders);
+        case 'getProfitReport':
+            return await getProfitReport(data, env, corsHeaders);
+        case 'calculateCommissions':
+            return await calculateCommissions(data, env, corsHeaders);
+        case 'markAsPaid':
+            return await markCommissionAsPaid(data, env, corsHeaders);
+        case 'paySelectedOrders':
+            return await paySelectedOrders(data, env, corsHeaders);
+        default:
+            return jsonResponse({
+                success: false,
+                error: 'Unknown action: ' + action
+            }, 400, corsHeaders);
+    }
+}
 
 async function handlePost(path, request, env, corsHeaders) {
     // Read JSON body once
@@ -106,6 +228,21 @@ async function handlePost(path, request, env, corsHeaders) {
     // Handle action-based routes (for root path or any other path)
     if (data.action) {
         switch (data.action) {
+            case 'createOrder':
+                // Transform data to match createOrder function signature
+                const orderData = {
+                    orderId: 'DH' + Date.now(),
+                    customer: data.customer,
+                    cart: data.products,
+                    totalAmount: data.totalAmount,
+                    paymentMethod: data.paymentMethod,
+                    status: data.status,
+                    referralCode: data.referralCode,
+                    notes: data.notes,
+                    shippingFee: data.shippingFee || 0,
+                    shippingCost: data.shippingCost || 0
+                };
+                return await createOrder(orderData, env, corsHeaders);
             case 'updateOrderProducts':
                 return await updateOrderProducts(data, env, corsHeaders);
             case 'updateCustomerInfo':
@@ -116,6 +253,30 @@ async function handlePost(path, request, env, corsHeaders) {
                 return await updateAmount(data, env, corsHeaders);
             case 'deleteOrder':
                 return await deleteOrder(data, env, corsHeaders);
+            case 'updateOrderStatus':
+                return await updateOrderStatus(data, env, corsHeaders);
+            case 'createProduct':
+                return await createProduct(data, env, corsHeaders);
+            case 'updateProduct':
+                return await updateProduct(data, env, corsHeaders);
+            case 'deleteProduct':
+                return await deleteProduct(data, env, corsHeaders);
+            case 'createCategory':
+                return await createCategory(data, env, corsHeaders);
+            case 'updateCategory':
+                return await updateCategory(data, env, corsHeaders);
+            case 'deleteCategory':
+                return await deleteCategory(data, env, corsHeaders);
+            case 'createSPXOrder':
+                return await createSPXOrder(data, env, corsHeaders);
+            case 'getSPXTracking':
+                return await getSPXTracking(data, env, corsHeaders);
+            case 'updatePackagingConfig':
+                return await updatePackagingConfig(data, env, corsHeaders);
+            case 'updateTaxRate':
+                return await updateTaxRate(data, env, corsHeaders);
+            case 'getProfitReport':
+                return await getProfitReport(data, env, corsHeaders);
             default:
                 return jsonResponse({
                     success: false,
@@ -180,7 +341,7 @@ async function registerCTV(data, env, corsHeaders) {
                 ...data,
                 referralCode: referralCode,
                 commissionRate: commissionRate,
-                timestamp: new Date().toLocaleString('vi-VN')
+                timestamp: new Date().toISOString()
             };
 
             const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
@@ -213,6 +374,49 @@ async function registerCTV(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error registering CTV:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Verify CTV code (quick check for auto-complete)
+async function verifyCTVCode(code, env, corsHeaders) {
+    try {
+        if (!code || code.trim() === '') {
+            return jsonResponse({
+                success: false,
+                message: 'Vui lòng nhập mã CTV'
+            }, 200, corsHeaders);
+        }
+
+        const ctv = await env.DB.prepare(`
+            SELECT full_name, commission_rate, phone, status
+            FROM ctv 
+            WHERE referral_code = ?
+        `).bind(code.trim()).first();
+
+        if (ctv) {
+            return jsonResponse({
+                success: true,
+                verified: true,
+                data: {
+                    name: ctv.full_name,
+                    rate: ctv.commission_rate,
+                    phone: ctv.phone,
+                    status: ctv.status
+                }
+            }, 200, corsHeaders);
+        } else {
+            return jsonResponse({
+                success: true,
+                verified: false,
+                message: 'Không tìm thấy CTV với mã này'
+            }, 200, corsHeaders);
+        }
+    } catch (error) {
+        console.error('Error verifying CTV:', error);
         return jsonResponse({
             success: false,
             error: error.message
@@ -256,7 +460,7 @@ async function getCollaboratorInfo(referralCode, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // Get order statistics
+        // Get order statistics - use total_amount column
         const orderStats = await env.DB.prepare(`
             SELECT 
                 COUNT(*) as total_orders,
@@ -266,7 +470,7 @@ async function getCollaboratorInfo(referralCode, env, corsHeaders) {
             WHERE referral_code = ?
         `).bind(referralCode).first();
 
-        // Get recent orders (last 5)
+        // Get recent orders (last 5) - use total_amount column
         const { results: recentOrders } = await env.DB.prepare(`
             SELECT 
                 order_id,
@@ -325,7 +529,7 @@ async function getAllCTV(env, corsHeaders) {
             ORDER BY created_at DESC
         `).all();
 
-        // Get order stats for each CTV
+        // Get order stats for each CTV - use total_amount column
         const { results: orderStats } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -337,8 +541,8 @@ async function getAllCTV(env, corsHeaders) {
             GROUP BY referral_code
         `).all();
 
-        // Get today's commission for each CTV
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        // Get today's commission for each CTV (in UTC)
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
         const { results: todayStats } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -448,35 +652,134 @@ async function createOrder(data, env, corsHeaders) {
         let validReferralCode = null;
         let finalCommission = 0;
         let ctvPhone = null;
-        
+
         if (data.referralCode && data.referralCode.trim() !== '') {
             // Kiểm tra xem referral code có tồn tại không
             const ctvData = await env.DB.prepare(`
                 SELECT referral_code, commission_rate, phone FROM ctv WHERE referral_code = ?
             `).bind(data.referralCode.trim()).first();
-            
+
             if (ctvData) {
                 validReferralCode = ctvData.referral_code;
                 ctvPhone = ctvData.phone;
                 const commissionRate = ctvData.commission_rate || 0.1;
-                finalCommission = totalAmountNumber * commissionRate;
+                // Commission calculated on product value only (not including shipping)
+                finalCommission = Math.round(totalAmountNumber * commissionRate);
+                console.log(`💰 Commission calculated:`, {
+                    referralCode: validReferralCode,
+                    productValue: totalAmountNumber,
+                    rate: commissionRate,
+                    commission: finalCommission
+                });
             } else {
                 console.warn('⚠️ Referral code không tồn tại:', data.referralCode);
             }
         }
 
+        // Calculate product cost from cart
+        let productCost = 0;
+        for (const item of data.cart) {
+            let costPrice = item.cost_price || 0;
+            
+            // Nếu không có cost_price, tự động tra cứu từ database
+            if (!costPrice && item.name) {
+                try {
+                    // Tìm sản phẩm theo tên (hoặc ID nếu có)
+                    const productQuery = await env.DB.prepare(`
+                        SELECT cost_price FROM products 
+                        WHERE name = ? OR id = ?
+                        LIMIT 1
+                    `).bind(item.name, item.id || item.name).first();
+                    
+                    if (productQuery && productQuery.cost_price) {
+                        costPrice = productQuery.cost_price;
+                        console.log(`✅ Auto-fetched cost_price for "${item.name}": ${costPrice}`);
+                    } else {
+                        console.warn(`⚠️ No cost_price found for product: "${item.name}"`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error fetching cost_price for "${item.name}":`, error);
+                }
+            }
+            
+            const quantity = item.quantity || 1;
+            productCost += costPrice * quantity;
+        }
+
         // Format products thành JSON string
         const productsJson = JSON.stringify(data.cart);
 
-        // 1. Lưu vào D1 Database
+        // 1. Lưu vào D1 Database (store in UTC)
         const orderDate = data.orderDate || new Date().toISOString();
+
+        // Get shipping info
+        const shippingFee = data.shippingFee || 0;
+        const shippingCost = data.shippingCost || 0;
+
+        // Calculate packaging cost (snapshot current prices)
+        const { results: packagingConfig } = await env.DB.prepare(`
+            SELECT item_name, item_cost FROM cost_config WHERE is_default = 1
+        `).all();
+        
+        const packagingPrices = {};
+        packagingConfig.forEach(item => {
+            packagingPrices[item.item_name] = item.item_cost;
+        });
+        
+        const totalProducts = data.cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        
+        // Calculate packaging cost
+        // Per-product items (multiply by total products): red_string, labor_cost
+        // Per-order items (fixed per order): bag_zip, bag_red, box_shipping, thank_card, paper_print
+        const perProductCost = 
+            ((packagingPrices.red_string || 0) * totalProducts) +
+            ((packagingPrices.labor_cost || 0) * totalProducts);
+        
+        const perOrderCost = 
+            (packagingPrices.bag_zip || 0) + 
+            (packagingPrices.bag_red || 0) +
+            (packagingPrices.box_shipping || 0) + 
+            (packagingPrices.thank_card || 0) + 
+            (packagingPrices.paper_print || 0);
+        
+        const totalPackagingCost = perProductCost + perOrderCost;
+        
+        const packagingDetails = {
+            per_product: {
+                red_string: packagingPrices.red_string || 0,
+                labor_cost: packagingPrices.labor_cost || 0
+            },
+            per_order: {
+                bag_zip: packagingPrices.bag_zip || 0,
+                bag_red: packagingPrices.bag_red || 0,
+                box_shipping: packagingPrices.box_shipping || 0,
+                thank_card: packagingPrices.thank_card || 0,
+                paper_print: packagingPrices.paper_print || 0
+            },
+            total_products: totalProducts,
+            per_product_cost: perProductCost,
+            per_order_cost: perOrderCost,
+            total_cost: totalPackagingCost
+        };
+
+        // Get current tax rate from cost_config (stored in item_cost)
+        const taxRateConfig = await env.DB.prepare(`
+            SELECT item_cost as tax_rate FROM cost_config WHERE item_name = 'tax_rate' LIMIT 1
+        `).first();
+        const currentTaxRate = taxRateConfig?.tax_rate || 0.015;
+        
+        // Calculate tax amount (revenue * tax_rate)
+        const revenue = totalAmountNumber + shippingFee;
+        const taxAmount = Math.round(revenue * currentTaxRate);
 
         const result = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, order_date, customer_name, customer_phone, 
-                address, products, total_amount, payment_method, 
-                status, referral_code, commission, ctv_phone
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                address, products, payment_method, 
+                status, referral_code, commission, ctv_phone, notes,
+                shipping_fee, shipping_cost, packaging_cost, packaging_details,
+                tax_amount, tax_rate
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
@@ -484,19 +787,90 @@ async function createOrder(data, env, corsHeaders) {
             data.customer.phone,
             data.customer.address || '',
             productsJson,
-            totalAmountNumber,
             data.paymentMethod || 'cod',
-            data.status || 'Mới',
+            data.status || 'pending',
             validReferralCode,
             finalCommission,
-            ctvPhone || null
+            ctvPhone || null,
+            data.notes || null,
+            shippingFee,
+            shippingCost,
+            totalPackagingCost,
+            JSON.stringify(packagingDetails),
+            taxAmount,
+            currentTaxRate
         ).run();
 
         if (!result.success) {
             throw new Error('Failed to insert order into D1');
         }
 
-        console.log('✅ Saved order to D1:', data.orderId);
+        const insertedOrderId = result.meta.last_row_id;
+        console.log('✅ Saved order to D1:', data.orderId, 'ID:', insertedOrderId);
+
+        // 1.5. Insert order items into order_items table
+        try {
+            for (const item of data.cart) {
+                const productName = item.name || 'Unknown';
+                const quantity = item.quantity || 1;
+                const productPrice = item.price || 0;
+                const weight = item.weight || null;
+                const size = item.size || null;
+                const notes = item.notes || null;
+
+                // Get product_id and cost_price
+                let productId = item.id || item.product_id || null;
+                let costPrice = item.cost_price || 0;
+
+                // Try to find product in database if not provided
+                if (!productId || !costPrice) {
+                    try {
+                        const productQuery = await env.DB.prepare(`
+                            SELECT id, cost_price FROM products 
+                            WHERE name = ? OR id = ?
+                            LIMIT 1
+                        `).bind(productName, productId).first();
+
+                        if (productQuery) {
+                            productId = productId || productQuery.id;
+                            costPrice = costPrice || productQuery.cost_price || 0;
+                        }
+                    } catch (e) {
+                        console.warn(`Could not find product: ${productName}`);
+                    }
+                }
+
+                // Calculate totals
+                const subtotal = productPrice * quantity;
+                const costTotal = costPrice * quantity;
+                const itemProfit = subtotal - costTotal;
+
+                // Merge weight and size into single size column
+                const sizeValue = size || weight || null;
+
+                // Insert into order_items (without subtotal, cost_total, profit)
+                await env.DB.prepare(`
+                    INSERT INTO order_items (
+                        order_id, product_id, product_name, product_price, product_cost,
+                        quantity, size, notes, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                    insertedOrderId,
+                    productId,
+                    productName,
+                    productPrice,
+                    costPrice,
+                    quantity,
+                    sizeValue,
+                    notes,
+                    orderDate
+                ).run();
+            }
+            console.log(`✅ Inserted ${data.cart.length} items into order_items`);
+        } catch (itemsError) {
+            console.error('⚠️ Error inserting order items:', itemsError);
+            // Don't fail the order creation, just log the error
+        }
 
         // 2. Lưu vào Google Sheets (gọi Google Apps Script)
         try {
@@ -557,7 +931,7 @@ async function createOrder(data, env, corsHeaders) {
             message: 'Đơn hàng đã được tạo thành công',
             orderId: data.orderId,
             commission: finalCommission,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString() // UTC timestamp
         }, 200, corsHeaders);
 
     } catch (error) {
@@ -657,10 +1031,14 @@ async function getOrdersByPhone(phone, env, corsHeaders) {
 // Lấy đơn hàng mới nhất
 async function getRecentOrders(limit, env, corsHeaders) {
     try {
+        // Get orders - total_amount already calculated in database
         const { results: orders } = await env.DB.prepare(`
-            SELECT * FROM orders
-            WHERE referral_code IS NOT NULL AND referral_code != ''
-            ORDER BY created_at DESC
+            SELECT 
+                orders.*,
+                ctv.commission_rate as ctv_commission_rate
+            FROM orders
+            LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
+            ORDER BY orders.created_at DESC
             LIMIT ?
         `).bind(limit).all();
 
@@ -687,17 +1065,25 @@ async function getDashboardStats(env, corsHeaders) {
             SELECT COUNT(*) as total_ctv FROM ctv
         `).first();
 
-        // Total orders
-        const { total_orders, total_revenue, total_commission } = await env.DB.prepare(`
+        // Total orders - Calculate revenue from order_items + shipping_fee
+        const { total_orders, total_commission, total_shipping_fee } = await env.DB.prepare(`
             SELECT 
-                COUNT(*) as total_orders,
-                SUM(total_amount) as total_revenue,
-                SUM(commission) as total_commission
+                COUNT(DISTINCT orders.id) as total_orders,
+                SUM(orders.commission) as total_commission,
+                COALESCE(SUM(orders.shipping_fee), 0) as total_shipping_fee
             FROM orders
-            WHERE referral_code IS NOT NULL AND referral_code != ''
         `).first();
+        
+        const { product_revenue } = await env.DB.prepare(`
+            SELECT 
+                COALESCE(SUM(product_price * quantity), 0) as product_revenue
+            FROM order_items
+        `).first();
+        
+        // Total revenue = product revenue + shipping fee (consistent with orders.js)
+        const total_revenue = (product_revenue || 0) + (total_shipping_fee || 0);
 
-        // Top performers
+        // Top performers - use total_amount column
         const { results: topPerformers } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -886,25 +1272,103 @@ async function updateOrderProducts(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in D1
-        const result = await env.DB.prepare(`
-            UPDATE orders 
-            SET products = ?
-            WHERE id = ?
-        `).bind(data.products, data.orderId).run();
+        // Parse products JSON
+        let productsArray;
+        try {
+            productsArray = typeof data.products === 'string' ? JSON.parse(data.products) : data.products;
+        } catch (e) {
+            return jsonResponse({
+                success: false,
+                error: 'Invalid products JSON'
+            }, 400, corsHeaders);
+        }
 
-        if (result.meta.changes === 0) {
+        // Get order info for commission calculation
+        const order = await env.DB.prepare(`
+            SELECT referral_code, shipping_fee
+            FROM orders 
+            WHERE id = ?
+        `).bind(data.orderId).first();
+
+        if (!order) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated order products in D1:', data.orderId);
+        // Delete existing order_items
+        await env.DB.prepare(`
+            DELETE FROM order_items 
+            WHERE order_id = ?
+        `).bind(data.orderId).run();
+
+        // Insert new order_items
+        for (const product of productsArray) {
+            await env.DB.prepare(`
+                INSERT INTO order_items (
+                    order_id, 
+                    product_name, 
+                    product_price, 
+                    product_cost,
+                    quantity
+                ) VALUES (?, ?, ?, ?, ?)
+            `).bind(
+                data.orderId,
+                product.name || product.product_name || 'Unknown',
+                product.price || product.product_price || 0,
+                product.cost || product.product_cost || 0,
+                product.quantity || 1
+            ).run();
+        }
+
+        // Trigger will automatically update orders.total_amount
+        // Now get the updated total_amount for commission calculation
+        const updatedOrder = await env.DB.prepare(`
+            SELECT total_amount 
+            FROM orders 
+            WHERE id = ?
+        `).bind(data.orderId).first();
+
+        let calculatedCommission = null;
+
+        // Calculate commission if order has referral_code
+        if (order.referral_code) {
+            // Get CTV's commission rate from database
+            const ctv = await env.DB.prepare(`
+                SELECT commission_rate 
+                FROM ctv 
+                WHERE referral_code = ?
+            `).bind(order.referral_code).first();
+
+            if (ctv && ctv.commission_rate !== null) {
+                // Calculate commission based on total_amount
+                calculatedCommission = Math.round(updatedOrder.total_amount * ctv.commission_rate);
+                console.log(`💰 Calculated commission for ${order.referral_code}: ${calculatedCommission} (rate: ${ctv.commission_rate})`);
+                
+                // Update commission
+                await env.DB.prepare(`
+                    UPDATE orders 
+                    SET commission = ?
+                    WHERE id = ?
+                `).bind(calculatedCommission, data.orderId).run();
+            }
+        }
+
+        // Also update products text field for backward compatibility
+        await env.DB.prepare(`
+            UPDATE orders 
+            SET products = ?
+            WHERE id = ?
+        `).bind(data.products, data.orderId).run();
+
+        console.log('✅ Updated order_items and total_amount for order:', data.orderId);
 
         return jsonResponse({
             success: true,
-            message: 'Đã cập nhật sản phẩm'
+            message: 'Đã cập nhật sản phẩm',
+            total_amount: updatedOrder.total_amount,
+            commission: calculatedCommission
         }, 200, corsHeaders);
 
     } catch (error) {
@@ -1038,12 +1502,13 @@ async function updateAmount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in D1
+        // Note: total_amount is now calculated from order_items
+        // We only update commission here
         const result = await env.DB.prepare(`
             UPDATE orders 
-            SET total_amount = ?, commission = ?
+            SET commission = ?
             WHERE id = ?
-        `).bind(data.totalAmount, data.commission || 0, data.orderId).run();
+        `).bind(data.commission || 0, data.orderId).run();
 
         if (result.meta.changes === 0) {
             return jsonResponse({
@@ -1052,7 +1517,7 @@ async function updateAmount(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated amount in D1:', data.orderId);
+        console.log('✅ Updated commission in D1:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -1107,6 +1572,55 @@ async function deleteOrder(data, env, corsHeaders) {
     }
 }
 
+// Update order status
+async function updateOrderStatus(data, env, corsHeaders) {
+    try {
+        if (!data.orderId || !data.status) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu orderId hoặc status'
+            }, 400, corsHeaders);
+        }
+
+        // Validate status
+        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!validStatuses.includes(data.status)) {
+            return jsonResponse({
+                success: false,
+                error: 'Trạng thái không hợp lệ'
+            }, 400, corsHeaders);
+        }
+
+        // Update in D1
+        const result = await env.DB.prepare(`
+            UPDATE orders 
+            SET status = ?
+            WHERE id = ?
+        `).bind(data.status, data.orderId).run();
+
+        if (result.meta.changes === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy đơn hàng'
+            }, 404, corsHeaders);
+        }
+
+        console.log('✅ Updated order status in D1:', data.orderId, '->', data.status);
+
+        return jsonResponse({
+            success: true,
+            message: 'Đã cập nhật trạng thái đơn hàng'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
@@ -1136,4 +1650,2698 @@ function jsonResponse(data, status = 200, corsHeaders = {}) {
             ...corsHeaders
         }
     });
+}
+
+
+// ============================================
+// PRODUCT FUNCTIONS
+// ============================================
+
+// Get all products
+async function getAllProducts(env, corsHeaders) {
+    try {
+        const { results: products } = await env.DB.prepare(`
+            SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.is_active = 1
+            ORDER BY name ASC
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            products: products
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting products:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get single product by ID
+async function getProduct(productId, env, corsHeaders) {
+    try {
+        if (!productId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID is required'
+            }, 400, corsHeaders);
+        }
+
+        const product = await env.DB.prepare(`
+            SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.id = ?
+        `).bind(productId).first();
+
+        if (!product) {
+            return jsonResponse({
+                success: false,
+                error: 'Product not found'
+            }, 404, corsHeaders);
+        }
+
+        return jsonResponse({
+            success: true,
+            product: product
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting product:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Search products by name
+async function searchProducts(query, env, corsHeaders) {
+    try {
+        if (!query || query.trim() === '') {
+            return await getAllProducts(env, corsHeaders);
+        }
+
+        const searchTerm = `%${query.trim()}%`;
+        const { results: products } = await env.DB.prepare(`
+            SELECT * FROM products
+            WHERE is_active = 1
+            AND (name LIKE ? OR sku LIKE ? OR category LIKE ?)
+            ORDER BY name ASC
+            LIMIT 50
+        `).bind(searchTerm, searchTerm, searchTerm).all();
+
+        return jsonResponse({
+            success: true,
+            products: products,
+            query: query
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error searching products:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Create new product
+async function createProduct(data, env, corsHeaders) {
+    try {
+        // Validate required fields
+        if (!data.name || !data.price) {
+            return jsonResponse({
+                success: false,
+                error: 'Name and price are required'
+            }, 400, corsHeaders);
+        }
+
+        // Validate price
+        const price = parseFloat(data.price);
+        if (isNaN(price) || price < 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Invalid price'
+            }, 400, corsHeaders);
+        }
+
+        // Check if SKU already exists (if provided)
+        if (data.sku) {
+            const existing = await env.DB.prepare(`
+                SELECT id FROM products WHERE sku = ?
+            `).bind(data.sku).first();
+
+            if (existing) {
+                return jsonResponse({
+                    success: false,
+                    error: 'SKU already exists'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Insert product
+        const result = await env.DB.prepare(`
+            INSERT INTO products (name, price, original_price, cost_price, category_id, stock_quantity, rating, purchases, weight, size, sku, description, image_url, category, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            data.name,
+            price,
+            data.original_price ? parseFloat(data.original_price) : null,
+            data.cost_price !== undefined ? parseFloat(data.cost_price) : 0,
+            data.category_id ? parseInt(data.category_id) : null,
+            data.stock_quantity !== undefined ? parseInt(data.stock_quantity) : 0,
+            data.rating !== undefined ? parseFloat(data.rating) : 0,
+            data.purchases !== undefined ? parseInt(data.purchases) : 0,
+            data.weight || null,
+            data.size || null,
+            data.sku || null,
+            data.description || null,
+            data.image_url || null,
+            data.category || null,
+            data.is_active !== undefined ? data.is_active : 1
+        ).run();
+
+        return jsonResponse({
+            success: true,
+            productId: result.meta.last_row_id,
+            message: 'Product created successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error creating product:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Update product
+async function updateProduct(data, env, corsHeaders) {
+    try {
+        // Validate required fields
+        if (!data.id) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if product exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM products WHERE id = ?
+        `).bind(data.id).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Product not found'
+            }, 404, corsHeaders);
+        }
+
+        // Validate price if provided
+        if (data.price !== undefined) {
+            const price = parseFloat(data.price);
+            if (isNaN(price) || price < 0) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Invalid price'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Check SKU uniqueness if changing
+        if (data.sku) {
+            const skuCheck = await env.DB.prepare(`
+                SELECT id FROM products WHERE sku = ? AND id != ?
+            `).bind(data.sku, data.id).first();
+
+            if (skuCheck) {
+                return jsonResponse({
+                    success: false,
+                    error: 'SKU already exists'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Build update query dynamically
+        const updates = [];
+        const values = [];
+
+        if (data.name !== undefined) {
+            updates.push('name = ?');
+            values.push(data.name);
+        }
+        if (data.price !== undefined) {
+            updates.push('price = ?');
+            values.push(parseFloat(data.price));
+        }
+        if (data.original_price !== undefined) {
+            updates.push('original_price = ?');
+            values.push(data.original_price ? parseFloat(data.original_price) : null);
+        }
+        if (data.cost_price !== undefined) {
+            updates.push('cost_price = ?');
+            values.push(data.cost_price !== null ? parseFloat(data.cost_price) : 0);
+        }
+        if (data.category_id !== undefined) {
+            updates.push('category_id = ?');
+            values.push(data.category_id ? parseInt(data.category_id) : null);
+        }
+        if (data.stock_quantity !== undefined) {
+            updates.push('stock_quantity = ?');
+            values.push(parseInt(data.stock_quantity));
+        }
+        if (data.rating !== undefined) {
+            updates.push('rating = ?');
+            values.push(parseFloat(data.rating));
+        }
+        if (data.purchases !== undefined) {
+            updates.push('purchases = ?');
+            values.push(parseInt(data.purchases));
+        }
+        if (data.weight !== undefined) {
+            updates.push('weight = ?');
+            values.push(data.weight || null);
+        }
+        if (data.size !== undefined) {
+            updates.push('size = ?');
+            values.push(data.size || null);
+        }
+        if (data.sku !== undefined) {
+            updates.push('sku = ?');
+            values.push(data.sku || null);
+        }
+        if (data.description !== undefined) {
+            updates.push('description = ?');
+            values.push(data.description || null);
+        }
+        if (data.image_url !== undefined) {
+            updates.push('image_url = ?');
+            values.push(data.image_url || null);
+        }
+        if (data.category !== undefined) {
+            updates.push('category = ?');
+            values.push(data.category || null);
+        }
+        if (data.is_active !== undefined) {
+            updates.push('is_active = ?');
+            values.push(data.is_active ? 1 : 0);
+        }
+
+        // Always update updated_at
+        updates.push('updated_at = CURRENT_TIMESTAMP');
+
+        if (updates.length === 1) { // Only updated_at
+            return jsonResponse({
+                success: false,
+                error: 'No fields to update'
+            }, 400, corsHeaders);
+        }
+
+        // Add ID to values
+        values.push(data.id);
+
+        // Execute update
+        await env.DB.prepare(`
+            UPDATE products
+            SET ${updates.join(', ')}
+            WHERE id = ?
+        `).bind(...values).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Product updated successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating product:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Delete product (soft delete by setting is_active = 0)
+async function deleteProduct(data, env, corsHeaders) {
+    try {
+        if (!data.id) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if product exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM products WHERE id = ?
+        `).bind(data.id).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Product not found'
+            }, 404, corsHeaders);
+        }
+
+        // Soft delete (set is_active = 0)
+        await env.DB.prepare(`
+            UPDATE products
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(data.id).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Product deleted successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// ============================================
+// CATEGORY FUNCTIONS
+// ============================================
+
+// Get all categories
+async function getAllCategories(env, corsHeaders) {
+    try {
+        const { results: categories } = await env.DB.prepare(`
+            SELECT * FROM categories
+            WHERE is_active = 1
+            ORDER BY display_order ASC, name ASC
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            categories: categories
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting categories:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get single category by ID
+async function getCategory(categoryId, env, corsHeaders) {
+    try {
+        if (!categoryId) {
+            return jsonResponse({
+                success: false,
+                error: 'Category ID is required'
+            }, 400, corsHeaders);
+        }
+
+        const category = await env.DB.prepare(`
+            SELECT * FROM categories WHERE id = ?
+        `).bind(categoryId).first();
+
+        if (!category) {
+            return jsonResponse({
+                success: false,
+                error: 'Category not found'
+            }, 404, corsHeaders);
+        }
+
+        return jsonResponse({
+            success: true,
+            category: category
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Create new category
+async function createCategory(data, env, corsHeaders) {
+    try {
+        if (!data.name) {
+            return jsonResponse({
+                success: false,
+                error: 'Category name is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if name already exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM categories WHERE name = ?
+        `).bind(data.name).first();
+
+        if (existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Category name already exists'
+            }, 400, corsHeaders);
+        }
+
+        // Insert category
+        const result = await env.DB.prepare(`
+            INSERT INTO categories (name, description, icon, color, display_order, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(
+            data.name,
+            data.description || null,
+            data.icon || null,
+            data.color || null,
+            data.display_order || 0,
+            data.is_active !== undefined ? data.is_active : 1
+        ).run();
+
+        return jsonResponse({
+            success: true,
+            categoryId: result.meta.last_row_id,
+            message: 'Category created successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error creating category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Update category
+async function updateCategory(data, env, corsHeaders) {
+    try {
+        if (!data.id) {
+            return jsonResponse({
+                success: false,
+                error: 'Category ID is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if category exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM categories WHERE id = ?
+        `).bind(data.id).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Category not found'
+            }, 404, corsHeaders);
+        }
+
+        // Check name uniqueness if changing
+        if (data.name) {
+            const nameCheck = await env.DB.prepare(`
+                SELECT id FROM categories WHERE name = ? AND id != ?
+            `).bind(data.name, data.id).first();
+
+            if (nameCheck) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Category name already exists'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Build update query
+        const updates = [];
+        const values = [];
+
+        if (data.name !== undefined) {
+            updates.push('name = ?');
+            values.push(data.name);
+        }
+        if (data.description !== undefined) {
+            updates.push('description = ?');
+            values.push(data.description || null);
+        }
+        if (data.icon !== undefined) {
+            updates.push('icon = ?');
+            values.push(data.icon || null);
+        }
+        if (data.color !== undefined) {
+            updates.push('color = ?');
+            values.push(data.color || null);
+        }
+        if (data.display_order !== undefined) {
+            updates.push('display_order = ?');
+            values.push(data.display_order);
+        }
+        if (data.is_active !== undefined) {
+            updates.push('is_active = ?');
+            values.push(data.is_active ? 1 : 0);
+        }
+
+        updates.push('updated_at = CURRENT_TIMESTAMP');
+
+        if (updates.length === 1) {
+            return jsonResponse({
+                success: false,
+                error: 'No fields to update'
+            }, 400, corsHeaders);
+        }
+
+        values.push(data.id);
+
+        await env.DB.prepare(`
+            UPDATE categories
+            SET ${updates.join(', ')}
+            WHERE id = ?
+        `).bind(...values).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Category updated successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Delete category (soft delete)
+async function deleteCategory(data, env, corsHeaders) {
+    try {
+        if (!data.id) {
+            return jsonResponse({
+                success: false,
+                error: 'Category ID is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if category exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM categories WHERE id = ?
+        `).bind(data.id).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Category not found'
+            }, 404, corsHeaders);
+        }
+
+        // Check if category has products
+        const { count } = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM products WHERE category_id = ? AND is_active = 1
+        `).bind(data.id).first();
+
+        if (count > 0) {
+            return jsonResponse({
+                success: false,
+                error: `Cannot delete category with ${count} active products`
+            }, 400, corsHeaders);
+        }
+
+        // Soft delete
+        await env.DB.prepare(`
+            UPDATE categories
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(data.id).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Category deleted successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// ============================================
+// CUSTOMER FUNCTIONS
+// ============================================
+
+// Get all customers (virtual - aggregated from orders)
+async function getAllCustomers(env, corsHeaders) {
+    try {
+        const { results: customers } = await env.DB.prepare(`
+            SELECT 
+                customer_phone as phone,
+                MAX(customer_name) as name,
+                MAX(address) as address,
+                COUNT(*) as total_orders,
+                SUM(total_amount) as total_spent,
+                MAX(order_date) as last_order_date,
+                MIN(order_date) as first_order_date,
+                GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
+            FROM orders
+            WHERE customer_phone IS NOT NULL AND customer_phone != ''
+            GROUP BY customer_phone
+            ORDER BY total_spent DESC
+        `).all();
+
+        // Calculate additional metrics for each customer
+        const enrichedCustomers = customers.map(customer => {
+            const daysSinceLastOrder = customer.last_order_date
+                ? Math.floor((Date.now() - new Date(customer.last_order_date).getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+
+            const daysSinceFirstOrder = customer.first_order_date
+                ? Math.floor((Date.now() - new Date(customer.first_order_date).getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+
+            // Classify customer
+            let segment = 'New';
+            if (customer.total_orders >= 5) {
+                segment = 'VIP';
+            } else if (customer.total_orders >= 2) {
+                segment = 'Regular';
+            }
+
+            // Check if at risk or churned
+            if (daysSinceLastOrder > 90) {
+                segment = 'Churned';
+            } else if (daysSinceLastOrder > 60) {
+                segment = 'At Risk';
+            }
+
+            return {
+                ...customer,
+                avg_order_value: customer.total_spent / customer.total_orders,
+                days_since_last_order: daysSinceLastOrder,
+                days_since_first_order: daysSinceFirstOrder,
+                segment: segment
+            };
+        });
+
+        return jsonResponse({
+            success: true,
+            customers: enrichedCustomers
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting customers:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get customer detail with order history
+async function getCustomerDetail(phone, env, corsHeaders) {
+    try {
+        if (!phone) {
+            return jsonResponse({
+                success: false,
+                error: 'Phone number is required'
+            }, 400, corsHeaders);
+        }
+
+        // Get customer summary - use total_amount column
+        const summary = await env.DB.prepare(`
+            SELECT 
+                customer_phone as phone,
+                MAX(customer_name) as name,
+                MAX(address) as address,
+                COUNT(*) as total_orders,
+                SUM(total_amount) as total_spent,
+                MAX(order_date) as last_order_date,
+                MIN(order_date) as first_order_date,
+                GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
+            FROM orders
+            WHERE customer_phone = ?
+            GROUP BY customer_phone
+        `).bind(phone).first();
+
+        if (!summary) {
+            return jsonResponse({
+                success: false,
+                error: 'Customer not found'
+            }, 404, corsHeaders);
+        }
+
+        // Get order history - use total_amount column
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                id,
+                order_id,
+                order_date,
+                total_amount,
+                status,
+                referral_code,
+                commission,
+                products,
+                shipping_fee
+            FROM orders 
+            WHERE customer_phone = ? 
+            ORDER BY order_date DESC
+        `).bind(phone).all();
+
+        // Calculate metrics
+        const daysSinceLastOrder = summary.last_order_date
+            ? Math.floor((Date.now() - new Date(summary.last_order_date).getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+        const daysSinceFirstOrder = summary.first_order_date
+            ? Math.floor((Date.now() - new Date(summary.first_order_date).getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+        // Classify customer
+        let segment = 'New';
+        if (summary.total_orders >= 5) {
+            segment = 'VIP';
+        } else if (summary.total_orders >= 2) {
+            segment = 'Regular';
+        }
+
+        if (daysSinceLastOrder > 90) {
+            segment = 'Churned';
+        } else if (daysSinceLastOrder > 60) {
+            segment = 'At Risk';
+        }
+
+        const customerDetail = {
+            ...summary,
+            avg_order_value: summary.total_spent / summary.total_orders,
+            days_since_last_order: daysSinceLastOrder,
+            days_since_first_order: daysSinceFirstOrder,
+            segment: segment,
+            orders: orders
+        };
+
+        return jsonResponse({
+            success: true,
+            customer: customerDetail
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting customer detail:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Search customers
+async function searchCustomers(query, env, corsHeaders) {
+    try {
+        if (!query || query.trim() === '') {
+            return await getAllCustomers(env, corsHeaders);
+        }
+
+        const searchTerm = `%${query.trim()}%`;
+
+        const { results: customers } = await env.DB.prepare(`
+            SELECT 
+                customer_phone as phone,
+                customer_name as name,
+                MAX(address) as address,
+                COUNT(*) as total_orders,
+                SUM(total_amount) as total_spent,
+                MAX(order_date) as last_order_date,
+                MIN(order_date) as first_order_date,
+                GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
+            FROM orders
+            WHERE (customer_name LIKE ? OR customer_phone LIKE ?)
+            AND customer_phone IS NOT NULL AND customer_phone != ''
+            GROUP BY customer_phone
+            ORDER BY total_spent DESC
+        `).bind(searchTerm, searchTerm).all();
+
+        // Enrich customer data
+        const enrichedCustomers = customers.map(customer => {
+            const daysSinceLastOrder = customer.last_order_date
+                ? Math.floor((Date.now() - new Date(customer.last_order_date).getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+
+            let segment = 'New';
+            if (customer.total_orders >= 5) {
+                segment = 'VIP';
+            } else if (customer.total_orders >= 2) {
+                segment = 'Regular';
+            }
+
+            if (daysSinceLastOrder > 90) {
+                segment = 'Churned';
+            } else if (daysSinceLastOrder > 60) {
+                segment = 'At Risk';
+            }
+
+            return {
+                ...customer,
+                avg_order_value: customer.total_spent / customer.total_orders,
+                days_since_last_order: daysSinceLastOrder,
+                segment: segment
+            };
+        });
+
+        return jsonResponse({
+            success: true,
+            customers: enrichedCustomers
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error searching customers:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// ============================================
+// PROFIT MANAGEMENT FUNCTIONS
+// ============================================
+
+// Get packaging config
+async function getPackagingConfig(env, corsHeaders) {
+    try {
+        const { results: config } = await env.DB.prepare(`
+            SELECT * FROM cost_config
+            ORDER BY id ASC
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            config: config
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting packaging config:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Update packaging config
+async function updatePackagingConfig(data, env, corsHeaders) {
+    try {
+        if (!data.config || !Array.isArray(data.config)) {
+            return jsonResponse({
+                success: false,
+                error: 'Config array is required'
+            }, 400, corsHeaders);
+        }
+
+        // Validate all items
+        for (const item of data.config) {
+            if (!item.item_name || item.item_cost === undefined) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Each config item must have item_name and item_cost'
+                }, 400, corsHeaders);
+            }
+
+            const cost = parseFloat(item.item_cost);
+            if (isNaN(cost) || cost < 0) {
+                return jsonResponse({
+                    success: false,
+                    error: `Invalid cost for ${item.item_name}`
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Update each item
+        for (const item of data.config) {
+            await env.DB.prepare(`
+                INSERT INTO cost_config (item_name, item_cost, is_default)
+                VALUES (?, ?, ?)
+                ON CONFLICT(item_name) DO UPDATE SET
+                    item_cost = excluded.item_cost,
+                    is_default = excluded.is_default,
+                    updated_at = CURRENT_TIMESTAMP
+            `).bind(
+                item.item_name,
+                parseFloat(item.item_cost),
+                item.is_default !== undefined ? item.is_default : 1
+            ).run();
+        }
+
+        console.log('✅ Updated packaging config');
+
+        return jsonResponse({
+            success: true,
+            message: 'Đã cập nhật cấu hình đóng gói'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating packaging config:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get profit report
+async function getProfitReport(data, env, corsHeaders) {
+    try {
+        const period = data.period || 'month';
+        
+        // Calculate date range in UTC
+        const now = new Date();
+        let startDate;
+        
+        switch (period) {
+            case 'today':
+                // Start of today in UTC
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                break;
+            case 'week':
+                // 7 days ago from now
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                // Start of current month in UTC
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+                break;
+            case 'year':
+                // Start of current year in UTC
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                break;
+            case 'all':
+                // Far past date
+                startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
+                break;
+            default:
+                // Default to start of current month
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        }
+
+        // Get orders in period with calculated totals from order_items
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                orders.id,
+                orders.order_id,
+                orders.order_date,
+                orders.customer_name,
+                orders.customer_phone,
+                orders.commission,
+                orders.referral_code,
+                orders.created_at,
+                orders.shipping_fee,
+                orders.shipping_cost,
+                orders.packaging_cost,
+                orders.tax_amount,
+                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_total,
+                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost
+            FROM orders
+            LEFT JOIN order_items ON orders.id = order_items.order_id
+            WHERE orders.created_at >= ?
+            GROUP BY orders.id
+            ORDER BY orders.created_at DESC
+        `).bind(startDate.toISOString()).all();
+
+        // Calculate totals
+        let totalRevenue = 0;
+        let totalProductCost = 0;
+        let totalShippingFee = 0;
+        let totalShippingCost = 0;
+        let totalPackagingCost = 0;
+        let totalCommission = 0;
+        let totalTax = 0;
+        let totalProfit = 0;
+
+        orders.forEach(order => {
+            const productTotal = order.product_total || 0;
+            const shippingFee = order.shipping_fee || 0;
+            const revenue = productTotal + shippingFee;
+            
+            const productCost = order.product_cost || 0;
+            const shippingCost = order.shipping_cost || 0;
+            const packagingCost = order.packaging_cost || 0;
+            const commission = order.commission || 0;
+            const taxAmount = order.tax_amount || 0;
+            const profit = revenue - productCost - shippingCost - packagingCost - commission - taxAmount;
+
+            totalRevenue += revenue;
+            totalProductCost += productCost;
+            totalShippingFee += shippingFee;
+            totalShippingCost += shippingCost;
+            totalPackagingCost += packagingCost;
+            totalCommission += commission;
+            totalTax += taxAmount;
+            totalProfit += profit;
+
+            order.total_amount = revenue;
+            order.profit = profit;
+        });
+
+        const totalCost = totalProductCost + totalShippingCost + totalPackagingCost + totalCommission + totalTax;
+        const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+        return jsonResponse({
+            success: true,
+            period: period,
+            summary: {
+                totalRevenue,
+                totalCost,
+                totalProfit,
+                profitMargin: Math.round(profitMargin * 10) / 10,
+                orderCount: orders.length
+            },
+            costBreakdown: {
+                productCost: totalProductCost,
+                packagingCost: totalPackagingCost,
+                shippingFee: totalShippingFee,
+                shippingCost: totalShippingCost,
+                shippingProfit: totalShippingFee - totalShippingCost,
+                commission: totalCommission,
+                tax: totalTax
+            },
+            orders: orders.map(order => ({
+                id: order.id,
+                order_id: order.order_id,
+                order_date: order.order_date,
+                customer_name: order.customer_name,
+                total_amount: order.total_amount,
+                product_cost: order.product_cost,
+                packaging_cost: order.packaging_cost,
+                shipping_fee: order.shipping_fee,
+                shipping_cost: order.shipping_cost,
+                commission: order.commission,
+                profit: order.profit,
+                created_at: order.created_at
+            }))
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting profit report:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// ============================================
+// SHOPEE EXPRESS API FUNCTIONS
+// ============================================
+
+/**
+ * Tạo signature HMAC-SHA256 cho SPX API
+ */
+async function createSPXSignature(partnerId, path, timestamp, secretKey) {
+    const baseString = `${partnerId}${path}${timestamp}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secretKey);
+    const messageData = encoder.encode(baseString);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+    const hashArray = Array.from(new Uint8Array(signature));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
+}
+
+/**
+ * Tạo vận đơn SPX
+ */
+async function createSPXOrder(data, env, corsHeaders) {
+    try {
+        console.log('📦 createSPXOrder called with data:', JSON.stringify(data));
+        
+        const { orderId, receiver, parcel } = data;
+
+        // Validate input
+        if (!orderId || !receiver || !parcel) {
+            console.error('❌ Missing required fields:', { orderId, receiver, parcel });
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu thông tin bắt buộc (orderId, receiver, parcel)'
+            }, 400, corsHeaders);
+        }
+
+        // SPX Configuration
+        const SPX_CONFIG = {
+            partnerId: '162695267691149',
+            secretKey: 'c6744cab-e5e7-4f35-b1ac-2980adb0b9c2',
+            accountId: '750794417',
+            // Try different API endpoints
+            apiUrl: 'https://api.shopee.vn/spx/v1',  // Alternative endpoint
+            sender: {
+                name: 'Ánh Lê',
+                phone: '0386190596',
+                address: 'xóm 4, đông cao, Xã Tráng Việt, Huyện Me Linh, Hà Nội'
+            }
+        };
+
+        // Prepare API request
+        const timestamp = Math.floor(Date.now() / 1000);
+        const path = '/orders/create';
+        
+        console.log('🔐 Creating signature...');
+        const signature = await createSPXSignature(
+            SPX_CONFIG.partnerId,
+            path,
+            timestamp,
+            SPX_CONFIG.secretKey
+        );
+        console.log('✅ Signature created:', signature);
+
+        // Prepare order data for SPX
+        const spxOrderData = {
+            partner_id: SPX_CONFIG.partnerId,
+            account_id: SPX_CONFIG.accountId,
+            pickup: {
+                name: SPX_CONFIG.sender.name,
+                phone: SPX_CONFIG.sender.phone,
+                address: SPX_CONFIG.sender.address
+            },
+            delivery: {
+                name: receiver.name,
+                phone: receiver.phone,
+                address: receiver.address
+            },
+            parcel: {
+                description: parcel.description,
+                weight: parcel.weight,
+                length: parcel.length,
+                width: parcel.width,
+                height: parcel.height,
+                cod_amount: parcel.codAmount
+            },
+            reference_id: `ORD-${orderId}`
+        };
+
+        // TEMPORARY: Skip SPX API call for now
+        // TODO: Contact SPX to activate API access and whitelist Cloudflare Workers IP
+        console.log('⚠️ TEMPORARY MODE: Skipping SPX API call');
+        console.log('📦 Would send to SPX:', JSON.stringify(spxOrderData));
+        
+        // Generate temporary tracking number (using UTC timestamp)
+        const tempTrackingNumber = `TEMP-SPX-${Date.now()}`;
+        
+        // Save to database
+        await env.DB.prepare(`
+            UPDATE orders 
+            SET tracking_number = ?, 
+                shipping_status = 'draft',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(tempTrackingNumber, orderId).run();
+
+        return jsonResponse({
+            success: true,
+            message: '✅ Đã lưu thông tin vận đơn (Chế độ test)',
+            trackingNumber: tempTrackingNumber,
+            note: 'Đây là mã tạm thời. Vui lòng liên hệ SPX để kích hoạt API hoặc dùng tính năng Copy format để tạo thủ công.',
+            spxData: spxOrderData
+        }, 200, corsHeaders);
+
+        /* ORIGINAL CODE - Uncomment when SPX API is ready
+        // Call SPX API
+        console.log('📞 Calling SPX API:', `${SPX_CONFIG.apiUrl}${path}`);
+        console.log('📦 SPX Order Data:', JSON.stringify(spxOrderData));
+        
+        const spxResponse = await fetch(`${SPX_CONFIG.apiUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'CloudflareWorker/1.0',
+                'X-Partner-Id': SPX_CONFIG.partnerId,
+                'X-Timestamp': timestamp.toString(),
+                'X-Signature': signature
+            },
+            body: JSON.stringify(spxOrderData)
+        });
+
+        console.log('📡 SPX Response status:', spxResponse.status);
+        
+        const responseText = await spxResponse.text();
+        console.log('📡 SPX Response text:', responseText);
+        
+        let spxResult;
+        try {
+            spxResult = JSON.parse(responseText);
+            console.log('📡 SPX Response parsed:', JSON.stringify(spxResult));
+        } catch (parseError) {
+            console.error('❌ Failed to parse SPX response:', parseError);
+            return jsonResponse({
+                success: false,
+                error: 'SPX API trả về response không hợp lệ. Vui lòng liên hệ SPX để kích hoạt API.',
+                details: responseText
+            }, 500, corsHeaders);
+        }
+
+        if (spxResult.code === 0 || spxResult.success) {
+            const trackingNumber = spxResult.data?.tracking_number || spxResult.tracking_number;
+            
+            if (trackingNumber) {
+                await env.DB.prepare(`
+                    UPDATE orders 
+                    SET tracking_number = ?, 
+                        shipping_status = 'pending',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                `).bind(trackingNumber, orderId).run();
+            }
+
+            return jsonResponse({
+                success: true,
+                message: 'Tạo vận đơn SPX thành công',
+                trackingNumber: trackingNumber,
+                spxData: spxResult.data || spxResult
+            }, 200, corsHeaders);
+        } else {
+            return jsonResponse({
+                success: false,
+                error: spxResult.message || spxResult.error || 'Lỗi từ SPX API',
+                details: spxResult
+            }, 400, corsHeaders);
+        }
+        */
+
+    } catch (error) {
+        console.error('Error creating SPX order:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message || 'Lỗi khi tạo vận đơn SPX'
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Lấy trạng thái vận đơn SPX
+ */
+async function getSPXTracking(data, env, corsHeaders) {
+    try {
+        const { trackingNumber } = data;
+
+        if (!trackingNumber) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu mã vận đơn'
+            }, 400, corsHeaders);
+        }
+
+        // SPX Configuration
+        const SPX_CONFIG = {
+            partnerId: '162695267691149',
+            secretKey: 'c6744cab-e5e7-4f35-b1ac-2980adb0b9c2',
+            apiUrl: 'https://open-api.spx.vn/api/v1'
+        };
+
+        // Prepare API request
+        const timestamp = Math.floor(Date.now() / 1000);
+        const path = `/orders/tracking?tracking_number=${trackingNumber}`;
+        const signature = await createSPXSignature(
+            SPX_CONFIG.partnerId,
+            path,
+            timestamp,
+            SPX_CONFIG.secretKey
+        );
+
+        // Call SPX API
+        const spxResponse = await fetch(`${SPX_CONFIG.apiUrl}${path}`, {
+            method: 'GET',
+            headers: {
+                'X-Partner-Id': SPX_CONFIG.partnerId,
+                'X-Timestamp': timestamp.toString(),
+                'X-Signature': signature
+            }
+        });
+
+        const spxResult = await spxResponse.json();
+
+        if (spxResult.code === 0 || spxResult.success) {
+            return jsonResponse({
+                success: true,
+                tracking: spxResult.data || spxResult
+            }, 200, corsHeaders);
+        } else {
+            return jsonResponse({
+                success: false,
+                error: spxResult.message || 'Không thể lấy thông tin vận đơn'
+            }, 400, corsHeaders);
+        }
+
+    } catch (error) {
+        console.error('Error getting SPX tracking:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// MIGRATION FUNCTION - Migrate orders.products to order_items table
+// ============================================
+
+async function migrateOrdersToItems(env, corsHeaders) {
+    try {
+        console.log('🚀 Starting migration: orders.products -> order_items');
+        
+        const stats = {
+            totalOrders: 0,
+            ordersProcessed: 0,
+            itemsCreated: 0,
+            errors: [],
+            skipped: []
+        };
+
+        // Step 1: Get all orders (without total_amount and product_cost - they were removed)
+        const { results: orders } = await env.DB.prepare(`
+            SELECT id, order_id, products, created_at
+            FROM orders
+            ORDER BY id ASC
+        `).all();
+
+        stats.totalOrders = orders.length;
+        console.log(`📊 Found ${stats.totalOrders} orders to migrate`);
+
+        // Step 2: Process each order
+        for (const order of orders) {
+            try {
+                // Check if already migrated
+                const { results: existing } = await env.DB.prepare(`
+                    SELECT COUNT(*) as count FROM order_items WHERE order_id = ?
+                `).bind(order.id).all();
+
+                if (existing[0].count > 0) {
+                    stats.skipped.push({
+                        orderId: order.order_id,
+                        reason: 'Already migrated'
+                    });
+                    continue;
+                }
+
+                // Parse products
+                if (!order.products || order.products.trim() === '') {
+                    stats.skipped.push({
+                        orderId: order.order_id,
+                        reason: 'No products'
+                    });
+                    continue;
+                }
+
+                let products = [];
+                try {
+                    // Try parse as JSON
+                    products = JSON.parse(order.products);
+                    if (!Array.isArray(products)) {
+                        products = [products];
+                    }
+                } catch (e) {
+                    // Parse as text format: "Product A x2, Product B x1"
+                    const lines = order.products.split(/[,\n]/).map(l => l.trim()).filter(l => l);
+                    products = lines.map(line => {
+                        const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+                        if (match) {
+                            return { name: match[1].trim(), quantity: parseInt(match[2]) };
+                        }
+                        return { name: line, quantity: 1 };
+                    });
+                }
+
+                if (products.length === 0) {
+                    stats.skipped.push({
+                        orderId: order.order_id,
+                        reason: 'Could not parse products'
+                    });
+                    continue;
+                }
+
+                // Helper function to parse Vietnamese price format
+                const parseVietnamesePrice = (priceStr) => {
+                    if (typeof priceStr === 'number') return priceStr;
+                    if (!priceStr) return 0;
+                    
+                    // Remove currency symbols and spaces: "59.000 ₫" -> "59000"
+                    const cleaned = String(priceStr)
+                        .replace(/[₫đĐ]/g, '')
+                        .replace(/\./g, '')
+                        .replace(/,/g, '')
+                        .replace(/\s/g, '')
+                        .trim();
+                    
+                    return parseFloat(cleaned) || 0;
+                };
+
+                // Step 3: Insert each product as order_item
+                for (const product of products) {
+                    const productName = typeof product === 'string' ? product : (product.name || 'Unknown');
+                    const quantity = typeof product === 'object' && product.quantity ? parseInt(product.quantity) : 1;
+                    const productPrice = typeof product === 'object' && product.price ? parseVietnamesePrice(product.price) : 0;
+                    const weight = typeof product === 'object' && product.weight ? product.weight : null;
+                    const size = typeof product === 'object' && product.size ? product.size : null;
+                    const notes = typeof product === 'object' && product.notes ? product.notes : null;
+
+                    // Try to find product in products table to get product_id and cost_price
+                    let productId = null;
+                    let costPrice = 0;
+
+                    try {
+                        const { results: productMatch } = await env.DB.prepare(`
+                            SELECT id, cost_price FROM products 
+                            WHERE LOWER(name) = LOWER(?) OR id = ?
+                            LIMIT 1
+                        `).bind(productName, product.id || product.product_id || null).all();
+
+                        if (productMatch && productMatch.length > 0) {
+                            productId = productMatch[0].id;
+                            costPrice = productMatch[0].cost_price || 0;
+                        }
+                    } catch (e) {
+                        console.warn(`Could not find product: ${productName}`);
+                    }
+
+                    // If no cost_price found, try to calculate from order.product_cost
+                    if (costPrice === 0 && order.product_cost && products.length === 1) {
+                        costPrice = order.product_cost / quantity;
+                    }
+
+                    // Calculate totals
+                    const subtotal = productPrice * quantity;
+                    const costTotal = costPrice * quantity;
+                    const profit = subtotal - costTotal;
+
+                    // Merge weight and size into single size column
+                    const sizeValue = size || weight || null;
+
+                    // Insert into order_items (without subtotal, cost_total, profit - removed columns)
+                    await env.DB.prepare(`
+                        INSERT INTO order_items (
+                            order_id, product_id, product_name, product_price, product_cost,
+                            quantity, size, notes, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `).bind(
+                        order.id,
+                        productId,
+                        productName,
+                        productPrice,
+                        costPrice,
+                        quantity,
+                        sizeValue,
+                        notes,
+                        order.created_at
+                    ).run();
+
+                    stats.itemsCreated++;
+                }
+
+                stats.ordersProcessed++;
+
+            } catch (error) {
+                console.error(`Error processing order ${order.order_id}:`, error);
+                stats.errors.push({
+                    orderId: order.order_id,
+                    error: error.message
+                });
+            }
+        }
+
+        console.log('✅ Migration completed!');
+        console.log(`📊 Stats:`, stats);
+
+        return jsonResponse({
+            success: true,
+            message: 'Migration completed successfully',
+            stats: {
+                totalOrders: stats.totalOrders,
+                ordersProcessed: stats.ordersProcessed,
+                itemsCreated: stats.itemsCreated,
+                skipped: stats.skipped.length,
+                errors: stats.errors.length
+            },
+            details: {
+                skipped: stats.skipped,
+                errors: stats.errors
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('❌ Migration failed:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// PRODUCT ANALYTICS FUNCTIONS
+// ============================================
+
+// Get top selling products
+async function getTopProducts(limit, period, env, corsHeaders, customStartDate = null) {
+    try {
+        // Calculate date range
+        // If frontend provides custom startDate (in ISO format), use it
+        // Otherwise calculate based on period
+        let startDate;
+        
+        if (customStartDate) {
+            // Frontend sends start date in ISO format (UTC)
+            startDate = new Date(customStartDate);
+        } else {
+            // Fallback: calculate in UTC
+            const now = new Date();
+            startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0)); // Default: all time
+
+            switch (period) {
+                case 'today':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                    break;
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+                    break;
+                case 'year':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                    break;
+            }
+        }
+
+        // Query top products
+        const { results: topProducts } = await env.DB.prepare(`
+            SELECT 
+                product_id,
+                product_name,
+                SUM(quantity) as total_sold,
+                SUM(product_price * quantity) as total_revenue,
+                SUM(product_cost * quantity) as total_cost,
+                SUM((product_price - product_cost) * quantity) as total_profit,
+                AVG(product_price) as avg_price,
+                COUNT(DISTINCT order_id) as order_count,
+                ROUND(SUM((product_price - product_cost) * quantity) * 100.0 / NULLIF(SUM(product_price * quantity), 0), 2) as profit_margin
+            FROM order_items
+            WHERE created_at >= ?
+            GROUP BY product_id, product_name
+            ORDER BY total_sold DESC
+            LIMIT ?
+        `).bind(startDate.toISOString(), limit).all();
+
+        return jsonResponse({
+            success: true,
+            period: period,
+            startDate: startDate.toISOString(),
+            products: topProducts
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting top products:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get profit overview with all costs
+async function getProfitOverview(period, env, corsHeaders, customStartDate = null) {
+    try {
+        // Calculate date range
+        // If frontend provides custom startDate (in ISO format), use it for accurate VN timezone filtering
+        // Otherwise calculate based on period in UTC (may not match VN timezone exactly)
+        let startDate;
+        
+        if (customStartDate) {
+            // Frontend sends start date in ISO format (already adjusted for VN timezone)
+            startDate = new Date(customStartDate);
+        } else {
+            // Fallback: calculate in UTC (may not match VN timezone exactly)
+            const now = new Date();
+            
+            switch (period) {
+                case 'today':
+                    // Start of today UTC (not VN timezone!)
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                    break;
+                case 'week':
+                    // 7 days ago from now
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    // Start of current month UTC
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+                    break;
+                case 'year':
+                    // Start of current year UTC
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                    break;
+                default: // 'all'
+                    startDate = new Date(0); // Beginning of time
+            }
+        }
+
+        // Get overview from orders and order_items
+        const overview = await env.DB.prepare(`
+            SELECT 
+                COUNT(DISTINCT orders.id) as total_orders,
+                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_revenue,
+                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost,
+                COALESCE(SUM(orders.shipping_fee), 0) as total_shipping_fee,
+                COALESCE(SUM(orders.shipping_cost), 0) as total_shipping_cost,
+                COALESCE(SUM(orders.commission), 0) as total_commission,
+                COALESCE(SUM(orders.packaging_cost), 0) as total_packaging_cost,
+                COALESCE(SUM(orders.tax_amount), 0) as total_tax,
+                COALESCE(SUM(order_items.quantity), 0) as total_products_sold
+            FROM orders
+            LEFT JOIN order_items ON orders.id = order_items.order_id
+            WHERE orders.created_at >= ?
+        `).bind(startDate.toISOString()).first();
+
+        // Calculate totals using saved tax_amount
+        const totalRevenue = (overview.product_revenue || 0) + (overview.total_shipping_fee || 0);
+        const totalTax = overview.total_tax || 0; // Use saved tax amount
+        const totalCost = (overview.product_cost || 0) + (overview.total_shipping_cost || 0) + 
+                         (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + totalTax;
+        const totalProfit = totalRevenue - totalCost;
+        const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+
+        return jsonResponse({
+            success: true,
+            period: period,
+            startDate: startDate.toISOString(),
+            overview: {
+                total_orders: overview.total_orders || 0,
+                total_products_sold: overview.total_products_sold || 0,
+                total_revenue: totalRevenue,
+                product_revenue: overview.product_revenue || 0,
+                shipping_fee: overview.total_shipping_fee || 0,
+                total_cost: totalCost,
+                product_cost: overview.product_cost || 0,
+                shipping_cost: overview.total_shipping_cost || 0,
+                packaging_cost: overview.total_packaging_cost || 0,
+                commission: overview.total_commission || 0,
+                tax: totalTax,
+                total_profit: totalProfit,
+                profit_margin: profitMargin,
+                avg_order_value: overview.total_orders > 0 ? (totalRevenue / overview.total_orders) : 0,
+                avg_profit_per_product: overview.total_products_sold > 0 ? (totalProfit / overview.total_products_sold) : 0
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting profit overview:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get current active tax rate
+async function getCurrentTaxRate(env, corsHeaders) {
+    try {
+        // Get tax rate from cost_config (stored in item_cost)
+        const taxConfig = await env.DB.prepare(`
+            SELECT item_cost as tax_rate, created_at as effective_from
+            FROM cost_config
+            WHERE item_name = 'tax_rate'
+            LIMIT 1
+        `).first();
+
+        if (!taxConfig) {
+            // Return default if no config found
+            return jsonResponse({
+                success: true,
+                taxRate: 0.015,
+                effectiveFrom: '2024-01-01',
+                description: 'Thuế mặc định 1.5%'
+            }, 200, corsHeaders);
+        }
+
+        return jsonResponse({
+            success: true,
+            taxRate: taxConfig.tax_rate,
+            effectiveFrom: taxConfig.effective_from,
+            description: taxConfig.description
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting current tax rate:', error);
+        // Return default on error
+        return jsonResponse({
+            success: true,
+            taxRate: 0.015,
+            effectiveFrom: '2024-01-01',
+            description: 'Thuế mặc định 1.5%'
+        }, 200, corsHeaders);
+    }
+}
+
+// Update tax rate (create new tax config)
+async function updateTaxRate(data, env, corsHeaders) {
+    try {
+        const { taxRate, description } = data;
+
+        if (!taxRate || taxRate < 0 || taxRate > 1) {
+            return jsonResponse({
+                success: false,
+                error: 'Invalid tax rate. Must be between 0 and 1 (e.g., 0.015 for 1.5%)'
+            }, 400, corsHeaders);
+        }
+
+        // Update tax rate in cost_config (stored in item_cost)
+        const result = await env.DB.prepare(`
+            INSERT INTO cost_config (item_name, item_cost, is_default)
+            VALUES ('tax_rate', ?, 1)
+            ON CONFLICT(item_name) DO UPDATE SET
+                item_cost = excluded.item_cost,
+                updated_at = CURRENT_TIMESTAMP
+        `).bind(taxRate).run();
+
+        if (!result.success) {
+            throw new Error('Failed to insert new tax rate');
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Tax rate updated successfully',
+            taxRate: taxRate,
+            effectiveFrom: new Date().toISOString().split('T')[0]
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating tax rate:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get detailed stats for a specific product
+async function getProductStats(productId, period, env, corsHeaders, customStartDate = null) {
+    try {
+        if (!productId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID is required'
+            }, 400, corsHeaders);
+        }
+
+        // Calculate date range
+        let startDate;
+        
+        if (customStartDate) {
+            // Frontend sends start date in ISO format (already adjusted for VN timezone)
+            startDate = new Date(customStartDate);
+        } else {
+            // Fallback: calculate in UTC (may not match VN timezone exactly)
+            const now = new Date();
+            startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0)); // Default: all time
+
+            switch (period) {
+                case 'today':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                    break;
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+                    break;
+                case 'year':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                    break;
+            }
+        }
+
+        // Get product info
+        const productInfo = await env.DB.prepare(`
+            SELECT * FROM products WHERE id = ?
+        `).bind(productId).first();
+
+        // Get aggregated stats
+        const stats = await env.DB.prepare(`
+            SELECT 
+                product_id,
+                product_name,
+                SUM(quantity) as total_sold,
+                SUM(product_price * quantity) as total_revenue,
+                SUM(product_cost * quantity) as total_cost,
+                SUM((product_price - product_cost) * quantity) as total_profit,
+                AVG(product_price) as avg_price,
+                MIN(product_price) as min_price,
+                MAX(product_price) as max_price,
+                COUNT(DISTINCT order_id) as order_count,
+                ROUND(SUM((product_price - product_cost) * quantity) * 100.0 / NULLIF(SUM(product_price * quantity), 0), 2) as profit_margin
+            FROM order_items
+            WHERE product_id = ? AND created_at >= ?
+            GROUP BY product_id, product_name
+        `).bind(productId, startDate.toISOString()).first();
+
+        // Get daily trend (last 30 days)
+        const { results: dailyTrend } = await env.DB.prepare(`
+            SELECT 
+                DATE(created_at) as date,
+                SUM(quantity) as daily_sold,
+                SUM(product_price * quantity) as daily_revenue,
+                SUM((product_price - product_cost) * quantity) as daily_profit
+            FROM order_items
+            WHERE product_id = ? AND created_at >= ?
+            GROUP BY DATE(created_at)
+            ORDER BY date DESC
+            LIMIT 30
+        `).bind(productId, new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()).all();
+
+        // Get recent orders
+        const { results: recentOrders } = await env.DB.prepare(`
+            SELECT 
+                oi.*,
+                o.order_id,
+                o.customer_name,
+                o.created_at as order_date
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE oi.product_id = ? AND oi.created_at >= ?
+            ORDER BY oi.created_at DESC
+            LIMIT 10
+        `).bind(productId, startDate.toISOString()).all();
+
+        return jsonResponse({
+            success: true,
+            period: period,
+            productInfo: productInfo,
+            stats: stats || {
+                total_sold: 0,
+                total_revenue: 0,
+                total_cost: 0,
+                total_profit: 0,
+                order_count: 0,
+                profit_margin: 0
+            },
+            dailyTrend: dailyTrend,
+            recentOrders: recentOrders
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting product stats:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// Get detailed analytics for analytics page
+async function getDetailedAnalytics(data, env, corsHeaders) {
+    try {
+        const period = data.period || 'month';
+        
+        // Calculate date range
+        const now = new Date();
+        let startDate;
+        
+        switch (period) {
+            case 'today':
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                break;
+            case 'week':
+                const dayOfWeek = now.getUTCDay();
+                const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysToMonday, 0, 0, 0));
+                break;
+            case 'year':
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                break;
+            case 'all':
+                startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
+                break;
+            case 'month':
+            default:
+                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        }
+
+        // Get overview data
+        const overview = await env.DB.prepare(`
+            SELECT 
+                COUNT(DISTINCT orders.id) as total_orders,
+                COALESCE(SUM(order_items.quantity), 0) as total_products_sold,
+                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_revenue,
+                COALESCE(SUM(orders.shipping_fee), 0) as total_shipping_fee,
+                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost,
+                COALESCE(SUM(orders.shipping_cost), 0) as total_shipping_cost,
+                COALESCE(SUM(orders.packaging_cost), 0) as total_packaging_cost,
+                COALESCE(SUM(orders.commission), 0) as total_commission,
+                COALESCE(SUM(orders.tax_amount), 0) as total_tax
+            FROM orders
+            LEFT JOIN order_items ON orders.id = order_items.order_id
+            WHERE orders.created_at >= ?
+        `).bind(startDate.toISOString()).first();
+
+        const totalRevenue = (overview.product_revenue || 0) + (overview.total_shipping_fee || 0);
+        const totalCost = (overview.product_cost || 0) + (overview.total_shipping_cost || 0) + 
+                         (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + (overview.total_tax || 0);
+        const totalProfit = totalRevenue - totalCost;
+        const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+
+        // Get detailed cost breakdown from packaging_details
+        const orders = await env.DB.prepare(`
+            SELECT packaging_details, packaging_cost
+            FROM orders
+            WHERE created_at >= ?
+        `).bind(startDate.toISOString()).all();
+
+        const costBreakdown = {
+            product_cost: overview.product_cost || 0,
+            shipping_cost: overview.total_shipping_cost || 0,
+            commission: overview.total_commission || 0,
+            tax: overview.total_tax || 0,
+            // Initialize packaging items
+            red_string: 0,
+            labor_cost: 0,
+            bag_zip: 0,
+            bag_red: 0,
+            box_shipping: 0,
+            thank_card: 0,
+            paper_print: 0
+        };
+
+        // Debug: Check if any orders have commission
+        const ordersWithCommission = await env.DB.prepare(`
+            SELECT order_id, commission, referral_code, created_at 
+            FROM orders 
+            WHERE commission > 0 AND created_at >= ?
+            LIMIT 5
+        `).bind(startDate.toISOString()).all();
+        
+        console.log('📊 Analytics Debug:', {
+            period: period,
+            startDate: startDate.toISOString(),
+            total_orders: overview.total_orders,
+            total_commission: overview.total_commission,
+            orders_with_commission: ordersWithCommission.results.length,
+            sample_orders: ordersWithCommission.results
+        });
+
+        // Parse packaging details to get individual costs
+        orders.results.forEach(order => {
+            if (order.packaging_details) {
+                try {
+                    const details = JSON.parse(order.packaging_details);
+                    const totalProducts = details.total_products || 0;
+                    
+                    // Per-product costs
+                    if (details.per_product) {
+                        costBreakdown.red_string += (details.per_product.red_string || 0) * totalProducts;
+                        costBreakdown.labor_cost += (details.per_product.labor_cost || 0) * totalProducts;
+                    }
+                    
+                    // Per-order costs
+                    if (details.per_order) {
+                        costBreakdown.bag_zip += details.per_order.bag_zip || 0;
+                        costBreakdown.bag_red += details.per_order.bag_red || 0;
+                        costBreakdown.box_shipping += details.per_order.box_shipping || 0;
+                        costBreakdown.thank_card += details.per_order.thank_card || 0;
+                        costBreakdown.paper_print += details.per_order.paper_print || 0;
+                    }
+                } catch (e) {
+                    console.error('Error parsing packaging_details:', e);
+                }
+            }
+        });
+
+        // Get top products
+        const topProducts = await env.DB.prepare(`
+            SELECT 
+                order_items.product_name as name,
+                SUM(order_items.quantity) as quantity,
+                SUM((order_items.product_price - order_items.product_cost) * order_items.quantity) as profit,
+                AVG(order_items.product_price - order_items.product_cost) as profit_per_unit
+            FROM order_items
+            JOIN orders ON order_items.order_id = orders.id
+            WHERE orders.created_at >= ?
+            GROUP BY order_items.product_name
+            ORDER BY profit DESC
+            LIMIT 10
+        `).bind(startDate.toISOString()).all();
+
+        // Get daily data for charts (last 30 days)
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const dailyData = await env.DB.prepare(`
+            SELECT 
+                DATE(orders.created_at) as date,
+                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) + COALESCE(SUM(orders.shipping_fee), 0) as revenue,
+                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) + 
+                COALESCE(SUM(orders.shipping_cost), 0) + 
+                COALESCE(SUM(orders.packaging_cost), 0) + 
+                COALESCE(SUM(orders.commission), 0) + 
+                COALESCE(SUM(orders.tax_amount), 0) as cost
+            FROM orders
+            LEFT JOIN order_items ON orders.id = order_items.order_id
+            WHERE orders.created_at >= ?
+            GROUP BY DATE(orders.created_at)
+            ORDER BY date ASC
+        `).bind(thirtyDaysAgo.toISOString()).all();
+
+        const dailyDataFormatted = dailyData.results.map(d => ({
+            date: d.date,
+            revenue: d.revenue || 0,
+            cost: d.cost || 0,
+            profit: (d.revenue || 0) - (d.cost || 0)
+        }));
+
+        return jsonResponse({
+            success: true,
+            period: period,
+            overview: {
+                total_orders: overview.total_orders || 0,
+                total_products_sold: overview.total_products_sold || 0,
+                total_revenue: totalRevenue,
+                total_cost: totalCost,
+                total_profit: totalProfit,
+                profit_margin: profitMargin,
+                avg_revenue_per_order: overview.total_orders > 0 ? totalRevenue / overview.total_orders : 0,
+                avg_cost_per_order: overview.total_orders > 0 ? totalCost / overview.total_orders : 0,
+                avg_profit_per_order: overview.total_orders > 0 ? totalProfit / overview.total_orders : 0,
+                cost_ratio: totalRevenue > 0 ? totalCost / totalRevenue : 0,
+                // Add individual cost components
+                product_cost: overview.product_cost || 0,
+                shipping_cost: overview.total_shipping_cost || 0,
+                commission: overview.total_commission || 0,
+                packaging_cost: overview.total_packaging_cost || 0,
+                tax: overview.total_tax || 0
+            },
+            cost_breakdown: costBreakdown,
+            top_products: topProducts.results || [],
+            daily_data: dailyDataFormatted,
+            comparison: {
+                revenue_change: 0,
+                profit_change: 0,
+                cost_change: 0
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting detailed analytics:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// ============================================
+// COMMISSION PAYMENT HANDLERS
+// ============================================
+
+/**
+ * Get commissions by month
+ * GET ?action=getCommissionsByMonth&month=2025-11
+ */
+async function getCommissionsByMonth(month, env, corsHeaders) {
+    try {
+        if (!month) {
+            return jsonResponse({
+                success: false,
+                error: 'Month parameter is required (format: YYYY-MM)'
+            }, 400, corsHeaders);
+        }
+
+        // Parse month to get start and end dates
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+        const endDateStr = `${year}-${monthNum}-${endDate}`;
+
+        // Get all CTVs
+        const { results: ctvList } = await env.DB.prepare(`
+            SELECT referral_code, full_name, phone, commission_rate
+            FROM ctv
+            WHERE status != 'Tạm ngưng'
+            ORDER BY full_name ASC
+        `).all();
+
+        // Get all orders except cancelled ones for this month
+        console.log('🔍 Querying orders for:', { month, startDate, endDateStr });
+        
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                COUNT(DISTINCT o.id) as order_count,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            WHERE o.status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(o.created_at) >= DATE(?)
+            AND DATE(o.created_at) <= DATE(?)
+            AND o.referral_code IS NOT NULL
+            AND o.referral_code != ''
+            GROUP BY o.referral_code
+        `).bind(startDate, endDateStr).all();
+        
+        console.log('📦 Found orders:', orders.length);
+
+        // Get existing payment records for this month
+        const { results: payments } = await env.DB.prepare(`
+            SELECT *
+            FROM commission_payments
+            WHERE month = ?
+        `).bind(month).all();
+
+        // Create a map of payments by referral_code
+        const paymentMap = {};
+        payments.forEach(p => {
+            paymentMap[p.referral_code] = p;
+        });
+
+        // Combine data
+        const commissionList = ctvList.map(ctv => {
+            const orderData = orders.find(o => o.referral_code === ctv.referral_code);
+            const payment = paymentMap[ctv.referral_code];
+
+            const orderCount = orderData ? orderData.order_count : 0;
+            const commissionAmount = orderData ? orderData.total_commission : 0;
+
+            return {
+                referral_code: ctv.referral_code,
+                ctv_name: ctv.full_name,
+                phone: ctv.phone,
+                commission_rate: ctv.commission_rate,
+                order_count: orderCount,
+                commission_amount: commissionAmount,
+                status: payment ? payment.status : 'pending',
+                payment_date: payment ? payment.payment_date : null,
+                payment_method: payment ? payment.payment_method : null,
+                note: payment ? payment.note : null,
+                payment_id: payment ? payment.id : null
+            };
+        }).filter(item => item.order_count > 0); // Only show CTVs with orders
+
+        // Calculate summary
+        const summary = {
+            total_ctv: commissionList.length,
+            paid_count: commissionList.filter(c => c.status === 'paid').length,
+            pending_count: commissionList.filter(c => c.status === 'pending').length,
+            total_commission: commissionList.reduce((sum, c) => sum + c.commission_amount, 0),
+            paid_amount: commissionList.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.commission_amount, 0),
+            pending_amount: commissionList.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.commission_amount, 0)
+        };
+
+        return jsonResponse({
+            success: true,
+            month: month,
+            commissions: commissionList,
+            summary: summary
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting commissions:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Calculate and save commissions for a month
+ * POST ?action=calculateCommissions
+ * Body: { month: "2025-11" }
+ */
+async function calculateCommissions(data, env, corsHeaders) {
+    try {
+        const { month } = data;
+
+        if (!month) {
+            return jsonResponse({
+                success: false,
+                error: 'Month is required (format: YYYY-MM)'
+            }, 400, corsHeaders);
+        }
+
+        // Parse month to get start and end dates
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+        const endDateStr = `${year}-${monthNum}-${endDate}`;
+
+        // Get all orders except cancelled ones for this month grouped by CTV
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                referral_code,
+                COUNT(*) as order_count,
+                SUM(commission) as total_commission
+            FROM orders
+            WHERE status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(created_at) >= DATE(?)
+            AND DATE(created_at) <= DATE(?)
+            AND referral_code IS NOT NULL
+            AND referral_code != ''
+            GROUP BY referral_code
+        `).bind(startDate, endDateStr).all();
+
+        // Insert or update commission_payments
+        let insertedCount = 0;
+        let updatedCount = 0;
+
+        for (const order of orders) {
+            // Check if record exists
+            const existing = await env.DB.prepare(`
+                SELECT id FROM commission_payments
+                WHERE referral_code = ? AND month = ?
+            `).bind(order.referral_code, month).first();
+
+            if (existing) {
+                // Update existing record
+                await env.DB.prepare(`
+                    UPDATE commission_payments
+                    SET commission_amount = ?,
+                        order_count = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                `).bind(
+                    order.total_commission,
+                    order.order_count,
+                    existing.id
+                ).run();
+                updatedCount++;
+            } else {
+                // Insert new record
+                await env.DB.prepare(`
+                    INSERT INTO commission_payments (
+                        referral_code, month, commission_amount, order_count, status
+                    ) VALUES (?, ?, ?, ?, 'pending')
+                `).bind(
+                    order.referral_code,
+                    month,
+                    order.total_commission,
+                    order.order_count
+                ).run();
+                insertedCount++;
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Calculated commissions for ${month}`,
+            inserted: insertedCount,
+            updated: updatedCount,
+            total: orders.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error calculating commissions:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Mark commission as paid
+ * POST ?action=markAsPaid
+ * Body: { referralCode, month, paymentDate, paymentMethod, note }
+ */
+async function markCommissionAsPaid(data, env, corsHeaders) {
+    try {
+        const { referralCode, month, paymentDate, paymentMethod, note } = data;
+
+        if (!referralCode || !month) {
+            return jsonResponse({
+                success: false,
+                error: 'referralCode and month are required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if record exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM commission_payments
+            WHERE referral_code = ? AND month = ?
+        `).bind(referralCode, month).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Commission record not found. Please calculate commissions first.'
+            }, 404, corsHeaders);
+        }
+
+        // Update payment status
+        await env.DB.prepare(`
+            UPDATE commission_payments
+            SET status = 'paid',
+                payment_date = ?,
+                payment_method = ?,
+                note = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).bind(
+            paymentDate || new Date().toISOString(),
+            paymentMethod || 'bank_transfer',
+            note || '',
+            existing.id
+        ).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Commission marked as paid'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error marking commission as paid:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Get payment history for a CTV
+ * GET ?action=getPaymentHistory&referralCode=ABC123
+ */
+async function getPaymentHistory(referralCode, env, corsHeaders) {
+    try {
+        if (!referralCode) {
+            return jsonResponse({
+                success: false,
+                error: 'referralCode is required'
+            }, 400, corsHeaders);
+        }
+
+        const { results: history } = await env.DB.prepare(`
+            SELECT *
+            FROM commission_payments
+            WHERE referral_code = ?
+            ORDER BY month DESC
+        `).bind(referralCode).all();
+
+        return jsonResponse({
+            success: true,
+            referralCode: referralCode,
+            history: history
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting payment history:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// NEW PAYMENT SYSTEM - Pay by Individual Orders
+// ============================================
+
+/**
+ * Get unpaid orders for a specific CTV
+ * GET ?action=getUnpaidOrders&referralCode=CTV100001
+ */
+async function getUnpaidOrders(referralCode, env, corsHeaders) {
+    try {
+        if (!referralCode) {
+            return jsonResponse({
+                success: false,
+                error: 'referralCode is required'
+            }, 400, corsHeaders);
+        }
+
+        // Get all orders that haven't been paid yet
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                o.id,
+                o.order_id,
+                o.order_date,
+                o.customer_name,
+                o.customer_phone,
+                o.address,
+                o.products,
+                o.payment_method,
+                o.status,
+                o.commission,
+                o.created_at,
+                o.shipping_fee
+            FROM orders o
+            LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            WHERE o.referral_code = ?
+            AND o.status NOT IN ('Đã hủy', 'Hủy')
+            AND cpd.id IS NULL
+            ORDER BY o.created_at DESC
+        `).bind(referralCode).all();
+
+        // Calculate summary
+        const totalOrders = orders.length;
+        const totalCommission = orders.reduce((sum, order) => sum + (order.commission || 0), 0);
+
+        return jsonResponse({
+            success: true,
+            referralCode: referralCode,
+            orders: orders,
+            summary: {
+                total_orders: totalOrders,
+                total_commission: totalCommission
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting unpaid orders:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Get unpaid orders grouped by CTV for a specific month
+ * GET ?action=getUnpaidOrdersByMonth&month=2025-11
+ */
+async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
+    try {
+        if (!month) {
+            return jsonResponse({
+                success: false,
+                error: 'Month parameter is required (format: YYYY-MM)'
+            }, 400, corsHeaders);
+        }
+
+        // Parse month to get start and end dates
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+        const endDateStr = `${year}-${monthNum}-${endDate}`;
+
+        // Get all CTVs
+        const { results: ctvList } = await env.DB.prepare(`
+            SELECT referral_code, full_name, phone, commission_rate
+            FROM ctv
+            WHERE status != 'Tạm ngưng'
+            ORDER BY full_name ASC
+        `).all();
+
+        // Get unpaid orders for this month
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                o.id as order_id,
+                o.order_id as order_code,
+                o.order_date,
+                o.customer_name,
+                o.commission,
+                o.status,
+                o.created_at
+            FROM orders o
+            LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            WHERE o.status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(o.created_at) >= DATE(?)
+            AND DATE(o.created_at) <= DATE(?)
+            AND o.referral_code IS NOT NULL
+            AND o.referral_code != ''
+            AND cpd.id IS NULL
+            ORDER BY o.created_at DESC
+        `).bind(startDate, endDateStr).all();
+
+        // Group orders by CTV
+        const ctvMap = {};
+        orders.forEach(order => {
+            if (!ctvMap[order.referral_code]) {
+                ctvMap[order.referral_code] = {
+                    orders: [],
+                    total_commission: 0,
+                    order_count: 0
+                };
+            }
+            ctvMap[order.referral_code].orders.push(order);
+            ctvMap[order.referral_code].total_commission += order.commission || 0;
+            ctvMap[order.referral_code].order_count += 1;
+        });
+
+        // Combine with CTV info
+        const commissionList = ctvList.map(ctv => {
+            const ctvData = ctvMap[ctv.referral_code];
+            if (!ctvData) return null;
+
+            return {
+                referral_code: ctv.referral_code,
+                ctv_name: ctv.full_name,
+                phone: ctv.phone,
+                commission_rate: ctv.commission_rate,
+                order_count: ctvData.order_count,
+                commission_amount: ctvData.total_commission,
+                orders: ctvData.orders
+            };
+        }).filter(item => item !== null);
+
+        // Calculate summary
+        const summary = {
+            total_ctv: commissionList.length,
+            total_orders: orders.length,
+            total_commission: commissionList.reduce((sum, c) => sum + c.commission_amount, 0)
+        };
+
+        return jsonResponse({
+            success: true,
+            month: month,
+            commissions: commissionList,
+            summary: summary
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting unpaid orders by month:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Pay selected orders
+ * POST ?action=paySelectedOrders
+ * Body: {
+ *   referralCode: "CTV100001",
+ *   orderIds: [1, 2, 3],
+ *   paymentDate: "2025-11-16",
+ *   paymentMethod: "bank_transfer",
+ *   note: "Chuyển khoản MB Bank"
+ * }
+ */
+async function paySelectedOrders(data, env, corsHeaders) {
+    try {
+        const { referralCode, orderIds, paymentDate, paymentMethod, note } = data;
+
+        // Validate input
+        if (!referralCode || !orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'referralCode and orderIds are required'
+            }, 400, corsHeaders);
+        }
+
+        // Get CTV info
+        const ctv = await env.DB.prepare(`
+            SELECT full_name, phone FROM ctv WHERE referral_code = ?
+        `).bind(referralCode).first();
+
+        if (!ctv) {
+            return jsonResponse({
+                success: false,
+                error: 'CTV not found'
+            }, 404, corsHeaders);
+        }
+
+        // Get orders to verify they exist and calculate total
+        const placeholders = orderIds.map(() => '?').join(',');
+        const { results: orders } = await env.DB.prepare(`
+            SELECT id, order_id, commission, referral_code
+            FROM orders
+            WHERE id IN (${placeholders})
+            AND referral_code = ?
+        `).bind(...orderIds, referralCode).all();
+
+        if (orders.length !== orderIds.length) {
+            return jsonResponse({
+                success: false,
+                error: 'Some orders not found or do not belong to this CTV'
+            }, 400, corsHeaders);
+        }
+
+        // Check if any order is already paid
+        const { results: alreadyPaid } = await env.DB.prepare(`
+            SELECT order_id FROM commission_payment_details
+            WHERE order_id IN (${placeholders})
+        `).bind(...orderIds).all();
+
+        if (alreadyPaid.length > 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Some orders have already been paid'
+            }, 400, corsHeaders);
+        }
+
+        // Calculate total commission
+        const totalCommission = orders.reduce((sum, order) => sum + (order.commission || 0), 0);
+
+        // Create payment record
+        const paymentResult = await env.DB.prepare(`
+            INSERT INTO commission_payments (
+                referral_code,
+                month,
+                order_count,
+                commission_amount,
+                status,
+                payment_date,
+                payment_method,
+                note
+            ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?)
+        `).bind(
+            referralCode,
+            new Date().toISOString().slice(0, 7), // YYYY-MM
+            orders.length,
+            totalCommission,
+            paymentDate || new Date().toISOString().split('T')[0],
+            paymentMethod || 'bank_transfer',
+            note || ''
+        ).run();
+
+        const paymentId = paymentResult.meta.last_row_id;
+
+        // Create payment details for each order
+        for (const order of orders) {
+            await env.DB.prepare(`
+                INSERT INTO commission_payment_details (
+                    payment_id,
+                    order_id,
+                    commission_amount
+                ) VALUES (?, ?, ?)
+            `).bind(paymentId, order.id, order.commission).run();
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Đã thanh toán ${orders.length} đơn hàng cho ${ctv.full_name}`,
+            payment: {
+                payment_id: paymentId,
+                referral_code: referralCode,
+                ctv_name: ctv.full_name,
+                order_count: orders.length,
+                total_commission: totalCommission,
+                payment_date: paymentDate || new Date().toISOString().split('T')[0],
+                payment_method: paymentMethod || 'bank_transfer'
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error paying selected orders:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
 }
