@@ -138,9 +138,26 @@ function updateBulkActionsUI() {
     
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
-        if (bulkActionsBar) bulkActionsBar.classList.remove('hidden');
+        if (bulkActionsBar) {
+            // Show with smooth animation
+            bulkActionsBar.classList.remove('hidden');
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+            
+            requestAnimationFrame(() => {
+                bulkActionsBar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                bulkActionsBar.style.opacity = '1';
+                bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
+            });
+        }
     } else {
-        if (bulkActionsBar) bulkActionsBar.classList.add('hidden');
+        if (bulkActionsBar) {
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+            setTimeout(() => {
+                bulkActionsBar.classList.add('hidden');
+            }, 300);
+        }
     }
 }
 
@@ -5388,7 +5405,7 @@ function editProductInOrder(index) {
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng <span class="text-red-500">*</span></label>
                     <input type="number" id="editProductQty" value="${product.quantity || 1}" min="1" 
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                        oninput="calculateEditProfit()" />
+                        oninput="calculateEditProfit('quantity')" />
                 </div>
 
                 <!-- Price and Cost -->
@@ -5399,7 +5416,7 @@ function editProductInOrder(index) {
                         </label>
                         <input type="number" id="editProductPrice" value="${product.price || ''}" placeholder="0" 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                            oninput="calculateEditProfit()" />
+                            oninput="calculateEditProfit('price')" />
                         <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
                         </div>
@@ -5408,7 +5425,7 @@ function editProductInOrder(index) {
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">💰 Giá vốn</label>
                         <input type="number" id="editProductCostPrice" value="${product.cost_price || ''}" placeholder="0" 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                            oninput="calculateEditProfit()" />
+                            oninput="calculateEditProfit('cost')" />
                         <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
                         </div>
@@ -5468,7 +5485,7 @@ let editOrderUnitCost = 0;
 let editOrderIsUpdating = false;
 
 // Calculate and update unit prices in edit modal (for new order)
-function calculateEditProfit() {
+function calculateEditProfit(sourceField = null) {
     if (editOrderIsUpdating) return;
     
     const priceInput = document.getElementById('editProductPrice');
@@ -5483,27 +5500,28 @@ function calculateEditProfit() {
     const currentPriceValue = parseFloat(priceInput.value) || 0;
     const currentCostValue = parseFloat(costPriceInput.value) || 0;
     
-    // If unit prices not set yet, calculate from current values
-    if (editOrderUnitPrice === 0 && currentPriceValue > 0) {
-        editOrderUnitPrice = currentPriceValue;
+    // Update unit prices based on what user is editing
+    if (sourceField === 'price' || (editOrderUnitPrice === 0 && currentPriceValue > 0)) {
+        editOrderUnitPrice = currentPriceValue / quantity;
     }
-    if (editOrderUnitCost === 0 && currentCostValue > 0) {
-        editOrderUnitCost = currentCostValue;
+    if (sourceField === 'cost' || (editOrderUnitCost === 0 && currentCostValue > 0)) {
+        editOrderUnitCost = currentCostValue / quantity;
     }
     
-    // Calculate totals
-    const totalRevenue = editOrderUnitPrice * quantity;
-    const totalCost = editOrderUnitCost * quantity;
+    // Only auto-calculate total when quantity changes, not when price/cost changes
+    if (sourceField === 'quantity') {
+        const totalRevenue = editOrderUnitPrice * quantity;
+        const totalCost = editOrderUnitCost * quantity;
 
-    // Update inputs to show total
-    editOrderIsUpdating = true;
-    if (editOrderUnitPrice > 0) {
-        priceInput.value = totalRevenue;
+        editOrderIsUpdating = true;
+        if (editOrderUnitPrice > 0) {
+            priceInput.value = totalRevenue;
+        }
+        if (editOrderUnitCost > 0) {
+            costPriceInput.value = totalCost;
+        }
+        editOrderIsUpdating = false;
     }
-    if (editOrderUnitCost > 0) {
-        costPriceInput.value = totalCost;
-    }
-    editOrderIsUpdating = false;
 
     // Update unit price labels (show only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
