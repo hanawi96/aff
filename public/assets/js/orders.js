@@ -98,11 +98,157 @@ function calculateOrderProfit(order) {
 
 let allOrdersData = [];
 let filteredOrdersData = [];
+let selectedOrderIds = new Set(); // Track selected orders for bulk actions
 let currentPage = 1;
 const itemsPerPage = 15;
 let dateSortOrder = 'desc'; // 'desc' = mới nhất trước, 'asc' = cũ nhất trước, 'none' = không sắp xếp
 let amountSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 let packagingConfig = []; // Packaging config from database
+
+// Handle individual order checkbox
+function handleOrderCheckbox(orderId, isChecked) {
+    if (isChecked) {
+        selectedOrderIds.add(orderId);
+    } else {
+        selectedOrderIds.delete(orderId);
+    }
+    updateBulkActionsUI();
+}
+
+// Select/deselect all orders on current page
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.order-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        const orderId = parseInt(cb.dataset.orderId);
+        if (checked) {
+            selectedOrderIds.add(orderId);
+        } else {
+            selectedOrderIds.delete(orderId);
+        }
+    });
+    updateBulkActionsUI();
+}
+
+// Update bulk actions UI based on selection
+function updateBulkActionsUI() {
+    const count = selectedOrderIds.size;
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (count > 0) {
+        if (selectedCount) selectedCount.textContent = count;
+        if (bulkActionsBar) bulkActionsBar.classList.remove('hidden');
+    } else {
+        if (bulkActionsBar) bulkActionsBar.classList.add('hidden');
+    }
+}
+
+// Clear all selections
+function clearSelection() {
+    selectedOrderIds.clear();
+    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = false);
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    if (selectAllCb) selectAllCb.checked = false;
+    updateBulkActionsUI();
+}
+
+// Bulk Export - Export selected orders to Excel/CSV
+async function bulkExport() {
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    try {
+        const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
+        
+        // Create CSV content
+        let csv = 'Mã đơn,Khách hàng,SĐT,Địa chỉ,Sản phẩm,Giá trị,Ngày đặt,Trạng thái\n';
+        
+        selectedOrders.forEach(order => {
+            const products = order.products_display || order.products || '';
+            const productsText = products.replace(/"/g, '""'); // Escape quotes
+            
+            csv += `"${order.order_id}",`;
+            csv += `"${order.customer_name || ''}",`;
+            csv += `"${order.customer_phone || ''}",`;
+            csv += `"${(order.address || '').replace(/"/g, '""')}",`;
+            csv += `"${productsText}",`;
+            csv += `"${order.total_amount || 0}",`;
+            csv += `"${formatDateTime(order.created_at || order.order_date)}",`;
+            csv += `"${order.status || 'pending'}"\n`;
+        });
+
+        // Download CSV
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `don-hang-${Date.now()}.csv`;
+        link.click();
+
+        showToast(`Đã export ${selectedOrderIds.size} đơn hàng`, 'success');
+    } catch (error) {
+        console.error('Error exporting:', error);
+        showToast('Không thể export: ' + error.message, 'error');
+    }
+}
+
+// Bulk Delete - Delete selected orders
+async function bulkDelete() {
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    const count = selectedOrderIds.size;
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa ${count} đơn hàng đã chọn?\n\nHành động này không thể hoàn tác!`);
+    
+    if (!confirmed) return;
+
+    try {
+        showToast(`Đang xóa ${count} đơn hàng...`, 'info');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const orderId of selectedOrderIds) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteOrder',
+                        orderId: orderId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error deleting order ${orderId}:`, error);
+            }
+        }
+
+        // Clear selection and reload data
+        clearSelection();
+        await loadOrdersData();
+
+        if (failCount === 0) {
+            showToast(`Đã xóa thành công ${successCount} đơn hàng`, 'success');
+        } else {
+            showToast(`Đã xóa ${successCount} đơn, thất bại ${failCount} đơn`, 'warning');
+        }
+    } catch (error) {
+        console.error('Error bulk deleting:', error);
+        showToast('Không thể xóa đơn hàng: ' + error.message, 'error');
+    }
+}
 
 // Load packaging config from database
 async function loadPackagingConfig() {
@@ -456,10 +602,18 @@ function createOrderRow(order, index) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-gray-50 transition-colors fade-in';
 
-    // STT
+    // STT with Checkbox
     const tdIndex = document.createElement('td');
-    tdIndex.className = 'px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center';
-    tdIndex.textContent = index;
+    tdIndex.className = 'px-4 py-4 whitespace-nowrap text-center';
+    tdIndex.innerHTML = `
+        <div class="flex items-center justify-center gap-2">
+            <input type="checkbox" 
+                   class="order-checkbox w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer" 
+                   data-order-id="${order.id}"
+                   onchange="handleOrderCheckbox(${order.id}, this.checked)">
+            <span class="text-sm text-gray-500">${index}</span>
+        </div>
+    `;
 
     // Mã đơn với icon CTV và Status Badge
     const tdOrderId = document.createElement('td');
@@ -2447,7 +2601,7 @@ function editProductName(productId, orderId, orderCode) {
                         min="1"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="Nhập số lượng"
-                        oninput="calculateEditModalProfit()"
+                        oninput="calculateEditModalProfit('quantity')"
                     />
                 </div>
 
@@ -2522,7 +2676,7 @@ function editProductName(productId, orderId, orderCode) {
                             value="${escapeHtml(productData.price)}"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá bán"
-                            oninput="calculateEditModalProfit()"
+                            oninput="calculateEditModalProfit('price')"
                         />
                         <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
@@ -2538,7 +2692,7 @@ function editProductName(productId, orderId, orderCode) {
                             value="${escapeHtml(productData.cost_price || '')}"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá vốn"
-                            oninput="calculateEditModalProfit()"
+                            oninput="calculateEditModalProfit('cost')"
                         />
                         <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
@@ -2758,7 +2912,7 @@ let editModalUnitCost = 0;
 let editModalIsUpdating = false;
 
 // Calculate profit in edit modal (for order product editing)
-function calculateEditModalProfit() {
+function calculateEditModalProfit(sourceField = null) {
     if (editModalIsUpdating) return;
     
     const priceInput = document.getElementById('editProductPrice');
@@ -2769,31 +2923,32 @@ function calculateEditModalProfit() {
 
     const quantity = parseInt(quantityInput.value) || 1;
     
-    // Parse current input values (could be total or unit price)
+    // Parse current input values
     const currentPriceValue = parseFloat(priceInput.value?.replace(/[^\d]/g, '')) || 0;
     const currentCostValue = parseFloat(costPriceInput.value?.replace(/[^\d]/g, '')) || 0;
     
-    // If unit prices not set yet, calculate from current values
-    if (editModalUnitPrice === 0 && currentPriceValue > 0) {
-        editModalUnitPrice = currentPriceValue;
+    // Update unit prices based on what user is editing
+    if (sourceField === 'price' || (editModalUnitPrice === 0 && currentPriceValue > 0)) {
+        editModalUnitPrice = currentPriceValue / quantity;
     }
-    if (editModalUnitCost === 0 && currentCostValue > 0) {
-        editModalUnitCost = currentCostValue;
+    if (sourceField === 'cost' || (editModalUnitCost === 0 && currentCostValue > 0)) {
+        editModalUnitCost = currentCostValue / quantity;
     }
     
-    // Calculate totals
-    const totalRevenue = editModalUnitPrice * quantity;
-    const totalCost = editModalUnitCost * quantity;
+    // Only auto-calculate total when quantity changes, not when price/cost changes
+    if (sourceField === 'quantity') {
+        const totalRevenue = editModalUnitPrice * quantity;
+        const totalCost = editModalUnitCost * quantity;
 
-    // Update inputs to show total (prevent infinite loop)
-    editModalIsUpdating = true;
-    if (editModalUnitPrice > 0) {
-        priceInput.value = totalRevenue;
+        editModalIsUpdating = true;
+        if (editModalUnitPrice > 0) {
+            priceInput.value = totalRevenue;
+        }
+        if (editModalUnitCost > 0) {
+            costPriceInput.value = totalCost;
+        }
+        editModalIsUpdating = false;
     }
-    if (editModalUnitCost > 0) {
-        costPriceInput.value = totalCost;
-    }
-    editModalIsUpdating = false;
 
     // Update unit price labels (show only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
