@@ -53,11 +53,28 @@ function calculateOrderTotals(order) {
         return { totalAmount: itemsTotal, productCost };
     }
 
-    // Priority 3: Fallback to order.total_amount (but subtract shipping_fee to get product total only)
+    // Priority 3: Parse products JSON string to calculate cost
+    let productCost = 0;
+    if (order.products) {
+        try {
+            const products = JSON.parse(order.products);
+            if (Array.isArray(products)) {
+                productCost = products.reduce((sum, item) => {
+                    const cost = item.cost_price || 0;
+                    const qty = item.quantity || 1;
+                    return sum + (cost * qty);
+                }, 0);
+            }
+        } catch (e) {
+            console.warn('Could not parse products JSON for cost calculation:', e);
+        }
+    }
+
+    // Fallback to order.total_amount (but subtract shipping_fee to get product total only)
     const fallbackTotal = (order.total_amount || 0) - (order.shipping_fee || 0);
     return {
         totalAmount: Math.max(0, fallbackTotal), // Ensure non-negative
-        productCost: 0 // Unknown if not provided
+        productCost: productCost
     };
 }
 
@@ -935,8 +952,20 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
         // Tạo text chi tiết
         const details = [];
         if (weight) details.push(`⚖️ ${weight}`);
-        if (size) details.push(`📏 ${size}`);
-        if (price) details.push(`💰 ${formatCurrency(price)}`);
+        if (size) {
+            // Phân biệt icon dựa vào nội dung: nếu có "cm" hoặc "size" thì dùng thước, còn lại dùng cân
+            const isSizeMeasurement = size.toLowerCase().includes('cm') || 
+                                     size.toLowerCase().includes('size') || 
+                                     size.toLowerCase().includes('tay');
+            const icon = isSizeMeasurement ? '📏' : '⚖️';
+            details.push(`${icon} ${size}`);
+        }
+        if (price) {
+            const priceNum = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d]/g, ''));
+            if (!isNaN(priceNum) && priceNum > 0) {
+                details.push(`💰 ${formatCurrency(priceNum * parsedQuantity)}`);
+            }
+        }
         const detailsText = details.length > 0 ? details.join(' • ') : '';
 
         const productId = `product_${orderId}_${index}`;
@@ -944,8 +973,7 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
             <div class="relative bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl px-3 py-2.5 border border-purple-200 shadow-sm hover:shadow-md transition-all group">
                 <!-- Header: Tên sản phẩm và số lượng -->
                 <div class="flex items-start gap-2 mb-1.5">
-                    <div class="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                        ${index + 1}
+                    <div class="flex-shrink-0 w-2 h-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full shadow-sm mt-1.5">
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start gap-2">
@@ -1011,8 +1039,20 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
             // Tạo text chi tiết
             const details = [];
             if (weight) details.push(`⚖️ ${weight}`);
-            if (size) details.push(`📏 ${size}`);
-            if (price) details.push(`💰 ${formatCurrency(price)}`);
+            if (size) {
+                // Phân biệt icon dựa vào nội dung: nếu có "cm" hoặc "size" thì dùng thước, còn lại dùng cân
+                const isSizeMeasurement = size.toLowerCase().includes('cm') || 
+                                         size.toLowerCase().includes('size') || 
+                                         size.toLowerCase().includes('tay');
+                const icon = isSizeMeasurement ? '📏' : '⚖️';
+                details.push(`${icon} ${size}`);
+            }
+            if (price) {
+                const priceNum = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d]/g, ''));
+                if (!isNaN(priceNum) && priceNum > 0) {
+                    details.push(`💰 ${formatCurrency(priceNum * parsedQuantity)}`);
+                }
+            }
             const detailsText = details.length > 0 ? details.join(' • ') : '';
 
             const productId = `product_${orderId}_${maxDisplay + index}`;
@@ -1020,8 +1060,7 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
             html += `
                 <div class="relative bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl px-3 py-2.5 border border-purple-200 shadow-sm hover:shadow-md transition-all group">
                     <div class="flex items-start gap-2 mb-1.5">
-                        <div class="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                            ${actualIndex + 1}
+                        <div class="flex-shrink-0 w-2 h-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full shadow-sm mt-1.5">
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-start gap-2">
@@ -1098,82 +1137,29 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
         `;
     }
 
-    // Add product button
+    // Add product and notes buttons (2 columns)
     html += `
-        <div id="addProductBtn_${orderId}" class="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border-2 border-dashed border-purple-200 cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-all group" 
-             onclick="showAddProductForm(${orderId}, '${escapeHtml(orderCode)}')">
-            <div class="w-6 h-6 rounded-full bg-purple-100 group-hover:bg-purple-500 flex items-center justify-center transition-colors">
-                <svg class="w-4 h-4 text-purple-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+        <div class="grid grid-cols-2 gap-2">
+            <!-- Add Product Button -->
+            <div class="flex items-center gap-1.5 bg-white rounded-lg px-2 py-1.5 border-2 border-dashed border-purple-200 cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-all group" 
+                 onclick="showProductSelectionModalForOrder(${orderId}, '${escapeHtml(orderCode)}')">
+                <div class="w-5 h-5 rounded-full bg-purple-100 group-hover:bg-purple-500 flex items-center justify-center transition-colors flex-shrink-0">
+                    <svg class="w-3 h-3 text-purple-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                </div>
+                <span class="text-xs font-medium text-purple-600 group-hover:text-purple-700">Thêm SP</span>
             </div>
-            <span class="text-xs font-medium text-purple-600 group-hover:text-purple-700">Thêm sản phẩm</span>
-        </div>
-        
-        <!-- Add product form (hidden by default) -->
-        <div id="addProductForm_${orderId}" class="hidden bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg px-3 py-3 border border-purple-200">
-            <div class="space-y-2">
-                <!-- Product name input -->
-                <input 
-                    type="text" 
-                    id="newProductName_${orderId}" 
-                    placeholder="Tên sản phẩm..."
-                    class="w-full px-3 py-2 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                
-                <!-- Price, Weight and Size inputs -->
-                <div class="grid grid-cols-3 gap-2">
-                    <input 
-                        type="number" 
-                        id="newProductPrice_${orderId}" 
-                        placeholder="Giá (VD: 50000)"
-                        min="0"
-                        step="1000"
-                        class="px-3 py-2 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                    <input 
-                        type="text" 
-                        id="newProductWeight_${orderId}" 
-                        placeholder="Cân nặng (VD: 500g)"
-                        class="px-3 py-2 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                    <input 
-                        type="text" 
-                        id="newProductSize_${orderId}" 
-                        placeholder="Size/Tay (VD: Size M)"
-                        class="px-3 py-2 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
+            
+            <!-- Add Notes Button -->
+            <div class="flex items-center gap-1.5 bg-white rounded-lg px-2 py-1.5 border-2 border-dashed border-amber-200 cursor-pointer hover:border-amber-400 hover:bg-amber-50 transition-all group" 
+                 onclick="showAddOrderNotesModal(${orderId}, '${escapeHtml(orderCode)}')">
+                <div class="w-5 h-5 rounded-full bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors flex-shrink-0">
+                    <svg class="w-3 h-3 text-amber-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
                 </div>
-                
-                <!-- Customer notes input -->
-                <input 
-                    type="text" 
-                    id="newProductNotes_${orderId}" 
-                    placeholder="Lưu ý của khách hàng..."
-                    class="w-full px-3 py-2 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                
-                <!-- Action buttons -->
-                <div class="flex items-center gap-2 pt-1">
-                    <input 
-                        type="number" 
-                        id="newProductQty_${orderId}" 
-                        placeholder="SL"
-                        value="1"
-                        min="1"
-                        class="w-16 px-2 py-1.5 text-xs border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                    <button 
-                        onclick="saveNewProduct(${orderId}, '${escapeHtml(orderCode)}')"
-                        class="flex-1 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium rounded-lg transition-colors">
-                        Lưu
-                    </button>
-                    <button 
-                        onclick="cancelAddProduct(${orderId})"
-                        class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors">
-                        Hủy
-                    </button>
-                </div>
+                <span class="text-xs font-medium text-amber-600 group-hover:text-amber-700">Ghi chú</span>
             </div>
         </div>
     `;
@@ -1400,14 +1386,12 @@ function formatProductsForModal(productsText) {
         const size = typeof product === 'object' && product.size ? product.size : null;
         const notes = typeof product === 'object' && product.notes ? product.notes : null;
 
-        // Format price - check if it's a number or already formatted string
+        // Format price - multiply by quantity for total
         let priceDisplay = null;
         if (priceRaw) {
-            if (typeof priceRaw === 'number') {
-                priceDisplay = formatCurrency(priceRaw);
-            } else if (typeof priceRaw === 'string') {
-                // If already formatted (contains đ or VND), use as is
-                priceDisplay = priceRaw;
+            const priceNum = typeof priceRaw === 'number' ? priceRaw : parseFloat(String(priceRaw).replace(/[^\d]/g, ''));
+            if (!isNaN(priceNum) && priceNum > 0) {
+                priceDisplay = formatCurrency(priceNum * quantity);
             }
         }
 
@@ -1907,15 +1891,27 @@ function showToast(message, type = 'success', showLoading = false) {
                 'bg-blue-500'
         }`;
 
-    // Add loading spinner if requested
+    // Add icon based on type
+    let icon = '';
     if (showLoading) {
-        toast.innerHTML = `
-            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+        icon = `
+            <svg class="animate-spin h-5 w-5 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>${message}</span>
         `;
+    } else if (type === 'success') {
+        icon = `
+            <svg class="h-5 w-5 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+        `;
+    }
+
+    if (icon) {
+        // Remove ✅ emoji from message if present
+        const cleanMessage = message.replace(/^✅\s*/, '');
+        toast.innerHTML = `${icon}<span>${cleanMessage}</span>`;
     } else {
         toast.textContent = message;
     }
@@ -2451,6 +2447,7 @@ function editProductName(productId, orderId, orderCode) {
                         min="1"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="Nhập số lượng"
+                        oninput="calculateEditModalProfit()"
                     />
                 </div>
 
@@ -2517,8 +2514,7 @@ function editProductName(productId, orderId, orderCode) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Giá bán
-                            <span class="text-xs text-gray-500 font-normal ml-1">(VD: 50000)</span>
+                            Giá bán <span class="text-xs text-gray-500 font-normal">(VD: 50000)</span>
                         </label>
                         <input 
                             type="text" 
@@ -2528,6 +2524,9 @@ function editProductName(productId, orderId, orderCode) {
                             placeholder="Nhập giá bán"
                             oninput="calculateEditModalProfit()"
                         />
+                        <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
+                            Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -2541,18 +2540,21 @@ function editProductName(productId, orderId, orderCode) {
                             placeholder="Nhập giá vốn"
                             oninput="calculateEditModalProfit()"
                         />
+                        <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
+                            Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
+                        </div>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 -mt-2">💡 Nếu có giá, tổng tiền sẽ tự động tính = giá × số lượng</p>
+                <p class="text-xs text-gray-500 -mt-2">💡 Giá nhập là giá 1 sản phẩm. Tổng tiền sẽ tự động tính = giá × số lượng</p>
                 
                 <!-- Profit Display -->
                 <div id="editModalProfitDisplay" class="hidden">
                     <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-3">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-600">Lãi dự kiến:</span>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-600 font-medium">💰 Lãi dự kiến:</span>
                             <span id="editModalProfitAmount" class="text-lg font-bold text-green-600">0đ</span>
                         </div>
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between mb-2">
                             <span class="text-xs text-gray-500">Tỷ suất:</span>
                             <span id="editModalProfitMargin" class="text-sm font-semibold text-green-600">0%</span>
                         </div>
@@ -2596,8 +2598,15 @@ function editProductName(productId, orderId, orderCode) {
 
     document.body.appendChild(modal);
 
+    // Reset unit prices
+    editModalUnitPrice = parseFloat(String(productData.price).replace(/[^\d]/g, '')) || 0;
+    editModalUnitCost = parseFloat(String(productData.cost_price).replace(/[^\d]/g, '')) || 0;
+
     // Focus first input immediately
     document.getElementById('editProductName')?.focus();
+    
+    // Calculate profit immediately to show totals if quantity > 1
+    setTimeout(() => calculateEditModalProfit(), 50);
 
     // Close on Escape
     const escapeHandler = (e) => {
@@ -2743,28 +2752,125 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
     }
 }
 
+// Store unit prices globally
+let editModalUnitPrice = 0;
+let editModalUnitCost = 0;
+let editModalIsUpdating = false;
+
 // Calculate profit in edit modal (for order product editing)
 function calculateEditModalProfit() {
-    const priceInput = document.getElementById('editProductPrice')?.value.trim();
-    const costPriceInput = document.getElementById('editProductCostPrice')?.value.trim();
+    if (editModalIsUpdating) return;
+    
+    const priceInput = document.getElementById('editProductPrice');
+    const costPriceInput = document.getElementById('editProductCostPrice');
+    const quantityInput = document.getElementById('editProductQuantity');
+    
+    if (!priceInput || !costPriceInput || !quantityInput) return;
 
-    // Parse prices (remove currency symbols)
-    const price = parseFloat(priceInput?.replace(/[^\d]/g, '')) || 0;
-    const costPrice = parseFloat(costPriceInput?.replace(/[^\d]/g, '')) || 0;
+    const quantity = parseInt(quantityInput.value) || 1;
+    
+    // Parse current input values (could be total or unit price)
+    const currentPriceValue = parseFloat(priceInput.value?.replace(/[^\d]/g, '')) || 0;
+    const currentCostValue = parseFloat(costPriceInput.value?.replace(/[^\d]/g, '')) || 0;
+    
+    // If unit prices not set yet, calculate from current values
+    if (editModalUnitPrice === 0 && currentPriceValue > 0) {
+        editModalUnitPrice = currentPriceValue;
+    }
+    if (editModalUnitCost === 0 && currentCostValue > 0) {
+        editModalUnitCost = currentCostValue;
+    }
+    
+    // Calculate totals
+    const totalRevenue = editModalUnitPrice * quantity;
+    const totalCost = editModalUnitCost * quantity;
 
+    // Update inputs to show total (prevent infinite loop)
+    editModalIsUpdating = true;
+    if (editModalUnitPrice > 0) {
+        priceInput.value = totalRevenue;
+    }
+    if (editModalUnitCost > 0) {
+        costPriceInput.value = totalCost;
+    }
+    editModalIsUpdating = false;
+
+    // Update unit price labels (show only when quantity > 1)
+    const priceUnitDiv = document.getElementById('editProductPriceUnit');
+    const costUnitDiv = document.getElementById('editProductCostUnit');
+    
+    if (quantity > 1) {
+        if (editModalUnitPrice > 0) {
+            document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editModalUnitPrice);
+            priceUnitDiv?.classList.remove('hidden');
+        } else {
+            priceUnitDiv?.classList.add('hidden');
+        }
+        
+        if (editModalUnitCost > 0) {
+            document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editModalUnitCost);
+            costUnitDiv?.classList.remove('hidden');
+        } else {
+            costUnitDiv?.classList.add('hidden');
+        }
+    } else {
+        priceUnitDiv?.classList.add('hidden');
+        costUnitDiv?.classList.add('hidden');
+    }
+
+    // Calculate profit
     const profitDisplay = document.getElementById('editModalProfitDisplay');
     const lossWarning = document.getElementById('editModalLossWarning');
 
     if (price > 0 && costPrice > 0) {
-        const profit = price - costPrice;
-        const margin = (profit / price) * 100;
+        // Calculate per-unit profit
+        const profitPerUnit = price - costPrice;
+        const margin = (profitPerUnit / price) * 100;
+        
+        // Calculate total profit (profit per unit × quantity)
+        const totalProfit = profitPerUnit * quantity;
 
-        if (profit > 0) {
-            // Show profit
-            document.getElementById('editModalProfitAmount').textContent = formatCurrency(profit);
-            document.getElementById('editModalProfitMargin').textContent = `${margin.toFixed(1)}%`;
+        if (profitPerUnit > 0) {
+            // Show profit with breakdown
+            const profitAmountEl = document.getElementById('editModalProfitAmount');
+            const profitMarginEl = document.getElementById('editModalProfitMargin');
+            
+            if (quantity > 1) {
+                profitAmountEl.innerHTML = `
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-green-600">${formatCurrency(totalProfit)}</div>
+                        <div class="text-xs text-gray-500">(${formatCurrency(profitPerUnit)}/sp × ${quantity})</div>
+                    </div>
+                `;
+            } else {
+                profitAmountEl.textContent = formatCurrency(totalProfit);
+            }
+            
+            profitMarginEl.textContent = `${margin.toFixed(1)}%`;
             profitDisplay.classList.remove('hidden');
             lossWarning.classList.add('hidden');
+            
+            // Update display to show total revenue and cost in profit box
+            const existingBreakdown = document.getElementById('editModalBreakdown');
+            if (!existingBreakdown) {
+                const breakdownDiv = document.createElement('div');
+                breakdownDiv.id = 'editModalBreakdown';
+                breakdownDiv.className = 'text-xs text-gray-600 mt-2 pt-2 border-t border-green-200 space-y-1';
+                breakdownDiv.innerHTML = `
+                    <div class="flex justify-between">
+                        <span>📊 Tổng giá bán:</span>
+                        <span class="font-semibold text-gray-800" id="editModalTotalRevenue">${formatCurrency(totalRevenue)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>📊 Tổng giá vốn:</span>
+                        <span class="font-semibold text-gray-800" id="editModalTotalCost">${formatCurrency(totalCost)}</span>
+                    </div>
+                `;
+                profitDisplay.querySelector('div').appendChild(breakdownDiv);
+            } else {
+                document.getElementById('editModalTotalRevenue').textContent = formatCurrency(totalRevenue);
+                document.getElementById('editModalTotalCost').textContent = formatCurrency(totalCost);
+            }
         } else {
             // Show loss warning
             profitDisplay.classList.add('hidden');
@@ -2841,8 +2947,20 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         // Add optional fields if provided
         if (weight) updatedProduct.weight = weight;
         if (size) updatedProduct.size = size;
-        if (price) updatedProduct.price = price;
-        if (costPrice) updatedProduct.cost_price = costPrice;
+        // Use unit prices (not total from input)
+        if (editModalUnitPrice > 0) {
+            updatedProduct.price = editModalUnitPrice;
+        }
+        if (editModalUnitCost > 0) {
+            updatedProduct.cost_price = editModalUnitCost;
+        }
+        // Parse cost price as number
+        if (costPrice) {
+            const costNum = parseFloat(costPrice.replace(/[^\d]/g, ''));
+            if (!isNaN(costNum) && costNum > 0) {
+                updatedProduct.cost_price = costNum;
+            }
+        }
         if (notes) updatedProduct.notes = notes;
 
         products[productIndex] = updatedProduct;
@@ -3860,84 +3978,149 @@ async function deleteProduct(orderId, productIndex, orderCode) {
     }
 }
 
-// Show add product form
-function showAddProductForm(orderId, orderCode) {
-    const btn = document.getElementById(`addProductBtn_${orderId}`);
-    const form = document.getElementById(`addProductForm_${orderId}`);
+// Show product selection modal for existing order
+let currentEditingOrderId = null;
+let currentEditingOrderCode = null;
 
-    if (btn && form) {
-        btn.classList.add('hidden');
-        form.classList.remove('hidden');
+function showProductSelectionModalForOrder(orderId, orderCode) {
+    currentEditingOrderId = orderId;
+    currentEditingOrderCode = orderCode;
+    showProductSelectionModal();
+}
 
-        // Focus on name input
-        const nameInput = document.getElementById(`newProductName_${orderId}`);
-        if (nameInput) {
-            setTimeout(() => nameInput.focus(), 100);
+// Show add/edit order notes modal
+function showAddOrderNotesModal(orderId, orderCode) {
+    const order = allOrdersData.find(o => o.id === orderId);
+    if (!order) return;
+
+    const currentNotes = order.notes || '';
+
+    const modal = document.createElement('div');
+    modal.id = 'orderNotesModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <!-- Header -->
+            <div class="bg-gradient-to-br from-amber-600 to-orange-600 px-6 py-4 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Ghi chú đơn hàng</h3>
+                            <p class="text-sm text-white/80">${escapeHtml(orderCode)}</p>
+                        </div>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" class="text-white/80 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                <textarea id="orderNotesInput" rows="5" placeholder="Nhập ghi chú cho đơn hàng..." 
+                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none">${escapeHtml(currentNotes)}</textarea>
+                <p class="text-xs text-gray-500 mt-2">💡 Ghi chú này sẽ hiển thị trong cột sản phẩm</p>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3 border-t border-gray-200">
+                <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                    Hủy
+                </button>
+                <button onclick="saveOrderNotes(${orderId}, '${escapeHtml(orderCode)}')" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Lưu ghi chú
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('orderNotesInput')?.focus(), 100);
+}
+
+// Save order notes
+async function saveOrderNotes(orderId, orderCode) {
+    const notesInput = document.getElementById('orderNotesInput');
+    const notes = notesInput?.value.trim() || '';
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateOrderNotes',
+                orderId: orderId,
+                notes: notes
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Close modal first
+            const modal = document.getElementById('orderNotesModal');
+            if (modal) modal.remove();
+
+            // Update local data
+            const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+            if (orderIndex !== -1) {
+                allOrdersData[orderIndex].notes = notes;
+            }
+
+            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
+            if (filteredIndex !== -1) {
+                filteredOrdersData[filteredIndex].notes = notes;
+            }
+
+            // Re-render table and show success message
+            renderOrdersTable();
+            showToast('✅ Đã lưu ghi chú', 'success');
+        } else {
+            throw new Error(data.error || 'Không thể lưu ghi chú');
         }
+    } catch (error) {
+        console.error('Error saving notes:', error);
+        showToast('❌ Không thể lưu ghi chú: ' + error.message, 'error');
     }
 }
 
-// Cancel add product
-function cancelAddProduct(orderId) {
-    const btn = document.getElementById(`addProductBtn_${orderId}`);
-    const form = document.getElementById(`addProductForm_${orderId}`);
-
-    if (btn && form) {
-        form.classList.add('hidden');
-        btn.classList.remove('hidden');
-
-        // Clear all inputs
-        const nameInput = document.getElementById(`newProductName_${orderId}`);
-        const qtyInput = document.getElementById(`newProductQty_${orderId}`);
-        const priceInput = document.getElementById(`newProductPrice_${orderId}`);
-        const weightInput = document.getElementById(`newProductWeight_${orderId}`);
-        const sizeInput = document.getElementById(`newProductSize_${orderId}`);
-        const notesInput = document.getElementById(`newProductNotes_${orderId}`);
-
-        if (nameInput) nameInput.value = '';
-        if (qtyInput) qtyInput.value = '1';
-        if (priceInput) priceInput.value = '';
-        if (weightInput) weightInput.value = '';
-        if (sizeInput) sizeInput.value = '';
-        if (notesInput) notesInput.value = '';
-    }
-}
-
-// Save new product
-async function saveNewProduct(orderId, orderCode) {
-    const nameInput = document.getElementById(`newProductName_${orderId}`);
-    const qtyInput = document.getElementById(`newProductQty_${orderId}`);
-    const priceInput = document.getElementById(`newProductPrice_${orderId}`);
-    const weightInput = document.getElementById(`newProductWeight_${orderId}`);
-    const sizeInput = document.getElementById(`newProductSize_${orderId}`);
-    const notesInput = document.getElementById(`newProductNotes_${orderId}`);
-
-    const productName = nameInput?.value.trim();
-    const quantity = parseInt(qtyInput?.value) || 1;
-    const price = priceInput?.value.trim() ? parseFloat(priceInput.value) : null;
-    const weight = weightInput?.value.trim() || null;
-    const size = sizeInput?.value.trim() || null;
-    const notes = notesInput?.value.trim() || null;
-
-    // Validate
-    if (!productName) {
-        showToast('Vui lòng nhập tên sản phẩm', 'warning');
-        nameInput?.focus();
+// Save selected products to existing order
+async function saveProductsToExistingOrder() {
+    if (!currentEditingOrderId || selectedProducts.length === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
         return;
     }
 
-    if (quantity < 1) {
-        showToast('Số lượng phải lớn hơn 0', 'warning');
-        qtyInput?.focus();
+    // Validate: Check if all products have weight/size
+    const missingWeightProducts = [];
+    selectedProducts.forEach(productId => {
+        const weightOrSize = productWeights[productId] || ''; // Modal stores both weight and size in this field
+        if (!weightOrSize.trim()) {
+            const product = allProductsList.find(p => p.id === productId);
+            if (product) {
+                missingWeightProducts.push(product.name);
+            }
+        }
+    });
+
+    if (missingWeightProducts.length > 0) {
+        showToast(`Vui lòng nhập cân nặng/size cho: ${missingWeightProducts.join(', ')}`, 'warning');
         return;
     }
 
-    // Show loading
     showToast('Đang thêm sản phẩm...', 'info');
 
     try {
-        // Find the order in allOrdersData
-        const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+        const orderIndex = allOrdersData.findIndex(o => o.id === currentEditingOrderId);
         if (orderIndex === -1) {
             throw new Error('Không tìm thấy đơn hàng');
         }
@@ -3959,52 +4142,76 @@ async function saveNewProduct(orderId, orderCode) {
             });
         }
 
-        // Add new product with optional weight, size and notes
-        const newProduct = {
-            name: productName,
-            quantity: quantity
-        };
+        // Add selected products
+        selectedProducts.forEach(productId => {
+            const product = allProductsList.find(p => p.id === productId);
+            if (product) {
+                const quantity = productQuantities[productId] || 1;
+                const weightOrSize = productWeights[productId] || ''; // This field stores either weight or size
+                const notes = productNotes[productId] || '';
 
-        // Add price if provided
-        if (price !== null && price > 0) {
-            newProduct.price = price;
-        }
+                // Determine if this is size or weight based on category
+                const productCategory = allCategoriesList.find(c => c.id === product.category_id);
+                const categoryName = productCategory ? productCategory.name : '';
+                const isAdultBracelet = categoryName.toLowerCase().includes('vòng người lớn');
 
-        // Add weight if provided
-        if (weight) {
-            newProduct.weight = weight;
-        }
+                const newProduct = {
+                    product_id: product.id, // Add product_id
+                    name: product.name,
+                    quantity: quantity
+                };
 
-        // Add size if provided
-        if (size) {
-            newProduct.size = size;
-        }
+                // Always add price and cost_price if available (even if 0)
+                if (product.price !== undefined && product.price !== null) {
+                    newProduct.price = product.price;
+                }
+                if (product.cost_price !== undefined && product.cost_price !== null) {
+                    newProduct.cost_price = product.cost_price;
+                }
+                
+                // Add size (for both weight and size) with auto-unit
+                if (weightOrSize) {
+                    let finalSize = weightOrSize.trim();
+                    
+                    // Auto-add unit if only number is entered
+                    if (/^\d+(\.\d+)?$/.test(finalSize)) {
+                        if (isAdultBracelet) {
+                            finalSize = finalSize + 'cm'; // Size tay
+                        } else {
+                            finalSize = finalSize + 'kg'; // Cân nặng
+                        }
+                    }
+                    
+                    newProduct.size = finalSize;
+                }
+                
+                if (notes) newProduct.notes = notes;
 
-        // Add notes if provided
-        if (notes) {
-            newProduct.notes = notes;
-        }
+                console.log('📦 Adding product to order:', {
+                    name: product.name,
+                    category: categoryName,
+                    isAdultBracelet: isAdultBracelet,
+                    price: product.price,
+                    cost_price: product.cost_price,
+                    quantity: quantity,
+                    weightOrSize: weightOrSize,
+                    notes: notes,
+                    finalProduct: newProduct
+                });
 
-        products.push(newProduct);
+                products.push(newProduct);
+            }
+        });
 
-        // Calculate additional amount from new product
-        let additionalAmount = 0;
-        if (price !== null && price > 0) {
-            additionalAmount = price * quantity;
-        }
-
-        // Convert back to JSON string
         const updatedProductsJson = JSON.stringify(products);
 
-        // Update in database via API
+        // Update in database
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'updateOrderProducts',
-                orderId: orderId,
+                orderId: currentEditingOrderId,
                 products: updatedProductsJson
             })
         });
@@ -4014,51 +4221,31 @@ async function saveNewProduct(orderId, orderCode) {
         if (data.success) {
             // Update local data
             allOrdersData[orderIndex].products = updatedProductsJson;
-            
-            // Update total_amount if returned from API (trigger auto-calculated)
-            if (data.total_amount !== undefined) {
-                allOrdersData[orderIndex].total_amount = data.total_amount;
-            }
-            
-            // Update commission if returned from API
-            if (data.commission !== undefined) {
-                allOrdersData[orderIndex].commission = data.commission;
-            }
+            if (data.total_amount !== undefined) allOrdersData[orderIndex].total_amount = data.total_amount;
+            if (data.commission !== undefined) allOrdersData[orderIndex].commission = data.commission;
 
-            // Update filtered data if exists
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
+            // Update filtered data
+            const filteredIndex = filteredOrdersData.findIndex(o => o.id === currentEditingOrderId);
             if (filteredIndex !== -1) {
                 filteredOrdersData[filteredIndex].products = updatedProductsJson;
-                if (data.total_amount !== undefined) {
-                    filteredOrdersData[filteredIndex].total_amount = data.total_amount;
-                }
-                if (data.commission !== undefined) {
-                    filteredOrdersData[filteredIndex].commission = data.commission;
-                }
+                if (data.total_amount !== undefined) filteredOrdersData[filteredIndex].total_amount = data.total_amount;
+                if (data.commission !== undefined) filteredOrdersData[filteredIndex].commission = data.commission;
             }
 
-            // Update stats
             updateStats();
-
-            // Re-render the table to show new product and updated amount
             renderOrdersTable();
+            closeProductSelectionModal();
+            showToast(`Đã thêm sản phẩm vào đơn ${currentEditingOrderCode}`, 'success');
 
-            showToast(`Đã thêm sản phẩm vào đơn ${orderCode}`, 'success');
+            // Reset
+            currentEditingOrderId = null;
+            currentEditingOrderCode = null;
         } else {
             throw new Error(data.error || 'Không thể thêm sản phẩm');
         }
-
     } catch (error) {
-        console.error('Error adding product:', error);
+        console.error('Error adding products:', error);
         showToast('Không thể thêm sản phẩm: ' + error.message, 'error');
-
-        // Show form again on error
-        const btn = document.getElementById(`addProductBtn_${orderId}`);
-        const form = document.getElementById(`addProductForm_${orderId}`);
-        if (btn && form) {
-            btn.classList.add('hidden');
-            form.classList.remove('hidden');
-        }
     }
 }
 
@@ -4246,7 +4433,7 @@ let allProductsList = [];
 let allCategoriesList = [];
 let currentOrderProducts = [];
 let currentOrderNotes = ''; // General notes for the entire order
-let selectedCategory = null;
+let selectedCategory = null; // For modal category selection
 let selectedProducts = []; // Changed to array for multiple selection
 
 // Load products and categories
@@ -4903,7 +5090,7 @@ function showProductSelectionModal() {
                                             Cân nặng
                                         </label>
                                         <input type="text" id="modalCustomProductWeightInput" 
-                                            placeholder="0.5kg" 
+                                            placeholder="5kg" 
                                             class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
                                     </div>
                                 </div>
@@ -4981,194 +5168,17 @@ function closeProductSelectionModal() {
         selectedProducts = [];
         // Reset product quantities
         Object.keys(productQuantities).forEach(key => delete productQuantities[key]);
+        // Reset editing order
+        currentEditingOrderId = null;
+        currentEditingOrderCode = null;
     }
 }
 
-// Render categories grid
-function renderCategories() {
-    const container = document.getElementById('categoriesGrid');
-    if (!container) return;
 
-    // Add "Custom Input" option
-    const categories = [
-        ...allCategoriesList,
-        { id: 'custom', name: 'Tự nhập', icon: '✏️', color: '#6b7280' }
-    ];
 
-    container.innerHTML = categories.map(cat => `
-        <button onclick="selectCategory(${cat.id === 'custom' ? 'null' : cat.id})" 
-            id="cat_${cat.id}"
-            class="category-pill flex flex-col items-center justify-center p-2 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-sm ${selectedCategory === cat.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white'}"
-            style="border-color: ${selectedCategory === cat.id ? '#a855f7' : '#e5e7eb'}">
-            <span class="text-2xl mb-0.5">${cat.icon || '📦'}</span>
-            <span class="text-xs font-medium text-gray-700 truncate w-full text-center">${escapeHtml(cat.name)}</span>
-        </button>
-    `).join('');
-}
 
-// Select category
-function selectCategory(categoryId) {
-    selectedCategory = categoryId;
-    renderCategories();
 
-    if (categoryId === null) {
-        // Custom input mode
-        document.getElementById('productsList').innerHTML = '<p class="p-4 text-center text-gray-500 text-sm italic">Nhập thông tin sản phẩm bên dưới</p>';
-        document.getElementById('newProductNameInput').value = '';
-        document.getElementById('newProductPriceInput').value = '';
-        document.getElementById('newProductNameInput').focus();
-    } else {
-        // Filter products by category
-        renderProductsList(categoryId);
-    }
-}
 
-// Render products list
-function renderProductsList(categoryId = null) {
-    const container = document.getElementById('productsList');
-    if (!container) return;
-
-    let products = allProductsList.filter(p => p.is_active !== 0);
-
-    if (categoryId) {
-        products = products.filter(p => p.category_id === categoryId);
-    }
-
-    if (products.length === 0) {
-        container.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm italic">Không có sản phẩm nào</p>';
-        return;
-    }
-
-    container.innerHTML = products.map(p => `
-        <div onclick="selectProductFromList(${p.id})" 
-            id="product_${p.id}"
-            class="product-item flex items-center gap-2 p-2 cursor-pointer hover:bg-purple-50 transition-colors ${selectedProduct === p.id ? 'bg-purple-100' : ''}">
-            <div class="flex-shrink-0">
-                <div class="w-4 h-4 rounded border-2 flex items-center justify-center ${selectedProduct === p.id ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">
-                    ${selectedProduct === p.id ? '<svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="font-medium text-gray-900 text-xs truncate">${escapeHtml(p.name)}</p>
-                <p class="text-xs font-bold text-green-600">${formatCurrency(p.price || 0)}</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Select product from list
-function selectProductFromList(productId) {
-    selectedProduct = productId;
-    const product = allProductsList.find(p => p.id === productId);
-
-    if (product) {
-        // Auto-fill name and price (hidden inputs)
-        document.getElementById('newProductNameInput').value = product.name;
-        document.getElementById('newProductPriceInput').value = product.price || 0;
-
-        // Show selected product display
-        const display = document.getElementById('selectedProductDisplay');
-        if (display) {
-            display.classList.remove('hidden');
-            document.getElementById('selectedProductName').textContent = product.name;
-            document.getElementById('selectedProductPrice').textContent = formatCurrency(product.price || 0);
-        }
-
-        // Update UI
-        renderProductsList(selectedCategory);
-
-        // Focus on weight input
-        document.getElementById('newProductWeightInput')?.focus();
-    }
-}
-
-// Setup product search
-function setupProductSearch() {
-    const searchInput = document.getElementById('productSearchInput');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', function () {
-        const query = this.value.trim().toLowerCase();
-
-        if (query.length === 0) {
-            // Show products based on selected category
-            renderProductsList(selectedCategory);
-            return;
-        }
-
-        // Search across all products
-        const container = document.getElementById('productsList');
-        const filtered = allProductsList.filter(p =>
-            p.is_active !== 0 && p.name.toLowerCase().includes(query)
-        );
-
-        if (filtered.length === 0) {
-            container.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm italic">Không tìm thấy sản phẩm</p>';
-            return;
-        }
-
-        container.innerHTML = filtered.map(p => `
-            <div onclick="selectProductFromList(${p.id})" 
-                id="product_${p.id}"
-                class="product-item flex items-center gap-2 p-2 cursor-pointer hover:bg-purple-50 transition-colors ${selectedProduct === p.id ? 'bg-purple-100' : ''}">
-                <div class="flex-shrink-0">
-                    <div class="w-4 h-4 rounded border-2 flex items-center justify-center ${selectedProduct === p.id ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">
-                        ${selectedProduct === p.id ? '<svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
-                    </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-medium text-gray-900 text-xs truncate">${escapeHtml(p.name)}</p>
-                    <p class="text-xs font-bold text-green-600">${formatCurrency(p.price || 0)}</p>
-                </div>
-            </div>
-        `).join('');
-    });
-}
-
-// Cancel add product inline
-function cancelAddProductInline() {
-    document.getElementById('addProductInlineForm')?.classList.add('hidden');
-
-    // Reset state
-    selectedCategory = null;
-    selectedProduct = null;
-
-    // Clear inputs
-    document.getElementById('newProductNameInput').value = '';
-    document.getElementById('newProductPriceInput').value = '';
-    document.getElementById('newProductWeightInput').value = '';
-    document.getElementById('newProductSizeInput').value = '';
-    document.getElementById('newProductNotesInput').value = '';
-    document.getElementById('newProductQtyInput').value = '1';
-    document.getElementById('productSearchInput').value = '';
-}
-
-// Add product to order
-function addProductToOrder() {
-    const name = document.getElementById('newProductNameInput')?.value.trim();
-    const price = parseFloat(document.getElementById('newProductPriceInput')?.value) || 0;
-    const weight = document.getElementById('newProductWeightInput')?.value.trim();
-    const size = document.getElementById('newProductSizeInput')?.value.trim();
-    const notes = document.getElementById('newProductNotesInput')?.value.trim();
-    const quantity = parseInt(document.getElementById('newProductQtyInput')?.value) || 1;
-
-    if (!name) {
-        showToast('Vui lòng nhập tên sản phẩm', 'warning');
-        return;
-    }
-
-    const product = { name, quantity };
-    if (price > 0) product.price = price;
-    if (weight) product.weight = weight;
-    if (size) product.size = size;
-    if (notes) product.notes = notes;
-
-    currentOrderProducts.push(product);
-    renderOrderProducts();
-    updateOrderSummary();
-    cancelAddProductInline();
-    showToast('Đã thêm sản phẩm', 'success');
-}
 
 // Remove product from order
 function removeProductFromOrder(index) {
@@ -5211,56 +5221,47 @@ function editProductInOrder(index) {
 
             <!-- Form -->
             <div class="p-6 space-y-4">
+                <!-- Product Name -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Tên sản phẩm <span class="text-red-500">*</span></label>
                     <input type="text" id="editProductName" value="${escapeHtml(product.name)}" 
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
 
+                <!-- Quantity -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng <span class="text-red-500">*</span></label>
+                    <input type="number" id="editProductQty" value="${product.quantity || 1}" min="1" 
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        oninput="calculateEditProfit()" />
+                </div>
+
+                <!-- Price and Cost -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá bán</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                            Giá bán <span class="text-xs text-gray-500 font-normal">(VD: 50000)</span>
+                        </label>
                         <input type="number" id="editProductPrice" value="${product.price || ''}" placeholder="0" 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                             oninput="calculateEditProfit()" />
+                        <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
+                            Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng</label>
-                        <input type="number" id="editProductQty" value="${product.quantity || 1}" min="1" 
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">💰 Giá vốn</label>
                         <input type="number" id="editProductCostPrice" value="${product.cost_price || ''}" placeholder="0" 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                             oninput="calculateEditProfit()" />
-                        <p class="text-xs text-gray-500 mt-1">Chi phí nguyên liệu</p>
-                    </div>
-                    <div id="editProfitDisplay" class="hidden">
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">📊 Lãi dự kiến</label>
-                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-3 py-2">
-                            <div class="flex items-center justify-between mb-0.5">
-                                <span class="text-xs text-gray-600">Lãi:</span>
-                                <span id="editProfitAmount" class="text-sm font-bold text-green-600">0đ</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs text-gray-500">Tỷ suất:</span>
-                                <span id="editProfitMargin" class="text-xs font-semibold text-green-600">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="editLossWarning" class="hidden">
-                        <label class="block text-sm font-medium text-red-600 mb-1.5">⚠️ Cảnh báo</label>
-                        <div class="bg-red-50 border-2 border-red-200 rounded-lg px-3 py-2">
-                            <p class="text-xs text-red-600 font-medium">Giá vốn cao hơn giá bán!</p>
-                            <p class="text-xs text-red-500 mt-0.5">Sản phẩm này sẽ bị lỗ</p>
+                        <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
+                            Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
                         </div>
                     </div>
                 </div>
+                <p class="text-xs text-gray-500 -mt-2">💡 Giá nhập là giá 1 sản phẩm. Tổng tiền sẽ tự động tính = giá × số lượng</p>
 
+                <!-- Weight and Size -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Cân nặng</label>
@@ -5295,45 +5296,91 @@ function editProductInOrder(index) {
 
     document.body.appendChild(modal);
 
+    // Reset unit prices
+    editOrderUnitPrice = parseFloat(product.price) || 0;
+    editOrderUnitCost = parseFloat(product.cost_price) || 0;
+
     // Focus first input
-    setTimeout(() => document.getElementById('editProductName')?.focus(), 100);
+    setTimeout(() => {
+        document.getElementById('editProductName')?.focus();
+        calculateEditProfit();
+    }, 100);
 }
 
-// Calculate profit in edit modal
+// Store unit prices for new order modal
+let editOrderUnitPrice = 0;
+let editOrderUnitCost = 0;
+let editOrderIsUpdating = false;
+
+// Calculate and update unit prices in edit modal (for new order)
 function calculateEditProfit() {
-    const price = parseFloat(document.getElementById('editProductPrice')?.value) || 0;
-    const costPrice = parseFloat(document.getElementById('editProductCostPrice')?.value) || 0;
+    if (editOrderIsUpdating) return;
+    
+    const priceInput = document.getElementById('editProductPrice');
+    const costPriceInput = document.getElementById('editProductCostPrice');
+    const quantityInput = document.getElementById('editProductQty');
+    
+    if (!priceInput || !costPriceInput || !quantityInput) return;
 
-    const profitDisplay = document.getElementById('editProfitDisplay');
-    const lossWarning = document.getElementById('editLossWarning');
+    const quantity = parseInt(quantityInput.value) || 1;
+    
+    // Parse current input values
+    const currentPriceValue = parseFloat(priceInput.value) || 0;
+    const currentCostValue = parseFloat(costPriceInput.value) || 0;
+    
+    // If unit prices not set yet, calculate from current values
+    if (editOrderUnitPrice === 0 && currentPriceValue > 0) {
+        editOrderUnitPrice = currentPriceValue;
+    }
+    if (editOrderUnitCost === 0 && currentCostValue > 0) {
+        editOrderUnitCost = currentCostValue;
+    }
+    
+    // Calculate totals
+    const totalRevenue = editOrderUnitPrice * quantity;
+    const totalCost = editOrderUnitCost * quantity;
 
-    if (price > 0 && costPrice > 0) {
-        const profit = price - costPrice;
-        const margin = (profit / price) * 100;
+    // Update inputs to show total
+    editOrderIsUpdating = true;
+    if (editOrderUnitPrice > 0) {
+        priceInput.value = totalRevenue;
+    }
+    if (editOrderUnitCost > 0) {
+        costPriceInput.value = totalCost;
+    }
+    editOrderIsUpdating = false;
 
-        if (profit > 0) {
-            // Show profit
-            document.getElementById('editProfitAmount').textContent = formatCurrency(profit);
-            document.getElementById('editProfitMargin').textContent = `${margin.toFixed(1)}%`;
-            profitDisplay.classList.remove('hidden');
-            lossWarning.classList.add('hidden');
+    // Update unit price labels (show only when quantity > 1)
+    const priceUnitDiv = document.getElementById('editProductPriceUnit');
+    const costUnitDiv = document.getElementById('editProductCostUnit');
+    
+    if (quantity > 1) {
+        if (editOrderUnitPrice > 0) {
+            document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editOrderUnitPrice);
+            priceUnitDiv?.classList.remove('hidden');
         } else {
-            // Show loss warning
-            profitDisplay.classList.add('hidden');
-            lossWarning.classList.remove('hidden');
+            priceUnitDiv?.classList.add('hidden');
+        }
+        
+        if (editOrderUnitCost > 0) {
+            document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editOrderUnitCost);
+            costUnitDiv?.classList.remove('hidden');
+        } else {
+            costUnitDiv?.classList.add('hidden');
         }
     } else {
-        profitDisplay.classList.add('hidden');
-        lossWarning.classList.add('hidden');
+        priceUnitDiv?.classList.add('hidden');
+        costUnitDiv?.classList.add('hidden');
     }
 }
 
 // Save edited product
 function saveEditedProduct(index) {
     const name = document.getElementById('editProductName')?.value.trim();
-    const price = parseFloat(document.getElementById('editProductPrice')?.value) || 0;
-    const costPrice = parseFloat(document.getElementById('editProductCostPrice')?.value) || 0;
     const quantity = parseInt(document.getElementById('editProductQty')?.value) || 1;
+    // Use unit prices (not total from input)
+    const price = editOrderUnitPrice;
+    const costPrice = editOrderUnitCost;
     const weight = document.getElementById('editProductWeight')?.value.trim();
     const size = document.getElementById('editProductSize')?.value.trim();
     const notes = document.getElementById('editProductNotes')?.value.trim();
@@ -5984,7 +6031,7 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
     const categoryName = currentCategory ? currentCategory.name : '';
     const isAdultBracelet = categoryName.toLowerCase().includes('vòng người lớn');
     const weightLabel = isAdultBracelet ? 'Size tay' : 'Cân nặng';
-    const weightPlaceholder = isAdultBracelet ? 'Size M' : '0.5kg';
+    const weightPlaceholder = isAdultBracelet ? 'Size M' : '5kg';
 
     // Hiển thị số lượng sản phẩm
     const countText = `<div class="col-span-2 px-3 py-2 bg-gray-50 text-xs text-gray-600 font-medium border-b border-gray-200">
@@ -6104,9 +6151,10 @@ function updateSelectedProductsDisplay() {
     document.getElementById('modalSelectedProductPrice').textContent = `Tổng: ${formatCurrency(totalPrice)} (${selectedProducts.length} sản phẩm)`;
 }
 
-// Product quantity, weight and notes management
+// Product quantity, weight, size and notes management
 const productQuantities = {};
 const productWeights = {};
+const productSizes = {};
 const productNotes = {};
 
 // Toggle select all products
@@ -6237,6 +6285,12 @@ function calculateModalCustomProfit() {
 
 // Add product from modal
 function addProductFromModal() {
+    // Check if adding to existing order or new order
+    if (currentEditingOrderId) {
+        saveProductsToExistingOrder();
+        return;
+    }
+
     // Get common details
     let weight = document.getElementById('modalProductWeightInput')?.value.trim();
     const quantity = parseInt(document.getElementById('modalProductQtyInput')?.value) || 1;

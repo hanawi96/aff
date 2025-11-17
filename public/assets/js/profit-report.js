@@ -4,6 +4,15 @@ let currentLimit = 9999; // Show all products
 let allProductsData = [];
 let currentSort = { column: null, direction: null }; // null, 'asc', 'desc'
 
+// Cache data by period for better performance
+const dataCache = {
+    today: null,
+    week: null,
+    month: null,
+    year: null,
+    all: null
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
     console.log('📊 Product Analytics Dashboard initialized');
@@ -72,6 +81,8 @@ function toggleSort(column) {
 
 // Refresh data
 function refreshData() {
+    // Clear cache for current period to force reload
+    dataCache[currentPeriod] = null;
     showToast('Đang làm mới dữ liệu...', 'info');
     loadTopProducts();
 }
@@ -79,6 +90,17 @@ function refreshData() {
 // Load top products
 async function loadTopProducts() {
     try {
+        // Check cache first for better performance
+        if (dataCache[currentPeriod]) {
+            console.log('📦 Using cached data for', currentPeriod);
+            const cachedData = dataCache[currentPeriod];
+            allProductsData = cachedData.top_products || [];
+            updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
+            renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
+            renderTopProductsTable();
+            return;
+        }
+
         // Show skeleton loading
         showSkeletonLoading();
 
@@ -98,17 +120,19 @@ async function loadTopProducts() {
             startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
         }
 
-        // Load both overview (with detailed costs) and top products
-        const [overviewResponse, productsResponse] = await Promise.all([
-            fetch(`${CONFIG.API_URL}?action=getDetailedAnalytics&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`),
-            fetch(`${CONFIG.API_URL}?action=getTopProducts&limit=${currentLimit}&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`)
-        ]);
+        // Load overview data (includes top products) - Single API call for better performance
+        const overviewResponse = await fetch(
+            `${CONFIG.API_URL}?action=getDetailedAnalytics&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`
+        );
 
         const overviewData = await overviewResponse.json();
-        const productsData = await productsResponse.json();
 
-        if (overviewData.success && productsData.success) {
-            allProductsData = productsData.products || [];
+        if (overviewData.success) {
+            // Cache the data for this period
+            dataCache[currentPeriod] = overviewData;
+            
+            // Use top_products from getDetailedAnalytics (no need for separate API call)
+            allProductsData = overviewData.top_products || [];
             updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
             renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
             renderTopProductsTable();
@@ -140,49 +164,26 @@ function updateSummaryStats(overview, costs) {
         }
     });
 
-    // Update existing stats
+    // Update stats - Use pre-calculated values from backend (no redundant calculations)
     document.getElementById('totalRevenue').textContent = formatCurrency(overview.total_revenue);
     document.getElementById('totalProfit').textContent = formatCurrency(overview.total_profit);
-
-    // Calculate average profit per order (not per product)
-    const avgProfitPerOrder = overview.total_orders > 0 ? (overview.total_profit / overview.total_orders) : 0;
-    document.getElementById('avgProfit').textContent = `TB: ${formatCurrency(avgProfitPerOrder)}/đơn`;
+    document.getElementById('avgProfit').textContent = `TB: ${formatCurrency(overview.avg_profit_per_order)}/đơn`;
     document.getElementById('profitMargin').textContent = `${overview.profit_margin.toFixed(1)}%`;
 
     document.getElementById('totalProductsSold').textContent = formatNumber(overview.total_products_sold);
     document.getElementById('totalOrders').textContent = formatNumber(overview.total_orders);
-
-    // Calculate average order value (revenue per order)
-    const avgOrderValue = overview.total_orders > 0 ? (overview.total_revenue / overview.total_orders) : 0;
-    document.getElementById('avgOrderValue').textContent = `TB: ${formatCurrency(avgOrderValue)}/đơn`;
+    document.getElementById('avgOrderValue').textContent = `TB: ${formatCurrency(overview.avg_revenue_per_order)}/đơn`;
     document.getElementById('totalCost').textContent = `Vốn: ${formatCurrency(overview.product_cost)}`;
 
-    // Update commission stats - use costs.commission instead of overview.commission
+    // Update commission stats
     const commission = costs ? (costs.commission || 0) : (overview.commission || 0);
     document.getElementById('totalCommission').textContent = formatCurrency(commission);
     const commissionPercent = (overview.total_revenue > 0 && commission > 0) ? (commission / overview.total_revenue * 100) : 0;
     document.getElementById('commissionPercent').textContent = `${commissionPercent.toFixed(1)}% doanh thu`;
 
-    // Calculate and display total costs from detailed cost_breakdown
-    const totalAllCosts = costs ? (
-        (costs.product_cost || 0) +
-        (costs.shipping_cost || 0) +
-        (costs.commission || 0) +
-        (costs.tax || 0) +
-        (costs.bag_zip || 0) +
-        (costs.bag_red || 0) +
-        (costs.box_shipping || 0) +
-        (costs.red_string || 0) +
-        (costs.thank_card || 0) +
-        (costs.paper_print || 0) +
-        (costs.labor_cost || 0)
-    ) : ((overview.product_cost || 0) + (overview.shipping_cost || 0) + (overview.packaging_cost || 0) + (overview.tax || 0) + (overview.commission || 0));
-
-    document.getElementById('totalAllCosts').textContent = formatCurrency(totalAllCosts);
-
-    // Display average cost per order
-    const avgCostPerOrder = overview.total_orders > 0 ? (totalAllCosts / overview.total_orders) : 0;
-    document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(avgCostPerOrder)}/đơn`;
+    // Use total_cost from backend (already calculated)
+    document.getElementById('totalAllCosts').textContent = formatCurrency(overview.total_cost);
+    document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(overview.avg_cost_per_order)}/đơn`;
 }
 
 // Chart instance
@@ -269,11 +270,11 @@ function renderCostBreakdownTable(costs, overview) {
     `;
 
     // Render charts
-    renderCostCharts(activeItems, costs);
+    renderCostCharts(costs);
 }
 
 // Render pie chart - 6 loại chi phí + Lợi nhuận ròng
-function renderCostCharts(items, costs) {
+function renderCostCharts(costs) {
     // Tính tổng vật liệu đóng gói (KHÔNG bao gồm tiền công)
     const packagingMaterialsTotal = (costs.bag_zip || 0) + (costs.bag_red || 0) +
         (costs.box_shipping || 0) + (costs.red_string || 0) +
@@ -440,8 +441,8 @@ function renderTopProductsTable() {
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     <div class="text-2xl font-bold text-gray-900">${rankDisplay}</div>
                 </td>
-                <td class="px-6 py-4 text-center">
-                    <div class="flex items-center justify-center">
+                <td class="px-6 py-4">
+                    <div class="flex items-center">
                         <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">
                             ${product.product_name.charAt(0).toUpperCase()}
                         </div>
@@ -557,39 +558,19 @@ function closeProductModal() {
     document.getElementById('productDetailModal').classList.add('hidden');
 }
 
-// Skeleton loading functions
+// Skeleton loading functions - Simplified for better performance
 function showSkeletonLoading() {
     const tbody = document.getElementById('topProductsTable');
-    const skeletonRows = Array(10).fill(0).map((_, index) => `
-        <tr class="border-b border-gray-200">
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-8 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-32 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-16 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-24 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-24 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-24 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-4 w-16 rounded mx-auto"></div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                <div class="skeleton h-8 w-20 rounded mx-auto"></div>
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="8" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p class="text-gray-500">Đang tải dữ liệu...</p>
+                </div>
             </td>
         </tr>
-    `).join('');
-
-    tbody.innerHTML = skeletonRows;
+    `;
 }
 
 function hideSkeletonLoading() {

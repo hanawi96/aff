@@ -127,6 +127,27 @@ async function handleGet(action, url, env, corsHeaders) {
             const topStartDate = url.searchParams.get('startDate'); // Optional: custom start date from frontend
             return await getTopProducts(topLimit, topPeriod, env, corsHeaders, topStartDate);
 
+        case 'debugOrderItems':
+            // Debug endpoint to check raw order_items data
+            const debugLimit = parseInt(url.searchParams.get('limit')) || 20;
+            const { results: debugItems } = await env.DB.prepare(`
+                SELECT 
+                    id, order_id, product_name, quantity, 
+                    product_price, product_cost, created_at,
+                    datetime(created_at) as created_at_readable
+                FROM order_items
+                ORDER BY created_at DESC
+                LIMIT ?
+            `).bind(debugLimit).all();
+            
+            return jsonResponse({
+                success: true,
+                count: debugItems.length,
+                items: debugItems,
+                serverTime: new Date().getTime(),
+                note: 'All timestamps are in UTC'
+            }, 200, corsHeaders);
+
         case 'getProductStats':
             const statsProductId = url.searchParams.get('productId');
             const statsPeriod = url.searchParams.get('period') || 'all';
@@ -245,6 +266,8 @@ async function handlePost(path, request, env, corsHeaders) {
                 return await createOrder(orderData, env, corsHeaders);
             case 'updateOrderProducts':
                 return await updateOrderProducts(data, env, corsHeaders);
+            case 'updateOrderNotes':
+                return await updateOrderNotes(data, env, corsHeaders);
             case 'updateCustomerInfo':
                 return await updateCustomerInfo(data, env, corsHeaders);
             case 'updateAddress':
@@ -341,7 +364,7 @@ async function registerCTV(data, env, corsHeaders) {
                 ...data,
                 referralCode: referralCode,
                 commissionRate: commissionRate,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().getTime()
             };
 
             const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
@@ -542,7 +565,7 @@ async function getAllCTV(env, corsHeaders) {
         `).all();
 
         // Get today's commission for each CTV (in UTC)
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
+        const today = new Date().getTime().split('T')[0]; // YYYY-MM-DD in UTC
         const { results: todayStats } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -710,7 +733,7 @@ async function createOrder(data, env, corsHeaders) {
         const productsJson = JSON.stringify(data.cart);
 
         // 1. Lưu vào D1 Database (store in UTC)
-        const orderDate = data.orderDate || new Date().toISOString();
+        const orderDate = data.orderDate || new Date().getTime();
 
         // Get shipping info
         const shippingFee = data.shippingFee || 0;
@@ -772,14 +795,15 @@ async function createOrder(data, env, corsHeaders) {
         const revenue = totalAmountNumber + shippingFee;
         const taxAmount = Math.round(revenue * currentTaxRate);
 
+        const orderTimestamp = new Date(orderDate).getTime();
         const result = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, order_date, customer_name, customer_phone, 
                 address, products, payment_method, 
                 status, referral_code, commission, ctv_phone, notes,
                 shipping_fee, shipping_cost, packaging_cost, packaging_details,
-                tax_amount, tax_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tax_amount, tax_rate, created_at_unix
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
@@ -798,7 +822,8 @@ async function createOrder(data, env, corsHeaders) {
             totalPackagingCost,
             JSON.stringify(packagingDetails),
             taxAmount,
-            currentTaxRate
+            currentTaxRate,
+            orderTimestamp
         ).run();
 
         if (!result.success) {
@@ -848,12 +873,13 @@ async function createOrder(data, env, corsHeaders) {
                 // Merge weight and size into single size column
                 const sizeValue = size || weight || null;
 
-                // Insert into order_items (without subtotal, cost_total, profit)
+                // Insert into order_items with unix timestamp
+                const orderTimestamp = new Date(orderDate).getTime();
                 await env.DB.prepare(`
                     INSERT INTO order_items (
                         order_id, product_id, product_name, product_price, product_cost,
-                        quantity, size, notes, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        quantity, size, notes, created_at, created_at_unix
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `).bind(
                     insertedOrderId,
                     productId,
@@ -863,7 +889,8 @@ async function createOrder(data, env, corsHeaders) {
                     quantity,
                     sizeValue,
                     notes,
-                    orderDate
+                    orderDate,
+                    orderTimestamp
                 ).run();
             }
             console.log(`✅ Inserted ${data.cart.length} items into order_items`);
@@ -880,7 +907,7 @@ async function createOrder(data, env, corsHeaders) {
                 // Chuẩn bị dữ liệu cho Google Sheets (format giống như order-handler.js)
                 const sheetsData = {
                     orderId: data.orderId,
-                    orderDate: data.orderDate || new Date().toISOString(),
+                    orderDate: data.orderDate || new Date().getTime(),
                     customer: {
                         name: data.customer.name,
                         phone: data.customer.phone,
@@ -931,7 +958,7 @@ async function createOrder(data, env, corsHeaders) {
             message: 'Đơn hàng đã được tạo thành công',
             orderId: data.orderId,
             commission: finalCommission,
-            timestamp: new Date().toISOString() // UTC timestamp
+            timestamp: new Date().getTime() // UTC timestamp
         }, 200, corsHeaders);
 
     } catch (error) {
@@ -1304,21 +1331,31 @@ async function updateOrderProducts(data, env, corsHeaders) {
         `).bind(data.orderId).run();
 
         // Insert new order_items
+        const currentTimestamp = Date.now(); // Unix timestamp in milliseconds
+        
         for (const product of productsArray) {
             await env.DB.prepare(`
                 INSERT INTO order_items (
-                    order_id, 
+                    order_id,
+                    product_id,
                     product_name, 
                     product_price, 
                     product_cost,
-                    quantity
-                ) VALUES (?, ?, ?, ?, ?)
+                    quantity,
+                    size,
+                    notes,
+                    created_at_unix
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 data.orderId,
+                product.product_id || null,
                 product.name || product.product_name || 'Unknown',
                 product.price || product.product_price || 0,
-                product.cost || product.product_cost || 0,
-                product.quantity || 1
+                product.cost_price || product.cost || product.product_cost || 0,
+                product.quantity || 1,
+                product.size || product.weight || null, // Use size field for both weight and size
+                product.notes || null,
+                currentTimestamp
             ).run();
         }
 
@@ -1373,6 +1410,39 @@ async function updateOrderProducts(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error updating order products:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message || 'Lỗi khi cập nhật sản phẩm'
+        }, 500, corsHeaders);
+    }
+}
+
+// Update order notes
+async function updateOrderNotes(data, env, corsHeaders) {
+    try {
+        if (!data.orderId) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu orderId'
+            }, 400, corsHeaders);
+        }
+
+        // Update notes in database
+        await env.DB.prepare(`
+            UPDATE orders 
+            SET notes = ?
+            WHERE id = ?
+        `).bind(data.notes || null, data.orderId).run();
+
+        console.log('✅ Updated notes for order:', data.orderId);
+
+        return jsonResponse({
+            success: true,
+            message: 'Đã cập nhật ghi chú'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating order notes:', error);
         return jsonResponse({
             success: false,
             error: error.message
@@ -1502,13 +1572,14 @@ async function updateAmount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Note: total_amount is now calculated from order_items
-        // We only update commission here
+        // Update both total_amount and commission
+        // When user manually edits order value, we update the orders table directly
         const result = await env.DB.prepare(`
             UPDATE orders 
-            SET commission = ?
+            SET total_amount = ?,
+                commission = ?
             WHERE id = ?
-        `).bind(data.commission || 0, data.orderId).run();
+        `).bind(data.totalAmount, data.commission || 0, data.orderId).run();
 
         if (result.meta.changes === 0) {
             return jsonResponse({
@@ -2652,10 +2723,10 @@ async function getProfitReport(data, env, corsHeaders) {
                 COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost
             FROM orders
             LEFT JOIN order_items ON orders.id = order_items.order_id
-            WHERE orders.created_at >= ?
+            WHERE orders.created_at_unix >= ?
             GROUP BY orders.id
             ORDER BY orders.created_at DESC
-        `).bind(startDate.toISOString()).all();
+        `).bind(startDate.getTime()).all();
 
         // Calculate totals
         let totalRevenue = 0;
@@ -3230,29 +3301,39 @@ async function getTopProducts(limit, period, env, corsHeaders, customStartDate =
             }
         }
 
-        // Query top products
+        // Query top products - Simplified and optimized
+        const startDateISO = startDate.getTime();
+        console.log('🔍 getTopProducts - Filtering from:', startDateISO);
+        
         const { results: topProducts } = await env.DB.prepare(`
             SELECT 
-                product_id,
-                product_name,
-                SUM(quantity) as total_sold,
-                SUM(product_price * quantity) as total_revenue,
-                SUM(product_cost * quantity) as total_cost,
-                SUM((product_price - product_cost) * quantity) as total_profit,
-                AVG(product_price) as avg_price,
-                COUNT(DISTINCT order_id) as order_count,
-                ROUND(SUM((product_price - product_cost) * quantity) * 100.0 / NULLIF(SUM(product_price * quantity), 0), 2) as profit_margin
-            FROM order_items
-            WHERE created_at >= ?
-            GROUP BY product_id, product_name
+                oi.product_id,
+                oi.product_name,
+                SUM(oi.quantity) as total_sold,
+                SUM(oi.product_price * oi.quantity) as total_revenue,
+                SUM(oi.product_cost * oi.quantity) as total_cost,
+                SUM((oi.product_price - oi.product_cost) * oi.quantity) as total_profit,
+                AVG(oi.product_price) as avg_price,
+                COUNT(DISTINCT oi.order_id) as order_count,
+                ROUND(
+                    (SUM((oi.product_price - oi.product_cost) * oi.quantity) * 100.0) / 
+                    NULLIF(SUM(oi.product_price * oi.quantity), 0), 
+                    2
+                ) as profit_margin
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.created_at_unix >= ?
+            GROUP BY oi.product_id, oi.product_name
             ORDER BY total_sold DESC
             LIMIT ?
-        `).bind(startDate.toISOString(), limit).all();
+        `).bind(startDateISO, limit).all();
+        
+        console.log('📊 getTopProducts - Found', topProducts.length, 'products');
 
         return jsonResponse({
             success: true,
             period: period,
-            startDate: startDate.toISOString(),
+            startDate: startDate.getTime(),
             products: topProducts
         }, 200, corsHeaders);
 
@@ -3302,25 +3383,35 @@ async function getProfitOverview(period, env, corsHeaders, customStartDate = nul
             }
         }
 
-        // Get overview from orders and order_items
+        // Get overview from orders table (simple & fast)
         const overview = await env.DB.prepare(`
             SELECT 
-                COUNT(DISTINCT orders.id) as total_orders,
-                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_revenue,
-                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost,
-                COALESCE(SUM(orders.shipping_fee), 0) as total_shipping_fee,
-                COALESCE(SUM(orders.shipping_cost), 0) as total_shipping_cost,
-                COALESCE(SUM(orders.commission), 0) as total_commission,
-                COALESCE(SUM(orders.packaging_cost), 0) as total_packaging_cost,
-                COALESCE(SUM(orders.tax_amount), 0) as total_tax,
-                COALESCE(SUM(order_items.quantity), 0) as total_products_sold
+                COUNT(*) as total_orders,
+                COALESCE(SUM(total_amount), 0) as total_revenue,
+                COALESCE(SUM(shipping_cost), 0) as total_shipping_cost,
+                COALESCE(SUM(commission), 0) as total_commission,
+                COALESCE(SUM(packaging_cost), 0) as total_packaging_cost,
+                COALESCE(SUM(tax_amount), 0) as total_tax
             FROM orders
-            LEFT JOIN order_items ON orders.id = order_items.order_id
-            WHERE orders.created_at >= ?
-        `).bind(startDate.toISOString()).first();
+            WHERE created_at_unix >= ?
+        `).bind(startDate.getTime()).first();
 
-        // Calculate totals using saved tax_amount
-        const totalRevenue = (overview.product_revenue || 0) + (overview.total_shipping_fee || 0);
+        // Get product data from order_items (separate query)
+        const productData = await env.DB.prepare(`
+            SELECT 
+                COALESCE(SUM(oi.quantity), 0) as total_products_sold,
+                COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
+            FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE o.created_at_unix >= ?
+        `).bind(startDate.getTime()).first();
+
+        // Merge results
+        overview.total_products_sold = productData.total_products_sold || 0;
+        overview.product_cost = productData.product_cost || 0;
+
+        // Calculate totals using total_amount
+        const totalRevenue = overview.total_revenue || 0;
         const totalTax = overview.total_tax || 0; // Use saved tax amount
         const totalCost = (overview.product_cost || 0) + (overview.total_shipping_cost || 0) + 
                          (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + totalTax;
@@ -3330,7 +3421,7 @@ async function getProfitOverview(period, env, corsHeaders, customStartDate = nul
         return jsonResponse({
             success: true,
             period: period,
-            startDate: startDate.toISOString(),
+            startDate: startDate.getTime(),
             overview: {
                 total_orders: overview.total_orders || 0,
                 total_products_sold: overview.total_products_sold || 0,
@@ -3428,7 +3519,7 @@ async function updateTaxRate(data, env, corsHeaders) {
             success: true,
             message: 'Tax rate updated successfully',
             taxRate: taxRate,
-            effectiveFrom: new Date().toISOString().split('T')[0]
+            effectiveFrom: new Date().getTime().split('T')[0]
         }, 200, corsHeaders);
 
     } catch (error) {
@@ -3482,38 +3573,45 @@ async function getProductStats(productId, period, env, corsHeaders, customStartD
             SELECT * FROM products WHERE id = ?
         `).bind(productId).first();
 
-        // Get aggregated stats
+        // Get aggregated stats - Simplified and optimized
         const stats = await env.DB.prepare(`
             SELECT 
-                product_id,
-                product_name,
-                SUM(quantity) as total_sold,
-                SUM(product_price * quantity) as total_revenue,
-                SUM(product_cost * quantity) as total_cost,
-                SUM((product_price - product_cost) * quantity) as total_profit,
-                AVG(product_price) as avg_price,
-                MIN(product_price) as min_price,
-                MAX(product_price) as max_price,
-                COUNT(DISTINCT order_id) as order_count,
-                ROUND(SUM((product_price - product_cost) * quantity) * 100.0 / NULLIF(SUM(product_price * quantity), 0), 2) as profit_margin
-            FROM order_items
-            WHERE product_id = ? AND created_at >= ?
-            GROUP BY product_id, product_name
-        `).bind(productId, startDate.toISOString()).first();
+                oi.product_id,
+                oi.product_name,
+                SUM(oi.quantity) as total_sold,
+                SUM(oi.product_price * oi.quantity) as total_revenue,
+                SUM(oi.product_cost * oi.quantity) as total_cost,
+                SUM((oi.product_price - oi.product_cost) * oi.quantity) as total_profit,
+                AVG(oi.product_price) as avg_price,
+                MIN(oi.product_price) as min_price,
+                MAX(oi.product_price) as max_price,
+                COUNT(DISTINCT oi.order_id) as order_count,
+                ROUND(
+                    (SUM((oi.product_price - oi.product_cost) * oi.quantity) * 100.0) / 
+                    NULLIF(SUM(oi.product_price * oi.quantity), 0), 
+                    2
+                ) as profit_margin
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE oi.product_id = ? AND o.created_at_unix >= ?
+            GROUP BY oi.product_id, oi.product_name
+        `).bind(productId, startDate.getTime()).first();
 
-        // Get daily trend (last 30 days)
+        // Get daily trend (last 30 days) - Simplified and optimized
+        const now = new Date();
         const { results: dailyTrend } = await env.DB.prepare(`
             SELECT 
-                DATE(created_at) as date,
-                SUM(quantity) as daily_sold,
-                SUM(product_price * quantity) as daily_revenue,
-                SUM((product_price - product_cost) * quantity) as daily_profit
-            FROM order_items
-            WHERE product_id = ? AND created_at >= ?
-            GROUP BY DATE(created_at)
+                DATE(o.created_at_unix/1000, 'unixepoch') as date,
+                SUM(oi.quantity) as daily_sold,
+                SUM(oi.product_price * oi.quantity) as daily_revenue,
+                SUM((oi.product_price - oi.product_cost) * oi.quantity) as daily_profit
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE oi.product_id = ? AND o.created_at_unix >= ?
+            GROUP BY DATE(o.created_at_unix/1000, 'unixepoch')
             ORDER BY date DESC
             LIMIT 30
-        `).bind(productId, new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()).all();
+        `).bind(productId, new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).getTime()).all();
 
         // Get recent orders
         const { results: recentOrders } = await env.DB.prepare(`
@@ -3524,10 +3622,10 @@ async function getProductStats(productId, period, env, corsHeaders, customStartD
                 o.created_at as order_date
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
-            WHERE oi.product_id = ? AND oi.created_at >= ?
+            WHERE oi.product_id = ? AND oi.created_at_unix >= ?
             ORDER BY oi.created_at DESC
             LIMIT 10
-        `).bind(productId, startDate.toISOString()).all();
+        `).bind(productId, startDate.getTime()).all();
 
         return jsonResponse({
             success: true,
@@ -3584,116 +3682,121 @@ async function getDetailedAnalytics(data, env, corsHeaders) {
                 startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
         }
 
-        // Get overview data
+        // Get overview data from orders table (simple & fast)
         const overview = await env.DB.prepare(`
             SELECT 
-                COUNT(DISTINCT orders.id) as total_orders,
-                COALESCE(SUM(order_items.quantity), 0) as total_products_sold,
-                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_revenue,
-                COALESCE(SUM(orders.shipping_fee), 0) as total_shipping_fee,
-                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost,
-                COALESCE(SUM(orders.shipping_cost), 0) as total_shipping_cost,
-                COALESCE(SUM(orders.packaging_cost), 0) as total_packaging_cost,
-                COALESCE(SUM(orders.commission), 0) as total_commission,
-                COALESCE(SUM(orders.tax_amount), 0) as total_tax
+                COUNT(*) as total_orders,
+                COALESCE(SUM(total_amount), 0) as total_revenue,
+                COALESCE(SUM(shipping_cost), 0) as total_shipping_cost,
+                COALESCE(SUM(packaging_cost), 0) as total_packaging_cost,
+                COALESCE(SUM(commission), 0) as total_commission,
+                COALESCE(SUM(tax_amount), 0) as total_tax
             FROM orders
-            LEFT JOIN order_items ON orders.id = order_items.order_id
-            WHERE orders.created_at >= ?
-        `).bind(startDate.toISOString()).first();
+            WHERE created_at_unix >= ?
+        `).bind(startDate.getTime()).first();
 
-        const totalRevenue = (overview.product_revenue || 0) + (overview.total_shipping_fee || 0);
+        // Get product data from order_items (separate query to avoid JOIN issues)
+        const productData = await env.DB.prepare(`
+            SELECT 
+                COALESCE(SUM(oi.quantity), 0) as total_products_sold,
+                COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
+            FROM order_items oi
+            INNER JOIN orders o ON oi.order_id = o.id
+            WHERE o.created_at_unix >= ?
+        `).bind(startDate.getTime()).first();
+
+        // Merge results
+        overview.total_products_sold = productData.total_products_sold || 0;
+        overview.product_cost = productData.product_cost || 0;
+
+        const totalRevenue = overview.total_revenue || 0;
         const totalCost = (overview.product_cost || 0) + (overview.total_shipping_cost || 0) + 
                          (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + (overview.total_tax || 0);
         const totalProfit = totalRevenue - totalCost;
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
 
-        // Get detailed cost breakdown from packaging_details
-        const orders = await env.DB.prepare(`
-            SELECT packaging_details, packaging_cost
+        // Get detailed cost breakdown from packaging_details using SQLite JSON functions
+        // This is MUCH faster than parsing JSON in JavaScript loop
+        const packagingBreakdown = await env.DB.prepare(`
+            SELECT 
+                COALESCE(SUM(
+                    CAST(json_extract(packaging_details, '$.per_product.red_string') AS REAL) * 
+                    CAST(json_extract(packaging_details, '$.total_products') AS INTEGER)
+                ), 0) as red_string,
+                COALESCE(SUM(
+                    CAST(json_extract(packaging_details, '$.per_product.labor_cost') AS REAL) * 
+                    CAST(json_extract(packaging_details, '$.total_products') AS INTEGER)
+                ), 0) as labor_cost,
+                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.bag_zip') AS REAL)), 0) as bag_zip,
+                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.bag_red') AS REAL)), 0) as bag_red,
+                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.box_shipping') AS REAL)), 0) as box_shipping,
+                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.thank_card') AS REAL)), 0) as thank_card,
+                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.paper_print') AS REAL)), 0) as paper_print
             FROM orders
-            WHERE created_at >= ?
-        `).bind(startDate.toISOString()).all();
+            WHERE created_at_unix >= ? AND packaging_details IS NOT NULL
+        `).bind(startDate.getTime()).first();
 
         const costBreakdown = {
             product_cost: overview.product_cost || 0,
             shipping_cost: overview.total_shipping_cost || 0,
             commission: overview.total_commission || 0,
             tax: overview.total_tax || 0,
-            // Initialize packaging items
-            red_string: 0,
-            labor_cost: 0,
-            bag_zip: 0,
-            bag_red: 0,
-            box_shipping: 0,
-            thank_card: 0,
-            paper_print: 0
+            red_string: packagingBreakdown?.red_string || 0,
+            labor_cost: packagingBreakdown?.labor_cost || 0,
+            bag_zip: packagingBreakdown?.bag_zip || 0,
+            bag_red: packagingBreakdown?.bag_red || 0,
+            box_shipping: packagingBreakdown?.box_shipping || 0,
+            thank_card: packagingBreakdown?.thank_card || 0,
+            paper_print: packagingBreakdown?.paper_print || 0
         };
 
         // Debug: Check if any orders have commission
         const ordersWithCommission = await env.DB.prepare(`
             SELECT order_id, commission, referral_code, created_at 
             FROM orders 
-            WHERE commission > 0 AND created_at >= ?
+            WHERE commission > 0 AND created_at_unix >= ?
             LIMIT 5
-        `).bind(startDate.toISOString()).all();
+        `).bind(startDate.getTime()).all();
         
         console.log('📊 Analytics Debug:', {
             period: period,
-            startDate: startDate.toISOString(),
+            startDate: startDate.getTime(),
             total_orders: overview.total_orders,
             total_commission: overview.total_commission,
             orders_with_commission: ordersWithCommission.results.length,
             sample_orders: ordersWithCommission.results
         });
 
-        // Parse packaging details to get individual costs
-        orders.results.forEach(order => {
-            if (order.packaging_details) {
-                try {
-                    const details = JSON.parse(order.packaging_details);
-                    const totalProducts = details.total_products || 0;
-                    
-                    // Per-product costs
-                    if (details.per_product) {
-                        costBreakdown.red_string += (details.per_product.red_string || 0) * totalProducts;
-                        costBreakdown.labor_cost += (details.per_product.labor_cost || 0) * totalProducts;
-                    }
-                    
-                    // Per-order costs
-                    if (details.per_order) {
-                        costBreakdown.bag_zip += details.per_order.bag_zip || 0;
-                        costBreakdown.bag_red += details.per_order.bag_red || 0;
-                        costBreakdown.box_shipping += details.per_order.box_shipping || 0;
-                        costBreakdown.thank_card += details.per_order.thank_card || 0;
-                        costBreakdown.paper_print += details.per_order.paper_print || 0;
-                    }
-                } catch (e) {
-                    console.error('Error parsing packaging_details:', e);
-                }
-            }
-        });
-
-        // Get top products
+        // Get top products - Simplified and optimized with full details
         const topProducts = await env.DB.prepare(`
             SELECT 
-                order_items.product_name as name,
-                SUM(order_items.quantity) as quantity,
-                SUM((order_items.product_price - order_items.product_cost) * order_items.quantity) as profit,
-                AVG(order_items.product_price - order_items.product_cost) as profit_per_unit
-            FROM order_items
-            JOIN orders ON order_items.order_id = orders.id
-            WHERE orders.created_at >= ?
-            GROUP BY order_items.product_name
-            ORDER BY profit DESC
+                oi.product_id,
+                oi.product_name,
+                SUM(oi.quantity) as total_sold,
+                SUM(oi.product_price * oi.quantity) as total_revenue,
+                SUM(oi.product_cost * oi.quantity) as total_cost,
+                SUM((oi.product_price - oi.product_cost) * oi.quantity) as total_profit,
+                AVG(oi.product_price) as avg_price,
+                COUNT(DISTINCT oi.order_id) as order_count,
+                ROUND(
+                    (SUM((oi.product_price - oi.product_cost) * oi.quantity) * 100.0) / 
+                    NULLIF(SUM(oi.product_price * oi.quantity), 0), 
+                    2
+                ) as profit_margin
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.created_at_unix >= ?
+            GROUP BY oi.product_id, oi.product_name
+            ORDER BY total_sold DESC
             LIMIT 10
-        `).bind(startDate.toISOString()).all();
+        `).bind(startDate.getTime()).all();
 
-        // Get daily data for charts (last 30 days)
+        // Get daily data for charts (last 30 days) - Use total_amount
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const dailyData = await env.DB.prepare(`
             SELECT 
-                DATE(orders.created_at) as date,
-                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) + COALESCE(SUM(orders.shipping_fee), 0) as revenue,
+                DATE(orders.created_at_unix/1000, 'unixepoch') as date,
+                COALESCE(SUM(orders.total_amount), 0) as revenue,
                 COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) + 
                 COALESCE(SUM(orders.shipping_cost), 0) + 
                 COALESCE(SUM(orders.packaging_cost), 0) + 
@@ -3701,10 +3804,10 @@ async function getDetailedAnalytics(data, env, corsHeaders) {
                 COALESCE(SUM(orders.tax_amount), 0) as cost
             FROM orders
             LEFT JOIN order_items ON orders.id = order_items.order_id
-            WHERE orders.created_at >= ?
-            GROUP BY DATE(orders.created_at)
+            WHERE orders.created_at_unix >= ?
+            GROUP BY DATE(orders.created_at_unix/1000, 'unixepoch')
             ORDER BY date ASC
-        `).bind(thirtyDaysAgo.toISOString()).all();
+        `).bind(thirtyDaysAgo.getTime()).all();
 
         const dailyDataFormatted = dailyData.results.map(d => ({
             date: d.date,
@@ -4000,7 +4103,7 @@ async function markCommissionAsPaid(data, env, corsHeaders) {
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
-            paymentDate || new Date().toISOString(),
+            paymentDate || new Date().getTime(),
             paymentMethod || 'bank_transfer',
             note || '',
             existing.id
@@ -4302,10 +4405,10 @@ async function paySelectedOrders(data, env, corsHeaders) {
             ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?)
         `).bind(
             referralCode,
-            new Date().toISOString().slice(0, 7), // YYYY-MM
+            new Date().getTime().slice(0, 7), // YYYY-MM
             orders.length,
             totalCommission,
-            paymentDate || new Date().toISOString().split('T')[0],
+            paymentDate || new Date().getTime().split('T')[0],
             paymentMethod || 'bank_transfer',
             note || ''
         ).run();
@@ -4332,7 +4435,7 @@ async function paySelectedOrders(data, env, corsHeaders) {
                 ctv_name: ctv.full_name,
                 order_count: orders.length,
                 total_commission: totalCommission,
-                payment_date: paymentDate || new Date().toISOString().split('T')[0],
+                payment_date: paymentDate || new Date().getTime().split('T')[0],
                 payment_method: paymentMethod || 'bank_transfer'
             }
         }, 200, corsHeaders);
@@ -4345,3 +4448,8 @@ async function paySelectedOrders(data, env, corsHeaders) {
         }, 500, corsHeaders);
     }
 }
+
+
+
+
+
