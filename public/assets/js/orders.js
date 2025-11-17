@@ -4727,9 +4727,37 @@ async function showAddOrderModal(duplicateData = null) {
                             <input type="tel" id="newOrderCustomerPhone" value="${escapeHtml(customerPhone)}" placeholder="0123456789" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
-                            <textarea id="newOrderAddress" rows="2" placeholder="Nhập địa chỉ đầy đủ" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none">${escapeHtml(address)}</textarea>
+                        <!-- Địa chỉ giao hàng 4 cấp -->
+                        <div class="bg-blue-50 rounded-lg p-3 space-y-2">
+                            <label class="block text-sm font-semibold text-gray-800 mb-2">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <select id="newOrderProvince" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">-- Chọn Tỉnh/TP --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select id="newOrderDistrict" disabled class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
+                                        <option value="">-- Chọn Quận/Huyện --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select id="newOrderWard" disabled class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
+                                        <option value="">-- Chọn Phường/Xã --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 p-2 bg-white rounded border border-blue-200">
+                                <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
+                                <p id="newOrderAddressPreview" class="text-sm text-gray-800 font-medium">Vui lòng chọn địa chỉ</p>
+                            </div>
+                            
+                            <input type="hidden" id="newOrderAddress" value="${escapeHtml(address)}" />
                         </div>
 
                         <div>
@@ -4960,6 +4988,9 @@ async function showAddOrderModal(duplicateData = null) {
     `;
 
     document.body.appendChild(modal);
+
+    // Init address selector
+    initAddressSelector();
 
     // PERFORMANCE: Use requestAnimationFrame to batch DOM updates
     requestAnimationFrame(() => {
@@ -5915,6 +5946,12 @@ async function submitNewOrder() {
     const customerName = document.getElementById('newOrderCustomerName')?.value.trim();
     const customerPhone = document.getElementById('newOrderCustomerPhone')?.value.trim();
     const address = document.getElementById('newOrderAddress')?.value.trim();
+    
+    // Get address 4 levels
+    const provinceId = document.getElementById('newOrderProvince')?.value;
+    const districtId = document.getElementById('newOrderDistrict')?.value;
+    const wardId = document.getElementById('newOrderWard')?.value;
+    const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim();
 
     if (!customerName) {
         showToast('Vui lòng nhập tên khách hàng', 'warning');
@@ -5934,9 +5971,8 @@ async function submitNewOrder() {
         return;
     }
 
-    if (!address) {
-        showToast('Vui lòng nhập địa chỉ giao hàng', 'warning');
-        document.getElementById('newOrderAddress')?.focus();
+    if (!provinceId || !districtId || !wardId || !streetAddress) {
+        showToast('Vui lòng chọn đầy đủ địa chỉ giao hàng (Tỉnh/Quận/Phường/Địa chỉ nhà)', 'warning');
         return;
     }
 
@@ -5977,6 +6013,11 @@ async function submitNewOrder() {
         shippingCostInput: document.getElementById('newOrderShippingCost')?.value
     });
 
+    // Get address names
+    const provinceName = window.addressSelector.getProvinceName(provinceId);
+    const districtName = window.addressSelector.getDistrictName(provinceId, districtId);
+    const wardName = window.addressSelector.getWardName(provinceId, districtId, wardId);
+
     // Prepare request data matching server format
     const requestData = {
         action: 'createOrder',
@@ -5985,6 +6026,13 @@ async function submitNewOrder() {
             phone: customerPhone,
             address: address
         },
+        province_id: provinceId,
+        province_name: provinceName,
+        district_id: districtId,
+        district_name: districtName,
+        ward_id: wardId,
+        ward_name: wardName,
+        street_address: streetAddress,
         products: currentOrderProducts,
         totalAmount: totalAmount,
         shippingFee: shippingFee,
@@ -6850,4 +6898,57 @@ function validateCTVCode() {
     }
     
     return true;
+}
+
+let productRowCounter = 0;
+
+
+// ============================================
+// ADDRESS SELECTOR INIT
+// ============================================
+
+async function initAddressSelector() {
+    // Init address selector module
+    if (!window.addressSelector.loaded) {
+        await window.addressSelector.init();
+    }
+
+    const provinceSelect = document.getElementById('newOrderProvince');
+    const districtSelect = document.getElementById('newOrderDistrict');
+    const wardSelect = document.getElementById('newOrderWard');
+    const streetInput = document.getElementById('newOrderStreetAddress');
+    const addressPreview = document.getElementById('newOrderAddressPreview');
+    const hiddenAddress = document.getElementById('newOrderAddress');
+
+    // Render provinces
+    window.addressSelector.renderProvinces(provinceSelect);
+
+    // Update preview function
+    function updateAddressPreview() {
+        const provinceId = provinceSelect.value;
+        const districtId = districtSelect.value;
+        const wardId = wardSelect.value;
+        const street = streetInput.value;
+
+        const fullAddress = window.addressSelector.generateFullAddress(
+            street,
+            provinceId,
+            districtId,
+            wardId
+        );
+
+        addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
+        hiddenAddress.value = fullAddress;
+    }
+
+    // Setup cascade
+    window.addressSelector.setupCascade(
+        provinceSelect,
+        districtSelect,
+        wardSelect,
+        updateAddressPreview
+    );
+
+    // Street address input
+    streetInput.addEventListener('input', updateAddressPreview);
 }

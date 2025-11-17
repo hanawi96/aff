@@ -170,6 +170,14 @@ async function handleGet(action, url, env, corsHeaders) {
             const month = url.searchParams.get('month');
             return await getCommissionsByMonth(month, env, corsHeaders);
 
+        case 'getLocationStats':
+            const level = url.searchParams.get('level') || 'province';
+            const provinceId = url.searchParams.get('provinceId');
+            const districtId = url.searchParams.get('districtId');
+            const locationPeriod = url.searchParams.get('period') || 'all';
+            const locationStartDate = url.searchParams.get('startDate');
+            return await getLocationStats({ level, provinceId, districtId, period: locationPeriod, startDate: locationStartDate }, env, corsHeaders);
+
         case 'getPaymentHistory':
             const paymentReferralCode = url.searchParams.get('referralCode');
             return await getPaymentHistory(paymentReferralCode, env, corsHeaders);
@@ -261,7 +269,15 @@ async function handlePost(path, request, env, corsHeaders) {
                     referralCode: data.referralCode,
                     notes: data.notes,
                     shippingFee: data.shippingFee || 0,
-                    shippingCost: data.shippingCost || 0
+                    shippingCost: data.shippingCost || 0,
+                    // Address 4 levels
+                    province_id: data.province_id,
+                    province_name: data.province_name,
+                    district_id: data.district_id,
+                    district_name: data.district_name,
+                    ward_id: data.ward_id,
+                    ward_name: data.ward_name,
+                    street_address: data.street_address
                 };
                 return await createOrder(orderData, env, corsHeaders);
             case 'updateOrderProducts':
@@ -565,7 +581,7 @@ async function getAllCTV(env, corsHeaders) {
         `).all();
 
         // Get today's commission for each CTV (in UTC)
-        const today = new Date().getTime().split('T')[0]; // YYYY-MM-DD in UTC
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
         const { results: todayStats } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -802,14 +818,16 @@ async function createOrder(data, env, corsHeaders) {
                 address, products, payment_method, 
                 status, referral_code, commission, ctv_phone, notes,
                 shipping_fee, shipping_cost, packaging_cost, packaging_details,
-                tax_amount, tax_rate, created_at_unix
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tax_amount, tax_rate, created_at_unix,
+                province_id, province_name, district_id, district_name,
+                ward_id, ward_name, street_address
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
             data.customer.name,
             data.customer.phone,
-            data.customer.address || '',
+            data.customer.address || data.address || '',
             productsJson,
             data.paymentMethod || 'cod',
             data.status || 'pending',
@@ -823,7 +841,14 @@ async function createOrder(data, env, corsHeaders) {
             JSON.stringify(packagingDetails),
             taxAmount,
             currentTaxRate,
-            orderTimestamp
+            orderTimestamp,
+            data.province_id || null,
+            data.province_name || null,
+            data.district_id || null,
+            data.district_name || null,
+            data.ward_id || null,
+            data.ward_name || null,
+            data.street_address || null
         ).run();
 
         if (!result.success) {
@@ -3645,6 +3670,145 @@ async function getProductStats(productId, period, env, corsHeaders, customStartD
 
     } catch (error) {
         console.error('Error getting product stats:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// LOCATION ANALYTICS FUNCTIONS
+// ============================================
+
+/**
+ * Get location statistics with drill-down support
+ * Supports 3 levels: province → district → ward
+ */
+async function getLocationStats(params, env, corsHeaders) {
+    try {
+        const { level, provinceId, districtId, period, startDate } = params;
+        
+        // Calculate date range
+        let startTimestamp = 0;
+        if (startDate) {
+            startTimestamp = new Date(startDate).getTime();
+        } else if (period && period !== 'all') {
+            const now = new Date();
+            switch (period) {
+                case 'today':
+                    startTimestamp = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).getTime();
+                    break;
+                case 'week':
+                    const dayOfWeek = now.getUTCDay();
+                    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    startTimestamp = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysToMonday, 0, 0, 0)).getTime();
+                    break;
+                case 'month':
+                    startTimestamp = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).getTime();
+                    break;
+                case 'year':
+                    startTimestamp = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0)).getTime();
+                    break;
+            }
+        }
+
+        let query, groupByField, nameField, idField;
+
+        // Build query based on level
+        if (level === 'province') {
+            // Province level - group by province_id
+            query = `
+                SELECT 
+                    province_id as id,
+                    province_name as name,
+                    COUNT(*) as orders,
+                    SUM(total_amount) as revenue,
+                    COUNT(DISTINCT customer_phone) as customers,
+                    AVG(total_amount) as avgValue
+                FROM orders
+                WHERE province_id IS NOT NULL 
+                    AND province_id != ''
+                    AND created_at_unix >= ?
+                GROUP BY province_id, province_name
+                ORDER BY revenue DESC
+            `;
+        } else if (level === 'district' && provinceId) {
+            // District level - filter by province, group by district
+            query = `
+                SELECT 
+                    district_id as id,
+                    district_name as name,
+                    COUNT(*) as orders,
+                    SUM(total_amount) as revenue,
+                    COUNT(DISTINCT customer_phone) as customers,
+                    AVG(total_amount) as avgValue
+                FROM orders
+                WHERE province_id = ?
+                    AND district_id IS NOT NULL 
+                    AND district_id != ''
+                    AND created_at_unix >= ?
+                GROUP BY district_id, district_name
+                ORDER BY revenue DESC
+            `;
+        } else if (level === 'ward' && provinceId && districtId) {
+            // Ward level - filter by province and district, group by ward
+            query = `
+                SELECT 
+                    ward_id as id,
+                    ward_name as name,
+                    COUNT(*) as orders,
+                    SUM(total_amount) as revenue,
+                    COUNT(DISTINCT customer_phone) as customers,
+                    AVG(total_amount) as avgValue
+                FROM orders
+                WHERE province_id = ?
+                    AND district_id = ?
+                    AND ward_id IS NOT NULL 
+                    AND ward_id != ''
+                    AND created_at_unix >= ?
+                GROUP BY ward_id, ward_name
+                ORDER BY revenue DESC
+            `;
+        } else {
+            return jsonResponse({
+                success: false,
+                error: 'Invalid level or missing required parameters'
+            }, 400, corsHeaders);
+        }
+
+        // Execute query with appropriate bindings
+        let results;
+        if (level === 'province') {
+            results = await env.DB.prepare(query).bind(startTimestamp).all();
+        } else if (level === 'district') {
+            results = await env.DB.prepare(query).bind(provinceId, startTimestamp).all();
+        } else if (level === 'ward') {
+            results = await env.DB.prepare(query).bind(provinceId, districtId, startTimestamp).all();
+        }
+
+        const locations = results.results || [];
+
+        // Format data
+        const formattedLocations = locations.map(loc => ({
+            id: loc.id,
+            name: loc.name,
+            orders: loc.orders || 0,
+            revenue: loc.revenue || 0,
+            customers: loc.customers || 0,
+            avgValue: loc.avgValue || 0
+        }));
+
+        return jsonResponse({
+            success: true,
+            level: level,
+            period: period || 'all',
+            locations: formattedLocations,
+            total: formattedLocations.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting location stats:', error);
         return jsonResponse({
             success: false,
             error: error.message
