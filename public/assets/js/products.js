@@ -371,12 +371,20 @@ function createProductCard(product) {
                             </span>
                         </div>
                     ` : ''}
+                    ${product.purchases !== undefined && product.purchases !== null ? `
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Đã bán:</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-sm font-bold text-orange-600">🔥 ${product.purchases}</span>
+                                <span class="text-xs text-gray-500">sản phẩm</span>
+                            </div>
+                        </div>
+                    ` : ''}
                     ${product.rating ? `
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">Đánh giá:</span>
                             <div class="flex items-center gap-1">
                                 <span class="text-sm font-medium text-yellow-600">⭐ ${product.rating}</span>
-                                ${product.purchases ? `<span class="text-xs text-gray-500">(${product.purchases})</span>` : ''}
                             </div>
                         </div>
                     ` : ''}
@@ -1189,4 +1197,124 @@ function hidePagination() {
         paginationContainer.innerHTML = '';
         paginationContainer.classList.add('hidden');
     }
+}
+
+
+// ============================================
+// SORT FUNCTIONS
+// ============================================
+
+// Sort by Price
+function sortByPrice(direction) {
+    currentSort = { field: 'price', direction };
+    console.log('📊 Sorting by price:', direction);
+    searchAndSort();
+    showToast(`Đã sắp xếp theo giá ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
+}
+
+// Sort by Profit Margin
+function sortByMargin(direction) {
+    currentSort = { field: 'margin', direction };
+    console.log('📊 Sorting by margin:', direction);
+    searchAndSort();
+    showToast(`Đã sắp xếp theo tỷ suất ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
+}
+
+// Sort by Net Profit
+function sortByProfit(direction) {
+    currentSort = { field: 'profit', direction };
+    console.log('📊 Sorting by profit:', direction);
+    searchAndSort();
+    showToast(`Đã sắp xếp theo lãi ròng ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
+}
+
+// Sort by Purchases (Best Selling)
+function sortByPurchases(direction) {
+    currentSort = { field: 'purchases', direction };
+    console.log('📊 Sorting by purchases:', direction);
+    searchAndSort();
+    showToast(`Đã sắp xếp theo sản phẩm bán chạy ${direction === 'desc' ? 'nhiều → ít' : 'ít → nhiều'}`, 'success');
+}
+
+// Reset Sort
+function resetSort() {
+    currentSort = { field: null, direction: null };
+    console.log('🔄 Reset sorting');
+    searchAndSort();
+    showToast('Đã đặt lại sắp xếp', 'info');
+}
+
+// Apply sorting to filtered products
+function applySorting(products) {
+    if (!currentSort.field || !currentSort.direction) {
+        return products;
+    }
+
+    const sorted = [...products].sort((a, b) => {
+        let aVal, bVal;
+
+        switch (currentSort.field) {
+            case 'price':
+                aVal = a.price || 0;
+                bVal = b.price || 0;
+                break;
+            
+            case 'margin':
+                // Calculate profit margin: (price - cost_price) / price * 100
+                const aMargin = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price * 100) : 0;
+                const bMargin = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price * 100) : 0;
+                aVal = aMargin;
+                bVal = bMargin;
+                break;
+            
+            case 'profit':
+                // Calculate net profit per unit: price - cost_price
+                aVal = (a.price || 0) - (a.cost_price || 0);
+                bVal = (b.price || 0) - (b.cost_price || 0);
+                break;
+            
+            case 'purchases':
+                // Sort by purchases (best selling)
+                aVal = a.purchases || 0;
+                bVal = b.purchases || 0;
+                break;
+            
+            default:
+                return 0;
+        }
+
+        // Apply direction
+        return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    console.log(`✅ Sorted ${sorted.length} products by ${currentSort.field} (${currentSort.direction})`);
+    return sorted;
+}
+
+// Search and Sort (combined function)
+function searchAndSort() {
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    
+    // Filter by search term
+    if (searchTerm) {
+        filteredProducts = allProducts.filter(product => {
+            return (
+                (product.name && product.name.toLowerCase().includes(searchTerm)) ||
+                (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
+                (product.category && product.category.toLowerCase().includes(searchTerm)) ||
+                (product.description && product.description.toLowerCase().includes(searchTerm))
+            );
+        });
+    } else {
+        filteredProducts = [...allProducts];
+    }
+
+    // Apply sorting
+    filteredProducts = applySorting(filteredProducts);
+
+    // Reset to first page
+    currentPage = 1;
+
+    // Render
+    renderProducts();
 }

@@ -31,7 +31,7 @@ function calculateOrderTotals(order) {
     const orderTotalAmount = order.total_amount || 0;
     const shippingFee = order.shipping_fee || 0;
     const productTotal = orderTotalAmount - shippingFee;
-    
+
     // If we have product_cost from API, use it
     if (order.product_cost !== undefined) {
         return {
@@ -135,7 +135,7 @@ function updateBulkActionsUI() {
     const count = selectedOrderIds.size;
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCount = document.getElementById('selectedCount');
-    
+
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
         if (bulkActionsBar) {
@@ -143,7 +143,7 @@ function updateBulkActionsUI() {
             bulkActionsBar.classList.remove('hidden');
             bulkActionsBar.style.opacity = '0';
             bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
-            
+
             requestAnimationFrame(() => {
                 bulkActionsBar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
                 bulkActionsBar.style.opacity = '1';
@@ -179,14 +179,14 @@ async function bulkExport() {
 
     try {
         const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
-        
+
         // Create CSV content
         let csv = 'Mã đơn,Khách hàng,SĐT,Địa chỉ,Sản phẩm,Giá trị,Ngày đặt,Trạng thái\n';
-        
+
         selectedOrders.forEach(order => {
             const products = order.products_display || order.products || '';
             const productsText = products.replace(/"/g, '""'); // Escape quotes
-            
+
             csv += `"${order.order_id}",`;
             csv += `"${order.customer_name || ''}",`;
             csv += `"${order.customer_phone || ''}",`;
@@ -220,7 +220,7 @@ async function bulkDelete() {
 
     const count = selectedOrderIds.size;
     const confirmed = confirm(`Bạn có chắc chắn muốn xóa ${count} đơn hàng đã chọn?\n\nHành động này không thể hoàn tác!`);
-    
+
     if (!confirmed) return;
 
     try {
@@ -302,7 +302,7 @@ function calculatePackagingCost() {
     const totalProducts = currentOrderProducts.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
     // Per-product items (multiply by total products): red_string, labor_cost
-    const perProductCost = 
+    const perProductCost =
         ((packagingPrices.red_string || 0) * totalProducts) +
         ((packagingPrices.labor_cost || 0) * totalProducts);
 
@@ -918,12 +918,10 @@ function showProfitBreakdown(orderId) {
                             <span class="text-sm text-gray-600">Tiền sản phẩm</span>
                             <span class="font-semibold text-gray-900">${formatCurrency(totalAmount)}</span>
                         </div>
-                        ${shippingFee > 0 ? `
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Phí ship (khách trả)</span>
                             <span class="font-semibold text-gray-900">${formatCurrency(shippingFee)}</span>
                         </div>
-                        ` : ''}
                         <div class="flex justify-between items-center pt-2 border-t border-green-200">
                             <span class="font-bold text-gray-900">Tổng doanh thu</span>
                             <span class="text-lg font-bold text-green-600">${formatCurrency(revenue)}</span>
@@ -1005,12 +1003,10 @@ function showProfitBreakdown(orderId) {
                             ` : ''}
                         </div>
                         
-                        ${shippingFee > 0 ? `
                         <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Chi phí ship (thực tế)</span>
+                            <span class="text-sm text-gray-600">Phí ship (thực tế)</span>
                             <span class="font-semibold text-gray-900">${formatCurrency(shippingCost)}</span>
                         </div>
-                        ` : ''}
                         ${commission > 0 ? `
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Hoa hồng CTV</span>
@@ -1122,14 +1118,14 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
 
         // Tạo text chi tiết
         const details = [];
-        if (weight) details.push(`⚖️ ${weight}`);
+        if (weight) details.push(`⚖️ ${formatWeightSize(weight)}`);
         if (size) {
             // Phân biệt icon dựa vào nội dung: nếu có "cm" hoặc "size" thì dùng thước, còn lại dùng cân
-            const isSizeMeasurement = size.toLowerCase().includes('cm') || 
-                                     size.toLowerCase().includes('size') || 
-                                     size.toLowerCase().includes('tay');
+            const isSizeMeasurement = size.toLowerCase().includes('cm') ||
+                size.toLowerCase().includes('size') ||
+                size.toLowerCase().includes('tay');
             const icon = isSizeMeasurement ? '📏' : '⚖️';
-            details.push(`${icon} ${size}`);
+            details.push(`${icon} ${formatWeightSize(size)}`);
         }
         if (price) {
             const priceNum = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d]/g, ''));
@@ -1209,14 +1205,14 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
 
             // Tạo text chi tiết
             const details = [];
-            if (weight) details.push(`⚖️ ${weight}`);
+            if (weight) details.push(`⚖️ ${formatWeightSize(weight)}`);
             if (size) {
                 // Phân biệt icon dựa vào nội dung: nếu có "cm" hoặc "size" thì dùng thước, còn lại dùng cân
-                const isSizeMeasurement = size.toLowerCase().includes('cm') || 
-                                         size.toLowerCase().includes('size') || 
-                                         size.toLowerCase().includes('tay');
+                const isSizeMeasurement = size.toLowerCase().includes('cm') ||
+                    size.toLowerCase().includes('size') ||
+                    size.toLowerCase().includes('tay');
                 const icon = isSizeMeasurement ? '📏' : '⚖️';
-                details.push(`${icon} ${size}`);
+                details.push(`${icon} ${formatWeightSize(size)}`);
             }
             if (price) {
                 const priceNum = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d]/g, ''));
@@ -1339,7 +1335,6 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
     return html;
 }
 
-// Filter orders data
 // View order detail
 function viewOrderDetail(orderId) {
     const order = allOrdersData.find(o => o.id === orderId);
@@ -1601,7 +1596,7 @@ function formatProductsForModal(productsText) {
                                         <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                         </svg>
-                                        <span class="text-gray-700">${escapeHtml(weight)}</span>
+                                        <span class="text-gray-700">${escapeHtml(formatWeightSize(weight))}</span>
                                     </div>
                                 ` : ''}
                                 ${size ? `
@@ -1609,7 +1604,7 @@ function formatProductsForModal(productsText) {
                                         <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                                         </svg>
-                                        <span class="text-gray-700">${escapeHtml(size)}</span>
+                                        <span class="text-gray-700">${escapeHtml(formatWeightSize(size))}</span>
                                     </div>
                                 ` : ''}
                             </div>
@@ -1994,6 +1989,30 @@ function formatCurrency(amount) {
     }).format(numAmount);
 }
 
+function formatWeightSize(value) {
+    if (!value) return '';
+    let str = String(value).trim();
+
+    // Loại bỏ khoảng trắng thừa: "5 kg" -> "5kg"
+    str = str.replace(/\s+/g, '');
+
+    // Nếu chỉ là số thuần túy (không có chữ cái) thì thêm "kg"
+    if (/^\d+(\.\d+)?$/.test(str)) {
+        return str + 'kg';
+    }
+
+    // Chuẩn hóa các đơn vị phổ biến
+    str = str
+        .replace(/^(\d+(\.\d+)?)g$/i, '$1g')           // "5g" -> "5g"
+        .replace(/^(\d+(\.\d+)?)kg$/i, '$1kg')         // "5kg" -> "5kg"
+        .replace(/^(\d+(\.\d+)?)cm$/i, '$1cm')         // "5cm" -> "5cm"
+        .replace(/^(\d+(\.\d+)?)mm$/i, '$1mm')         // "5mm" -> "5mm"
+        .replace(/gram$/i, 'g')                         // "5gram" -> "5g"
+        .replace(/kilogram$/i, 'kg');                   // "5kilogram" -> "5kg"
+
+    return str;
+}
+
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
     try {
@@ -2009,19 +2028,19 @@ function formatDateTimeSplit(dateString) {
     try {
         // Convert to VN timezone
         const vnDate = toVNDate(dateString);
-        
+
         // Format time (HH:mm:ss)
         const hours = vnDate.getHours().toString().padStart(2, '0');
         const minutes = vnDate.getMinutes().toString().padStart(2, '0');
         const seconds = vnDate.getSeconds().toString().padStart(2, '0');
         const time = `${hours}:${minutes}:${seconds}`;
-        
+
         // Format date (DD/MM/YYYY)
         const day = vnDate.getDate().toString().padStart(2, '0');
         const month = (vnDate.getMonth() + 1).toString().padStart(2, '0');
         const year = vnDate.getFullYear();
         const date = `${day}/${month}/${year}`;
-        
+
         return { time, date };
     } catch (e) {
         return { time: dateString, date: '' };
@@ -2751,6 +2770,16 @@ function editProductName(productId, orderId, orderCode) {
                 </div>
             </div>
 
+            <!-- Notice -->
+            <div class="px-6 py-3 bg-blue-50 border-t border-blue-100">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-sm text-blue-700"><span class="font-semibold">Lưu ý:</span> Thay đổi chỉ áp dụng cho sản phẩm trong đơn hàng này</p>
+                </div>
+            </div>
+
             <!-- Actions -->
             <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
                 <button 
@@ -2775,7 +2804,7 @@ function editProductName(productId, orderId, orderCode) {
 
     // Focus first input immediately
     document.getElementById('editProductName')?.focus();
-    
+
     // Calculate profit immediately to show totals if quantity > 1
     setTimeout(() => calculateEditModalProfit(), 50);
 
@@ -2883,12 +2912,12 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
         if (data.success) {
             // Update local data
             allOrdersData[orderIndex].products = updatedProductsJson;
-            
+
             // Update total_amount if returned from API
             if (data.total_amount !== undefined) {
                 allOrdersData[orderIndex].total_amount = data.total_amount;
             }
-            
+
             // Update commission if returned from API
             if (data.commission !== undefined) {
                 allOrdersData[orderIndex].commission = data.commission;
@@ -2931,19 +2960,19 @@ let editModalIsUpdating = false;
 // Calculate profit in edit modal (for order product editing)
 function calculateEditModalProfit(sourceField = null) {
     if (editModalIsUpdating) return;
-    
+
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
     const quantityInput = document.getElementById('editProductQuantity');
-    
+
     if (!priceInput || !costPriceInput || !quantityInput) return;
 
     const quantity = parseInt(quantityInput.value) || 1;
-    
+
     // Parse current input values
     const currentPriceValue = parseFloat(priceInput.value?.replace(/[^\d]/g, '')) || 0;
     const currentCostValue = parseFloat(costPriceInput.value?.replace(/[^\d]/g, '')) || 0;
-    
+
     // Update unit prices based on what user is editing
     if (sourceField === 'price' || (editModalUnitPrice === 0 && currentPriceValue > 0)) {
         editModalUnitPrice = currentPriceValue / quantity;
@@ -2951,7 +2980,7 @@ function calculateEditModalProfit(sourceField = null) {
     if (sourceField === 'cost' || (editModalUnitCost === 0 && currentCostValue > 0)) {
         editModalUnitCost = currentCostValue / quantity;
     }
-    
+
     // Only auto-calculate total when quantity changes, not when price/cost changes
     if (sourceField === 'quantity') {
         const totalRevenue = editModalUnitPrice * quantity;
@@ -2970,7 +2999,7 @@ function calculateEditModalProfit(sourceField = null) {
     // Update unit price labels (show only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
     const costUnitDiv = document.getElementById('editProductCostUnit');
-    
+
     if (quantity > 1) {
         if (editModalUnitPrice > 0) {
             document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editModalUnitPrice);
@@ -2978,7 +3007,7 @@ function calculateEditModalProfit(sourceField = null) {
         } else {
             priceUnitDiv?.classList.add('hidden');
         }
-        
+
         if (editModalUnitCost > 0) {
             document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editModalUnitCost);
             costUnitDiv?.classList.remove('hidden');
@@ -2998,7 +3027,7 @@ function calculateEditModalProfit(sourceField = null) {
         // Calculate per-unit profit
         const profitPerUnit = price - costPrice;
         const margin = (profitPerUnit / price) * 100;
-        
+
         // Calculate total profit (profit per unit × quantity)
         const totalProfit = profitPerUnit * quantity;
 
@@ -3006,7 +3035,7 @@ function calculateEditModalProfit(sourceField = null) {
             // Show profit with breakdown
             const profitAmountEl = document.getElementById('editModalProfitAmount');
             const profitMarginEl = document.getElementById('editModalProfitMargin');
-            
+
             if (quantity > 1) {
                 profitAmountEl.innerHTML = `
                     <div class="text-right">
@@ -3017,11 +3046,11 @@ function calculateEditModalProfit(sourceField = null) {
             } else {
                 profitAmountEl.textContent = formatCurrency(totalProfit);
             }
-            
+
             profitMarginEl.textContent = `${margin.toFixed(1)}%`;
             profitDisplay.classList.remove('hidden');
             lossWarning.classList.add('hidden');
-            
+
             // Update display to show total revenue and cost in profit box
             const existingBreakdown = document.getElementById('editModalBreakdown');
             if (!existingBreakdown) {
@@ -3160,7 +3189,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         if (data.success) {
             // Update local data
             allOrdersData[orderIndex].products = updatedProductsJson;
-            
+
             // Update total_amount from API response (trigger calculated)
             if (data.total_amount !== undefined) {
                 allOrdersData[orderIndex].total_amount = data.total_amount;
@@ -4113,12 +4142,12 @@ async function deleteProduct(orderId, productIndex, orderCode) {
         if (data.success) {
             // Update local data
             allOrdersData[orderIndex].products = updatedProductsJson;
-            
+
             // Update total_amount if returned from API
             if (data.total_amount !== undefined) {
                 allOrdersData[orderIndex].total_amount = data.total_amount;
             }
-            
+
             // Update commission if returned from API
             if (data.commission !== undefined) {
                 allOrdersData[orderIndex].commission = data.commission;
@@ -4340,11 +4369,11 @@ async function saveProductsToExistingOrder() {
                 if (product.cost_price !== undefined && product.cost_price !== null) {
                     newProduct.cost_price = product.cost_price;
                 }
-                
+
                 // Add size (for both weight and size) with auto-unit
                 if (weightOrSize) {
                     let finalSize = weightOrSize.trim();
-                    
+
                     // Auto-add unit if only number is entered
                     if (/^\d+(\.\d+)?$/.test(finalSize)) {
                         if (isAdultBracelet) {
@@ -4353,10 +4382,10 @@ async function saveProductsToExistingOrder() {
                             finalSize = finalSize + 'kg'; // Cân nặng
                         }
                     }
-                    
+
                     newProduct.size = finalSize;
                 }
-                
+
                 if (notes) newProduct.notes = notes;
 
                 console.log('📦 Adding product to order:', {
@@ -4787,12 +4816,18 @@ async function showAddOrderModal(duplicateData = null) {
 
                         <!-- Shipping Costs -->
                         <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                            <div class="flex items-center gap-2 mb-3">
-                                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                                </svg>
-                                <h4 class="text-sm font-bold text-gray-800">Phí vận chuyển</h4>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                                    </svg>
+                                    <h4 class="text-sm font-bold text-gray-800">Phí vận chuyển</h4>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="freeShippingCheckbox" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleFreeShipping()" />
+                                    <span class="text-xs font-semibold text-green-700">Miễn phí ship</span>
+                                </label>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
@@ -4827,18 +4862,20 @@ async function showAddOrderModal(duplicateData = null) {
 
                     <!-- Right: Products List (3 cols) -->
                     <div class="lg:col-span-3">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                        <div class="mb-3">
+                            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2 mb-3">
                                 <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                 </svg>
                                 Danh sách sản phẩm
                             </h3>
-                            <button onclick="showProductSelectionModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                Thêm sản phẩm
+                            <button onclick="showProductSelectionModal()" class="w-full px-4 py-2 bg-white hover:bg-purple-50 border-2 border-dashed border-purple-400 hover:border-purple-500 rounded-2xl font-semibold text-purple-600 transition-all flex items-center justify-center gap-2">
+                                <div class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                </div>
+                                <span class="text-base">Thêm sản phẩm</span>
                             </button>
                         </div>
 
@@ -4865,13 +4902,20 @@ async function showAddOrderModal(duplicateData = null) {
                             </div>
                         </div>
 
-                        <!-- Quick Add Products -->
-                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-200 mb-3">
-                            <div class="flex items-center gap-2 mb-3">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <h4 class="text-sm font-bold text-gray-800">Sản phẩm bán kèm (Freeship)</h4>
+                        <!-- Quick Add Products (Hidden by default) -->
+                        <div id="freeshipProductsSection" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 mb-3">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <h4 class="text-sm font-bold text-gray-800">Sản phẩm bán kèm (Freeship)</h4>
+                                </div>
+                                <button onclick="toggleFreeshipProducts()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
                             <div id="quickAddProductsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <!-- Skeleton loading -->
@@ -4883,91 +4927,95 @@ async function showAddOrderModal(duplicateData = null) {
                         </div>
 
                         <!-- Combined Summary & Profit Preview -->
-                        <div id="profitPreview" class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div id="profitPreview" class="bg-gradient-to-br from-white to-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm">
                             <!-- Header -->
-                            <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                </svg>
-                                <span class="text-sm font-semibold text-gray-700">Tổng quan đơn hàng</span>
+                            <div class="flex items-center gap-2 mb-4">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <span class="text-base font-bold text-gray-800">Tổng quan đơn hàng</span>
                             </div>
 
-                            <!-- Main Summary -->
-                            <div class="space-y-2 mb-4">
+                            <!-- Main Summary - Tổng tiền -->
+                            <div class="bg-white rounded-lg p-4 mb-4 border border-gray-100 shadow-sm">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Tổng tiền:</span>
-                                    <span id="orderTotalAmount" class="text-lg font-bold text-gray-900">${initialSummary.totalRevenue}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Hoa hồng CTV:</span>
-                                    <span id="orderCommission" class="text-lg font-bold text-orange-600">0đ</span>
+                                    <span class="text-sm font-medium text-gray-600">Tổng tiền</span>
+                                    <span id="orderTotalAmount" class="text-2xl font-bold text-gray-900">${initialSummary.totalRevenue}</span>
                                 </div>
                             </div>
 
-                            <!-- Divider -->
-                            <div class="border-t border-gray-200 my-3"></div>
+                            <!-- Chi tiết Section -->
+                            <div class="space-y-2.5">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Chi tiết</span>
+                                    <div class="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                                </div>
 
-                            <!-- Profit Breakdown -->
-                            <div class="space-y-2 mb-3">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Chi tiết</p>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-gray-600">Doanh thu</span>
-                                    <span id="profitRevenue" class="font-medium text-gray-900">${initialSummary.totalRevenue}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-gray-500">- Giá vốn</span>
-                                    <span id="profitCost" class="text-gray-500">0đ</span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-gray-500">- Chi phí</span>
-                                        <button onclick="event.stopPropagation(); document.getElementById('profitPackagingDetails').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180');" 
-                                            class="text-gray-400 hover:text-gray-600 transition-all duration-200 p-0.5" 
-                                            title="Xem chi tiết chi phí">
-                                            <svg class="w-3.5 h-3.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </button>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <span class="text-gray-700 font-medium">Doanh thu</span>
+                                        <span id="profitRevenue" class="font-semibold text-gray-900">${initialSummary.totalRevenue}</span>
                                     </div>
-                                    <span id="profitPackaging" class="text-gray-500">0đ</span>
-                                </div>
-                                <div class="pl-4 space-y-1 hidden" id="profitPackagingDetails">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-gray-400">• Dây đỏ + Công</span>
-                                        <span id="profitPackagingPerProduct" class="text-gray-400">0đ</span>
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <span class="text-gray-500">- Giá vốn</span>
+                                        <span id="profitCost" class="text-gray-600">0đ</span>
                                     </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-gray-400">• Đóng gói</span>
-                                        <span id="profitPackagingPerOrder" class="text-gray-400">0đ</span>
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-gray-500">- Chi phí</span>
+                                            <button onclick="event.stopPropagation(); document.getElementById('profitPackagingDetails').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180');" 
+                                                class="text-gray-400 hover:text-blue-600 transition-all duration-200 p-0.5 rounded hover:bg-blue-50" 
+                                                title="Xem chi tiết">
+                                                <svg class="w-3.5 h-3.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <span id="profitPackaging" class="text-gray-600">0đ</span>
                                     </div>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-gray-500">- Phí ship (khách trả)</span>
-                                    <span id="profitShipping" class="text-gray-500">0đ</span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-gray-500">- Hoa hồng</span>
-                                    <span id="profitCommission" class="text-gray-500">0đ</span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span id="profitTaxLabel" class="text-gray-500">- Thuế</span>
-                                    <span id="profitTax" class="text-gray-500">0đ</span>
+                                    <div class="pl-6 space-y-1.5 hidden" id="profitPackagingDetails">
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span class="text-gray-400">• Dây đỏ + Công</span>
+                                            <span id="profitPackagingPerProduct" class="text-gray-500">0đ</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span class="text-gray-400">• Đóng gói</span>
+                                            <span id="profitPackagingPerOrder" class="text-gray-500">0đ</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <span class="text-gray-500">- Phí ship thực tế</span>
+                                        <span id="profitShipping" class="text-gray-600">0đ</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <span class="text-gray-500">- Hoa hồng</span>
+                                        <span id="profitCommission" class="text-gray-600">0đ</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm py-1">
+                                        <span id="profitTaxLabel" class="text-gray-500">- Thuế</span>
+                                        <span id="profitTax" class="text-gray-600">0đ</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Final Profit -->
-                            <div class="pt-3 border-t-2 border-gray-300">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-semibold text-gray-700">Lãi ròng</span>
-                                    <div class="text-right">
-                                        <div id="profitAmount" class="text-xl font-bold text-emerald-600">0đ</div>
-                                        <div id="profitMargin" class="text-xs text-gray-500">(0%)</div>
+                            <div class="mt-4 pt-4 border-t-2 border-gray-200">
+                                <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-3 border border-emerald-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm font-semibold text-gray-700">Lãi ròng</span>
+                                        <div class="text-right">
+                                            <div id="profitAmount" class="text-2xl font-bold text-emerald-600">0đ</div>
+                                            <div id="profitMargin" class="text-xs text-emerald-600 font-medium">(0%)</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Warning -->
-                            <div id="profitWarning" class="hidden mt-3 p-2.5 bg-yellow-100 border border-yellow-300 rounded-lg">
+                            <div id="profitWarning" class="hidden mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <p class="text-xs text-yellow-800 font-medium"></p>
                             </div>
                         </div>
@@ -5025,8 +5073,126 @@ async function showAddOrderModal(duplicateData = null) {
     setTimeout(() => document.getElementById('newOrderCustomerName')?.focus(), 100);
 }
 
+// Render BEST SELLING products box (TOP 6)
+function renderBestSellingProductsBox() {
+    // Find the parent container (before quickAddProductsContainer)
+    const freeshipSection = document.querySelector('.bg-gradient-to-br.from-amber-50');
+    if (!freeshipSection) {
+        console.warn('⚠️ Freeship section not found');
+        return;
+    }
+
+    // Check if best selling box already exists
+    if (document.getElementById('bestSellingProductsBox')) {
+        console.log('✅ Best selling box already exists');
+        return;
+    }
+
+    // Get TOP 6 BEST SELLING products
+    const bestSellingProducts = allProductsList
+        .filter(p => p.is_active !== 0 && (p.purchases || 0) > 0)
+        .sort((a, b) => (b.purchases || 0) - (a.purchases || 0))
+        .slice(0, 6);
+
+    console.log('🔥 Top 6 best selling products:', bestSellingProducts.length);
+
+    if (bestSellingProducts.length === 0) {
+        console.warn('⚠️ No best selling products found');
+        return;
+    }
+
+    // Create best selling box HTML
+    const bestSellingBox = document.createElement('div');
+    bestSellingBox.id = 'bestSellingProductsBox';
+    bestSellingBox.className = 'bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 mb-3';
+
+    const colorSchemes = [
+        { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700' },
+        { bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-700' },
+        { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-700' },
+        { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' },
+        { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-700' },
+        { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700' }
+    ];
+
+    bestSellingBox.innerHTML = `
+        <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-base font-bold text-gray-900">Sản phẩm bán chạy</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+            ${bestSellingProducts.map((product, index) => {
+        const qtyId = `best_qty_${product.id}`;
+        const sizeId = `best_size_${product.id}`;
+        const purchases = product.purchases || 0;
+
+        return `
+                    <div class="bg-white border border-orange-200 rounded-lg p-2 hover:border-orange-400 transition-all">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 truncate" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-xs font-bold text-green-600">${formatCurrency(product.price)}</span>
+                                    <span class="text-xs text-gray-500">• Lượt bán: <span class="font-semibold text-orange-600">${purchases}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <input type="text" id="${sizeId}" placeholder="Size" 
+                                class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500" />
+                            <div class="flex items-center border border-gray-300 rounded overflow-hidden">
+                                <button onclick="quickChangeQty('${qtyId}', -1)" class="px-1.5 py-1 bg-gray-50 hover:bg-gray-100">
+                                    <svg class="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4" />
+                                    </svg>
+                                </button>
+                                <input type="number" id="${qtyId}" value="1" min="1" class="w-8 text-center text-xs font-semibold border-0 focus:ring-0 py-1">
+                                <button onclick="quickChangeQty('${qtyId}', 1)" class="px-1.5 py-1 bg-gray-50 hover:bg-gray-100">
+                                    <svg class="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <button onclick="quickAddProductToOrder(${product.id}, '${escapeHtml(product.name).replace(/'/g, "\\'")}', ${product.price}, ${product.cost_price || 0}, '${qtyId}', '${sizeId}')" 
+                                class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-semibold transition-all">
+                                Thêm
+                            </button>
+                        </div>
+                    </div>
+                `;
+    }).join('')}
+        </div>
+    `;
+
+    // Insert before freeship section
+    freeshipSection.parentNode.insertBefore(bestSellingBox, freeshipSection);
+
+    // Create toggle button (separate element)
+    const toggleButton = document.createElement('button');
+    toggleButton.id = 'toggleFreeshipBtn';
+    toggleButton.onclick = toggleFreeshipProducts;
+    toggleButton.className = 'w-full mb-3 px-3 py-2 bg-white hover:bg-amber-50 text-amber-700 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2';
+    toggleButton.innerHTML = `
+        <svg id="toggleFreeshipIcon" class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+        <span id="toggleFreeshipText">Xem sản phẩm bán kèm</span>
+    `;
+
+    // Insert toggle button between best selling box and freeship section
+    freeshipSection.parentNode.insertBefore(toggleButton, freeshipSection);
+
+    console.log('✅ Best selling products box and toggle button rendered');
+}
+
 // Render quick add products from database (category_id = 23 or category_name = 'Freeship')
 function renderQuickAddProducts() {
+    // First, render best selling products box
+    renderBestSellingProductsBox();
+
+    // Then render freeship products
     const container = document.getElementById('quickAddProductsContainer');
     if (!container) {
         console.warn('⚠️ Quick add products container not found');
@@ -5116,6 +5282,29 @@ function renderQuickAddProducts() {
             </div>
         `;
     }).join('');
+}
+
+// Toggle free shipping
+function toggleFreeShipping() {
+    const checkbox = document.getElementById('freeShippingCheckbox');
+    const shippingFeeInput = document.getElementById('newOrderShippingFee');
+    
+    if (!checkbox || !shippingFeeInput) return;
+    
+    if (checkbox.checked) {
+        // Enable free shipping - only set customer fee to 0
+        shippingFeeInput.value = '0';
+        shippingFeeInput.disabled = true;
+        shippingFeeInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    } else {
+        // Disable free shipping - restore default value
+        shippingFeeInput.value = '30000';
+        shippingFeeInput.disabled = false;
+        shippingFeeInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    }
+    
+    // Update order summary
+    updateOrderSummary();
 }
 
 // Close add order modal
@@ -5431,12 +5620,19 @@ function editProductInOrder(index) {
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
 
-                <!-- Quantity -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng <span class="text-red-500">*</span></label>
-                    <input type="number" id="editProductQty" value="${product.quantity || 1}" min="1" 
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                        oninput="calculateEditProfit('quantity')" />
+                <!-- Quantity and Size -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng <span class="text-red-500">*</span></label>
+                        <input type="number" id="editProductQty" value="${product.quantity || 1}" min="1" 
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                            oninput="calculateEditProfit('quantity')" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Size/Tay</label>
+                        <input type="text" id="editProductSize" value="${escapeHtml(product.size || '')}" placeholder="VD: Size M, 5kg..." 
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    </div>
                 </div>
 
                 <!-- Price and Cost -->
@@ -5464,24 +5660,20 @@ function editProductInOrder(index) {
                 </div>
                 <p class="text-xs text-gray-500 -mt-2">💡 Giá nhập là giá 1 sản phẩm. Tổng tiền sẽ tự động tính = giá × số lượng</p>
 
-                <!-- Weight and Size -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Cân nặng</label>
-                        <input type="text" id="editProductWeight" value="${escapeHtml(product.weight || '')}" placeholder="VD: 500g" 
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Size/Tay</label>
-                        <input type="text" id="editProductSize" value="${escapeHtml(product.size || '')}" placeholder="VD: Size M" 
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
                     <textarea id="editProductNotes" rows="2" placeholder="Ghi chú về sản phẩm..." 
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none">${escapeHtml(product.notes || '')}</textarea>
+                </div>
+            </div>
+
+            <!-- Notice -->
+            <div class="px-6 py-3 bg-blue-50 border-t border-blue-100">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-sm text-blue-700"><span class="font-semibold">Lưu ý:</span> Thay đổi chỉ áp dụng cho sản phẩm trong đơn hàng này</p>
                 </div>
             </div>
 
@@ -5518,19 +5710,19 @@ let editOrderIsUpdating = false;
 // Calculate and update unit prices in edit modal (for new order)
 function calculateEditProfit(sourceField = null) {
     if (editOrderIsUpdating) return;
-    
+
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
     const quantityInput = document.getElementById('editProductQty');
-    
+
     if (!priceInput || !costPriceInput || !quantityInput) return;
 
     const quantity = parseInt(quantityInput.value) || 1;
-    
+
     // Parse current input values
     const currentPriceValue = parseFloat(priceInput.value) || 0;
     const currentCostValue = parseFloat(costPriceInput.value) || 0;
-    
+
     // Update unit prices based on what user is editing
     if (sourceField === 'price' || (editOrderUnitPrice === 0 && currentPriceValue > 0)) {
         editOrderUnitPrice = currentPriceValue / quantity;
@@ -5538,7 +5730,7 @@ function calculateEditProfit(sourceField = null) {
     if (sourceField === 'cost' || (editOrderUnitCost === 0 && currentCostValue > 0)) {
         editOrderUnitCost = currentCostValue / quantity;
     }
-    
+
     // Only auto-calculate total when quantity changes, not when price/cost changes
     if (sourceField === 'quantity') {
         const totalRevenue = editOrderUnitPrice * quantity;
@@ -5557,7 +5749,7 @@ function calculateEditProfit(sourceField = null) {
     // Update unit price labels (show only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
     const costUnitDiv = document.getElementById('editProductCostUnit');
-    
+
     if (quantity > 1) {
         if (editOrderUnitPrice > 0) {
             document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editOrderUnitPrice);
@@ -5565,7 +5757,7 @@ function calculateEditProfit(sourceField = null) {
         } else {
             priceUnitDiv?.classList.add('hidden');
         }
-        
+
         if (editOrderUnitCost > 0) {
             document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editOrderUnitCost);
             costUnitDiv?.classList.remove('hidden');
@@ -5585,7 +5777,6 @@ function saveEditedProduct(index) {
     // Use unit prices (not total from input)
     const price = editOrderUnitPrice;
     const costPrice = editOrderUnitCost;
-    const weight = document.getElementById('editProductWeight')?.value.trim();
     const size = document.getElementById('editProductSize')?.value.trim();
     const notes = document.getElementById('editProductNotes')?.value.trim();
 
@@ -5602,7 +5793,6 @@ function saveEditedProduct(index) {
 
     if (price > 0) currentOrderProducts[index].price = price;
     if (costPrice > 0) currentOrderProducts[index].cost_price = costPrice;
-    if (weight) currentOrderProducts[index].weight = weight;
     if (size) currentOrderProducts[index].size = size;
     if (notes) currentOrderProducts[index].notes = notes;
 
@@ -5718,73 +5908,53 @@ function renderOrderProducts() {
     }
 
     container.innerHTML = currentOrderProducts.map((p, i) => `
-        <div class="bg-gradient-to-r from-white to-purple-50 rounded-xl p-4 border-2 border-purple-200 hover:border-purple-400 hover:shadow-md transition-all">
-            <div class="flex items-center justify-between gap-3">
-                <!-- Left: Number Badge -->
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
-                        ${i + 1}
-                    </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all">
+            <div class="flex items-start gap-3">
+                <!-- Number Badge -->
+                <div class="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0 mt-0.5">
+                    ${i + 1}
                 </div>
                 
-                <!-- Middle: Product Info -->
+                <!-- Product Info -->
                 <div class="flex-1 min-w-0">
                     <!-- Product Name -->
-                    <div class="font-semibold text-gray-900 mb-2 text-base">${escapeHtml(p.name)}</div>
+                    <div class="font-semibold text-gray-900 mb-1.5">${escapeHtml(p.name)}</div>
                     
-                    <!-- Info Grid -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <!-- Quantity -->
-                        <div class="flex items-center gap-1.5 px-2 py-1 bg-purple-100 rounded-lg">
-                            <svg class="w-4 h-4 text-purple-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                            </svg>
-                            <span class="text-xs font-bold text-purple-700">SL: ${p.quantity || 1}</span>
+                    <!-- Details Row -->
+                    <div class="flex items-center gap-3 text-sm">
+                        <!-- Quantity & Size -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-600 font-medium">#</span>
+                            <span class="text-gray-700">SL: ${p.quantity || 1}</span>
+                            ${p.weight || p.size ? `<span class="text-gray-400">•</span><span class="text-gray-600">${escapeHtml(formatWeightSize(p.weight || p.size))}</span>` : ''}
                         </div>
                         
                         <!-- Price -->
                         ${p.price && !isNaN(parseFloat(p.price)) ? `
-                        <div class="flex items-center gap-1.5 px-2 py-1 bg-green-100 rounded-lg">
-                            <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span class="text-xs font-bold text-green-700">${formatCurrency(parseFloat(p.price) * (p.quantity || 1))}</span>
-                        </div>
-                        ` : '<div class="flex items-center gap-1.5 px-2 py-1 bg-amber-100 rounded-lg"><span class="text-xs font-bold text-amber-700">Chưa có giá</span></div>'}
-                        
-                        <!-- Weight/Size -->
-                        ${p.weight || p.size ? `
-                        <div class="flex items-center gap-1.5 px-2 py-1 bg-blue-100 rounded-lg">
-                            <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                            </svg>
-                            <span class="text-xs font-bold text-blue-700">${escapeHtml(p.weight || p.size)}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-gray-400">•</span>
+                            <span class="text-green-600 font-semibold">${formatCurrency(parseFloat(p.price) * (p.quantity || 1))}</span>
                         </div>
                         ` : ''}
                     </div>
                     
                     <!-- Notes -->
                     ${p.notes ? `
-                    <div class="mt-2 pt-2 border-t border-purple-200">
-                        <div class="flex items-start gap-1.5 text-xs text-gray-600 italic">
-                            <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                            </svg>
-                            <span>${escapeHtml(p.notes)}</span>
-                        </div>
+                    <div class="mt-1.5 text-xs text-gray-500 italic">
+                        💬 ${escapeHtml(p.notes)}
                     </div>
                     ` : ''}
                 </div>
                 
-                <!-- Right: Action Buttons -->
-                <div class="flex flex-col gap-1 flex-shrink-0">
-                    <button onclick="editProductInOrder(${i})" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Chỉnh sửa">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <button onclick="editProductInOrder(${i})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Sửa">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     </button>
-                    <button onclick="removeProductFromOrder(${i})" class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Xóa">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button onclick="removeProductFromOrder(${i})" class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Xóa">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                     </button>
@@ -5814,13 +5984,16 @@ function updateOrderSummary() {
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value || 0);
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value || 0);
 
-    // Calculate packaging cost from database config
-    const packagingCost = calculatePackagingCost();
+    // Only calculate costs if there are products
+    const hasProducts = currentOrderProducts.length > 0;
 
-    // Calculate commission based on CTV's commission_rate if available
+    // Calculate packaging cost from database config (only if has products)
+    const packagingCost = hasProducts ? calculatePackagingCost() : 0;
+
+    // Calculate commission based on CTV's commission_rate if available (only if has products)
     const referralCode = document.getElementById('newOrderReferralCode')?.value.trim();
     let commission = 0;
-    if (referralCode) {
+    if (referralCode && hasProducts) {
         // Try to get CTV's commission_rate from the form or use default 10%
         const commissionRate = parseFloat(document.getElementById('newOrderCommissionRate')?.value || 0.1);
         commission = Math.round(productTotal * commissionRate);
@@ -5829,8 +6002,8 @@ function updateOrderSummary() {
     // Calculate total revenue (product total + shipping fee)
     const revenue = productTotal + shippingFee;
 
-    // Calculate tax (1.5% of revenue)
-    const tax = Math.round(revenue * COST_CONSTANTS.TAX_RATE);
+    // Calculate tax (1.5% of revenue) - only if has products
+    const tax = hasProducts ? Math.round(revenue * COST_CONSTANTS.TAX_RATE) : 0;
 
     // Calculate profit (revenue - all costs including tax)
     const profit = revenue - productCost - shippingCost - packagingCost - commission - tax;
@@ -5838,7 +6011,6 @@ function updateOrderSummary() {
 
     // Update summary display (total = products + shipping fee)
     document.getElementById('orderTotalAmount').textContent = formatCurrency(revenue);
-    document.getElementById('orderCommission').textContent = formatCurrency(commission);
 
     // Update profit preview with all cost details
     updateProfitPreview({
@@ -5860,7 +6032,7 @@ function updateProfitPreview(data) {
     document.getElementById('profitRevenue').textContent = formatCurrency(data.revenue);
     document.getElementById('profitCost').textContent = formatCurrency(data.productCost);
     document.getElementById('profitPackaging').textContent = formatCurrency(data.packagingCost);
-    
+
     // Show packaging details breakdown if available
     if (packagingConfig && packagingConfig.length > 0 && currentOrderProducts.length > 0) {
         const totalProducts = currentOrderProducts.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -5868,17 +6040,17 @@ function updateProfitPreview(data) {
         packagingConfig.filter(item => item.is_default === 1).forEach(item => {
             packagingPrices[item.item_name] = item.item_cost || 0;
         });
-        
+
         const perProductCost = ((packagingPrices.red_string || 0) + (packagingPrices.labor_cost || 0)) * totalProducts;
-        const perOrderCost = (packagingPrices.bag_zip || 0) + (packagingPrices.bag_red || 0) + 
-                            (packagingPrices.box_shipping || 0) + (packagingPrices.thank_card || 0) + 
-                            (packagingPrices.paper_print || 0);
-        
+        const perOrderCost = (packagingPrices.bag_zip || 0) + (packagingPrices.bag_red || 0) +
+            (packagingPrices.box_shipping || 0) + (packagingPrices.thank_card || 0) +
+            (packagingPrices.paper_print || 0);
+
         document.getElementById('profitPackagingPerProduct').textContent = formatCurrency(perProductCost);
         document.getElementById('profitPackagingPerOrder').textContent = formatCurrency(perOrderCost);
     }
-    
-    document.getElementById('profitShipping').textContent = formatCurrency(data.shippingFee);
+
+    document.getElementById('profitShipping').textContent = formatCurrency(data.shippingCost);
     document.getElementById('profitCommission').textContent = formatCurrency(data.commission);
     document.getElementById('profitTax').textContent = formatCurrency(data.tax);
 
@@ -5899,6 +6071,9 @@ function updateProfitPreview(data) {
     profitPreviewEl.className = 'bg-white rounded-lg p-4 border';
     if (profitWarningEl) profitWarningEl.classList.add('hidden');
 
+    // Only show warnings if there are products in the order
+    const hasProducts = currentOrderProducts.length > 0;
+
     // Update profit amount color based on value
     if (data.profit > 0) {
         if (data.profitMargin > 40) {
@@ -5912,21 +6087,21 @@ function updateProfitPreview(data) {
             profitMarginEl.className = 'text-xs text-green-600';
             profitPreviewEl.classList.add('border-green-200');
         } else {
-            // Low profit - warning
+            // Low profit - warning (only if has products)
             profitAmountEl.className = 'text-xl font-bold text-yellow-600';
             profitMarginEl.className = 'text-xs text-yellow-600';
             profitPreviewEl.classList.add('border-yellow-300');
-            if (profitWarningEl) {
+            if (profitWarningEl && hasProducts) {
                 profitWarningEl.classList.remove('hidden');
                 profitWarningEl.querySelector('p').textContent = '⚠️ Lãi thấp! Cân nhắc tăng giá hoặc giảm chi phí';
             }
         }
     } else {
-        // Loss
+        // Loss (only show warning if has products)
         profitAmountEl.className = 'text-xl font-bold text-red-600';
         profitMarginEl.className = 'text-xs text-red-600';
         profitPreviewEl.classList.add('border-red-300');
-        if (profitWarningEl) {
+        if (profitWarningEl && hasProducts) {
             profitWarningEl.classList.remove('hidden');
             profitWarningEl.className = 'mt-3 p-2 bg-red-100 border border-red-300 rounded-lg';
             profitWarningEl.querySelector('p').textContent = '❌ Đơn hàng này sẽ LỖ! Vui lòng kiểm tra lại giá';
@@ -5941,12 +6116,12 @@ async function submitNewOrder() {
     if (!validateCTVCode()) {
         return; // Block submission if CTV is invalid
     }
-    
+
     // Validate
     const customerName = document.getElementById('newOrderCustomerName')?.value.trim();
     const customerPhone = document.getElementById('newOrderCustomerPhone')?.value.trim();
     const address = document.getElementById('newOrderAddress')?.value.trim();
-    
+
     // Get address 4 levels
     const provinceId = document.getElementById('newOrderProvince')?.value;
     const districtId = document.getElementById('newOrderDistrict')?.value;
@@ -6825,35 +7000,35 @@ let ctvCheckTimeout = null;
 let ctvVerified = false; // Track verification status
 
 // Listen to CTV input changes
-document.addEventListener('input', function(e) {
+document.addEventListener('input', function (e) {
     if (e.target.id === 'newOrderReferralCode') {
         const code = e.target.value.trim();
         const statusDiv = document.getElementById('ctvVerifyStatus');
-        
+
         if (!statusDiv) return;
-        
+
         // Clear previous timeout
         clearTimeout(ctvCheckTimeout);
-        
+
         // Reset verification status
         ctvVerified = false;
-        
+
         // Clear if empty (empty is allowed)
         if (!code) {
             statusDiv.innerHTML = '';
             ctvVerified = true; // Empty is valid
             return;
         }
-        
+
         // Show loading
         statusDiv.innerHTML = '<div class="text-xs text-gray-500 mt-1">Đang kiểm tra...</div>';
-        
+
         // Check after 600ms
         ctvCheckTimeout = setTimeout(async () => {
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=verifyCTV&code=${encodeURIComponent(code)}`);
                 const data = await response.json();
-                
+
                 if (data.success && data.verified) {
                     const rate = (data.data.rate * 100).toFixed(0);
                     statusDiv.innerHTML = `
@@ -6884,19 +7059,19 @@ document.addEventListener('input', function(e) {
 function validateCTVCode() {
     const ctvInput = document.getElementById('newOrderReferralCode');
     if (!ctvInput) return true; // If input doesn't exist, allow
-    
+
     const code = ctvInput.value.trim();
-    
+
     // If empty, allow (optional field)
     if (!code) return true;
-    
+
     // If has value but not verified, block
     if (!ctvVerified) {
         alert('⚠️ Mã CTV không hợp lệ!\n\nVui lòng kiểm tra lại mã CTV hoặc để trống nếu không có.');
         ctvInput.focus();
         return false;
     }
-    
+
     return true;
 }
 
@@ -6951,4 +7126,153 @@ async function initAddressSelector() {
 
     // Street address input
     streetInput.addEventListener('input', updateAddressPreview);
+}
+
+
+// ============================================
+// QUICK ADD FUNCTIONS FOR BEST SELLING PRODUCTS
+// ============================================
+
+// Change quantity in quick add input
+function quickChangeQty(inputId, delta) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    const currentVal = parseInt(input.value) || 1;
+    const newVal = Math.max(1, currentVal + delta);
+    input.value = newVal;
+}
+
+// Quick add product to order (for best selling products)
+function quickAddProductToOrder(productId, productName, price, costPrice, qtyInputId, sizeInputId) {
+    const qtyInput = document.getElementById(qtyInputId);
+    const sizeInput = document.getElementById(sizeInputId);
+
+    const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+    const size = sizeInput ? sizeInput.value.trim() : null;
+
+    // Validate: Size is required for best selling products
+    if (!size) {
+        showToast('⚠️ Vui lòng nhập size trước khi thêm sản phẩm', 'warning');
+        if (sizeInput) {
+            sizeInput.focus();
+            sizeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+            setTimeout(() => {
+                sizeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+            }, 2000);
+        }
+        return;
+    }
+
+    // Add product to current order
+    const product = {
+        id: productId,
+        name: productName,
+        price: price,
+        cost_price: costPrice,
+        quantity: quantity,
+        size: size || null,
+        notes: null
+    };
+
+    currentOrderProducts.push(product);
+
+    // Reset quantity to 1 and clear size
+    if (qtyInput) {
+        qtyInput.value = 1;
+    }
+    if (sizeInput) {
+        sizeInput.value = '';
+    }
+
+    // Re-render products list and update summary
+    renderOrderProducts();
+    updateOrderSummary();
+
+    // Show success toast with size info
+    const sizeText = size ? ` (${size})` : '';
+    showToast(`✅ Đã thêm ${quantity}x ${productName}${sizeText}`, 'success');
+}
+
+// Quick add product with quantity (for freeship products)
+function quickAddProductWithQty(productName, price, qtyInputId) {
+    const qtyInput = document.getElementById(qtyInputId);
+    const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+
+    if (quantity === 0) {
+        showToast('⚠️ Số lượng phải lớn hơn 0', 'warning');
+        return;
+    }
+
+    // Find product in list
+    const product = allProductsList.find(p => p.name === productName);
+    if (!product) {
+        showToast('❌ Không tìm thấy sản phẩm', 'error');
+        return;
+    }
+
+    // Add to current order
+    const orderProduct = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        cost_price: product.cost_price || 0,
+        quantity: quantity,
+        size: null,
+        notes: null
+    };
+
+    currentOrderProducts.push(orderProduct);
+
+    // Reset quantity to 1
+    if (qtyInput) {
+        qtyInput.value = 1;
+    }
+
+    // Re-render and update
+    renderOrderProducts();
+    updateOrderSummary();
+
+    showToast(`✅ Đã thêm ${quantity}x ${productName}`, 'success');
+}
+
+
+// Toggle freeship products section
+function toggleFreeshipProducts() {
+    const section = document.getElementById('freeshipProductsSection');
+    const button = document.getElementById('toggleFreeshipBtn');
+
+    if (!section) return;
+
+    if (section.classList.contains('hidden')) {
+        // Show section
+        section.classList.remove('hidden');
+        if (button) button.classList.add('hidden');
+    } else {
+        // Hide section
+        section.classList.add('hidden');
+        if (button) button.classList.remove('hidden');
+    }
+}
+
+
+// Toggle freeship products section
+function toggleFreeshipProducts() {
+    const section = document.getElementById('freeshipProductsSection');
+    const icon = document.getElementById('toggleFreeshipIcon');
+    const text = document.getElementById('toggleFreeshipText');
+
+    if (!section) return;
+
+    if (section.classList.contains('hidden')) {
+        // Show section
+        section.classList.remove('hidden');
+        if (icon) icon.style.transform = 'rotate(180deg)';
+        if (text) text.textContent = 'Ẩn sản phẩm bán kèm';
+    } else {
+        // Hide section
+        section.classList.add('hidden');
+        if (icon) icon.style.transform = 'rotate(0deg)';
+        if (text) text.textContent = 'Xem sản phẩm bán kèm';
+    }
 }

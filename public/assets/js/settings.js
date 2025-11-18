@@ -208,7 +208,7 @@ async function savePackagingConfig() {
 
 // Show loading state
 function showLoading() {
-    const inputs = document.querySelectorAll('input[type="number"]');
+    const inputs = document.querySelectorAll('#settingsForm input[type="number"]');
     inputs.forEach(input => {
         input.disabled = true;
         input.value = ''; // Clear value to prevent showing old data
@@ -219,7 +219,7 @@ function showLoading() {
 
 // Hide loading state
 function hideLoading() {
-    const inputs = document.querySelectorAll('input[type="number"]');
+    const inputs = document.querySelectorAll('#settingsForm input[type="number"]');
     inputs.forEach(input => {
         input.disabled = false;
         input.classList.remove('bg-gray-50', 'animate-pulse');
@@ -337,13 +337,16 @@ async function updateTaxRate() {
     }
     
     try {
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+        
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'updateTaxRate',
                 taxRate: newTaxRate,
-                description: `Thuế ${newTaxRatePercent}% từ ${toVNShortDate(new Date())}`
+                description: `Thuế ${newTaxRatePercent}% từ ${dateStr}`
             })
         });
         

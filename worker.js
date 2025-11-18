@@ -3554,7 +3554,7 @@ async function updateTaxRate(data, env, corsHeaders) {
             success: true,
             message: 'Tax rate updated successfully',
             taxRate: taxRate,
-            effectiveFrom: new Date().getTime().split('T')[0]
+            effectiveFrom: new Date().toISOString().split('T')[0]
         }, 200, corsHeaders);
 
     } catch (error) {

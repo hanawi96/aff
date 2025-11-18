@@ -4,13 +4,14 @@ let currentLimit = 9999; // Show all products
 let allProductsData = [];
 let currentSort = { column: null, direction: null }; // null, 'asc', 'desc'
 
-// Cache data by period for better performance
+// Cache data by period for better performance with TTL
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 const dataCache = {
-    today: null,
-    week: null,
-    month: null,
-    year: null,
-    all: null
+    today: { data: null, timestamp: 0 },
+    week: { data: null, timestamp: 0 },
+    month: { data: null, timestamp: 0 },
+    year: { data: null, timestamp: 0 },
+    all: { data: null, timestamp: 0 }
 };
 
 // Initialize
@@ -82,7 +83,7 @@ function toggleSort(column) {
 // Refresh data
 function refreshData() {
     // Clear cache for current period to force reload
-    dataCache[currentPeriod] = null;
+    dataCache[currentPeriod] = { data: null, timestamp: 0 };
     showToast('Đang làm mới dữ liệu...', 'info');
     loadTopProducts();
 }
@@ -90,10 +91,13 @@ function refreshData() {
 // Load top products
 async function loadTopProducts() {
     try {
-        // Check cache first for better performance
-        if (dataCache[currentPeriod]) {
-            console.log('📦 Using cached data for', currentPeriod);
-            const cachedData = dataCache[currentPeriod];
+        // Check cache first for better performance (with TTL)
+        const now = Date.now();
+        const cache = dataCache[currentPeriod];
+        
+        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+            console.log('📦 Using cached data for', currentPeriod, `(age: ${Math.round((now - cache.timestamp) / 1000)}s)`);
+            const cachedData = cache.data;
             allProductsData = cachedData.top_products || [];
             updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
             renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
@@ -128,8 +132,13 @@ async function loadTopProducts() {
         const overviewData = await overviewResponse.json();
 
         if (overviewData.success) {
-            // Cache the data for this period
-            dataCache[currentPeriod] = overviewData;
+            // Cache the data for this period with timestamp
+            dataCache[currentPeriod] = {
+                data: overviewData,
+                timestamp: Date.now()
+            };
+            
+            console.log('✅ Data loaded and cached for', currentPeriod);
             
             // Use top_products from getDetailedAnalytics (no need for separate API call)
             allProductsData = overviewData.top_products || [];
