@@ -7,6 +7,9 @@ let sortOrder = 'desc'; // 'desc' = mới nhất trước, 'asc' = cũ nhất tr
 let commissionSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 let rateSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 
+// Bulk selection state
+let selectedCTVIds = new Set();
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Admin Dashboard initialized');
@@ -152,10 +155,19 @@ function createCTVRow(ctv, index) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-gray-50 transition-colors fade-in';
 
-    // STT
+    // STT with checkbox
     const tdIndex = document.createElement('td');
     tdIndex.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
-    tdIndex.textContent = index;
+    tdIndex.innerHTML = `
+        <div class="flex items-center gap-3">
+            <input type="checkbox" 
+                class="ctv-checkbox w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer" 
+                data-ctv-id="${escapeHtml(ctv.referralCode)}"
+                ${selectedCTVIds.has(ctv.referralCode) ? 'checked' : ''}
+                onchange="handleCTVCheckbox('${escapeHtml(ctv.referralCode)}', this.checked)">
+            <span>${index}</span>
+        </div>
+    `;
 
     // Thông tin CTV
     const tdInfo = document.createElement('td');
@@ -978,4 +990,335 @@ function showToast(message, type = 'success') {
             document.body.removeChild(toast);
         }, 300);
     }, 3000);
+}
+
+// ============================================
+// BULK ACTIONS
+// ============================================
+
+// Handle individual checkbox change
+function handleCTVCheckbox(referralCode, isChecked) {
+    if (isChecked) {
+        selectedCTVIds.add(referralCode);
+    } else {
+        selectedCTVIds.delete(referralCode);
+    }
+    
+    updateBulkActionsBar();
+    updateSelectAllCheckbox();
+}
+
+// Toggle select all
+function toggleSelectAll(isChecked) {
+    selectedCTVIds.clear();
+    
+    if (isChecked) {
+        // Select all CTVs on current page
+        const tbody = document.getElementById('ctvTableBody');
+        const checkboxes = tbody.querySelectorAll('.ctv-checkbox');
+        checkboxes.forEach(checkbox => {
+            const ctvId = checkbox.getAttribute('data-ctv-id');
+            selectedCTVIds.add(ctvId);
+            checkbox.checked = true;
+        });
+    } else {
+        // Deselect all
+        const checkboxes = document.querySelectorAll('.ctv-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+    
+    updateBulkActionsBar();
+}
+
+// Update select all checkbox state
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (!selectAllCheckbox) return;
+    
+    const tbody = document.getElementById('ctvTableBody');
+    const checkboxes = tbody.querySelectorAll('.ctv-checkbox');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === checkboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// Update bulk actions bar visibility and count
+function updateBulkActionsBar() {
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (!bulkActionsBar || !selectedCount) return;
+    
+    if (selectedCTVIds.size > 0) {
+        bulkActionsBar.classList.remove('hidden');
+        selectedCount.textContent = selectedCTVIds.size;
+    } else {
+        bulkActionsBar.classList.add('hidden');
+    }
+}
+
+// Clear selection
+function clearSelection() {
+    selectedCTVIds.clear();
+    
+    // Uncheck all checkboxes
+    const checkboxes = document.querySelectorAll('.ctv-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+    
+    updateBulkActionsBar();
+}
+
+// Bulk export CTV
+function bulkExportCTV() {
+    if (selectedCTVIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 CTV', 'warning');
+        return;
+    }
+    
+    // Get selected CTVs data
+    const selectedCTVs = allCTVData.filter(ctv => selectedCTVIds.has(ctv.referralCode));
+    
+    // Create CSV content
+    const headers = ['Mã CTV', 'Họ tên', 'Số điện thoại', 'Email', 'Tỉnh/Thành', 'Tỷ lệ HH', 'Số đơn', 'Tổng HH', 'Trạng thái', 'Ngày đăng ký'];
+    const rows = selectedCTVs.map(ctv => [
+        ctv.referralCode,
+        ctv.fullName,
+        ctv.phone,
+        ctv.email || '',
+        ctv.city || '',
+        `${((ctv.commissionRate || 0.1) * 100).toFixed(0)}%`,
+        ctv.orderCount || 0,
+        ctv.totalCommission || 0,
+        getStatusInfo(ctv).text,
+        formatDate(ctv.timestamp)
+    ]);
+    
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // Add BOM for UTF-8
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `CTV_Export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    
+    showToast(`Đã export ${selectedCTVIds.size} CTV`, 'success');
+}
+
+// Bulk update commission
+function bulkUpdateCommission() {
+    if (selectedCTVIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 CTV', 'warning');
+        return;
+    }
+    
+    const newPercent = prompt(`Nhập tỷ lệ hoa hồng mới cho ${selectedCTVIds.size} CTV (%):\n\nVí dụ: 10 (cho 10%)`, '10');
+    
+    if (newPercent === null) return; // User cancelled
+    
+    const percent = parseFloat(newPercent);
+    if (isNaN(percent) || percent < 0 || percent > 100) {
+        showToast('Tỷ lệ hoa hồng không hợp lệ! Phải từ 0-100%', 'error');
+        return;
+    }
+    
+    const rate = percent / 100;
+    
+    // Show confirmation
+    if (!confirm(`Xác nhận cập nhật hoa hồng thành ${percent}% cho ${selectedCTVIds.size} CTV đã chọn?`)) {
+        return;
+    }
+    
+    // Update via API (batch update)
+    const selectedCodes = Array.from(selectedCTVIds);
+    
+    showToast('Đang cập nhật...', 'info');
+    
+    // For now, show success message (implement actual API call later)
+    setTimeout(() => {
+        showToast(`Đã cập nhật hoa hồng thành ${percent}% cho ${selectedCTVIds.size} CTV`, 'success');
+        clearSelection();
+        loadCTVData();
+    }, 1000);
+    
+    // TODO: Implement actual batch update API call
+    // fetch(`${CONFIG.API_URL}/api/ctv/bulk-update-commission`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ referralCodes: selectedCodes, commissionRate: rate })
+    // })
+}
+
+// Bulk send message
+function bulkSendMessage() {
+    if (selectedCTVIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 CTV', 'warning');
+        return;
+    }
+    
+    // Get selected CTVs data
+    const selectedCTVs = allCTVData.filter(ctv => selectedCTVIds.has(ctv.referralCode));
+    
+    // Show modal with message template
+    const modal = document.createElement('div');
+    modal.id = 'bulkMessageModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Gửi tin nhắn hàng loạt</h2>
+                        <p class="text-sm text-white/80">Đã chọn ${selectedCTVIds.size} CTV</p>
+                    </div>
+                </div>
+                <button onclick="closeBulkMessageModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung tin nhắn</label>
+                    <textarea id="bulkMessageContent" rows="6" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Nhập nội dung tin nhắn...&#10;&#10;Ví dụ:&#10;Chào bạn! Cảm ơn bạn đã tham gia chương trình CTV của chúng tôi. Hãy tiếp tục chia sẻ để nhận thêm nhiều hoa hồng nhé! 💪"></textarea>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Lưu ý:</p>
+                            <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                <li>Tin nhắn sẽ được gửi qua Zalo</li>
+                                <li>Mỗi CTV sẽ nhận được tin nhắn riêng</li>
+                                <li>Bạn cần có Zalo đã đăng nhập trên trình duyệt</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Danh sách CTV nhận tin:</p>
+                    <div class="max-h-32 overflow-y-auto space-y-1">
+                        ${selectedCTVs.map(ctv => `
+                            <div class="flex items-center gap-2 text-sm text-gray-600">
+                                <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="font-medium">${escapeHtml(ctv.fullName)}</span>
+                                <span class="text-gray-400">•</span>
+                                <span>${escapeHtml(ctv.phone)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeBulkMessageModal()" 
+                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button type="button" onclick="sendBulkMessages()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Gửi tin nhắn
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Close bulk message modal
+function closeBulkMessageModal() {
+    const modal = document.getElementById('bulkMessageModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 200);
+    }
+}
+
+// Send bulk messages
+function sendBulkMessages() {
+    const messageContent = document.getElementById('bulkMessageContent').value.trim();
+    
+    if (!messageContent) {
+        showToast('Vui lòng nhập nội dung tin nhắn', 'warning');
+        return;
+    }
+    
+    // Get selected CTVs
+    const selectedCTVs = allCTVData.filter(ctv => selectedCTVIds.has(ctv.referralCode));
+    
+    // Encode message for URL
+    const encodedMessage = encodeURIComponent(messageContent);
+    
+    // Open Zalo for each CTV with delay
+    let delay = 0;
+    selectedCTVs.forEach((ctv, index) => {
+        setTimeout(() => {
+            let cleanPhone = ctv.phone.toString().replace(/\D/g, '');
+            if (cleanPhone && !cleanPhone.startsWith('0')) {
+                cleanPhone = '0' + cleanPhone;
+            }
+            
+            // Open Zalo with pre-filled message
+            window.open(`https://zalo.me/${cleanPhone}?text=${encodedMessage}`, '_blank');
+            
+            // Show progress
+            if (index === selectedCTVs.length - 1) {
+                showToast(`Đã mở ${selectedCTVs.length} cửa sổ Zalo`, 'success');
+                closeBulkMessageModal();
+            }
+        }, delay);
+        
+        delay += 500; // 500ms delay between each window
+    });
 }

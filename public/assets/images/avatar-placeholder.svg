@@ -1,0 +1,7 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="60" fill="#FF6B6B"/>
+  <circle cx="60" cy="60" r="55" fill="#FF8E8E"/>
+  <circle cx="60" cy="45" r="18" fill="white"/>
+  <path d="M25 95C25 80 40 70 60 70C80 70 95 80 95 95" fill="white"/>
+  <text x="60" y="110" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">SHOP</text>
+</svg>

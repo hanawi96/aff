@@ -74,11 +74,19 @@ async function loadProducts() {
         if (data.success) {
             allProducts = data.products || [];
             filteredProducts = [...allProducts];
-            
+
             console.log('📦 Loaded products:', allProducts.length);
             console.log('📝 Sample product:', allProducts[0]);
             console.log('🔍 Products with "trơn":', allProducts.filter(p => p.name && p.name.toLowerCase().includes('trơn')).length);
-            
+
+            // Debug image_url structure
+            console.log('🖼️ Image URL Debug:');
+            allProducts.slice(0, 5).forEach((p, i) => {
+                console.log(`  ${i + 1}. ${p.name}`);
+                console.log(`     - image_url: "${p.image_url}"`);
+                console.log(`     - Generated URL: "../assets/images/${p.image_url || p.name + '.jpg'}"`);
+            });
+
             renderProducts();
             hideLoading();
         } else {
@@ -96,7 +104,7 @@ async function loadProducts() {
 function toggleFilters() {
     const panel = document.getElementById('advancedFilters');
     const btn = document.getElementById('filterToggleBtn');
-    
+
     if (panel.classList.contains('hidden')) {
         panel.classList.remove('hidden');
         btn.classList.add('bg-indigo-100', 'text-indigo-700');
@@ -139,7 +147,7 @@ function resetSort() {
 // Update sort badge
 function updateSortBadge() {
     const badge = document.getElementById('filterBadge');
-    
+
     if (currentSort.field) {
         badge.textContent = '1';
         badge.classList.remove('hidden');
@@ -307,16 +315,36 @@ function createProductCard(product) {
     const categoryIcon = product.category_icon || '📦';
     const safeName = escapeHtml(product.name).replace(/'/g, '&#39;');
 
+    // Generate image URL
+    let imageUrl;
+    if (product.image_url) {
+        // If image_url starts with ./ or assets/, convert to relative path from admin folder
+        if (product.image_url.startsWith('./assets/')) {
+            imageUrl = '../' + product.image_url.substring(2); // Remove ./ and add ../
+        } else if (product.image_url.startsWith('assets/')) {
+            imageUrl = '../' + product.image_url; // Just add ../
+        } else {
+            // Just a filename, add full path
+            imageUrl = `../assets/images/${product.image_url}`;
+        }
+    } else {
+        // No image_url, use product name as filename
+        imageUrl = `../assets/images/${product.name}.jpg`;
+    }
+
     return `
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow card-hover">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow card-hover relative">
+            <!-- Checkbox -->
+            <div class="absolute top-3 left-3 z-10">
+                <input type="checkbox" 
+                    class="product-checkbox w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer bg-white shadow-sm" 
+                    data-product-id="${product.id}"
+                    onchange="handleProductCheckbox(${product.id}, this.checked)">
+            </div>
+            
             <!-- Product Image -->
             <div class="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center overflow-hidden relative">
-                ${product.image_url ?
-            `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<svg class=\\'w-20 h-20 text-purple-300\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4\\' /></svg>'">` :
-            `<svg class="w-20 h-20 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>`
-        }
+                <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<svg class=\\'w-20 h-20 text-purple-300\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4\\' /></svg>'">
                 ${hasDiscount ? `
                     <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                         -${Math.round((1 - product.price / product.original_price) * 100)}%
@@ -582,7 +610,7 @@ function showAddProductModal() {
     `;
 
     document.body.appendChild(modal);
-    
+
     // Load categories into select
     loadCategoriesForSelect();
 }
@@ -708,16 +736,16 @@ function isValidUrl(string) {
 function calculateExpectedProfit() {
     const price = parseFloat(document.getElementById('productPrice')?.value) || 0;
     const costPrice = parseFloat(document.getElementById('productCostPrice')?.value) || 0;
-    
+
     const profitDisplay = document.getElementById('profitDisplay');
     const lossWarning = document.getElementById('lossWarning');
     const profitAmount = document.getElementById('profitAmount');
     const profitMargin = document.getElementById('profitMargin');
-    
+
     if (price > 0 && costPrice >= 0) {
         const profit = price - costPrice;
         const margin = price > 0 ? (profit / price) * 100 : 0;
-        
+
         if (profit < 0) {
             // Show loss warning
             profitDisplay?.classList.add('hidden');
@@ -726,12 +754,12 @@ function calculateExpectedProfit() {
             // Show profit
             lossWarning?.classList.add('hidden');
             profitDisplay?.classList.remove('hidden');
-            
+
             if (profitAmount) {
                 profitAmount.textContent = formatCurrency(profit);
                 profitAmount.className = profit > 0 ? 'text-lg font-bold text-green-600' : 'text-lg font-bold text-gray-600';
             }
-            
+
             if (profitMargin) {
                 profitMargin.textContent = `${Math.round(margin)}%`;
                 profitMargin.className = profit > 0 ? 'text-sm font-semibold text-green-600' : 'text-sm font-semibold text-gray-600';
@@ -921,10 +949,10 @@ async function editProduct(productId) {
         `;
 
         document.body.appendChild(modal);
-        
+
         // Load categories into select
         loadCategoriesForSelect(product.category_id);
-        
+
         // Calculate profit on load
         setTimeout(() => calculateExpectedProfit(), 100);
 
@@ -939,16 +967,16 @@ async function loadCategoriesForSelect(selectedCategoryId = null) {
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories`);
         const data = await response.json();
-        
+
         if (data.success) {
             const select = document.getElementById('productCategoryId');
             if (!select) return;
-            
+
             // Keep the first option (-- Chọn danh mục --)
             const firstOption = select.options[0];
             select.innerHTML = '';
             select.appendChild(firstOption);
-            
+
             // Add categories
             data.categories.forEach(cat => {
                 const option = document.createElement('option');
@@ -1258,7 +1286,7 @@ function applySorting(products) {
                 aVal = a.price || 0;
                 bVal = b.price || 0;
                 break;
-            
+
             case 'margin':
                 // Calculate profit margin: (price - cost_price) / price * 100
                 const aMargin = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price * 100) : 0;
@@ -1266,19 +1294,19 @@ function applySorting(products) {
                 aVal = aMargin;
                 bVal = bMargin;
                 break;
-            
+
             case 'profit':
                 // Calculate net profit per unit: price - cost_price
                 aVal = (a.price || 0) - (a.cost_price || 0);
                 bVal = (b.price || 0) - (b.cost_price || 0);
                 break;
-            
+
             case 'purchases':
                 // Sort by purchases (best selling)
                 aVal = a.purchases || 0;
                 bVal = b.purchases || 0;
                 break;
-            
+
             default:
                 return 0;
         }
@@ -1294,7 +1322,7 @@ function applySorting(products) {
 // Search and Sort (combined function)
 function searchAndSort() {
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    
+
     // Filter by search term
     if (searchTerm) {
         filteredProducts = allProducts.filter(product => {
@@ -1317,4 +1345,204 @@ function searchAndSort() {
 
     // Render
     renderProducts();
+}
+
+
+// ============================================
+// BULK ACTIONS
+// ============================================
+
+let selectedProductIds = new Set();
+
+// Handle individual product checkbox
+function handleProductCheckbox(productId, isChecked) {
+    if (isChecked) {
+        selectedProductIds.add(productId);
+    } else {
+        selectedProductIds.delete(productId);
+    }
+    updateBulkActionsUI();
+}
+
+// Update bulk actions UI
+function updateBulkActionsUI() {
+    const count = selectedProductIds.size;
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (count > 0) {
+        if (selectedCount) selectedCount.textContent = count;
+        if (bulkActionsBar) {
+            bulkActionsBar.classList.remove('hidden');
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+
+            requestAnimationFrame(() => {
+                bulkActionsBar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                bulkActionsBar.style.opacity = '1';
+                bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
+            });
+        }
+    } else {
+        if (bulkActionsBar) {
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+            setTimeout(() => {
+                bulkActionsBar.classList.add('hidden');
+            }, 300);
+        }
+    }
+}
+
+// Clear all selections
+function clearSelection() {
+    selectedProductIds.clear();
+    document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+    updateBulkActionsUI();
+}
+
+// Bulk Delete
+async function bulkDeleteProducts() {
+    if (selectedProductIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
+        return;
+    }
+
+    const count = selectedProductIds.size;
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa ${count} sản phẩm đã chọn?\n\nHành động này không thể hoàn tác!`);
+
+    if (!confirmed) return;
+
+    try {
+        showToast(`Đang xóa ${count} sản phẩm...`, 'info');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const productId of selectedProductIds) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteProduct',
+                        productId: productId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error deleting product ${productId}:`, error);
+            }
+        }
+
+        clearSelection();
+        await loadProducts();
+
+        if (failCount === 0) {
+            showToast(`Đã xóa thành công ${successCount} sản phẩm`, 'success');
+        } else {
+            showToast(`Đã xóa ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
+        }
+    } catch (error) {
+        console.error('Error bulk deleting:', error);
+        showToast('Không thể xóa sản phẩm: ' + error.message, 'error');
+    }
+}
+
+// Bulk Update Status (Active/Inactive)
+async function bulkUpdateStatus(isActive) {
+    if (selectedProductIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
+        return;
+    }
+
+    const count = selectedProductIds.size;
+    const statusText = isActive ? 'kích hoạt' : 'ẩn';
+
+    try {
+        showToast(`Đang ${statusText} ${count} sản phẩm...`, 'info');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const productId of selectedProductIds) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateProductStatus',
+                        productId: productId,
+                        isActive: isActive ? 1 : 0
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error updating product ${productId}:`, error);
+            }
+        }
+
+        clearSelection();
+        await loadProducts();
+
+        if (failCount === 0) {
+            showToast(`Đã ${statusText} thành công ${successCount} sản phẩm`, 'success');
+        } else {
+            showToast(`Đã ${statusText} ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
+        }
+    } catch (error) {
+        console.error('Error bulk updating status:', error);
+        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error');
+    }
+}
+
+// Bulk Export to CSV
+function bulkExportProducts() {
+    if (selectedProductIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
+        return;
+    }
+
+    try {
+        const selectedProducts = allProducts.filter(p => selectedProductIds.has(p.id));
+
+        // Create CSV content
+        let csv = 'Tên sản phẩm,SKU,Giá bán,Giá vốn,Danh mục,Tồn kho,Trạng thái\n';
+
+        selectedProducts.forEach(product => {
+            csv += `"${(product.name || '').replace(/"/g, '""')}",`;
+            csv += `"${product.sku || ''}",`;
+            csv += `"${product.price || 0}",`;
+            csv += `"${product.cost_price || 0}",`;
+            csv += `"${(product.category_name || '').replace(/"/g, '""')}",`;
+            csv += `"${product.stock_quantity || 0}",`;
+            csv += `"${product.is_active ? 'Hoạt động' : 'Ẩn'}"\n`;
+        });
+
+        // Download CSV
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `san-pham-${Date.now()}.csv`;
+        link.click();
+
+        showToast(`Đã export ${selectedProductIds.size} sản phẩm`, 'success');
+    } catch (error) {
+        console.error('Error exporting:', error);
+        showToast('Không thể export: ' + error.message, 'error');
+    }
 }
