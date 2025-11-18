@@ -2625,64 +2625,20 @@ function editProductName(productId, orderId, orderCode) {
                     />
                 </div>
 
-                <!-- Quantity -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Số lượng <span class="text-red-500">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="editProductQuantity" 
-                        value="${productData.quantity}"
-                        min="1"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Nhập số lượng"
-                        oninput="calculateEditModalProfit('quantity')"
-                    />
-                </div>
-
-                <!-- Weight or Size (only show relevant field based on product data) -->
-                ${productData.weight && !productData.size ? `
-                <!-- Only Weight -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Cân nặng
-                    </label>
-                    <input 
-                        type="text" 
-                        id="editProductWeight" 
-                        value="${escapeHtml(productData.weight)}"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="VD: 500g"
-                    />
-                </div>
-                ` : productData.size && !productData.weight ? `
-                <!-- Only Size -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Size/Tay
-                    </label>
-                    <input 
-                        type="text" 
-                        id="editProductSize" 
-                        value="${escapeHtml(productData.size)}"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="VD: Size M"
-                    />
-                </div>
-                ` : productData.weight && productData.size ? `
-                <!-- Both Weight and Size -->
+                <!-- Quantity and Size/Tay (2 columns) -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Cân nặng
+                            Số lượng <span class="text-red-500">*</span>
                         </label>
                         <input 
-                            type="text" 
-                            id="editProductWeight" 
-                            value="${escapeHtml(productData.weight)}"
+                            type="number" 
+                            id="editProductQuantity" 
+                            value="${productData.quantity}"
+                            min="1"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: 500g"
+                            placeholder="Nhập số lượng"
+                            oninput="calculateEditModalProfit('quantity')"
                         />
                     </div>
                     <div>
@@ -2692,13 +2648,12 @@ function editProductName(productId, orderId, orderCode) {
                         <input 
                             type="text" 
                             id="editProductSize" 
-                            value="${escapeHtml(productData.size)}"
+                            value="${escapeHtml(productData.size || productData.weight || '')}"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: Size M"
+                            placeholder="VD: Size M, 5kg..."
                         />
                     </div>
                 </div>
-                ` : ''}
 
                 <!-- Price and Cost Price -->
                 <div class="grid grid-cols-2 gap-4">
