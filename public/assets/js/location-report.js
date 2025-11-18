@@ -1,4 +1,4 @@
-// Location Analytics Dashboard - Smart & Optimized
+// Location Analytics Dashboard - Smart & Optimized with AI Insights
 let currentPeriod = 'all';
 let currentLevel = 'province'; // province, district, ward
 let currentProvinceId = null;
@@ -6,35 +6,410 @@ let currentProvinceName = null;
 let currentDistrictId = null;
 let currentDistrictName = null;
 let allLocationData = [];
+let previousPeriodData = [];
 let currentSort = { column: 'revenue', direction: 'desc' };
 let topChart = null;
 let pieChart = null;
 
 // Cache for better performance
 const dataCache = {
-    today: { province: null, district: {}, ward: {} },
-    week: { province: null, district: {}, ward: {} },
-    month: { province: null, district: {}, ward: {} },
-    year: { province: null, district: {}, ward: {} },
-    all: { province: null, district: {}, ward: {} }
+    today: { province: null, district: {}, ward: {}, previous: null },
+    week: { province: null, district: {}, ward: {}, previous: null },
+    month: { province: null, district: {}, ward: {}, previous: null },
+    year: { province: null, district: {}, ward: {}, previous: null },
+    all: { province: null, district: {}, ward: {}, previous: null }
+};
+
+// Analytics engine
+const AnalyticsEngine = {
+    // Calculate growth rate
+    calculateGrowth(current, previous) {
+        if (!previous || previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+    },
+
+    // Detect anomalies (values significantly different from average)
+    detectAnomalies(data, metric = 'revenue') {
+        if (data.length < 3) return [];
+        const values = data.map(d => d[metric] || 0);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(values.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / values.length);
+        
+        return data.filter(d => {
+            const value = d[metric] || 0;
+            return Math.abs(value - avg) > stdDev * 2; // 2 standard deviations
+        }).map(d => ({
+            ...d,
+            deviation: ((d[metric] - avg) / avg * 100).toFixed(1)
+        }));
+    },
+
+    // Find concentration (top N locations contributing X% of total)
+    findConcentration(data, metric = 'revenue') {
+        const sorted = [...data].sort((a, b) => (b[metric] || 0) - (a[metric] || 0));
+        const total = data.reduce((sum, d) => sum + (d[metric] || 0), 0);
+        
+        let cumulative = 0;
+        let count = 0;
+        for (const item of sorted) {
+            cumulative += item[metric] || 0;
+            count++;
+            if (cumulative / total >= 0.8) break; // 80% rule
+        }
+        
+        return { count, percentage: (cumulative / total * 100).toFixed(1) };
+    },
+
+    // Generate smart insights
+    generateInsights(currentData, previousData) {
+        const insights = [];
+        
+        if (currentData.length === 0) return insights;
+
+        // 1. Total metrics comparison
+        const currentTotal = {
+            revenue: currentData.reduce((s, d) => s + (d.revenue || 0), 0),
+            orders: currentData.reduce((s, d) => s + (d.orders || 0), 0),
+            customers: currentData.reduce((s, d) => s + (d.customers || 0), 0)
+        };
+
+        if (previousData && previousData.length > 0) {
+            const previousTotal = {
+                revenue: previousData.reduce((s, d) => s + (d.revenue || 0), 0),
+                orders: previousData.reduce((s, d) => s + (d.orders || 0), 0)
+            };
+
+            const revenueGrowth = this.calculateGrowth(currentTotal.revenue, previousTotal.revenue);
+            if (Math.abs(revenueGrowth) > 5) {
+                const trend = revenueGrowth > 0 ? 'tăng' : 'giảm';
+                const icon = revenueGrowth > 0 ? '📈' : '📉';
+                insights.push(`${icon} Doanh thu ${trend} <strong>${Math.abs(revenueGrowth).toFixed(1)}%</strong> so với kỳ trước`);
+            }
+            
+            const ordersGrowth = this.calculateGrowth(currentTotal.orders, previousTotal.orders);
+            if (Math.abs(ordersGrowth) > 10) {
+                const trend = ordersGrowth > 0 ? 'tăng' : 'giảm';
+                insights.push(`📦 Số đơn hàng ${trend} <strong>${Math.abs(ordersGrowth).toFixed(1)}%</strong>`);
+            }
+        }
+
+        // 2. Concentration analysis
+        const concentration = this.findConcentration(currentData, 'revenue');
+        if (concentration.count <= 5 && currentData.length > 10) {
+            insights.push(`🎯 TOP ${concentration.count} khu vực chiếm <strong>${concentration.percentage}%</strong> tổng doanh thu`);
+        }
+
+        // 3. Top performer
+        const topLocation = [...currentData].sort((a, b) => (b.revenue || 0) - (a.revenue || 0))[0];
+        if (topLocation) {
+            const topPercent = (topLocation.revenue / currentTotal.revenue * 100).toFixed(1);
+            if (topPercent > 20) {
+                insights.push(`👑 <strong>${topLocation.name}</strong> dẫn đầu với ${topPercent}% tổng doanh thu`);
+            }
+        }
+
+        // 4. High-value customers
+        const avgOrderValue = currentTotal.orders > 0 ? currentTotal.revenue / currentTotal.orders : 0;
+        const highValueLocations = currentData.filter(d => (d.avgValue || 0) > avgOrderValue * 1.5);
+        if (highValueLocations.length > 0 && highValueLocations.length < currentData.length * 0.3) {
+            insights.push(`💎 ${highValueLocations.length} khu vực có giá trị đơn hàng cao gấp 1.5x trung bình`);
+        }
+
+        // 5. Anomalies
+        const anomalies = this.detectAnomalies(currentData, 'revenue');
+        if (anomalies.length > 0 && anomalies.length < 5) {
+            const topAnomaly = anomalies[0];
+            insights.push(`⚡ <strong>${topAnomaly.name}</strong> có doanh thu ${topAnomaly.deviation > 0 ? 'cao' : 'thấp'} bất thường (${Math.abs(topAnomaly.deviation)}% so với TB)`);
+        }
+
+        // 6. Coverage
+        const totalLocations = currentData.length;
+        const activeLocations = currentData.filter(d => (d.orders || 0) > 0).length;
+        const coverage = (activeLocations / totalLocations * 100).toFixed(1);
+        if (coverage < 50) {
+            insights.push(`📍 Chỉ ${coverage}% khu vực có đơn hàng - cơ hội mở rộng thị trường`);
+        }
+
+        return insights.slice(0, 5); // Max 5 insights
+    }
 };
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🗺️ Location Analytics Dashboard initialized');
+    console.log('📍 Initial URL:', window.location.href);
+    
+    // Load from URL parameters first
+    const hasURLParams = loadFromURL();
+    console.log('📋 Has URL params:', hasURLParams);
+    console.log('📊 Initial state:', {
+        level: currentLevel,
+        provinceId: currentProvinceId,
+        provinceName: currentProvinceName,
+        districtId: currentDistrictId,
+        districtName: currentDistrictName,
+        period: currentPeriod
+    });
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', function(event) {
+        console.log('🔙 ========== POPSTATE EVENT ==========');
+        console.log('🔙 Event state:', event.state);
+        console.log('🔙 Current URL:', window.location.href);
+        console.log('🔙 Before restore - Current state:', {
+            level: currentLevel,
+            provinceId: currentProvinceId,
+            provinceName: currentProvinceName,
+            districtId: currentDistrictId,
+            districtName: currentDistrictName,
+            period: currentPeriod
+        });
+        
+        if (event.state) {
+            console.log('🔙 Restoring from event.state');
+            restoreState(event.state);
+        } else {
+            console.log('🔙 No event.state, loading from URL');
+            loadFromURL();
+            loadLocationData();
+        }
+    });
+    
+    // Load data
+    console.log('📥 Loading initial data...');
     loadLocationData();
 });
 
-// Change period
-function changePeriod(period) {
-    currentPeriod = period;
+// Load state from URL parameters
+function loadFromURL() {
+    console.log('📖 loadFromURL() called');
+    const params = new URLSearchParams(window.location.search);
+    console.log('📖 URL params:', {
+        level: params.get('level'),
+        provinceId: params.get('provinceId'),
+        provinceName: params.get('provinceName'),
+        districtId: params.get('districtId'),
+        districtName: params.get('districtName'),
+        period: params.get('period')
+    });
+    
+    const level = params.get('level');
+    const provinceId = params.get('provinceId');
+    const provinceName = params.get('provinceName');
+    const districtId = params.get('districtId');
+    const districtName = params.get('districtName');
+    const period = params.get('period');
+    
+    let hasParams = false;
+    
+    // Reset to defaults first
+    if (!period) {
+        console.log('📖 No period param, using default: all');
+        currentPeriod = 'all';
+    } else {
+        console.log('📖 Setting period:', period);
+        currentPeriod = period;
+        hasParams = true;
+    }
+    
+    if (!level) {
+        console.log('📖 No level param, resetting to province');
+        currentLevel = 'province';
+        currentProvinceId = null;
+        currentProvinceName = null;
+        currentDistrictId = null;
+        currentDistrictName = null;
+    } else {
+        console.log('📖 Setting level:', level);
+        currentLevel = level;
+        hasParams = true;
+        
+        // Only set province/district if level requires it
+        if (level === 'district' || level === 'ward') {
+            if (provinceId) {
+                console.log('📖 Setting province:', provinceId, provinceName);
+                currentProvinceId = provinceId;
+                currentProvinceName = provinceName ? decodeURIComponent(provinceName) : null;
+            } else {
+                console.log('⚠️ Level requires province but no provinceId, resetting to province level');
+                currentLevel = 'province';
+                currentProvinceId = null;
+                currentProvinceName = null;
+            }
+        } else {
+            // Province level - clear province/district
+            currentProvinceId = null;
+            currentProvinceName = null;
+            currentDistrictId = null;
+            currentDistrictName = null;
+        }
+        
+        if (level === 'ward') {
+            if (districtId) {
+                console.log('📖 Setting district:', districtId, districtName);
+                currentDistrictId = districtId;
+                currentDistrictName = districtName ? decodeURIComponent(districtName) : null;
+            } else {
+                console.log('⚠️ Level requires district but no districtId, falling back to district level');
+                currentLevel = 'district';
+                currentDistrictId = null;
+                currentDistrictName = null;
+            }
+        } else {
+            // Not ward level - clear district
+            currentDistrictId = null;
+            currentDistrictName = null;
+        }
+    }
+    
+    console.log('📖 After loadFromURL - State:', {
+        level: currentLevel,
+        provinceId: currentProvinceId,
+        provinceName: currentProvinceName,
+        districtId: currentDistrictId,
+        districtName: currentDistrictName,
+        period: currentPeriod
+    });
+    
+    // Update UI
+    updatePeriodButtons();
+    updateBreadcrumb();
+    
+    return hasParams;
+}
+
+// Update period buttons UI
+function updatePeriodButtons() {
     document.querySelectorAll('.period-btn').forEach(btn => {
-        if (btn.dataset.period === period) {
+        if (btn.dataset.period === currentPeriod) {
             btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-indigo-600 text-white';
         } else {
             btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200';
         }
     });
+}
+
+// Update URL without reload
+function updateURL() {
+    console.log('🔗 updateURL() called');
+    const params = new URLSearchParams();
+    
+    // Always include period
+    params.set('period', currentPeriod);
+    
+    // Add level-specific params
+    params.set('level', currentLevel);
+    
+    if (currentLevel === 'district' || currentLevel === 'ward') {
+        params.set('provinceId', currentProvinceId);
+        params.set('provinceName', encodeURIComponent(currentProvinceName));
+    }
+    
+    if (currentLevel === 'ward') {
+        params.set('districtId', currentDistrictId);
+        params.set('districtName', encodeURIComponent(currentDistrictName));
+    }
+    
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    
+    // Save state for back/forward navigation
+    const state = {
+        level: currentLevel,
+        provinceId: currentProvinceId,
+        provinceName: currentProvinceName,
+        districtId: currentDistrictId,
+        districtName: currentDistrictName,
+        period: currentPeriod
+    };
+    
+    console.log('🔗 Pushing state:', state);
+    console.log('🔗 New URL:', newURL);
+    window.history.pushState(state, '', newURL);
+}
+
+// Restore state from history
+function restoreState(state) {
+    console.log('🔄 restoreState() called with:', state);
+    
+    currentLevel = state.level || 'province';
+    currentProvinceId = state.provinceId || null;
+    currentProvinceName = state.provinceName || null;
+    currentDistrictId = state.districtId || null;
+    currentDistrictName = state.districtName || null;
+    currentPeriod = state.period || 'all';
+    
+    console.log('🔄 After restore - State:', {
+        level: currentLevel,
+        provinceId: currentProvinceId,
+        provinceName: currentProvinceName,
+        districtId: currentDistrictId,
+        districtName: currentDistrictName,
+        period: currentPeriod
+    });
+    
+    // Clear cache to force reload
+    const cacheKey = currentLevel === 'province' ? 'province' :
+                    currentLevel === 'district' ? currentProvinceId :
+                    `${currentProvinceId}_${currentDistrictId}`;
+    
+    console.log('🔄 Clearing cache for:', cacheKey);
+    
+    if (currentLevel === 'province') {
+        dataCache[currentPeriod].province = null;
+    } else if (currentLevel === 'district') {
+        dataCache[currentPeriod].district[cacheKey] = null;
+    } else {
+        dataCache[currentPeriod].ward[cacheKey] = null;
+    }
+    
+    console.log('🔄 Updating UI...');
+    updatePeriodButtons();
+    updateBreadcrumb();
+    
+    console.log('🔄 Loading location data...');
+    loadLocationData();
+}
+
+// Update breadcrumb UI
+function updateBreadcrumb() {
+    if (currentLevel === 'province') {
+        document.getElementById('breadcrumbArrow1').classList.add('hidden');
+        document.getElementById('breadcrumbDistrict').classList.add('hidden');
+        document.getElementById('breadcrumbArrow2').classList.add('hidden');
+        document.getElementById('breadcrumbWard').classList.add('hidden');
+        
+        document.getElementById('tableTitle').textContent = 'Danh sách Tỉnh/Thành phố';
+        document.getElementById('tableSubtitle').textContent = 'Click vào tỉnh để xem chi tiết quận/huyện';
+        document.getElementById('locationColumnName').textContent = 'Tỉnh/Thành phố';
+    } else if (currentLevel === 'district') {
+        document.getElementById('breadcrumbArrow1').classList.remove('hidden');
+        document.getElementById('breadcrumbDistrict').classList.remove('hidden');
+        document.getElementById('breadcrumbDistrict').textContent = currentProvinceName;
+        document.getElementById('breadcrumbArrow2').classList.add('hidden');
+        document.getElementById('breadcrumbWard').classList.add('hidden');
+        
+        document.getElementById('tableTitle').textContent = `Danh sách Quận/Huyện - ${currentProvinceName}`;
+        document.getElementById('tableSubtitle').textContent = 'Click vào quận để xem chi tiết phường/xã';
+        document.getElementById('locationColumnName').textContent = 'Quận/Huyện';
+    } else if (currentLevel === 'ward') {
+        document.getElementById('breadcrumbArrow1').classList.remove('hidden');
+        document.getElementById('breadcrumbDistrict').classList.remove('hidden');
+        document.getElementById('breadcrumbDistrict').textContent = currentProvinceName;
+        document.getElementById('breadcrumbArrow2').classList.remove('hidden');
+        document.getElementById('breadcrumbWard').classList.remove('hidden');
+        document.getElementById('breadcrumbWard').textContent = currentDistrictName;
+        
+        document.getElementById('tableTitle').textContent = `Danh sách Phường/Xã - ${currentDistrictName}`;
+        document.getElementById('tableSubtitle').textContent = 'Chi tiết theo phường/xã';
+        document.getElementById('locationColumnName').textContent = 'Phường/Xã';
+    }
+}
+
+// Change period
+function changePeriod(period) {
+    currentPeriod = period;
+    updatePeriodButtons();
+    updateURL();
     loadLocationData();
 }
 
@@ -48,12 +423,26 @@ function refreshData() {
     } else if (currentLevel === 'ward') {
         dataCache[currentPeriod].ward[`${currentProvinceId}_${currentDistrictId}`] = null;
     }
+    
+    // Also clear previous data cache
+    dataCache[currentPeriod].previous = null;
+    
     showToast('Đang làm mới dữ liệu...', 'info');
     loadLocationData();
 }
 
 // Load location data based on current level
 async function loadLocationData() {
+    console.log('📥 ========== loadLocationData() START ==========');
+    console.log('📥 Current state:', {
+        level: currentLevel,
+        provinceId: currentProvinceId,
+        provinceName: currentProvinceName,
+        districtId: currentDistrictId,
+        districtName: currentDistrictName,
+        period: currentPeriod
+    });
+    
     try {
         showSkeletonLoading();
 
@@ -66,31 +455,31 @@ async function loadLocationData() {
                           currentLevel === 'district' ? dataCache[currentPeriod].district[cacheKey] :
                           dataCache[currentPeriod].ward[cacheKey];
 
-        if (cachedData) {
-            console.log('📦 Using cached data');
+        const cachedPrevious = dataCache[currentPeriod].previous;
+
+        if (cachedData && cachedPrevious) {
+            console.log('📦 Using cached data for:', cacheKey);
+            console.log('📦 Cached data length:', cachedData.length);
             allLocationData = cachedData;
+            previousPeriodData = cachedPrevious;
             renderLocationData();
+            console.log('📥 ========== loadLocationData() END (cached) ==========');
             return;
         }
+        
+        console.log('🌐 No cache, fetching from API...');
 
-        // Calculate startDate for filtering
-        let startDateParam = '';
-        if (currentPeriod === 'today') {
-            const vnStartOfToday = getVNStartOfToday();
-            startDateParam = `&startDate=${vnStartOfToday.toISOString()}`;
-        } else if (currentPeriod === 'week') {
-            const vnStartOfWeek = getVNStartOfWeek();
-            startDateParam = `&startDate=${vnStartOfWeek.toISOString()}`;
-        } else if (currentPeriod === 'month') {
-            const vnStartOfMonth = getVNStartOfMonth();
-            startDateParam = `&startDate=${vnStartOfMonth.toISOString()}`;
-        } else if (currentPeriod === 'year') {
-            const vnStartOfYear = getVNStartOfYear();
-            startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
+        // Calculate date ranges for current and previous period
+        const { startDate, previousStartDate, previousEndDate } = calculateDateRanges(currentPeriod);
+        
+        let startDateParam = startDate ? `&startDate=${startDate.toISOString()}` : '';
+        let previousParams = '';
+        if (previousStartDate && previousEndDate) {
+            previousParams = `&previousStartDate=${previousStartDate.toISOString()}&previousEndDate=${previousEndDate.toISOString()}`;
         }
 
         // Build API URL based on level
-        let apiUrl = `${CONFIG.API_URL}?action=getLocationStats&level=${currentLevel}&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`;
+        let apiUrl = `${CONFIG.API_URL}?action=getLocationStats&level=${currentLevel}&period=${currentPeriod}${startDateParam}${previousParams}&timestamp=${Date.now()}`;
         
         if (currentLevel === 'district' && currentProvinceId) {
             apiUrl += `&provinceId=${currentProvinceId}`;
@@ -98,11 +487,22 @@ async function loadLocationData() {
             apiUrl += `&provinceId=${currentProvinceId}&districtId=${currentDistrictId}`;
         }
 
+        console.log('🌐 API URL:', apiUrl);
         const response = await fetch(apiUrl);
         const data = await response.json();
+        console.log('🌐 API Response:', data);
 
         if (data.success) {
+            console.log('✅ API Success - Locations:', data.locations?.length);
             allLocationData = data.locations || [];
+            previousPeriodData = data.previousLocations || [];
+            
+            // Calculate growth for each location
+            allLocationData = allLocationData.map(loc => {
+                const prevLoc = previousPeriodData.find(p => p.id === loc.id);
+                const growth = prevLoc ? AnalyticsEngine.calculateGrowth(loc.revenue, prevLoc.revenue) : 0;
+                return { ...loc, growth };
+            });
             
             // Cache the data
             if (currentLevel === 'province') {
@@ -112,27 +512,93 @@ async function loadLocationData() {
             } else {
                 dataCache[currentPeriod].ward[cacheKey] = allLocationData;
             }
+            dataCache[currentPeriod].previous = previousPeriodData;
 
+            console.log('📥 Rendering location data...');
             renderLocationData();
+            console.log('📥 ========== loadLocationData() END (API) ==========');
         } else {
             throw new Error(data.error || 'Failed to load location data');
         }
     } catch (error) {
-        console.error('Error loading location data:', error);
+        console.error('❌ Error loading location data:', error);
         showToast('Không thể tải dữ liệu', 'error');
         hideSkeletonLoading();
     }
 }
 
+// Calculate date ranges for comparison
+function calculateDateRanges(period) {
+    const now = new Date();
+    let startDate = null;
+    let previousStartDate = null;
+    let previousEndDate = null;
+
+    if (period === 'today') {
+        startDate = getVNStartOfToday();
+        previousStartDate = new Date(startDate);
+        previousStartDate.setDate(previousStartDate.getDate() - 1);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    } else if (period === 'week') {
+        startDate = getVNStartOfWeek();
+        previousStartDate = new Date(startDate);
+        previousStartDate.setDate(previousStartDate.getDate() - 7);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    } else if (period === 'month') {
+        startDate = getVNStartOfMonth();
+        previousStartDate = new Date(startDate);
+        previousStartDate.setMonth(previousStartDate.getMonth() - 1);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    } else if (period === 'year') {
+        startDate = getVNStartOfYear();
+        previousStartDate = new Date(startDate);
+        previousStartDate.setFullYear(previousStartDate.getFullYear() - 1);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    }
+
+    return { startDate, previousStartDate, previousEndDate };
+}
+
 // Render location data (table + charts + stats)
 function renderLocationData() {
     updateSummaryStats();
+    renderInsights();
     renderLocationTable();
     renderCharts();
     hideSkeletonLoading();
 }
 
-// Update summary stats
+// Render AI insights
+function renderInsights() {
+    const insights = AnalyticsEngine.generateInsights(allLocationData, previousPeriodData);
+    const banner = document.getElementById('insightsBanner');
+    const content = document.getElementById('insightsContent');
+    
+    if (insights.length > 0) {
+        content.innerHTML = insights.map(insight => 
+            `<div class="flex items-start gap-2">
+                <span class="text-white/80">•</span>
+                <span>${insight}</span>
+            </div>`
+        ).join('');
+        banner.classList.remove('hidden');
+        
+        // Add fade-in animation
+        banner.style.opacity = '0';
+        setTimeout(() => {
+            banner.style.transition = 'opacity 0.5s ease-in';
+            banner.style.opacity = '1';
+        }, 100);
+    } else {
+        banner.classList.add('hidden');
+    }
+}
+
+// Update summary stats with comparison
 function updateSummaryStats() {
     const totalOrders = allLocationData.reduce((sum, loc) => sum + (loc.orders || 0), 0);
     const totalRevenue = allLocationData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
@@ -143,6 +609,42 @@ function updateSummaryStats() {
     document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
     document.getElementById('totalCustomers').textContent = formatNumber(totalCustomers);
     document.getElementById('avgOrderValue').textContent = formatCurrency(avgOrderValue);
+
+    // Calculate and show changes
+    if (previousPeriodData && previousPeriodData.length > 0) {
+        const prevOrders = previousPeriodData.reduce((sum, loc) => sum + (loc.orders || 0), 0);
+        const prevRevenue = previousPeriodData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
+        const prevCustomers = previousPeriodData.reduce((sum, loc) => sum + (loc.customers || 0), 0);
+        const prevAvg = prevOrders > 0 ? prevRevenue / prevOrders : 0;
+
+        showChange('ordersChange', totalOrders, prevOrders);
+        showChange('revenueChange', totalRevenue, prevRevenue);
+        showChange('customersChange', totalCustomers, prevCustomers);
+        showChange('avgChange', avgOrderValue, prevAvg);
+    } else {
+        ['ordersChange', 'revenueChange', 'customersChange', 'avgChange'].forEach(id => {
+            document.getElementById(id).innerHTML = '';
+        });
+    }
+}
+
+// Show change indicator
+function showChange(elementId, current, previous) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const growth = AnalyticsEngine.calculateGrowth(current, previous);
+    const isPositive = growth > 0;
+    const isNegative = growth < 0;
+    
+    if (Math.abs(growth) < 0.1) {
+        element.innerHTML = '<span class="text-gray-400">~</span>';
+        return;
+    }
+    
+    const color = isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : 'text-gray-400';
+    const arrow = isPositive ? '↑' : isNegative ? '↓' : '';
+    element.innerHTML = `<span class="${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
 }
 
 // Render location table
@@ -151,7 +653,7 @@ function renderLocationTable() {
     
     if (allLocationData.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="8" class="px-6 py-12 text-center">
+            <tr><td colspan="9" class="px-6 py-12 text-center">
                 <div class="flex flex-col items-center">
                     <div class="text-6xl mb-4">📍</div>
                     <p class="text-gray-500 text-lg">Chưa có dữ liệu</p>
@@ -173,6 +675,7 @@ function renderLocationTable() {
                 case 'revenue': aVal = a.revenue || 0; bVal = b.revenue || 0; break;
                 case 'customers': aVal = a.customers || 0; bVal = b.customers || 0; break;
                 case 'avgValue': aVal = a.avgValue || 0; bVal = b.avgValue || 0; break;
+                case 'growth': aVal = a.growth || 0; bVal = b.growth || 0; break;
                 default: return 0;
             }
             if (currentSort.column === 'name') {
@@ -188,12 +691,22 @@ function renderLocationTable() {
         const rank = index + 1;
         const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
         const revenuePercent = totalRevenue > 0 ? (location.revenue / totalRevenue * 100) : 0;
+        const growth = location.growth || 0;
         
         // Determine if can drill down
         const canDrillDown = (currentLevel === 'province') || (currentLevel === 'district');
         const drillDownAction = canDrillDown ? 
             (currentLevel === 'province' ? `onclick="drillDownToDistrict('${location.id}', '${escapeHtml(location.name)}')"` : 
              `onclick="drillDownToWard('${location.id}', '${escapeHtml(location.name)}')"`) : '';
+
+        // Growth badge
+        let growthBadge = '<span class="text-gray-400 text-xs">-</span>';
+        if (Math.abs(growth) > 0.1) {
+            const isPositive = growth > 0;
+            const color = isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+            const arrow = isPositive ? '↑' : '↓';
+            growthBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
+        }
 
         return `
             <tr class="hover:bg-gray-50 transition-colors ${canDrillDown ? 'cursor-pointer' : ''}" ${drillDownAction}>
@@ -229,6 +742,9 @@ function renderLocationTable() {
                             ${revenuePercent.toFixed(1)}%
                         </span>
                     </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    ${growthBadge}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     ${canDrillDown ? `
@@ -339,16 +855,8 @@ function drillDownToDistrict(provinceId, provinceName) {
     currentProvinceId = provinceId;
     currentProvinceName = provinceName;
     
-    // Update breadcrumb
-    document.getElementById('breadcrumbArrow1').classList.remove('hidden');
-    document.getElementById('breadcrumbDistrict').classList.remove('hidden');
-    document.getElementById('breadcrumbDistrict').textContent = provinceName;
-    
-    // Update table title
-    document.getElementById('tableTitle').textContent = `Danh sách Quận/Huyện - ${provinceName}`;
-    document.getElementById('tableSubtitle').textContent = 'Click vào quận để xem chi tiết phường/xã';
-    document.getElementById('locationColumnName').textContent = 'Quận/Huyện';
-    
+    updateBreadcrumb();
+    updateURL();
     loadLocationData();
 }
 
@@ -358,16 +866,8 @@ function drillDownToWard(districtId, districtName) {
     currentDistrictId = districtId;
     currentDistrictName = districtName;
     
-    // Update breadcrumb
-    document.getElementById('breadcrumbArrow2').classList.remove('hidden');
-    document.getElementById('breadcrumbWard').classList.remove('hidden');
-    document.getElementById('breadcrumbWard').textContent = districtName;
-    
-    // Update table title
-    document.getElementById('tableTitle').textContent = `Danh sách Phường/Xã - ${districtName}`;
-    document.getElementById('tableSubtitle').textContent = 'Chi tiết theo phường/xã';
-    document.getElementById('locationColumnName').textContent = 'Phường/Xã';
-    
+    updateBreadcrumb();
+    updateURL();
     loadLocationData();
 }
 
@@ -380,39 +880,25 @@ function goToLevel(level) {
         currentDistrictId = null;
         currentDistrictName = null;
         
-        // Reset breadcrumb
-        document.getElementById('breadcrumbArrow1').classList.add('hidden');
-        document.getElementById('breadcrumbDistrict').classList.add('hidden');
-        document.getElementById('breadcrumbArrow2').classList.add('hidden');
-        document.getElementById('breadcrumbWard').classList.add('hidden');
-        
-        // Reset table title
-        document.getElementById('tableTitle').textContent = 'Danh sách Tỉnh/Thành phố';
-        document.getElementById('tableSubtitle').textContent = 'Click vào tỉnh để xem chi tiết quận/huyện';
-        document.getElementById('locationColumnName').textContent = 'Tỉnh/Thành phố';
-        
+        updateBreadcrumb();
+        updateURL();
         loadLocationData();
     } else if (level === 'district' && currentProvinceId) {
         currentLevel = 'district';
         currentDistrictId = null;
         currentDistrictName = null;
         
-        // Update breadcrumb
-        document.getElementById('breadcrumbArrow2').classList.add('hidden');
-        document.getElementById('breadcrumbWard').classList.add('hidden');
-        
-        // Update table title
-        document.getElementById('tableTitle').textContent = `Danh sách Quận/Huyện - ${currentProvinceName}`;
-        document.getElementById('tableSubtitle').textContent = 'Click vào quận để xem chi tiết phường/xã';
-        document.getElementById('locationColumnName').textContent = 'Quận/Huyện';
-        
+        updateBreadcrumb();
+        updateURL();
         loadLocationData();
     }
 }
 
+
+
 // Toggle sort
 function toggleSort(column) {
-    const allSortIcons = ['name', 'orders', 'revenue', 'customers', 'avgValue'];
+    const allSortIcons = ['name', 'orders', 'revenue', 'customers', 'avgValue', 'growth'];
     allSortIcons.forEach(col => {
         if (col !== column) {
             const icon = document.getElementById(`sort-${col}`);
@@ -465,7 +951,7 @@ function filterTable() {
 function showSkeletonLoading() {
     const tbody = document.getElementById('locationTableBody');
     tbody.innerHTML = `
-        <tr><td colspan="8" class="px-6 py-12 text-center">
+        <tr><td colspan="9" class="px-6 py-12 text-center">
             <div class="flex flex-col items-center">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
                 <p class="text-gray-500">Đang tải dữ liệu...</p>
@@ -506,3 +992,35 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Export to Excel (placeholder for future implementation)
+function exportToExcel() {
+    showToast('Tính năng Export đang được phát triển', 'info');
+    // TODO: Implement Excel export using SheetJS or similar library
+    // Include: Summary stats, insights, full table data, charts as images
+}
+
+// Performance monitoring
+const PerformanceMonitor = {
+    startTime: null,
+    
+    start() {
+        this.startTime = performance.now();
+    },
+    
+    end(label) {
+        if (this.startTime) {
+            const duration = (performance.now() - this.startTime).toFixed(2);
+            console.log(`⚡ ${label}: ${duration}ms`);
+            this.startTime = null;
+        }
+    }
+};
+
+// Add performance monitoring to loadLocationData
+const originalLoadLocationData = loadLocationData;
+loadLocationData = async function() {
+    PerformanceMonitor.start();
+    await originalLoadLocationData();
+    PerformanceMonitor.end('Load Location Data');
+};

@@ -176,7 +176,17 @@ async function handleGet(action, url, env, corsHeaders) {
             const districtId = url.searchParams.get('districtId');
             const locationPeriod = url.searchParams.get('period') || 'all';
             const locationStartDate = url.searchParams.get('startDate');
-            return await getLocationStats({ level, provinceId, districtId, period: locationPeriod, startDate: locationStartDate }, env, corsHeaders);
+            const previousStartDate = url.searchParams.get('previousStartDate');
+            const previousEndDate = url.searchParams.get('previousEndDate');
+            return await getLocationStats({ 
+                level, 
+                provinceId, 
+                districtId, 
+                period: locationPeriod, 
+                startDate: locationStartDate,
+                previousStartDate,
+                previousEndDate
+            }, env, corsHeaders);
 
         case 'getPaymentHistory':
             const paymentReferralCode = url.searchParams.get('referralCode');
@@ -3687,7 +3697,7 @@ async function getProductStats(productId, period, env, corsHeaders, customStartD
  */
 async function getLocationStats(params, env, corsHeaders) {
     try {
-        const { level, provinceId, districtId, period, startDate } = params;
+        const { level, provinceId, districtId, period, startDate, previousStartDate, previousEndDate } = params;
         
         // Calculate date range
         let startTimestamp = 0;
@@ -3713,7 +3723,7 @@ async function getLocationStats(params, env, corsHeaders) {
             }
         }
 
-        let query, groupByField, nameField, idField;
+        let query, previousQuery;
 
         // Build query based on level
         if (level === 'province') {
@@ -3733,6 +3743,23 @@ async function getLocationStats(params, env, corsHeaders) {
                 GROUP BY province_id, province_name
                 ORDER BY revenue DESC
             `;
+            
+            if (previousStartDate && previousEndDate) {
+                const prevStart = new Date(previousStartDate).getTime();
+                const prevEnd = new Date(previousEndDate).getTime();
+                previousQuery = `
+                    SELECT 
+                        province_id as id,
+                        COUNT(*) as orders,
+                        SUM(total_amount) as revenue
+                    FROM orders
+                    WHERE province_id IS NOT NULL 
+                        AND province_id != ''
+                        AND created_at_unix >= ?
+                        AND created_at_unix <= ?
+                    GROUP BY province_id
+                `;
+            }
         } else if (level === 'district' && provinceId) {
             // District level - filter by province, group by district
             query = `
@@ -3751,6 +3778,24 @@ async function getLocationStats(params, env, corsHeaders) {
                 GROUP BY district_id, district_name
                 ORDER BY revenue DESC
             `;
+            
+            if (previousStartDate && previousEndDate) {
+                const prevStart = new Date(previousStartDate).getTime();
+                const prevEnd = new Date(previousEndDate).getTime();
+                previousQuery = `
+                    SELECT 
+                        district_id as id,
+                        COUNT(*) as orders,
+                        SUM(total_amount) as revenue
+                    FROM orders
+                    WHERE province_id = ?
+                        AND district_id IS NOT NULL 
+                        AND district_id != ''
+                        AND created_at_unix >= ?
+                        AND created_at_unix <= ?
+                    GROUP BY district_id
+                `;
+            }
         } else if (level === 'ward' && provinceId && districtId) {
             // Ward level - filter by province and district, group by ward
             query = `
@@ -3770,6 +3815,25 @@ async function getLocationStats(params, env, corsHeaders) {
                 GROUP BY ward_id, ward_name
                 ORDER BY revenue DESC
             `;
+            
+            if (previousStartDate && previousEndDate) {
+                const prevStart = new Date(previousStartDate).getTime();
+                const prevEnd = new Date(previousEndDate).getTime();
+                previousQuery = `
+                    SELECT 
+                        ward_id as id,
+                        COUNT(*) as orders,
+                        SUM(total_amount) as revenue
+                    FROM orders
+                    WHERE province_id = ?
+                        AND district_id = ?
+                        AND ward_id IS NOT NULL 
+                        AND ward_id != ''
+                        AND created_at_unix >= ?
+                        AND created_at_unix <= ?
+                    GROUP BY ward_id
+                `;
+            }
         } else {
             return jsonResponse({
                 success: false,
@@ -3777,7 +3841,7 @@ async function getLocationStats(params, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Execute query with appropriate bindings
+        // Execute current period query
         let results;
         if (level === 'province') {
             results = await env.DB.prepare(query).bind(startTimestamp).all();
@@ -3789,6 +3853,24 @@ async function getLocationStats(params, env, corsHeaders) {
 
         const locations = results.results || [];
 
+        // Execute previous period query if requested
+        let previousLocations = [];
+        if (previousQuery && previousStartDate && previousEndDate) {
+            const prevStart = new Date(previousStartDate).getTime();
+            const prevEnd = new Date(previousEndDate).getTime();
+            
+            let prevResults;
+            if (level === 'province') {
+                prevResults = await env.DB.prepare(previousQuery).bind(prevStart, prevEnd).all();
+            } else if (level === 'district') {
+                prevResults = await env.DB.prepare(previousQuery).bind(provinceId, prevStart, prevEnd).all();
+            } else if (level === 'ward') {
+                prevResults = await env.DB.prepare(previousQuery).bind(provinceId, districtId, prevStart, prevEnd).all();
+            }
+            
+            previousLocations = prevResults.results || [];
+        }
+
         // Format data
         const formattedLocations = locations.map(loc => ({
             id: loc.id,
@@ -3799,11 +3881,18 @@ async function getLocationStats(params, env, corsHeaders) {
             avgValue: loc.avgValue || 0
         }));
 
+        const formattedPreviousLocations = previousLocations.map(loc => ({
+            id: loc.id,
+            orders: loc.orders || 0,
+            revenue: loc.revenue || 0
+        }));
+
         return jsonResponse({
             success: true,
             level: level,
             period: period || 'all',
             locations: formattedLocations,
+            previousLocations: formattedPreviousLocations,
             total: formattedLocations.length
         }, 200, corsHeaders);
 
