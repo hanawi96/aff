@@ -604,7 +604,7 @@ function renderOrdersTable() {
     // Render rows for current page
     pageData.forEach((order, index) => {
         const globalIndex = startIndex + index + 1;
-        const row = createOrderRow(order, globalIndex);
+        const row = createOrderRow(order, globalIndex, index, pageData.length);
         tbody.appendChild(row);
     });
 
@@ -615,7 +615,7 @@ function renderOrdersTable() {
 }
 
 // Create order row
-function createOrderRow(order, index) {
+function createOrderRow(order, index, pageIndex, totalPageItems) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-gray-50 transition-colors fade-in';
 
@@ -636,18 +636,23 @@ function createOrderRow(order, index) {
     const tdOrderId = document.createElement('td');
     tdOrderId.className = 'px-4 py-4 whitespace-nowrap text-center';
 
-    // Calculate real-time commission based on CTV's current commission_rate
-    let displayCommission = order.commission || 0;
+    // Use commission directly from database - same as profit analysis modal
+    const displayCommission = order.commission || 0;
+    
+    // Show commission rate if available
+    let commissionRateDisplay = '';
     if (order.referral_code && order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
-        // Use CTV's current commission_rate with product_total (not including shipping_fee)
-        // Calculate product_total from total_amount - shipping_fee
-        const totalAmount = order.total_amount || 0;
-        const shippingFee = order.shipping_fee || 0;
-        const productTotal = totalAmount - shippingFee;
-        displayCommission = Math.round(productTotal * order.ctv_commission_rate);
+        commissionRateDisplay = `
+        <div class="text-xs text-gray-500 mt-1">
+            Tỷ lệ: ${(order.ctv_commission_rate * 100).toFixed(1)}%
+        </div>`;
     }
 
     // Tạo icon CTV nếu có referral_code
+    // Determine tooltip position: show above for last 3 items, below for others
+    const isNearBottom = pageIndex > totalPageItems - 3;
+    const tooltipPositionClass = isNearBottom ? 'bottom-full mb-2' : 'top-full mt-2';
+    
     const ctvIcon = order.referral_code ? `
         <div class="relative group inline-block">
             <div onclick="showCollaboratorModal('${escapeHtml(order.referral_code)}')" class="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
@@ -655,8 +660,8 @@ function createOrderRow(order, index) {
                     <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
                 </svg>
             </div>
-            <!-- Tooltip -->
-            <div class="absolute left-0 top-full mt-2 hidden group-hover:block z-50 w-48 pointer-events-none">
+            <!-- Tooltip - Auto position based on row location -->
+            <div class="absolute left-0 ${tooltipPositionClass} hidden group-hover:block z-[9999] w-52 pointer-events-none">
                 <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-3 text-xs">
                     <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
                         <svg class="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
@@ -673,11 +678,7 @@ function createOrderRow(order, index) {
                             <span class="text-gray-600">Hoa hồng:</span>
                             <span class="font-bold text-orange-600">${formatCurrency(displayCommission)}</span>
                         </div>
-                        ${order.ctv_commission_rate !== undefined ? `
-                        <div class="text-xs text-gray-500 mt-1">
-                            Tỷ lệ: ${(order.ctv_commission_rate * 100).toFixed(1)}%
-                        </div>
-                        ` : ''}
+                        ${commissionRateDisplay}
                     </div>
                 </div>
             </div>
