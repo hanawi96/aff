@@ -160,8 +160,9 @@ function createCustomerRow(customer, index) {
         'Churned': '<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">💤 Churned</span>'
     };
 
-    const lastOrderText = customer.days_since_last_order !== null
-        ? formatDaysAgo(customer.days_since_last_order)
+    // Show actual date of last order instead of "days ago"
+    const lastOrderText = customer.last_order_date
+        ? formatDate(customer.last_order_date)
         : 'Chưa có đơn';
 
     return `
@@ -241,12 +242,13 @@ function showCustomerModal(customer) {
         'Churned': '<span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">💤 Churned</span>'
     };
 
-    const lastOrderText = customer.days_since_last_order !== null
-        ? formatDaysAgo(customer.days_since_last_order)
+    // Show actual date instead of "days ago"
+    const lastOrderText = customer.last_order_date
+        ? formatDate(customer.last_order_date)
         : 'Chưa có đơn';
 
-    const firstOrderText = customer.days_since_first_order !== null
-        ? formatDaysAgo(customer.days_since_first_order)
+    const firstOrderText = customer.first_order_date
+        ? formatDate(customer.first_order_date)
         : 'Chưa rõ';
 
     modal.innerHTML = `
@@ -400,9 +402,31 @@ function formatCurrency(amount) {
 function formatDate(dateString) {
     if (!dateString) return '';
     try {
-        // Use timezone-utils to convert UTC to VN timezone
-        return toVNDateString(dateString);
+        let date;
+        
+        // Check if it's a timestamp (number)
+        if (typeof dateString === 'number' || !isNaN(Number(dateString))) {
+            // It's a Unix timestamp in milliseconds
+            date = new Date(Number(dateString));
+        } else {
+            // It's a date string
+            date = new Date(dateString);
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', dateString);
+            return dateString;
+        }
+        
+        // Format as DD/MM/YYYY
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
     } catch (e) {
+        console.error('Error formatting date:', e, dateString);
         return dateString;
     }
 }

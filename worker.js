@@ -170,6 +170,10 @@ async function handleGet(action, url, env, corsHeaders) {
             const month = url.searchParams.get('month');
             return await getCommissionsByMonth(month, env, corsHeaders);
 
+        case 'getPaidOrdersByMonth':
+            const paidMonth = url.searchParams.get('month');
+            return await getPaidOrdersByMonth(paidMonth, env, corsHeaders);
+
         case 'getLocationStats':
             const level = url.searchParams.get('level') || 'province';
             const provinceId = url.searchParams.get('provinceId');
@@ -4328,7 +4332,7 @@ async function getCommissionsByMonth(month, env, corsHeaders) {
 
         // Get all CTVs
         const { results: ctvList } = await env.DB.prepare(`
-            SELECT referral_code, full_name, phone, commission_rate
+            SELECT referral_code, full_name, phone, commission_rate, bank_account_number, bank_name
             FROM ctv
             WHERE status != 'Tạm ngưng'
             ORDER BY full_name ASC
@@ -4379,6 +4383,8 @@ async function getCommissionsByMonth(month, env, corsHeaders) {
                 ctv_name: ctv.full_name,
                 phone: ctv.phone,
                 commission_rate: ctv.commission_rate,
+                bank_account_number: ctv.bank_account_number,
+                bank_name: ctv.bank_name,
                 order_count: orderCount,
                 commission_amount: commissionAmount,
                 status: payment ? payment.status : 'pending',
@@ -4408,6 +4414,62 @@ async function getCommissionsByMonth(month, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error getting commissions:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Get paid orders by month (for payment history)
+ * GET ?action=getPaidOrdersByMonth&month=2025-11
+ * Returns only the orders that have been paid
+ */
+async function getPaidOrdersByMonth(month, env, corsHeaders) {
+    try {
+        if (!month) {
+            return jsonResponse({
+                success: false,
+                error: 'Month parameter is required (format: YYYY-MM)'
+            }, 400, corsHeaders);
+        }
+
+        // Get all payment records for this month with CTV info
+        const { results: payments } = await env.DB.prepare(`
+            SELECT 
+                cp.id as payment_id,
+                cp.referral_code,
+                cp.order_count,
+                cp.commission_amount,
+                cp.payment_date,
+                cp.payment_method,
+                cp.note,
+                cp.status,
+                c.full_name as ctv_name,
+                c.phone,
+                c.bank_account_number,
+                c.bank_name
+            FROM commission_payments cp
+            LEFT JOIN ctv c ON cp.referral_code = c.referral_code
+            WHERE cp.month = ?
+            AND cp.status = 'paid'
+            ORDER BY cp.payment_date DESC, cp.id DESC
+        `).bind(month).all();
+
+        return jsonResponse({
+            success: true,
+            month: month,
+            payments: payments,
+            summary: {
+                total_payments: payments.length,
+                total_orders: payments.reduce((sum, p) => sum + (p.order_count || 0), 0),
+                total_amount: payments.reduce((sum, p) => sum + (p.commission_amount || 0), 0)
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting paid orders:', error);
         return jsonResponse({
             success: false,
             error: error.message
@@ -4688,7 +4750,7 @@ async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
 
         // Get all CTVs
         const { results: ctvList } = await env.DB.prepare(`
-            SELECT referral_code, full_name, phone, commission_rate
+            SELECT referral_code, full_name, phone, commission_rate, bank_account_number, bank_name
             FROM ctv
             WHERE status != 'Tạm ngưng'
             ORDER BY full_name ASC
@@ -4741,6 +4803,8 @@ async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
                 ctv_name: ctv.full_name,
                 phone: ctv.phone,
                 commission_rate: ctv.commission_rate,
+                bank_account_number: ctv.bank_account_number,
+                bank_name: ctv.bank_name,
                 order_count: ctvData.order_count,
                 commission_amount: ctvData.total_commission,
                 orders: ctvData.orders
@@ -4851,10 +4915,10 @@ async function paySelectedOrders(data, env, corsHeaders) {
             ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?)
         `).bind(
             referralCode,
-            new Date().getTime().slice(0, 7), // YYYY-MM
+            new Date().toISOString().slice(0, 7), // YYYY-MM
             orders.length,
             totalCommission,
-            paymentDate || new Date().getTime().split('T')[0],
+            paymentDate || new Date().toISOString().split('T')[0],
             paymentMethod || 'bank_transfer',
             note || ''
         ).run();
@@ -4881,7 +4945,7 @@ async function paySelectedOrders(data, env, corsHeaders) {
                 ctv_name: ctv.full_name,
                 order_count: orders.length,
                 total_commission: totalCommission,
-                payment_date: paymentDate || new Date().getTime().split('T')[0],
+                payment_date: paymentDate || new Date().toISOString().split('T')[0],
                 payment_method: paymentMethod || 'bank_transfer'
             }
         }, 200, corsHeaders);

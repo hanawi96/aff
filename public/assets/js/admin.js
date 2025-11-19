@@ -606,7 +606,7 @@ function showEditModal(ctv) {
                             </button>
                             <input type="hidden" name="bankName" id="editBankNameValue" value="${escapeHtml(ctv.bankName || '')}">
                             
-                            <div id="editBankDropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                            <div id="editBankDropdown" class="hidden fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden" style="width: 0; max-width: 600px;">
                                 <div class="p-3 border-b border-gray-200 bg-gray-50">
                                     <div class="relative">
                                         <input type="text" id="editBankSearchInput" placeholder="Tìm kiếm..."
@@ -687,6 +687,27 @@ function initEditBankSelect() {
         const isHidden = bankDropdown.classList.contains('hidden');
         
         if (isHidden) {
+            // Position dropdown using fixed positioning
+            const buttonRect = bankSelectButton.getBoundingClientRect();
+            const dropdownMaxHeight = 300;
+            const spaceBelow = window.innerHeight - buttonRect.bottom;
+            const spaceAbove = buttonRect.top;
+            
+            // Set width to match button
+            bankDropdown.style.width = buttonRect.width + 'px';
+            bankDropdown.style.left = buttonRect.left + 'px';
+            
+            // Check if dropdown should open upward
+            if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+                // Open upward
+                bankDropdown.style.bottom = (window.innerHeight - buttonRect.top + 4) + 'px';
+                bankDropdown.style.top = 'auto';
+            } else {
+                // Open downward (default)
+                bankDropdown.style.top = (buttonRect.bottom + 4) + 'px';
+                bankDropdown.style.bottom = 'auto';
+            }
+            
             bankDropdown.classList.remove('hidden');
             bankDropdownIcon.style.transform = 'rotate(180deg)';
             setTimeout(() => bankSearchInput.focus(), 100);

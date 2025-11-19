@@ -15,8 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     currentMonth = `${year}-${month}`;
     document.getElementById('monthSelector').value = currentMonth;
     
-    // Load data
+    // Load both tabs data immediately
     loadUnpaidOrders();
+    loadPaymentHistory();
 });
 
 // Load unpaid orders
@@ -65,6 +66,7 @@ function updateSummary(summary) {
     document.getElementById('totalCTV').textContent = summary.total_ctv || 0;
     document.getElementById('totalOrders').textContent = summary.total_orders || 0;
     document.getElementById('totalCommission').textContent = formatCurrency(summary.total_commission || 0);
+    document.getElementById('unpaidCount').textContent = summary.total_ctv || 0;
     updateSelectedAmount();
 }
 
@@ -252,6 +254,12 @@ async function paySelectedCTV(referralCode) {
 
 // Show payment modal
 function showPaymentModal(ctv, orders, totalCommission) {
+    // Debug: Log CTV data
+    console.log('💳 CTV Data:', JSON.stringify(ctv, null, 2));
+    console.log('🏦 Bank Name:', ctv.bank_name);
+    console.log('💰 Bank Account:', ctv.bank_account_number);
+    console.log('🔍 All CTV keys:', Object.keys(ctv));
+    
     const modal = document.createElement('div');
     modal.id = 'paymentModal';
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
@@ -282,6 +290,40 @@ function showPaymentModal(ctv, orders, totalCommission) {
                     <p class="text-sm text-gray-600">Thanh toán cho</p>
                     <p class="text-lg font-bold text-gray-900">${escapeHtml(ctv.ctv_name)}</p>
                     <p class="text-sm text-gray-600 mt-1">Mã: ${escapeHtml(ctv.referral_code)} • ${escapeHtml(ctv.phone)}</p>
+                    
+                    ${ctv.bank_account_number || ctv.bank_name ? `
+                        <div class="mt-3 pt-3 border-t border-green-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                                <span class="text-sm font-semibold text-gray-700">Thông tin ngân hàng</span>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 space-y-2">
+                                ${ctv.bank_name ? `
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs text-gray-500">Ngân hàng:</span>
+                                        <span class="text-sm font-semibold text-gray-900">${escapeHtml(ctv.bank_name)}</span>
+                                    </div>
+                                ` : ''}
+                                ${ctv.bank_account_number ? `
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs text-gray-500">Số tài khoản:</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-mono font-bold text-blue-600">${escapeHtml(ctv.bank_account_number)}</span>
+                                            <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.bank_account_number)}')" 
+                                                class="p-1 hover:bg-gray-100 rounded transition-colors" title="Sao chép">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
                     <div class="mt-3 pt-3 border-t border-green-200">
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">${orders.length} đơn hàng</span>
@@ -364,7 +406,22 @@ async function submitPayment(event) {
     const paymentMethod = document.getElementById('paymentMethod').value;
     const note = document.getElementById('paymentNote').value;
     
+    // Get submit button
+    const submitBtn = event.target;
+    const originalBtnContent = submitBtn.innerHTML;
+    
     try {
+        // Show loading state on button
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="w-5 h-5 inline mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Đang xử lý...
+        `;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+        
         showToast('Đang xử lý thanh toán...', 'info');
         
         const response = await fetch(`${CONFIG.API_URL}?action=paySelectedOrders`, {
@@ -397,6 +454,11 @@ async function submitPayment(event) {
     } catch (error) {
         console.error('Error:', error);
         showToast('Không thể thanh toán: ' + error.message, 'error');
+        
+        // Restore button state on error
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnContent;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
     }
 }
 
@@ -408,18 +470,66 @@ function closePaymentModal() {
     }
 }
 
-// Filter CTV
+// Smart Search with Debounce
+let searchDebounceTimer;
 function filterCTV() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        performSearch();
+    }, 300); // Wait 300ms after user stops typing
+}
+
+function performSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput.value.toLowerCase().trim();
     
+    // Show/hide clear button
+    updateSearchUI(searchTerm);
+    
+    if (!searchTerm) {
+        filteredCommissions = [...allCommissions];
+        renderCTVList();
+        return;
+    }
+    
+    // Smart search: tìm theo nhiều trường
     filteredCommissions = allCommissions.filter(ctv => {
-        return !searchTerm || 
-            ctv.ctv_name.toLowerCase().includes(searchTerm) ||
-            ctv.referral_code.toLowerCase().includes(searchTerm) ||
-            ctv.phone.includes(searchTerm);
+        const searchFields = [
+            ctv.ctv_name?.toLowerCase() || '',
+            ctv.referral_code?.toLowerCase() || '',
+            ctv.phone || '',
+            ctv.bank_name?.toLowerCase() || '',
+            ctv.bank_account_number || ''
+        ];
+        
+        return searchFields.some(field => field.includes(searchTerm));
     });
     
     renderCTVList();
+    
+    // Show search result count
+    if (searchTerm) {
+        const resultText = filteredCommissions.length === 0 
+            ? 'Không tìm thấy kết quả' 
+            : `Tìm thấy ${filteredCommissions.length} CTV`;
+        showToast(resultText, filteredCommissions.length === 0 ? 'warning' : 'info');
+    }
+}
+
+function updateSearchUI(searchTerm) {
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('searchClearBtn');
+    
+    if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('searchInput');
+    searchInput.value = '';
+    performSearch();
+    searchInput.focus();
 }
 
 // Load previous month
@@ -507,3 +617,244 @@ function showToast(message, type = 'success') {
         toast.remove();
     }, 3000);
 }
+
+
+// Copy to clipboard helper
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ Đã sao chép: ' + text, 'success');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('❌ Không thể sao chép', 'error');
+    });
+}
+
+
+// Tab Management
+let currentTab = 'unpaid';
+let paymentHistory = [];
+
+function switchTab(tab) {
+    currentTab = tab;
+    
+    // Update tab buttons
+    const tabUnpaid = document.getElementById('tabUnpaid');
+    const tabHistory = document.getElementById('tabHistory');
+    const unpaidContent = document.getElementById('unpaidContent');
+    const historyContent = document.getElementById('historyContent');
+    
+    if (tab === 'unpaid') {
+        tabUnpaid.classList.add('active', 'border-green-600', 'text-green-600', 'bg-green-50');
+        tabUnpaid.classList.remove('border-transparent', 'text-gray-500');
+        tabHistory.classList.remove('active', 'border-green-600', 'text-green-600', 'bg-green-50');
+        tabHistory.classList.add('border-transparent', 'text-gray-500');
+        
+        unpaidContent.classList.remove('hidden');
+        historyContent.classList.add('hidden');
+    } else {
+        tabHistory.classList.add('active', 'border-green-600', 'text-green-600', 'bg-green-50');
+        tabHistory.classList.remove('border-transparent', 'text-gray-500');
+        tabUnpaid.classList.remove('active', 'border-green-600', 'text-green-600', 'bg-green-50');
+        tabUnpaid.classList.add('border-transparent', 'text-gray-500');
+        
+        historyContent.classList.remove('hidden');
+        unpaidContent.classList.add('hidden');
+    }
+}
+
+// Load Payment History
+async function loadPaymentHistory() {
+    const month = document.getElementById('monthSelector').value;
+    if (!month) {
+        showToast('Vui lòng chọn tháng', 'warning');
+        return;
+    }
+    
+    try {
+        // Get all payment records for this month
+        const response = await fetch(`${CONFIG.API_URL}?action=getPaidOrdersByMonth&month=${month}&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            paymentHistory = data.payments || [];
+            
+            // Calculate stats from actual paid orders
+            const totalAmount = paymentHistory.reduce((sum, p) => sum + (p.commission_amount || 0), 0);
+            const totalOrders = paymentHistory.reduce((sum, p) => sum + (p.order_count || 0), 0);
+            
+            document.getElementById('historyTotalAmount').textContent = formatCurrency(totalAmount);
+            document.getElementById('historyTotalCTV').textContent = paymentHistory.length;
+            document.getElementById('historyTotalOrders').textContent = totalOrders;
+            document.getElementById('historyCount').textContent = paymentHistory.length;
+            
+            renderPaymentHistory(paymentHistory);
+        }
+    } catch (error) {
+        console.error('Error loading payment history:', error);
+        showToast('Không thể tải lịch sử thanh toán', 'error');
+    }
+}
+
+// Render Payment History
+function renderPaymentHistory(history) {
+    const container = document.getElementById('historyListContainer');
+    const loadingState = document.getElementById('historyLoadingState');
+    const emptyState = document.getElementById('historyEmptyState');
+    
+    loadingState.classList.add('hidden');
+    
+    if (history.length === 0) {
+        emptyState.classList.remove('hidden');
+        // Remove existing cards
+        const existingCards = container.querySelectorAll('.history-card');
+        existingCards.forEach(card => card.remove());
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    
+    // Remove existing cards
+    const existingCards = container.querySelectorAll('.history-card');
+    existingCards.forEach(card => card.remove());
+    
+    // Render history cards
+    history.forEach(payment => {
+        const card = createHistoryCard(payment);
+        container.appendChild(card);
+    });
+}
+
+// Create History Card
+function createHistoryCard(payment) {
+    const card = document.createElement('div');
+    card.className = 'history-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow';
+    
+    card.innerHTML = `
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">${escapeHtml(payment.ctv_name)}</h3>
+                    <p class="text-sm text-gray-500">Mã: ${escapeHtml(payment.referral_code)} • ${escapeHtml(payment.phone)}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-2xl font-bold text-green-600">${formatCurrency(payment.commission_amount)}</p>
+                <p class="text-xs text-gray-500 mt-1">${payment.order_count} đơn hàng</p>
+            </div>
+        </div>
+        
+        ${payment.bank_account_number || payment.bank_name ? `
+            <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span class="text-xs font-semibold text-gray-600">Thông tin ngân hàng</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    ${payment.bank_name ? `
+                        <div>
+                            <span class="text-gray-500">Ngân hàng:</span>
+                            <span class="font-semibold text-gray-900 ml-1">${escapeHtml(payment.bank_name)}</span>
+                        </div>
+                    ` : ''}
+                    ${payment.bank_account_number ? `
+                        <div>
+                            <span class="text-gray-500">STK:</span>
+                            <span class="font-mono font-semibold text-blue-600 ml-1">${escapeHtml(payment.bank_account_number)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        ` : ''}
+        
+        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
+                <p class="text-sm font-semibold text-gray-900">${payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('vi-VN') : 'N/A'}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Phương thức</p>
+                <p class="text-sm font-semibold text-gray-900">${getPaymentMethodLabel(payment.payment_method)}</p>
+            </div>
+        </div>
+        
+        ${payment.note ? `
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-xs text-gray-600 mb-1">Ghi chú:</p>
+                <p class="text-sm text-gray-900">${escapeHtml(payment.note)}</p>
+            </div>
+        ` : ''}
+    `;
+    
+    return card;
+}
+
+// Get Payment Method Label
+function getPaymentMethodLabel(method) {
+    const labels = {
+        'bank_transfer': 'Chuyển khoản',
+        'cash': 'Tiền mặt',
+        'momo': 'Ví MoMo',
+        'zalopay': 'ZaloPay'
+    };
+    return labels[method] || method || 'N/A';
+}
+
+
+// Search in History Tab
+let historySearchDebounceTimer;
+function filterHistory() {
+    clearTimeout(historySearchDebounceTimer);
+    historySearchDebounceTimer = setTimeout(() => {
+        performHistorySearch();
+    }, 300);
+}
+
+function performHistorySearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        renderPaymentHistory(paymentHistory);
+        return;
+    }
+    
+    const filtered = paymentHistory.filter(payment => {
+        const searchFields = [
+            payment.ctv_name?.toLowerCase() || '',
+            payment.referral_code?.toLowerCase() || '',
+            payment.phone || '',
+            payment.bank_name?.toLowerCase() || '',
+            payment.bank_account_number || '',
+            payment.payment_method?.toLowerCase() || '',
+            payment.note?.toLowerCase() || ''
+        ];
+        
+        return searchFields.some(field => field.includes(searchTerm));
+    });
+    
+    renderPaymentHistory(filtered);
+    
+    if (searchTerm) {
+        const resultText = filtered.length === 0 
+            ? 'Không tìm thấy kết quả' 
+            : `Tìm thấy ${filtered.length} thanh toán`;
+        showToast(resultText, filtered.length === 0 ? 'warning' : 'info');
+    }
+}
+
+// Update search function based on active tab
+const originalFilterCTV = filterCTV;
+filterCTV = function() {
+    if (currentTab === 'history') {
+        filterHistory();
+    } else {
+        originalFilterCTV();
+    }
+};
