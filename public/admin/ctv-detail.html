@@ -53,6 +53,17 @@
                 background-position: -200% 0;
             }
         }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
 
@@ -213,23 +224,33 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
-                        <div>
-                            <p class="text-sm text-gray-500">Mã CTV</p>
-                            <p class="text-lg font-bold text-blue-600" id="ctvReferralCode">-</p>
+                    <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+                            <div>
+                                <p class="text-sm text-gray-500">Mã CTV</p>
+                                <p class="text-lg font-bold text-blue-600" id="ctvReferralCode">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Tỷ lệ hoa hồng</p>
+                                <p class="text-lg font-bold text-green-600" id="ctvCommissionRate">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Tỉnh/Thành</p>
+                                <p class="text-lg font-semibold text-gray-900" id="ctvCity">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Ngày đăng ký</p>
+                                <p class="text-lg font-semibold text-gray-900" id="ctvCreatedAt">-</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Tỷ lệ hoa hồng</p>
-                            <p class="text-lg font-bold text-green-600" id="ctvCommissionRate">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Tỉnh/Thành</p>
-                            <p class="text-lg font-semibold text-gray-900" id="ctvCity">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Ngày đăng ký</p>
-                            <p class="text-lg font-semibold text-gray-900" id="ctvCreatedAt">-</p>
-                        </div>
+                        
+                        <!-- Bank Info Button -->
+                        <button id="bankInfoButton" onclick="showBankInfoModal()" class="hidden ml-4 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 font-medium">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            <span>Thông tin NH</span>
+                        </button>
                     </div>
                 </div>
 

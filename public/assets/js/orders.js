@@ -2298,16 +2298,17 @@ async function showCollaboratorModal(referralCode) {
 
                     <!-- Action Button -->
                     <div class="flex justify-center">
-                        <button onclick="showCollaboratorOrders('${escapeHtml(referralCode)}')" 
+                        <a href="ctv-detail.html?code=${encodeURIComponent(referralCode)}" 
                             class="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center gap-3">
                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            <span>Xem đơn hàng của CTV</span>
+                            <span>Xem chi tiết CTV</span>
                             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -2325,196 +2326,6 @@ async function showCollaboratorModal(referralCode) {
 // Close collaborator modal
 function closeCollaboratorModal() {
     const modal = document.getElementById('collaboratorModal');
-    if (modal) {
-        modal.style.opacity = '0';
-        setTimeout(() => modal.remove(), 200);
-    }
-}
-
-// Show collaborator orders
-async function showCollaboratorOrders(referralCode) {
-    try {
-        // Close the info modal first
-        closeCollaboratorModal();
-
-        // Show loading
-        const loadingModal = document.createElement('div');
-        loadingModal.id = 'ordersLoadingModal';
-        loadingModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
-        loadingModal.innerHTML = `
-            <div class="bg-white rounded-2xl p-8 flex flex-col items-center gap-4">
-                <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-gray-700 font-medium">Đang tải đơn hàng...</p>
-            </div>
-        `;
-        document.body.appendChild(loadingModal);
-
-        // Fetch orders
-        const orders = allOrdersData.filter(order => order.referral_code === referralCode);
-
-        // Remove loading
-        loadingModal.remove();
-
-        if (orders.length === 0) {
-            showToast('CTV này chưa có đơn hàng nào', 'info');
-            return;
-        }
-
-        // Sort by date (newest first)
-        orders.sort((a, b) => {
-            const dateA = new Date(a.created_at || a.order_date || 0);
-            const dateB = new Date(b.created_at || b.order_date || 0);
-            return dateB - dateA;
-        });
-
-        // Calculate stats - use total_amount (already includes products + shipping_fee)
-        const totalRevenue = orders.reduce((sum, order) => {
-            return sum + (order.total_amount || 0);
-        }, 0);
-        const totalCommission = orders.reduce((sum, order) => {
-            // Recalculate commission based on current CTV commission_rate if available
-            if (order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
-                // Calculate product_total from total_amount - shipping_fee
-                const totalAmount = order.total_amount || 0;
-                const shippingFee = order.shipping_fee || 0;
-                const productTotal = totalAmount - shippingFee;
-                return sum + Math.round(productTotal * order.ctv_commission_rate);
-            }
-            return sum + (order.commission || 0);
-        }, 0);
-
-        const modal = document.createElement('div');
-        modal.id = 'collaboratorOrdersModal';
-        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-        modal.style.animation = 'fadeIn 0.3s ease-out';
-
-        modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden" style="animation: fadeIn 0.3s ease-out;">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 px-8 py-6 relative overflow-hidden">
-                    <div class="absolute inset-0 bg-black/10"></div>
-                    <div class="relative flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <button onclick="closeCollaboratorOrdersModal(); showCollaboratorModal('${escapeHtml(referralCode)}')" 
-                                class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
-                                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <div>
-                                <h2 class="text-2xl font-bold text-white mb-1">Đơn hàng của CTV</h2>
-                                <p class="text-white/90 text-sm font-medium">Mã CTV: ${escapeHtml(referralCode)} • ${orders.length} đơn hàng</p>
-                            </div>
-                        </div>
-                        <button onclick="closeCollaboratorOrdersModal()" class="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all hover:rotate-90 duration-300">
-                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Stats Summary -->
-                <div class="px-8 py-6 bg-gradient-to-br from-gray-50 to-gray-100 border-b border-gray-200">
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                            <p class="text-sm text-gray-600 mb-1">Tổng đơn hàng</p>
-                            <p class="text-2xl font-bold text-blue-600">${orders.length}</p>
-                        </div>
-                        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                            <p class="text-sm text-gray-600 mb-1">Tổng doanh thu</p>
-                            <p class="text-xl font-bold text-green-600">${formatCurrency(totalRevenue)}</p>
-                        </div>
-                        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                            <p class="text-sm text-gray-600 mb-1">Tổng hoa hồng</p>
-                            <p class="text-xl font-bold text-orange-600">${formatCurrency(totalCommission)}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Orders List -->
-                <div class="p-8 overflow-y-auto max-h-[calc(90vh-300px)]">
-                    <div class="space-y-4">
-                        ${orders.map((order, index) => `
-                            <div class="bg-white rounded-xl border-2 border-gray-200 hover:border-blue-400 transition-all hover:shadow-lg overflow-hidden">
-                                <div class="p-6">
-                                    <div class="flex items-start justify-between mb-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                                                ${index + 1}
-                                            </div>
-                                            <div>
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class="text-lg font-bold text-gray-900">${escapeHtml(order.order_id || 'N/A')}</span>
-                                                    <button onclick="copyToClipboard('${escapeHtml(order.order_id || '')}')" class="text-gray-400 hover:text-blue-600 transition-colors">
-                                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                                <p class="text-sm text-gray-500">${formatDateTime(order.created_at || order.order_date)}</p>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm text-gray-500 mb-1">Giá trị đơn hàng</p>
-                                            <p class="text-xl font-bold text-green-600">${formatCurrency(order.total_amount || 0)}</p>
-                                            <p class="text-sm text-orange-600 font-semibold mt-1">HH: ${formatCurrency(order.commission || 0)}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-4 mb-4">
-                                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                                            <p class="text-xs text-gray-500 mb-1">Khách hàng</p>
-                                            <p class="text-sm font-semibold text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</p>
-                                            <p class="text-sm text-gray-600">${escapeHtml(order.customer_phone || 'N/A')}</p>
-                                        </div>
-                                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                                            <p class="text-xs text-gray-500 mb-1">Địa chỉ</p>
-                                            <p class="text-sm text-gray-700 line-clamp-2">${escapeHtml(order.address || 'N/A')}</p>
-                                        </div>
-                                    </div>
-
-                                    ${order.products ? `
-                                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
-                                        <p class="text-xs text-purple-600 font-semibold mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                                            </svg>
-                                            Sản phẩm
-                                        </p>
-                                        <p class="text-sm text-gray-700 whitespace-pre-wrap">${escapeHtml(order.products)}</p>
-                                    </div>
-                                    ` : ''}
-
-                                    <div class="mt-4 flex justify-end">
-                                        <button onclick="viewOrderDetail(${order.id})" 
-                                            class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all flex items-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            Xem chi tiết
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-    } catch (error) {
-        console.error('Error loading collaborator orders:', error);
-        showToast('Không thể tải danh sách đơn hàng', 'error');
-    }
-}
-
-// Close collaborator orders modal
-function closeCollaboratorOrdersModal() {
-    const modal = document.getElementById('collaboratorOrdersModal');
     if (modal) {
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 200);
