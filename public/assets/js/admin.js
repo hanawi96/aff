@@ -444,6 +444,76 @@ function editCTV(referralCode) {
 }
 
 // Show edit modal
+// Generate bank options HTML
+function generateBankOptions(selectedBank) {
+    const banks = [
+        { value: '', name: 'Chọn ngân hàng', desc: '' },
+        { value: 'ABBank', name: 'ABBank', desc: 'NHTMCP An Binh' },
+        { value: 'ACB', name: 'ACB', desc: 'NH TMCP A Chau' },
+        { value: 'Agribank', name: 'Agribank', desc: 'NH NN & PTNT Viet Nam' },
+        { value: 'ANZ Bank', name: 'ANZ Bank', desc: '' },
+        { value: 'Bac A Bank', name: 'Bac A Bank', desc: 'NHTMCP Bac A' },
+        { value: 'BaoViet Bank', name: 'BaoViet Bank', desc: 'NH TMCP Bao Viet' },
+        { value: 'BIDV', name: 'BIDV', desc: 'NH Dau tu & Phat trien Viet Nam' },
+        { value: 'Citibank', name: 'Citibank', desc: '' },
+        { value: 'Dong A Bank', name: 'Dong A Bank', desc: 'NHTMCP Dong A' },
+        { value: 'Eximbank', name: 'Eximbank', desc: 'NHTMCP Xuat Nhap Khau' },
+        { value: 'GPBank', name: 'GPBank', desc: 'NHTMCP Dau khi Toan cau' },
+        { value: 'HDBank', name: 'HDBank', desc: 'NHTMCP phat trien Tp HCM' },
+        { value: 'HSBC', name: 'HSBC', desc: 'Hong Kong and Shanghai Bank' },
+        { value: 'Hong Leong Bank', name: 'Hong Leong Bank', desc: 'Vietnam' },
+        { value: 'IBK', name: 'IBK', desc: 'Industrial Bank of Korea' },
+        { value: 'IVB', name: 'IVB', desc: 'NH TNHH Indovina' },
+        { value: 'Kien Long Bank', name: 'Kien Long Bank', desc: 'NHTMCP Kien Long' },
+        { value: 'Kookmin Bank', name: 'Kookmin Bank', desc: '' },
+        { value: 'LienVietPostBank', name: 'LienVietPostBank', desc: 'NH TMCP Buu Dien Lien Viet' },
+        { value: 'MB', name: 'MB', desc: 'NHTMCP Quan Doi' },
+        { value: 'Maritime Bank', name: 'Maritime Bank', desc: 'NHTMCP Hang Hai' },
+        { value: 'May Bank', name: 'May Bank', desc: '' },
+        { value: 'Nam A Bank', name: 'Nam A Bank', desc: 'NHTMCP Nam A' },
+        { value: 'NCB', name: 'NCB', desc: 'NHTMCP Quoc Dan' },
+        { value: 'OCB', name: 'OCB', desc: 'NHTMCP Phuong Dong' },
+        { value: 'Oceanbank', name: 'Oceanbank', desc: 'NHTMCP Dai Duong' },
+        { value: 'PGBank', name: 'PGBank', desc: 'NHTMCP Xang dau Petrolimex' },
+        { value: 'PVcomBank', name: 'PVcomBank', desc: 'NH TMCP Dai Chung Viet Nam' },
+        { value: 'Sacombank', name: 'Sacombank', desc: 'NHTMCP Sai gon Thuong Tin' },
+        { value: 'SaigonBank', name: 'SaigonBank', desc: 'NHTMCP Sai Gon Cong Thuong' },
+        { value: 'SCB', name: 'SCB', desc: 'NHTMCP Sai Gon' },
+        { value: 'SeABank', name: 'SeABank', desc: 'NHTMCP Dong Nam A' },
+        { value: 'SHB', name: 'SHB', desc: 'NHTMCP Sai gon - Ha Noi' },
+        { value: 'Shinhan Bank', name: 'Shinhan Bank', desc: 'Vietnam' },
+        { value: 'Standard Chartered', name: 'Standard Chartered', desc: 'Bank' },
+        { value: 'Techcombank', name: 'Techcombank', desc: 'NHTMCP Ky thuong VN' },
+        { value: 'TPBank', name: 'TPBank', desc: 'NH TMCP Tien Phong' },
+        { value: 'VBSP', name: 'VBSP', desc: 'NH Chinh sach xa hoi' },
+        { value: 'VCB', name: 'VCB', desc: 'NH TMCP Ngoai Thuong Viet Nam (Vietcombank)' },
+        { value: 'VDB', name: 'VDB', desc: 'NH Phat trien Viet Nam' },
+        { value: 'VIB', name: 'VIB', desc: 'NHTMCP Quoc Te' },
+        { value: 'VID Public Bank', name: 'VID Public Bank', desc: '' },
+        { value: 'Viet Capital Bank', name: 'Viet Capital Bank', desc: 'NHTMCP Ban Viet' },
+        { value: 'VietABank', name: 'VietABank', desc: 'NHTMCP Viet A' },
+        { value: 'VietBank', name: 'VietBank', desc: 'NHTMCP Viet Nam Thuong Tin' },
+        { value: 'VietinBank', name: 'VietinBank', desc: 'NH Cong Thuong Viet Nam' },
+        { value: 'Vinasiam Bank', name: 'Vinasiam Bank', desc: 'NH Lien doanh Viet Thai' },
+        { value: 'VNCB', name: 'VNCB', desc: 'NHTMCP Xay dung VN' },
+        { value: 'VPBank', name: 'VPBank', desc: 'NHTMCP VN Thinh Vuong' },
+        { value: 'VRB', name: 'VRB', desc: 'NH Lien doanh Viet Nga' },
+        { value: 'Woori Bank', name: 'Woori Bank', desc: '' }
+    ];
+    
+    return banks.map(bank => {
+        const displayText = bank.value === '' 
+            ? `<span class="text-gray-500 italic">${bank.name}</span>`
+            : bank.desc 
+                ? `<span class="font-medium text-gray-900">${bank.name}</span> - <span class="text-gray-600">${bank.desc}</span>`
+                : `<span class="font-medium text-gray-900">${bank.name}</span>`;
+        
+        return `<div class="edit-bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors ${bank.value === '' ? 'border-b border-gray-100' : ''}" data-value="${bank.value}">
+            ${displayText}
+        </div>`;
+    }).join('');
+}
+
 function showEditModal(ctv) {
     const modal = document.createElement('div');
     modal.id = 'editCTVModal';
@@ -515,16 +585,44 @@ function showEditModal(ctv) {
                         </select>
                     </div>
                     
-                    <!-- Kinh nghiệm -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kinh nghiệm</label>
-                        <select name="experience" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
-                            <option value="">Chọn kinh nghiệm</option>
-                            <option value="Mới bắt đầu" ${ctv.experience === 'Mới bắt đầu' ? 'selected' : ''}>Mới bắt đầu</option>
-                            <option value="Dưới 1 năm" ${ctv.experience === 'Dưới 1 năm' ? 'selected' : ''}>Dưới 1 năm</option>
-                            <option value="1-2 năm" ${ctv.experience === '1-2 năm' ? 'selected' : ''}>1-2 năm</option>
-                            <option value="Trên 2 năm" ${ctv.experience === 'Trên 2 năm' ? 'selected' : ''}>Trên 2 năm</option>
-                        </select>
+                    <!-- Số tài khoản -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Số tài khoản</label>
+                        <input type="text" name="bankAccountNumber" value="${escapeHtml(ctv.bankAccountNumber || '')}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="1234567890">
+                    </div>
+                    
+                    <!-- Tên ngân hàng -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tên ngân hàng</label>
+                        <div class="relative">
+                            <button type="button" id="editBankSelectButton"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors">
+                                <span id="editBankSelectedText" class="${ctv.bankName ? 'text-gray-900' : 'text-gray-500'}">${ctv.bankName || 'Chọn ngân hàng'}</span>
+                                <svg class="w-5 h-5 text-gray-400 transition-transform" id="editBankDropdownIcon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="bankName" id="editBankNameValue" value="${escapeHtml(ctv.bankName || '')}">
+                            
+                            <div id="editBankDropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                                <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                    <div class="relative">
+                                        <input type="text" id="editBankSearchInput" placeholder="Tìm kiếm..."
+                                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm"
+                                            autocomplete="off">
+                                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <div class="max-h-60 overflow-y-auto">
+                                    ${generateBankOptions(ctv.bankName)}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Trạng thái -->
@@ -564,8 +662,156 @@ function showEditModal(ctv) {
     
     document.body.appendChild(modal);
     
+    // Initialize searchable bank select
+    initEditBankSelect();
+    
     // Handle form submit
     document.getElementById('editCTVForm').addEventListener('submit', handleEditCTVSubmit);
+}
+
+// Initialize edit bank select functionality
+function initEditBankSelect() {
+    const bankSelectButton = document.getElementById('editBankSelectButton');
+    const bankSearchInput = document.getElementById('editBankSearchInput');
+    const bankDropdown = document.getElementById('editBankDropdown');
+    const bankNameValue = document.getElementById('editBankNameValue');
+    const bankSelectedText = document.getElementById('editBankSelectedText');
+    const bankDropdownIcon = document.getElementById('editBankDropdownIcon');
+    const bankOptions = document.querySelectorAll('.edit-bank-option');
+
+    if (!bankSelectButton || !bankSearchInput || !bankDropdown) return;
+
+    // Toggle dropdown
+    bankSelectButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isHidden = bankDropdown.classList.contains('hidden');
+        
+        if (isHidden) {
+            bankDropdown.classList.remove('hidden');
+            bankDropdownIcon.style.transform = 'rotate(180deg)';
+            setTimeout(() => bankSearchInput.focus(), 100);
+            filterEditBankOptions('');
+        } else {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    // Filter banks
+    bankSearchInput.addEventListener('input', function() {
+        filterEditBankOptions(this.value.toLowerCase());
+    });
+
+    // Prevent dropdown close on search input click
+    bankSearchInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Filter function
+    function filterEditBankOptions(searchTerm) {
+        let hasVisibleOptions = false;
+        bankOptions.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.style.display = 'block';
+                hasVisibleOptions = true;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        const optionsList = bankDropdown.querySelector('.max-h-60');
+        let noResultsDiv = document.getElementById('editNoResultsMessage');
+        
+        if (!hasVisibleOptions && searchTerm) {
+            if (!noResultsDiv) {
+                noResultsDiv = document.createElement('div');
+                noResultsDiv.id = 'editNoResultsMessage';
+                noResultsDiv.className = 'px-4 py-3 text-gray-500 text-center text-sm';
+                noResultsDiv.textContent = 'Không tìm thấy ngân hàng';
+                optionsList.appendChild(noResultsDiv);
+            }
+            noResultsDiv.style.display = 'block';
+        } else {
+            if (noResultsDiv) {
+                noResultsDiv.style.display = 'none';
+            }
+        }
+    }
+
+    // Handle option selection
+    bankOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            const bankName = this.querySelector('.font-medium')?.textContent || this.textContent.trim();
+            
+            bankNameValue.value = value;
+            
+            if (value) {
+                bankSelectedText.textContent = bankName;
+                bankSelectedText.classList.remove('text-gray-500');
+                bankSelectedText.classList.add('text-gray-900');
+            } else {
+                bankSelectedText.textContent = 'Chọn ngân hàng';
+                bankSelectedText.classList.add('text-gray-500');
+                bankSelectedText.classList.remove('text-gray-900');
+            }
+            
+            bankSearchInput.value = '';
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!bankSelectButton.contains(event.target) && !bankDropdown.contains(event.target)) {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+            bankSearchInput.value = '';
+        }
+    });
+
+    // Keyboard navigation
+    let currentFocus = -1;
+    bankSearchInput.addEventListener('keydown', function(e) {
+        const visibleOptions = Array.from(bankOptions).filter(opt => opt.style.display !== 'none');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            currentFocus++;
+            if (currentFocus >= visibleOptions.length) currentFocus = 0;
+            setActive(visibleOptions);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            currentFocus--;
+            if (currentFocus < 0) currentFocus = visibleOptions.length - 1;
+            setActive(visibleOptions);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (currentFocus > -1 && visibleOptions[currentFocus]) {
+                visibleOptions[currentFocus].click();
+            }
+        } else if (e.key === 'Escape') {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+            bankSearchInput.value = '';
+        }
+    });
+
+    function setActive(options) {
+        removeActive(options);
+        if (currentFocus >= options.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = options.length - 1;
+        options[currentFocus].classList.add('bg-indigo-100');
+        options[currentFocus].scrollIntoView({ block: 'nearest' });
+    }
+
+    function removeActive(options) {
+        options.forEach(option => {
+            option.classList.remove('bg-indigo-100');
+        });
+    }
 }
 
 // Handle edit form submit
@@ -580,7 +826,8 @@ async function handleEditCTVSubmit(e) {
         email: formData.get('email'),
         city: formData.get('city'),
         age: formData.get('age'),
-        experience: formData.get('experience'),
+        bankAccountNumber: formData.get('bankAccountNumber'),
+        bankName: formData.get('bankName'),
         status: formData.get('status'),
         commissionRate: parseFloat(formData.get('commissionRate')) / 100
     };
@@ -1133,8 +1380,8 @@ function bulkExportCTV() {
     showToast(`Đã export ${selectedCTVIds.size} CTV`, 'success');
 }
 
-// Bulk update commission
-function bulkUpdateCommission() {
+// Bulk update commission (OPTIMIZED - Single API Call)
+async function bulkUpdateCommission() {
     if (selectedCTVIds.size === 0) {
         showToast('Vui lòng chọn ít nhất 1 CTV', 'warning');
         return;
@@ -1157,24 +1404,38 @@ function bulkUpdateCommission() {
         return;
     }
     
-    // Update via API (batch update)
     const selectedCodes = Array.from(selectedCTVIds);
     
     showToast('Đang cập nhật...', 'info');
     
-    // For now, show success message (implement actual API call later)
-    setTimeout(() => {
-        showToast(`Đã cập nhật hoa hồng thành ${percent}% cho ${selectedCTVIds.size} CTV`, 'success');
-        clearSelection();
-        loadCTVData();
-    }, 1000);
-    
-    // TODO: Implement actual batch update API call
-    // fetch(`${CONFIG.API_URL}/api/ctv/bulk-update-commission`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ referralCodes: selectedCodes, commissionRate: rate })
-    // })
+    try {
+        // ⚡ OPTIMIZED: Single API call instead of multiple calls
+        const response = await fetch(`${CONFIG.API_URL}/api/ctv/bulk-update-commission`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                referralCodes: selectedCodes,
+                commissionRate: rate
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const updatedCount = result.updatedCount || selectedCodes.length;
+            showToast(`✅ Đã cập nhật hoa hồng thành ${percent}% cho ${updatedCount} CTV`, 'success');
+            clearSelection();
+            loadCTVData();
+        } else {
+            throw new Error(result.error || 'Failed to update commission');
+        }
+        
+    } catch (error) {
+        console.error('Error in bulk update commission:', error);
+        showToast('❌ Có lỗi xảy ra khi cập nhật hoa hồng', 'error');
+    }
 }
 
 // Bulk send message
@@ -1321,4 +1582,280 @@ function sendBulkMessages() {
         
         delay += 500; // 500ms delay between each window
     });
+}
+
+// Bulk delete CTV
+function bulkDeleteCTV() {
+    if (selectedCTVIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 CTV', 'warning');
+        return;
+    }
+    
+    // Get selected CTVs data
+    const selectedCTVs = allCTVData.filter(ctv => selectedCTVIds.has(ctv.referralCode));
+    
+    // Show confirmation modal
+    const modal = document.createElement('div');
+    modal.id = 'bulkDeleteModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Xác nhận xóa CTV</h2>
+                        <p class="text-sm text-white/80">Hành động này không thể hoàn tác</p>
+                    </div>
+                </div>
+                <button onclick="closeBulkDeleteModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-6">
+                <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div class="flex-1">
+                            <p class="font-bold text-red-900 mb-2">Cảnh báo!</p>
+                            <p class="text-sm text-red-800">
+                                Bạn đang chuẩn bị xóa <strong>${selectedCTVIds.size} CTV</strong>. 
+                                Tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Danh sách CTV sẽ bị xóa:</p>
+                    <div class="space-y-1">
+                        ${selectedCTVs.map(ctv => `
+                            <div class="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2 rounded">
+                                <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="font-medium">${escapeHtml(ctv.fullName)}</span>
+                                <span class="text-gray-400">•</span>
+                                <span class="font-mono text-xs">${escapeHtml(ctv.referralCode)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p class="text-xs text-yellow-800">
+                        <strong>Lưu ý:</strong> Các đơn hàng và hoa hồng liên quan đến CTV này sẽ vẫn được giữ lại trong hệ thống.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeBulkDeleteModal()" 
+                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button type="button" onclick="confirmBulkDelete()"
+                    class="px-6 py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Xác nhận xóa
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Close bulk delete modal
+function closeBulkDeleteModal() {
+    const modal = document.getElementById('bulkDeleteModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 200);
+    }
+}
+
+// Confirm bulk delete
+async function confirmBulkDelete() {
+    const selectedCodes = Array.from(selectedCTVIds);
+    
+    const confirmBtn = document.querySelector('#bulkDeleteModal button[onclick="confirmBulkDelete()"]');
+    if (!confirmBtn) return;
+    
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    confirmBtn.disabled = true;
+    
+    try {
+        // Call API to delete CTVs
+        const response = await fetch(`${CONFIG.API_URL}?action=bulkDeleteCTV`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                referralCodes: selectedCodes
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`Đã xóa ${selectedCodes.length} CTV thành công`, 'success');
+            closeBulkDeleteModal();
+            clearSelection();
+            loadCTVData(); // Reload data
+        } else {
+            throw new Error(result.error || 'Failed to delete CTVs');
+        }
+    } catch (error) {
+        console.error('Error deleting CTVs:', error);
+        showToast('Không thể xóa CTV. Vui lòng thử lại sau.', 'error');
+        confirmBtn.innerHTML = originalText;
+        confirmBtn.disabled = false;
+    }
+}
+
+// ============================================
+// ADD CTV MODAL
+// ============================================
+
+// Show add CTV modal
+function showAddCTVModal() {
+    const modal = document.getElementById('addCTVModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Reset form
+        document.getElementById('addCTVForm').reset();
+        
+        // Fill demo data for quick testing
+        const form = document.getElementById('addCTVForm');
+        form.querySelector('input[name="fullName"]').value = 'Nguyễn Văn Test';
+        form.querySelector('input[name="phone"]').value = '0912345678';
+        form.querySelector('input[name="email"]').value = 'test@example.com';
+        form.querySelector('input[name="city"]').value = 'Hà Nội';
+        form.querySelector('select[name="age"]').value = '26-30';
+        form.querySelector('input[name="bankAccountNumber"]').value = '1234567890123';
+        form.querySelector('input[name="commissionRate"]').value = '10';
+        form.querySelector('select[name="status"]').value = 'Mới';
+        
+        // Set demo bank
+        const bankSelectedText = document.getElementById('bankSelectedText');
+        const bankNameValue = document.getElementById('bankNameValue');
+        if (bankSelectedText && bankNameValue) {
+            bankNameValue.value = 'Techcombank';
+            bankSelectedText.textContent = 'Techcombank';
+            bankSelectedText.classList.remove('text-gray-500');
+            bankSelectedText.classList.add('text-gray-900');
+        }
+    }
+}
+
+// Close add CTV modal
+function closeAddCTVModal() {
+    const modal = document.getElementById('addCTVModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.opacity = '1';
+        }, 200);
+    }
+}
+
+// Handle add CTV form submit
+document.addEventListener('DOMContentLoaded', function() {
+    const addCTVForm = document.getElementById('addCTVForm');
+    if (addCTVForm) {
+        addCTVForm.addEventListener('submit', handleAddCTVSubmit);
+    }
+});
+
+async function handleAddCTVSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        fullName: formData.get('fullName'),
+        phone: formData.get('phone'),
+        email: formData.get('email') || null,
+        city: formData.get('city') || null,
+        age: formData.get('age') || null,
+        bankAccountNumber: formData.get('bankAccountNumber') || null,
+        bankName: formData.get('bankName') || null,
+        commissionRate: parseFloat(formData.get('commissionRate')) / 100,
+        status: formData.get('status') || 'Mới'
+    };
+    
+    // Debug: Log data being sent
+    console.log('📤 Sending CTV data:', data);
+    console.log('🏦 Bank Name from form:', formData.get('bankName'));
+    console.log('💳 Bank Account Number from form:', formData.get('bankAccountNumber'));
+    
+    // Validate
+    if (!data.fullName || !data.phone) {
+        showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'error');
+        return;
+    }
+    
+    // Validate phone number
+    const phoneRegex = /^[0-9]{10,11}$/;
+    if (!phoneRegex.test(data.phone)) {
+        showToast('Số điện thoại không hợp lệ (10-11 chữ số)', 'error');
+        return;
+    }
+    
+    // Validate commission rate
+    if (isNaN(data.commissionRate) || data.commissionRate < 0 || data.commissionRate > 1) {
+        showToast('Tỷ lệ hoa hồng không hợp lệ', 'error');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('#addCTVModal button[type="submit"]');
+    if (!submitBtn) return;
+    
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    submitBtn.disabled = true;
+    
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/api/ctv/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`✅ Đã thêm CTV thành công! Mã CTV: ${result.referralCode}`, 'success');
+            closeAddCTVModal();
+            loadCTVData(); // Reload danh sách
+        } else {
+            throw new Error(result.error || 'Failed to add CTV');
+        }
+    } catch (error) {
+        console.error('Error adding CTV:', error);
+        showToast('❌ Không thể thêm CTV: ' + error.message, 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }

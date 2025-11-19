@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS ctv (
   email TEXT,
   city TEXT,
   age TEXT,
+  bank_account_number TEXT,
+  bank_name TEXT,
   experience TEXT,
   motivation TEXT,
   referral_code TEXT UNIQUE NOT NULL,

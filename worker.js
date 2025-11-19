@@ -235,6 +235,8 @@ async function handlePostWithAction(action, request, env, corsHeaders) {
             return await markCommissionAsPaid(data, env, corsHeaders);
         case 'paySelectedOrders':
             return await paySelectedOrders(data, env, corsHeaders);
+        case 'bulkDeleteCTV':
+            return await bulkDeleteCTV(data, env, corsHeaders);
         default:
             return jsonResponse({
                 success: false,
@@ -258,6 +260,10 @@ async function handlePost(path, request, env, corsHeaders) {
 
     if (path === '/api/ctv/update-commission') {
         return await updateCTVCommission(data, env, corsHeaders);
+    }
+
+    if (path === '/api/ctv/bulk-update-commission') {
+        return await bulkUpdateCTVCommission(data, env, corsHeaders);
     }
 
     if (path === '/api/ctv/update') {
@@ -347,6 +353,11 @@ async function handlePost(path, request, env, corsHeaders) {
 // Đăng ký CTV mới - Lưu vào cả D1 và Google Sheets
 async function registerCTV(data, env, corsHeaders) {
     try {
+        // Debug: Log received data
+        console.log('📥 Received CTV data:', JSON.stringify(data, null, 2));
+        console.log('🏦 Bank Name:', data.bankName);
+        console.log('💳 Bank Account:', data.bankAccountNumber);
+        
         // Validate
         if (!data.fullName || !data.phone) {
             return jsonResponse({
@@ -362,8 +373,21 @@ async function registerCTV(data, env, corsHeaders) {
         const commissionRate = data.commissionRate || 0.1;
 
         // 1. Lưu vào D1 Database
+        console.log('💾 Preparing to insert with values:', {
+            fullName: data.fullName,
+            phone: data.phone,
+            email: data.email || null,
+            city: data.city || null,
+            age: data.age || null,
+            bankAccountNumber: data.bankAccountNumber || null,
+            bankName: data.bankName || null,
+            referralCode: referralCode,
+            status: data.status || 'Mới',
+            commissionRate: commissionRate
+        });
+        
         const result = await env.DB.prepare(`
-            INSERT INTO ctv (full_name, phone, email, city, age, experience, motivation, referral_code, status, commission_rate)
+            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.fullName,
@@ -371,18 +395,26 @@ async function registerCTV(data, env, corsHeaders) {
             data.email || null,
             data.city || null,
             data.age || null,
-            data.experience || null,
-            data.motivation || null,
+            data.bankAccountNumber || null,
+            data.bankName || null,
             referralCode,
-            'Mới',
+            data.status || 'Mới',
             commissionRate
         ).run();
+
+        console.log('📊 Insert result:', result);
 
         if (!result.success) {
             throw new Error('Failed to insert CTV into D1');
         }
 
         console.log('✅ Saved to D1:', referralCode);
+        
+        // Verify data was saved
+        const verify = await env.DB.prepare(`
+            SELECT bank_account_number, bank_name FROM ctv WHERE referral_code = ?
+        `).bind(referralCode).first();
+        console.log('🔍 Verification query result:', verify);
 
         // 2. Lưu vào Google Sheets (gọi Google Apps Script)
         try {
@@ -569,6 +601,8 @@ async function getAllCTV(env, corsHeaders) {
                 email,
                 city,
                 age,
+                bank_account_number as bankAccountNumber,
+                bank_name as bankName,
                 experience,
                 referral_code as referralCode,
                 status,
@@ -1253,6 +1287,96 @@ async function updateCTVCommission(data, env, corsHeaders) {
     }
 }
 
+// Bulk update commission rate cho nhiều CTV (OPTIMIZED)
+async function bulkUpdateCTVCommission(data, env, corsHeaders) {
+    try {
+        if (!data.referralCodes || !Array.isArray(data.referralCodes) || data.referralCodes.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu referralCodes array'
+            }, 400, corsHeaders);
+        }
+
+        if (data.commissionRate === undefined) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu commissionRate'
+            }, 400, corsHeaders);
+        }
+
+        // Validate commission rate (0-100%)
+        const rate = parseFloat(data.commissionRate);
+        if (isNaN(rate) || rate < 0 || rate > 1) {
+            return jsonResponse({
+                success: false,
+                error: 'Commission rate phải từ 0 đến 1 (0% - 100%)'
+            }, 400, corsHeaders);
+        }
+
+        const referralCodes = data.referralCodes;
+        console.log(`🔄 Bulk updating commission for ${referralCodes.length} CTVs to ${rate * 100}%`);
+
+        // 1. Bulk update trong D1 với single query (FAST!)
+        const placeholders = referralCodes.map(() => '?').join(',');
+        const updateQuery = `
+            UPDATE ctv 
+            SET commission_rate = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE referral_code IN (${placeholders})
+        `;
+        
+        const result = await env.DB.prepare(updateQuery)
+            .bind(rate, ...referralCodes)
+            .run();
+
+        const updatedCount = result.meta.changes;
+        console.log(`✅ Updated ${updatedCount} CTVs in D1`);
+
+        // 2. Đồng bộ sang Google Sheets (async, không chờ)
+        // Gửi batch request thay vì từng request riêng lẻ
+        try {
+            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
+            
+            // Gửi tất cả trong 1 request duy nhất
+            fetch(`${googleScriptUrl}?action=bulkUpdateCommission`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    referralCodes: referralCodes,
+                    commissionRate: rate
+                })
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Synced bulk commission to Google Sheets');
+                } else {
+                    console.warn('⚠️ Failed to sync to Google Sheets, but D1 updated successfully');
+                }
+            }).catch(syncError => {
+                console.error('⚠️ Google Sheets sync error:', syncError);
+            });
+            // Không await - fire and forget để response nhanh hơn
+        } catch (syncError) {
+            console.error('⚠️ Google Sheets sync error:', syncError);
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Đã cập nhật commission rate cho ${updatedCount} CTV`,
+            updatedCount: updatedCount,
+            totalRequested: referralCodes.length,
+            commissionRate: rate
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error in bulk update commission:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Update CTV info
 async function updateCTV(data, env, corsHeaders) {
     try {
@@ -1267,7 +1391,7 @@ async function updateCTV(data, env, corsHeaders) {
         const result = await env.DB.prepare(`
             UPDATE ctv 
             SET full_name = ?, phone = ?, email = ?, city = ?, age = ?, 
-                experience = ?, status = ?, commission_rate = ?, updated_at = CURRENT_TIMESTAMP
+                bank_account_number = ?, bank_name = ?, status = ?, commission_rate = ?, updated_at = CURRENT_TIMESTAMP
             WHERE referral_code = ?
         `).bind(
             data.fullName,
@@ -1275,7 +1399,8 @@ async function updateCTV(data, env, corsHeaders) {
             data.email || null,
             data.city || null,
             data.age || null,
-            data.experience || null,
+            data.bankAccountNumber || null,
+            data.bankName || null,
             data.status || 'Mới',
             data.commissionRate || 0.1,
             data.referralCode
@@ -1317,6 +1442,74 @@ async function updateCTV(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error updating CTV:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Bulk delete CTV
+async function bulkDeleteCTV(data, env, corsHeaders) {
+    try {
+        if (!data.referralCodes || !Array.isArray(data.referralCodes) || data.referralCodes.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu referralCodes array'
+            }, 400, corsHeaders);
+        }
+
+        const referralCodes = data.referralCodes;
+        console.log(`🗑️ Bulk deleting ${referralCodes.length} CTVs`);
+
+        // 1. Delete from D1 with single query
+        const placeholders = referralCodes.map(() => '?').join(',');
+        const deleteQuery = `
+            DELETE FROM ctv 
+            WHERE referral_code IN (${placeholders})
+        `;
+        
+        const result = await env.DB.prepare(deleteQuery)
+            .bind(...referralCodes)
+            .run();
+
+        const deletedCount = result.meta.changes;
+        console.log(`✅ Deleted ${deletedCount} CTVs from D1`);
+
+        // 2. Sync to Google Sheets (async, fire-and-forget)
+        try {
+            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
+            
+            fetch(`${googleScriptUrl}?action=bulkDeleteCTV`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    referralCodes: referralCodes
+                })
+            }).then(response => {
+                if (response.ok) {
+                    console.log('✅ Synced bulk delete to Google Sheets');
+                } else {
+                    console.warn('⚠️ Failed to sync to Google Sheets, but D1 deleted successfully');
+                }
+            }).catch(syncError => {
+                console.error('⚠️ Google Sheets sync error:', syncError);
+            });
+        } catch (syncError) {
+            console.error('⚠️ Google Sheets sync error:', syncError);
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Đã xóa ${deletedCount} CTV`,
+            deletedCount: deletedCount,
+            totalRequested: referralCodes.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error in bulk delete CTV:', error);
         return jsonResponse({
             success: false,
             error: error.message

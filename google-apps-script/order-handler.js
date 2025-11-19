@@ -528,6 +528,46 @@ function doGet(e) {
       }
     }
 
+    // ⭐ API: Bulk update commission rate (OPTIMIZED)
+    if (action === 'bulkUpdateCommission') {
+      try {
+        const postData = JSON.parse(e.postData.contents);
+        const result = bulkUpdateCommissionInSheet(postData.referralCodes, postData.commissionRate);
+
+        return ContentService
+          .createTextOutput(JSON.stringify(result))
+          .setMimeType(ContentService.MimeType.JSON);
+      } catch (error) {
+        Logger.log('❌ Error in bulk update commission: ' + error.toString());
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            error: error.toString()
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // ⭐ API: Bulk delete CTV
+    if (action === 'bulkDeleteCTV') {
+      try {
+        const postData = JSON.parse(e.postData.contents);
+        const result = bulkDeleteCTVInSheet(postData.referralCodes);
+
+        return ContentService
+          .createTextOutput(JSON.stringify(result))
+          .setMimeType(ContentService.MimeType.JSON);
+      } catch (error) {
+        Logger.log('❌ Error in bulk delete CTV: ' + error.toString());
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            error: error.toString()
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // Default response
     return ContentService
       .createTextOutput('Google Apps Script is working!')
@@ -2337,9 +2377,176 @@ function updateCommissionInSheet(referralCode, commissionRate) {
   }
 }
 
+// Bulk update commission rate trong Google Sheets (OPTIMIZED)
+function bulkUpdateCommissionInSheet(referralCodes, commissionRate) {
+  try {
+    Logger.log('🔄 Bulk updating commission for ' + referralCodes.length + ' CTVs');
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      throw new Error('CTV sheet not found');
+    }
+
+    const data = ctvSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      throw new Error('No data in sheet');
+    }
+
+    // Tìm cột Mã Ref và Hoa Hồng
+    const headers = data[0];
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+    const commissionColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('hoa hồng')
+    );
+
+    if (refCodeColumnIndex === -1) {
+      throw new Error('Referral code column not found');
+    }
+
+    if (commissionColumnIndex === -1) {
+      throw new Error('Commission column not found');
+    }
+
+    // Tạo Set để tìm kiếm nhanh
+    const codeSet = new Set(referralCodes.map(code => code.toUpperCase()));
+    const commissionPercent = (commissionRate * 100).toFixed(0) + '%';
+    
+    // Collect all ranges to update (batch update)
+    const rangesToUpdate = [];
+    let updatedCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const rowRefCode = data[i][refCodeColumnIndex];
+
+      if (rowRefCode && codeSet.has(rowRefCode.toString().trim().toUpperCase())) {
+        rangesToUpdate.push({
+          row: i + 1,
+          col: commissionColumnIndex + 1
+        });
+        updatedCount++;
+      }
+    }
+
+    // Batch update all cells at once (MUCH FASTER!)
+    if (rangesToUpdate.length > 0) {
+      rangesToUpdate.forEach(range => {
+        const cell = ctvSheet.getRange(range.row, range.col);
+        cell.setValue(commissionPercent);
+        cell.setBackground('#d1f2eb');
+        cell.setFontColor('#0d6832');
+        cell.setFontWeight('bold');
+        cell.setHorizontalAlignment('center');
+      });
+
+      Logger.log('✅ Bulk updated ' + updatedCount + ' CTVs to ' + commissionPercent);
+    }
+
+    return {
+      success: true,
+      message: 'Bulk commission updated in Google Sheets',
+      updatedCount: updatedCount,
+      totalRequested: referralCodes.length,
+      commissionRate: commissionRate
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in bulkUpdateCommissionInSheet: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
 // Test function
 function testUpdateCommission() {
   const result = updateCommissionInSheet('CTV481406', 0.15);
+  Logger.log('Result: ' + JSON.stringify(result, null, 2));
+}
+
+// Bulk delete CTV trong Google Sheets
+function bulkDeleteCTVInSheet(referralCodes) {
+  try {
+    Logger.log('🗑️ Bulk deleting ' + referralCodes.length + ' CTVs from sheet');
+
+    const ctvSpreadsheet = SpreadsheetApp.openById(CONFIG.CTV_SHEET_ID);
+    const ctvSheet = ctvSpreadsheet.getSheetByName(CONFIG.CTV_SHEET_NAME);
+
+    if (!ctvSheet) {
+      throw new Error('CTV sheet not found');
+    }
+
+    const data = ctvSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      throw new Error('No data in sheet');
+    }
+
+    // Tìm cột Mã Ref
+    const headers = data[0];
+    const refCodeColumnIndex = headers.findIndex(h =>
+      h && h.toString().toLowerCase().includes('ref')
+    );
+
+    if (refCodeColumnIndex === -1) {
+      throw new Error('Referral code column not found');
+    }
+
+    // Tạo Set để tìm kiếm nhanh
+    const codeSet = new Set(referralCodes.map(code => code.toUpperCase()));
+    
+    // Collect rows to delete (from bottom to top to avoid index shifting)
+    const rowsToDelete = [];
+    let deletedCount = 0;
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      const rowRefCode = data[i][refCodeColumnIndex];
+
+      if (rowRefCode && codeSet.has(rowRefCode.toString().trim().toUpperCase())) {
+        rowsToDelete.push(i + 1); // +1 because sheet rows are 1-indexed
+        deletedCount++;
+      }
+    }
+
+    // Delete rows (already sorted from bottom to top)
+    if (rowsToDelete.length > 0) {
+      rowsToDelete.forEach(rowNumber => {
+        ctvSheet.deleteRow(rowNumber);
+      });
+
+      Logger.log('✅ Bulk deleted ' + deletedCount + ' CTVs from sheet');
+    }
+
+    return {
+      success: true,
+      message: 'Bulk deleted CTVs from Google Sheets',
+      deletedCount: deletedCount,
+      totalRequested: referralCodes.length
+    };
+
+  } catch (error) {
+    Logger.log('❌ Error in bulkDeleteCTVInSheet: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Test bulk update function
+function testBulkUpdateCommission() {
+  const result = bulkUpdateCommissionInSheet(['CTV481406', 'CTV123456'], 0.15);
+  Logger.log('Result: ' + JSON.stringify(result, null, 2));
+}
+
+// Test bulk delete function
+function testBulkDeleteCTV() {
+  const result = bulkDeleteCTVInSheet(['CTV481406', 'CTV123456']);
   Logger.log('Result: ' + JSON.stringify(result, null, 2));
 }
 
