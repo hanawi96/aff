@@ -244,15 +244,16 @@
 
                     <!-- Filters -->
                     <div class="flex items-center gap-3">
-                        <select id="segmentFilter"
-                            class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
-                            <option value="all">Tất cả phân khúc</option>
-                            <option value="VIP">🌟 VIP (≥5 đơn)</option>
-                            <option value="Regular">💚 Regular (2-4 đơn)</option>
-                            <option value="New">🆕 New (1 đơn)</option>
-                            <option value="At Risk">⚠️ At Risk (>60 ngày)</option>
-                            <option value="Churned">💤 Churned (>90 ngày)</option>
-                        </select>
+                        <div class="relative">
+                            <button id="segmentFilterBtn" onclick="toggleSegmentFilter(event)" 
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <span id="segmentFilterLabel" class="text-sm text-gray-700">Tất cả phân khúc</span>
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+                        <input type="hidden" id="segmentFilter" value="all">
                     </div>
                 </div>
             </div>

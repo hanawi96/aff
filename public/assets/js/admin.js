@@ -1880,3 +1880,72 @@ async function handleAddCTVSubmit(e) {
         submitBtn.disabled = false;
     }
 }
+
+
+// ============================================
+// CUSTOM DROPDOWN FILTERS
+// ============================================
+
+// Toggle CTV status filter dropdown
+function toggleCTVStatusFilter(event) {
+    event.stopPropagation();
+
+    // Close if already open
+    const existingMenu = document.getElementById('statusFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const statuses = [
+        { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
+        { value: 'active', label: 'Đang hoạt động', color: 'green' },
+        { value: 'new', label: 'Mới', color: 'blue' },
+        { value: 'inactive', label: 'Không hoạt động', color: 'red' }
+    ];
+
+    const currentValue = document.getElementById('statusFilter').value;
+    const button = event.currentTarget;
+
+    const menu = document.createElement('div');
+    menu.id = 'statusFilterMenu';
+    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[220px] mt-1';
+    menu.style.left = '0';
+    menu.style.top = '100%';
+
+    menu.innerHTML = statuses.map(s => `
+        <button 
+            onclick="selectCTVStatusFilter('${s.value}', '${s.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${s.label}</span>
+            ${s.value === currentValue ? `
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    button.style.position = 'relative';
+    button.appendChild(menu);
+
+    // Close when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!button.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+// Select CTV status filter
+function selectCTVStatusFilter(value, label) {
+    document.getElementById('statusFilter').value = value;
+    document.getElementById('statusFilterLabel').textContent = label;
+    document.getElementById('statusFilterMenu')?.remove();
+    filterCTVData();
+}

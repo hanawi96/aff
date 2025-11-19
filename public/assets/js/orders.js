@@ -4297,12 +4297,12 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
     menu.innerHTML = statuses.map(s => `
         <button 
             onclick="updateOrderStatus(${orderId}, '${s.value}', '${escapeHtml(orderCode)}')"
-            class="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors text-left ${s.value === currentStatus ? 'bg-gray-50' : ''}"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentStatus ? 'bg-blue-50' : ''}"
         >
-            <div class="w-2 h-2 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
-            <span class="text-sm text-gray-700">${s.label}</span>
+            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${s.label}</span>
             ${s.value === currentStatus ? `
-                <svg class="w-4 h-4 text-${s.color}-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
             ` : ''}
@@ -6657,12 +6657,12 @@ function toggleStatusFilter(event) {
     menu.innerHTML = statuses.map(s => `
         <button 
             onclick="selectStatusFilter('${s.value}', '${s.label}')"
-            class="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-gray-50' : ''}"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
         >
-            <div class="w-2 h-2 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
-            <span class="text-sm text-gray-700">${s.label}</span>
+            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${s.label}</span>
             ${s.value === currentValue ? `
-                <svg class="w-4 h-4 text-${s.color}-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
             ` : ''}
@@ -6726,11 +6726,12 @@ function toggleDateFilter(event) {
     menu.innerHTML = dates.map(d => `
         <button 
             onclick="selectDateFilter('${d.value}', '${d.label}')"
-            class="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors text-left ${d.value === currentValue ? 'bg-gray-50' : ''}"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${d.value === currentValue ? 'bg-blue-50' : ''}"
         >
-            <span class="text-sm text-gray-700">${d.label}</span>
+            <div class="w-3 h-3 rounded-full bg-gray-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${d.label}</span>
             ${d.value === currentValue ? `
-                <svg class="w-4 h-4 text-blue-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
             ` : ''}
