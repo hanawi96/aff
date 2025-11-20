@@ -526,10 +526,10 @@ function filterOrdersData() {
         const statusMap = {
             'mới': 'pending',
             'chờ xử lý': 'pending',
-            'đang xử lý': 'processing',
             'đã gửi hàng': 'shipped',
+            'đang vận chuyển': 'in_transit',
             'đã giao hàng': 'delivered',
-            'đã hủy': 'cancelled'
+            'giao hàng thất bại': 'failed'
         };
 
         const normalizedStatus = statusMap[orderStatus] || orderStatus;
@@ -794,12 +794,6 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdActions.className = 'px-4 py-4 whitespace-nowrap text-center text-sm font-medium';
     tdActions.innerHTML = `
         <div class="flex items-center justify-center gap-2">
-            <button onclick="showCreateSPXModal(${order.id})" 
-                class="text-orange-600 hover:text-orange-700 transition-colors" title="Tạo vận đơn SPX">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-            </button>
             <button onclick="copySPXFormat(${order.id})" 
                 class="text-purple-600 hover:text-purple-700 transition-colors" title="Copy format SPX">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1676,7 +1670,7 @@ function copyToClipboard(text) {
 }
 
 // Copy SPX format
-function copySPXFormat(orderId) {
+async function copySPXFormat(orderId) {
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
@@ -1750,12 +1744,21 @@ ${order.address || 'N/A'}`;
         spxFormat += '\n' + productsText;
     }
 
-    navigator.clipboard.writeText(spxFormat).then(() => {
+    try {
+        // Copy to clipboard
+        await navigator.clipboard.writeText(spxFormat);
         showToast('✅ Đã copy format SPX!', 'success');
-    }).catch(err => {
+        
+        // Auto-update status to "shipped" (Đã gửi hàng)
+        // Only update if current status is not already shipped, in_transit, delivered, or failed
+        const currentStatus = order.status || 'pending';
+        if (currentStatus !== 'shipped' && currentStatus !== 'in_transit' && currentStatus !== 'delivered' && currentStatus !== 'failed') {
+            await updateOrderStatus(orderId, 'shipped', order.order_id);
+        }
+    } catch (err) {
         console.error('Failed to copy:', err);
         showToast('❌ Lỗi khi copy', 'error');
-    });
+    }
 }
 
 // Render pagination
@@ -4225,23 +4228,23 @@ function getStatusBadge(status, orderId, orderCode) {
             color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />`
         },
-        'processing': {
-            label: 'Đang xử lý',
-            color: 'bg-blue-100 text-blue-700 border-blue-300',
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />`
-        },
         'shipped': {
             label: 'Đã gửi hàng',
-            color: 'bg-green-100 text-green-700 border-green-300',
+            color: 'bg-blue-100 text-blue-700 border-blue-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />`
+        },
+        'in_transit': {
+            label: 'Đang vận chuyển',
+            color: 'bg-purple-100 text-purple-700 border-purple-300',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />`
         },
         'delivered': {
             label: 'Đã giao hàng',
             color: 'bg-emerald-100 text-emerald-700 border-emerald-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`
         },
-        'cancelled': {
-            label: 'Đã hủy',
+        'failed': {
+            label: 'Giao hàng thất bại',
             color: 'bg-red-100 text-red-700 border-red-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />`
         }
@@ -4277,22 +4280,35 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
 
     const statuses = [
         { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
-        { value: 'processing', label: 'Đang xử lý', color: 'blue' },
-        { value: 'shipped', label: 'Đã gửi hàng', color: 'green' },
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
         { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
-        { value: 'cancelled', label: 'Đã hủy', color: 'red' }
+        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
     ];
 
-    // Get the badge element
+    // Get the badge element position
     const badge = event.currentTarget;
     const rect = badge.getBoundingClientRect();
 
+    // Create menu with fixed positioning (outside table container)
     const menu = document.createElement('div');
     menu.id = 'statusMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[180px]';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-    menu.style.marginTop = '4px';
+    menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px]';
+    menu.style.zIndex = '9999';
+    
+    // Calculate position - check if there's enough space below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const menuHeight = 250; // Estimated menu height
+    
+    if (spaceBelow < menuHeight && rect.top > menuHeight) {
+        // Show above
+        menu.style.left = rect.left + 'px';
+        menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    } else {
+        // Show below
+        menu.style.left = rect.left + 'px';
+        menu.style.top = (rect.bottom + 4) + 'px';
+    }
 
     menu.innerHTML = statuses.map(s => `
         <button 
@@ -4309,9 +4325,8 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
         </button>
     `).join('');
 
-    // Add menu to badge's parent with relative positioning
-    badge.style.position = 'relative';
-    badge.appendChild(menu);
+    // Append to body (not to badge) to avoid overflow issues
+    document.body.appendChild(menu);
 
     // Close menu when clicking outside
     setTimeout(() => {
@@ -4368,10 +4383,10 @@ async function updateOrderStatus(orderId, newStatus, orderCode) {
             // Get status label
             const statusLabels = {
                 'pending': 'Chờ xử lý',
-                'processing': 'Đang xử lý',
                 'shipped': 'Đã gửi hàng',
+                'in_transit': 'Đang vận chuyển',
                 'delivered': 'Đã giao hàng',
-                'cancelled': 'Đã hủy'
+                'failed': 'Giao hàng thất bại'
             };
 
             showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success');
@@ -6639,10 +6654,10 @@ function toggleStatusFilter(event) {
     const statuses = [
         { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
         { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
-        { value: 'processing', label: 'Đang xử lý', color: 'blue' },
-        { value: 'shipped', label: 'Đã gửi hàng', color: 'green' },
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
         { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
-        { value: 'cancelled', label: 'Đã hủy', color: 'red' }
+        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
     ];
 
     const currentValue = document.getElementById('statusFilter').value;
