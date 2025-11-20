@@ -930,3 +930,128 @@ window.selectMotivation = function(button, text) {
         }
     }
 };
+
+
+// ============================================
+// BANK DROPDOWN FUNCTIONALITY
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const bankSelectButton = document.getElementById('bankSelectButton');
+    const bankSearchInput = document.getElementById('bankSearchInput');
+    const bankDropdown = document.getElementById('bankDropdown');
+    const bankNameValue = document.getElementById('bankNameValue');
+    const bankSelectedText = document.getElementById('bankSelectedText');
+    const bankDropdownIcon = document.getElementById('bankDropdownIcon');
+    const bankOptions = document.querySelectorAll('.bank-option');
+
+    if (!bankSelectButton) return; // Exit if elements don't exist
+
+    // Toggle dropdown when button is clicked
+    bankSelectButton.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const isHidden = bankDropdown.classList.contains('hidden');
+
+        if (isHidden) {
+            bankDropdown.classList.remove('hidden');
+            bankDropdownIcon.style.transform = 'rotate(180deg)';
+            // Focus on search input when dropdown opens
+            setTimeout(() => bankSearchInput.focus(), 100);
+            filterBankOptions('');
+        } else {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    // Search functionality
+    bankSearchInput.addEventListener('input', function () {
+        filterBankOptions(this.value.toLowerCase());
+    });
+
+    // Prevent dropdown from closing when clicking inside search input
+    bankSearchInput.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+    // Filter bank options based on search
+    function filterBankOptions(searchTerm) {
+        const optionsList = bankDropdown.querySelector('.max-h-60');
+        let noResultsDiv = document.getElementById('noResultsMessage');
+
+        let hasVisibleOptions = false;
+
+        bankOptions.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.style.display = 'block';
+                hasVisibleOptions = true;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        // Show/hide "No results" message
+        if (!hasVisibleOptions && searchTerm) {
+            if (!noResultsDiv) {
+                noResultsDiv = document.createElement('div');
+                noResultsDiv.id = 'noResultsMessage';
+                noResultsDiv.className = 'px-4 py-3 text-center text-gray-500 text-sm';
+                noResultsDiv.textContent = 'Không tìm thấy ngân hàng';
+                optionsList.appendChild(noResultsDiv);
+            }
+            noResultsDiv.style.display = 'block';
+        } else if (noResultsDiv) {
+            noResultsDiv.style.display = 'none';
+        }
+    }
+
+    // Handle option selection
+    bankOptions.forEach(option => {
+        option.addEventListener('click', function () {
+            const value = this.getAttribute('data-value');
+            const text = this.textContent.trim();
+
+            if (value) {
+                bankNameValue.value = value;
+                bankSelectedText.textContent = value;
+                bankSelectedText.classList.remove('text-gray-500');
+                bankSelectedText.classList.add('text-gray-900');
+            } else {
+                bankNameValue.value = '';
+                bankSelectedText.textContent = 'Chọn ngân hàng';
+                bankSelectedText.classList.add('text-gray-500');
+                bankSelectedText.classList.remove('text-gray-900');
+            }
+
+            bankSearchInput.value = '';
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        if (!bankSelectButton.contains(event.target) && !bankDropdown.contains(event.target)) {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+            bankSearchInput.value = '';
+        }
+    });
+
+    // Keyboard navigation
+    bankSearchInput.addEventListener('keydown', function (e) {
+        const visibleOptions = Array.from(bankOptions).filter(opt => opt.style.display !== 'none');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (visibleOptions.length > 0) {
+                visibleOptions[0].focus();
+            }
+        } else if (e.key === 'Escape') {
+            bankDropdown.classList.add('hidden');
+            bankDropdownIcon.style.transform = 'rotate(0deg)';
+            bankSearchInput.value = '';
+        }
+    });
+});
