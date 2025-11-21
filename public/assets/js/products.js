@@ -1098,9 +1098,6 @@ function showError(message) {
 }
 
 // showToast is now provided by toast-manager.js
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
 
 
 // Pagination functions
