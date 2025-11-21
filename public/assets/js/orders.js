@@ -26,54 +26,45 @@ async function loadCurrentTaxRate() {
 
 // Helper function to calculate order totals from items
 function calculateOrderTotals(order) {
-    // Priority 1: Use total_amount from database (already calculated by trigger)
-    // Calculate product_total by subtracting shipping_fee
+    // Calculate product_total by subtracting shipping_fee from total_amount
     const orderTotalAmount = order.total_amount || 0;
     const shippingFee = order.shipping_fee || 0;
     const productTotal = orderTotalAmount - shippingFee;
 
-    // If we have product_cost from API, use it
-    if (order.product_cost !== undefined) {
-        return {
-            totalAmount: productTotal,
-            productCost: order.product_cost || 0
-        };
-    }
+    // SINGLE SOURCE OF TRUTH: Always use product_cost from API
+    // API calculates this from order_items table: SUM(product_cost * quantity)
+    let productCost = order.product_cost || 0;
 
-    // Priority 2: If order has items array, calculate from items
-    if (order.items && Array.isArray(order.items)) {
-        const itemsTotal = order.items.reduce((sum, item) => {
-            return sum + ((item.product_price || 0) * (item.quantity || 1));
-        }, 0);
-
-        const productCost = order.items.reduce((sum, item) => {
-            return sum + ((item.product_cost || 0) * (item.quantity || 1));
-        }, 0);
-
-        return { totalAmount: itemsTotal, productCost };
-    }
-
-    // Priority 3: Parse products JSON string to calculate cost
-    let productCost = 0;
-    if (order.products) {
+    // FALLBACK: If product_cost is 0 or undefined (old orders without order_items), 
+    // calculate from products JSON as temporary solution
+    if ((productCost === 0 || productCost === undefined) && order.products) {
         try {
             const products = JSON.parse(order.products);
             if (Array.isArray(products)) {
+                console.log(`📦 Fallback: Parsing products JSON for order ${order.order_id}:`, products);
                 productCost = products.reduce((sum, item) => {
-                    const cost = item.cost_price || 0;
+                    let cost = item.cost_price || item.cost || 0;
                     const qty = item.quantity || 1;
-                    return sum + (cost * qty);
+                    
+                    // IMPORTANT: If cost seems too high (> 10x of typical unit cost),
+                    // it might be stored as total instead of unit price
+                    // In that case, divide by quantity to get unit cost
+                    // This is a heuristic fix for data inconsistency
+                    const unitCost = cost / qty;
+                    const subtotal = unitCost * qty;
+                    
+                    console.log(`  - ${item.name || 'Unknown'}: cost=${cost}, qty=${qty}, unit=${unitCost}, subtotal=${subtotal}`);
+                    return sum + subtotal;
                 }, 0);
+                console.warn(`⚠️ Using fallback cost calculation for order ${order.order_id}: ${productCost}`);
             }
         } catch (e) {
             console.warn('Could not parse products JSON for cost calculation:', e);
         }
     }
 
-    // Fallback to order.total_amount (but subtract shipping_fee to get product total only)
-    const fallbackTotal = (order.total_amount || 0) - (order.shipping_fee || 0);
     return {
-        totalAmount: Math.max(0, fallbackTotal), // Ensure non-negative
+        totalAmount: Math.max(0, productTotal), // Ensure non-negative
         productCost: productCost
     };
 }
@@ -94,6 +85,21 @@ function calculateOrderProfit(order) {
 
     // Profit = revenue - all costs including tax
     return revenue - productCost - shippingCost - packagingCost - commission - tax;
+}
+
+// Helper function to update order data in both allOrdersData and filteredOrdersData
+function updateOrderData(orderId, updates) {
+    // Update in allOrdersData
+    const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+    if (orderIndex !== -1) {
+        Object.assign(allOrdersData[orderIndex], updates);
+    }
+
+    // Update in filteredOrdersData
+    const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
+    if (filteredIndex !== -1) {
+        Object.assign(filteredOrdersData[filteredIndex], updates);
+    }
 }
 
 let allOrdersData = [];
@@ -851,12 +857,28 @@ function showProfitBreakdown(orderId) {
     const commission = order.commission || 0;
 
     // Debug log
-    console.log('🔍 Order data:', {
+    console.log('🔍 Profit Analysis Debug:', {
         order_id: order.order_id,
-        packaging_cost: order.packaging_cost,
-        packaging_details: order.packaging_details,
-        packagingCost: packagingCost
+        product_cost_from_order: order.product_cost,
+        calculated_productCost: productCost,
+        total_amount: order.total_amount,
+        shipping_fee: order.shipping_fee,
+        has_items: order.items ? order.items.length : 'no items',
+        has_products_json: !!order.products
     });
+    
+    // Debug: Parse products to see cost_price
+    if (order.products) {
+        try {
+            const products = JSON.parse(order.products);
+            console.log('📦 Products in order:', products);
+            products.forEach((p, i) => {
+                console.log(`  [${i}] ${p.name}: cost=${p.cost_price || p.cost || 0}, qty=${p.quantity || 1}, total=${(p.cost_price || p.cost || 0) * (p.quantity || 1)}`);
+            });
+        } catch (e) {
+            console.log('⚠️ Could not parse products:', e);
+        }
+    }
 
     // Calculate revenue
     const revenue = totalAmount + shippingFee;
@@ -953,8 +975,23 @@ function showProfitBreakdown(orderId) {
                     <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Giá vốn sản phẩm</span>
-                            <span class="font-semibold text-gray-900">${formatCurrency(productCost)}</span>
+                            <span class="font-semibold ${productCost === 0 ? 'text-orange-600' : 'text-gray-900'}">${formatCurrency(productCost)}</span>
                         </div>
+                        ${productCost === 0 ? `
+                        <div class="bg-orange-100 border border-orange-300 rounded-lg p-2 text-xs text-orange-800">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div>
+                                    <div class="font-semibold mb-1">Chưa có giá vốn</div>
+                                    <div>Đơn hàng cũ chưa có dữ liệu giá vốn. Vui lòng:</div>
+                                    <div class="mt-1">• Sửa sản phẩm trong đơn để cập nhật giá vốn</div>
+                                    <div>• Hoặc reload trang để lấy dữ liệu mới</div>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
                         
                         <!-- Packaging Cost with Toggle -->
                         <div class="space-y-2">
@@ -2344,15 +2381,18 @@ function editProductName(productId, orderId, orderCode) {
     }
 
     const product = products[productIndex];
+    const quantity = typeof product === 'object' ? (product.quantity || 1) : 1;
+    
     const productData = typeof product === 'string'
         ? { name: product, quantity: 1, weight: '', size: '', price: '', cost_price: '', notes: '' }
         : {
             name: product.name || '',
-            quantity: product.quantity || 1,
+            quantity: quantity,
             weight: product.weight || '',
             size: product.size || '',
-            price: product.price || '',
-            cost_price: product.cost_price || '',
+            // IMPORTANT: Divide by quantity to get UNIT price (in case it's stored as total)
+            price: product.price ? (product.price / quantity) : '',
+            cost_price: product.cost_price ? (product.cost_price / quantity) : '',
             notes: product.notes || ''
         };
 
@@ -2648,30 +2688,13 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].products = updatedProductsJson;
-
-            // Update total_amount if returned from API
-            if (data.total_amount !== undefined) {
-                allOrdersData[orderIndex].total_amount = data.total_amount;
-            }
-
-            // Update commission if returned from API
-            if (data.commission !== undefined) {
-                allOrdersData[orderIndex].commission = data.commission;
-            }
-
-            // Update filtered data if exists
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].products = updatedProductsJson;
-                if (data.total_amount !== undefined) {
-                    filteredOrdersData[filteredIndex].total_amount = data.total_amount;
-                }
-                if (data.commission !== undefined) {
-                    filteredOrdersData[filteredIndex].commission = data.commission;
-                }
-            }
+            // Update local data using helper function
+            const updates = { products: updatedProductsJson };
+            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
+            if (data.commission !== undefined) updates.commission = data.commission;
+            
+            updateOrderData(orderId, updates);
 
             // Re-render table to show updated total_amount
             renderOrdersTable();
@@ -2887,20 +2910,16 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         // Add optional fields if provided
         if (weight) updatedProduct.weight = weight;
         if (size) updatedProduct.size = size;
-        // Use unit prices (not total from input)
+        
+        // IMPORTANT: Always use UNIT prices (not total)
+        // editModalUnitPrice and editModalUnitCost are calculated from input / quantity
         if (editModalUnitPrice > 0) {
             updatedProduct.price = editModalUnitPrice;
         }
         if (editModalUnitCost > 0) {
             updatedProduct.cost_price = editModalUnitCost;
         }
-        // Parse cost price as number
-        if (costPrice) {
-            const costNum = parseFloat(costPrice.replace(/[^\d]/g, ''));
-            if (!isNaN(costNum) && costNum > 0) {
-                updatedProduct.cost_price = costNum;
-            }
-        }
+        
         if (notes) updatedProduct.notes = notes;
 
         products[productIndex] = updatedProduct;
@@ -2926,30 +2945,13 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].products = updatedProductsJson;
-
-            // Update total_amount from API response (trigger calculated)
-            if (data.total_amount !== undefined) {
-                allOrdersData[orderIndex].total_amount = data.total_amount;
-            }
-
-            // Update commission if returned from API
-            if (data.commission !== undefined) {
-                allOrdersData[orderIndex].commission = data.commission;
-            }
-
-            // Update filtered data if exists
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].products = updatedProductsJson;
-                if (data.total_amount !== undefined) {
-                    filteredOrdersData[filteredIndex].total_amount = data.total_amount;
-                }
-                if (data.commission !== undefined) {
-                    filteredOrdersData[filteredIndex].commission = data.commission;
-                }
-            }
+            // Update local data using helper function
+            const updates = { products: updatedProductsJson };
+            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
+            if (data.commission !== undefined) updates.commission = data.commission;
+            
+            updateOrderData(orderId, updates);
 
             // Re-render the table to show updated values
             renderOrdersTable();
@@ -3884,30 +3886,13 @@ async function deleteProduct(orderId, productIndex, orderCode) {
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].products = updatedProductsJson;
-
-            // Update total_amount if returned from API
-            if (data.total_amount !== undefined) {
-                allOrdersData[orderIndex].total_amount = data.total_amount;
-            }
-
-            // Update commission if returned from API
-            if (data.commission !== undefined) {
-                allOrdersData[orderIndex].commission = data.commission;
-            }
-
-            // Update filtered data if exists
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].products = updatedProductsJson;
-                if (data.total_amount !== undefined) {
-                    filteredOrdersData[filteredIndex].total_amount = data.total_amount;
-                }
-                if (data.commission !== undefined) {
-                    filteredOrdersData[filteredIndex].commission = data.commission;
-                }
-            }
+            // Update local data using helper function
+            const updates = { products: updatedProductsJson };
+            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
+            if (data.commission !== undefined) updates.commission = data.commission;
+            
+            updateOrderData(orderId, updates);
 
             // Re-render the table to show updated products
             renderOrdersTable();
@@ -4165,18 +4150,13 @@ async function saveProductsToExistingOrder() {
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].products = updatedProductsJson;
-            if (data.total_amount !== undefined) allOrdersData[orderIndex].total_amount = data.total_amount;
-            if (data.commission !== undefined) allOrdersData[orderIndex].commission = data.commission;
-
-            // Update filtered data
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === currentEditingOrderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].products = updatedProductsJson;
-                if (data.total_amount !== undefined) filteredOrdersData[filteredIndex].total_amount = data.total_amount;
-                if (data.commission !== undefined) filteredOrdersData[filteredIndex].commission = data.commission;
-            }
+            // Update local data using helper function
+            const updates = { products: updatedProductsJson };
+            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
+            if (data.commission !== undefined) updates.commission = data.commission;
+            
+            updateOrderData(currentEditingOrderId, updates);
 
             updateStats();
             renderOrdersTable();

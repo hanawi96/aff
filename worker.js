@@ -1207,11 +1207,18 @@ async function getOrdersByPhone(phone, env, corsHeaders) {
 // Lấy đơn hàng mới nhất
 async function getRecentOrders(limit, env, corsHeaders) {
     try {
-        // Get orders - total_amount already calculated in database
+        // Get orders with product_cost calculated from order_items using subquery
+        // This avoids GROUP BY issues with multiple JOINs
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 orders.*,
-                ctv.commission_rate as ctv_commission_rate
+                ctv.commission_rate as ctv_commission_rate,
+                COALESCE(
+                    (SELECT SUM(product_cost * quantity) 
+                     FROM order_items 
+                     WHERE order_items.order_id = orders.id), 
+                    0
+                ) as product_cost
             FROM orders
             LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
             ORDER BY orders.created_at DESC
@@ -1675,6 +1682,15 @@ async function updateOrderProducts(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.orderId).first();
 
+        // Calculate product_cost from order_items
+        const productCostResult = await env.DB.prepare(`
+            SELECT COALESCE(SUM(product_cost * quantity), 0) as product_cost
+            FROM order_items
+            WHERE order_id = ?
+        `).bind(data.orderId).first();
+
+        const calculatedProductCost = productCostResult?.product_cost || 0;
+
         let calculatedCommission = null;
 
         // Calculate commission if order has referral_code
@@ -1713,6 +1729,7 @@ async function updateOrderProducts(data, env, corsHeaders) {
             success: true,
             message: 'Đã cập nhật sản phẩm',
             total_amount: updatedOrder.total_amount,
+            product_cost: calculatedProductCost,
             commission: calculatedCommission
         }, 200, corsHeaders);
 
@@ -3541,7 +3558,7 @@ async function getProfitReport(data, env, corsHeaders) {
                 startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
         }
 
-        // Get orders in period with calculated totals from order_items
+        // Get orders in period with calculated totals from order_items using subqueries
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 orders.id,
@@ -3556,12 +3573,20 @@ async function getProfitReport(data, env, corsHeaders) {
                 orders.shipping_cost,
                 orders.packaging_cost,
                 orders.tax_amount,
-                COALESCE(SUM(order_items.product_price * order_items.quantity), 0) as product_total,
-                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) as product_cost
+                COALESCE(
+                    (SELECT SUM(product_price * quantity) 
+                     FROM order_items 
+                     WHERE order_items.order_id = orders.id), 
+                    0
+                ) as product_total,
+                COALESCE(
+                    (SELECT SUM(product_cost * quantity) 
+                     FROM order_items 
+                     WHERE order_items.order_id = orders.id), 
+                    0
+                ) as product_cost
             FROM orders
-            LEFT JOIN order_items ON orders.id = order_items.order_id
             WHERE orders.created_at_unix >= ?
-            GROUP BY orders.id
             ORDER BY orders.created_at DESC
         `).bind(startDate.getTime()).all();
 
