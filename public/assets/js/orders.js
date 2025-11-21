@@ -224,7 +224,8 @@ async function bulkDelete() {
     if (!confirmed) return;
 
     try {
-        showToast(`Đang xóa ${count} đơn hàng...`, 'info');
+        // Sử dụng ID để toast "đang xóa" sẽ được thay thế bởi toast "hoàn thành"
+        showToast(`Đang xóa ${count} đơn hàng...`, 'info', 0, 'bulk-delete');
 
         let successCount = 0;
         let failCount = 0;
@@ -256,14 +257,15 @@ async function bulkDelete() {
         clearSelection();
         await loadOrdersData();
 
+        // Toast hoàn thành sẽ thay thế toast "đang xóa" nhờ cùng ID
         if (failCount === 0) {
-            showToast(`Đã xóa thành công ${successCount} đơn hàng`, 'success');
+            showToast(`Đã xóa thành công ${successCount} đơn hàng`, 'success', null, 'bulk-delete');
         } else {
-            showToast(`Đã xóa ${successCount} đơn, thất bại ${failCount} đơn`, 'warning');
+            showToast(`Đã xóa ${successCount} đơn, thất bại ${failCount} đơn`, 'warning', null, 'bulk-delete');
         }
     } catch (error) {
         console.error('Error bulk deleting:', error);
-        showToast('Không thể xóa đơn hàng: ' + error.message, 'error');
+        showToast('Không thể xóa đơn hàng: ' + error.message, 'error', null, 'bulk-delete');
     }
 }
 
@@ -862,6 +864,9 @@ function showProfitBreakdown(orderId) {
     // Use saved tax_amount if available, otherwise calculate
     const tax = order.tax_amount || Math.round(revenue * (order.tax_rate || COST_CONSTANTS.TAX_RATE));
     const taxRate = order.tax_rate || COST_CONSTANTS.TAX_RATE;
+    
+    // Get commission rate from order (saved at creation time)
+    const commissionRate = order.commission_rate || 0;
 
     // Calculate profit
     const totalCost = productCost + shippingCost + packagingCost + commission + tax;
@@ -917,6 +922,17 @@ function showProfitBreakdown(orderId) {
                             <span class="text-sm text-gray-600">Phí ship (khách trả)</span>
                             <span class="font-semibold text-gray-900">${formatCurrency(shippingFee)}</span>
                         </div>
+                        ${order.discount_amount && order.discount_amount > 0 ? `
+                        <div class="flex justify-between items-center bg-purple-50 -mx-2 px-2 py-1.5 rounded">
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <span class="text-sm text-purple-700 font-medium">Mã giảm giá (${escapeHtml(order.discount_code || '')})</span>
+                            </div>
+                            <span class="font-semibold text-purple-700">-${formatCurrency(order.discount_amount)}</span>
+                        </div>
+                        ` : ''}
                         <div class="flex justify-between items-center pt-2 border-t border-green-200">
                             <span class="font-bold text-gray-900">Tổng doanh thu</span>
                             <span class="text-lg font-bold text-green-600">${formatCurrency(revenue)}</span>
@@ -1004,7 +1020,7 @@ function showProfitBreakdown(orderId) {
                         </div>
                         ${commission > 0 ? `
                         <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-600">Hoa hồng CTV</span>
+                            <span class="text-sm text-gray-600">Hoa hồng CTV (${(commissionRate * 100).toFixed(1)}%)</span>
                             <span class="font-semibold text-gray-900">${formatCurrency(commission)}</span>
                         </div>
                         ` : ''}
@@ -1747,7 +1763,7 @@ ${order.address || 'N/A'}`;
     try {
         // Copy to clipboard
         await navigator.clipboard.writeText(spxFormat);
-        showToast('✅ Đã copy format SPX!', 'success');
+        showToast('Đã copy format SPX', 'success');
         
         // Auto-update status to "shipped" (Đã gửi hàng)
         // Only update if current status is not already shipped, in_transit, delivered, or failed
@@ -1757,7 +1773,7 @@ ${order.address || 'N/A'}`;
         }
     } catch (err) {
         console.error('Failed to copy:', err);
-        showToast('❌ Lỗi khi copy', 'error');
+        showToast('Lỗi khi copy', 'error');
     }
 }
 
@@ -2077,55 +2093,7 @@ function showError(message) {
     showEmptyState();
 }
 
-function showToast(message, type = 'success', showLoading = false) {
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-[9999] fade-in flex items-center gap-3 ${type === 'success' ? 'bg-green-500' :
-        type === 'error' ? 'bg-red-500' :
-            type === 'warning' ? 'bg-yellow-500' :
-                'bg-blue-500'
-        }`;
-
-    // Add icon based on type
-    let icon = '';
-    if (showLoading) {
-        icon = `
-            <svg class="animate-spin h-5 w-5 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-        `;
-    } else if (type === 'success') {
-        icon = `
-            <svg class="h-5 w-5 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-        `;
-    }
-
-    if (icon) {
-        // Remove ✅ emoji from message if present
-        const cleanMessage = message.replace(/^✅\s*/, '');
-        toast.innerHTML = `${icon}<span>${cleanMessage}</span>`;
-    } else {
-        toast.textContent = message;
-    }
-
-    document.body.appendChild(toast);
-
-    // Auto remove after 3 seconds (unless it's a loading toast)
-    if (!showLoading) {
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    document.body.removeChild(toast);
-                }
-            }, 300);
-        }, 3000);
-    }
-
-    return toast; // Return toast element so it can be removed manually
-}
+// showToast is now provided by toast-manager.js
 
 // Show collaborator modal
 async function showCollaboratorModal(referralCode) {
@@ -2881,9 +2849,10 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         return;
     }
 
-    // Close modal and show loading toast
+    // Close modal and show loading toast với ID
     closeEditProductModal();
-    showToast('Đang lưu thay đổi...', 'info');
+    const saveId = `save-product-${orderId}-${productIndex}`;
+    showToast('Đang lưu thay đổi...', 'info', 0, saveId);
 
     try {
         // Find the order in allOrdersData
@@ -2993,14 +2962,14 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
                     message += ` - Hoa hồng: ${formatCurrency(data.commission)}`;
                 }
             }
-            showToast(message, 'success');
+            showToast(message, 'success', null, saveId);
         } else {
             throw new Error(data.error || 'Không thể cập nhật');
         }
 
     } catch (error) {
         console.error('Error saving product:', error);
-        showToast('Không thể cập nhật sản phẩm: ' + error.message, 'error');
+        showToast('Không thể cập nhật sản phẩm: ' + error.message, 'error', null, saveId);
     }
 }
 
@@ -3156,9 +3125,10 @@ async function saveCustomerInfo(orderId, orderCode) {
         return;
     }
 
-    // Close modal and show loading toast
+    // Close modal and show loading toast với ID
     closeEditCustomerModal();
-    showToast('Đang lưu thay đổi...', 'info');
+    const saveId = `save-customer-${orderId}`;
+    showToast('Đang lưu thay đổi...', 'info', 0, saveId);
 
     try {
         // Find the order in allOrdersData
@@ -3198,14 +3168,14 @@ async function saveCustomerInfo(orderId, orderCode) {
             // Re-render the table to show updated info
             renderOrdersTable();
 
-            showToast(`Đã cập nhật thông tin khách hàng cho đơn ${orderCode}`, 'success');
+            showToast(`Đã cập nhật thông tin khách hàng cho đơn ${orderCode}`, 'success', null, saveId);
         } else {
             throw new Error(data.error || 'Không thể cập nhật');
         }
 
     } catch (error) {
         console.error('Error saving customer info:', error);
-        showToast('Không thể cập nhật thông tin khách hàng: ' + error.message, 'error');
+        showToast('Không thể cập nhật thông tin khách hàng: ' + error.message, 'error', null, saveId);
     }
 }
 
@@ -3336,9 +3306,10 @@ async function saveAddress(orderId, orderCode) {
         return;
     }
 
-    // Close modal and show loading toast
+    // Close modal and show loading toast với ID
     closeEditAddressModal();
-    showToast('Đang lưu thay đổi...', 'info');
+    const saveId = `save-address-${orderId}`;
+    showToast('Đang lưu thay đổi...', 'info', 0, saveId);
 
     try {
         // Find the order in allOrdersData
@@ -3375,14 +3346,14 @@ async function saveAddress(orderId, orderCode) {
             // Re-render the table to show updated info
             renderOrdersTable();
 
-            showToast(`Đã cập nhật địa chỉ cho đơn ${orderCode}`, 'success');
+            showToast(`Đã cập nhật địa chỉ cho đơn ${orderCode}`, 'success', null, saveId);
         } else {
             throw new Error(data.error || 'Không thể cập nhật');
         }
 
     } catch (error) {
         console.error('Error saving address:', error);
-        showToast('Không thể cập nhật địa chỉ: ' + error.message, 'error');
+        showToast('Không thể cập nhật địa chỉ: ' + error.message, 'error', null, saveId);
     }
 }
 
@@ -3578,9 +3549,10 @@ async function saveAmount(orderId, orderCode, referralCode) {
         newCommission = newAmount * 0.1; // 10% commission
     }
 
-    // Close modal and show loading toast
+    // Close modal and show loading toast với ID
     closeEditAmountModal();
-    showToast('Đang lưu thay đổi...', 'info');
+    const saveId = `save-amount-${orderId}`;
+    showToast('Đang lưu thay đổi...', 'info', 0, saveId);
 
     try {
         // Find the order in allOrdersData
@@ -3623,14 +3595,14 @@ async function saveAmount(orderId, orderCode, referralCode) {
             // Re-render the table to show updated info
             renderOrdersTable();
 
-            showToast(`Đã cập nhật giá trị cho đơn ${orderCode}`, 'success');
+            showToast(`Đã cập nhật giá trị cho đơn ${orderCode}`, 'success', null, saveId);
         } else {
             throw new Error(data.error || 'Không thể cập nhật');
         }
 
     } catch (error) {
         console.error('Error saving amount:', error);
-        showToast('Không thể cập nhật giá trị đơn hàng: ' + error.message, 'error');
+        showToast('Không thể cập nhật giá trị đơn hàng: ' + error.message, 'error', null, saveId);
     }
 }
 
@@ -3727,8 +3699,9 @@ async function deleteOrder(orderId, orderCode) {
     // Close modal
     closeConfirmDeleteModal();
 
-    // Show loading toast
-    showToast('Đang xóa đơn hàng...', 'info');
+    // Show loading toast với ID
+    const deleteId = `delete-order-${orderId}`;
+    showToast('Đang xóa đơn hàng...', 'info', 0, deleteId);
 
     try {
         // Delete via API
@@ -3764,14 +3737,14 @@ async function deleteOrder(orderId, orderCode) {
             // Re-render the table
             renderOrdersTable();
 
-            showToast(`Đã xóa đơn hàng ${orderCode}`, 'success');
+            showToast(`Đã xóa đơn hàng ${orderCode}`, 'success', null, deleteId);
         } else {
             throw new Error(data.error || 'Không thể xóa đơn hàng');
         }
 
     } catch (error) {
         console.error('Error deleting order:', error);
-        showToast('Không thể xóa đơn hàng: ' + error.message, 'error');
+        showToast('Không thể xóa đơn hàng: ' + error.message, 'error', null, deleteId);
     }
 }
 
@@ -3855,8 +3828,9 @@ async function deleteProduct(orderId, productIndex, orderCode) {
     // Close modal
     closeConfirmDeleteProductModal();
 
-    // Show loading toast
-    showToast('Đang xóa sản phẩm...', 'info');
+    // Show loading toast với ID
+    const deleteId = `delete-product-${orderId}-${productIndex}`;
+    showToast('Đang xóa sản phẩm...', 'info', 0, deleteId);
 
     try {
         // Find the order in allOrdersData
@@ -3938,14 +3912,14 @@ async function deleteProduct(orderId, productIndex, orderCode) {
             // Re-render the table to show updated products
             renderOrdersTable();
 
-            showToast(`Đã xóa sản phẩm khỏi đơn ${orderCode}`, 'success');
+            showToast(`Đã xóa sản phẩm khỏi đơn ${orderCode}`, 'success', null, deleteId);
         } else {
             throw new Error(data.error || 'Không thể xóa sản phẩm');
         }
 
     } catch (error) {
         console.error('Error deleting product:', error);
-        showToast('Không thể xóa sản phẩm: ' + error.message, 'error');
+        showToast('Không thể xóa sản phẩm: ' + error.message, 'error', null, deleteId);
     }
 }
 
@@ -4054,13 +4028,13 @@ async function saveOrderNotes(orderId, orderCode) {
 
             // Re-render table and show success message
             renderOrdersTable();
-            showToast('✅ Đã lưu ghi chú', 'success');
+            showToast('Đã lưu ghi chú', 'success');
         } else {
             throw new Error(data.error || 'Không thể lưu ghi chú');
         }
     } catch (error) {
         console.error('Error saving notes:', error);
-        showToast('❌ Không thể lưu ghi chú: ' + error.message, 'error');
+        showToast('Không thể lưu ghi chú: ' + error.message, 'error');
     }
 }
 
@@ -4088,7 +4062,8 @@ async function saveProductsToExistingOrder() {
         return;
     }
 
-    showToast('Đang thêm sản phẩm...', 'info');
+    const addId = `add-products-${currentEditingOrderId}`;
+    showToast('Đang thêm sản phẩm...', 'info', 0, addId);
 
     try {
         const orderIndex = allOrdersData.findIndex(o => o.id === currentEditingOrderId);
@@ -4206,7 +4181,7 @@ async function saveProductsToExistingOrder() {
             updateStats();
             renderOrdersTable();
             closeProductSelectionModal();
-            showToast(`Đã thêm sản phẩm vào đơn ${currentEditingOrderCode}`, 'success');
+            showToast(`Đã thêm sản phẩm vào đơn ${currentEditingOrderCode}`, 'success', null, addId);
 
             // Reset
             currentEditingOrderId = null;
@@ -4216,7 +4191,7 @@ async function saveProductsToExistingOrder() {
         }
     } catch (error) {
         console.error('Error adding products:', error);
-        showToast('Không thể thêm sản phẩm: ' + error.message, 'error');
+        showToast('Không thể thêm sản phẩm: ' + error.message, 'error', null, addId);
     }
 }
 
@@ -4345,8 +4320,9 @@ async function updateOrderStatus(orderId, newStatus, orderCode) {
     const menu = document.getElementById('statusMenu');
     if (menu) menu.remove();
 
-    // Show loading toast
-    showToast('Đang cập nhật trạng thái...', 'info');
+    // Show loading toast với ID
+    const updateId = `update-status-${orderId}`;
+    showToast('Đang cập nhật trạng thái...', 'info', 0, updateId);
 
     try {
         // Update via API
@@ -4389,14 +4365,14 @@ async function updateOrderStatus(orderId, newStatus, orderCode) {
                 'failed': 'Giao hàng thất bại'
             };
 
-            showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success');
+            showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success', null, updateId);
         } else {
             throw new Error(data.error || 'Không thể cập nhật trạng thái');
         }
 
     } catch (error) {
         console.error('Error updating status:', error);
-        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error');
+        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error', null, updateId);
     }
 }
 
@@ -4482,9 +4458,9 @@ async function showAddOrderModal(duplicateData = null) {
     }, 0);
     const totalRevenue = productTotal + shippingFee;
     const initialSummary = {
-        productTotal: formatCurrency(productTotal),
-        shippingFee: formatCurrency(shippingFee),
-        totalRevenue: formatCurrency(totalRevenue),
+        productTotal: productTotal,
+        shippingFee: shippingFee,
+        totalRevenue: totalRevenue,
         productCount: currentOrderProducts.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0)
     };
 
@@ -4580,19 +4556,33 @@ async function showAddOrderModal(duplicateData = null) {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Thanh toán</label>
-                                <select id="newOrderPaymentMethod" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <option value="cod" ${paymentMethod === 'cod' ? 'selected' : ''}>COD</option>
-                                    <option value="bank" ${paymentMethod === 'bank' ? 'selected' : ''}>Chuyển khoản</option>
-                                    <option value="momo" ${paymentMethod === 'momo' ? 'selected' : ''}>MoMo</option>
-                                </select>
+                                <div class="relative">
+                                    <button type="button" onclick="togglePaymentDropdown(event)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none bg-white text-left flex items-center justify-between hover:border-blue-400 transition-colors">
+                                        <span id="selectedPaymentText" class="flex items-center gap-2">
+                                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                            <span>${paymentMethod === 'bank' ? 'Chuyển khoản' : paymentMethod === 'momo' ? 'MoMo' : 'COD'}</span>
+                                        </span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                    <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-                                <select id="newOrderStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <option value="Mới">Mới</option>
-                                    <option value="Đang xử lý">Đang xử lý</option>
-                                    <option value="Đã gửi hàng">Đã gửi hàng</option>
-                                </select>
+                                <div class="relative">
+                                    <button type="button" onclick="toggleStatusDropdown(event)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none bg-white text-left flex items-center justify-between hover:border-blue-400 transition-colors">
+                                        <span id="selectedStatusText" class="flex items-center gap-2">
+                                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                            <span>Chờ xử lý</span>
+                                        </span>
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                    <input type="hidden" id="newOrderStatus" value="pending" />
+                                </div>
                             </div>
                         </div>
 
@@ -4629,6 +4619,89 @@ async function showAddOrderModal(duplicateData = null) {
                                     <p class="text-xs text-gray-500 mt-1">Chi phí trả đơn vị vận chuyển</p>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Discount Code Section - Compact -->
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2.5 border border-purple-200">
+                            <div class="flex items-center gap-1.5 mb-2">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <h4 class="text-sm font-semibold text-gray-800">Mã giảm giá</h4>
+                                <span class="text-xs text-gray-500">(tùy chọn)</span>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    id="newOrderDiscountCode" 
+                                    placeholder="Nhập mã (VD: GG5K)" 
+                                    class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase font-medium"
+                                    oninput="this.value = this.value.toUpperCase()"
+                                />
+                                <button 
+                                    type="button"
+                                    onclick="applyDiscountCode()"
+                                    class="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Áp dụng
+                                </button>
+                            </div>
+
+                            <!-- Discount Status Display -->
+                            <div id="discountStatus" class="mt-2 hidden">
+                                <!-- Success State - Compact Design -->
+                                <div id="discountSuccess" class="hidden bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2.5 border border-green-200">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                                            <div class="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-bold text-gray-900 truncate" id="discountTitle"></p>
+                                                <p class="text-xs text-gray-600 truncate" id="discountDescription"></p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <span class="text-base font-bold text-green-600 whitespace-nowrap" id="discountAmountDisplay">0đ</span>
+                                            <button onclick="removeDiscountCode()" class="w-5 h-5 rounded-full hover:bg-red-100 flex items-center justify-center text-gray-400 hover:text-red-600 transition-colors" title="Xóa mã">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Error State - Compact -->
+                                <div id="discountError" class="hidden bg-red-50 rounded-lg p-2.5 border border-red-200">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p class="text-xs text-red-700 flex-1" id="discountErrorMessage"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Loading State - Compact -->
+                                <div id="discountLoading" class="hidden bg-white rounded-lg p-2.5 border border-gray-200">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                                        <p class="text-xs text-gray-600">Đang kiểm tra...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hidden fields to store discount data -->
+                            <input type="hidden" id="appliedDiscountId" value="" />
+                            <input type="hidden" id="appliedDiscountCode" value="" />
+                            <input type="hidden" id="appliedDiscountAmount" value="0" />
+                            <input type="hidden" id="appliedDiscountType" value="" />
                         </div>
 
                         <div>
@@ -4720,11 +4793,31 @@ async function showAddOrderModal(duplicateData = null) {
                                 <span class="text-base font-bold text-gray-800">Tổng quan đơn hàng</span>
                             </div>
 
-                            <!-- Main Summary - Tổng tiền -->
+                            <!-- Main Summary - Tổng tiền với breakdown -->
                             <div class="bg-white rounded-lg p-4 mb-4 border border-gray-100 shadow-sm">
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center mb-2">
                                     <span class="text-sm font-medium text-gray-600">Tổng tiền</span>
-                                    <span id="orderTotalAmount" class="text-2xl font-bold text-gray-900">${initialSummary.totalRevenue}</span>
+                                    <span id="orderTotalAmount" class="text-2xl font-bold text-gray-900">${formatCurrency(initialSummary.totalRevenue)}</span>
+                                </div>
+                                <div class="space-y-1 pt-2 border-t border-gray-100">
+                                    <div class="flex justify-between items-center text-xs text-gray-500">
+                                        <span>Sản phẩm + Phí ship</span>
+                                        <span>
+                                            <span id="orderProductTotal">${formatCurrency(initialSummary.productTotal)}</span>
+                                            <span class="mx-1">+</span>
+                                            <span id="orderShippingFee">${formatCurrency(initialSummary.shippingFee)}</span>
+                                        </span>
+                                    </div>
+                                    <!-- Discount row - hidden by default -->
+                                    <div id="orderDiscountRow" class="hidden flex justify-between items-center text-xs">
+                                        <div class="flex items-center gap-1">
+                                            <svg class="w-3 h-3 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                            </svg>
+                                            <span class="text-purple-600 font-medium">Mã giảm giá</span>
+                                        </div>
+                                        <span id="orderDiscountAmount" class="text-purple-600 font-semibold">-0đ</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -4737,10 +4830,41 @@ async function showAddOrderModal(duplicateData = null) {
                                 </div>
 
                                 <div class="space-y-2">
+                                    <!-- Doanh thu với breakdown -->
                                     <div class="flex justify-between items-center text-sm py-1">
-                                        <span class="text-gray-700 font-medium">Doanh thu</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-gray-700 font-medium">Doanh thu</span>
+                                            <button onclick="event.stopPropagation(); document.getElementById('profitRevenueDetails').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180');" 
+                                                class="text-gray-400 hover:text-blue-600 transition-all duration-200 p-0.5 rounded hover:bg-blue-50" 
+                                                title="Xem chi tiết">
+                                                <svg class="w-3.5 h-3.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                         <span id="profitRevenue" class="font-semibold text-gray-900">${initialSummary.totalRevenue}</span>
                                     </div>
+                                    <div class="pl-6 space-y-1.5 hidden" id="profitRevenueDetails">
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span class="text-gray-400">• Sản phẩm</span>
+                                            <span id="profitProductTotal" class="text-gray-500">0đ</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span class="text-gray-400">• Phí ship khách trả</span>
+                                            <span id="profitShippingFee" class="text-gray-500">0đ</span>
+                                        </div>
+                                        <div id="profitDiscountRowInRevenue" class="hidden flex justify-between items-center text-xs py-0.5">
+                                            <div class="flex items-center gap-1">
+                                                <svg class="w-3 h-3 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                </svg>
+                                                <span class="text-purple-600">• Mã giảm giá</span>
+                                            </div>
+                                            <span id="profitDiscountInRevenue" class="text-purple-600 font-medium">-0đ</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- CHI PHÍ Section -->
                                     <div class="flex justify-between items-center text-sm py-1">
                                         <span class="text-gray-500">- Giá vốn</span>
                                         <span id="profitCost" class="text-gray-600">0đ</span>
@@ -4773,7 +4897,7 @@ async function showAddOrderModal(duplicateData = null) {
                                         <span id="profitShipping" class="text-gray-600">0đ</span>
                                     </div>
                                     <div class="flex justify-between items-center text-sm py-1">
-                                        <span class="text-gray-500">- Hoa hồng</span>
+                                        <span id="profitCommissionLabel" class="text-gray-500">- Hoa hồng</span>
                                         <span id="profitCommission" class="text-gray-600">0đ</span>
                                     </div>
                                     <div class="flex justify-between items-center text-sm py-1">
@@ -5097,6 +5221,149 @@ function closeAddOrderModal() {
         currentOrderProducts = [];
         currentOrderNotes = '';
     }
+}
+
+// Toggle payment dropdown in add order modal
+function togglePaymentDropdown(event) {
+    event.stopPropagation();
+    
+    // Close status dropdown if open
+    const statusMenu = document.getElementById('statusDropdownMenu');
+    if (statusMenu) statusMenu.remove();
+    
+    // Close if already open
+    const existingMenu = document.getElementById('paymentDropdownMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+    
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    
+    const paymentOptions = [
+        { value: 'cod', label: 'COD', color: 'orange' },
+        { value: 'bank', label: 'Chuyển khoản', color: 'blue' },
+        { value: 'momo', label: 'MoMo', color: 'pink' }
+    ];
+    
+    const menu = document.createElement('div');
+    menu.id = 'paymentDropdownMenu';
+    menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]';
+    menu.style.zIndex = '9999';
+    menu.style.left = rect.left + 'px';
+    menu.style.top = (rect.bottom + 4) + 'px';
+    
+    const currentValue = document.getElementById('newOrderPaymentMethod').value;
+    
+    menu.innerHTML = paymentOptions.map(option => `
+        <button 
+            onclick="selectPaymentMethod('${option.value}', '${option.label}', '${option.color}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${option.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <div class="w-3 h-3 rounded-full bg-${option.color}-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${option.label}</span>
+        </button>
+    `).join('');
+    
+    document.body.appendChild(menu);
+    
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target) && !button.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+// Select payment method
+function selectPaymentMethod(value, label, color) {
+    document.getElementById('newOrderPaymentMethod').value = value;
+    document.getElementById('selectedPaymentText').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-${color}-500"></span>
+        <span>${label}</span>
+    `;
+    const menu = document.getElementById('paymentDropdownMenu');
+    if (menu) menu.remove();
+}
+
+// Toggle status dropdown in add order modal
+function toggleStatusDropdown(event) {
+    event.stopPropagation();
+    
+    // Close payment dropdown if open
+    const paymentMenu = document.getElementById('paymentDropdownMenu');
+    if (paymentMenu) paymentMenu.remove();
+    
+    // Close if already open
+    const existingMenu = document.getElementById('statusDropdownMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+    
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    
+    const statusOptions = [
+        { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
+        { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
+        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
+    ];
+    
+    const menu = document.createElement('div');
+    menu.id = 'statusDropdownMenu';
+    menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]';
+    menu.style.zIndex = '9999';
+    menu.style.left = rect.left + 'px';
+    
+    // Check if there's enough space below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const menuHeight = 300;
+    
+    if (spaceBelow < menuHeight && rect.top > menuHeight) {
+        menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    } else {
+        menu.style.top = (rect.bottom + 4) + 'px';
+    }
+    
+    const currentValue = document.getElementById('newOrderStatus').value;
+    
+    menu.innerHTML = statusOptions.map(option => `
+        <button 
+            onclick="selectOrderStatus('${option.value}', '${option.label}', '${option.color}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${option.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <div class="w-3 h-3 rounded-full bg-${option.color}-500 flex-shrink-0"></div>
+            <span class="text-base text-gray-700 flex-1">${option.label}</span>
+        </button>
+    `).join('');
+    
+    document.body.appendChild(menu);
+    
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target) && !button.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+// Select order status
+function selectOrderStatus(value, label, color) {
+    document.getElementById('newOrderStatus').value = value;
+    document.getElementById('selectedStatusText').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-${color}-500"></span>
+        <span>${label}</span>
+    `;
+    const menu = document.getElementById('statusDropdownMenu');
+    if (menu) menu.remove();
 }
 
 // Show product selection modal (separate modal)
@@ -5776,13 +6043,17 @@ function updateOrderSummary() {
     const referralCode = document.getElementById('newOrderReferralCode')?.value.trim();
     let commission = 0;
     if (referralCode && hasProducts) {
-        // Try to get CTV's commission_rate from the form or use default 10%
-        const commissionRate = parseFloat(document.getElementById('newOrderCommissionRate')?.value || 0.1);
+        // Get commission_rate from hidden input (set by CTV verification)
+        const commissionRateInput = document.getElementById('ctvCommissionRate');
+        const commissionRate = commissionRateInput ? parseFloat(commissionRateInput.value) : 0.1;
         commission = Math.round(productTotal * commissionRate);
     }
 
-    // Calculate total revenue (product total + shipping fee)
-    const revenue = productTotal + shippingFee;
+    // Get discount amount if applied
+    const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value || 0);
+
+    // Calculate total revenue (product total + shipping fee - discount)
+    const revenue = productTotal + shippingFee - discountAmount;
 
     // Calculate tax (1.5% of revenue) - only if has products
     const tax = hasProducts ? Math.round(revenue * COST_CONSTANTS.TAX_RATE) : 0;
@@ -5791,17 +6062,34 @@ function updateOrderSummary() {
     const profit = revenue - productCost - shippingCost - packagingCost - commission - tax;
     const profitMargin = revenue > 0 ? (profit / revenue * 100) : 0;
 
-    // Update summary display (total = products + shipping fee)
+    // Update summary display (total = products + shipping fee - discount)
     document.getElementById('orderTotalAmount').textContent = formatCurrency(revenue);
+    
+    // Update breakdown in main summary
+    document.getElementById('orderProductTotal').textContent = formatCurrency(productTotal);
+    document.getElementById('orderShippingFee').textContent = formatCurrency(shippingFee);
+    
+    // Show/hide discount row in main summary
+    const orderDiscountRow = document.getElementById('orderDiscountRow');
+    if (discountAmount > 0) {
+        if (orderDiscountRow) {
+            orderDiscountRow.classList.remove('hidden');
+            document.getElementById('orderDiscountAmount').textContent = `-${formatCurrency(discountAmount)}`;
+        }
+    } else {
+        if (orderDiscountRow) orderDiscountRow.classList.add('hidden');
+    }
 
     // Update profit preview with all cost details
     updateProfitPreview({
         revenue: revenue,
+        productTotal: productTotal,
         productCost,
         packagingCost,
         shippingFee,
         shippingCost,
         commission,
+        discountAmount,
         tax,
         profit,
         profitMargin
@@ -5810,8 +6098,20 @@ function updateOrderSummary() {
 
 // Update profit preview
 function updateProfitPreview(data) {
+    // Calculate product total (revenue before discount includes shipping)
+    const productTotal = currentOrderProducts.reduce((sum, p) => {
+        const price = p.price || 0;
+        const qty = p.quantity || 1;
+        return sum + (price * qty);
+    }, 0);
+    
     // Update values
     document.getElementById('profitRevenue').textContent = formatCurrency(data.revenue);
+    
+    // Update revenue breakdown
+    document.getElementById('profitProductTotal').textContent = formatCurrency(productTotal);
+    document.getElementById('profitShippingFee').textContent = formatCurrency(data.shippingFee);
+    
     document.getElementById('profitCost').textContent = formatCurrency(data.productCost);
     document.getElementById('profitPackaging').textContent = formatCurrency(data.packagingCost);
 
@@ -5833,7 +6133,31 @@ function updateProfitPreview(data) {
     }
 
     document.getElementById('profitShipping').textContent = formatCurrency(data.shippingCost);
+    
+    // Update commission with percentage
     document.getElementById('profitCommission').textContent = formatCurrency(data.commission);
+    const commissionLabel = document.getElementById('profitCommissionLabel');
+    if (commissionLabel && data.commission > 0) {
+        const commissionRateInput = document.getElementById('ctvCommissionRate');
+        if (commissionRateInput) {
+            const rate = (parseFloat(commissionRateInput.value) * 100).toFixed(0);
+            commissionLabel.textContent = `- Hoa hồng (${rate}%)`;
+        } else {
+            commissionLabel.textContent = '- Hoa hồng';
+        }
+    }
+    
+    // Update discount display in revenue breakdown (not in costs)
+    const discountRowInRevenue = document.getElementById('profitDiscountRowInRevenue');
+    if (data.discountAmount && data.discountAmount > 0) {
+        if (discountRowInRevenue) {
+            discountRowInRevenue.classList.remove('hidden');
+            document.getElementById('profitDiscountInRevenue').textContent = `-${formatCurrency(data.discountAmount)}`;
+        }
+    } else {
+        if (discountRowInRevenue) discountRowInRevenue.classList.add('hidden');
+    }
+    
     document.getElementById('profitTax').textContent = formatCurrency(data.tax);
 
     // Update tax label with current rate
@@ -5947,14 +6271,14 @@ async function submitNewOrder() {
     // Get order notes from form
     const orderNotes = document.getElementById('newOrderNotes')?.value.trim() || null;
 
-    // Calculate total
-    const totalAmount = currentOrderProducts.reduce((sum, p) => {
+    // Calculate product total
+    const productTotal = currentOrderProducts.reduce((sum, p) => {
         const price = p.price || 0;
         const qty = p.quantity || 1;
         return sum + (price * qty);
     }, 0);
 
-    if (totalAmount === 0) {
+    if (productTotal === 0) {
         showToast('Tổng tiền phải lớn hơn 0. Vui lòng nhập giá cho sản phẩm', 'warning');
         return;
     }
@@ -5962,6 +6286,13 @@ async function submitNewOrder() {
     // Get shipping costs
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0;
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0;
+    
+    // Get discount amount
+    const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value || 0);
+    
+    // Calculate total amount (what customer actually pays)
+    // totalAmount = productTotal + shippingFee - discountAmount
+    const totalAmount = productTotal + shippingFee - discountAmount;
 
     console.log('🚢 Shipping values:', {
         shippingFee,
@@ -5974,6 +6305,10 @@ async function submitNewOrder() {
     const provinceName = window.addressSelector.getProvinceName(provinceId);
     const districtName = window.addressSelector.getDistrictName(provinceId, districtId);
     const wardName = window.addressSelector.getWardName(provinceId, districtId, wardId);
+
+    // Get discount data if applied
+    const discountCode = document.getElementById('appliedDiscountCode')?.value.trim() || null;
+    const discountId = document.getElementById('appliedDiscountId')?.value || null;
 
     // Prepare request data matching server format
     const requestData = {
@@ -5997,7 +6332,10 @@ async function submitNewOrder() {
         paymentMethod: paymentMethod,
         status: status,
         referralCode: referralCode || null,
-        notes: orderNotes
+        notes: orderNotes,
+        discountCode: discountCode,
+        discountAmount: discountAmount,
+        discountId: discountId
     };
 
     console.log('📤 Sending createOrder request:', requestData);
@@ -6005,8 +6343,8 @@ async function submitNewOrder() {
     // Close modal immediately
     closeAddOrderModal();
 
-    // Show loading toast with spinner
-    const loadingToast = showToast('Đang tạo đơn hàng...', 'info', true);
+    // Show loading toast with ID (không tự động ẩn)
+    showToast('Đang tạo đơn hàng...', 'info', 0, 'create-order');
 
     try {
         const response = await fetch(`${CONFIG.API_URL}`, {
@@ -6017,36 +6355,17 @@ async function submitNewOrder() {
 
         const data = await response.json();
 
-        // Remove loading toast
-        if (loadingToast && loadingToast.parentNode) {
-            loadingToast.style.opacity = '0';
-            setTimeout(() => {
-                if (loadingToast.parentNode) {
-                    loadingToast.parentNode.removeChild(loadingToast);
-                }
-            }, 300);
-        }
-
         if (data.success) {
-            showToast('Đã tạo đơn hàng thành công!', 'success');
+            // Toast thành công sẽ thay thế toast "đang tạo"
+            showToast('Đã tạo đơn hàng thành công', 'success', null, 'create-order');
             loadOrdersData(); // Reload orders
         } else {
             throw new Error(data.error || 'Không thể tạo đơn hàng');
         }
     } catch (error) {
         console.error('Error creating order:', error);
-
-        // Remove loading toast
-        if (loadingToast && loadingToast.parentNode) {
-            loadingToast.style.opacity = '0';
-            setTimeout(() => {
-                if (loadingToast.parentNode) {
-                    loadingToast.parentNode.removeChild(loadingToast);
-                }
-            }, 300);
-        }
-
-        showToast('Không thể tạo đơn hàng: ' + error.message, 'error');
+        // Toast lỗi sẽ thay thế toast "đang tạo"
+        showToast('Không thể tạo đơn hàng: ' + error.message, 'error', null, 'create-order');
     }
 }
 
@@ -6800,6 +7119,13 @@ document.addEventListener('input', function (e) {
         if (!code) {
             statusDiv.innerHTML = '';
             ctvVerified = true; // Empty is valid
+            
+            // Remove commission_rate
+            const commissionRateInput = document.getElementById('ctvCommissionRate');
+            if (commissionRateInput) commissionRateInput.remove();
+            
+            // Update order summary to recalculate commission
+            updateOrderSummary();
             return;
         }
 
@@ -6820,14 +7146,36 @@ document.addEventListener('input', function (e) {
                             <div class="text-green-600">Hoa hồng: ${rate}% • ${data.data.phone}</div>
                         </div>
                     `;
+                    
+                    // Store commission_rate in hidden input for calculation
+                    let commissionRateInput = document.getElementById('ctvCommissionRate');
+                    if (!commissionRateInput) {
+                        commissionRateInput = document.createElement('input');
+                        commissionRateInput.type = 'hidden';
+                        commissionRateInput.id = 'ctvCommissionRate';
+                        statusDiv.appendChild(commissionRateInput);
+                    }
+                    commissionRateInput.value = data.data.rate;
+                    
                     ctvVerified = true; // Valid CTV
+                    
+                    // Update order summary to recalculate commission
+                    updateOrderSummary();
                 } else {
                     statusDiv.innerHTML = `
                         <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 font-semibold">
                             ✗ Không tìm thấy CTV với mã này
                         </div>
                     `;
+                    
+                    // Remove commission_rate
+                    const commissionRateInput = document.getElementById('ctvCommissionRate');
+                    if (commissionRateInput) commissionRateInput.remove();
+                    
                     ctvVerified = false; // Invalid CTV
+                    
+                    // Update order summary to recalculate commission
+                    updateOrderSummary();
                 }
             } catch (error) {
                 console.error('Error verifying CTV:', error);
@@ -6936,7 +7284,7 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
 
     // Validate: Size is required for best selling products
     if (!size) {
-        showToast('⚠️ Vui lòng nhập size trước khi thêm sản phẩm', 'warning');
+        showToast('Vui lòng nhập size trước khi thêm sản phẩm', 'warning');
         if (sizeInput) {
             sizeInput.focus();
             sizeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
@@ -6974,7 +7322,7 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
 
     // Show success toast with size info
     const sizeText = size ? ` (${size})` : '';
-    showToast(`✅ Đã thêm ${quantity}x ${productName}${sizeText}`, 'success');
+    showToast(`Đã thêm ${quantity}x ${productName}${sizeText}`, 'success');
 }
 
 // Quick add product with quantity (for freeship products)
@@ -6983,14 +7331,14 @@ function quickAddProductWithQty(productName, price, qtyInputId) {
     const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
 
     if (quantity === 0) {
-        showToast('⚠️ Số lượng phải lớn hơn 0', 'warning');
+        showToast('Số lượng phải lớn hơn 0', 'warning');
         return;
     }
 
     // Find product in list
     const product = allProductsList.find(p => p.name === productName);
     if (!product) {
-        showToast('❌ Không tìm thấy sản phẩm', 'error');
+        showToast('Không tìm thấy sản phẩm', 'error');
         return;
     }
 
@@ -7016,7 +7364,7 @@ function quickAddProductWithQty(productName, price, qtyInputId) {
     renderOrderProducts();
     updateOrderSummary();
 
-    showToast(`✅ Đã thêm ${quantity}x ${productName}`, 'success');
+    showToast(`Đã thêm ${quantity}x ${productName}`, 'success');
 }
 
 
@@ -7058,4 +7406,180 @@ function toggleFreeshipProducts() {
         if (icon) icon.style.transform = 'rotate(0deg)';
         if (text) text.textContent = 'Xem sản phẩm bán kèm';
     }
+}
+
+// ============================================
+// DISCOUNT CODE FUNCTIONS
+// ============================================
+
+// Apply discount code
+async function applyDiscountCode() {
+    const discountCodeInput = document.getElementById('newOrderDiscountCode');
+    const discountCode = discountCodeInput?.value.trim().toUpperCase();
+
+    if (!discountCode) {
+        showDiscountError('Vui lòng nhập mã giảm giá');
+        return;
+    }
+
+    // Show loading state
+    showDiscountLoading();
+
+    try {
+        // Get customer phone for validation
+        const customerPhone = document.getElementById('newOrderCustomerPhone')?.value.trim();
+        
+        // Calculate current order amount (before discount)
+        const productTotal = currentOrderProducts.reduce((sum, p) => {
+            const price = p.price || 0;
+            const qty = p.quantity || 1;
+            return sum + (price * qty);
+        }, 0);
+        const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value || 0);
+        const orderAmount = productTotal + shippingFee;
+
+        // Validate discount code via API
+        const response = await fetch(`${CONFIG.API_URL}?action=validateDiscount&code=${encodeURIComponent(discountCode)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`);
+        
+        console.log('🔍 Discount validation response:', response.status, response.statusText);
+        
+        // Parse JSON response (even for errors)
+        const data = await response.json();
+        console.log('📦 Discount data:', data);
+        
+        // Check if validation failed
+        if (!response.ok || !data.success) {
+            const errorMessage = data.error || 'Mã giảm giá không hợp lệ';
+            console.error('❌ Validation failed:', errorMessage);
+            showDiscountError(errorMessage);
+            return; // Stop here, don't throw
+        }
+
+        if (data.success && data.discount) {
+            const discount = data.discount;
+            
+            // Calculate discount amount based on type
+            let discountAmount = 0;
+            
+            if (discount.type === 'fixed') {
+                discountAmount = discount.discount_value || 0;
+            } else if (discount.type === 'percentage') {
+                discountAmount = Math.round(orderAmount * (discount.discount_value / 100));
+                // Apply max discount limit if set
+                if (discount.max_discount_amount && discountAmount > discount.max_discount_amount) {
+                    discountAmount = discount.max_discount_amount;
+                }
+            } else if (discount.type === 'freeship') {
+                discountAmount = shippingFee; // Free shipping = discount shipping fee
+            }
+
+            // Store discount data
+            document.getElementById('appliedDiscountId').value = discount.id;
+            document.getElementById('appliedDiscountCode').value = discount.code;
+            document.getElementById('appliedDiscountAmount').value = discountAmount;
+            document.getElementById('appliedDiscountType').value = discount.type;
+
+            // Show success state
+            showDiscountSuccess(discount, discountAmount);
+
+            // Update order summary with discount
+            updateOrderSummary();
+
+            showToast(`Áp dụng mã ${discount.code} thành công`, 'success');
+        }
+    } catch (error) {
+        console.error('❌ Error applying discount:', error);
+        showDiscountError('Lỗi kết nối. Vui lòng kiểm tra mạng và thử lại.');
+    }
+}
+
+// Remove discount code
+function removeDiscountCode() {
+    // Clear discount data
+    document.getElementById('appliedDiscountId').value = '';
+    document.getElementById('appliedDiscountCode').value = '';
+    document.getElementById('appliedDiscountAmount').value = '0';
+    document.getElementById('appliedDiscountType').value = '';
+    document.getElementById('newOrderDiscountCode').value = '';
+
+    // Hide discount status
+    document.getElementById('discountStatus').classList.add('hidden');
+    document.getElementById('discountSuccess').classList.add('hidden');
+
+    // Update order summary
+    updateOrderSummary();
+
+    showToast('Đã xóa mã giảm giá', 'info');
+}
+
+// Show discount loading state
+function showDiscountLoading() {
+    const statusDiv = document.getElementById('discountStatus');
+    const loadingDiv = document.getElementById('discountLoading');
+    const successDiv = document.getElementById('discountSuccess');
+    const errorDiv = document.getElementById('discountError');
+
+    statusDiv.classList.remove('hidden');
+    loadingDiv.classList.remove('hidden');
+    successDiv.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+}
+
+// Show discount success state
+function showDiscountSuccess(discount, discountAmount) {
+    const statusDiv = document.getElementById('discountStatus');
+    const successDiv = document.getElementById('discountSuccess');
+    const loadingDiv = document.getElementById('discountLoading');
+    const errorDiv = document.getElementById('discountError');
+
+    // Update success content - Compact version
+    document.getElementById('discountTitle').textContent = discount.code;
+    
+    let description = '';
+    if (discount.type === 'fixed') {
+        description = `Giảm ${formatCurrency(discount.discount_value)}`;
+    } else if (discount.type === 'percentage') {
+        description = `Giảm ${discount.discount_value}%`;
+        if (discount.max_discount_amount) {
+            description += ` (max ${formatCurrency(discount.max_discount_amount)})`;
+        }
+    } else if (discount.type === 'freeship') {
+        description = 'Freeship';
+    } else if (discount.type === 'gift') {
+        description = `Tặng quà`;
+    }
+    document.getElementById('discountDescription').textContent = description;
+    document.getElementById('discountAmountDisplay').textContent = `-${formatCurrency(discountAmount)}`;
+
+    // Show success, hide others
+    statusDiv.classList.remove('hidden');
+    successDiv.classList.remove('hidden');
+    loadingDiv.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+}
+
+// Show discount error state
+function showDiscountError(message) {
+    const statusDiv = document.getElementById('discountStatus');
+    const errorDiv = document.getElementById('discountError');
+    const loadingDiv = document.getElementById('discountLoading');
+    const successDiv = document.getElementById('discountSuccess');
+
+    document.getElementById('discountErrorMessage').textContent = message;
+
+    statusDiv.classList.remove('hidden');
+    errorDiv.classList.remove('hidden');
+    loadingDiv.classList.add('hidden');
+    successDiv.classList.add('hidden');
+
+    // Show toast for better visibility
+    showToast(message, 'error');
+
+    // Auto hide error after 10 seconds (longer for user to read)
+    setTimeout(() => {
+        errorDiv.classList.add('hidden');
+        if (successDiv.classList.contains('hidden')) {
+            statusDiv.classList.add('hidden');
+        }
+    }, 10000);
 }

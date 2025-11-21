@@ -1,0 +1,218 @@
+[
+  {
+    "code": "GIAM2K",
+    "title": "Giảm 2.000đ",
+    "description": "Giảm ngay 2.000đ cho mọi đơn hàng.",
+    "type": "fixed",
+    "value": 2000,
+    "minOrder": 20000,
+    "minItems": 0,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "QUATANGBDT7",
+    "title": "Tặng Bó dâu 7 cành (bé trai)",
+    "description": "Nhận ngay 1 Bó dâu 7 cành (bé trai) trị giá 109.000đ khi mua từ 2 sản phẩm",
+    "type": "gift",
+    "value": {
+      "id": "addon_bo_dau_tam_7_canh",
+      "name": "Bó dâu 7 cành (bé trai)"
+    },
+    "minOrder": 300000,
+    "minItems": 2,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "QUATANGBDT9",
+    "title": "Tặng Bó dâu 9 cành (bé gái)",
+    "description": "Nhận ngay 1 Bó dâu 9 cành (bé gái) trị giá 119.000đ khi mua từ 2 sản phẩm",
+    "type": "gift",
+    "value": {
+      "id": "addon_bo_dau_tam_9_canh",
+      "name": "Bó dâu 9 cành (bé gái)"
+    },
+    "minOrder": 300000,
+    "minItems": 2,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "QUATANGTDT",
+    "title": "Tặng 1 Túi Dâu Tằm Để Giường",
+    "description": "Nhận ngay 1 Túi Dâu Tằm Để Giường trị giá 45.000đ khi mua từ 2 sản phẩm",
+    "type": "gift",
+    "value": {
+      "id": "addon_tui_dau_tam",
+      "name": "Túi Dâu Tằm Để Giường"
+    },
+    "minOrder": 300000,
+    "minItems": 2,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "QUATANGMCK",
+    "title": "Tặng 1 Móc chìa khóa dâu tằm",
+    "description": "Nhận ngay 1 Móc chìa khóa dâu tằm trị giá 49.000đ khi mua từ 2 sản phẩm",
+    "type": "gift",
+    "value": {
+      "id": "addon_moc_chia_khoa",
+      "name": "Móc chìa khóa dâu tằm"
+    },
+    "minOrder": 300000,
+    "minItems": 2,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "GG5K",
+    "title": "Giảm 5.000đ",
+    "description": "Giảm trực tiếp 5.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 5000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "GG10K",
+    "title": "Giảm 10.000đ",
+    "description": "Giảm trực tiếp 10.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 10000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "GG15K",
+    "title": "Giảm 15.000đ",
+    "description": "Giảm trực tiếp 15.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 15000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "GG20K",
+    "title": "Giảm 20.000đ",
+    "description": "Giảm trực tiếp 20.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 20000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "GG25K",
+    "title": "Giảm 25.000đ",
+    "description": "Giảm trực tiếp 25.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 25000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "GG30K",
+    "title": "Giảm 30.000đ",
+    "description": "Giảm trực tiếp 30.000đ vào tổng giá trị đơn hàng.",
+    "type": "fixed",
+    "value": 30000,
+    "minOrder": 0,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": false
+  },
+  {
+    "code": "VDT4K",
+    "title": "Giảm 4.000đ",
+    "description": "Giảm 4.000đ cho đơn hàng từ 120.000đ.",
+    "type": "fixed",
+    "value": 4000,
+    "minOrder": 120000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "VDT6K",
+    "title": "Giảm 6.000đ",
+    "description": "Giảm 6.000đ cho đơn hàng từ 150.000đ.",
+    "type": "fixed",
+    "value": 6000,
+    "minOrder": 150000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "VDT8K",
+    "title": "Giảm 8.000đ",
+    "description": "Giảm 6.000đ cho đơn hàng từ 180.000đ.",
+    "type": "fixed",
+    "value": 8000,
+    "minOrder": 180000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "VDT10K",
+    "title": "Giảm 10.000đ",
+    "description": "Giảm 8.000đ cho đơn hàng từ 220.000đ.",
+    "type": "fixed",
+    "value": 10000,
+    "minOrder": 220000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "VDT12K",
+    "title": "Giảm 12.000đ",
+    "description": "Giảm 12.000đ cho đơn hàng từ 250.000đ.",
+    "type": "fixed",
+    "value": 12000,
+    "minOrder": 250000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  },
+  {
+    "code": "VDT15K",
+    "title": "Giảm 15.000đ",
+    "description": "Giảm 15.000đ cho đơn hàng từ 250.000đ.",
+    "type": "fixed",
+    "value": 15000,
+    "minOrder": 300000,
+    "minItems": 1,
+    "expiry": "31/12/2025",
+    "active": true,
+    "visible": true
+  }
+]

@@ -241,30 +241,7 @@ function hideLoading() {
 }
 
 // Show toast notification (chuẩn hóa theo orders.js)
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-[9999] fade-in flex items-center gap-3 ${
-        type === 'success' ? 'bg-green-500' :
-        type === 'error' ? 'bg-red-500' :
-        type === 'warning' ? 'bg-yellow-500' :
-        'bg-blue-500'
-    }`;
-    
-    toast.textContent = message;
-    document.body.appendChild(toast);
-
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                document.body.removeChild(toast);
-            }
-        }, 300);
-    }, 3000);
-    
-    return toast;
-}
+// showToast is now provided by toast-manager.js
 
 
 // ============================================

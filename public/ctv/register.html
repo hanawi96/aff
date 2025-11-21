@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký Cộng Tác Viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-field {
+            transition: all 0.2s ease;
+        }
+
+        .input-field:hover {
+            border-color: #93c5fd;
+        }
+
+        .btn-submit {
+            transition: all 0.2s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .benefit-item {
+            transition: all 0.2s ease;
+        }
+
+        .benefit-item:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-8 px-4">
+    <div class="container mx-auto max-w-4xl">
+        <!-- Back Button -->
+        <div class="mb-6">
+            <a href="search.html"
+                class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span class="font-medium">Quay lại</span>
+            </a>
+        </div>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-8 text-white">
+                <h1 class="text-2xl font-bold mb-2">Đăng Ký Cộng Tác Viên</h1>
+                <p class="text-blue-100">Điền thông tin để bắt đầu kiếm thu nhập</p>
+            </div>
+
+            <div class="p-6 md:p-8">
+                <!-- Form -->
+                <form id="referralForm" class="space-y-6 mb-8">
+                    <!-- Personal Info -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Thông Tin Cá Nhân</h3>
+                        <div class="space-y-4">
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Họ và Tên *</label>
+                                    <input type="text" name="fullName" required
+                                        class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+                                        placeholder="Nguyễn Văn A">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Số Điện Thoại *</label>
+                                    <input type="tel" name="phone" required
+                                        class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+                                        placeholder="0901234567">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" name="email"
+                                    class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+                                    placeholder="email@gmail.com">
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tỉnh/Thành Phố *</label>
+                                    <select name="city" required
+                                        class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white">
+                                        <option value="">Chọn tỉnh/thành</option>
+                                        <option value="Hà Nội">Hà Nội</option>
+                                        <option value="TP.HCM">TP. Hồ Chí Minh</option>
+                                        <option value="Đà Nẵng">Đà Nẵng</option>
+                                        <option value="Khác">Tỉnh khác</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tuổi</label>
+                                    <select name="age"
+                                        class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white">
+                                        <option value="">Chọn độ tuổi</option>
+                                        <option value="18-25">18-25 tuổi</option>
+                                        <option value="26-30">26-30 tuổi</option>
+                                        <option value="31-35">31-35 tuổi</option>
+                                        <option value="36-40">36-40 tuổi</option>
+                                        <option value="40+">Trên 40 tuổi</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Info -->
+                    <div class="pt-6 border-t border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase mb-4">Thông Tin Thanh Toán</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Số Tài Khoản</label>
+                                <input type="text" name="bankAccountNumber"
+                                    class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+                                    placeholder="0123456789">
+                            </div>
+                            <div class="relative">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Ngân Hàng</label>
+                                <button type="button" id="bankSelectButton"
+                                    class="input-field w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between">
+                                    <span id="bankSelectedText" class="text-gray-500">Chọn ngân hàng</span>
+                                    <svg class="w-5 h-5 text-gray-400 transition-transform" id="bankDropdownIcon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <input type="hidden" name="bankName" id="bankNameValue" value="">
+                                
+                                <div id="bankDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                                    <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                        <div class="relative">
+                                            <input type="text" id="bankSearchInput" placeholder="Tìm kiếm ngân hàng..."
+                                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                                autocomplete="off">
+                                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="max-h-60 overflow-y-auto">
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100" data-value="">
+                                            <span class="text-gray-500 italic">Chọn ngân hàng</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="ABBank">
+                                            <span class="font-medium text-gray-900">ABBank</span> - <span class="text-gray-600">NHTMCP An Binh</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="ACB">
+                                            <span class="font-medium text-gray-900">ACB</span> - <span class="text-gray-600">NH TMCP A Chau</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Agribank">
+                                            <span class="font-medium text-gray-900">Agribank</span> - <span class="text-gray-600">NH NN & PTNT Viet Nam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="ANZ Bank">
+                                            <span class="font-medium text-gray-900">ANZ Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Bac A Bank">
+                                            <span class="font-medium text-gray-900">Bac A Bank</span> - <span class="text-gray-600">NHTMCP Bac A</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="BaoViet Bank">
+                                            <span class="font-medium text-gray-900">BaoViet Bank</span> - <span class="text-gray-600">NH TMCP Bao Viet</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="BIDV">
+                                            <span class="font-medium text-gray-900">BIDV</span> - <span class="text-gray-600">NH Dau tu & Phat trien Viet Nam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Citibank">
+                                            <span class="font-medium text-gray-900">Citibank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Dong A Bank">
+                                            <span class="font-medium text-gray-900">Dong A Bank</span> - <span class="text-gray-600">NHTMCP Dong A</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Eximbank">
+                                            <span class="font-medium text-gray-900">Eximbank</span> - <span class="text-gray-600">NHTMCP Xuat Nhap Khau</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="GPBank">
+                                            <span class="font-medium text-gray-900">GPBank</span> - <span class="text-gray-600">NHTMCP Dau khi Toan cau</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="HDBank">
+                                            <span class="font-medium text-gray-900">HDBank</span> - <span class="text-gray-600">NHTMCP phat trien Tp HCM</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="HSBC">
+                                            <span class="font-medium text-gray-900">HSBC</span> - <span class="text-gray-600">Hong Kong and Shanghai Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Hong Leong Bank">
+                                            <span class="font-medium text-gray-900">Hong Leong Bank</span> - <span class="text-gray-600">Vietnam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="IBK">
+                                            <span class="font-medium text-gray-900">IBK</span> - <span class="text-gray-600">Industrial Bank of Korea</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="IVB">
+                                            <span class="font-medium text-gray-900">IVB</span> - <span class="text-gray-600">NH TNHH Indovina</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Kien Long Bank">
+                                            <span class="font-medium text-gray-900">Kien Long Bank</span> - <span class="text-gray-600">NHTMCP Kien Long</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Kookmin Bank">
+                                            <span class="font-medium text-gray-900">Kookmin Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="LienVietPostBank">
+                                            <span class="font-medium text-gray-900">LienVietPostBank</span> - <span class="text-gray-600">NH TMCP Buu Dien Lien Viet</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="MB">
+                                            <span class="font-medium text-gray-900">MB</span> - <span class="text-gray-600">NHTMCP Quan Doi</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Maritime Bank">
+                                            <span class="font-medium text-gray-900">Maritime Bank</span> - <span class="text-gray-600">NHTMCP Hang Hai</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="May Bank">
+                                            <span class="font-medium text-gray-900">May Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Nam A Bank">
+                                            <span class="font-medium text-gray-900">Nam A Bank</span> - <span class="text-gray-600">NHTMCP Nam A</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="NCB">
+                                            <span class="font-medium text-gray-900">NCB</span> - <span class="text-gray-600">NHTMCP Quoc Dan</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="OCB">
+                                            <span class="font-medium text-gray-900">OCB</span> - <span class="text-gray-600">NHTMCP Phuong Dong</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Oceanbank">
+                                            <span class="font-medium text-gray-900">Oceanbank</span> - <span class="text-gray-600">NHTMCP Dai Duong</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="PGBank">
+                                            <span class="font-medium text-gray-900">PGBank</span> - <span class="text-gray-600">NHTMCP Xang dau Petrolimex</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="PVcomBank">
+                                            <span class="font-medium text-gray-900">PVcomBank</span> - <span class="text-gray-600">NH TMCP Dai Chung Viet Nam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Sacombank">
+                                            <span class="font-medium text-gray-900">Sacombank</span> - <span class="text-gray-600">NHTMCP Sai gon Thuong Tin</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="SaigonBank">
+                                            <span class="font-medium text-gray-900">SaigonBank</span> - <span class="text-gray-600">NHTMCP Sai Gon Cong Thuong</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="SCB">
+                                            <span class="font-medium text-gray-900">SCB</span> - <span class="text-gray-600">NHTMCP Sai Gon</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="SeABank">
+                                            <span class="font-medium text-gray-900">SeABank</span> - <span class="text-gray-600">NHTMCP Dong Nam A</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="SHB">
+                                            <span class="font-medium text-gray-900">SHB</span> - <span class="text-gray-600">NHTMCP Sai gon - Ha Noi</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Shinhan Bank">
+                                            <span class="font-medium text-gray-900">Shinhan Bank</span> - <span class="text-gray-600">Vietnam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Standard Chartered">
+                                            <span class="font-medium text-gray-900">Standard Chartered</span> - <span class="text-gray-600">Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Techcombank">
+                                            <span class="font-medium text-gray-900">Techcombank</span> - <span class="text-gray-600">NHTMCP Ky thuong VN</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="TPBank">
+                                            <span class="font-medium text-gray-900">TPBank</span> - <span class="text-gray-600">NH TMCP Tien Phong</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VBSP">
+                                            <span class="font-medium text-gray-900">VBSP</span> - <span class="text-gray-600">NH Chinh sach xa hoi</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VCB">
+                                            <span class="font-medium text-gray-900">VCB</span> - <span class="text-gray-600">NH TMCP Ngoai Thuong Viet Nam (Vietcombank)</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VDB">
+                                            <span class="font-medium text-gray-900">VDB</span> - <span class="text-gray-600">NH Phat trien Viet Nam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VIB">
+                                            <span class="font-medium text-gray-900">VIB</span> - <span class="text-gray-600">NHTMCP Quoc Te</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VID Public Bank">
+                                            <span class="font-medium text-gray-900">VID Public Bank</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Viet Capital Bank">
+                                            <span class="font-medium text-gray-900">Viet Capital Bank</span> - <span class="text-gray-600">NHTMCP Ban Viet</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VietABank">
+                                            <span class="font-medium text-gray-900">VietABank</span> - <span class="text-gray-600">NHTMCP Viet A</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VietBank">
+                                            <span class="font-medium text-gray-900">VietBank</span> - <span class="text-gray-600">NHTMCP Viet Nam Thuong Tin</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VietinBank">
+                                            <span class="font-medium text-gray-900">VietinBank</span> - <span class="text-gray-600">NH Cong Thuong Viet Nam</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Vinasiam Bank">
+                                            <span class="font-medium text-gray-900">Vinasiam Bank</span> - <span class="text-gray-600">NH Lien doanh Viet Thai</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VNCB">
+                                            <span class="font-medium text-gray-900">VNCB</span> - <span class="text-gray-600">NHTMCP Xay dung VN</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VPBank">
+                                            <span class="font-medium text-gray-900">VPBank</span> - <span class="text-gray-600">NHTMCP VN Thinh Vuong</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="VRB">
+                                            <span class="font-medium text-gray-900">VRB</span> - <span class="text-gray-600">NH Lien doanh Viet Nga</span>
+                                        </div>
+                                        <div class="bank-option px-4 py-2.5 hover:bg-blue-50 cursor-pointer" data-value="Woori Bank">
+                                            <span class="font-medium text-gray-900">Woori Bank</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms -->
+                    <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                        <input type="checkbox" id="terms" name="terms" required
+                            class="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="terms" class="text-sm text-gray-700">Tôi đồng ý với điều khoản và điều kiện của chương trình cộng tác viên</label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit"
+                        class="btn-submit w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg">
+                        Đăng Ký Ngay
+                    </button>
+                </form>
+
+                <!-- Benefits Section -->
+                <div class="pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quyền Lợi Cộng Tác Viên</h3>
+                    <div class="space-y-3">
+                        <div class="benefit-item flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-gray-900">Hoa hồng 10%</p>
+                                <p class="text-sm text-gray-600">Nhận 10% giá trị đơn hàng (không tính phí ship)</p>
+                            </div>
+                        </div>
+
+                        <div class="benefit-item flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-gray-900">Link lưu 7 ngày</p>
+                                <p class="text-sm text-gray-600">Khách mua trong 7 ngày đều được tính hoa hồng</p>
+                            </div>
+                        </div>
+
+                        <div class="benefit-item flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-gray-900">Thanh toán cuối tháng</p>
+                                <p class="text-sm text-gray-600">Nhận hoa hồng qua chuyển khoản ngân hàng</p>
+                            </div>
+                        </div>
+
+                        <div class="benefit-item flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                            <svg class="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-gray-900">Hỗ trợ 24/7</p>
+                                <p class="text-sm text-gray-600">Nhóm Zalo hỗ trợ và chia sẻ kinh nghiệm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-sm font-medium text-gray-700 mb-3">Liên hệ hỗ trợ:</p>
+                        <div class="grid md:grid-cols-2 gap-3">
+                            <a href="https://zalo.me/0972483892" target="_blank"
+                                class="flex items-center justify-center gap-2 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z" />
+                                </svg>
+                                <span class="font-medium">Zalo: 0972.483.892</span>
+                            </a>
+                            <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                                class="flex items-center justify-center gap-2 p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z" />
+                                </svg>
+                                <span class="font-medium">Nhóm Zalo CTV</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/timezone-utils.js"></script>
+    <script src="../assets/js/referral-form.js"></script>
+</body>
+
+</html>

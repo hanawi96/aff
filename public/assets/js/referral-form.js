@@ -945,7 +945,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const bankDropdownIcon = document.getElementById('bankDropdownIcon');
     const bankOptions = document.querySelectorAll('.bank-option');
 
-    if (!bankSelectButton) return; // Exit if elements don't exist
+    // Exit if elements don't exist (e.g., using native select instead of custom dropdown)
+    if (!bankSelectButton || !bankSearchInput || !bankDropdown) return;
 
     // Toggle dropdown when button is clicked
     bankSelectButton.addEventListener('click', function (e) {

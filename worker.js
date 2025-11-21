@@ -63,6 +63,18 @@ async function handleGet(action, url, env, corsHeaders) {
             const phone = url.searchParams.get('phone');
             return await getOrdersByPhone(phone, env, corsHeaders);
 
+        // CTV Optimized Endpoints
+        case 'getCTVOrders':
+            const ctvCode = url.searchParams.get('referralCode');
+            return await getCTVOrdersOptimized(ctvCode, env, corsHeaders);
+
+        case 'getCTVOrdersByPhone':
+            const ctvPhone = url.searchParams.get('phone');
+            return await getCTVOrdersByPhoneOptimized(ctvPhone, env, corsHeaders);
+
+        case 'getCTVDashboard':
+            return await getCTVDashboardOptimized(env, corsHeaders);
+
         case 'getRecentOrders':
             const limit = parseInt(url.searchParams.get('limit')) || 10;
             return await getRecentOrders(limit, env, corsHeaders);
@@ -98,6 +110,13 @@ async function handleGet(action, url, env, corsHeaders) {
 
         case 'getAllCustomers':
             return await getAllCustomers(env, corsHeaders);
+
+        case 'getAllDiscounts':
+            return await getAllDiscounts(env, corsHeaders);
+
+        case 'getDiscount':
+            const discountId = url.searchParams.get('id');
+            return await getDiscount(discountId, env, corsHeaders);
 
         case 'getCustomerDetail':
             const customerPhone = url.searchParams.get('phone');
@@ -204,6 +223,9 @@ async function handleGet(action, url, env, corsHeaders) {
             const unpaidMonth = url.searchParams.get('month');
             return await getUnpaidOrdersByMonth(unpaidMonth, env, corsHeaders);
 
+        case 'validateDiscount':
+            return await validateDiscount(url, env, corsHeaders);
+
         default:
             return jsonResponse({
                 success: false,
@@ -237,6 +259,14 @@ async function handlePostWithAction(action, request, env, corsHeaders) {
             return await paySelectedOrders(data, env, corsHeaders);
         case 'bulkDeleteCTV':
             return await bulkDeleteCTV(data, env, corsHeaders);
+        case 'createDiscount':
+            return await createDiscount(data, env, corsHeaders);
+        case 'updateDiscount':
+            return await updateDiscount(data, env, corsHeaders);
+        case 'deleteDiscount':
+            return await deleteDiscount(data, env, corsHeaders);
+        case 'toggleDiscountStatus':
+            return await toggleDiscountStatus(data, env, corsHeaders);
         default:
             return jsonResponse({
                 success: false,
@@ -286,6 +316,10 @@ async function handlePost(path, request, env, corsHeaders) {
                     notes: data.notes,
                     shippingFee: data.shippingFee || 0,
                     shippingCost: data.shippingCost || 0,
+                    // Discount data
+                    discountCode: data.discountCode || null,
+                    discountAmount: data.discountAmount || 0,
+                    discountId: data.discountId || null,
                     // Address 4 levels
                     province_id: data.province_id,
                     province_name: data.province_name,
@@ -322,6 +356,14 @@ async function handlePost(path, request, env, corsHeaders) {
                 return await updateCategory(data, env, corsHeaders);
             case 'deleteCategory':
                 return await deleteCategory(data, env, corsHeaders);
+            case 'createDiscount':
+                return await createDiscount(data, env, corsHeaders);
+            case 'updateDiscount':
+                return await updateDiscount(data, env, corsHeaders);
+            case 'deleteDiscount':
+                return await deleteDiscount(data, env, corsHeaders);
+            case 'toggleDiscountStatus':
+                return await toggleDiscountStatus(data, env, corsHeaders);
             case 'updatePackagingConfig':
                 return await updatePackagingConfig(data, env, corsHeaders);
             case 'updateTaxRate':
@@ -727,9 +769,18 @@ async function createOrder(data, env, corsHeaders) {
             ? parseInt(totalAmount.replace(/[^\d]/g, ''))
             : totalAmount;
 
+        // Calculate product total (for commission calculation)
+        // Commission is calculated on product value ONLY (not including shipping, not including discount)
+        const productTotal = data.cart.reduce((sum, item) => {
+            const price = item.price || 0;
+            const qty = item.quantity || 1;
+            return sum + (price * qty);
+        }, 0);
+
         // Validate và lấy thông tin CTV
         let validReferralCode = null;
         let finalCommission = 0;
+        let finalCommissionRate = 0;
         let ctvPhone = null;
 
         if (data.referralCode && data.referralCode.trim() !== '') {
@@ -741,13 +792,13 @@ async function createOrder(data, env, corsHeaders) {
             if (ctvData) {
                 validReferralCode = ctvData.referral_code;
                 ctvPhone = ctvData.phone;
-                const commissionRate = ctvData.commission_rate || 0.1;
-                // Commission calculated on product value only (not including shipping)
-                finalCommission = Math.round(totalAmountNumber * commissionRate);
+                finalCommissionRate = ctvData.commission_rate || 0.1;
+                // Commission calculated on product value ONLY (not including shipping, not including discount)
+                finalCommission = Math.round(productTotal * finalCommissionRate);
                 console.log(`💰 Commission calculated:`, {
                     referralCode: validReferralCode,
-                    productValue: totalAmountNumber,
-                    rate: commissionRate,
+                    productValue: productTotal,
+                    rate: finalCommissionRate,
                     commission: finalCommission
                 });
             } else {
@@ -851,17 +902,22 @@ async function createOrder(data, env, corsHeaders) {
         const revenue = totalAmountNumber + shippingFee;
         const taxAmount = Math.round(revenue * currentTaxRate);
 
+        // Get discount data
+        const discountCode = data.discountCode || null;
+        const discountAmount = data.discountAmount || 0;
+
         const orderTimestamp = new Date(orderDate).getTime();
         const result = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, order_date, customer_name, customer_phone, 
                 address, products, payment_method, 
-                status, referral_code, commission, ctv_phone, notes,
+                status, referral_code, commission, commission_rate, ctv_phone, notes,
                 shipping_fee, shipping_cost, packaging_cost, packaging_details,
                 tax_amount, tax_rate, created_at_unix,
                 province_id, province_name, district_id, district_name,
-                ward_id, ward_name, street_address
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ward_id, ward_name, street_address,
+                discount_code, discount_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
@@ -873,6 +929,7 @@ async function createOrder(data, env, corsHeaders) {
             data.status || 'pending',
             validReferralCode,
             finalCommission,
+            finalCommissionRate,
             ctvPhone || null,
             data.notes || null,
             shippingFee,
@@ -888,7 +945,9 @@ async function createOrder(data, env, corsHeaders) {
             data.district_name || null,
             data.ward_id || null,
             data.ward_name || null,
-            data.street_address || null
+            data.street_address || null,
+            discountCode,
+            discountAmount
         ).run();
 
         if (!result.success) {
@@ -962,6 +1021,31 @@ async function createOrder(data, env, corsHeaders) {
         } catch (itemsError) {
             console.error('⚠️ Error inserting order items:', itemsError);
             // Don't fail the order creation, just log the error
+        }
+
+        // 1.6. Insert into discount_usage if discount was applied
+        if (discountCode && discountAmount > 0 && data.discountId) {
+            try {
+                await env.DB.prepare(`
+                    INSERT INTO discount_usage (
+                        discount_id, discount_code, order_id, 
+                        customer_name, customer_phone,
+                        order_amount, discount_amount
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                    data.discountId,
+                    discountCode,
+                    data.orderId,
+                    data.customer.name,
+                    data.customer.phone,
+                    totalAmountNumber + shippingFee, // Order amount before discount
+                    discountAmount
+                ).run();
+                console.log(`✅ Inserted discount usage: ${discountCode} - ${discountAmount}`);
+            } catch (discountError) {
+                console.error('⚠️ Error inserting discount usage:', discountError);
+                // Don't fail the order creation
+            }
         }
 
         // 2. Lưu vào Google Sheets (gọi Google Apps Script)
@@ -1936,6 +2020,535 @@ function normalizePhone(phone) {
     }
     return normalized;
 }
+
+// ============================================
+// DISCOUNT FUNCTIONS
+// ============================================
+
+async function getAllDiscounts(env, corsHeaders) {
+    try {
+        const { results: discounts } = await env.DB.prepare(`
+            SELECT 
+                id, code, title, description, type,
+                discount_value, max_discount_amount,
+                gift_product_id, gift_product_name, gift_quantity,
+                min_order_amount, min_items,
+                max_total_uses, max_uses_per_customer,
+                customer_type, combinable_with_other_discounts,
+                active, visible,
+                start_date, expiry_date,
+                created_at, updated_at,
+                usage_count, total_discount_amount
+            FROM discounts
+            ORDER BY created_at DESC
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            discounts: discounts
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error getting all discounts:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function getDiscount(id, env, corsHeaders) {
+    try {
+        const discount = await env.DB.prepare(`
+            SELECT * FROM discounts WHERE id = ?
+        `).bind(id).first();
+
+        if (!discount) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy mã giảm giá'
+            }, 404, corsHeaders);
+        }
+
+        return jsonResponse({
+            success: true,
+            discount: discount
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error getting discount:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function createDiscount(data, env, corsHeaders) {
+    try {
+        // Check if code already exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM discounts WHERE code = ?
+        `).bind(data.code).first();
+
+        if (existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Mã giảm giá đã tồn tại'
+            }, 400, corsHeaders);
+        }
+
+        const result = await env.DB.prepare(`
+            INSERT INTO discounts (
+                code, title, description, type,
+                discount_value, max_discount_amount,
+                gift_product_id, gift_product_name, gift_quantity,
+                min_order_amount, min_items,
+                max_total_uses, max_uses_per_customer,
+                customer_type, combinable_with_other_discounts,
+                active, visible,
+                start_date, expiry_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            data.code,
+            data.title,
+            data.description || null,
+            data.type,
+            data.discount_value || 0,
+            data.max_discount_amount || null,
+            data.gift_product_id || null,
+            data.gift_product_name || null,
+            data.gift_quantity || 1,
+            data.min_order_amount || 0,
+            data.min_items || 0,
+            data.max_total_uses || null,
+            data.max_uses_per_customer || 1,
+            data.customer_type || 'all',
+            data.combinable_with_other_discounts || 0,
+            data.active || 1,
+            data.visible || 1,
+            data.start_date || null,
+            data.expiry_date
+        ).run();
+
+        if (!result.success) {
+            throw new Error('Failed to create discount');
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Tạo mã giảm giá thành công',
+            id: result.meta.last_row_id
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error creating discount:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function updateDiscount(data, env, corsHeaders) {
+    try {
+        // Check if discount exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM discounts WHERE id = ?
+        `).bind(data.id).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy mã giảm giá'
+            }, 404, corsHeaders);
+        }
+
+        // Check if code is taken by another discount
+        const codeCheck = await env.DB.prepare(`
+            SELECT id FROM discounts WHERE code = ? AND id != ?
+        `).bind(data.code, data.id).first();
+
+        if (codeCheck) {
+            return jsonResponse({
+                success: false,
+                error: 'Mã giảm giá đã được sử dụng'
+            }, 400, corsHeaders);
+        }
+
+        const result = await env.DB.prepare(`
+            UPDATE discounts SET
+                code = ?,
+                title = ?,
+                description = ?,
+                type = ?,
+                discount_value = ?,
+                max_discount_amount = ?,
+                gift_product_id = ?,
+                gift_product_name = ?,
+                gift_quantity = ?,
+                min_order_amount = ?,
+                min_items = ?,
+                max_total_uses = ?,
+                max_uses_per_customer = ?,
+                customer_type = ?,
+                combinable_with_other_discounts = ?,
+                active = ?,
+                visible = ?,
+                start_date = ?,
+                expiry_date = ?
+            WHERE id = ?
+        `).bind(
+            data.code,
+            data.title,
+            data.description || null,
+            data.type,
+            data.discount_value || 0,
+            data.max_discount_amount || null,
+            data.gift_product_id || null,
+            data.gift_product_name || null,
+            data.gift_quantity || 1,
+            data.min_order_amount || 0,
+            data.min_items || 0,
+            data.max_total_uses || null,
+            data.max_uses_per_customer || 1,
+            data.customer_type || 'all',
+            data.combinable_with_other_discounts || 0,
+            data.active || 1,
+            data.visible || 1,
+            data.start_date || null,
+            data.expiry_date,
+            data.id
+        ).run();
+
+        if (!result.success) {
+            throw new Error('Failed to update discount');
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Cập nhật mã giảm giá thành công'
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error updating discount:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function deleteDiscount(data, env, corsHeaders) {
+    try {
+        // Check if discount has been used
+        const usageCheck = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM discount_usage WHERE discount_id = ?
+        `).bind(data.id).first();
+
+        if (usageCheck && usageCheck.count > 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Không thể xóa mã đã được sử dụng. Bạn có thể tạm dừng mã này thay vì xóa.'
+            }, 400, corsHeaders);
+        }
+
+        const result = await env.DB.prepare(`
+            DELETE FROM discounts WHERE id = ?
+        `).bind(data.id).run();
+
+        if (!result.success) {
+            throw new Error('Failed to delete discount');
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Xóa mã giảm giá thành công'
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error deleting discount:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function toggleDiscountStatus(data, env, corsHeaders) {
+    try {
+        const result = await env.DB.prepare(`
+            UPDATE discounts SET active = ? WHERE id = ?
+        `).bind(data.active ? 1 : 0, data.id).run();
+
+        if (!result.success) {
+            throw new Error('Failed to toggle discount status');
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Cập nhật trạng thái thành công'
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error toggling discount status:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Validate discount code
+async function validateDiscount(url, env, corsHeaders) {
+    try {
+        const code = url.searchParams.get('code');
+        const customerPhone = url.searchParams.get('customerPhone');
+        const orderAmount = parseFloat(url.searchParams.get('orderAmount')) || 0;
+
+        if (!code) {
+            return jsonResponse({
+                success: false,
+                error: 'Vui lòng nhập mã giảm giá'
+            }, 400, corsHeaders);
+        }
+
+        // Get discount by code
+        const discount = await env.DB.prepare(`
+            SELECT * FROM discounts WHERE code = ? AND active = 1
+        `).bind(code.toUpperCase()).first();
+
+        if (!discount) {
+            return jsonResponse({
+                success: false,
+                error: 'Mã giảm giá không tồn tại hoặc đã hết hạn'
+            }, 404, corsHeaders);
+        }
+
+        // Check expiry date
+        const now = new Date();
+        if (discount.expiry_date) {
+            const expiryDate = new Date(discount.expiry_date);
+            if (now > expiryDate) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Mã giảm giá đã hết hạn'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Check start date
+        if (discount.start_date) {
+            const startDate = new Date(discount.start_date);
+            if (now < startDate) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Mã giảm giá chưa có hiệu lực'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Check minimum order amount
+        if (discount.min_order_amount && orderAmount < discount.min_order_amount) {
+            return jsonResponse({
+                success: false,
+                error: `Đơn hàng tối thiểu ${discount.min_order_amount.toLocaleString('vi-VN')}đ`
+            }, 400, corsHeaders);
+        }
+
+        // Check max total uses
+        if (discount.max_total_uses && discount.usage_count >= discount.max_total_uses) {
+            return jsonResponse({
+                success: false,
+                error: 'Mã giảm giá đã hết lượt sử dụng'
+            }, 400, corsHeaders);
+        }
+
+        // Check max uses per customer
+        if (customerPhone && discount.max_uses_per_customer) {
+            const usageCount = await env.DB.prepare(`
+                SELECT COUNT(*) as count FROM discount_usage 
+                WHERE discount_code = ? AND customer_phone = ?
+            `).bind(code.toUpperCase(), customerPhone).first();
+
+            if (usageCount && usageCount.count >= discount.max_uses_per_customer) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Bạn đã sử dụng hết lượt áp dụng mã này'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Check customer type restriction
+        if (discount.customer_type && discount.customer_type !== 'all') {
+            // For now, we'll skip this check as it requires order history
+            // Can be implemented later if needed
+        }
+
+        // Check allowed customer phones
+        if (discount.allowed_customer_phones && customerPhone) {
+            try {
+                const allowedPhones = JSON.parse(discount.allowed_customer_phones);
+                if (Array.isArray(allowedPhones) && allowedPhones.length > 0) {
+                    if (!allowedPhones.includes(customerPhone)) {
+                        return jsonResponse({
+                            success: false,
+                            error: 'Mã giảm giá không áp dụng cho số điện thoại này'
+                        }, 400, corsHeaders);
+                    }
+                }
+            } catch (e) {
+                console.warn('Error parsing allowed_customer_phones:', e);
+            }
+        }
+
+        // All validations passed
+        return jsonResponse({
+            success: true,
+            discount: discount
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error validating discount:', error);
+        return jsonResponse({
+            success: false,
+            error: 'Không thể kiểm tra mã giảm giá'
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// CTV OPTIMIZED ENDPOINTS
+// ============================================
+
+// Get CTV orders - Optimized with single query
+async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
+    try {
+        if (!referralCode) {
+            return jsonResponse({ success: false, error: 'Mã CTV không được để trống' }, 400, corsHeaders);
+        }
+
+        // Normalize referral code: trim và uppercase
+        const normalizedCode = referralCode.trim().toUpperCase();
+
+        // Single optimized query with JOIN - Case insensitive search
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                o.*,
+                c.full_name as ctv_name,
+                c.phone as ctv_phone,
+                c.city as ctv_address
+            FROM orders o
+            LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
+            WHERE UPPER(TRIM(o.referral_code)) = ?
+            ORDER BY o.created_at DESC
+        `).bind(normalizedCode).all();
+
+        if (!orders.length) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        // Extract CTV info from first order
+        const ctvInfo = {
+            name: orders[0].ctv_name || 'CTV ' + referralCode,
+            phone: orders[0].ctv_phone || '****',
+            address: orders[0].ctv_address || 'Xem trong đơn hàng'
+        };
+
+        return jsonResponse({ success: true, orders, ctvInfo }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+// Get CTV orders by phone - Optimized
+async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
+    try {
+        if (!phone) {
+            return jsonResponse({ success: false, error: 'Số điện thoại không được để trống' }, 400, corsHeaders);
+        }
+
+        // Normalize phone: trim và thử cả có/không có số 0 đầu
+        const cleanPhone = phone.trim();
+        const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone : '0' + cleanPhone;
+        const phoneWithout0 = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
+
+        // Single optimized query - Case insensitive và trim
+        const { results: orders } = await env.DB.prepare(`
+            SELECT 
+                o.*,
+                c.full_name as ctv_name,
+                c.phone as ctv_phone,
+                c.city as ctv_address,
+                c.referral_code
+            FROM orders o
+            LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
+            WHERE TRIM(c.phone) = ? OR TRIM(c.phone) = ? OR TRIM(c.phone) = ?
+            ORDER BY o.created_at DESC
+        `).bind(normalizedPhone, phoneWithout0, cleanPhone).all();
+
+        if (!orders.length) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        const ctvInfo = {
+            name: orders[0].ctv_name || 'Cộng tác viên',
+            phone: orders[0].ctv_phone || phone,
+            address: orders[0].ctv_address || 'Xem trong đơn hàng'
+        };
+
+        return jsonResponse({
+            success: true,
+            orders,
+            referralCode: orders[0].referral_code,
+            ctvInfo
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+// Get CTV dashboard - Optimized with aggregated queries
+async function getCTVDashboardOptimized(env, corsHeaders) {
+    try {
+        // Single query for all stats
+        const stats = await env.DB.prepare(`
+            SELECT 
+                (SELECT COUNT(*) FROM ctv WHERE is_active = 1) as totalCTV,
+                (SELECT COUNT(*) FROM orders) as totalOrders,
+                (SELECT COALESCE(SUM(total_amount), 0) FROM orders) as totalRevenue,
+                (SELECT COALESCE(SUM(commission), 0) FROM orders WHERE commission IS NOT NULL) as totalCommission
+        `).first();
+
+        // Top 5 performers - Optimized
+        const { results: topPerformers } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                COUNT(*) as orderCount,
+                SUM(o.total_amount) as totalRevenue,
+                SUM(o.commission) as commission
+            FROM orders o
+            WHERE o.referral_code IS NOT NULL AND o.referral_code != ''
+            GROUP BY o.referral_code
+            ORDER BY totalRevenue DESC
+            LIMIT 5
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            stats: {
+                totalCTV: stats.totalCTV || 0,
+                totalOrders: stats.totalOrders || 0,
+                totalRevenue: stats.totalRevenue || 0,
+                totalCommission: stats.totalCommission || 0,
+                topPerformers: topPerformers || []
+            }
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
 function jsonResponse(data, status = 200, corsHeaders = {}) {
     return new Response(JSON.stringify(data), {

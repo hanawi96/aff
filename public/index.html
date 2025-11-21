@@ -3,449 +3,64 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Đăng Ký Cộng Tác Viên - Mẹ & Bé</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'mom-pink': '#f8b4cb',
-                        'mom-blue': '#a8d8ea',
-                        'mom-purple': '#d4a5d4',
-                        'warm-beige': '#f5f1eb'
-                    }
-                }
-            }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyển hướng...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
-    </script>
+
+        .loader {
+            text-align: center;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 10px 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
 </head>
 
-<body class="bg-gradient-to-br from-warm-beige via-white to-mom-blue/20 min-h-screen">
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-16 max-w-2xl">
-        <!-- Hero Section -->
-        <div class="text-center mb-8">
-            <div class="inline-block mb-4">
-                <img src="assets/avatar.jpg" alt="Avatar"
-                    class="w-20 h-20 rounded-full shadow-lg object-cover border-4 border-white">
-            </div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">
-                Trở Thành Cộng Tác Viên
-            </h2>
-            <p class="text-gray-600 text-lg leading-relaxed">
-                Tham gia cùng chúng tôi để chia sẻ những sản phẩm tuyệt vời dành cho mẹ và bé.
-                <span class="text-mom-pink font-semibold">Kiếm thu nhập</span> từ việc giới thiệu sản phẩm mà bạn yêu
-                thích!
-            </p>
-        </div>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <h2>Đang chuyển hướng...</h2>
+        <p>Vui lòng đợi trong giây lát</p>
+    </div>
 
-        <!-- Benefits Section -->
-        <div class="grid md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-pink/20">
-                <div class="w-12 h-12 bg-mom-pink/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6 text-mom-pink" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                        <path fill-rule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <h3 class="font-semibold text-gray-800 mb-2">Hoa Hồng Hấp Dẫn</h3>
-                <p class="text-sm text-gray-600">Lên đến 10% cho mỗi đơn hàng thành công</p>
-            </div>
-            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-blue/20">
-                <div class="w-12 h-12 bg-mom-blue/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6 text-mom-blue" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <h3 class="font-semibold text-gray-800 mb-2">Thời Gian Linh Hoạt</h3>
-                <p class="text-sm text-gray-600">Làm việc theo thời gian của bạn</p>
-            </div>
-            <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center shadow-sm border border-mom-purple/20">
-                <div class="w-12 h-12 bg-mom-purple/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6 text-mom-purple" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
-                    </svg>
-                </div>
-                <h3 class="font-semibold text-gray-800 mb-2">Thanh toán linh hoạt</h3>
-                <p class="text-sm text-gray-600">Thanh toán chỉ từ 1 đơn hàng thành công</p>
-            </div>
-        </div>
-
-        <!-- Registration Form -->
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-100">
-            <div class="text-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">Đăng Ký Ngay</h3>
-                <p class="text-gray-600">Điền thông tin để bắt đầu hành trình cộng tác viên</p>
-            </div>
-
-            <form id="referralForm" class="space-y-6">
-                <!-- Personal Info -->
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-pink mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Họ và Tên *
-                        </label>
-                        <input type="text" name="fullName" required value="yên"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50"
-                            placeholder="Nguyễn Thị Lan">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                            </svg>
-                            Số Điện Thoại *
-                        </label>
-                        <input type="tel" name="phone" required value="0386190596"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50"
-                            placeholder="0901234567">
-                    </div>
-                </div>
-
-                <!-- Email -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <svg class="w-4 h-4 text-mom-purple mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                        </svg>
-                        Email
-                    </label>
-                    <input type="email" name="email"
-                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50"
-                        placeholder="email@gmail.com">
-                    <p class="mt-1.5 text-xs text-gray-500 flex items-start">
-                        <svg class="w-3.5 h-3.5 text-blue-500 mr-1 mt-0.5 flex-shrink-0" fill="currentColor"
-                            viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <span>Nhập email nếu muốn nhận thông báo khi có đơn hàng mới</span>
-                    </p>
-                </div>
-
-                <!-- Location -->
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-pink mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Tỉnh/Thành Phố *
-                        </label>
-                        <select name="city" required
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-pink focus:border-transparent transition-all duration-200 bg-white/50">
-                            <option value="">Chọn tỉnh/thành</option>
-                            <option value="Hà Nội">Hà Nội</option>
-                            <option value="TP.HCM" selected>TP. Hồ Chí Minh</option>
-                            <option value="Đà Nẵng">Đà Nẵng</option>
-                            <option value="Hải Phòng">Hải Phòng</option>
-                            <option value="Cần Thơ">Cần Thơ</option>
-                            <option value="Khác">Tỉnh khác</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Tuổi
-                        </label>
-                        <select name="age"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-blue focus:border-transparent transition-all duration-200 bg-white/50">
-                            <option value="">Chọn độ tuổi</option>
-                            <option value="18-25">18-25 tuổi</option>
-                            <option value="26-30" selected>26-30 tuổi</option>
-                            <option value="31-35">31-35 tuổi</option>
-                            <option value="36-40">36-40 tuổi</option>
-                            <option value="40+">Trên 40 tuổi</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Bank Information -->
-                <div class="grid md:grid-cols-2 gap-4">
-                    <!-- Số tài khoản -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-purple mr-2" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                            Số tài khoản
-                        </label>
-                        <input type="text" name="bankAccountNumber" placeholder="Nhập số tài khoản"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent transition-all duration-200 bg-white/50">
-                        <p class="text-xs text-gray-500 mt-1">6-20 chữ số</p>
-                    </div>
-
-                    <!-- Tên ngân hàng -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                            <svg class="w-4 h-4 text-mom-blue mr-2" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            Tên ngân hàng
-                        </label>
-                        <div class="relative">
-                            <!-- Select Button -->
-                            <button type="button" id="bankSelectButton"
-                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mom-purple focus:border-transparent bg-white/50 text-left flex items-center justify-between hover:border-gray-300 transition-all duration-200">
-                                <span id="bankSelectedText" class="text-gray-500">Chọn ngân hàng</span>
-                                <svg class="w-5 h-5 text-gray-400 transition-transform" id="bankDropdownIcon"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                            <input type="hidden" name="bankName" id="bankNameValue">
-
-                            <!-- Dropdown -->
-                            <div id="bankDropdown"
-                                class="hidden absolute z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden w-full mt-1"
-                                style="max-width: 600px;">
-                                <!-- Search Input inside dropdown -->
-                                <div class="p-3 border-b border-gray-200 bg-gray-50">
-                                    <div class="relative">
-                                        <input type="text" id="bankSearchInput" placeholder="Tìm kiếm ngân hàng..."
-                                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mom-purple focus:border-transparent text-sm"
-                                            autocomplete="off">
-                                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                <!-- Options List -->
-                                <div class="max-h-60 overflow-y-auto">
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="">
-                                        <span class="text-gray-500 italic">Chọn ngân hàng</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="ABBank">
-                                        <span class="font-medium text-gray-900">ABBank</span> - <span
-                                            class="text-gray-600">NHTMCP An Binh</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="ACB">
-                                        <span class="font-medium text-gray-900">ACB</span> - <span
-                                            class="text-gray-600">NH TMCP A Chau</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="Agribank">
-                                        <span class="font-medium text-gray-900">Agribank</span> - <span
-                                            class="text-gray-600">NH NN & PTNT Viet Nam</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="BIDV">
-                                        <span class="font-medium text-gray-900">BIDV</span> - <span
-                                            class="text-gray-600">NH Dau tu & Phat trien VN</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="Eximbank">
-                                        <span class="font-medium text-gray-900">Eximbank</span> - <span
-                                            class="text-gray-600">NHTMCP Xuat Nhap Khau</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="HDBank">
-                                        <span class="font-medium text-gray-900">HDBank</span> - <span
-                                            class="text-gray-600">NHTMCP phat trien Tp HCM</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="MB">
-                                        <span class="font-medium text-gray-900">MB</span> - <span
-                                            class="text-gray-600">NHTMCP Quan Doi</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="OCB">
-                                        <span class="font-medium text-gray-900">OCB</span> - <span
-                                            class="text-gray-600">NHTMCP Phuong Dong</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="Sacombank">
-                                        <span class="font-medium text-gray-900">Sacombank</span> - <span
-                                            class="text-gray-600">NHTMCP Sai Gon Thuong Tin</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="SCB">
-                                        <span class="font-medium text-gray-900">SCB</span> - <span
-                                            class="text-gray-600">NHTMCP Sai Gon</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="SHB">
-                                        <span class="font-medium text-gray-900">SHB</span> - <span
-                                            class="text-gray-600">NHTMCP Sai Gon - Ha Noi</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="Techcombank">
-                                        <span class="font-medium text-gray-900">Techcombank</span> - <span
-                                            class="text-gray-600">NHTMCP Ky Thuong VN</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="TPBank">
-                                        <span class="font-medium text-gray-900">TPBank</span> - <span
-                                            class="text-gray-600">NHTMCP Tien Phong</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="VIB">
-                                        <span class="font-medium text-gray-900">VIB</span> - <span
-                                            class="text-gray-600">NHTMCP Quoc Te VN</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="Vietcombank">
-                                        <span class="font-medium text-gray-900">Vietcombank</span> - <span
-                                            class="text-gray-600">NHTMCP Ngoai Thuong VN</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="VietinBank">
-                                        <span class="font-medium text-gray-900">VietinBank</span> - <span
-                                            class="text-gray-600">NH TMCP Cong Thuong VN</span>
-                                    </div>
-                                    <div class="bank-option px-4 py-2.5 hover:bg-mom-purple/10 cursor-pointer transition-colors border-b border-gray-100"
-                                        data-value="VPBank">
-                                        <span class="font-medium text-gray-900">VPBank</span> - <span
-                                            class="text-gray-600">NHTMCP Viet Nam Thinh Vuong</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Motivation -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <svg class="w-4 h-4 text-mom-blue mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        Lý Do Muốn Trở Thành Cộng Tác Viên
-                    </label>
-
-                    <!-- Preset Buttons -->
-                    <div class="mb-3 flex flex-wrap gap-2">
-                        <button type="button" onclick="selectMotivation(this, 'Muốn có thêm thu nhập')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-pink hover:bg-mom-pink/10 hover:text-mom-pink transition-all duration-200 bg-white">
-                            💰 Kiếm thêm tiền
-                        </button>
-                        <button type="button" onclick="selectMotivation(this, 'Thời gian linh hoạt, làm tại nhà')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-blue hover:bg-mom-blue/10 hover:text-mom-blue transition-all duration-200 bg-white">
-                            🏠 Học bán hàng online
-                        </button>
-                        <button type="button" onclick="selectMotivation(this, 'Yêu thích sản phẩm mẹ và bé')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-purple hover:bg-mom-purple/10 hover:text-mom-purple transition-all duration-200 bg-white">
-                            ❤️ Thích thì làm
-                        </button>
-                        <button type="button"
-                            onclick="selectMotivation(this, 'Muốn chia sẻ sản phẩm tốt với mọi người')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-pink hover:bg-mom-pink/10 hover:text-mom-pink transition-all duration-200 bg-white">
-                            🤝 Chia sẻ giá trị
-                        </button>
-                        <button type="button" onclick="selectMotivation(this, 'Có kinh nghiệm bán hàng online')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-blue hover:bg-mom-blue/10 hover:text-mom-blue transition-all duration-200 bg-white">
-                            📱 Rảnh rỗi nhiều
-                        </button>
-                        <button type="button" onclick="selectMotivation(this, 'Muốn xây dựng cộng đồng mẹ bỉm')"
-                            class="motivation-btn px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:border-mom-purple hover:bg-mom-purple/10 hover:text-mom-purple transition-all duration-200 bg-white">
-                            👶 Không gì cả!!!
-                        </button>
-                    </div>
-
-                    <!-- Hidden input to store selected motivations -->
-                    <input type="hidden" id="motivationText" name="motivation" value="">
-                </div>
-
-                <!-- Terms -->
-                <div class="flex items-start space-x-3">
-                    <input type="checkbox" id="terms" name="terms" required
-                        class="mt-1 w-5 h-5 text-mom-pink border-gray-300 rounded focus:ring-mom-pink">
-                    <label for="terms" class="text-sm text-gray-600 leading-relaxed">
-                        Tôi đồng ý với <a href="#" class="text-mom-pink hover:underline">điều khoản và điều kiện</a>
-                        của chương trình cộng tác viên và cam kết tuân thủ các quy định về bán hàng.
-                    </label>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit"
-                    class="w-full bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 text-white font-extrabold py-5 px-8 rounded-xl flex items-center justify-center space-x-3 text-xl shadow-xl uppercase tracking-wide">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                    </svg>
-                    <span>Đăng Ký Ngay</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Success Message (Hidden by default) -->
-        <div id="successMessage" class="hidden bg-green-50 border border-green-200 rounded-xl p-6 mt-6">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-green-800">Đăng Ký Thành Công!</h3>
-                    <p class="text-green-600">Chúng tôi sẽ liên hệ với bạn trong vòng 24h. Cảm ơn bạn đã tham gia!</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white/50 backdrop-blur-sm mt-16 py-8">
-        <div class="container mx-auto px-4 text-center">
-            <div class="flex items-center justify-center space-x-3 mb-4">
-                <div
-                    class="w-8 h-8 bg-gradient-to-r from-mom-pink to-mom-purple rounded-full flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd"
-                            d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                            clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <span class="text-gray-600 font-medium">Mẹ & Bé Affiliate Program</span>
-            </div>
-            <p class="text-gray-500 text-sm">
-                © 2024 - Chương trình cộng tác viên dành cho mẹ bỉm sữa
-            </p>
-        </div>
-    </footer>
-
-    <script src="assets/js/config.js"></script>
-    <script src="assets/js/timezone-utils.js"></script>
-    <script src="assets/js/referral-form.js"></script>
+    <script>
+        // Redirect to admin orders page
+        window.location.replace('admin/orders.html');
+    </script>
 </body>
 
 </html>
