@@ -118,6 +118,9 @@ async function handleGet(action, url, env, corsHeaders) {
             const discountId = url.searchParams.get('id');
             return await getDiscount(discountId, env, corsHeaders);
 
+        case 'getDiscountUsageHistory':
+            return await getDiscountUsageHistory(env, corsHeaders);
+
         case 'getCustomerDetail':
             const customerPhone = url.searchParams.get('phone');
             return await getCustomerDetail(customerPhone, env, corsHeaders);
@@ -267,6 +270,8 @@ async function handlePostWithAction(action, request, env, corsHeaders) {
             return await deleteDiscount(data, env, corsHeaders);
         case 'toggleDiscountStatus':
             return await toggleDiscountStatus(data, env, corsHeaders);
+        case 'getDiscountUsageHistory':
+            return await getDiscountUsageHistory(env, corsHeaders);
         default:
             return jsonResponse({
                 success: false,
@@ -364,6 +369,8 @@ async function handlePost(path, request, env, corsHeaders) {
                 return await deleteDiscount(data, env, corsHeaders);
             case 'toggleDiscountStatus':
                 return await toggleDiscountStatus(data, env, corsHeaders);
+            case 'getDiscountUsageHistory':
+                return await getDiscountUsageHistory(env, corsHeaders);
             case 'updatePackagingConfig':
                 return await updatePackagingConfig(data, env, corsHeaders);
             case 'updateTaxRate':
@@ -899,7 +906,9 @@ async function createOrder(data, env, corsHeaders) {
         const currentTaxRate = taxRateConfig?.tax_rate || 0.015;
         
         // Calculate tax amount (revenue * tax_rate)
-        const revenue = totalAmountNumber + shippingFee;
+        // IMPORTANT: totalAmountNumber already includes productTotal + shippingFee - discountAmount
+        // So we use it directly as revenue, no need to add shippingFee again
+        const revenue = totalAmountNumber;
         const taxAmount = Math.round(revenue * currentTaxRate);
 
         // Get discount data
@@ -910,14 +919,14 @@ async function createOrder(data, env, corsHeaders) {
         const result = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, order_date, customer_name, customer_phone, 
-                address, products, payment_method, 
+                address, products, total_amount, payment_method, 
                 status, referral_code, commission, commission_rate, ctv_phone, notes,
                 shipping_fee, shipping_cost, packaging_cost, packaging_details,
                 tax_amount, tax_rate, created_at_unix,
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
@@ -925,6 +934,7 @@ async function createOrder(data, env, corsHeaders) {
             data.customer.phone,
             data.customer.address || data.address || '',
             productsJson,
+            totalAmountNumber,
             data.paymentMethod || 'cod',
             data.status || 'pending',
             validReferralCode,
@@ -1026,6 +1036,9 @@ async function createOrder(data, env, corsHeaders) {
         // 1.6. Insert into discount_usage if discount was applied
         if (discountCode && discountAmount > 0 && data.discountId) {
             try {
+                // totalAmountNumber = productTotal + shippingFee - discountAmount (what customer pays)
+                // We save totalAmountNumber as order_amount (final amount customer pays)
+                
                 await env.DB.prepare(`
                     INSERT INTO discount_usage (
                         discount_id, discount_code, order_id, 
@@ -1038,10 +1051,10 @@ async function createOrder(data, env, corsHeaders) {
                     data.orderId,
                     data.customer.name,
                     data.customer.phone,
-                    totalAmountNumber + shippingFee, // Order amount before discount
+                    totalAmountNumber, // Total amount AFTER discount (what customer actually pays)
                     discountAmount
                 ).run();
-                console.log(`✅ Inserted discount usage: ${discountCode} - ${discountAmount}`);
+                console.log(`✅ Inserted discount usage: ${discountCode} - Order Amount: ${totalAmountNumber}, Discount: ${discountAmount}`);
             } catch (discountError) {
                 console.error('⚠️ Error inserting discount usage:', discountError);
                 // Don't fail the order creation
@@ -1674,13 +1687,36 @@ async function updateOrderProducts(data, env, corsHeaders) {
             ).run();
         }
 
-        // Trigger will automatically update orders.total_amount
-        // Now get the updated total_amount for commission calculation
-        const updatedOrder = await env.DB.prepare(`
-            SELECT total_amount 
-            FROM orders 
+        // Calculate new total_amount from order_items
+        const productTotalResult = await env.DB.prepare(`
+            SELECT COALESCE(SUM(product_price * quantity), 0) as product_total
+            FROM order_items
+            WHERE order_id = ?
+        `).bind(data.orderId).first();
+
+        const productTotal = productTotalResult?.product_total || 0;
+        const shippingFee = order.shipping_fee || 0;
+        
+        // Get discount amount from order
+        const orderDiscount = await env.DB.prepare(`
+            SELECT discount_amount
+            FROM orders
             WHERE id = ?
         `).bind(data.orderId).first();
+        
+        const discountAmount = orderDiscount?.discount_amount || 0;
+        
+        // Calculate total_amount: productTotal + shippingFee - discountAmount
+        const newTotalAmount = productTotal + shippingFee - discountAmount;
+        
+        // Update total_amount in orders table
+        await env.DB.prepare(`
+            UPDATE orders
+            SET total_amount = ?
+            WHERE id = ?
+        `).bind(newTotalAmount, data.orderId).run();
+        
+        const updatedOrder = { total_amount: newTotalAmount };
 
         // Calculate product_cost from order_items
         const productCostResult = await env.DB.prepare(`
@@ -1703,9 +1739,9 @@ async function updateOrderProducts(data, env, corsHeaders) {
             `).bind(order.referral_code).first();
 
             if (ctv && ctv.commission_rate !== null) {
-                // Calculate commission based on total_amount
-                calculatedCommission = Math.round(updatedOrder.total_amount * ctv.commission_rate);
-                console.log(`💰 Calculated commission for ${order.referral_code}: ${calculatedCommission} (rate: ${ctv.commission_rate})`);
+                // Calculate commission based on productTotal ONLY (not including shipping, not including discount)
+                calculatedCommission = Math.round(productTotal * ctv.commission_rate);
+                console.log(`💰 Calculated commission for ${order.referral_code}: ${calculatedCommission} (rate: ${ctv.commission_rate}, productTotal: ${productTotal})`);
                 
                 // Update commission
                 await env.DB.prepare(`
@@ -2303,6 +2339,54 @@ async function toggleDiscountStatus(data, env, corsHeaders) {
         }, 200, corsHeaders);
     } catch (error) {
         console.error('Error toggling discount status:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+async function getDiscountUsageHistory(env, corsHeaders) {
+    try {
+        const { results: usageHistory } = await env.DB.prepare(`
+            SELECT 
+                du.id,
+                du.discount_id,
+                du.discount_code,
+                du.order_id,
+                du.customer_name,
+                du.customer_phone,
+                du.order_amount,
+                du.discount_amount,
+                du.gift_received,
+                du.used_at,
+                d.title as discount_title,
+                d.type as discount_type,
+                o.total_amount as order_total_amount
+            FROM discount_usage du
+            LEFT JOIN discounts d ON du.discount_id = d.id
+            LEFT JOIN orders o ON du.order_id = o.order_id
+            ORDER BY du.used_at DESC
+            LIMIT 1000
+        `).all();
+
+        // Fix order_amount for old records: use total_amount from orders table if available
+        const fixedUsageHistory = usageHistory.map(usage => {
+            // If we have order_total_amount from orders table, use it (it's the correct value after discount)
+            if (usage.order_total_amount !== null && usage.order_total_amount !== undefined) {
+                usage.order_amount = usage.order_total_amount;
+            }
+            // Remove the temporary field
+            delete usage.order_total_amount;
+            return usage;
+        });
+
+        return jsonResponse({
+            success: true,
+            usageHistory: fixedUsageHistory
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error getting discount usage history:', error);
         return jsonResponse({
             success: false,
             error: error.message
@@ -3573,6 +3657,7 @@ async function getProfitReport(data, env, corsHeaders) {
                 orders.shipping_cost,
                 orders.packaging_cost,
                 orders.tax_amount,
+                orders.discount_amount,
                 COALESCE(
                     (SELECT SUM(product_price * quantity) 
                      FROM order_items 
@@ -3603,7 +3688,8 @@ async function getProfitReport(data, env, corsHeaders) {
         orders.forEach(order => {
             const productTotal = order.product_total || 0;
             const shippingFee = order.shipping_fee || 0;
-            const revenue = productTotal + shippingFee;
+            const discountAmount = order.discount_amount || 0;
+            const revenue = productTotal + shippingFee - discountAmount;
             
             const productCost = order.product_cost || 0;
             const shippingCost = order.shipping_cost || 0;
@@ -4912,15 +4998,19 @@ async function calculateCommissions(data, env, corsHeaders) {
                 updatedCount++;
             } else {
                 // Insert new record
+                const now = Date.now();
                 await env.DB.prepare(`
                     INSERT INTO commission_payments (
-                        referral_code, month, commission_amount, order_count, status
-                    ) VALUES (?, ?, ?, ?, 'pending')
+                        referral_code, month, commission_amount, order_count, status,
+                        created_at_unix, updated_at_unix
+                    ) VALUES (?, ?, ?, ?, 'pending', ?, ?)
                 `).bind(
                     order.referral_code,
                     month,
                     order.total_commission,
-                    order.order_count
+                    order.order_count,
+                    now,
+                    now
                 ).run();
                 insertedCount++;
             }
@@ -4973,18 +5063,26 @@ async function markCommissionAsPaid(data, env, corsHeaders) {
         }
 
         // Update payment status
+        const now = Date.now();
+        const paymentDateStr = paymentDate || new Date().toISOString().split('T')[0];
+        const paymentDateUnix = new Date(paymentDateStr + 'T00:00:00Z').getTime();
+        
         await env.DB.prepare(`
             UPDATE commission_payments
             SET status = 'paid',
                 payment_date = ?,
+                payment_date_unix = ?,
                 payment_method = ?,
                 note = ?,
-                updated_at = CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP,
+                updated_at_unix = ?
             WHERE id = ?
         `).bind(
-            paymentDate || new Date().getTime(),
+            paymentDateStr,
+            paymentDateUnix,
             paymentMethod || 'bank_transfer',
             note || '',
+            now,
             existing.id
         ).run();
 
@@ -5273,6 +5371,10 @@ async function paySelectedOrders(data, env, corsHeaders) {
         const totalCommission = orders.reduce((sum, order) => sum + (order.commission || 0), 0);
 
         // Create payment record
+        const now = Date.now();
+        const paymentDateStr = paymentDate || new Date().toISOString().split('T')[0];
+        const paymentDateUnix = new Date(paymentDateStr + 'T00:00:00Z').getTime();
+        
         const paymentResult = await env.DB.prepare(`
             INSERT INTO commission_payments (
                 referral_code,
@@ -5281,30 +5383,38 @@ async function paySelectedOrders(data, env, corsHeaders) {
                 commission_amount,
                 status,
                 payment_date,
+                payment_date_unix,
                 payment_method,
-                note
-            ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?)
+                note,
+                created_at_unix,
+                updated_at_unix
+            ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?)
         `).bind(
             referralCode,
             new Date().toISOString().slice(0, 7), // YYYY-MM
             orders.length,
             totalCommission,
-            paymentDate || new Date().toISOString().split('T')[0],
+            paymentDateStr,
+            paymentDateUnix,
             paymentMethod || 'bank_transfer',
-            note || ''
+            note || '',
+            now,
+            now
         ).run();
 
         const paymentId = paymentResult.meta.last_row_id;
 
         // Create payment details for each order
+        const detailsTimestamp = Date.now();
         for (const order of orders) {
             await env.DB.prepare(`
                 INSERT INTO commission_payment_details (
                     payment_id,
                     order_id,
-                    commission_amount
-                ) VALUES (?, ?, ?)
-            `).bind(paymentId, order.id, order.commission).run();
+                    commission_amount,
+                    created_at_unix
+                ) VALUES (?, ?, ?, ?)
+            `).bind(paymentId, order.id, order.commission, detailsTimestamp).run();
         }
 
         return jsonResponse({

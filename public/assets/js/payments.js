@@ -4,6 +4,14 @@ let filteredCommissions = [];
 let currentMonth = '';
 let selectedOrders = new Set();
 
+// Filter state
+let currentFilters = {
+    period: 'thisMonth',
+    status: 'all',
+    search: '',
+    dateRange: null
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Payments V2 initialized');
@@ -13,7 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     currentMonth = `${year}-${month}`;
-    document.getElementById('monthSelector').value = currentMonth;
+    
+    // Initialize filters with default period (thisMonth)
+    filterByPeriod('thisMonth');
     
     // Load both tabs data immediately
     loadUnpaidOrders();
@@ -26,13 +36,12 @@ async function loadUnpaidOrders() {
         showLoading();
         selectedOrders.clear();
         
-        const monthSelector = document.getElementById('monthSelector');
-        currentMonth = monthSelector.value;
-        
+        // Use currentMonth from filter state
         if (!currentMonth) {
-            showToast('Vui lòng chọn tháng', 'warning');
-            hideLoading();
-            return;
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            currentMonth = `${year}-${month}`;
         }
         
         const response = await fetch(`${CONFIG.API_URL}?action=getUnpaidOrdersByMonth&month=${currentMonth}&timestamp=${Date.now()}`);
@@ -174,7 +183,7 @@ function renderCTVList() {
 // Create order row
 function createOrderRow(order, referralCode) {
     const isSelected = selectedOrders.has(order.order_id);
-    const date = new Date(order.created_at).toLocaleDateString('vi-VN');
+    const date = toVNShortDate(order.created_at);
     
     return `
         <label class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer ${isSelected ? 'bg-indigo-50 border-indigo-300' : ''}">
@@ -339,7 +348,7 @@ function showPaymentModal(ctv, orders, totalCommission) {
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div>
                                     <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_code)}</p>
-                                    <p class="text-xs text-gray-500">${new Date(order.created_at).toLocaleDateString('vi-VN')}</p>
+                                    <p class="text-xs text-gray-500">${toVNShortDate(order.created_at)}</p>
                                 </div>
                                 <p class="text-sm font-bold text-orange-600">${formatCurrency(order.commission)}</p>
                             </div>
@@ -532,22 +541,10 @@ function clearSearch() {
     searchInput.focus();
 }
 
-// Load previous month
+// Load previous month (DEPRECATED - Use filterByPeriod('lastMonth') instead)
 function loadPreviousMonth() {
-    const monthSelector = document.getElementById('monthSelector');
-    const [year, month] = monthSelector.value.split('-');
-    
-    let newYear = parseInt(year);
-    let newMonth = parseInt(month) - 1;
-    
-    if (newMonth < 1) {
-        newMonth = 12;
-        newYear -= 1;
-    }
-    
-    const newMonthStr = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-    monthSelector.value = newMonthStr;
-    currentMonth = newMonthStr;
+    // Redirect to new filter system
+    filterByPeriod('lastMonth');
     
     loadUnpaidOrders();
 }
@@ -651,7 +648,9 @@ function switchTab(tab) {
 
 // Load Payment History
 async function loadPaymentHistory() {
-    const month = document.getElementById('monthSelector').value;
+    // Use currentMonth from global state
+    const month = currentMonth || new Date().toISOString().slice(0, 7);
+    
     if (!month) {
         showToast('Vui lòng chọn tháng', 'warning');
         return;
@@ -763,7 +762,7 @@ function createHistoryCard(payment) {
         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
             <div>
                 <p class="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-                <p class="text-sm font-semibold text-gray-900">${payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                <p class="text-sm font-semibold text-gray-900">${payment.payment_date ? toVNShortDate(payment.payment_date) : 'N/A'}</p>
             </div>
             <div>
                 <p class="text-xs text-gray-500 mb-1">Phương thức</p>
@@ -845,3 +844,285 @@ filterCTV = function() {
         originalFilterCTV();
     }
 };
+
+
+// ============================================
+// ENHANCED FILTER FUNCTIONS
+// ============================================
+
+// Filter by period
+function filterByPeriod(period) {
+    currentFilters.period = period;
+    
+    // Update button states
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700', 'border-2');
+        btn.classList.add('border', 'border-gray-300', 'text-gray-700');
+    });
+    
+    const activeBtn = document.getElementById(`filter-${period}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('border', 'border-gray-300', 'text-gray-700');
+        activeBtn.classList.add('border-2', 'border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+    }
+    
+    // Calculate date range based on period using VN timezone
+    let startDate, endDate;
+    
+    switch(period) {
+        case 'today':
+            startDate = getVNStartOfToday();
+            endDate = getVNEndOfToday();
+            break;
+        case 'thisWeek':
+            startDate = getVNStartOfWeek();
+            endDate = getVNEndOfToday();
+            break;
+        case 'thisMonth':
+            startDate = getVNStartOfMonth();
+            endDate = getVNEndOfMonth();
+            break;
+        case 'lastMonth':
+            const now = new Date();
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonthYear = lastMonth.getFullYear();
+            const lastMonthNum = lastMonth.getMonth();
+            startDate = new Date(lastMonthYear, lastMonthNum, 1);
+            endDate = new Date(lastMonthYear, lastMonthNum + 1, 0, 23, 59, 59, 999);
+            break;
+        case '3months':
+            const now3 = new Date();
+            startDate = new Date(now3.getFullYear(), now3.getMonth() - 2, 1);
+            endDate = getVNEndOfMonth();
+            break;
+        case '6months':
+            const now6 = new Date();
+            startDate = new Date(now6.getFullYear(), now6.getMonth() - 5, 1);
+            endDate = getVNEndOfMonth();
+            break;
+        case 'thisYear':
+            startDate = getVNStartOfYear();
+            endDate = getVNEndOfYear();
+            break;
+        case 'all':
+            startDate = null;
+            endDate = null;
+            break;
+    }
+    
+    currentFilters.dateRange = startDate && endDate ? { startDate, endDate } : null;
+    
+    console.log('📅 Filter period:', period, {
+        startDate: startDate ? startDate.toISOString() : 'null',
+        endDate: endDate ? endDate.toISOString() : 'null'
+    });
+    
+    applyFilters();
+}
+
+// Apply all filters
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    
+    currentFilters.status = statusFilter;
+    currentFilters.search = searchTerm;
+    
+    // Show/hide clear button
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (searchTerm) {
+        clearBtn.classList.remove('hidden');
+    } else {
+        clearBtn.classList.add('hidden');
+    }
+    
+    // Filter data - Create deep copy to avoid modifying original
+    let filtered = allCommissions.map(ctv => ({
+        ...ctv,
+        orders: ctv.orders ? [...ctv.orders] : []
+    }));
+    
+    // Filter by date range
+    if (currentFilters.dateRange) {
+        const { startDate, endDate } = currentFilters.dateRange;
+        filtered = filtered.map(ctv => {
+            // Filter orders within each CTV
+            if (ctv.orders && Array.isArray(ctv.orders)) {
+                const filteredOrders = ctv.orders.filter(order => {
+                    const orderDate = new Date(order.created_at || order.payment_date);
+                    return orderDate >= startDate && orderDate <= endDate;
+                });
+                
+                return {
+                    ...ctv,
+                    orders: filteredOrders,
+                    commission_amount: filteredOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
+                    order_count: filteredOrders.length
+                };
+            }
+            return ctv;
+        }).filter(ctv => ctv.order_count > 0);
+    }
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+        filtered = filtered.map(ctv => {
+            if (ctv.orders && Array.isArray(ctv.orders)) {
+                const filteredOrders = ctv.orders.filter(order => {
+                    // Map status values
+                    const orderStatus = order.payment_status || order.status || 'pending';
+                    return orderStatus === statusFilter;
+                });
+                
+                return {
+                    ...ctv,
+                    orders: filteredOrders,
+                    commission_amount: filteredOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
+                    order_count: filteredOrders.length
+                };
+            }
+            return ctv;
+        }).filter(ctv => ctv.order_count > 0);
+    }
+    
+    // Filter by search
+    if (searchTerm) {
+        filtered = filtered.filter(ctv => {
+            return (
+                (ctv.referral_code && ctv.referral_code.toLowerCase().includes(searchTerm)) ||
+                (ctv.full_name && ctv.full_name.toLowerCase().includes(searchTerm)) ||
+                (ctv.phone && ctv.phone.includes(searchTerm)) ||
+                (ctv.bank_account_number && ctv.bank_account_number.includes(searchTerm)) ||
+                (ctv.bank_name && ctv.bank_name.toLowerCase().includes(searchTerm))
+            );
+        });
+    }
+    
+    filteredCommissions = filtered;
+    
+    console.log('✅ Filtered:', {
+        original: allCommissions.length,
+        filtered: filteredCommissions.length,
+        filters: currentFilters
+    });
+    
+    updateActiveFiltersDisplay();
+    renderCTVList();
+    updateFilteredSummary();
+}
+
+// Update active filters display
+function updateActiveFiltersDisplay() {
+    const container = document.getElementById('activeFilters');
+    const tagsContainer = document.getElementById('activeFilterTags');
+    
+    const hasFilters = currentFilters.period !== 'thisMonth' || 
+                      currentFilters.status !== 'all' || 
+                      currentFilters.search;
+    
+    if (!hasFilters) {
+        container.classList.add('hidden');
+        return;
+    }
+    
+    container.classList.remove('hidden');
+    
+    let tags = [];
+    
+    // Period tag
+    const periodLabels = {
+        'today': 'Hôm nay',
+        'thisWeek': 'Tuần này',
+        'thisMonth': 'Tháng này',
+        'lastMonth': 'Tháng trước',
+        '3months': '3 tháng gần đây',
+        '6months': '6 tháng gần đây',
+        'thisYear': 'Năm nay',
+        'all': 'Tất cả'
+    };
+    
+    if (currentFilters.period !== 'thisMonth') {
+        tags.push(`
+            <span class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                ${periodLabels[currentFilters.period]}
+                <button onclick="filterByPeriod('thisMonth')" class="hover:text-indigo-900 ml-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </span>
+        `);
+    }
+    
+    // Status tag
+    if (currentFilters.status !== 'all') {
+        const statusLabel = currentFilters.status === 'pending' ? 'Chưa thanh toán' : 'Đã thanh toán';
+        tags.push(`
+            <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                ${statusLabel}
+                <button onclick="document.getElementById('statusFilter').value='all'; applyFilters();" class="hover:text-blue-900 ml-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </span>
+        `);
+    }
+    
+    // Search tag
+    if (currentFilters.search) {
+        tags.push(`
+            <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                Tìm: "${currentFilters.search}"
+                <button onclick="clearSearch()" class="hover:text-green-900 ml-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </span>
+        `);
+    }
+    
+    tagsContainer.innerHTML = tags.join('');
+}
+
+// Update summary with filtered data
+function updateFilteredSummary() {
+    const totalCTV = filteredCommissions.length;
+    const totalOrders = filteredCommissions.reduce((sum, ctv) => sum + (ctv.order_count || 0), 0);
+    const totalCommission = filteredCommissions.reduce((sum, ctv) => sum + (ctv.commission_amount || 0), 0);
+    
+    document.getElementById('totalCTV').textContent = totalCTV;
+    document.getElementById('totalOrders').textContent = totalOrders;
+    document.getElementById('totalCommission').textContent = formatCurrency(totalCommission);
+    document.getElementById('unpaidCount').textContent = totalCTV;
+}
+
+// Clear all filters
+function clearAllFilters() {
+    currentFilters = {
+        period: 'thisMonth',
+        status: 'all',
+        search: '',
+        dateRange: null
+    };
+    
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClearBtn').classList.add('hidden');
+    
+    filterByPeriod('thisMonth');
+}
+
+// Clear search
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClearBtn').classList.add('hidden');
+    currentFilters.search = '';
+    applyFilters();
+}
+
+// Override old filterCTV function to use new applyFilters
+function filterCTV() {
+    applyFilters();
+}

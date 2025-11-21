@@ -152,43 +152,113 @@
 
         <!-- Main Content -->
         <main class="px-6 lg:px-8 py-6">
-            <!-- Optimized Controls Bar -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <!-- Left: Month Selection -->
-                    <div class="flex items-center gap-3">
-                        <input type="month" id="monthSelector" 
-                            class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium text-gray-900 bg-white hover:border-indigo-400 transition-colors">
-                        
-                        <button onclick="loadUnpaidOrders()" 
-                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold shadow-sm hover:shadow">
-                            Tải dữ liệu
+            <!-- Enhanced Filters Section -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                <!-- Quick Period Filters -->
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                        Khoảng thời gian
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="filterByPeriod('today')" 
+                                id="filter-today"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            Hôm nay
                         </button>
-                        
-                        <button onclick="loadPreviousMonth()" 
-                            class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                        <button onclick="filterByPeriod('thisWeek')" 
+                                id="filter-thisWeek"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            Tuần này
+                        </button>
+                        <button onclick="filterByPeriod('thisMonth')" 
+                                id="filter-thisMonth"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border-2 border-indigo-600 bg-indigo-50 text-indigo-700 transition-colors">
+                            Tháng này
+                        </button>
+                        <button onclick="filterByPeriod('lastMonth')" 
+                                id="filter-lastMonth"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
                             Tháng trước
                         </button>
+                        <button onclick="filterByPeriod('3months')" 
+                                id="filter-3months"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            3 tháng
+                        </button>
+                        <button onclick="filterByPeriod('6months')" 
+                                id="filter-6months"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            6 tháng
+                        </button>
+                        <button onclick="filterByPeriod('thisYear')" 
+                                id="filter-thisYear"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            Năm nay
+                        </button>
+                        <button onclick="filterByPeriod('all')" 
+                                id="filter-all"
+                                class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                            Tất cả
+                        </button>
                     </div>
-                    
-                    <!-- Right: Search -->
-                    <div class="w-full md:w-80">
+                </div>
+
+                <!-- Status & Search Row -->
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- Status Filter -->
+                    <div class="w-full md:w-64">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Trạng thái
+                        </label>
+                        <select id="statusFilter" onchange="applyFilters()" 
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="pending">Chưa thanh toán</option>
+                            <option value="paid">Đã thanh toán</option>
+                        </select>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="flex-1">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Tìm kiếm
+                        </label>
                         <div class="relative">
-                            <input type="text" id="searchInput" placeholder="Tìm CTV, SĐT, STK, ngân hàng..." 
-                                onkeyup="filterCTV()" 
-                                class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white hover:border-gray-400 transition-colors">
+                            <input type="text" id="searchInput" 
+                                   placeholder="Tìm CTV, SĐT, STK, ngân hàng..." 
+                                   onkeyup="applyFilters()" 
+                                   class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
                             <button id="searchClearBtn" onclick="clearSearch()" 
-                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                    class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Clear Filters Button -->
+                    <div class="w-full md:w-auto flex items-end">
+                        <button onclick="clearAllFilters()" 
+                                class="w-full md:w-auto px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Xóa bộ lọc
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="hidden mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm text-gray-600 font-medium">Đang lọc:</span>
+                        <div id="activeFilterTags" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
             </div>
@@ -391,6 +461,7 @@
 
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
+    <script src="../assets/js/timezone-utils.js"></script>
     <script src="../assets/js/payments.js"></script>
 </body>
 </html>

@@ -62,6 +62,32 @@ function toVNTime(utcDate) {
 }
 
 /**
+ * Convert UTC date to Vietnam Date object
+ * Note: Returns a Date object with VN timezone offset applied
+ * @param {string|Date} utcDate - UTC date
+ * @returns {Date} - Date object adjusted for VN timezone
+ */
+function toVNDate(utcDate) {
+    if (!utcDate) return new Date();
+    const date = new Date(utcDate);
+    
+    // Get VN time components
+    const vnDateStr = date.toLocaleString('en-US', { 
+        timeZone: VIETNAM_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    
+    // Parse and create new Date object
+    return new Date(vnDateStr);
+}
+
+/**
  * Get start of today in Vietnam timezone (as UTC timestamp)
  * @returns {Date} - UTC date representing start of today in VN (00:00:00 VN time)
  */
@@ -244,6 +270,7 @@ if (typeof module !== 'undefined' && module.exports) {
         toVNDateString,
         toVNShortDate,
         toVNTime,
+        toVNDate,
         getVNStartOfToday,
         getVNEndOfToday,
         getVNStartOfWeek,

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timezone Debug Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">🕐 Timezone Debug Tool</h1>
+        
+        <!-- Current Time Display -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Thời Gian Hiện Tại</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Giờ Việt Nam (UTC+7)</p>
+                    <p id="vnTime" class="text-2xl font-mono font-bold text-blue-600"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Giờ UTC</p>
+                    <p id="utcTime" class="text-2xl font-mono font-bold text-green-600"></p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm text-gray-600">Unix Timestamp (milliseconds)</p>
+                <p id="unixTime" class="text-xl font-mono font-bold text-purple-600"></p>
+            </div>
+        </div>
+
+        <!-- Test Recent Orders -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Kiểm Tra Đơn Hàng Gần Đây</h2>
+            <button onclick="testRecentOrders()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Tải 10 Đơn Hàng Gần Nhất
+            </button>
+            <div id="ordersResult" class="mt-4"></div>
+        </div>
+
+        <!-- Test Date Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Bộ Lọc Thời Gian</h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-sm font-semibold text-gray-700">Hôm Nay (VN Timezone)</p>
+                    <p class="text-sm text-gray-600">Start: <span id="todayStart" class="font-mono"></span></p>
+                    <p class="text-sm text-gray-600">End: <span id="todayEnd" class="font-mono"></span></p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-gray-700">Tuần Này (VN Timezone)</p>
+                    <p class="text-sm text-gray-600">Start: <span id="weekStart" class="font-mono"></span></p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-gray-700">Tháng Này (VN Timezone)</p>
+                    <p class="text-sm text-gray-600">Start: <span id="monthStart" class="font-mono"></span></p>
+                    <p class="text-sm text-gray-600">End: <span id="monthEnd" class="font-mono"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversion Tool -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Công Cụ Chuyển Đổi</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Nhập Timestamp (Unix milliseconds hoặc ISO string)
+                    </label>
+                    <input type="text" id="inputTimestamp" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                           placeholder="1732203540000 hoặc 2024-11-21T15:39:00Z">
+                    <button onclick="convertTimestamp()" 
+                            class="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Chuyển Đổi
+                    </button>
+                </div>
+                <div id="conversionResult" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="public/assets/js/config.js"></script>
+    <script src="public/assets/js/timezone-utils.js"></script>
+    <script>
+        // Update current time every second
+        function updateCurrentTime() {
+            const now = new Date();
+            
+            // VN Time
+            const vnTime = now.toLocaleString('vi-VN', { 
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour12: false
+            });
+            document.getElementById('vnTime').textContent = vnTime;
+            
+            // UTC Time
+            const utcTime = now.toISOString();
+            document.getElementById('utcTime').textContent = utcTime;
+            
+            // Unix Timestamp
+            const unixTime = now.getTime();
+            document.getElementById('unixTime').textContent = unixTime;
+        }
+
+        // Update date filter ranges
+        function updateDateFilters() {
+            const todayStart = getVNStartOfToday();
+            const todayEnd = getVNEndOfToday();
+            const weekStart = getVNStartOfWeek();
+            const monthStart = getVNStartOfMonth();
+            const monthEnd = getVNEndOfMonth();
+
+            document.getElementById('todayStart').textContent = todayStart.toISOString();
+            document.getElementById('todayEnd').textContent = todayEnd.toISOString();
+            document.getElementById('weekStart').textContent = weekStart.toISOString();
+            document.getElementById('monthStart').textContent = monthStart.toISOString();
+            document.getElementById('monthEnd').textContent = monthEnd.toISOString();
+        }
+
+        // Test recent orders
+        async function testRecentOrders() {
+            const resultDiv = document.getElementById('ordersResult');
+            resultDiv.innerHTML = '<p class="text-gray-600">Đang tải...</p>';
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getRecentOrders&limit=10&timestamp=${Date.now()}`);
+                const data = await response.json();
+
+                if (data.success && data.orders) {
+                    let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm">';
+                    html += '<thead class="bg-gray-50"><tr>';
+                    html += '<th class="px-3 py-2 text-left">Mã ĐH</th>';
+                    html += '<th class="px-3 py-2 text-left">created_at (UTC)</th>';
+                    html += '<th class="px-3 py-2 text-left">created_at_unix</th>';
+                    html += '<th class="px-3 py-2 text-left">Hiển thị (VN)</th>';
+                    html += '<th class="px-3 py-2 text-left">Chênh lệch</th>';
+                    html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+
+                    data.orders.forEach(order => {
+                        const createdAt = order.created_at;
+                        const createdAtUnix = order.created_at_unix;
+                        const vnDisplay = toVNDateString(createdAt);
+                        
+                        // Calculate difference
+                        const utcDate = new Date(createdAt);
+                        const vnDate = new Date(vnDisplay.split(', ').reverse().join(' '));
+                        const diffHours = Math.round((vnDate - utcDate) / (1000 * 60 * 60));
+
+                        html += '<tr>';
+                        html += `<td class="px-3 py-2 font-mono">${order.order_id}</td>`;
+                        html += `<td class="px-3 py-2 font-mono text-xs">${createdAt || 'N/A'}</td>`;
+                        html += `<td class="px-3 py-2 font-mono text-xs">${createdAtUnix || 'N/A'}</td>`;
+                        html += `<td class="px-3 py-2 font-mono text-blue-600">${vnDisplay}</td>`;
+                        html += `<td class="px-3 py-2 ${diffHours === 7 ? 'text-green-600' : 'text-red-600'}">${diffHours}h</td>`;
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table></div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<p class="text-red-600">Lỗi: ' + (data.error || 'Không thể tải dữ liệu') + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="text-red-600">Lỗi: ' + error.message + '</p>';
+            }
+        }
+
+        // Convert timestamp
+        function convertTimestamp() {
+            const input = document.getElementById('inputTimestamp').value.trim();
+            const resultDiv = document.getElementById('conversionResult');
+
+            if (!input) {
+                resultDiv.innerHTML = '<p class="text-red-600">Vui lòng nhập timestamp</p>';
+                return;
+            }
+
+            try {
+                let date;
+                if (input.includes('T') || input.includes('-')) {
+                    // ISO string
+                    date = new Date(input);
+                } else {
+                    // Unix timestamp
+                    date = new Date(parseInt(input));
+                }
+
+                if (isNaN(date.getTime())) {
+                    throw new Error('Timestamp không hợp lệ');
+                }
+
+                const vnTime = toVNDateString(date);
+                const utcTime = date.toISOString();
+                const unixTime = date.getTime();
+
+                let html = '<div class="bg-gray-50 p-4 rounded space-y-2">';
+                html += `<p><span class="font-semibold">UTC:</span> <span class="font-mono">${utcTime}</span></p>`;
+                html += `<p><span class="font-semibold">VN Time:</span> <span class="font-mono text-blue-600">${vnTime}</span></p>`;
+                html += `<p><span class="font-semibold">Unix (ms):</span> <span class="font-mono">${unixTime}</span></p>`;
+                html += '</div>';
+
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = '<p class="text-red-600">Lỗi: ' + error.message + '</p>';
+            }
+        }
+
+        // Initialize
+        updateCurrentTime();
+        updateDateFilters();
+        setInterval(updateCurrentTime, 1000);
+    </script>
+</body>
+</html>

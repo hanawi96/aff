@@ -27,9 +27,11 @@ async function loadCurrentTaxRate() {
 // Helper function to calculate order totals from items
 function calculateOrderTotals(order) {
     // Calculate product_total by subtracting shipping_fee from total_amount
+    // IMPORTANT: total_amount already has discount subtracted, so we need to add it back
     const orderTotalAmount = order.total_amount || 0;
     const shippingFee = order.shipping_fee || 0;
-    const productTotal = orderTotalAmount - shippingFee;
+    const discountAmount = order.discount_amount || 0;
+    const productTotal = orderTotalAmount - shippingFee + discountAmount;
 
     // SINGLE SOURCE OF TRUTH: Always use product_cost from API
     // API calculates this from order_items table: SUM(product_cost * quantity)
@@ -77,8 +79,9 @@ function calculateOrderProfit(order) {
     const packagingCost = order.packaging_cost || 0;
     const commission = order.commission || 0;
 
-    // Revenue = product total + shipping fee
-    const revenue = totalAmount + shippingFee;
+    // Revenue = product total + shipping fee - discount
+    const discountAmount = order.discount_amount || 0;
+    const revenue = totalAmount + shippingFee - discountAmount;
 
     // Use saved tax_amount if available, otherwise calculate
     const tax = order.tax_amount || Math.round(revenue * (order.tax_rate || COST_CONSTANTS.TAX_RATE));
@@ -859,10 +862,13 @@ function showProfitBreakdown(orderId) {
     // Debug log
     console.log('🔍 Profit Analysis Debug:', {
         order_id: order.order_id,
+        total_amount_in_db: order.total_amount,
+        shipping_fee: order.shipping_fee,
+        discount_amount: order.discount_amount,
+        calculated_productTotal: totalAmount,
+        formula: `productTotal = ${order.total_amount} - ${order.shipping_fee} + ${order.discount_amount} = ${totalAmount}`,
         product_cost_from_order: order.product_cost,
         calculated_productCost: productCost,
-        total_amount: order.total_amount,
-        shipping_fee: order.shipping_fee,
         has_items: order.items ? order.items.length : 'no items',
         has_products_json: !!order.products
     });
@@ -881,7 +887,10 @@ function showProfitBreakdown(orderId) {
     }
 
     // Calculate revenue
-    const revenue = totalAmount + shippingFee;
+    // IMPORTANT: totalAmount from calculateOrderTotals() is productTotal (before discount)
+    // revenue = productTotal + shippingFee - discountAmount
+    const discountAmount = order.discount_amount || 0;
+    const revenue = totalAmount + shippingFee - discountAmount;
 
     // Use saved tax_amount if available, otherwise calculate
     const tax = order.tax_amount || Math.round(revenue * (order.tax_rate || COST_CONSTANTS.TAX_RATE));

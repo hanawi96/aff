@@ -7,27 +7,46 @@ const API_URL = 'https://ctv-api.yendev96.workers.dev';
 let allDiscounts = [];
 let filteredDiscounts = [];
 let currentDiscount = null;
+let allUsageHistory = [];
+let filteredUsageHistory = [];
+let currentTab = 'discounts';
+let selectedDiscountIds = new Set(); // Track selected discounts for bulk actions
+let currentPage = 1;
+const itemsPerPage = 10;
 
 // ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     loadDiscounts();
+    loadUsageHistory();
     setupEventListeners();
 });
 
 function setupEventListeners() {
-    // Search
+    // Search - Discounts
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', debounce(filterDiscounts, 300));
     }
 
-    // Filters
+    // Filters - Discounts
     const filterType = document.getElementById('filterType');
     const filterStatus = document.getElementById('filterStatus');
     if (filterType) filterType.addEventListener('change', filterDiscounts);
     if (filterStatus) filterStatus.addEventListener('change', filterDiscounts);
+
+    // Search - Usage
+    const searchUsage = document.getElementById('searchUsage');
+    if (searchUsage) {
+        searchUsage.addEventListener('input', debounce(filterUsageHistory, 300));
+    }
+
+    // Filters - Usage
+    const filterUsageType = document.getElementById('filterUsageType');
+    const filterUsageDate = document.getElementById('filterUsageDate');
+    if (filterUsageType) filterUsageType.addEventListener('change', filterUsageHistory);
+    if (filterUsageDate) filterUsageDate.addEventListener('change', filterUsageHistory);
 
     // Form submit
     const discountForm = document.getElementById('discountForm');
@@ -50,8 +69,18 @@ async function loadDiscounts() {
         if (data.success) {
             allDiscounts = data.discounts || [];
             filteredDiscounts = [...allDiscounts];
+            
+            // Clear selections that no longer exist
+            const existingIds = new Set(allDiscounts.map(d => d.id));
+            selectedDiscountIds.forEach(id => {
+                if (!existingIds.has(id)) {
+                    selectedDiscountIds.delete(id);
+                }
+            });
+            
             updateStats();
             renderDiscounts();
+            updateBulkActionsUI();
         } else {
             showError('Không thể tải danh sách mã giảm giá');
         }
@@ -157,12 +186,26 @@ function renderDiscounts() {
     emptyState.classList.add('hidden');
     discountsTable.classList.remove('hidden');
     
-    tbody.innerHTML = filteredDiscounts.map(discount => {
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredDiscounts.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageData = filteredDiscounts.slice(startIndex, endIndex);
+    
+    tbody.innerHTML = pageData.map(discount => {
         const isExpired = new Date(discount.expiry_date) < new Date();
         const isActive = discount.active && !isExpired;
+        const isChecked = selectedDiscountIds.has(discount.id);
         
         return `
             <tr class="hover:bg-gray-50 transition-colors fade-in">
+                <td class="px-4 py-4 text-center">
+                    <input type="checkbox" 
+                           class="discount-checkbox w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                           data-discount-id="${discount.id}"
+                           ${isChecked ? 'checked' : ''}
+                           onchange="handleDiscountCheckbox(${discount.id}, this.checked)">
+                </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
                         <code class="px-2 py-1 bg-gray-100 text-gray-800 rounded font-mono text-sm font-bold">
@@ -223,24 +266,31 @@ function renderDiscounts() {
                     ${getStatusBadge(isActive, isExpired)}
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <div class="flex items-center justify-end gap-2">
+                    <div class="flex items-center justify-end gap-3">
                         <button onclick="viewDiscountDetails(${discount.id})" 
-                            class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                            class="text-blue-600 hover:text-blue-700 transition-colors" 
                             title="Xem chi tiết">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         </button>
+                        <button onclick="duplicateDiscount(${discount.id})" 
+                            class="text-purple-600 hover:text-purple-700 transition-colors" 
+                            title="Sao chép">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </button>
                         <button onclick="editDiscount(${discount.id})" 
-                            class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" 
+                            class="text-indigo-600 hover:text-indigo-700 transition-colors" 
                             title="Chỉnh sửa">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
                         <button onclick="toggleDiscountStatus(${discount.id}, ${discount.active ? 1 : 0})" 
-                            class="p-2 ${isActive ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'} rounded-lg transition-colors" 
+                            class="${isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'} transition-colors" 
                             title="${isActive ? 'Tạm dừng' : 'Kích hoạt'}">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 ${isActive ? 
@@ -250,7 +300,7 @@ function renderDiscounts() {
                             </svg>
                         </button>
                         <button onclick="deleteDiscount(${discount.id}, '${discount.code}')" 
-                            class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                            class="text-red-600 hover:text-red-700 transition-colors" 
                             title="Xóa">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -261,6 +311,97 @@ function renderDiscounts() {
             </tr>
         `;
     }).join('');
+    
+    // Render pagination
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">';
+    
+    // Info text
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredDiscounts.length);
+    
+    html += `<div class="text-sm text-gray-700">
+        Hiển thị <span class="font-medium">${startItem}</span> đến <span class="font-medium">${endItem}</span> trong tổng số <span class="font-medium">${filteredDiscounts.length}</span> mã
+    </div>`;
+    
+    html += '<div class="flex items-center gap-2">';
+    
+    // Previous button
+    html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} 
+        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    </button>`;
+    
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust start if we're near the end
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // First page + ellipsis
+    if (startPage > 1) {
+        html += `<button onclick="goToPage(1)" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">1</button>`;
+        if (startPage > 2) {
+            html += `<span class="px-2 text-gray-500">...</span>`;
+        }
+    }
+    
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            html += `<button class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium">${i}</button>`;
+        } else {
+            html += `<button onclick="goToPage(${i})" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">${i}</button>`;
+        }
+    }
+    
+    // Ellipsis + last page
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<span class="px-2 text-gray-500">...</span>`;
+        }
+        html += `<button onclick="goToPage(${totalPages})" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">${totalPages}</button>`;
+    }
+    
+    // Next button
+    html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} 
+        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+    </button>`;
+    
+    html += '</div></div>';
+    
+    paginationContainer.innerHTML = html;
+}
+
+function goToPage(page) {
+    const totalPages = Math.ceil(filteredDiscounts.length / itemsPerPage);
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    renderDiscounts();
+    
+    // Scroll to top of table
+    document.getElementById('discountsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateStats() {
@@ -273,6 +414,20 @@ function updateStats() {
     document.getElementById('activeDiscounts').textContent = activeDiscounts.length;
     document.getElementById('totalUsage').textContent = totalUsage.toLocaleString('vi-VN');
     document.getElementById('totalDiscountAmount').textContent = formatMoney(totalAmount);
+    document.getElementById('discountCount').textContent = allDiscounts.length;
+}
+
+function updateUsageStats() {
+    const totalUsageCount = allUsageHistory.length;
+    const totalSaved = allUsageHistory.reduce((sum, u) => sum + (u.discount_amount || 0), 0);
+    const totalOrders = allUsageHistory.reduce((sum, u) => sum + (u.order_amount || 0), 0);
+    const uniquePhones = new Set(allUsageHistory.map(u => u.customer_phone)).size;
+    
+    document.getElementById('totalUsageCount').textContent = totalUsageCount.toLocaleString('vi-VN');
+    document.getElementById('totalSavedAmount').textContent = formatMoney(totalSaved);
+    document.getElementById('totalOrderAmount').textContent = formatMoney(totalOrders);
+    document.getElementById('uniqueCustomers').textContent = uniquePhones.toLocaleString('vi-VN');
+    document.getElementById('usageCount').textContent = totalUsageCount;
 }
 
 // ============================================
@@ -344,6 +499,13 @@ function formatDate(dateString) {
 function showAddDiscountModal() {
     currentDiscount = null;
     document.getElementById('modalTitle').textContent = 'Tạo mã giảm giá mới';
+    
+    // Hide subtitle
+    const subtitle = document.getElementById('modalSubtitle');
+    if (subtitle) {
+        subtitle.classList.add('hidden');
+    }
+    
     document.getElementById('discountForm').reset();
     document.getElementById('discountId').value = '';
     
@@ -369,6 +531,12 @@ function editDiscount(id) {
     
     currentDiscount = discount;
     document.getElementById('modalTitle').textContent = 'Chỉnh sửa mã giảm giá';
+    
+    // Hide subtitle
+    const subtitle = document.getElementById('modalSubtitle');
+    if (subtitle) {
+        subtitle.classList.add('hidden');
+    }
     
     // Fill form
     document.getElementById('discountId').value = discount.id;
@@ -401,6 +569,104 @@ function editDiscount(id) {
     document.getElementById('discountModal').classList.remove('hidden');
 }
 
+function duplicateDiscount(id) {
+    const discount = allDiscounts.find(d => d.id === id);
+    if (!discount) return;
+    
+    currentDiscount = null; // Important: null means creating new
+    document.getElementById('modalTitle').textContent = '📋 Sao chép mã giảm giá';
+    
+    // Show subtitle with original code
+    const subtitle = document.getElementById('modalSubtitle');
+    if (subtitle) {
+        subtitle.textContent = `Sao chép từ: ${discount.code}`;
+        subtitle.classList.remove('hidden');
+    }
+    
+    // Generate new code
+    let newCode = generateUniqueCode(discount.code);
+    
+    // Fill form with duplicated data
+    document.getElementById('discountId').value = ''; // Empty = new discount
+    document.getElementById('code').value = newCode;
+    document.getElementById('type').value = discount.type;
+    document.getElementById('title').value = `${discount.title} (Copy)`;
+    document.getElementById('description').value = discount.description || '';
+    document.getElementById('discountValue').value = discount.discount_value || 0;
+    document.getElementById('maxDiscountAmount').value = discount.max_discount_amount || '';
+    document.getElementById('giftProductId').value = discount.gift_product_id || '';
+    document.getElementById('giftProductName').value = discount.gift_product_name || '';
+    document.getElementById('minOrderAmount').value = discount.min_order_amount || 0;
+    document.getElementById('minItems').value = discount.min_items || 0;
+    document.getElementById('maxTotalUses').value = discount.max_total_uses || '';
+    document.getElementById('maxUsesPerCustomer').value = discount.max_uses_per_customer || 1;
+    
+    // Smart date handling: Set new expiry date to 30 days from now
+    const today = new Date();
+    const newExpiryDate = new Date(today);
+    newExpiryDate.setDate(newExpiryDate.getDate() + 30);
+    
+    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+    document.getElementById('expiryDate').value = newExpiryDate.toISOString().split('T')[0];
+    
+    // Status - Keep active and visible
+    document.getElementById('active').checked = true;
+    document.getElementById('visible').checked = discount.visible;
+    
+    handleTypeChange();
+    document.getElementById('discountModal').classList.remove('hidden');
+    
+    // Highlight auto-adjusted fields
+    setTimeout(() => {
+        highlightField('code');
+        highlightField('title');
+        highlightField('startDate');
+        highlightField('expiryDate');
+    }, 100);
+    
+    // Show helpful toast
+    showToast('Đã sao chép mã. Các trường được tô sáng đã được tự động điều chỉnh', 'info', 5000);
+}
+
+// Highlight a field temporarily
+function highlightField(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Add highlight class
+    field.classList.add('ring-2', 'ring-purple-400', 'bg-purple-50');
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        field.classList.remove('ring-2', 'ring-purple-400', 'bg-purple-50');
+    }, 3000);
+}
+
+// Generate unique code for duplicated discount
+function generateUniqueCode(originalCode) {
+    // Remove existing suffixes like _COPY, _2, _COPY2, etc.
+    let baseCode = originalCode.replace(/_COPY\d*$|_\d+$/, '');
+    
+    // Try _COPY first
+    let newCode = `${baseCode}_COPY`;
+    if (!allDiscounts.some(d => d.code === newCode)) {
+        return newCode;
+    }
+    
+    // Try _COPY2, _COPY3, etc.
+    let counter = 2;
+    while (counter < 100) { // Safety limit
+        newCode = `${baseCode}_COPY${counter}`;
+        if (!allDiscounts.some(d => d.code === newCode)) {
+            return newCode;
+        }
+        counter++;
+    }
+    
+    // Fallback: Use timestamp
+    return `${baseCode}_${Date.now().toString().slice(-6)}`;
+}
+
 function closeDiscountModal() {
     document.getElementById('discountModal').classList.add('hidden');
     currentDiscount = null;
@@ -413,30 +679,32 @@ function handleTypeChange() {
     const giftSection = document.getElementById('giftSection');
     const discountValueInput = document.getElementById('discountValue');
     
-    // Reset visibility
-    discountValueField.classList.add('hidden');
+    // Always show discount value field (it's in the 3-column row)
+    // Just update placeholder and required state
     maxDiscountField.classList.add('hidden');
     giftSection.classList.add('hidden');
     
     // Show relevant fields based on type
     switch(type) {
         case 'fixed':
-            discountValueField.classList.remove('hidden');
             discountValueInput.placeholder = 'VD: 50000';
             discountValueInput.required = true;
+            discountValueField.classList.remove('hidden');
             break;
         case 'percentage':
-            discountValueField.classList.remove('hidden');
-            maxDiscountField.classList.remove('hidden');
             discountValueInput.placeholder = 'VD: 10 (cho 10%)';
             discountValueInput.required = true;
+            discountValueField.classList.remove('hidden');
+            maxDiscountField.classList.remove('hidden');
             break;
         case 'gift':
-            giftSection.classList.remove('hidden');
             discountValueInput.required = false;
+            discountValueField.classList.add('hidden');
+            giftSection.classList.remove('hidden');
             break;
         case 'freeship':
             discountValueInput.required = false;
+            discountValueField.classList.add('hidden');
             break;
     }
 }
@@ -532,7 +800,17 @@ function filterDiscounts() {
         return matchesSearch && matchesType && matchesStatus;
     });
     
+    currentPage = 1; // Reset to first page when filtering
     renderDiscounts();
+    
+    // Update select all checkbox state
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    if (selectAllCb) {
+        const visibleCheckboxes = document.querySelectorAll('.discount-checkbox');
+        const allChecked = visibleCheckboxes.length > 0 && 
+                          Array.from(visibleCheckboxes).every(cb => cb.checked);
+        selectAllCb.checked = allChecked;
+    }
 }
 
 // ============================================
@@ -680,6 +958,583 @@ function viewDiscountDetails(id) {
 }
 
 // ============================================
+// BULK ACTIONS - SELECTION MANAGEMENT
+// ============================================
+
+// Handle individual discount checkbox
+function handleDiscountCheckbox(discountId, isChecked) {
+    if (isChecked) {
+        selectedDiscountIds.add(discountId);
+    } else {
+        selectedDiscountIds.delete(discountId);
+    }
+    updateBulkActionsUI();
+}
+
+// Select/deselect all discounts on current page
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.discount-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        const discountId = parseInt(cb.dataset.discountId);
+        if (checked) {
+            selectedDiscountIds.add(discountId);
+        } else {
+            selectedDiscountIds.delete(discountId);
+        }
+    });
+    updateBulkActionsUI();
+}
+
+// Update bulk actions UI based on selection
+function updateBulkActionsUI() {
+    const count = selectedDiscountIds.size;
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (count > 0) {
+        if (selectedCount) selectedCount.textContent = count;
+        if (bulkActionsBar) {
+            // Show with smooth animation
+            bulkActionsBar.classList.remove('hidden');
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+
+            requestAnimationFrame(() => {
+                bulkActionsBar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                bulkActionsBar.style.opacity = '1';
+                bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
+            });
+        }
+    } else {
+        if (bulkActionsBar) {
+            bulkActionsBar.style.opacity = '0';
+            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+            setTimeout(() => {
+                bulkActionsBar.classList.add('hidden');
+            }, 300);
+        }
+    }
+}
+
+// Clear all selections
+function clearSelection() {
+    selectedDiscountIds.clear();
+    document.querySelectorAll('.discount-checkbox').forEach(cb => cb.checked = false);
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    if (selectAllCb) selectAllCb.checked = false;
+    updateBulkActionsUI();
+}
+
+// ============================================
+// BULK ACTIONS - OPERATIONS
+// ============================================
+
+// Bulk Activate - Activate selected discounts
+async function bulkActivate() {
+    if (selectedDiscountIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 mã', 'warning');
+        return;
+    }
+    
+    const count = selectedDiscountIds.size;
+    if (!confirm(`Bạn có chắc muốn kích hoạt ${count} mã đã chọn?`)) return;
+    
+    try {
+        // Show loading toast with ID
+        showToast(`Đang kích hoạt ${count} mã...`, 'info', 0, 'bulk-activate');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const id of selectedDiscountIds) {
+            try {
+                const response = await fetch(`${API_URL}?action=toggleDiscountStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, active: 1 })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+        
+        // Reload data
+        await loadDiscounts();
+        clearSelection();
+        
+        // Update toast with result (same ID will replace the loading toast)
+        if (errorCount === 0) {
+            showToast(`Đã kích hoạt thành công ${successCount} mã`, 'success', null, 'bulk-activate');
+        } else {
+            showToast(`Đã kích hoạt ${successCount} mã, thất bại ${errorCount} mã`, 'warning', null, 'bulk-activate');
+        }
+    } catch (error) {
+        console.error('Error bulk activating:', error);
+        showToast('Lỗi khi kích hoạt hàng loạt: ' + error.message, 'error', null, 'bulk-activate');
+    }
+}
+
+// Bulk Deactivate - Deactivate selected discounts
+async function bulkDeactivate() {
+    if (selectedDiscountIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 mã', 'warning');
+        return;
+    }
+    
+    const count = selectedDiscountIds.size;
+    if (!confirm(`Bạn có chắc muốn tạm dừng ${count} mã đã chọn?`)) return;
+    
+    try {
+        // Show loading toast with ID
+        showToast(`Đang tạm dừng ${count} mã...`, 'info', 0, 'bulk-deactivate');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const id of selectedDiscountIds) {
+            try {
+                const response = await fetch(`${API_URL}?action=toggleDiscountStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, active: 0 })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+        
+        // Reload data
+        await loadDiscounts();
+        clearSelection();
+        
+        // Update toast with result (same ID will replace the loading toast)
+        if (errorCount === 0) {
+            showToast(`Đã tạm dừng thành công ${successCount} mã`, 'success', null, 'bulk-deactivate');
+        } else {
+            showToast(`Đã tạm dừng ${successCount} mã, thất bại ${errorCount} mã`, 'warning', null, 'bulk-deactivate');
+        }
+    } catch (error) {
+        console.error('Error bulk deactivating:', error);
+        showToast('Lỗi khi tạm dừng hàng loạt: ' + error.message, 'error', null, 'bulk-deactivate');
+    }
+}
+
+// Bulk Delete - Delete selected discounts
+async function bulkDelete() {
+    if (selectedDiscountIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 mã', 'warning');
+        return;
+    }
+    
+    const count = selectedDiscountIds.size;
+    if (!confirm(`⚠️ CẢNH BÁO: Bạn có chắc muốn xóa ${count} mã đã chọn?\n\nHành động này không thể hoàn tác!`)) return;
+    
+    try {
+        // Show loading toast with ID
+        showToast(`Đang xóa ${count} mã...`, 'info', 0, 'bulk-delete');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const id of selectedDiscountIds) {
+            try {
+                const response = await fetch(`${API_URL}?action=deleteDiscount`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+        
+        // Reload data
+        await loadDiscounts();
+        clearSelection();
+        
+        // Update toast with result (same ID will replace the loading toast)
+        if (errorCount === 0) {
+            showToast(`Đã xóa thành công ${successCount} mã`, 'success', null, 'bulk-delete');
+        } else if (successCount === 0) {
+            showToast(`Không thể xóa ${errorCount} mã (có thể đã được sử dụng)`, 'error', null, 'bulk-delete');
+        } else {
+            showToast(`Đã xóa ${successCount} mã, thất bại ${errorCount} mã (có thể đã được sử dụng)`, 'warning', null, 'bulk-delete');
+        }
+    } catch (error) {
+        console.error('Error bulk deleting:', error);
+        showToast('Lỗi khi xóa hàng loạt: ' + error.message, 'error', null, 'bulk-delete');
+    }
+}
+
+// Bulk Export - Export selected discounts to CSV
+async function bulkExport() {
+    if (selectedDiscountIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 mã để export', 'warning');
+        return;
+    }
+
+    try {
+        const selectedDiscounts = allDiscounts.filter(d => selectedDiscountIds.has(d.id));
+
+        // Create CSV content
+        let csv = 'Mã,Tiêu đề,Loại,Giá trị,Giá trị tối thiểu,Số lần dùng,Đã dùng,Trạng thái,Ngày hết hạn\n';
+
+        selectedDiscounts.forEach(discount => {
+            const type = {
+                'fixed': 'Giảm cố định',
+                'percentage': 'Giảm %',
+                'gift': 'Tặng quà',
+                'freeship': 'Freeship'
+            }[discount.type] || discount.type;
+            
+            const value = discount.type === 'fixed' ? discount.discount_value :
+                         discount.type === 'percentage' ? `${discount.discount_value}%` :
+                         discount.gift_product_name || '-';
+            
+            const status = discount.active ? 'Hoạt động' : 'Tạm dừng';
+            
+            csv += `"${discount.code}","${discount.title}","${type}","${value}",`;
+            csv += `"${discount.min_order_amount || 0}","${discount.max_total_uses || 'Không giới hạn'}",`;
+            csv += `"${discount.usage_count || 0}","${status}","${discount.expiry_date}"\n`;
+        });
+
+        // Create and download file
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `discounts_${new Date().getTime()}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Đã export ${selectedDiscountIds.size} mã thành công`, 'success');
+    } catch (error) {
+        console.error('Error exporting:', error);
+        showToast('Lỗi khi export dữ liệu: ' + error.message, 'error');
+    }
+}
+
+// ============================================
+// TAB MANAGEMENT
+// ============================================
+
+function switchTab(tabName) {
+    currentTab = tabName;
+    
+    // Update tab buttons
+    const tabs = ['discounts', 'usage'];
+    tabs.forEach(tab => {
+        const button = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+        const content = document.getElementById(`content${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+        
+        if (tab === tabName) {
+            button.classList.add('active', 'text-indigo-600', 'border-indigo-600', 'bg-gray-50');
+            button.classList.remove('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+            content.classList.remove('hidden');
+        } else {
+            button.classList.remove('active', 'text-indigo-600', 'border-indigo-600', 'bg-gray-50');
+            button.classList.add('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+            content.classList.add('hidden');
+        }
+    });
+    
+    // Load data if needed
+    if (tabName === 'usage' && allUsageHistory.length === 0) {
+        loadUsageHistory();
+    }
+}
+
+// ============================================
+// USAGE HISTORY API CALLS
+// ============================================
+
+async function loadUsageHistory() {
+    try {
+        showUsageLoading();
+        
+        const response = await fetch(`${API_URL}?action=getDiscountUsageHistory`);
+        const data = await response.json();
+        
+        if (data.success) {
+            allUsageHistory = data.usageHistory || [];
+            filteredUsageHistory = [...allUsageHistory];
+            updateUsageStats();
+            renderUsageHistory();
+        } else {
+            showError('Không thể tải lịch sử sử dụng');
+        }
+    } catch (error) {
+        console.error('Error loading usage history:', error);
+        showError('Lỗi kết nối đến server');
+    }
+}
+
+// ============================================
+// USAGE HISTORY RENDERING
+// ============================================
+
+function renderUsageHistory() {
+    const tbody = document.getElementById('usageTableBody');
+    const loadingState = document.getElementById('loadingUsageState');
+    const usageTable = document.getElementById('usageTable');
+    const emptyState = document.getElementById('emptyUsageState');
+    
+    loadingState.classList.add('hidden');
+    
+    if (filteredUsageHistory.length === 0) {
+        usageTable.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    usageTable.classList.remove('hidden');
+    
+    tbody.innerHTML = filteredUsageHistory.map(usage => {
+        return `
+            <tr class="hover:bg-gray-50 transition-colors fade-in">
+                <td class="px-6 py-4">
+                    <div class="text-sm">
+                        <div class="font-medium text-gray-900">${formatDateTime(usage.used_at)}</div>
+                        <div class="text-xs text-gray-500">${formatTimeAgo(usage.used_at)}</div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <div>
+                        <code class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-mono text-sm font-bold">
+                            ${usage.discount_code}
+                        </code>
+                        ${usage.discount_title ? 
+                            `<div class="text-xs text-gray-500 mt-1">${usage.discount_title}</div>` : 
+                            ''
+                        }
+                        ${usage.discount_type ? getTypeBadge(usage.discount_type) : ''}
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <a href="orders.html?search=${usage.order_id}" 
+                        class="text-blue-600 hover:text-blue-800 font-mono text-sm hover:underline">
+                        ${usage.order_id}
+                    </a>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm">
+                        ${usage.customer_name ? 
+                            `<div class="font-medium text-gray-900">${usage.customer_name}</div>` : 
+                            ''
+                        }
+                        <div class="text-gray-600">${usage.customer_phone}</div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="font-semibold text-gray-900">${formatMoney(usage.order_amount)}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="font-semibold text-green-600">-${formatMoney(usage.discount_amount)}</span>
+                </td>
+                <td class="px-6 py-4">
+                    ${usage.gift_received ? 
+                        `<div class="text-sm">
+                            <span class="px-2 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-semibold">
+                                🎁 ${usage.gift_received}
+                            </span>
+                        </div>` : 
+                        '<span class="text-gray-400">-</span>'
+                    }
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="viewUsageDetail(${usage.id})" 
+                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                        title="Xem chi tiết">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterUsageHistory() {
+    const searchTerm = document.getElementById('searchUsage').value.toLowerCase();
+    const typeFilter = document.getElementById('filterUsageType').value;
+    const dateFilter = document.getElementById('filterUsageDate').value;
+    
+    filteredUsageHistory = allUsageHistory.filter(usage => {
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            usage.discount_code.toLowerCase().includes(searchTerm) ||
+            usage.order_id.toLowerCase().includes(searchTerm) ||
+            usage.customer_phone.includes(searchTerm) ||
+            (usage.customer_name && usage.customer_name.toLowerCase().includes(searchTerm));
+        
+        // Type filter
+        const matchesType = !typeFilter || usage.discount_type === typeFilter;
+        
+        // Date filter
+        let matchesDate = true;
+        if (dateFilter) {
+            const usageDate = new Date(usage.used_at).toISOString().split('T')[0];
+            matchesDate = usageDate === dateFilter;
+        }
+        
+        return matchesSearch && matchesType && matchesDate;
+    });
+    
+    renderUsageHistory();
+}
+
+function viewUsageDetail(id) {
+    const usage = allUsageHistory.find(u => u.id === id);
+    if (!usage) return;
+    
+    const detailsHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-xl font-bold">Chi tiết sử dụng mã</h3>
+                    <button onclick="this.closest('.fixed').remove()" class="text-white hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <!-- Discount Info -->
+                    <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-lg font-bold text-indigo-900">Mã giảm giá</h4>
+                            <code class="px-3 py-1.5 bg-white border-2 border-indigo-300 rounded-lg font-mono text-lg font-bold text-indigo-700">
+                                ${usage.discount_code}
+                            </code>
+                        </div>
+                        ${usage.discount_title ? 
+                            `<p class="text-indigo-800 font-medium">${usage.discount_title}</p>` : 
+                            ''
+                        }
+                        ${usage.discount_type ? 
+                            `<div class="mt-2">${getTypeBadge(usage.discount_type)}</div>` : 
+                            ''
+                        }
+                    </div>
+                    
+                    <!-- Order Info -->
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 mb-3">Thông tin đơn hàng</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between py-2 border-b border-gray-100">
+                                <span class="text-gray-600">Mã đơn hàng:</span>
+                                <a href="orders.html?search=${usage.order_id}" 
+                                    class="font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                                    ${usage.order_id}
+                                </a>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-gray-100">
+                                <span class="text-gray-600">Giá trị đơn hàng:</span>
+                                <span class="font-bold text-gray-900 text-lg">${formatMoney(usage.order_amount)}</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-gray-100">
+                                <span class="text-gray-600">Giảm giá:</span>
+                                <span class="font-bold text-green-600 text-lg">-${formatMoney(usage.discount_amount)}</span>
+                            </div>
+                            ${usage.gift_received ? `
+                                <div class="flex justify-between py-2 border-b border-gray-100">
+                                    <span class="text-gray-600">Quà tặng:</span>
+                                    <span class="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-sm font-semibold">
+                                        🎁 ${usage.gift_received}
+                                    </span>
+                                </div>
+                            ` : ''}
+                            <div class="flex justify-between py-2 bg-blue-50 px-3 rounded-lg">
+                                <span class="text-blue-900 font-semibold">Thành tiền:</span>
+                                <span class="font-bold text-blue-900 text-xl">
+                                    ${formatMoney((usage.order_amount || 0) - (usage.discount_amount || 0))}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Info -->
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 mb-3">Thông tin khách hàng</h4>
+                        <div class="space-y-3">
+                            ${usage.customer_name ? `
+                                <div class="flex justify-between py-2 border-b border-gray-100">
+                                    <span class="text-gray-600">Tên khách hàng:</span>
+                                    <span class="font-semibold text-gray-900">${usage.customer_name}</span>
+                                </div>
+                            ` : ''}
+                            <div class="flex justify-between py-2 border-b border-gray-100">
+                                <span class="text-gray-600">Số điện thoại:</span>
+                                <span class="font-semibold text-gray-900">${usage.customer_phone}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Time Info -->
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 mb-3">Thời gian</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between py-2 border-b border-gray-100">
+                                <span class="text-gray-600">Sử dụng lúc:</span>
+                                <span class="font-semibold text-gray-900">${formatDateTime(usage.used_at)}</span>
+                            </div>
+                            <div class="flex justify-between py-2">
+                                <span class="text-gray-600">Cách đây:</span>
+                                <span class="text-gray-900">${formatTimeAgo(usage.used_at)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex gap-3 pt-4 border-t border-gray-200">
+                        <a href="orders.html?search=${usage.order_id}" 
+                            class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center">
+                            Xem đơn hàng
+                        </a>
+                        <button onclick="this.closest('.fixed').remove()" 
+                            class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', detailsHTML);
+}
+
+// ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
@@ -689,27 +1544,49 @@ function showLoading() {
     document.getElementById('emptyState').classList.add('hidden');
 }
 
+function showUsageLoading() {
+    document.getElementById('loadingUsageState').classList.remove('hidden');
+    document.getElementById('usageTable').classList.add('hidden');
+    document.getElementById('emptyUsageState').classList.add('hidden');
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function formatTimeAgo(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 30) return `${diffDays} ngày trước`;
+    return formatDate(dateString);
+}
+
 function showSuccess(message) {
-    showNotification(message, 'success');
+    showToast(message, 'success');
 }
 
 function showError(message) {
-    showNotification(message, 'error');
+    showToast(message, 'error');
 }
 
-function showNotification(message, type = 'info') {
-    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 fade-in`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(-10px)';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+// showToast is now provided by toast-manager.js
 
 function debounce(func, wait) {
     let timeout;
