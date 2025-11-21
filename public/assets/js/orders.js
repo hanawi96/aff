@@ -4943,8 +4943,20 @@ async function showAddOrderModal(duplicateData = null) {
 
     document.body.appendChild(modal);
 
-    // Init address selector
-    initAddressSelector();
+    // Init address selector with duplicate data
+    initAddressSelector(duplicateData);
+
+    // Set discount code if duplicating
+    if (duplicateData?.discount_code) {
+        const discountInput = document.getElementById('newOrderDiscountCode');
+        if (discountInput) {
+            discountInput.value = duplicateData.discount_code;
+            // Auto apply discount after a short delay
+            setTimeout(() => {
+                applyDiscountCode();
+            }, 500);
+        }
+    }
 
     // PERFORMANCE: Use requestAnimationFrame to batch DOM updates
     requestAnimationFrame(() => {
@@ -6392,15 +6404,24 @@ function duplicateOrder(orderId) {
         });
     }
 
-    // Show modal with pre-filled data (không sao chép mã CTV)
+    // Show modal with pre-filled data (không sao chép mã CTV và trạng thái)
     showAddOrderModal({
         customer_name: order.customer_name,
         customer_phone: order.customer_phone,
         address: order.address,
+        // Address 4 levels
+        province_id: order.province_id,
+        district_id: order.district_id,
+        ward_id: order.ward_id,
+        street_address: order.street_address,
         referral_code: '', // Không sao chép mã CTV
         payment_method: order.payment_method,
+        // status: Không sao chép - luôn để "pending" cho đơn mới
         shipping_fee: order.shipping_fee || 0,
         shipping_cost: order.shipping_cost || 0,
+        // Discount info
+        discount_code: order.discount_code || '',
+        discount_amount: order.discount_amount || 0,
         products: products
     });
 
@@ -7213,10 +7234,15 @@ let productRowCounter = 0;
 // ADDRESS SELECTOR INIT
 // ============================================
 
-async function initAddressSelector() {
+async function initAddressSelector(duplicateData = null) {
     // Init address selector module
+    console.log('🔧 Initializing address selector...');
     if (!window.addressSelector.loaded) {
+        console.log('  - Loading address data...');
         await window.addressSelector.init();
+        console.log('  - Address data loaded:', window.addressSelector.loaded);
+    } else {
+        console.log('  - Address data already loaded');
     }
 
     const provinceSelect = document.getElementById('newOrderProvince');
@@ -7227,7 +7253,40 @@ async function initAddressSelector() {
     const hiddenAddress = document.getElementById('newOrderAddress');
 
     // Render provinces
+    console.log('  - Rendering provinces...');
     window.addressSelector.renderProvinces(provinceSelect);
+    console.log('  - Provinces in data:', window.addressSelector.data.provinces?.length || 0);
+    
+    // If duplicating order with address IDs, set them
+    if (duplicateData?.province_id) {
+        console.log('✅ Setting address from duplicate data:');
+        console.log('  - Province ID:', duplicateData.province_id);
+        console.log('  - District ID:', duplicateData.district_id);
+        console.log('  - Ward ID:', duplicateData.ward_id);
+        console.log('  - Street:', duplicateData.street_address);
+        
+        // Set province
+        provinceSelect.value = duplicateData.province_id;
+        
+        // Render and set district
+        if (duplicateData.district_id) {
+            window.addressSelector.renderDistricts(districtSelect, duplicateData.province_id);
+            districtSelect.value = duplicateData.district_id;
+            
+            // Render and set ward
+            if (duplicateData.ward_id) {
+                window.addressSelector.renderWards(wardSelect, duplicateData.province_id, duplicateData.district_id);
+                wardSelect.value = duplicateData.ward_id;
+            }
+        }
+        
+        // Set street address
+        if (duplicateData.street_address) {
+            streetInput.value = duplicateData.street_address;
+        }
+        
+        console.log('✅ Address set successfully from IDs!');
+    }
 
     // Update preview function
     function updateAddressPreview() {
@@ -7257,6 +7316,11 @@ async function initAddressSelector() {
 
     // Street address input
     streetInput.addEventListener('input', updateAddressPreview);
+    
+    // Update preview after setting address from duplicate
+    if (duplicateData?.province_id) {
+        updateAddressPreview();
+    }
 }
 
 
