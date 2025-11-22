@@ -47,14 +47,14 @@ function calculateOrderTotals(order) {
                 productCost = products.reduce((sum, item) => {
                     let cost = item.cost_price || item.cost || 0;
                     const qty = item.quantity || 1;
-                    
+
                     // IMPORTANT: If cost seems too high (> 10x of typical unit cost),
                     // it might be stored as total instead of unit price
                     // In that case, divide by quantity to get unit cost
                     // This is a heuristic fix for data inconsistency
                     const unitCost = cost / qty;
                     const subtotal = unitCost * qty;
-                    
+
                     console.log(`  - ${item.name || 'Unknown'}: cost=${cost}, qty=${qty}, unit=${unitCost}, subtotal=${subtotal}`);
                     return sum + subtotal;
                 }, 0);
@@ -649,7 +649,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
 
     // Use commission directly from database - same as profit analysis modal
     const displayCommission = order.commission || 0;
-    
+
     // Show commission rate if available
     let commissionRateDisplay = '';
     if (order.referral_code && order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
@@ -663,7 +663,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     // Determine tooltip position: show above for last 3 items, below for others
     const isNearBottom = pageIndex > totalPageItems - 3;
     const tooltipPositionClass = isNearBottom ? 'bottom-full mb-2' : 'top-full mt-2';
-    
+
     const ctvIcon = order.referral_code ? `
         <div class="relative group inline-block">
             <div onclick="showCollaboratorModal('${escapeHtml(order.referral_code)}')" class="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
@@ -872,7 +872,7 @@ function showProfitBreakdown(orderId) {
         has_items: order.items ? order.items.length : 'no items',
         has_products_json: !!order.products
     });
-    
+
     // Debug: Parse products to see cost_price
     if (order.products) {
         try {
@@ -895,7 +895,7 @@ function showProfitBreakdown(orderId) {
     // Use saved tax_amount if available, otherwise calculate
     const tax = order.tax_amount || Math.round(revenue * (order.tax_rate || COST_CONSTANTS.TAX_RATE));
     const taxRate = order.tax_rate || COST_CONSTANTS.TAX_RATE;
-    
+
     // Get commission rate from order (saved at creation time)
     const commissionRate = order.commission_rate || 0;
 
@@ -1810,7 +1810,7 @@ ${order.address || 'N/A'}`;
         // Copy to clipboard
         await navigator.clipboard.writeText(spxFormat);
         showToast('Đã copy format SPX', 'success');
-        
+
         // Auto-update status to "shipped" (Đã gửi hàng)
         // Only update if current status is not already shipped, in_transit, delivered, or failed
         const currentStatus = order.status || 'pending';
@@ -2391,7 +2391,7 @@ function editProductName(productId, orderId, orderCode) {
 
     const product = products[productIndex];
     const quantity = typeof product === 'object' ? (product.quantity || 1) : 1;
-    
+
     const productData = typeof product === 'string'
         ? { name: product, quantity: 1, weight: '', size: '', price: '', cost_price: '', notes: '' }
         : {
@@ -2702,7 +2702,7 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
-            
+
             updateOrderData(orderId, updates);
 
             // Re-render table to show updated total_amount
@@ -2919,7 +2919,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         // Add optional fields if provided
         if (weight) updatedProduct.weight = weight;
         if (size) updatedProduct.size = size;
-        
+
         // IMPORTANT: Always use UNIT prices (not total)
         // editModalUnitPrice and editModalUnitCost are calculated from input / quantity
         if (editModalUnitPrice > 0) {
@@ -2928,7 +2928,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         if (editModalUnitCost > 0) {
             updatedProduct.cost_price = editModalUnitCost;
         }
-        
+
         if (notes) updatedProduct.notes = notes;
 
         products[productIndex] = updatedProduct;
@@ -2959,7 +2959,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
-            
+
             updateOrderData(orderId, updates);
 
             // Re-render the table to show updated values
@@ -3900,7 +3900,7 @@ async function deleteProduct(orderId, productIndex, orderCode) {
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
-            
+
             updateOrderData(orderId, updates);
 
             // Re-render the table to show updated products
@@ -4164,7 +4164,7 @@ async function saveProductsToExistingOrder() {
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
-            
+
             updateOrderData(currentEditingOrderId, updates);
 
             updateStats();
@@ -4259,11 +4259,11 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
     menu.id = 'statusMenu';
     menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px]';
     menu.style.zIndex = '9999';
-    
+
     // Calculate position - check if there's enough space below
     const spaceBelow = window.innerHeight - rect.bottom;
     const menuHeight = 250; // Estimated menu height
-    
+
     if (spaceBelow < menuHeight && rect.top > menuHeight) {
         // Show above
         menu.style.left = rect.left + 'px';
@@ -5195,9 +5195,9 @@ function renderQuickAddProducts() {
 function toggleFreeShipping() {
     const checkbox = document.getElementById('freeShippingCheckbox');
     const shippingFeeInput = document.getElementById('newOrderShippingFee');
-    
+
     if (!checkbox || !shippingFeeInput) return;
-    
+
     if (checkbox.checked) {
         // Enable free shipping - only set customer fee to 0
         shippingFeeInput.value = '0';
@@ -5209,7 +5209,7 @@ function toggleFreeShipping() {
         shippingFeeInput.disabled = false;
         shippingFeeInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
-    
+
     // Update order summary
     updateOrderSummary();
 }
@@ -5227,36 +5227,36 @@ function closeAddOrderModal() {
 // Toggle payment dropdown in add order modal
 function togglePaymentDropdown(event) {
     event.stopPropagation();
-    
+
     // Close status dropdown if open
     const statusMenu = document.getElementById('statusDropdownMenu');
     if (statusMenu) statusMenu.remove();
-    
+
     // Close if already open
     const existingMenu = document.getElementById('paymentDropdownMenu');
     if (existingMenu) {
         existingMenu.remove();
         return;
     }
-    
+
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
-    
+
     const paymentOptions = [
         { value: 'cod', label: 'COD', color: 'orange' },
         { value: 'bank', label: 'Chuyển khoản', color: 'blue' },
         { value: 'momo', label: 'MoMo', color: 'pink' }
     ];
-    
+
     const menu = document.createElement('div');
     menu.id = 'paymentDropdownMenu';
     menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]';
     menu.style.zIndex = '9999';
     menu.style.left = rect.left + 'px';
     menu.style.top = (rect.bottom + 4) + 'px';
-    
+
     const currentValue = document.getElementById('newOrderPaymentMethod').value;
-    
+
     menu.innerHTML = paymentOptions.map(option => `
         <button 
             onclick="selectPaymentMethod('${option.value}', '${option.label}', '${option.color}')"
@@ -5266,9 +5266,9 @@ function togglePaymentDropdown(event) {
             <span class="text-base text-gray-700 flex-1">${option.label}</span>
         </button>
     `).join('');
-    
+
     document.body.appendChild(menu);
-    
+
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
             if (!menu.contains(e.target) && !button.contains(e.target)) {
@@ -5293,21 +5293,21 @@ function selectPaymentMethod(value, label, color) {
 // Toggle status dropdown in add order modal
 function toggleStatusDropdown(event) {
     event.stopPropagation();
-    
+
     // Close payment dropdown if open
     const paymentMenu = document.getElementById('paymentDropdownMenu');
     if (paymentMenu) paymentMenu.remove();
-    
+
     // Close if already open
     const existingMenu = document.getElementById('statusDropdownMenu');
     if (existingMenu) {
         existingMenu.remove();
         return;
     }
-    
+
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
-    
+
     const statusOptions = [
         { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
         { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
@@ -5315,25 +5315,25 @@ function toggleStatusDropdown(event) {
         { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
         { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
     ];
-    
+
     const menu = document.createElement('div');
     menu.id = 'statusDropdownMenu';
     menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]';
     menu.style.zIndex = '9999';
     menu.style.left = rect.left + 'px';
-    
+
     // Check if there's enough space below
     const spaceBelow = window.innerHeight - rect.bottom;
     const menuHeight = 300;
-    
+
     if (spaceBelow < menuHeight && rect.top > menuHeight) {
         menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
     } else {
         menu.style.top = (rect.bottom + 4) + 'px';
     }
-    
+
     const currentValue = document.getElementById('newOrderStatus').value;
-    
+
     menu.innerHTML = statusOptions.map(option => `
         <button 
             onclick="selectOrderStatus('${option.value}', '${option.label}', '${option.color}')"
@@ -5343,9 +5343,9 @@ function toggleStatusDropdown(event) {
             <span class="text-base text-gray-700 flex-1">${option.label}</span>
         </button>
     `).join('');
-    
+
     document.body.appendChild(menu);
-    
+
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
             if (!menu.contains(e.target) && !button.contains(e.target)) {
@@ -6065,11 +6065,11 @@ function updateOrderSummary() {
 
     // Update summary display (total = products + shipping fee - discount)
     document.getElementById('orderTotalAmount').textContent = formatCurrency(revenue);
-    
+
     // Update breakdown in main summary
     document.getElementById('orderProductTotal').textContent = formatCurrency(productTotal);
     document.getElementById('orderShippingFee').textContent = formatCurrency(shippingFee);
-    
+
     // Show/hide discount row in main summary
     const orderDiscountRow = document.getElementById('orderDiscountRow');
     if (discountAmount > 0) {
@@ -6105,14 +6105,14 @@ function updateProfitPreview(data) {
         const qty = p.quantity || 1;
         return sum + (price * qty);
     }, 0);
-    
+
     // Update values
     document.getElementById('profitRevenue').textContent = formatCurrency(data.revenue);
-    
+
     // Update revenue breakdown
     document.getElementById('profitProductTotal').textContent = formatCurrency(productTotal);
     document.getElementById('profitShippingFee').textContent = formatCurrency(data.shippingFee);
-    
+
     document.getElementById('profitCost').textContent = formatCurrency(data.productCost);
     document.getElementById('profitPackaging').textContent = formatCurrency(data.packagingCost);
 
@@ -6134,7 +6134,7 @@ function updateProfitPreview(data) {
     }
 
     document.getElementById('profitShipping').textContent = formatCurrency(data.shippingCost);
-    
+
     // Update commission with percentage
     document.getElementById('profitCommission').textContent = formatCurrency(data.commission);
     const commissionLabel = document.getElementById('profitCommissionLabel');
@@ -6147,7 +6147,7 @@ function updateProfitPreview(data) {
             commissionLabel.textContent = '- Hoa hồng';
         }
     }
-    
+
     // Update discount display in revenue breakdown (not in costs)
     const discountRowInRevenue = document.getElementById('profitDiscountRowInRevenue');
     if (data.discountAmount && data.discountAmount > 0) {
@@ -6158,7 +6158,7 @@ function updateProfitPreview(data) {
     } else {
         if (discountRowInRevenue) discountRowInRevenue.classList.add('hidden');
     }
-    
+
     document.getElementById('profitTax').textContent = formatCurrency(data.tax);
 
     // Update tax label with current rate
@@ -6287,10 +6287,10 @@ async function submitNewOrder() {
     // Get shipping costs
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0;
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0;
-    
+
     // Get discount amount
     const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value || 0);
-    
+
     // Calculate total amount (what customer actually pays)
     // totalAmount = productTotal + shippingFee - discountAmount
     const totalAmount = productTotal + shippingFee - discountAmount;
@@ -7035,73 +7035,30 @@ function selectStatusFilter(value, label) {
     filterOrdersData();
 }
 
-// Toggle date filter dropdown
-function toggleDateFilter(event) {
-    event.stopPropagation();
+// Select date filter preset (new button-based design)
+function selectDateFilterPreset(value, buttonElement) {
+    // Update hidden input
+    document.getElementById('dateFilter').value = value;
 
-    // Close status filter if open
-    const statusMenu = document.getElementById('statusFilterMenu');
-    if (statusMenu) statusMenu.remove();
+    // Update button states
+    document.querySelectorAll('.date-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    buttonElement.classList.add('active');
 
-    // Close if already open
-    const existingMenu = document.getElementById('dateFilterMenu');
-    if (existingMenu) {
-        existingMenu.remove();
-        return;
-    }
-
-    const dates = [
-        { value: 'all', label: 'Tất cả thời gian' },
-        { value: 'today', label: 'Hôm nay' },
-        { value: 'yesterday', label: 'Hôm qua' },
-        { value: 'week', label: '7 ngày qua' },
-        { value: 'month', label: '30 ngày qua' }
-    ];
-
-    const currentValue = document.getElementById('dateFilter').value;
-    const button = event.currentTarget;
-
-    const menu = document.createElement('div');
-    menu.id = 'dateFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[180px] mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-
-    menu.innerHTML = dates.map(d => `
-        <button 
-            onclick="selectDateFilter('${d.value}', '${d.label}')"
-            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${d.value === currentValue ? 'bg-blue-50' : ''}"
-        >
-            <div class="w-3 h-3 rounded-full bg-gray-500 flex-shrink-0"></div>
-            <span class="text-base text-gray-700 flex-1">${d.label}</span>
-            ${d.value === currentValue ? `
-                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            ` : ''}
-        </button>
-    `).join('');
-
-    button.style.position = 'relative';
-    button.appendChild(menu);
-
-    // Close when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!button.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }, 10);
+    // Apply filter
+    filterOrdersData();
 }
 
-// Select date filter
+// Legacy functions kept for compatibility
+function toggleDateFilter(event) {
+    // No longer used with button preset design
+    console.log('toggleDateFilter called but not needed with preset buttons');
+}
+
 function selectDateFilter(value, label) {
-    document.getElementById('dateFilter').value = value;
-    document.getElementById('dateFilterLabel').textContent = label;
-    document.getElementById('dateFilterMenu')?.remove();
-    filterOrdersData();
+    // No longer used with button preset design
+    console.log('selectDateFilter called but not needed with preset buttons');
 }
 
 
@@ -7129,11 +7086,11 @@ document.addEventListener('input', function (e) {
         if (!code) {
             statusDiv.innerHTML = '';
             ctvVerified = true; // Empty is valid
-            
+
             // Remove commission_rate
             const commissionRateInput = document.getElementById('ctvCommissionRate');
             if (commissionRateInput) commissionRateInput.remove();
-            
+
             // Update order summary to recalculate commission
             updateOrderSummary();
             return;
@@ -7156,7 +7113,7 @@ document.addEventListener('input', function (e) {
                             <div class="text-green-600">Hoa hồng: ${rate}% • ${data.data.phone}</div>
                         </div>
                     `;
-                    
+
                     // Store commission_rate in hidden input for calculation
                     let commissionRateInput = document.getElementById('ctvCommissionRate');
                     if (!commissionRateInput) {
@@ -7166,9 +7123,9 @@ document.addEventListener('input', function (e) {
                         statusDiv.appendChild(commissionRateInput);
                     }
                     commissionRateInput.value = data.data.rate;
-                    
+
                     ctvVerified = true; // Valid CTV
-                    
+
                     // Update order summary to recalculate commission
                     updateOrderSummary();
                 } else {
@@ -7177,13 +7134,13 @@ document.addEventListener('input', function (e) {
                             ✗ Không tìm thấy CTV với mã này
                         </div>
                     `;
-                    
+
                     // Remove commission_rate
                     const commissionRateInput = document.getElementById('ctvCommissionRate');
                     if (commissionRateInput) commissionRateInput.remove();
-                    
+
                     ctvVerified = false; // Invalid CTV
-                    
+
                     // Update order summary to recalculate commission
                     updateOrderSummary();
                 }
@@ -7245,7 +7202,7 @@ async function initAddressSelector(duplicateData = null) {
     console.log('  - Rendering provinces...');
     window.addressSelector.renderProvinces(provinceSelect);
     console.log('  - Provinces in data:', window.addressSelector.data.provinces?.length || 0);
-    
+
     // If duplicating order with address IDs, set them
     if (duplicateData?.province_id) {
         console.log('✅ Setting address from duplicate data:');
@@ -7253,27 +7210,27 @@ async function initAddressSelector(duplicateData = null) {
         console.log('  - District ID:', duplicateData.district_id);
         console.log('  - Ward ID:', duplicateData.ward_id);
         console.log('  - Street:', duplicateData.street_address);
-        
+
         // Set province
         provinceSelect.value = duplicateData.province_id;
-        
+
         // Render and set district
         if (duplicateData.district_id) {
             window.addressSelector.renderDistricts(districtSelect, duplicateData.province_id);
             districtSelect.value = duplicateData.district_id;
-            
+
             // Render and set ward
             if (duplicateData.ward_id) {
                 window.addressSelector.renderWards(wardSelect, duplicateData.province_id, duplicateData.district_id);
                 wardSelect.value = duplicateData.ward_id;
             }
         }
-        
+
         // Set street address
         if (duplicateData.street_address) {
             streetInput.value = duplicateData.street_address;
         }
-        
+
         console.log('✅ Address set successfully from IDs!');
     }
 
@@ -7305,7 +7262,7 @@ async function initAddressSelector(duplicateData = null) {
 
     // Street address input
     streetInput.addEventListener('input', updateAddressPreview);
-    
+
     // Update preview after setting address from duplicate
     if (duplicateData?.province_id) {
         updateAddressPreview();
@@ -7481,7 +7438,7 @@ async function applyDiscountCode() {
     try {
         // Get customer phone for validation
         const customerPhone = document.getElementById('newOrderCustomerPhone')?.value.trim();
-        
+
         // Calculate current order amount (before discount)
         const productTotal = currentOrderProducts.reduce((sum, p) => {
             const price = p.price || 0;
@@ -7493,13 +7450,13 @@ async function applyDiscountCode() {
 
         // Validate discount code via API
         const response = await fetch(`${CONFIG.API_URL}?action=validateDiscount&code=${encodeURIComponent(discountCode)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`);
-        
+
         console.log('🔍 Discount validation response:', response.status, response.statusText);
-        
+
         // Parse JSON response (even for errors)
         const data = await response.json();
         console.log('📦 Discount data:', data);
-        
+
         // Check if validation failed
         if (!response.ok || !data.success) {
             const errorMessage = data.error || 'Mã giảm giá không hợp lệ';
@@ -7510,10 +7467,10 @@ async function applyDiscountCode() {
 
         if (data.success && data.discount) {
             const discount = data.discount;
-            
+
             // Calculate discount amount based on type
             let discountAmount = 0;
-            
+
             if (discount.type === 'fixed') {
                 discountAmount = discount.discount_value || 0;
             } else if (discount.type === 'percentage') {
@@ -7587,7 +7544,7 @@ function showDiscountSuccess(discount, discountAmount) {
 
     // Update success content - Compact version
     document.getElementById('discountTitle').textContent = discount.code;
-    
+
     let description = '';
     if (discount.type === 'fixed') {
         description = `Giảm ${formatCurrency(discount.discount_value)}`;
@@ -7635,4 +7592,283 @@ function showDiscountError(message) {
             statusDiv.classList.add('hidden');
         }
     }, 10000);
+}
+
+
+// ============================================
+// ORDERS CHART FUNCTIONS
+// ============================================
+
+// Load orders chart data
+async function loadOrdersChart() {
+    // Get current period from date filter
+    const currentPeriod = document.getElementById('dateFilter')?.value || 'week';
+
+    // Skip if period is 'all'
+    if (currentPeriod === 'all') {
+        hideOrdersChart();
+        return;
+    }
+
+    try {
+        showOrdersChart();
+
+        // Check cache
+        const now = Date.now();
+        const cache = ordersChartCache[currentPeriod];
+
+        if (cache.data && (now - cache.timestamp) < CHART_CACHE_TTL) {
+            console.log('📦 Using cached orders chart data for', currentPeriod);
+            renderOrdersChart(cache.data);
+            return;
+        }
+
+        // Show loading
+        const loadingEl = document.getElementById('ordersChartLoading');
+        const containerEl = document.getElementById('ordersChartContainer');
+
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+
+        // Fetch data
+        const response = await fetch(`${CONFIG.API_URL}?action=getOrdersChart&period=${currentPeriod}&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Cache data
+            ordersChartCache[currentPeriod] = {
+                data: data,
+                timestamp: now
+            };
+
+            renderOrdersChart(data);
+        } else {
+            throw new Error(data.error || 'Failed to load chart data');
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading orders chart:', error);
+        const loadingEl = document.getElementById('ordersChartLoading');
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div class="text-center py-20">
+                    <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-gray-500">Không thể tải biểu đồ</p>
+                    <button onclick="loadOrdersChart()" class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">Thử lại</button>
+                </div>
+            `;
+        }
+    }
+}
+
+// Render orders chart
+function renderOrdersChart(data) {
+    // Hide loading, show chart
+    const loadingEl = document.getElementById('ordersChartLoading');
+    const containerEl = document.getElementById('ordersChartContainer');
+
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (containerEl) containerEl.classList.remove('hidden');
+
+    // Update comparison cards
+    updateOrdersComparisonCards(data);
+
+    // Destroy existing chart
+    if (ordersChart) {
+        ordersChart.destroy();
+    }
+
+    // Get canvas context
+    const canvas = document.getElementById('ordersChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    // Determine period labels
+    let periodLabel = 'Kỳ này';
+    let previousLabel = 'Kỳ trước';
+
+    switch (data.period) {
+        case 'today':
+            periodLabel = 'Hôm nay';
+            previousLabel = 'Hôm qua';
+            break;
+        case 'week':
+            periodLabel = 'Tuần này';
+            previousLabel = 'Tuần trước';
+            break;
+        case 'month':
+            periodLabel = 'Tháng này';
+            previousLabel = 'Tháng trước';
+            break;
+        case 'year':
+            periodLabel = 'Năm nay';
+            previousLabel = 'Năm trước';
+            break;
+    }
+
+    // Create chart
+    ordersChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: periodLabel,
+                    data: data.currentPeriod.total,
+                    borderColor: 'rgb(99, 102, 241)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: previousLabel,
+                    data: data.previousPeriod.total,
+                    borderColor: 'rgb(156, 163, 175)',
+                    backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: 'rgb(156, 163, 175)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    bodySpacing: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function (context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.parsed.y + ' đơn';
+
+                            return label;
+                        },
+                        footer: function (tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            const currentDelivered = data.currentPeriod.delivered[index];
+                            const currentCancelled = data.currentPeriod.cancelled[index];
+                            const previousDelivered = data.previousPeriod.delivered[index];
+                            const previousCancelled = data.previousPeriod.cancelled[index];
+
+                            return [
+                                `${periodLabel}: ${currentDelivered} giao, ${currentCancelled} hủy`,
+                                `${previousLabel}: ${previousDelivered} giao, ${previousCancelled} hủy`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return value + ' đơn';
+                        },
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update comparison cards
+function updateOrdersComparisonCards(data) {
+    // Total change
+    const totalEl = document.getElementById('chartTotalChange');
+    if (totalEl) {
+        const totalChange = data.comparison.totalChange;
+        totalEl.textContent = (totalChange >= 0 ? '+' : '') + totalChange.toFixed(1) + '%';
+        totalEl.className = 'text-lg font-bold ' + (totalChange >= 0 ? 'text-green-600' : 'text-red-600');
+    }
+
+    // Delivery rate
+    const deliveryEl = document.getElementById('chartDeliveryRate');
+    if (deliveryEl) {
+        deliveryEl.textContent = data.currentPeriod.deliveryRate.toFixed(1) + '%';
+    }
+
+    // Cancel rate
+    const cancelEl = document.getElementById('chartCancelRate');
+    if (cancelEl) {
+        cancelEl.textContent = data.currentPeriod.cancelRate.toFixed(1) + '%';
+    }
+}
+
+// Hide chart when period is 'all'
+function hideOrdersChart() {
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection && chartSection.querySelector('#ordersChart')) {
+        chartSection.style.display = 'none';
+    }
+}
+
+// Show chart
+function showOrdersChart() {
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection && chartSection.querySelector('#ordersChart')) {
+        chartSection.style.display = 'block';
+    }
 }

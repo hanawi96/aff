@@ -190,7 +190,7 @@
                                 Hôm nay
                             </button>
                             <button onclick="changePeriod('week')" data-period="week"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
                                 Tuần
                             </button>
                             <button onclick="changePeriod('month')" data-period="month"
@@ -202,7 +202,7 @@
                                 Năm
                             </button>
                             <button onclick="changePeriod('all')" data-period="all"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
                                 Tất cả
                             </button>
                         </div>
@@ -316,6 +316,150 @@
                 <div id="totalCommission" class="text-2xl font-bold text-gray-900 mb-1">0đ</div>
                 <div class="text-xs">
                     <span id="commissionPercent" class="text-gray-500">0% doanh thu</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section with Tabs -->
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button onclick="switchChartTab('revenue')" 
+                        data-tab="revenue"
+                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-indigo-600 text-indigo-600">
+                        <div class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                            <span>Doanh thu</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">So sánh với kỳ trước</p>
+                    </button>
+                    <button onclick="switchChartTab('profit')" 
+                        data-tab="profit"
+                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <div class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Lợi nhuận</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Phân tích lợi nhuận ròng</p>
+                    </button>
+                    <button onclick="switchChartTab('orders')" 
+                        data-tab="orders"
+                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <div class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <span>Đơn hàng</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Xu hướng theo thời gian</p>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Revenue Tab Content -->
+            <div id="revenueTabContent" class="chart-tab-content">
+                <!-- Comparison Summary Cards -->
+                <div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-indigo-600 mb-1">Doanh thu</div>
+                            <div id="chartRevenueChange" class="text-lg font-bold text-gray-900">+0%</div>
+                            <div class="text-xs text-gray-500 mt-1">so với kỳ trước</div>
+                        </div>
+                        <div class="text-center border-l border-r border-indigo-200">
+                            <div class="text-xs font-medium text-indigo-600 mb-1">Lợi nhuận</div>
+                            <div id="chartProfitChange" class="text-lg font-bold text-gray-900">+0%</div>
+                            <div class="text-xs text-gray-500 mt-1">so với kỳ trước</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-indigo-600 mb-1">Đơn hàng</div>
+                            <div id="chartOrdersChange" class="text-lg font-bold text-gray-900">+0%</div>
+                            <div class="text-xs text-gray-500 mt-1">so với kỳ trước</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart Canvas -->
+                <div class="p-6">
+                    <div id="chartLoading" class="flex items-center justify-center py-20">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                    <div id="chartContainer" class="hidden">
+                        <canvas id="revenueChart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Tab Content -->
+            <div id="profitTabContent" class="chart-tab-content hidden">
+                <!-- Comparison Summary Cards -->
+                <div class="px-6 py-4 bg-gradient-to-r from-emerald-50 to-green-50 border-b border-gray-200">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-emerald-600 mb-1">Lợi nhuận ròng</div>
+                            <div id="profitChartChange" class="text-lg font-bold text-gray-900">+0%</div>
+                            <div class="text-xs text-gray-500 mt-1">so với kỳ trước</div>
+                        </div>
+                        <div class="text-center border-l border-r border-emerald-200">
+                            <div class="text-xs font-medium text-emerald-600 mb-1">Tỷ suất lợi nhuận</div>
+                            <div id="profitMarginAvg" class="text-lg font-bold text-emerald-700">0%</div>
+                            <div class="text-xs text-gray-500 mt-1">profit margin</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-emerald-600 mb-1">Lợi nhuận TB/đơn</div>
+                            <div id="profitPerOrder" class="text-lg font-bold text-emerald-700">0đ</div>
+                            <div class="text-xs text-gray-500 mt-1">trung bình</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart Canvas -->
+                <div class="p-6">
+                    <div id="profitChartLoading" class="flex items-center justify-center py-20">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                    </div>
+                    <div id="profitChartContainer" class="hidden">
+                        <canvas id="profitChart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Tab Content -->
+            <div id="ordersTabContent" class="chart-tab-content hidden">
+                <!-- Comparison Summary Cards -->
+                <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-gray-200">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-blue-600 mb-1">Tổng đơn</div>
+                            <div id="ordersChartTotalChange" class="text-lg font-bold text-gray-900">+0%</div>
+                            <div class="text-xs text-gray-500 mt-1">so với kỳ trước</div>
+                        </div>
+                        <div class="text-center border-l border-r border-blue-200">
+                            <div class="text-xs font-medium text-blue-600 mb-1">Tỷ lệ giao hàng</div>
+                            <div id="ordersChartDeliveryRate" class="text-lg font-bold text-green-600">0%</div>
+                            <div class="text-xs text-gray-500 mt-1">đơn thành công</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-blue-600 mb-1">Tỷ lệ hủy</div>
+                            <div id="ordersChartCancelRate" class="text-lg font-bold text-red-600">0%</div>
+                            <div class="text-xs text-gray-500 mt-1">đơn bị hủy</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart Canvas -->
+                <div class="p-6">
+                    <div id="ordersChartLoading" class="flex items-center justify-center py-20">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                    <div id="ordersChartContainer" class="hidden">
+                        <canvas id="ordersChart" height="80"></canvas>
+                    </div>
                 </div>
             </div>
         </div>

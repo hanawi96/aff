@@ -1,8 +1,14 @@
 // Product Analytics Dashboard
-let currentPeriod = 'all';
+let currentPeriod = 'week'; // Single source of truth
 let currentLimit = 9999; // Show all products
 let allProductsData = [];
 let currentSort = { column: null, direction: null }; // null, 'asc', 'desc'
+
+// Chart variables
+let revenueChart = null;
+let profitChart = null;
+let ordersChart = null;
+let currentChartTab = 'revenue'; // Track active chart tab
 
 // Cache data by period for better performance with TTL
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
@@ -14,26 +20,134 @@ const dataCache = {
     all: { data: null, timestamp: 0 }
 };
 
+const chartCache = {
+    today: { data: null, timestamp: 0 },
+    week: { data: null, timestamp: 0 },
+    month: { data: null, timestamp: 0 },
+    year: { data: null, timestamp: 0 }
+};
+
+const ordersChartCache = {
+    today: { data: null, timestamp: 0 },
+    week: { data: null, timestamp: 0 },
+    month: { data: null, timestamp: 0 },
+    year: { data: null, timestamp: 0 }
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
     console.log('📊 Product Analytics Dashboard initialized');
-    loadTopProducts();
+    loadAllData();
 });
 
-// Change period
+// Switch chart tab
+function switchChartTab(tab) {
+    currentChartTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tab) {
+            btn.className = 'chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-indigo-600 text-indigo-600';
+        } else {
+            btn.className = 'chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        }
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.chart-tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    if (tab === 'revenue') {
+        document.getElementById('revenueTabContent').classList.remove('hidden');
+    } else if (tab === 'profit') {
+        document.getElementById('profitTabContent').classList.remove('hidden');
+    } else if (tab === 'orders') {
+        document.getElementById('ordersTabContent').classList.remove('hidden');
+    }
+}
+
+// Change period - Single source of truth
 function changePeriod(period) {
     currentPeriod = period;
 
     // Update button styles
     document.querySelectorAll('.period-btn').forEach(btn => {
         if (btn.dataset.period === period) {
-            btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-indigo-600 text-white';
+            btn.className = 'period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white';
         } else {
-            btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200';
+            btn.className = 'period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200';
         }
     });
 
-    loadTopProducts();
+    // Load all data with new period
+    loadAllData();
+}
+
+// Load all data - Optimized parallel loading
+async function loadAllData() {
+    console.log(`📊 Loading all data for period: ${currentPeriod}`);
+    
+    // Show loading states
+    showLoadingStates();
+    
+    // Load data in parallel for better performance
+    const promises = [
+        loadTopProducts(),
+    ];
+    
+    // Only load charts if period is not 'all' (charts don't support 'all')
+    if (currentPeriod !== 'all') {
+        // Preload all charts for smooth tab switching
+        promises.push(loadRevenueChart());
+        promises.push(loadProfitChart());
+        promises.push(loadOrdersChart());
+    } else {
+        hideChart();
+        hideOrdersChart();
+        hideProfitChart();
+    }
+    
+    try {
+        await Promise.all(promises);
+        console.log('✅ All data loaded successfully');
+    } catch (error) {
+        console.error('❌ Error loading data:', error);
+        showToast('Có lỗi khi tải dữ liệu', 'error');
+    }
+}
+
+// Show loading states
+function showLoadingStates() {
+    // Charts loading - only show loading for active tab
+    if (currentPeriod !== 'all') {
+        if (currentChartTab === 'revenue') {
+            document.getElementById('chartLoading')?.classList.remove('hidden');
+            document.getElementById('chartContainer')?.classList.add('hidden');
+        } else if (currentChartTab === 'profit') {
+            document.getElementById('profitChartLoading')?.classList.remove('hidden');
+            document.getElementById('profitChartContainer')?.classList.add('hidden');
+        } else if (currentChartTab === 'orders') {
+            document.getElementById('ordersChartLoading')?.classList.remove('hidden');
+            document.getElementById('ordersChartContainer')?.classList.add('hidden');
+        }
+    }
+}
+
+// Hide chart when period is 'all'
+function hideChart() {
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection && chartSection.querySelector('#revenueChart')) {
+        chartSection.style.display = 'none';
+    }
+}
+
+// Show chart
+function showChart() {
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection && chartSection.querySelector('#revenueChart')) {
+        chartSection.style.display = 'block';
+    }
 }
 
 // Toggle sort column
@@ -80,12 +194,14 @@ function toggleSort(column) {
     renderTopProductsTable();
 }
 
-// Refresh data
+// Refresh data - Clear all caches
 function refreshData() {
     // Clear cache for current period to force reload
     dataCache[currentPeriod] = { data: null, timestamp: 0 };
+    chartCache[currentPeriod] = { data: null, timestamp: 0 };
+    
     showToast('Đang làm mới dữ liệu...', 'info');
-    loadTopProducts();
+    loadAllData();
 }
 
 // Load top products
@@ -618,3 +734,831 @@ function escapeHtml(text) {
 }
 
 // showToast is now provided by toast-manager.js
+
+
+// ============================================
+// REVENUE CHART FUNCTIONS
+// ============================================
+
+// Load revenue chart data
+async function loadRevenueChart() {
+    try {
+        // Show chart section
+        showChart();
+        
+        // Check cache
+        const now = Date.now();
+        const cache = chartCache[currentPeriod];
+        
+        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+            console.log('📦 Using cached chart data for', currentPeriod);
+            renderRevenueChart(cache.data);
+            return;
+        }
+        
+        // Show loading
+        const loadingEl = document.getElementById('chartLoading');
+        const containerEl = document.getElementById('chartContainer');
+        
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+        
+        // Fetch data
+        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${currentPeriod}&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // Cache data
+            chartCache[currentPeriod] = {
+                data: data,
+                timestamp: now
+            };
+            
+            renderRevenueChart(data);
+        } else {
+            throw new Error(data.error || 'Failed to load chart data');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading chart:', error);
+        const loadingEl = document.getElementById('chartLoading');
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div class="text-center py-20">
+                    <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-gray-500">Không thể tải biểu đồ</p>
+                    <button onclick="loadAllData()" class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">Thử lại</button>
+                </div>
+            `;
+        }
+    }
+}
+
+// Render revenue chart
+function renderRevenueChart(data) {
+    // Hide loading, show chart
+    document.getElementById('chartLoading').classList.add('hidden');
+    document.getElementById('chartContainer').classList.remove('hidden');
+    
+    // Update comparison cards
+    updateComparisonCards(data.comparison);
+    
+    // Destroy existing chart
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+    
+    // Get canvas context
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    // Determine period labels
+    let periodLabel = 'Kỳ này';
+    let previousLabel = 'Kỳ trước';
+    
+    switch (data.period) {
+        case 'today':
+            periodLabel = 'Hôm nay';
+            previousLabel = 'Hôm qua';
+            break;
+        case 'week':
+            periodLabel = 'Tuần này';
+            previousLabel = 'Tuần trước';
+            break;
+        case 'month':
+            periodLabel = 'Tháng này';
+            previousLabel = 'Tháng trước';
+            break;
+        case 'year':
+            periodLabel = 'Năm nay';
+            previousLabel = 'Năm trước';
+            break;
+    }
+    
+    // Create chart
+    revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: periodLabel,
+                    data: data.currentPeriod.revenue,
+                    borderColor: 'rgb(99, 102, 241)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: previousLabel,
+                    data: data.previousPeriod.revenue,
+                    borderColor: 'rgb(156, 163, 175)',
+                    backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: 'rgb(156, 163, 175)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    bodySpacing: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += formatCurrency(context.parsed.y);
+                            
+                            // Add order count
+                            const orderCount = context.datasetIndex === 0 
+                                ? data.currentPeriod.orders[context.dataIndex]
+                                : data.previousPeriod.orders[context.dataIndex];
+                            label += ` (${orderCount} đơn)`;
+                            
+                            return label;
+                        },
+                        footer: function(tooltipItems) {
+                            // Show profit in footer
+                            const index = tooltipItems[0].dataIndex;
+                            const currentProfit = data.currentPeriod.profit[index];
+                            const previousProfit = data.previousPeriod.profit[index];
+                            
+                            return [
+                                `Lợi nhuận ${periodLabel}: ${formatCurrency(currentProfit)}`,
+                                `Lợi nhuận ${previousLabel}: ${formatCurrency(previousProfit)}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrencyShort(value);
+                        },
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update comparison cards
+function updateComparisonCards(comparison) {
+    // Revenue change
+    const revenueEl = document.getElementById('chartRevenueChange');
+    const revenueChange = comparison.revenueChange;
+    revenueEl.textContent = (revenueChange >= 0 ? '+' : '') + revenueChange.toFixed(1) + '%';
+    revenueEl.className = 'text-lg font-bold ' + (revenueChange >= 0 ? 'text-green-600' : 'text-red-600');
+    
+    // Profit change
+    const profitEl = document.getElementById('chartProfitChange');
+    const profitChange = comparison.profitChange;
+    profitEl.textContent = (profitChange >= 0 ? '+' : '') + profitChange.toFixed(1) + '%';
+    profitEl.className = 'text-lg font-bold ' + (profitChange >= 0 ? 'text-green-600' : 'text-red-600');
+    
+    // Orders change
+    const ordersEl = document.getElementById('chartOrdersChange');
+    const ordersChange = comparison.ordersChange;
+    ordersEl.textContent = (ordersChange >= 0 ? '+' : '') + ordersChange.toFixed(1) + '%';
+    ordersEl.className = 'text-lg font-bold ' + (ordersChange >= 0 ? 'text-green-600' : 'text-red-600');
+}
+
+// Format currency short (for chart axis)
+function formatCurrencyShort(amount) {
+    if (amount >= 1000000000) {
+        return (amount / 1000000000).toFixed(1) + 'B';
+    } else if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(1) + 'M';
+    } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(0) + 'K';
+    }
+    return amount.toString();
+}
+
+
+// ============================================
+// ORDERS CHART FUNCTIONS
+// ============================================
+
+// Load orders chart data
+async function loadOrdersChart() {
+    try {
+        console.log('📊 Loading orders chart for period:', currentPeriod);
+        showOrdersChart();
+        
+        // Check cache
+        const now = Date.now();
+        const cache = ordersChartCache[currentPeriod];
+        
+        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+            console.log('📦 Using cached orders chart data for', currentPeriod);
+            renderOrdersChart(cache.data);
+            return;
+        }
+        
+        // Show loading only if this is the active tab
+        const loadingEl = document.getElementById('ordersChartLoading');
+        const containerEl = document.getElementById('ordersChartContainer');
+        
+        if (currentChartTab === 'orders') {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (containerEl) containerEl.classList.add('hidden');
+        }
+        
+        // Fetch data
+        console.log('🌐 Fetching orders chart data from API...');
+        const url = `${CONFIG.API_URL}?action=getOrdersChart&period=${currentPeriod}&timestamp=${Date.now()}`;
+        console.log('URL:', url);
+        
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Orders chart data:', data);
+        
+        if (data.success) {
+            // Cache data
+            ordersChartCache[currentPeriod] = {
+                data: data,
+                timestamp: now
+            };
+            
+            console.log('✅ Orders chart data loaded successfully');
+            renderOrdersChart(data);
+        } else {
+            throw new Error(data.error || 'Failed to load orders chart data');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading orders chart:', error);
+        const loadingEl = document.getElementById('ordersChartLoading');
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div class="text-center py-20">
+                    <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-gray-500">Không thể tải biểu đồ đơn hàng</p>
+                    <p class="text-xs text-red-500 mt-2">${error.message}</p>
+                    <button onclick="loadOrdersChart()" class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">Thử lại</button>
+                </div>
+            `;
+        }
+        showToast('Không thể tải biểu đồ đơn hàng: ' + error.message, 'error');
+    }
+}
+
+// Render orders chart
+function renderOrdersChart(data) {
+    // Hide loading, show chart
+    const loadingEl = document.getElementById('ordersChartLoading');
+    const containerEl = document.getElementById('ordersChartContainer');
+    
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (containerEl) containerEl.classList.remove('hidden');
+    
+    // Update comparison cards
+    updateOrdersComparisonCards(data);
+    
+    // Destroy existing chart
+    if (ordersChart) {
+        ordersChart.destroy();
+    }
+    
+    // Get canvas context
+    const canvas = document.getElementById('ordersChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Determine period labels
+    let periodLabel = 'Kỳ này';
+    let previousLabel = 'Kỳ trước';
+    
+    switch (data.period) {
+        case 'today':
+            periodLabel = 'Hôm nay';
+            previousLabel = 'Hôm qua';
+            break;
+        case 'week':
+            periodLabel = 'Tuần này';
+            previousLabel = 'Tuần trước';
+            break;
+        case 'month':
+            periodLabel = 'Tháng này';
+            previousLabel = 'Tháng trước';
+            break;
+        case 'year':
+            periodLabel = 'Năm nay';
+            previousLabel = 'Năm trước';
+            break;
+    }
+    
+    // Create chart
+    ordersChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: periodLabel,
+                    data: data.currentPeriod.total,
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(16, 185, 129)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: previousLabel,
+                    data: data.previousPeriod.total,
+                    borderColor: 'rgb(156, 163, 175)',
+                    backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: 'rgb(156, 163, 175)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    bodySpacing: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.parsed.y + ' đơn';
+                            return label;
+                        },
+                        footer: function(tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            const currentDelivered = data.currentPeriod.delivered[index];
+                            const currentCancelled = data.currentPeriod.cancelled[index];
+                            const previousDelivered = data.previousPeriod.delivered[index];
+                            const previousCancelled = data.previousPeriod.cancelled[index];
+                            
+                            return [
+                                `${periodLabel}: ${currentDelivered} giao, ${currentCancelled} hủy`,
+                                `${previousLabel}: ${previousDelivered} giao, ${previousCancelled} hủy`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' đơn';
+                        },
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update orders comparison cards
+function updateOrdersComparisonCards(data) {
+    // Total change
+    const totalEl = document.getElementById('ordersChartTotalChange');
+    if (totalEl) {
+        const totalChange = data.comparison.totalChange;
+        totalEl.textContent = (totalChange >= 0 ? '+' : '') + totalChange.toFixed(1) + '%';
+        totalEl.className = 'text-lg font-bold ' + (totalChange >= 0 ? 'text-green-600' : 'text-red-600');
+    }
+    
+    // Delivery rate
+    const deliveryEl = document.getElementById('ordersChartDeliveryRate');
+    if (deliveryEl) {
+        deliveryEl.textContent = data.currentPeriod.deliveryRate.toFixed(1) + '%';
+    }
+    
+    // Cancel rate
+    const cancelEl = document.getElementById('ordersChartCancelRate');
+    if (cancelEl) {
+        cancelEl.textContent = data.currentPeriod.cancelRate.toFixed(1) + '%';
+    }
+}
+
+// Hide orders chart when period is 'all'
+function hideOrdersChart() {
+    const sections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    sections.forEach(section => {
+        if (section.querySelector('#ordersChart')) {
+            section.style.display = 'none';
+        }
+    });
+}
+
+// Show orders chart
+function showOrdersChart() {
+    const sections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    sections.forEach(section => {
+        if (section.querySelector('#ordersChart')) {
+            section.style.display = 'block';
+        }
+    });
+}
+
+
+// ============================================
+// PROFIT CHART FUNCTIONS
+// ============================================
+
+// Load profit chart data
+async function loadProfitChart() {
+    try {
+        showProfitChart();
+        
+        // Check cache - reuse revenue chart cache since it has profit data
+        const now = Date.now();
+        const cache = chartCache[currentPeriod];
+        
+        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+            console.log('📦 Using cached profit chart data for', currentPeriod);
+            renderProfitChart(cache.data);
+            return;
+        }
+        
+        // Show loading only if this is the active tab
+        const loadingEl = document.getElementById('profitChartLoading');
+        const containerEl = document.getElementById('profitChartContainer');
+        
+        if (currentChartTab === 'profit') {
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (containerEl) containerEl.classList.add('hidden');
+        }
+        
+        // Fetch data from revenue chart API (it includes profit data)
+        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${currentPeriod}&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // Cache data
+            chartCache[currentPeriod] = {
+                data: data,
+                timestamp: now
+            };
+            
+            renderProfitChart(data);
+        } else {
+            throw new Error(data.error || 'Failed to load profit chart data');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading profit chart:', error);
+        const loadingEl = document.getElementById('profitChartLoading');
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <div class="text-center py-20">
+                    <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-gray-500">Không thể tải biểu đồ lợi nhuận</p>
+                    <button onclick="loadAllData()" class="mt-3 text-emerald-600 hover:text-emerald-700 text-sm font-medium">Thử lại</button>
+                </div>
+            `;
+        }
+    }
+}
+
+// Render profit chart
+function renderProfitChart(data) {
+    // Hide loading, show chart
+    document.getElementById('profitChartLoading').classList.add('hidden');
+    document.getElementById('profitChartContainer').classList.remove('hidden');
+    
+    // Update comparison cards
+    updateProfitComparisonCards(data);
+    
+    // Destroy existing chart
+    if (profitChart) {
+        profitChart.destroy();
+    }
+    
+    // Get canvas context
+    const ctx = document.getElementById('profitChart').getContext('2d');
+    
+    // Determine period labels
+    let periodLabel = 'Kỳ này';
+    let previousLabel = 'Kỳ trước';
+    
+    switch (data.period) {
+        case 'today':
+            periodLabel = 'Hôm nay';
+            previousLabel = 'Hôm qua';
+            break;
+        case 'week':
+            periodLabel = 'Tuần này';
+            previousLabel = 'Tuần trước';
+            break;
+        case 'month':
+            periodLabel = 'Tháng này';
+            previousLabel = 'Tháng trước';
+            break;
+        case 'year':
+            periodLabel = 'Năm nay';
+            previousLabel = 'Năm trước';
+            break;
+    }
+    
+    // Create chart with profit data
+    profitChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: periodLabel,
+                    data: data.currentPeriod.profit,
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(16, 185, 129)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                },
+                {
+                    label: previousLabel,
+                    data: data.previousPeriod.profit,
+                    borderColor: 'rgb(156, 163, 175)',
+                    backgroundColor: 'rgba(156, 163, 175, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: 'rgb(156, 163, 175)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    bodySpacing: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += formatCurrency(context.parsed.y);
+                            
+                            // Add order count
+                            const orderCount = context.datasetIndex === 0 
+                                ? data.currentPeriod.orders[context.dataIndex]
+                                : data.previousPeriod.orders[context.dataIndex];
+                            label += ` (${orderCount} đơn)`;
+                            
+                            return label;
+                        },
+                        footer: function(tooltipItems) {
+                            // Show revenue and profit margin in footer
+                            const index = tooltipItems[0].dataIndex;
+                            const currentRevenue = data.currentPeriod.revenue[index];
+                            const currentProfit = data.currentPeriod.profit[index];
+                            const previousRevenue = data.previousPeriod.revenue[index];
+                            const previousProfit = data.previousPeriod.profit[index];
+                            
+                            const currentMargin = currentRevenue > 0 ? (currentProfit / currentRevenue * 100).toFixed(1) : 0;
+                            const previousMargin = previousRevenue > 0 ? (previousProfit / previousRevenue * 100).toFixed(1) : 0;
+                            
+                            return [
+                                `Doanh thu ${periodLabel}: ${formatCurrency(currentRevenue)}`,
+                                `Tỷ suất ${periodLabel}: ${currentMargin}%`,
+                                `Doanh thu ${previousLabel}: ${formatCurrency(previousRevenue)}`,
+                                `Tỷ suất ${previousLabel}: ${previousMargin}%`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrencyShort(value);
+                        },
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update profit comparison cards
+function updateProfitComparisonCards(data) {
+    // Profit change
+    const profitChangeEl = document.getElementById('profitChartChange');
+    const profitChange = data.comparison.profitChange;
+    profitChangeEl.textContent = (profitChange >= 0 ? '+' : '') + profitChange.toFixed(1) + '%';
+    profitChangeEl.className = 'text-lg font-bold ' + (profitChange >= 0 ? 'text-emerald-600' : 'text-red-600');
+    
+    // Calculate profit margin average
+    const currentTotal = data.currentPeriod.total;
+    const profitMargin = currentTotal.revenue > 0 ? (currentTotal.profit / currentTotal.revenue * 100) : 0;
+    const profitMarginEl = document.getElementById('profitMarginAvg');
+    profitMarginEl.textContent = profitMargin.toFixed(1) + '%';
+    profitMarginEl.className = 'text-lg font-bold ' + (profitMargin >= 30 ? 'text-emerald-700' : profitMargin >= 15 ? 'text-green-600' : 'text-yellow-600');
+    
+    // Profit per order
+    const profitPerOrderEl = document.getElementById('profitPerOrder');
+    const profitPerOrder = currentTotal.orders > 0 ? currentTotal.profit / currentTotal.orders : 0;
+    profitPerOrderEl.textContent = formatCurrency(profitPerOrder);
+    profitPerOrderEl.className = 'text-lg font-bold ' + (profitPerOrder >= 0 ? 'text-emerald-700' : 'text-red-600');
+}
+
+// Show profit chart
+function showProfitChart() {
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection) {
+        chartSection.style.display = 'block';
+    }
+}
+
+// Hide profit chart when period is 'all'
+function hideProfitChart() {
+    // Chart section is shared, so just hide the tab content
+    const profitTabContent = document.getElementById('profitTabContent');
+    if (profitTabContent) {
+        profitTabContent.classList.add('hidden');
+    }
+}
