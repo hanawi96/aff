@@ -451,9 +451,12 @@ async function registerCTV(data, env, corsHeaders) {
             commissionRate: commissionRate
         });
         
+        // Get current timestamp in milliseconds (UTC)
+        const now = Date.now();
+        
         const result = await env.DB.prepare(`
-            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate, created_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.fullName,
             data.phone,
@@ -464,7 +467,8 @@ async function registerCTV(data, env, corsHeaders) {
             data.bankName || null,
             referralCode,
             data.status || 'Mới',
-            commissionRate
+            commissionRate,
+            now
         ).run();
 
         console.log('📊 Insert result:', result);
@@ -658,6 +662,7 @@ async function getCollaboratorInfo(referralCode, env, corsHeaders) {
 async function getAllCTV(env, corsHeaders) {
     try {
         // Get all CTV
+        // Use created_at_unix (milliseconds) for consistent timezone handling
         const { results: ctvList } = await env.DB.prepare(`
             SELECT 
                 id,
@@ -672,9 +677,9 @@ async function getAllCTV(env, corsHeaders) {
                 referral_code as referralCode,
                 status,
                 commission_rate as commissionRate,
-                created_at as timestamp
+                created_at_unix as timestamp
             FROM ctv
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
         `).all();
 
         // Get order stats for each CTV - use total_amount column

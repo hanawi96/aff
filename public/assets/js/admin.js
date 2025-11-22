@@ -58,7 +58,10 @@ async function loadCTVData() {
         }
 
         const data = await response.json();
-        console.log('📊 Received data:', data);
+        console.log('📊 Received CTV data:', {
+            total: data.ctvList?.length || 0,
+            stats: data.stats
+        });
 
         if (data.success) {
             allCTVData = data.ctvList || [];
@@ -84,15 +87,28 @@ async function loadCTVData() {
     }
 }
 
-// Update statistics
+// Update statistics - Now syncs with filtered data
 function updateStats(stats) {
-    const totalCTV = stats.totalCTV || allCTVData.length;
-    const activeCTV = stats.activeCTV || allCTVData.filter(ctv => ctv.hasOrders).length;
-    const newCTV = stats.newCTV || 0;
-    const totalCommission = stats.totalCommission || 0;
+    // Use filteredCTVData instead of allCTVData to sync with current filter
+    const dataToUse = filteredCTVData.length > 0 ? filteredCTVData : allCTVData;
     
-    // Calculate total orders from all CTVs
-    const totalOrders = allCTVData.reduce((sum, ctv) => sum + (ctv.orderCount || 0), 0);
+    const totalCTV = dataToUse.length;
+    const activeCTV = dataToUse.filter(ctv => ctv.hasOrders).length;
+    
+    // Calculate new CTV (this month) from filtered data
+    const now = new Date();
+    const startOfMonth = getVNStartOfMonth();
+    const newCTV = dataToUse.filter(ctv => {
+        if (!ctv.timestamp) return false;
+        const ctvDate = new Date(ctv.timestamp);
+        return ctvDate >= startOfMonth;
+    }).length;
+    
+    // Calculate total commission from filtered data
+    const totalCommission = dataToUse.reduce((sum, ctv) => sum + (ctv.totalCommission || 0), 0);
+    
+    // Calculate total orders from filtered CTVs
+    const totalOrders = dataToUse.reduce((sum, ctv) => sum + (ctv.orderCount || 0), 0);
 
     // Update main stats - Remove skeleton and add text
     updateStatElement('totalCTV', totalCTV, 'text-3xl font-bold text-gray-900');
@@ -365,6 +381,10 @@ function filterCTVData() {
     applySorting();
 
     currentPage = 1; // Reset to first page when filtering
+    
+    // ⚡ Update stats to sync with filtered data
+    updateStats({});
+    
     renderCTVTable();
 }
 
@@ -411,17 +431,6 @@ function applyTimeFilter(ctv) {
     }
 
     const result = startDate ? ctvDate >= startDate : true;
-    
-    // Debug first CTV only to avoid spam
-    if (ctv === allCTVData[0]) {
-        console.log('📅 Filter debug:', {
-            filter: currentTimeFilter,
-            startDate: startDate?.toISOString(),
-            ctvDate: ctvDate.toISOString(),
-            ctvName: ctv.fullName,
-            result: result
-        });
-    }
     
     return result;
 }
@@ -2017,7 +2026,15 @@ function toggleCTVStatusFilter(event) {
 // Select CTV status filter
 function selectCTVStatusFilter(value, label) {
     document.getElementById('statusFilter').value = value;
-    document.getElementById('statusFilterLabel').textContent = label;
+    
+    // Update desktop label
+    const desktopLabel = document.getElementById('statusFilterLabel');
+    if (desktopLabel) desktopLabel.textContent = label;
+    
+    // Update mobile label
+    const mobileLabel = document.getElementById('statusFilterLabelMobile');
+    if (mobileLabel) mobileLabel.textContent = label;
+    
     document.getElementById('statusFilterMenu')?.remove();
     filterCTVData();
 }
