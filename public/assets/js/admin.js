@@ -2081,13 +2081,22 @@ function initTopCTVChart() {
                     borderColor: 'rgba(99, 102, 241, 1)',
                     borderWidth: 1,
                     borderRadius: 6,
-                    barThickness: 24
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
                 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 0,
+                        right: 10,
+                        top: 5,
+                        bottom: 5
+                    }
+                },
                 interaction: {
                     intersect: false,
                     mode: 'index'
@@ -2122,10 +2131,15 @@ function initTopCTVChart() {
                         beginAtZero: true,
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        border: {
+                            display: false
                         },
                         ticks: {
                             font: { size: 11 },
+                            padding: 8,
                             callback: function(value) {
                                 if (topCTVMode === 'revenue') {
                                     // Format currency for axis
@@ -2143,11 +2157,16 @@ function initTopCTVChart() {
                     },
                     y: {
                         grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        border: {
                             display: false
                         },
                         ticks: {
                             font: { size: 11, weight: '500' },
-                            color: '#374151'
+                            color: '#374151',
+                            padding: 10
                         }
                     }
                 }
