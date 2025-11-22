@@ -153,11 +153,11 @@ function renderCustomersFiltered(customers) {
 // Create customer row HTML
 function createCustomerRow(customer, index) {
     const segmentBadges = {
-        'VIP': '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">🌟 VIP</span>',
-        'Regular': '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">💚 Regular</span>',
-        'New': '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">🆕 New</span>',
-        'At Risk': '<span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">⚠️ At Risk</span>',
-        'Churned': '<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">💤 Churned</span>'
+        'VIP': '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 text-xs font-semibold rounded-full"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>VIP</span>',
+        'Regular': '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 text-xs font-semibold rounded-full"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Regular</span>',
+        'New': '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-800 text-xs font-semibold rounded-full"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>New</span>',
+        'At Risk': '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-orange-800 text-xs font-semibold rounded-full"><span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>At Risk</span>',
+        'Churned': '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-full"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>Churned</span>'
     };
 
     // Show actual date of last order instead of "days ago"
@@ -244,11 +244,11 @@ function showCustomerModal(customer) {
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
     
     const segmentBadges = {
-        'VIP': '<span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">🌟 VIP</span>',
-        'Regular': '<span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">💚 Regular</span>',
-        'New': '<span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">🆕 New</span>',
-        'At Risk': '<span class="px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full">⚠️ At Risk</span>',
-        'Churned': '<span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">💤 Churned</span>'
+        'VIP': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span>VIP</span>',
+        'Regular': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-green-500 rounded-full"></span>Regular</span>',
+        'New': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-blue-500 rounded-full"></span>New</span>',
+        'At Risk': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-orange-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-orange-500 rounded-full"></span>At Risk</span>',
+        'Churned': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 text-gray-700 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-gray-400 rounded-full"></span>Churned</span>'
     };
 
     // Show actual date instead of "days ago"
@@ -376,11 +376,11 @@ function closeCustomerModal() {
 // Get status badge
 function getStatusBadge(status) {
     const badges = {
-        'pending': '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">⏳ Chờ xử lý</span>',
-        'processing': '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">🔄 Đang xử lý</span>',
-        'shipped': '<span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">📦 Đã gửi</span>',
-        'delivered': '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">✅ Đã giao</span>',
-        'cancelled': '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">❌ Đã hủy</span>'
+        'pending': '<span class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-100 border border-yellow-200 text-yellow-800 text-xs font-medium rounded"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>Chờ xử lý</span>',
+        'processing': '<span class="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 border border-blue-200 text-blue-800 text-xs font-medium rounded"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>Đang xử lý</span>',
+        'shipped': '<span class="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-100 border border-purple-200 text-purple-800 text-xs font-medium rounded"><span class="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>Đã gửi</span>',
+        'delivered': '<span class="inline-flex items-center gap-1.5 px-2 py-1 bg-green-100 border border-green-200 text-green-800 text-xs font-medium rounded"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Đã giao</span>',
+        'cancelled': '<span class="inline-flex items-center gap-1.5 px-2 py-1 bg-red-100 border border-red-200 text-red-800 text-xs font-medium rounded"><span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>Đã hủy</span>'
     };
     return badges[status] || badges['pending'];
 }
