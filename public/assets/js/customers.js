@@ -196,14 +196,23 @@ function createCustomerRow(customer, index) {
                 <div class="text-sm text-gray-900">${lastOrderText}</div>
             </td>
             <td class="px-4 py-4 whitespace-nowrap text-center">
-                <button onclick="viewCustomerDetail('${escapeHtml(customer.phone)}')"
-                    class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
-                    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Chi tiết
-                </button>
+                <div class="flex items-center justify-center gap-2">
+                    <button onclick="viewCustomerDetail('${escapeHtml(customer.phone)}')"
+                        class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Chi tiết
+                    </button>
+                    <button onclick="confirmDeleteCustomer('${escapeHtml(customer.phone)}', '${escapeHtml(customer.name)}')"
+                        class="inline-flex items-center p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Xóa khách hàng">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
             </td>
         </tr>
     `;
@@ -538,4 +547,87 @@ function selectSegmentFilter(value, label) {
     document.getElementById('segmentFilterLabel').textContent = label;
     document.getElementById('segmentFilterMenu')?.remove();
     filterBySegment();
+}
+
+// Confirm delete customer
+function confirmDeleteCustomer(phone, name) {
+    const modal = document.createElement('div');
+    modal.id = 'confirmDeleteModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 rounded-t-xl">
+                <h3 class="text-lg font-bold text-white">Xác nhận xóa khách hàng</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-700 mb-2">Bạn có chắc chắn muốn xóa khách hàng:</p>
+                        <p class="font-bold text-gray-900 mb-1">${escapeHtml(name)}</p>
+                        <p class="text-sm text-gray-600 font-mono">${escapeHtml(phone)}</p>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p class="text-sm text-amber-800">
+                        <strong>⚠️ Lưu ý:</strong> Hành động này sẽ xóa vĩnh viễn thông tin khách hàng và không thể hoàn tác!
+                    </p>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
+                <button onclick="closeConfirmDeleteModal()"
+                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button onclick="deleteCustomer('${escapeHtml(phone)}')"
+                    class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Xóa khách hàng
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Close confirm delete modal
+function closeConfirmDeleteModal() {
+    const modal = document.getElementById('confirmDeleteModal');
+    if (modal) modal.remove();
+}
+
+// Delete customer
+async function deleteCustomer(phone) {
+    closeConfirmDeleteModal();
+
+    try {
+        showToast('Đang xóa khách hàng...', 'info');
+
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'deleteCustomer',
+                phone: phone
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Đã xóa khách hàng thành công', 'success');
+            // Reload customers list
+            await loadCustomers();
+        } else {
+            throw new Error(data.error || 'Không thể xóa khách hàng');
+        }
+    } catch (error) {
+        console.error('Error deleting customer:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
 }

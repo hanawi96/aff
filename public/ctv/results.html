@@ -62,10 +62,67 @@
         </div>
 
         <!-- Filter Tabs -->
-        <div class="flex justify-center mb-6">
-            <div class="inline-flex bg-gray-100 rounded-2xl p-1">
-                <button id="filterAllTime" onclick="filterOrders('all')" class="filter-tab active px-6 py-2 text-sm font-semibold rounded-xl transition-all">Tất cả</button>
-                <button id="filterToday" onclick="filterOrders('today')" class="filter-tab px-6 py-2 text-sm font-semibold rounded-xl transition-all">Hôm nay</button>
+        <div class="mb-6">
+            <!-- Desktop Filter -->
+            <div class="hidden sm:flex justify-center">
+                <div class="inline-flex bg-white rounded-xl p-1 shadow-md border border-gray-200 gap-1">
+                    <button id="filterAllTime" onclick="filterOrders('all')" class="filter-tab active px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        Tất cả
+                    </button>
+                    <button id="filterToday" onclick="filterOrders('today')" class="filter-tab px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        Hôm nay
+                    </button>
+                    <button id="filterWeek" onclick="filterOrders('week')" class="filter-tab px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        Tuần này
+                    </button>
+                    <button id="filterMonth" onclick="filterOrders('month')" class="filter-tab px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        Tháng này
+                    </button>
+                    <button id="filter3Months" onclick="filterOrders('3months')" class="filter-tab px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        3 tháng
+                    </button>
+                    <button id="filter6Months" onclick="filterOrders('6months')" class="filter-tab px-3 py-2 text-xs font-semibold rounded-lg transition-all">
+                        6 tháng
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Filter (Dropdown) -->
+            <div class="sm:hidden">
+                <div class="relative">
+                    <button id="mobileFilterBtn" onclick="toggleMobileFilter()" class="w-full bg-white rounded-xl px-4 py-3 shadow-md border border-gray-200 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <div id="mobileFilterLabel" class="text-sm font-bold text-gray-900">Tất cả thời gian</div>
+                        </div>
+                        <svg id="mobileFilterIcon" class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <div id="mobileFilterDropdown" class="hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-10">
+                        <button onclick="selectMobileFilter('all', 'Tất cả thời gian')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100">
+                            <span class="text-sm font-semibold text-gray-900">Tất cả thời gian</span>
+                        </button>
+                        <button onclick="selectMobileFilter('today', 'Hôm nay')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100">
+                            <span class="text-sm font-semibold text-gray-900">Hôm nay</span>
+                        </button>
+                        <button onclick="selectMobileFilter('week', 'Tuần này')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100">
+                            <span class="text-sm font-semibold text-gray-900">Tuần này</span>
+                        </button>
+                        <button onclick="selectMobileFilter('month', 'Tháng này')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100">
+                            <span class="text-sm font-semibold text-gray-900">Tháng này</span>
+                        </button>
+                        <button onclick="selectMobileFilter('3months', '3 tháng gần đây')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100">
+                            <span class="text-sm font-semibold text-gray-900">3 tháng gần đây</span>
+                        </button>
+                        <button onclick="selectMobileFilter('6months', '6 tháng gần đây')" class="mobile-filter-option w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors">
+                            <span class="text-sm font-semibold text-gray-900">6 tháng gần đây</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -289,16 +346,59 @@
     <style>
         .filter-tab {
             color: #6B7280;
+            position: relative;
         }
 
         .filter-tab.active {
             background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(147, 51, 234, 0.25);
+        }
+
+        .filter-tab:hover:not(.active) {
+            background: rgba(147, 51, 234, 0.08);
+            color: #9333EA;
+        }
+
+        .mobile-filter-option.active {
+            background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
+            color: white;
+        }
+
+        .mobile-filter-option.active svg {
+            color: white;
         }
     </style>
 
+    <script>
+        // Mobile filter dropdown toggle
+        function toggleMobileFilter() {
+            const dropdown = document.getElementById('mobileFilterDropdown');
+            const icon = document.getElementById('mobileFilterIcon');
+            dropdown.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+
+        // Select mobile filter
+        function selectMobileFilter(filter, label) {
+            document.getElementById('mobileFilterLabel').textContent = label;
+            toggleMobileFilter();
+            filterOrders(filter);
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('mobileFilterDropdown');
+            const btn = document.getElementById('mobileFilterBtn');
+            if (dropdown && btn && !dropdown.contains(event.target) && !btn.contains(event.target)) {
+                dropdown.classList.add('hidden');
+                document.getElementById('mobileFilterIcon').classList.remove('rotate-180');
+            }
+        });
+    </script>
+
     <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/timezone-utils.js"></script>
     <script src="../assets/js/ctv-results.js"></script>
 </body>
 

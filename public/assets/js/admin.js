@@ -6,6 +6,7 @@ const itemsPerPage = 10;
 let sortOrder = 'desc'; // 'desc' = mới nhất trước, 'asc' = cũ nhất trước, 'none' = không sắp xếp
 let commissionSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 let rateSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
+let currentTimeFilter = 'all'; // Time filter state
 
 // Bulk selection state
 let selectedCTVIds = new Set();
@@ -354,7 +355,10 @@ function filterCTVData() {
             matchesStatus = !ctv.hasOrders;
         }
 
-        return matchesSearch && matchesStatus;
+        // Time filter
+        const matchesTime = applyTimeFilter(ctv);
+
+        return matchesSearch && matchesStatus && matchesTime;
     });
 
     // Apply sorting
@@ -363,6 +367,94 @@ function filterCTVData() {
     currentPage = 1; // Reset to first page when filtering
     renderCTVTable();
 }
+
+// Apply time filter to CTV
+function applyTimeFilter(ctv) {
+    if (currentTimeFilter === 'all') return true;
+    
+    // CTV data has 'timestamp' field from backend
+    if (!ctv.timestamp) {
+        console.warn('⚠️ CTV missing timestamp:', ctv);
+        return false;
+    }
+    
+    const ctvDate = new Date(ctv.timestamp);
+    let startDate = null;
+
+    if (currentTimeFilter === 'today') {
+        // Today: from 00:00:00 VN time
+        startDate = getVNStartOfToday();
+    } else if (currentTimeFilter === 'week') {
+        // This week: from Monday 00:00:00 VN time
+        startDate = getVNStartOfWeek();
+    } else if (currentTimeFilter === 'month') {
+        // This month: from 1st day VN time
+        startDate = getVNStartOfMonth();
+    } else if (currentTimeFilter === '3months') {
+        // Last 3 months from start of month 3 months ago
+        const now = new Date();
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const [year, month] = vnDateStr.split('-');
+        const targetMonth = parseInt(month) - 3;
+        const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+        const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+        startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+    } else if (currentTimeFilter === '6months') {
+        // Last 6 months from start of month 6 months ago
+        const now = new Date();
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const [year, month] = vnDateStr.split('-');
+        const targetMonth = parseInt(month) - 6;
+        const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+        const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+        startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+    }
+
+    const result = startDate ? ctvDate >= startDate : true;
+    
+    // Debug first CTV only to avoid spam
+    if (ctv === allCTVData[0]) {
+        console.log('📅 Filter debug:', {
+            filter: currentTimeFilter,
+            startDate: startDate?.toISOString(),
+            ctvDate: ctvDate.toISOString(),
+            ctvName: ctv.fullName,
+            result: result
+        });
+    }
+    
+    return result;
+}
+
+// Filter by registration time
+window.filterByRegistrationTime = function(timeFilter) {
+    currentTimeFilter = timeFilter;
+    
+    console.log('🔍 Time filter changed to:', timeFilter);
+    
+    // Update button states (desktop)
+    const buttons = ['timeFilterAll', 'timeFilterToday', 'timeFilterWeek', 'timeFilterMonth', 'timeFilter3Months', 'timeFilter6Months'];
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.remove('active');
+        }
+    });
+    
+    const activeBtn = document.getElementById(`timeFilter${timeFilter.charAt(0).toUpperCase() + timeFilter.slice(1)}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Update mobile select
+    const mobileSelect = document.getElementById('mobileTimeFilter');
+    if (mobileSelect) {
+        mobileSelect.value = timeFilter;
+    }
+    
+    // Apply filter
+    filterCTVData();
+};
 
 // View CTV detail
 function viewCTVDetail(referralCode) {

@@ -103,12 +103,24 @@ document.addEventListener('DOMContentLoaded', function () {
         ordersGrid.innerHTML = '';
 
         if (!ordersToDisplay.length) {
+            const emptyMessages = {
+                'today': 'Hôm nay chưa có đơn hàng',
+                'week': 'Tuần này chưa có đơn hàng',
+                'month': 'Tháng này chưa có đơn hàng',
+                '3months': '3 tháng gần đây chưa có đơn hàng',
+                '6months': '6 tháng gần đây chưa có đơn hàng',
+                'all': 'Chưa có đơn hàng'
+            };
+            
             ordersGrid.innerHTML = `
                 <div class="col-span-full py-16 text-center">
-                    <svg class="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <p class="text-gray-600 text-lg font-medium">${currentFilter === 'today' ? 'Hôm nay chưa có đơn' : 'Chưa có đơn hàng'}</p>
+                    <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center">
+                        <svg class="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-600 text-lg font-semibold mb-2">${emptyMessages[currentFilter] || 'Chưa có đơn hàng'}</p>
+                    <p class="text-gray-500 text-sm">Đơn hàng sẽ xuất hiện ở đây khi có khách đặt hàng</p>
                 </div>`;
         } else {
             ordersToDisplay.forEach(order => ordersGrid.appendChild(createOrderCard(order)));
@@ -345,17 +357,54 @@ document.addEventListener('DOMContentLoaded', function () {
         currentFilter = filter;
         currentPage = 1;
 
+        // Update active state for all filter buttons
         document.getElementById('filterAllTime').classList.toggle('active', filter === 'all');
         document.getElementById('filterToday').classList.toggle('active', filter === 'today');
+        document.getElementById('filterWeek').classList.toggle('active', filter === 'week');
+        document.getElementById('filterMonth').classList.toggle('active', filter === 'month');
+        document.getElementById('filter3Months').classList.toggle('active', filter === '3months');
+        document.getElementById('filter6Months').classList.toggle('active', filter === '6months');
+
+        // Calculate date ranges using Vietnam timezone
+        let startDate = null;
 
         if (filter === 'today') {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Today: from 00:00:00 VN time
+            startDate = getVNStartOfToday();
+        } else if (filter === 'week') {
+            // This week: from Monday 00:00:00 VN time
+            startDate = getVNStartOfWeek();
+        } else if (filter === 'month') {
+            // This month: from 1st day VN time
+            startDate = getVNStartOfMonth();
+        } else if (filter === '3months') {
+            // Last 3 months from start of month 3 months ago
+            const now = new Date();
+            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const [year, month] = vnDateStr.split('-');
+            const targetMonth = parseInt(month) - 3;
+            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+        } else if (filter === '6months') {
+            // Last 6 months from start of month 6 months ago
+            const now = new Date();
+            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const [year, month] = vnDateStr.split('-');
+            const targetMonth = parseInt(month) - 6;
+            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+        }
+
+        // Apply filter
+        if (startDate) {
             filteredOrders = allOrders.filter(order => {
                 const orderDate = new Date(order.created_at || order.order_date || order.orderDate);
-                return orderDate >= today;
+                return orderDate >= startDate;
             });
         } else {
+            // 'all' - show all orders
             filteredOrders = [...allOrders];
         }
 

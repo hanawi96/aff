@@ -854,16 +854,20 @@ filterCTV = function() {
 function filterByPeriod(period) {
     currentFilters.period = period;
     
-    // Update button states
-    document.querySelectorAll('[id^="filter-"]').forEach(btn => {
-        btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700', 'border-2');
-        btn.classList.add('border', 'border-gray-300', 'text-gray-700');
+    // Update button states - use new class names
+    document.querySelectorAll('.period-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
     });
     
     const activeBtn = document.getElementById(`filter-${period}`);
     if (activeBtn) {
-        activeBtn.classList.remove('border', 'border-gray-300', 'text-gray-700');
-        activeBtn.classList.add('border-2', 'border-indigo-600', 'bg-indigo-50', 'text-indigo-700');
+        activeBtn.classList.add('active');
+    }
+    
+    // Update mobile select
+    const mobileSelect = document.getElementById('mobileTimeFilter');
+    if (mobileSelect) {
+        mobileSelect.value = period;
     }
     
     // Calculate date range based on period using VN timezone
@@ -1015,6 +1019,11 @@ function applyFilters() {
 function updateActiveFiltersDisplay() {
     const container = document.getElementById('activeFilters');
     const tagsContainer = document.getElementById('activeFilterTags');
+    
+    // Check if elements exist (they were removed in compact layout)
+    if (!container || !tagsContainer) {
+        return;
+    }
     
     const hasFilters = currentFilters.period !== 'thisMonth' || 
                       currentFilters.status !== 'all' || 

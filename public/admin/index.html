@@ -61,6 +61,31 @@
         .hover-scale:hover {
             transform: scale(1.02);
         }
+
+        /* Time Filter Buttons */
+        .time-filter-btn {
+            border-color: #e5e7eb;
+            color: #6b7280;
+            background: white;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-filter-btn:hover:not(.active) {
+            border-color: #6366f1;
+            color: #6366f1;
+            background: #eef2ff;
+            transform: translateY(-1px);
+        }
+
+        .time-filter-btn.active {
+            border-color: #6366f1;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+        }
     </style>
 </head>
 
@@ -289,14 +314,14 @@
             </div>
 
             <!-- Search & Filter -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div class="flex flex-col lg:flex-row gap-3">
                     <!-- Search -->
-                    <div class="flex-1 max-w-md">
+                    <div class="flex-1 min-w-0">
                         <div class="relative">
                             <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, SĐT, mã CTV..."
-                                class="w-full h-[38px] pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
-                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24"
+                                class="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
+                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -304,18 +329,53 @@
                         </div>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <button id="statusFilterBtn" onclick="toggleCTVStatusFilter(event)" 
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <span id="statusFilterLabel" class="text-sm text-gray-700">Tất cả trạng thái</span>
-                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                        </div>
-                        <input type="hidden" id="statusFilter" value="all">
+                    <!-- Time Filter - Desktop -->
+                    <div class="hidden lg:flex items-center gap-2">
+                        <button onclick="filterByRegistrationTime('all')" id="timeFilterAll" class="time-filter-btn active px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tất cả
+                        </button>
+                        <button onclick="filterByRegistrationTime('today')" id="timeFilterToday" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Hôm nay
+                        </button>
+                        <button onclick="filterByRegistrationTime('week')" id="timeFilterWeek" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tuần này
+                        </button>
+                        <button onclick="filterByRegistrationTime('month')" id="timeFilterMonth" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tháng này
+                        </button>
+                        <button onclick="filterByRegistrationTime('3months')" id="timeFilter3Months" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            3 tháng
+                        </button>
+                        <button onclick="filterByRegistrationTime('6months')" id="timeFilter6Months" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            6 tháng
+                        </button>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="relative">
+                        <button id="statusFilterBtn" onclick="toggleCTVStatusFilter(event)" 
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors h-10 text-sm whitespace-nowrap">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span id="statusFilterLabel" class="text-gray-700">Trạng thái</span>
+                            <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="hidden" id="statusFilter" value="all">
+
+                    <!-- Time Filter - Mobile -->
+                    <div class="lg:hidden">
+                        <select id="mobileTimeFilter" onchange="filterByRegistrationTime(this.value)" class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
+                            <option value="all">⏰ Tất cả thời gian</option>
+                            <option value="today">☀️ Hôm nay</option>
+                            <option value="week">📅 Tuần này</option>
+                            <option value="month">📆 Tháng này</option>
+                            <option value="3months">📊 3 tháng</option>
+                            <option value="6months">📈 6 tháng</option>
+                        </select>
                     </div>
                 </div>
             </div>
