@@ -11,11 +11,21 @@ let currentTimeFilter = 'all'; // Time filter state
 // Bulk selection state
 let selectedCTVIds = new Set();
 
+// Chart instances
+let topCTVChart = null;
+let registrationTrendChart = null;
+let topCTVMode = 'revenue'; // 'revenue' or 'orders'
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Admin Dashboard initialized');
-    loadCTVData();
+    
+    // Initialize charts first (before data loads)
+    initCharts();
+    
+    // Then load data and setup listeners
     setupEventListeners();
+    loadCTVData();
 });
 
 // Setup event listeners
@@ -75,6 +85,7 @@ async function loadCTVData() {
             
             updateStats(data.stats || {});
             renderCTVTable();
+            updateCharts();
             hideLoading();
         } else {
             throw new Error(data.error || 'Failed to load data');
@@ -386,6 +397,7 @@ function filterCTVData() {
     updateStats({});
     
     renderCTVTable();
+    updateCharts();
 }
 
 // Apply time filter to CTV
@@ -2037,4 +2049,334 @@ function selectCTVStatusFilter(value, label) {
     
     document.getElementById('statusFilterMenu')?.remove();
     filterCTVData();
+}
+
+// ============================================
+// CHARTS
+// ============================================
+
+// Initialize charts
+function initCharts() {
+    initTopCTVChart();
+    initRegistrationTrendChart();
+}
+
+// Initialize Top CTV Chart
+function initTopCTVChart() {
+    const ctx = document.getElementById('topCTVChart');
+    if (!ctx) {
+        console.warn('⚠️ Top CTV Chart canvas not found');
+        return;
+    }
+
+    try {
+        topCTVChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Doanh thu',
+                    data: [],
+                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barThickness: 24
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        displayColors: false,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const value = context.parsed.x;
+                                if (topCTVMode === 'revenue') {
+                                    return 'Doanh thu: ' + formatCurrency(value);
+                                } else {
+                                    return 'Đơn hàng: ' + value.toLocaleString('vi-VN');
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            callback: function(value) {
+                                if (topCTVMode === 'revenue') {
+                                    // Format currency for axis
+                                    if (value >= 1000000) {
+                                        return (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return value;
+                                }
+                                // For orders, just show the number
+                                return value;
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { size: 11, weight: '500' },
+                            color: '#374151'
+                        }
+                    }
+                }
+            }
+        });
+        console.log('✅ Top CTV Chart initialized');
+    } catch (error) {
+        console.error('❌ Error initializing Top CTV Chart:', error);
+    }
+}
+
+// Initialize Registration Trend Chart
+function initRegistrationTrendChart() {
+    const ctx = document.getElementById('registrationTrendChart');
+    if (!ctx) {
+        console.warn('⚠️ Registration Trend Chart canvas not found');
+        return;
+    }
+
+    try {
+        registrationTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CTV mới',
+                    data: [],
+                    borderColor: 'rgba(139, 92, 246, 1)',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                const count = context.parsed.y;
+                                return 'Số CTV: ' + count + (count === 1 ? ' người' : ' người');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            maxRotation: 45,
+                            minRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 15
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            stepSize: 1,
+                            callback: function(value) {
+                                return Number.isInteger(value) ? value : '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('✅ Registration Trend Chart initialized');
+    } catch (error) {
+        console.error('❌ Error initializing Registration Trend Chart:', error);
+    }
+}
+
+// Update Top CTV Chart
+function updateTopCTVChart() {
+    if (!topCTVChart) return;
+
+    // Get data based on current filter (sync with table)
+    const dataToUse = filteredCTVData.length > 0 ? filteredCTVData : allCTVData;
+    
+    // Early return if no data
+    if (dataToUse.length === 0) {
+        topCTVChart.data.labels = [];
+        topCTVChart.data.datasets[0].data = [];
+        topCTVChart.update('none');
+        return;
+    }
+    
+    // Sort and get top 10 (optimize: only sort what we need)
+    const sortKey = topCTVMode === 'revenue' ? 'totalCommission' : 'orderCount';
+    const top10 = dataToUse
+        .map(ctv => ({ ...ctv, sortValue: ctv[sortKey] || 0 }))
+        .sort((a, b) => b.sortValue - a.sortValue)
+        .slice(0, 10);
+    
+    // Prepare chart data
+    const labels = top10.map(ctv => {
+        const name = ctv.fullName || 'N/A';
+        return name.length > 15 ? name.substring(0, 15) + '...' : name;
+    });
+    
+    const values = top10.map(ctv => ctv.sortValue);
+    
+    // Update chart configuration
+    const isRevenue = topCTVMode === 'revenue';
+    topCTVChart.data.labels = labels;
+    topCTVChart.data.datasets[0].data = values;
+    topCTVChart.data.datasets[0].label = isRevenue ? 'Doanh thu' : 'Đơn hàng';
+    topCTVChart.data.datasets[0].backgroundColor = isRevenue ? 'rgba(99, 102, 241, 0.8)' : 'rgba(16, 185, 129, 0.8)';
+    topCTVChart.data.datasets[0].borderColor = isRevenue ? 'rgba(99, 102, 241, 1)' : 'rgba(16, 185, 129, 1)';
+    
+    // Update without animation for smooth performance
+    topCTVChart.update('none');
+}
+
+// Switch Top CTV mode
+window.switchTopCTVMode = function(mode) {
+    topCTVMode = mode;
+    
+    // Update button states
+    const revenueBtn = document.getElementById('topCTVRevenueBtn');
+    const ordersBtn = document.getElementById('topCTVOrdersBtn');
+    
+    if (mode === 'revenue') {
+        revenueBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-700 transition-colors';
+        ordersBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors';
+    } else {
+        revenueBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors';
+        ordersBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-green-100 text-green-700 transition-colors';
+    }
+    
+    updateTopCTVChart();
+};
+
+// Update Registration Trend Chart
+window.updateRegistrationTrend = function() {
+    if (!registrationTrendChart) return;
+
+    const periodSelect = document.getElementById('trendPeriodSelect');
+    if (!periodSelect) return;
+    
+    const period = periodSelect.value;
+    const dataToUse = allCTVData; // Always use all data for trend
+    
+    // Calculate date range in VN timezone
+    let daysBack = 30;
+    if (period === '7days') daysBack = 7;
+    else if (period === '90days') daysBack = 90;
+    
+    // Group registrations by date (VN timezone)
+    // Key format: YYYY-MM-DD for consistent sorting and lookup
+    const registrationsByDate = {};
+    
+    dataToUse.forEach(ctv => {
+        if (!ctv.timestamp) return;
+        
+        // Convert UTC timestamp to VN date
+        const ctvDate = new Date(ctv.timestamp);
+        const vnDateStr = ctvDate.toLocaleDateString('en-CA', { 
+            timeZone: 'Asia/Ho_Chi_Minh' 
+        }); // Returns YYYY-MM-DD
+        
+        if (!registrationsByDate[vnDateStr]) {
+            registrationsByDate[vnDateStr] = 0;
+        }
+        registrationsByDate[vnDateStr]++;
+    });
+    
+    // Create labels and data arrays for the last N days
+    const labels = [];
+    const data = [];
+    const now = new Date();
+    
+    for (let i = daysBack - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        
+        // Get VN date string for lookup (YYYY-MM-DD)
+        const vnDateStr = date.toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Ho_Chi_Minh'
+        });
+        
+        // Format label for display (d/M)
+        const vnDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const displayLabel = `${vnDate.getDate()}/${vnDate.getMonth() + 1}`;
+        
+        labels.push(displayLabel);
+        data.push(registrationsByDate[vnDateStr] || 0);
+    }
+    
+    // Update chart with smooth animation disabled for performance
+    registrationTrendChart.data.labels = labels;
+    registrationTrendChart.data.datasets[0].data = data;
+    registrationTrendChart.update('none');
+};
+
+// Update charts when data changes
+function updateCharts() {
+    // Only update if charts are initialized
+    if (topCTVChart) {
+        updateTopCTVChart();
+    }
+    if (registrationTrendChart) {
+        updateRegistrationTrend();
+    }
 }

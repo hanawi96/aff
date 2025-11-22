@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Cộng Tác Viên - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -309,6 +310,51 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Top CTV Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Top CTV</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Theo doanh thu & đơn hàng</p>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="switchTopCTVMode('revenue')" id="topCTVRevenueBtn" 
+                                class="px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-700 transition-colors">
+                                Doanh thu
+                            </button>
+                            <button onclick="switchTopCTVMode('orders')" id="topCTVOrdersBtn" 
+                                class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors">
+                                Đơn hàng
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="topCTVChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Registration Trend Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Xu hướng đăng ký</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Số CTV mới theo thời gian</p>
+                        </div>
+                        <select id="trendPeriodSelect" onchange="updateRegistrationTrend()" 
+                            class="px-2.5 py-1 text-xs font-medium border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="7days">7 ngày</option>
+                            <option value="30days" selected>30 ngày</option>
+                            <option value="90days">90 ngày</option>
+                        </select>
+                    </div>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="registrationTrendChart"></canvas>
                     </div>
                 </div>
             </div>
