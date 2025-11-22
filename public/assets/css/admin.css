@@ -52,6 +52,7 @@ button:focus {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -67,6 +68,7 @@ button:focus {
     from {
         transform: translateX(-100%);
     }
+
     to {
         transform: translateX(0);
     }
@@ -293,6 +295,7 @@ button:focus {
 
 /* Print Styles */
 @media print {
+
     .sidebar,
     .header,
     button,
@@ -363,6 +366,7 @@ select {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;

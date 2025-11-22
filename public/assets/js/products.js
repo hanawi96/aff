@@ -311,9 +311,15 @@ function createProductCard(product) {
     const price = formatCurrency(product.price || 0);
     const originalPrice = product.original_price ? formatCurrency(product.original_price) : null;
     const hasDiscount = originalPrice && product.original_price > product.price;
+    const safeName = escapeHtml(product.name).replace(/'/g, '&#39;');
+    
+    // Get categories array (from new multi-category system)
+    const categories = product.categories || [];
+    const hasCategories = categories.length > 0;
+    
+    // Fallback to old single category if no categories array
     const categoryName = product.category_name || 'Chưa phân loại';
     const categoryIcon = product.category_icon || '📦';
-    const safeName = escapeHtml(product.name).replace(/'/g, '&#39;');
 
     // Generate image URL
     let imageUrl;
@@ -359,10 +365,19 @@ function createProductCard(product) {
                 </div>
                 
                 <div class="flex items-center gap-2 mb-3 flex-wrap">
-                    <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
-                        <span>${categoryIcon}</span>
-                        <span>${escapeHtml(categoryName)}</span>
-                    </span>
+                    ${hasCategories ? 
+                        categories.map(cat => `
+                            <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
+                                <span>${cat.icon || '📦'}</span>
+                                <span>${escapeHtml(cat.name)}</span>
+                            </span>
+                        `).join('') 
+                        : 
+                        `<span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
+                            <span>${categoryIcon}</span>
+                            <span>${escapeHtml(categoryName)}</span>
+                        </span>`
+                    }
                     ${product.sku ? `<span class="text-xs text-gray-500 font-mono">${escapeHtml(product.sku)}</span>` : ''}
                 </div>
                 
@@ -447,172 +462,203 @@ function showAddProductModal() {
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
 
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-white">Thêm sản phẩm mới</h2>
-                    <button onclick="closeProductModal()" class="text-white/80 hover:text-white">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                    </button>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Thêm sản phẩm mới</h3>
+                    </div>
                 </div>
+                <button onclick="closeProductModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
             
-            <form id="productForm" class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]" onsubmit="event.preventDefault(); saveProduct();">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Tên sản phẩm <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" id="productName" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: Vòng dâu tằm trơn" autofocus>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form id="productForm" class="flex-1 overflow-y-auto bg-gray-50" onsubmit="event.preventDefault(); saveProduct();">
+                <div class="p-6 space-y-5">
+                    <!-- Thông tin cơ bản -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin cơ bản</h4>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Giá bán <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                Tên sản phẩm <span class="text-red-500">*</span>
                             </label>
-                            <div class="relative">
-                                <input type="number" id="productPrice" required min="0" step="1000"
-                                    class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="69000" oninput="calculateExpectedProfit()">
-                                <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Giá gốc</label>
-                            <div class="relative">
-                                <input type="number" id="productOriginalPrice" min="0" step="1000"
-                                    class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="89000">
-                                <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                            </div>
+                            <input type="text" id="productName" required
+                                class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                placeholder="VD: Vòng dâu tằm trơn" autofocus>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                💰 Giá vốn <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="number" id="productCostPrice" required min="0" step="1000"
-                                    class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="35000" oninput="calculateExpectedProfit()">
-                                <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
-                        </div>
-                        <div>
-                            <div id="profitDisplay" class="hidden">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">📊 Lãi dự kiến</label>
-                                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-3">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm text-gray-600">Lãi:</span>
-                                        <span id="profitAmount" class="text-lg font-bold text-green-600">0đ</span>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs text-gray-500">Tỷ suất:</span>
-                                        <span id="profitMargin" class="text-sm font-semibold text-green-600">0%</span>
+                    <!-- Giá cả -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Giá bán <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" id="productPrice" required min="0" step="1000"
+                                            class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                            placeholder="179000" oninput="calculateExpectedProfit()">
+                                        <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
-                            </div>
-                            <div id="lossWarning" class="hidden">
-                                <label class="block text-sm font-semibold text-red-600 mb-2">⚠️ Cảnh báo</label>
-                                <div class="bg-red-50 border-2 border-red-200 rounded-lg px-4 py-3">
-                                    <p class="text-sm text-red-600 font-medium">Giá vốn cao hơn giá bán!</p>
-                                    <p class="text-xs text-red-500 mt-1">Sản phẩm này sẽ bị lỗ</p>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
+                                    <div class="relative">
+                                        <input type="number" id="productOriginalPrice" min="0" step="1000"
+                                            class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                            placeholder="189000">
+                                        <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                        💰 Giá vốn <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" id="productCostPrice" required min="0" step="1000"
+                                            class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                            placeholder="89500" oninput="calculateExpectedProfit()">
+                                        <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tồn kho</label>
-                            <input type="number" id="productStockQuantity" min="0" value="0"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder="10">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Đánh giá</label>
-                            <input type="number" id="productRating" min="0" max="5" step="0.1" value="0"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder="4.5">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Lượt mua</label>
-                            <input type="number" id="productPurchases" min="0" value="0"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder="100">
+                    <!-- Lãi dự kiến -->
+                    <div id="profitDisplay" class="hidden bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">📊 Lãi dự kiến</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                                <p class="text-sm text-gray-600 mb-1">Lãi:</p>
+                                <p id="profitAmount" class="text-2xl font-bold text-green-600">0đ</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                                <p class="text-sm text-gray-600 mb-1">Tỷ suất:</p>
+                                <p id="profitMargin" class="text-2xl font-bold text-green-600">0%</p>
+                            </div>
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Danh mục</label>
-                        <select id="productCategoryId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="">-- Chọn danh mục --</option>
-                        </select>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Cân nặng</label>
-                            <input type="text" id="productWeight"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder="VD: 500g">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Size/Tay</label>
-                            <input type="text" id="productSize"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder="VD: Size M">
+                    <!-- Cảnh báo lỗ -->
+                    <div id="lossWarning" class="hidden bg-white rounded-lg p-5 border border-red-300 shadow-sm">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-base font-semibold text-red-600 mb-1">⚠️ Cảnh báo</h4>
+                                <p class="text-sm text-red-600 font-medium">Giá vốn cao hơn giá bán!</p>
+                                <p class="text-xs text-red-500 mt-1">Sản phẩm này sẽ bị lỗ. Vui lòng kiểm tra lại giá.</p>
+                            </div>
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Mã SKU</label>
-                        <input type="text" id="productSKU"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: SP001">
+                    <!-- Thông tin bổ sung -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
+                                <input type="number" id="productStockQuantity" min="0" value="0"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="15">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
+                                <input type="number" id="productRating" min="0" max="5" step="0.1" value="0"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="4.9">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
+                                <input type="number" id="productPurchases" min="0" value="0"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="0">
+                            </div>
+                        </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
-                        <textarea id="productDescription" rows="3"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Mô tả chi tiết về sản phẩm..."></textarea>
+                    <!-- Danh mục -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                        <div id="categorySelector"></div>
+                        <p class="text-xs text-gray-500 mt-2">Có thể chọn nhiều danh mục</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">URL ảnh</label>
-                        <input type="url" id="productImageURL"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="https://example.com/image.jpg">
+                    <!-- Chi tiết sản phẩm -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Chi tiết sản phẩm</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã SKU</label>
+                                <input type="text" id="productSKU"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="VD: SP001">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
+                                <textarea id="productDescription" rows="2"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+                                    placeholder="Mô tả chi tiết về sản phẩm..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">URL ảnh</label>
+                                <input type="url" id="productImageURL"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="../assets/images/product.webp">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
             
-            <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-end gap-3">
-                <button type="button" onclick="closeProductModal()"
-                    class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                    Hủy
-                </button>
-                <button type="button" onclick="saveProduct()"
-                    class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Lưu sản phẩm
-                </button>
+            <!-- Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-white flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                    <span class="text-red-500">*</span> Trường bắt buộc
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeProductModal()"
+                        class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Hủy
+                    </button>
+                    <button type="button" onclick="saveProduct()"
+                        class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        Lưu sản phẩm
+                    </button>
+                </div>
             </div>
         </div>
     `;
 
     document.body.appendChild(modal);
 
-    // Load categories into select
-    loadCategoriesForSelect();
+    // Initialize multi-category selector
+    window.categorySelector = new MultiCategorySelector('categorySelector', {
+        placeholder: 'Chọn danh mục...',
+        searchPlaceholder: 'Tìm kiếm danh mục...',
+        onChange: (selectedIds) => {
+            console.log('Selected categories:', selectedIds);
+        }
+    });
 }
 
 // Close product modal
@@ -629,12 +675,10 @@ async function saveProduct(productId = null) {
     const price = document.getElementById('productPrice')?.value;
     const originalPrice = document.getElementById('productOriginalPrice')?.value;
     const costPrice = document.getElementById('productCostPrice')?.value;
-    const categoryId = document.getElementById('productCategoryId')?.value;
+    const categoryIds = window.categorySelector ? window.categorySelector.getSelectedIds() : [];
     const stockQuantity = document.getElementById('productStockQuantity')?.value;
     const rating = document.getElementById('productRating')?.value;
     const purchases = document.getElementById('productPurchases')?.value;
-    const weight = document.getElementById('productWeight')?.value.trim();
-    const size = document.getElementById('productSize')?.value.trim();
     const sku = document.getElementById('productSKU')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
     const image_url = document.getElementById('productImageURL')?.value.trim();
@@ -660,7 +704,7 @@ async function saveProduct(productId = null) {
 
     // Validate image URL if provided
     if (image_url && !isValidUrl(image_url)) {
-        showToast('URL ảnh không hợp lệ', 'warning');
+        showToast('URL ảnh không hợp lệ. Vui lòng nhập URL đầy đủ (http://...) hoặc đường dẫn tương đối (./assets/...)', 'warning');
         document.getElementById('productImageURL')?.focus();
         return;
     }
@@ -671,12 +715,10 @@ async function saveProduct(productId = null) {
         price: parseFloat(price),
         original_price: originalPrice ? parseFloat(originalPrice) : null,
         cost_price: parseFloat(costPrice),
-        category_id: categoryId ? parseInt(categoryId) : null,
+        category_ids: categoryIds,
         stock_quantity: stockQuantity ? parseInt(stockQuantity) : 0,
         rating: rating ? parseFloat(rating) : 0,
         purchases: purchases ? parseInt(purchases) : 0,
-        weight: weight || null,
-        size: size || null,
         sku: sku || null,
         description: description || null,
         image_url: image_url || null
@@ -722,13 +764,25 @@ async function saveProduct(productId = null) {
     }
 }
 
-// Validate URL
+// Validate URL (accepts both absolute and relative URLs)
 function isValidUrl(string) {
+    if (!string || string.trim() === '') {
+        return true; // Empty is valid (optional field)
+    }
+    
+    // Allow relative paths (starts with ./ or ../ or /)
+    if (string.startsWith('./') || string.startsWith('../') || string.startsWith('/') || string.startsWith('assets/')) {
+        return true;
+    }
+    
+    // Validate absolute URLs
     try {
         const url = new URL(string);
         return url.protocol === 'http:' || url.protocol === 'https:';
     } catch (_) {
-        return false;
+        // If not a valid absolute URL, check if it's a simple filename
+        // Allow filenames without special characters except . - _
+        return /^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(string);
     }
 }
 
@@ -798,160 +852,181 @@ async function editProduct(productId) {
         modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
 
         modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-bold text-white">Chỉnh sửa sản phẩm</h2>
-                        <button onclick="closeProductModal()" class="text-white/80 hover:text-white">
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                        </button>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Chỉnh sửa sản phẩm</h3>
+                        </div>
                     </div>
+                    <button onclick="closeProductModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
                 
-                <form id="productForm" class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]" onsubmit="event.preventDefault(); saveProduct(${productId});">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Tên sản phẩm <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="productName" required value="${escapeHtml(product.name)}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" autofocus>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form id="productForm" class="flex-1 overflow-y-auto bg-gray-50" onsubmit="event.preventDefault(); saveProduct(${productId});">
+                    <div class="p-6 space-y-5">
+                        <!-- Thông tin cơ bản -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin cơ bản</h4>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    Giá bán <span class="text-red-500">*</span>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Tên sản phẩm <span class="text-red-500">*</span>
                                 </label>
-                                <div class="relative">
-                                    <input type="number" id="productPrice" required min="0" step="1000" value="${product.price}"
-                                        class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" oninput="calculateExpectedProfit()">
-                                    <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Giá gốc</label>
-                                <div class="relative">
-                                    <input type="number" id="productOriginalPrice" min="0" step="1000" value="${product.original_price || ''}"
-                                        class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                                </div>
+                                <input type="text" id="productName" required value="${escapeHtml(product.name)}"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    placeholder="VD: Vòng dâu tằm trơn" autofocus>
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    💰 Giá vốn <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input type="number" id="productCostPrice" required min="0" step="1000" value="${product.cost_price || 0}"
-                                        class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" oninput="calculateExpectedProfit()">
-                                    <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
-                            </div>
-                            <div>
-                                <div id="profitDisplay" class="hidden">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">📊 Lãi dự kiến</label>
-                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-3">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="text-sm text-gray-600">Lãi:</span>
-                                            <span id="profitAmount" class="text-lg font-bold text-green-600">0đ</span>
-                                        </div>
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs text-gray-500">Tỷ suất:</span>
-                                            <span id="profitMargin" class="text-sm font-semibold text-green-600">0%</span>
+                        <!-- Giá cả -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                            Giá bán <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="productPrice" required min="0" step="1000" value="${product.price}"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="179000">
+                                            <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                     </div>
-                                </div>
-                                <div id="lossWarning" class="hidden">
-                                    <label class="block text-sm font-semibold text-red-600 mb-2">⚠️ Cảnh báo</label>
-                                    <div class="bg-red-50 border-2 border-red-200 rounded-lg px-4 py-3">
-                                        <p class="text-sm text-red-600 font-medium">Giá vốn cao hơn giá bán!</p>
-                                        <p class="text-xs text-red-500 mt-1">Sản phẩm này sẽ bị lỗ</p>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
+                                        <div class="relative">
+                                            <input type="number" id="productOriginalPrice" min="0" step="1000" value="${product.original_price || ''}"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="189000">
+                                            <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                            💰 Giá vốn <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" id="productCostPrice" required min="0" step="1000" value="${product.cost_price || 0}"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                                placeholder="89500">
+                                            <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Tồn kho</label>
-                                <input type="number" id="productStockQuantity" min="0" value="${product.stock_quantity || 0}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Đánh giá</label>
-                                <input type="number" id="productRating" min="0" max="5" step="0.1" value="${product.rating || 0}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Lượt mua</label>
-                                <input type="number" id="productPurchases" min="0" value="${product.purchases || 0}"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Danh mục</label>
-                            <select id="productCategoryId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">-- Chọn danh mục --</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Cân nặng</label>
-                                <input type="text" id="productWeight" value="${escapeHtml(product.weight || '')}" placeholder="VD: 500g"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Size/Tay</label>
-                                <input type="text" id="productSize" value="${escapeHtml(product.size || '')}" placeholder="VD: Size M"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <!-- Thông tin bổ sung -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
+                                    <input type="number" id="productStockQuantity" min="0" value="${product.stock_quantity || 0}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="15">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
+                                    <input type="number" id="productRating" min="0" max="5" step="0.1" value="${product.rating || 0}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="4.9">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
+                                    <input type="number" id="productPurchases" min="0" value="${product.purchases || 0}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="0">
+                                </div>
                             </div>
                         </div>
                         
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mã SKU</label>
-                            <input type="text" id="productSKU" value="${escapeHtml(product.sku || '')}" placeholder="VD: SP001"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <!-- Danh mục -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                            <div id="categorySelector"></div>
+                            <p class="text-xs text-gray-500 mt-2">Có thể chọn nhiều danh mục</p>
                         </div>
                         
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
-                            <textarea id="productDescription" rows="3" placeholder="Mô tả chi tiết về sản phẩm..."
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${escapeHtml(product.description || '')}</textarea>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">URL ảnh</label>
-                            <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}" placeholder="https://..."
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <!-- Chi tiết sản phẩm -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Chi tiết sản phẩm</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã SKU</label>
+                                    <input type="text" id="productSKU" value="${escapeHtml(product.sku || '')}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="VD: SP001">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
+                                    <textarea id="productDescription" rows="2"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+                                        placeholder="Mô tả chi tiết về sản phẩm...">${escapeHtml(product.description || '')}</textarea>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">URL ảnh</label>
+                                    <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="../assets/images/product.webp">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
                 
-                <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-end gap-3">
-                    <button type="button" onclick="closeProductModal()"
-                        class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Hủy
-                    </button>
-                    <button type="button" onclick="saveProduct(${productId})"
-                        class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                        Cập nhật
-                    </button>
+                <!-- Footer -->
+                <div class="border-t border-gray-200 px-6 py-4 bg-white flex justify-between items-center">
+                    <div class="text-sm text-gray-500">
+                        <span class="text-red-500">*</span> Trường bắt buộc
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="closeProductModal()"
+                            class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                            Hủy
+                        </button>
+                        <button type="button" onclick="saveProduct(${productId})"
+                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                            Cập nhật
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
 
-        // Load categories into select
-        loadCategoriesForSelect(product.category_id);
+        // Initialize multi-category selector
+        window.categorySelector = new MultiCategorySelector('categorySelector', {
+            placeholder: 'Chọn danh mục...',
+            searchPlaceholder: 'Tìm kiếm danh mục...',
+            onChange: (selectedIds) => {
+                console.log('Selected categories:', selectedIds);
+            },
+            onReady: () => {
+                // Set selected categories after component is ready
+                if (product.category_ids && product.category_ids.length > 0) {
+                    window.categorySelector.setSelectedIds(product.category_ids);
+                } else if (product.category_id) {
+                    // Fallback for old data
+                    window.categorySelector.setSelectedIds([product.category_id]);
+                }
+            }
+        });
 
         // Calculate profit on load
         setTimeout(() => calculateExpectedProfit(), 100);
@@ -962,36 +1037,7 @@ async function editProduct(productId) {
     }
 }
 
-// Load categories for select dropdown
-async function loadCategoriesForSelect(selectedCategoryId = null) {
-    try {
-        const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories`);
-        const data = await response.json();
-
-        if (data.success) {
-            const select = document.getElementById('productCategoryId');
-            if (!select) return;
-
-            // Keep the first option (-- Chọn danh mục --)
-            const firstOption = select.options[0];
-            select.innerHTML = '';
-            select.appendChild(firstOption);
-
-            // Add categories
-            data.categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${cat.icon || ''} ${cat.name}`.trim();
-                if (cat.id === selectedCategoryId) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading categories:', error);
-    }
-}
+// Multi-category selector is now handled by MultiCategorySelector component
 
 // Confirm delete product
 function confirmDeleteProduct(productId, productName) {

@@ -53,7 +53,7 @@ class ToastManager {
 
         // Tạo toast element
         const toast = this.createToastElement(message, type, id);
-        
+
         // Thêm vào container
         this.container.appendChild(toast.element);
 
@@ -88,7 +88,7 @@ class ToastManager {
         // Cập nhật nội dung
         const messageEl = toast.element.querySelector('.toast-message');
         const iconEl = toast.element.querySelector('.toast-icon');
-        
+
         if (messageEl) messageEl.textContent = message;
         if (iconEl) iconEl.innerHTML = this.getIcon(type);
 

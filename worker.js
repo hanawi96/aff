@@ -97,6 +97,10 @@ async function handleGet(action, url, env, corsHeaders) {
             const productId = url.searchParams.get('id');
             return await getProduct(productId, env, corsHeaders);
 
+        case 'getProductCategories':
+            const prodId = url.searchParams.get('productId');
+            return await getProductCategories(prodId, env, corsHeaders);
+
         case 'searchProducts':
             const searchQuery = url.searchParams.get('q');
             return await searchProducts(searchQuery, env, corsHeaders);
@@ -355,6 +359,14 @@ async function handlePost(path, request, env, corsHeaders) {
                 return await updateProduct(data, env, corsHeaders);
             case 'deleteProduct':
                 return await deleteProduct(data, env, corsHeaders);
+            case 'addProductCategory':
+                return await addProductCategory(data, env, corsHeaders);
+            case 'removeProductCategory':
+                return await removeProductCategory(data, env, corsHeaders);
+            case 'setPrimaryCategory':
+                return await setPrimaryCategory(data, env, corsHeaders);
+            case 'updateProductCategories':
+                return await updateProductCategories(data, env, corsHeaders);
             case 'createCategory':
                 return await createCategory(data, env, corsHeaders);
             case 'updateCategory':
@@ -2666,9 +2678,10 @@ function jsonResponse(data, status = 200, corsHeaders = {}) {
 // PRODUCT FUNCTIONS
 // ============================================
 
-// Get all products
+// Get all products (OPTIMIZED - No N+1 queries)
 async function getAllProducts(env, corsHeaders) {
     try {
+        // Get all products
         const { results: products } = await env.DB.prepare(`
             SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
             FROM products p
@@ -2676,6 +2689,42 @@ async function getAllProducts(env, corsHeaders) {
             WHERE p.is_active = 1
             ORDER BY name ASC
         `).all();
+
+        // Get ALL product-category relationships in ONE query
+        const { results: allProductCategories } = await env.DB.prepare(`
+            SELECT 
+                pc.product_id,
+                c.id, 
+                c.name, 
+                c.icon, 
+                c.color, 
+                pc.is_primary,
+                pc.display_order
+            FROM product_categories pc
+            JOIN categories c ON pc.category_id = c.id
+            ORDER BY pc.product_id, pc.is_primary DESC, pc.display_order ASC
+        `).all();
+
+        // Group categories by product_id
+        const categoriesByProduct = {};
+        for (let pc of allProductCategories) {
+            if (!categoriesByProduct[pc.product_id]) {
+                categoriesByProduct[pc.product_id] = [];
+            }
+            categoriesByProduct[pc.product_id].push({
+                id: pc.id,
+                name: pc.name,
+                icon: pc.icon,
+                color: pc.color,
+                is_primary: pc.is_primary
+            });
+        }
+
+        // Assign categories to products
+        for (let product of products) {
+            product.categories = categoriesByProduct[product.id] || [];
+            product.category_ids = product.categories.map(c => c.id);
+        }
 
         return jsonResponse({
             success: true,
@@ -2714,6 +2763,18 @@ async function getProduct(productId, env, corsHeaders) {
                 error: 'Product not found'
             }, 404, corsHeaders);
         }
+
+        // Get all categories for this product
+        const { results: categories } = await env.DB.prepare(`
+            SELECT c.id, c.name, c.icon, c.color, pc.is_primary
+            FROM categories c
+            JOIN product_categories pc ON c.id = pc.category_id
+            WHERE pc.product_id = ?
+            ORDER BY pc.is_primary DESC, pc.display_order ASC
+        `).bind(productId).all();
+        
+        product.categories = categories;
+        product.category_ids = categories.map(c => c.id);
 
         return jsonResponse({
             success: true,
@@ -2796,8 +2857,8 @@ async function createProduct(data, env, corsHeaders) {
 
         // Insert product
         const result = await env.DB.prepare(`
-            INSERT INTO products (name, price, original_price, cost_price, category_id, stock_quantity, rating, purchases, weight, size, sku, description, image_url, category, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO products (name, price, original_price, cost_price, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             price,
@@ -2807,18 +2868,36 @@ async function createProduct(data, env, corsHeaders) {
             data.stock_quantity !== undefined ? parseInt(data.stock_quantity) : 0,
             data.rating !== undefined ? parseFloat(data.rating) : 0,
             data.purchases !== undefined ? parseInt(data.purchases) : 0,
-            data.weight || null,
-            data.size || null,
             data.sku || null,
             data.description || null,
             data.image_url || null,
-            data.category || null,
             data.is_active !== undefined ? data.is_active : 1
         ).run();
 
+        const productId = result.meta.last_row_id;
+
+        // Handle multiple categories if provided
+        if (data.category_ids && Array.isArray(data.category_ids) && data.category_ids.length > 0) {
+            for (let i = 0; i < data.category_ids.length; i++) {
+                const categoryId = data.category_ids[i];
+                const isPrimary = i === 0 ? 1 : 0; // First one is primary
+                
+                await env.DB.prepare(`
+                    INSERT INTO product_categories (product_id, category_id, is_primary, display_order)
+                    VALUES (?, ?, ?, ?)
+                `).bind(productId, categoryId, isPrimary, i).run();
+            }
+        } else if (data.category_id) {
+            // Fallback: single category (backward compatibility)
+            await env.DB.prepare(`
+                INSERT INTO product_categories (product_id, category_id, is_primary, display_order)
+                VALUES (?, ?, 1, 0)
+            `).bind(productId, data.category_id).run();
+        }
+
         return jsonResponse({
             success: true,
-            productId: result.meta.last_row_id,
+            productId: productId,
             message: 'Product created successfully'
         }, 200, corsHeaders);
 
@@ -2915,14 +2994,6 @@ async function updateProduct(data, env, corsHeaders) {
             updates.push('purchases = ?');
             values.push(parseInt(data.purchases));
         }
-        if (data.weight !== undefined) {
-            updates.push('weight = ?');
-            values.push(data.weight || null);
-        }
-        if (data.size !== undefined) {
-            updates.push('size = ?');
-            values.push(data.size || null);
-        }
         if (data.sku !== undefined) {
             updates.push('sku = ?');
             values.push(data.sku || null);
@@ -2934,10 +3005,6 @@ async function updateProduct(data, env, corsHeaders) {
         if (data.image_url !== undefined) {
             updates.push('image_url = ?');
             values.push(data.image_url || null);
-        }
-        if (data.category !== undefined) {
-            updates.push('category = ?');
-            values.push(data.category || null);
         }
         if (data.is_active !== undefined) {
             updates.push('is_active = ?');
@@ -2963,6 +3030,29 @@ async function updateProduct(data, env, corsHeaders) {
             SET ${updates.join(', ')}
             WHERE id = ?
         `).bind(...values).run();
+
+        // Handle multiple categories update if provided
+        if (data.category_ids !== undefined) {
+            const categoryIds = Array.isArray(data.category_ids) ? data.category_ids : [];
+            
+            // Delete existing categories
+            await env.DB.prepare(`
+                DELETE FROM product_categories WHERE product_id = ?
+            `).bind(data.id).run();
+            
+            // Insert new categories
+            if (categoryIds.length > 0) {
+                for (let i = 0; i < categoryIds.length; i++) {
+                    const categoryId = categoryIds[i];
+                    const isPrimary = i === 0 ? 1 : 0; // First one is primary
+                    
+                    await env.DB.prepare(`
+                        INSERT INTO product_categories (product_id, category_id, is_primary, display_order)
+                        VALUES (?, ?, ?, ?)
+                    `).bind(data.id, categoryId, isPrimary, i).run();
+                }
+            }
+        }
 
         return jsonResponse({
             success: true,
@@ -3021,6 +3111,195 @@ async function deleteProduct(data, env, corsHeaders) {
     }
 }
 
+
+// ============================================
+// PRODUCT CATEGORIES (MANY-TO-MANY)
+// ============================================
+
+// Get all categories for a product
+async function getProductCategories(productId, env, corsHeaders) {
+    try {
+        if (!productId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID is required'
+            }, 400, corsHeaders);
+        }
+
+        const { results: categories } = await env.DB.prepare(`
+            SELECT c.*, pc.is_primary, pc.display_order
+            FROM categories c
+            JOIN product_categories pc ON c.id = pc.category_id
+            WHERE pc.product_id = ?
+            ORDER BY pc.is_primary DESC, pc.display_order ASC, c.name ASC
+        `).bind(productId).all();
+
+        return jsonResponse({
+            success: true,
+            categories: categories
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting product categories:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Add category to product
+async function addProductCategory(data, env, corsHeaders) {
+    try {
+        if (!data.productId || !data.categoryId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID and Category ID are required'
+            }, 400, corsHeaders);
+        }
+
+        // Check if relationship already exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM product_categories 
+            WHERE product_id = ? AND category_id = ?
+        `).bind(data.productId, data.categoryId).first();
+
+        if (existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Category already added to this product'
+            }, 400, corsHeaders);
+        }
+
+        // Insert new relationship
+        await env.DB.prepare(`
+            INSERT INTO product_categories (product_id, category_id, is_primary, display_order)
+            VALUES (?, ?, ?, ?)
+        `).bind(
+            data.productId,
+            data.categoryId,
+            data.isPrimary ? 1 : 0,
+            data.displayOrder || 0
+        ).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Category added successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error adding product category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Remove category from product
+async function removeProductCategory(data, env, corsHeaders) {
+    try {
+        if (!data.productId || !data.categoryId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID and Category ID are required'
+            }, 400, corsHeaders);
+        }
+
+        await env.DB.prepare(`
+            DELETE FROM product_categories 
+            WHERE product_id = ? AND category_id = ?
+        `).bind(data.productId, data.categoryId).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Category removed successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error removing product category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Set primary category for product
+async function setPrimaryCategory(data, env, corsHeaders) {
+    try {
+        if (!data.productId || !data.categoryId) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID and Category ID are required'
+            }, 400, corsHeaders);
+        }
+
+        // Update to set as primary (trigger will handle removing old primary)
+        await env.DB.prepare(`
+            UPDATE product_categories 
+            SET is_primary = 1 
+            WHERE product_id = ? AND category_id = ?
+        `).bind(data.productId, data.categoryId).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Primary category set successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error setting primary category:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Update all categories for a product (bulk operation)
+async function updateProductCategories(data, env, corsHeaders) {
+    try {
+        if (!data.productId || !data.categoryIds) {
+            return jsonResponse({
+                success: false,
+                error: 'Product ID and category IDs are required'
+            }, 400, corsHeaders);
+        }
+
+        const productId = data.productId;
+        const categoryIds = Array.isArray(data.categoryIds) ? data.categoryIds : [];
+
+        // Delete all existing categories for this product
+        await env.DB.prepare(`
+            DELETE FROM product_categories WHERE product_id = ?
+        `).bind(productId).run();
+
+        // Insert new categories
+        if (categoryIds.length > 0) {
+            for (let i = 0; i < categoryIds.length; i++) {
+                const categoryId = categoryIds[i];
+                const isPrimary = i === 0 ? 1 : 0; // First one is primary
+                
+                await env.DB.prepare(`
+                    INSERT INTO product_categories (product_id, category_id, is_primary, display_order)
+                    VALUES (?, ?, ?, ?)
+                `).bind(productId, categoryId, isPrimary, i).run();
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Product categories updated successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating product categories:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
 
 // ============================================
 // CATEGORY FUNCTIONS
