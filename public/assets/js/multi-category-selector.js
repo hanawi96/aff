@@ -55,7 +55,7 @@ class MultiCategorySelector {
                 </div>
                 
                 <!-- Dropdown Menu -->
-                <div class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50" id="dropdownMenu">
+                <div class="hidden fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999]" id="dropdownMenu">
                     <!-- Search -->
                     <div class="p-3 border-b border-gray-200">
                         <div class="relative">
@@ -78,7 +78,7 @@ class MultiCategorySelector {
                     </div>
                     
                     <!-- Categories List (2 columns) -->
-                    <div class="max-h-80 overflow-y-auto" id="categoriesList">
+                    <div class="overflow-y-auto" id="categoriesList" style="max-height: 280px;">
                         <div class="flex items-center justify-center py-8 text-gray-400">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                         </div>
@@ -160,17 +160,31 @@ class MultiCategorySelector {
             <div class="grid grid-cols-2 gap-0">
                 ${categoriesToRender.map(cat => {
                     const isSelected = this.selectedIds.has(cat.id);
+                    const isPrimary = isSelected && Array.from(this.selectedIds)[0] === cat.id;
                     return `
-                    <label class="flex items-center gap-2 px-3 py-2.5 hover:bg-purple-50 cursor-pointer transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-50' : ''}">
-                        <input type="checkbox" 
-                            class="w-4 h-4 text-purple-600 border-2 border-gray-300 rounded focus:ring-0 cursor-pointer flex-shrink-0" 
-                            value="${cat.id}"
-                            ${isSelected ? 'checked' : ''}
-                            onchange="window.categorySelector.toggleCategory(${cat.id})">
-                        <span class="text-lg flex-shrink-0">${cat.icon || '📦'}</span>
-                        <span class="flex-1 text-xs font-medium ${isSelected ? 'text-purple-700 font-semibold' : 'text-gray-700'} truncate">${this.escapeHtml(cat.name)}</span>
-                        ${cat.color ? `<span class="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0" style="background-color: ${cat.color}"></span>` : ''}
-                    </label>
+                    <div class="flex items-center gap-2 px-3 py-2.5 hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-50' : ''}">
+                        <label class="flex items-center gap-2 flex-1 cursor-pointer">
+                            <input type="checkbox" 
+                                class="w-4 h-4 text-purple-600 border-2 border-gray-300 rounded focus:ring-0 cursor-pointer flex-shrink-0" 
+                                value="${cat.id}"
+                                ${isSelected ? 'checked' : ''}
+                                onchange="window.categorySelector.toggleCategory(${cat.id})">
+                            ${cat.color ? `<span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${cat.color}"></span>` : `<span class="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></span>`}
+                            <span class="flex-1 text-xs font-medium ${isSelected ? 'text-purple-700 font-semibold' : 'text-gray-700'} truncate">${this.escapeHtml(cat.name)}</span>
+                        </label>
+                        ${isSelected ? `
+                            <button type="button" 
+                                class="px-2 py-1 text-[10px] font-semibold rounded transition-all flex-shrink-0 ${
+                                    isPrimary 
+                                        ? 'bg-yellow-100 text-yellow-700 border border-yellow-300 cursor-default' 
+                                        : 'bg-white text-purple-600 border border-purple-300 hover:bg-purple-50'
+                                }"
+                                ${!isPrimary ? `onclick="event.stopPropagation(); window.categorySelector.setPrimary(${cat.id})"` : ''}
+                                title="${isPrimary ? 'Danh mục chính' : 'Đặt làm chính'}">
+                                ${isPrimary ? '⭐ Chính' : 'Set Primary'}
+                            </button>
+                        ` : ''}
+                    </div>
                 `;
                 }).join('')}
             </div>
@@ -205,6 +219,7 @@ class MultiCategorySelector {
         
         this.updateSelectedTags();
         this.updateSelectedCount();
+        this.renderCategories(); // Re-render to show/hide Set Primary buttons
         this.options.onChange(Array.from(this.selectedIds));
     }
     
@@ -217,22 +232,19 @@ class MultiCategorySelector {
             return;
         }
         
-        const selectedCategories = this.categories.filter(cat => this.selectedIds.has(cat.id));
-        
-        // Sort by primary first
-        selectedCategories.sort((a, b) => {
-            if (a.is_primary && !b.is_primary) return -1;
-            if (!a.is_primary && b.is_primary) return 1;
-            return 0;
-        });
+        // Get selected categories in the order of selectedIds Set
+        const selectedIdsArray = Array.from(this.selectedIds);
+        const selectedCategories = selectedIdsArray
+            .map(id => this.categories.find(cat => cat.id === id))
+            .filter(cat => cat !== undefined);
         
         tagsWrapper.innerHTML = selectedCategories.map((cat, index) => `
             <span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 ${
                 index === 0 
-                    ? 'bg-purple-50 text-purple-700 border border-purple-200' 
-                    : 'bg-gray-50 text-gray-700 border border-gray-200'
-            } rounded-full text-xs font-medium hover:shadow-sm transition-all">
-                <span class="w-1.5 h-1.5 rounded-full ${index === 0 ? 'bg-purple-500' : 'bg-gray-400'}"></span>
+                    ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:border-purple-300 cursor-pointer'
+            } rounded-full text-xs font-medium hover:shadow-sm transition-all" ${index !== 0 ? `onclick="event.stopPropagation(); window.categorySelector.setPrimary(${cat.id})" title="Click để đặt làm danh mục chính"` : 'title="Danh mục chính"'}>
+                ${index === 0 ? '<span class="text-yellow-500">⭐</span>' : '<span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>'}
                 <span class="max-w-[100px] truncate">${this.escapeHtml(cat.name)}</span>
                 <button type="button" class="w-4 h-4 flex items-center justify-center rounded-full hover:bg-black/10 transition-colors" onclick="event.stopPropagation(); window.categorySelector.removeCategory(${cat.id})" title="Xóa">
                     <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -241,6 +253,26 @@ class MultiCategorySelector {
                 </button>
             </span>
         `).join('');
+    }
+    
+    setPrimary(categoryId) {
+        // Move the selected category to the front (making it primary)
+        const idsArray = Array.from(this.selectedIds);
+        const index = idsArray.indexOf(categoryId);
+        
+        if (index > -1) {
+            // Remove from current position and add to front
+            idsArray.splice(index, 1);
+            idsArray.unshift(categoryId);
+            
+            // Update selectedIds Set with new order
+            this.selectedIds = new Set(idsArray);
+            
+            // Update UI
+            this.updateSelectedTags();
+            this.renderCategories();
+            this.options.onChange(Array.from(this.selectedIds));
+        }
     }
     
     removeCategory(categoryId) {
@@ -292,10 +324,30 @@ class MultiCategorySelector {
     toggleDropdown() {
         const dropdown = this.container.querySelector('#dropdownMenu');
         const icon = this.container.querySelector('#dropdownIcon');
+        const trigger = this.container.querySelector('#selectorTrigger');
         
         if (this.isOpen) {
             this.closeDropdown();
         } else {
+            // Calculate position
+            const rect = trigger.getBoundingClientRect();
+            const dropdownHeight = 400; // Approximate height
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            // Position dropdown
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.width = `${rect.width}px`;
+            
+            // Check if there's enough space below, otherwise show above
+            if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                dropdown.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+                dropdown.style.top = 'auto';
+            } else {
+                dropdown.style.top = `${rect.bottom + 8}px`;
+                dropdown.style.bottom = 'auto';
+            }
+            
             dropdown.classList.remove('hidden');
             icon.style.transform = 'rotate(180deg)';
             this.isOpen = true;

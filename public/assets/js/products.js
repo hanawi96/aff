@@ -312,11 +312,11 @@ function createProductCard(product) {
     const originalPrice = product.original_price ? formatCurrency(product.original_price) : null;
     const hasDiscount = originalPrice && product.original_price > product.price;
     const safeName = escapeHtml(product.name).replace(/'/g, '&#39;');
-    
+
     // Get categories array (from new multi-category system)
     const categories = product.categories || [];
     const hasCategories = categories.length > 0;
-    
+
     // Fallback to old single category if no categories array
     const categoryName = product.category_name || 'Chưa phân loại';
     const categoryIcon = product.category_icon || '📦';
@@ -364,20 +364,33 @@ function createProductCard(product) {
                     <h3 class="text-base font-semibold text-gray-900 line-clamp-2 flex-1" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</h3>
                 </div>
                 
-                <div class="flex items-center gap-2 mb-3 flex-wrap">
-                    ${hasCategories ? 
-                        categories.map(cat => `
+                <div class="flex items-center gap-2 mb-3 flex-wrap" id="categories-${product.id}">
+                    ${hasCategories ?
+            (() => {
+                const maxVisible = 3;
+                const visibleCategories = categories.slice(0, maxVisible);
+                const remainingCount = categories.length - maxVisible;
+
+                return visibleCategories.map(cat => `
                             <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
-                                <span>${cat.icon || '📦'}</span>
+                                ${cat.color ? `<span class="w-2 h-2 rounded-full" style="background-color: ${cat.color}"></span>` : `<span class="w-2 h-2 rounded-full bg-purple-500"></span>`}
                                 <span>${escapeHtml(cat.name)}</span>
                             </span>
-                        `).join('') 
-                        : 
-                        `<span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
-                            <span>${categoryIcon}</span>
+                        `).join('') +
+                    (remainingCount > 0 ? `
+                            <button type="button" 
+                                onclick="toggleCategories(${product.id}, ${JSON.stringify(categories).replace(/"/g, '&quot;')})"
+                                class="px-2 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium rounded transition-colors">
+                                +${remainingCount} danh mục
+                            </button>
+                        ` : '');
+            })()
+            :
+            `<span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
                             <span>${escapeHtml(categoryName)}</span>
                         </span>`
-                    }
+        }
                     ${product.sku ? `<span class="text-xs text-gray-500 font-mono">${escapeHtml(product.sku)}</span>` : ''}
                 </div>
                 
@@ -507,18 +520,22 @@ function showAddProductModal() {
                                         Giá bán <span class="text-red-500">*</span>
                                     </label>
                                     <div class="relative">
-                                        <input type="number" id="productPrice" required min="0" step="1000"
+                                        <input type="text" id="productPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                            placeholder="179000" oninput="calculateExpectedProfit()">
+                                            placeholder="179.000"
+                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
                                     <div class="relative">
-                                        <input type="number" id="productOriginalPrice" min="0" step="1000"
+                                        <input type="text" id="productOriginalPrice"
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                            placeholder="189000">
+                                            placeholder="189.000"
+                                            oninput="autoFormatNumberInput(this)"
+                                            onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
@@ -527,9 +544,11 @@ function showAddProductModal() {
                                         💰 Giá vốn <span class="text-red-500">*</span>
                                     </label>
                                     <div class="relative">
-                                        <input type="number" id="productCostPrice" required min="0" step="1000"
+                                        <input type="text" id="productCostPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                            placeholder="89500" oninput="calculateExpectedProfit()">
+                                            placeholder="89.500"
+                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                     <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
@@ -569,15 +588,23 @@ function showAddProductModal() {
                         </div>
                     </div>
                     
+                    <!-- Danh mục -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                        <div id="categorySelector"></div>
+                    </div>
+                    
                     <!-- Thông tin bổ sung -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
-                                <input type="number" id="productStockQuantity" min="0" value="0"
+                                <input type="text" id="productStockQuantity" value="0"
                                     class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                    placeholder="15">
+                                    placeholder="15"
+                                    oninput="autoFormatNumberInput(this)"
+                                    onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
@@ -587,18 +614,13 @@ function showAddProductModal() {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
-                                <input type="number" id="productPurchases" min="0" value="0"
+                                <input type="text" id="productPurchases" value="0"
                                     class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                    placeholder="0">
+                                    placeholder="0"
+                                    oninput="autoFormatNumberInput(this)"
+                                    onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Danh mục -->
-                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                        <div id="categorySelector"></div>
-                        <p class="text-xs text-gray-500 mt-2">Có thể chọn nhiều danh mục</p>
                     </div>
                     
                     <!-- Chi tiết sản phẩm -->
@@ -672,13 +694,13 @@ function closeProductModal() {
 // Save product (create or update)
 async function saveProduct(productId = null) {
     const name = document.getElementById('productName')?.value.trim();
-    const price = document.getElementById('productPrice')?.value;
-    const originalPrice = document.getElementById('productOriginalPrice')?.value;
-    const costPrice = document.getElementById('productCostPrice')?.value;
+    const price = parseFormattedNumber(document.getElementById('productPrice')?.value);
+    const originalPrice = parseFormattedNumber(document.getElementById('productOriginalPrice')?.value);
+    const costPrice = parseFormattedNumber(document.getElementById('productCostPrice')?.value);
     const categoryIds = window.categorySelector ? window.categorySelector.getSelectedIds() : [];
-    const stockQuantity = document.getElementById('productStockQuantity')?.value;
+    const stockQuantity = parseFormattedNumber(document.getElementById('productStockQuantity')?.value);
     const rating = document.getElementById('productRating')?.value;
-    const purchases = document.getElementById('productPurchases')?.value;
+    const purchases = parseFormattedNumber(document.getElementById('productPurchases')?.value);
     const sku = document.getElementById('productSKU')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
     const image_url = document.getElementById('productImageURL')?.value.trim();
@@ -690,13 +712,13 @@ async function saveProduct(productId = null) {
         return;
     }
 
-    if (!price || parseFloat(price) <= 0) {
+    if (!price || price <= 0) {
         showToast('Vui lòng nhập giá hợp lệ', 'warning');
         document.getElementById('productPrice')?.focus();
         return;
     }
 
-    if (!costPrice || parseFloat(costPrice) < 0) {
+    if (isNaN(costPrice) || costPrice < 0) {
         showToast('Vui lòng nhập giá vốn hợp lệ', 'warning');
         document.getElementById('productCostPrice')?.focus();
         return;
@@ -712,13 +734,13 @@ async function saveProduct(productId = null) {
     const productData = {
         action: productId ? 'updateProduct' : 'createProduct',
         name,
-        price: parseFloat(price),
-        original_price: originalPrice ? parseFloat(originalPrice) : null,
-        cost_price: parseFloat(costPrice),
+        price: price,
+        original_price: originalPrice || null,
+        cost_price: costPrice,
         category_ids: categoryIds,
-        stock_quantity: stockQuantity ? parseInt(stockQuantity) : 0,
+        stock_quantity: stockQuantity || 0,
         rating: rating ? parseFloat(rating) : 0,
-        purchases: purchases ? parseInt(purchases) : 0,
+        purchases: purchases || 0,
         sku: sku || null,
         description: description || null,
         image_url: image_url || null
@@ -745,7 +767,7 @@ async function saveProduct(productId = null) {
         const data = await response.json();
 
         if (data.success) {
-            showToast(productId ? '✓ Đã cập nhật sản phẩm' : '✓ Đã thêm sản phẩm mới', 'success');
+            showToast(productId ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới', 'success');
             closeProductModal();
             await loadProducts();
         } else {
@@ -769,12 +791,12 @@ function isValidUrl(string) {
     if (!string || string.trim() === '') {
         return true; // Empty is valid (optional field)
     }
-    
+
     // Allow relative paths (starts with ./ or ../ or /)
     if (string.startsWith('./') || string.startsWith('../') || string.startsWith('/') || string.startsWith('assets/')) {
         return true;
     }
-    
+
     // Validate absolute URLs
     try {
         const url = new URL(string);
@@ -788,8 +810,8 @@ function isValidUrl(string) {
 
 // Calculate expected profit
 function calculateExpectedProfit() {
-    const price = parseFloat(document.getElementById('productPrice')?.value) || 0;
-    const costPrice = parseFloat(document.getElementById('productCostPrice')?.value) || 0;
+    const price = parseFormattedNumber(document.getElementById('productPrice')?.value) || 0;
+    const costPrice = parseFormattedNumber(document.getElementById('productCostPrice')?.value) || 0;
 
     const profitDisplay = document.getElementById('profitDisplay');
     const lossWarning = document.getElementById('lossWarning');
@@ -831,6 +853,40 @@ function formatCurrency(amount) {
         style: 'currency',
         currency: 'VND'
     }).format(amount).replace('₫', 'đ');
+}
+
+// Format number with thousand separators
+function formatNumber(num) {
+    if (!num) return '';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Parse formatted number back to integer
+function parseFormattedNumber(str) {
+    if (!str) return 0;
+    return parseInt(str.toString().replace(/\./g, ''));
+}
+
+// Auto-format number input on keyup
+function autoFormatNumberInput(inputElement) {
+    const cursorPosition = inputElement.selectionStart;
+    const oldValue = inputElement.value;
+    const oldLength = oldValue.length;
+
+    // Remove all dots and parse
+    const numericValue = parseFormattedNumber(oldValue);
+
+    // Format with dots
+    const formattedValue = formatNumber(numericValue);
+
+    // Update input value
+    inputElement.value = formattedValue;
+
+    // Restore cursor position (adjust for added/removed dots)
+    const newLength = formattedValue.length;
+    const lengthDiff = newLength - oldLength;
+    const newCursorPosition = cursorPosition + lengthDiff;
+    inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
 }
 
 
@@ -897,18 +953,22 @@ async function editProduct(productId) {
                                             Giá bán <span class="text-red-500">*</span>
                                         </label>
                                         <div class="relative">
-                                            <input type="number" id="productPrice" required min="0" step="1000" value="${product.price}"
+                                            <input type="text" id="productPrice" required value="${formatNumber(product.price)}"
                                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                                placeholder="179000">
+                                                placeholder="179.000"
+                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
+                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
                                         <div class="relative">
-                                            <input type="number" id="productOriginalPrice" min="0" step="1000" value="${product.original_price || ''}"
+                                            <input type="text" id="productOriginalPrice" value="${formatNumber(product.original_price || 0)}"
                                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                                placeholder="189000">
+                                                placeholder="189.000"
+                                                oninput="autoFormatNumberInput(this)"
+                                                onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                     </div>
@@ -917,9 +977,11 @@ async function editProduct(productId) {
                                             💰 Giá vốn <span class="text-red-500">*</span>
                                         </label>
                                         <div class="relative">
-                                            <input type="number" id="productCostPrice" required min="0" step="1000" value="${product.cost_price || 0}"
+                                            <input type="text" id="productCostPrice" required value="${formatNumber(product.cost_price || 0)}"
                                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                                placeholder="89500">
+                                                placeholder="89.500"
+                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
+                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                         <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
@@ -928,15 +990,23 @@ async function editProduct(productId) {
                             </div>
                         </div>
                         
+                        <!-- Danh mục -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                            <div id="categorySelector"></div>
+                        </div>
+                        
                         <!-- Thông tin bổ sung -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                             <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
-                                    <input type="number" id="productStockQuantity" min="0" value="${product.stock_quantity || 0}"
+                                    <input type="text" id="productStockQuantity" value="${formatNumber(product.stock_quantity || 0)}"
                                         class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="15">
+                                        placeholder="15"
+                                        oninput="autoFormatNumberInput(this)"
+                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
@@ -946,18 +1016,13 @@ async function editProduct(productId) {
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
-                                    <input type="number" id="productPurchases" min="0" value="${product.purchases || 0}"
+                                    <input type="text" id="productPurchases" value="${formatNumber(product.purchases || 0)}"
                                         class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="0">
+                                        placeholder="0"
+                                        oninput="autoFormatNumberInput(this)"
+                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Danh mục -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                            <div id="categorySelector"></div>
-                            <p class="text-xs text-gray-500 mt-2">Có thể chọn nhiều danh mục</p>
                         </div>
                         
                         <!-- Chi tiết sản phẩm -->
@@ -1103,6 +1168,50 @@ async function deleteProduct(productId) {
     } catch (error) {
         console.error('Error deleting product:', error);
         showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+// Toggle categories display
+function toggleCategories(productId, allCategories) {
+    const container = document.getElementById(`categories-${productId}`);
+    if (!container) return;
+
+    const isExpanded = container.dataset.expanded === 'true';
+
+    if (isExpanded) {
+        // Collapse - show only first 3
+        const maxVisible = 3;
+        const visibleCategories = allCategories.slice(0, maxVisible);
+        const remainingCount = allCategories.length - maxVisible;
+
+        container.innerHTML = visibleCategories.map(cat => `
+            <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
+                ${cat.color ? `<span class="w-2 h-2 rounded-full" style="background-color: ${cat.color}"></span>` : `<span class="w-2 h-2 rounded-full bg-purple-500"></span>`}
+                <span>${escapeHtml(cat.name)}</span>
+            </span>
+        `).join('') + `
+            <button type="button" 
+                onclick="toggleCategories(${productId}, ${JSON.stringify(allCategories).replace(/"/g, '&quot;')})"
+                class="px-2 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium rounded transition-colors">
+                +${remainingCount} danh mục
+            </button>
+        `;
+        container.dataset.expanded = 'false';
+    } else {
+        // Expand - show all
+        container.innerHTML = allCategories.map(cat => `
+            <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded flex items-center gap-1">
+                ${cat.color ? `<span class="w-2 h-2 rounded-full" style="background-color: ${cat.color}"></span>` : `<span class="w-2 h-2 rounded-full bg-purple-500"></span>`}
+                <span>${escapeHtml(cat.name)}</span>
+            </span>
+        `).join('') + `
+            <button type="button" 
+                onclick="toggleCategories(${productId}, ${JSON.stringify(allCategories).replace(/"/g, '&quot;')})"
+                class="px-2 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-medium rounded transition-colors">
+                Thu gọn
+            </button>
+        `;
+        container.dataset.expanded = 'true';
     }
 }
 
@@ -1469,31 +1578,357 @@ async function bulkDeleteProducts() {
     }
 }
 
-// Bulk Update Status (Active/Inactive)
-async function bulkUpdateStatus(isActive) {
+// Show Bulk Price Update Modal
+function showBulkPriceModal() {
     if (selectedProductIds.size === 0) {
         showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
         return;
     }
 
-    const count = selectedProductIds.size;
-    const statusText = isActive ? 'kích hoạt' : 'ẩn';
+    const modal = document.createElement('div');
+    modal.id = 'bulkPriceModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-2xl">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Sửa giá hàng loạt
+                </h3>
+                <p class="text-green-100 text-sm mt-1">Đã chọn ${selectedProductIds.size} sản phẩm</p>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn loại giá</label>
+                    <select id="bulkPriceType" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="price">Giá bán</option>
+                        <option value="cost_price">Giá vốn</option>
+                        <option value="original_price">Giá gốc</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phương thức cập nhật</label>
+                    <select id="bulkPriceMethod" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" onchange="togglePriceInputs()">
+                        <option value="set">Đặt giá cố định</option>
+                        <option value="increase">Tăng giá</option>
+                        <option value="decrease">Giảm giá</option>
+                        <option value="percent_increase">Tăng theo %</option>
+                        <option value="percent_decrease">Giảm theo %</option>
+                    </select>
+                </div>
+
+                <div id="priceValueContainer">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="priceValueLabel">Giá mới</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="bulkPriceValue" 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            placeholder="Nhập giá trị"
+                            onkeyup="autoFormatNumberInput(this)"
+                            onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
+                        <span id="priceUnit" class="absolute right-4 top-2.5 text-gray-500">đ</span>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Lưu ý:</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li>Giá mới sẽ được áp dụng cho tất cả sản phẩm đã chọn</li>
+                                <li>Hành động này không thể hoàn tác</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
+                <button onclick="closeBulkPriceModal()"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button onclick="applyBulkPriceUpdate()"
+                    class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function togglePriceInputs() {
+    const method = document.getElementById('bulkPriceMethod').value;
+    const label = document.getElementById('priceValueLabel');
+    const unit = document.getElementById('priceUnit');
+
+    switch (method) {
+        case 'set':
+            label.textContent = 'Giá mới';
+            unit.textContent = 'đ';
+            break;
+        case 'increase':
+            label.textContent = 'Tăng thêm';
+            unit.textContent = 'đ';
+            break;
+        case 'decrease':
+            label.textContent = 'Giảm đi';
+            unit.textContent = 'đ';
+            break;
+        case 'percent_increase':
+            label.textContent = 'Tăng';
+            unit.textContent = '%';
+            break;
+        case 'percent_decrease':
+            label.textContent = 'Giảm';
+            unit.textContent = '%';
+            break;
+    }
+}
+
+function closeBulkPriceModal() {
+    const modal = document.getElementById('bulkPriceModal');
+    if (modal) modal.remove();
+}
+
+async function applyBulkPriceUpdate() {
+    const priceType = document.getElementById('bulkPriceType').value;
+    const method = document.getElementById('bulkPriceMethod').value;
+    const inputValue = document.getElementById('bulkPriceValue').value;
+    const value = parseFormattedNumber(inputValue);
+
+    if (!value || value < 0) {
+        showToast('Vui lòng nhập giá trị hợp lệ', 'warning');
+        return;
+    }
 
     try {
-        showToast(`Đang ${statusText} ${count} sản phẩm...`, 'info');
+        showToast(`Đang cập nhật giá cho ${selectedProductIds.size} sản phẩm...`, 'info');
+        closeBulkPriceModal();
 
         let successCount = 0;
         let failCount = 0;
 
         for (const productId of selectedProductIds) {
             try {
-                const response = await fetch(`${CONFIG.API_URL}`, {
+                const product = allProducts.find(p => p.id === productId);
+                if (!product) continue;
+
+                let newPrice;
+                const currentPrice = product[priceType] || 0;
+
+                switch (method) {
+                    case 'set':
+                        newPrice = value;
+                        break;
+                    case 'increase':
+                        newPrice = currentPrice + value;
+                        break;
+                    case 'decrease':
+                        newPrice = Math.max(0, currentPrice - value);
+                        break;
+                    case 'percent_increase':
+                        newPrice = currentPrice * (1 + value / 100);
+                        break;
+                    case 'percent_decrease':
+                        newPrice = currentPrice * (1 - value / 100);
+                        break;
+                }
+
+                const updateData = {
+                    action: 'updateProduct',
+                    id: productId,
+                    [priceType]: Math.round(newPrice)
+                };
+
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error updating product ${productId}:`, error);
+            }
+        }
+
+        clearSelection();
+        await loadProducts();
+
+        if (failCount === 0) {
+            showToast(`Đã cập nhật giá thành công cho ${successCount} sản phẩm`, 'success');
+        } else {
+            showToast(`Đã cập nhật ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
+        }
+    } catch (error) {
+        console.error('Error bulk updating price:', error);
+        showToast('Không thể cập nhật giá: ' + error.message, 'error');
+    }
+}
+
+// Show Bulk Stock Update Modal
+function showBulkStockModal() {
+    if (selectedProductIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'bulkStockModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    Sửa tồn kho hàng loạt
+                </h3>
+                <p class="text-blue-100 text-sm mt-1">Đã chọn ${selectedProductIds.size} sản phẩm</p>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phương thức cập nhật</label>
+                    <select id="bulkStockMethod" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="toggleStockInputs()">
+                        <option value="set">Đặt số lượng cố định</option>
+                        <option value="increase">Tăng thêm</option>
+                        <option value="decrease">Giảm đi</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="stockValueLabel">Số lượng mới</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="bulkStockValue" 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Nhập số lượng"
+                            onkeyup="autoFormatNumberInput(this)"
+                            onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
+                        <span class="absolute right-4 top-2.5 text-gray-500">sp</span>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div class="text-sm text-amber-800">
+                            <p class="font-medium mb-1">Lưu ý:</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li>Số lượng tồn kho sẽ được cập nhật cho tất cả sản phẩm đã chọn</li>
+                                <li>Nếu chọn "Giảm đi", số lượng không thể âm (tối thiểu là 0)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
+                <button onclick="closeBulkStockModal()"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button onclick="applyBulkStockUpdate()"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function toggleStockInputs() {
+    const method = document.getElementById('bulkStockMethod').value;
+    const label = document.getElementById('stockValueLabel');
+
+    switch (method) {
+        case 'set':
+            label.textContent = 'Số lượng mới';
+            break;
+        case 'increase':
+            label.textContent = 'Tăng thêm';
+            break;
+        case 'decrease':
+            label.textContent = 'Giảm đi';
+            break;
+    }
+}
+
+function closeBulkStockModal() {
+    const modal = document.getElementById('bulkStockModal');
+    if (modal) modal.remove();
+}
+
+async function applyBulkStockUpdate() {
+    const method = document.getElementById('bulkStockMethod').value;
+    const inputValue = document.getElementById('bulkStockValue').value;
+    const value = parseFormattedNumber(inputValue);
+
+    if (isNaN(value) || value < 0) {
+        showToast('Vui lòng nhập số lượng hợp lệ', 'warning');
+        return;
+    }
+
+    try {
+        showToast(`Đang cập nhật tồn kho cho ${selectedProductIds.size} sản phẩm...`, 'info');
+        closeBulkStockModal();
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const productId of selectedProductIds) {
+            try {
+                const product = allProducts.find(p => p.id === productId);
+                if (!product) continue;
+
+                let newStock;
+                const currentStock = product.stock_quantity || 0;
+
+                switch (method) {
+                    case 'set':
+                        newStock = value;
+                        break;
+                    case 'increase':
+                        newStock = currentStock + value;
+                        break;
+                    case 'decrease':
+                        newStock = Math.max(0, currentStock - value);
+                        break;
+                }
+
+                const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action: 'updateProductStatus',
-                        productId: productId,
-                        isActive: isActive ? 1 : 0
+                        action: 'updateProduct',
+                        id: productId,
+                        stock_quantity: newStock
                     })
                 });
 
@@ -1513,49 +1948,12 @@ async function bulkUpdateStatus(isActive) {
         await loadProducts();
 
         if (failCount === 0) {
-            showToast(`Đã ${statusText} thành công ${successCount} sản phẩm`, 'success');
+            showToast(`Đã cập nhật tồn kho thành công cho ${successCount} sản phẩm`, 'success');
         } else {
-            showToast(`Đã ${statusText} ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
+            showToast(`Đã cập nhật ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
         }
     } catch (error) {
-        console.error('Error bulk updating status:', error);
-        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error');
-    }
-}
-
-// Bulk Export to CSV
-function bulkExportProducts() {
-    if (selectedProductIds.size === 0) {
-        showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning');
-        return;
-    }
-
-    try {
-        const selectedProducts = allProducts.filter(p => selectedProductIds.has(p.id));
-
-        // Create CSV content
-        let csv = 'Tên sản phẩm,SKU,Giá bán,Giá vốn,Danh mục,Tồn kho,Trạng thái\n';
-
-        selectedProducts.forEach(product => {
-            csv += `"${(product.name || '').replace(/"/g, '""')}",`;
-            csv += `"${product.sku || ''}",`;
-            csv += `"${product.price || 0}",`;
-            csv += `"${product.cost_price || 0}",`;
-            csv += `"${(product.category_name || '').replace(/"/g, '""')}",`;
-            csv += `"${product.stock_quantity || 0}",`;
-            csv += `"${product.is_active ? 'Hoạt động' : 'Ẩn'}"\n`;
-        });
-
-        // Download CSV
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `san-pham-${Date.now()}.csv`;
-        link.click();
-
-        showToast(`Đã export ${selectedProductIds.size} sản phẩm`, 'success');
-    } catch (error) {
-        console.error('Error exporting:', error);
-        showToast('Không thể export: ' + error.message, 'error');
+        console.error('Error bulk updating stock:', error);
+        showToast('Không thể cập nhật tồn kho: ' + error.message, 'error');
     }
 }
