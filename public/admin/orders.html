@@ -132,6 +132,78 @@
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
         }
+
+        /* Custom Date Picker Modal */
+        .date-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input-wrapper input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .date-input-wrapper input[type="date"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .date-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .date-mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-mode-tab.active {
+            background: white;
+            color: #6366f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
@@ -235,7 +307,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
+                            <p id="totalOrdersLabel" class="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
                             <div id="totalOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -251,7 +323,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng doanh thu</p>
+                            <p id="totalRevenueLabel" class="text-sm font-medium text-gray-600">Tổng doanh thu</p>
                             <div id="totalRevenue" class="skeleton h-10 w-24 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -268,7 +340,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Tổng hoa hồng</p>
+                            <p id="totalCommissionLabel" class="text-sm font-medium text-gray-600">Tổng hoa hồng</p>
                             <div id="totalCommission" class="skeleton h-10 w-24 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -283,11 +355,11 @@
                     </div>
                 </div>
 
-                <!-- Today Orders -->
+                <!-- Average Order Value -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600">Đơn hôm nay</p>
+                            <p id="todayOrdersLabel" class="text-sm font-medium text-gray-600">Giá trị TB/đơn</p>
                             <div id="todayOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -353,11 +425,23 @@
                                 class="date-preset-btn px-3 py-1.5 text-xs font-medium rounded-lg transition-all border">
                                 30 ngày
                             </button>
+                            
+                            <!-- Custom Date Picker Button -->
+                            <button onclick="showCustomDatePicker(event)" 
+                                id="customDateBtn"
+                                class="date-preset-btn px-3 py-1.5 text-xs font-medium rounded-lg transition-all border flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span id="customDateLabel">Chọn ngày</span>
+                            </button>
                         </div>
 
                         <!-- Hidden inputs to store values -->
                         <input type="hidden" id="statusFilter" value="all">
                         <input type="hidden" id="dateFilter" value="all">
+                        <input type="hidden" id="customDateStart" value="">
+                        <input type="hidden" id="customDateEnd" value="">
                     </div>
                 </div>
             </div>
@@ -396,6 +480,15 @@
                             
                             <!-- Action Buttons -->
                             <div class="flex items-center gap-2">
+                                <button onclick="showBulkStatusMenu(event)" 
+                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
+                                    title="Sửa trạng thái hàng loạt">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span class="text-sm">Sửa trạng thái</span>
+                                </button>
+                                
                                 <button onclick="bulkExport()" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
                                     title="Export đơn hàng đã chọn">

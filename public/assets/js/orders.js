@@ -220,6 +220,124 @@ async function bulkExport() {
     }
 }
 
+// Show bulk status menu
+function showBulkStatusMenu(event) {
+    event.stopPropagation();
+
+    // Close any existing menu
+    const existingMenu = document.getElementById('bulkStatusMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const statuses = [
+        { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
+        { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
+        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
+    ];
+
+    // Get button position
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+
+    // Create menu
+    const menu = document.createElement('div');
+    menu.id = 'bulkStatusMenu';
+    menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px]';
+    menu.style.zIndex = '10000';
+    menu.style.left = rect.left + 'px';
+    menu.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+
+    menu.innerHTML = statuses.map(s => `
+        <button 
+            onclick="bulkUpdateStatus('${s.value}', '${s.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+        >
+            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <span class="text-sm text-gray-700 flex-1">${s.label}</span>
+        </button>
+    `).join('');
+
+    document.body.appendChild(menu);
+
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!button.contains(e.target) && !menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+// Bulk Update Status - Update status for selected orders
+async function bulkUpdateStatus(newStatus, statusLabel) {
+    // Close menu
+    const menu = document.getElementById('bulkStatusMenu');
+    if (menu) menu.remove();
+
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    const count = selectedOrderIds.size;
+    const confirmed = confirm(`Bạn có chắc chắn muốn đổi trạng thái ${count} đơn hàng sang "${statusLabel}"?`);
+
+    if (!confirmed) return;
+
+    try {
+        showToast(`Đang cập nhật ${count} đơn hàng...`, 'info', 0, 'bulk-status');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const orderId of selectedOrderIds) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateOrderStatus',
+                        orderId: orderId,
+                        status: newStatus
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                    // Update local data
+                    updateOrderData(orderId, { status: newStatus });
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error updating order ${orderId}:`, error);
+            }
+        }
+
+        // Clear selection and re-render
+        clearSelection();
+        renderOrdersTable();
+
+        // Show result
+        if (failCount === 0) {
+            showToast(`Đã cập nhật thành công ${successCount} đơn hàng sang "${statusLabel}"`, 'success', null, 'bulk-status');
+        } else {
+            showToast(`Đã cập nhật ${successCount} đơn, thất bại ${failCount} đơn`, 'warning', null, 'bulk-status');
+        }
+    } catch (error) {
+        console.error('Error bulk updating status:', error);
+        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error', null, 'bulk-status');
+    }
+}
+
 // Bulk Delete - Delete selected orders
 async function bulkDelete() {
     if (selectedOrderIds.size === 0) {
@@ -451,17 +569,21 @@ async function loadOrdersData() {
 
 // Update statistics
 function updateStats() {
-    // IMPORTANT: Use allOrdersData (not filtered) for stats to show total across all orders
-    // This ensures stats match with other pages (dashboard, profit report)
-    const totalOrders = allOrdersData.length;
+    // Use filteredOrdersData to show stats based on current filter
+    // This allows stats to update when date filter changes
+    const dataToUse = filteredOrdersData.length > 0 || document.getElementById('dateFilter')?.value !== 'all' 
+        ? filteredOrdersData 
+        : allOrdersData;
+    
+    const totalOrders = dataToUse.length;
 
     // Calculate total revenue from total_amount (already includes products + shipping_fee)
-    const totalRevenue = allOrdersData.reduce((sum, order) => {
+    const totalRevenue = dataToUse.reduce((sum, order) => {
         return sum + (order.total_amount || 0);
     }, 0);
 
     // Calculate total commission - recalculate based on current CTV commission_rate if available
-    const totalCommission = allOrdersData.reduce((sum, order) => {
+    const totalCommission = dataToUse.reduce((sum, order) => {
         // If order has CTV and current commission_rate, recalculate
         if (order.referral_code && order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
             // Calculate product_total from total_amount - shipping_fee
@@ -474,21 +596,17 @@ function updateStats() {
         return sum + (order.commission || 0);
     }, 0);
 
-    // Get today's orders from all data (not filtered) - using VN timezone
-    const todayStart = getVNStartOfToday();
-    const todayEnd = getVNEndOfToday();
-
-    const todayOrders = allOrdersData.filter(order => {
-        if (!order.created_at) return false;
-        const orderDate = new Date(order.created_at);
-        return orderDate >= todayStart && orderDate <= todayEnd;
-    }).length;
+    // Calculate average order value
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
     // Update stats - Remove skeleton and add text
     updateStatElement('totalOrders', totalOrders, 'text-3xl font-bold text-blue-600');
     updateStatElement('totalRevenue', formatCurrency(totalRevenue), 'text-3xl font-bold text-green-600');
     updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-3xl font-bold text-orange-600');
-    updateStatElement('todayOrders', todayOrders, 'text-3xl font-bold text-purple-600');
+    updateStatElement('todayOrders', formatCurrency(avgOrderValue), 'text-3xl font-bold text-purple-600');
+    
+    // Update stat labels based on filter
+    updateStatLabels();
 }
 
 // Helper function to update stat element
@@ -498,6 +616,68 @@ function updateStatElement(elementId, value, className) {
         element.classList.remove('skeleton', 'h-10', 'w-16', 'w-24', 'rounded');
         element.className = className;
         element.textContent = value;
+    }
+}
+
+// Update stat labels based on current filter
+function updateStatLabels() {
+    const dateFilter = document.getElementById('dateFilter')?.value || 'all';
+    const customDateStart = document.getElementById('customDateStart')?.value;
+    const customDateEnd = document.getElementById('customDateEnd')?.value;
+    
+    let periodLabel = '';
+    
+    if (dateFilter === 'all') {
+        periodLabel = 'Tổng';
+    } else if (dateFilter === 'today') {
+        periodLabel = 'Hôm nay';
+    } else if (dateFilter === 'yesterday') {
+        periodLabel = 'Hôm qua';
+    } else if (dateFilter === 'week') {
+        periodLabel = '7 ngày';
+    } else if (dateFilter === 'month') {
+        periodLabel = '30 ngày';
+    } else if (dateFilter === 'custom' && customDateStart && customDateEnd) {
+        if (customDateStart === customDateEnd) {
+            // Single date
+            const date = new Date(customDateStart + 'T00:00:00');
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            periodLabel = `${day}/${month}`;
+        } else {
+            // Date range
+            const start = new Date(customDateStart + 'T00:00:00');
+            const end = new Date(customDateEnd + 'T00:00:00');
+            const startDay = String(start.getDate()).padStart(2, '0');
+            const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+            const endDay = String(end.getDate()).padStart(2, '0');
+            const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+            
+            if (start.getMonth() === end.getMonth()) {
+                periodLabel = `${startDay}-${endDay}/${endMonth}`;
+            } else {
+                periodLabel = `${startDay}/${startMonth}-${endDay}/${endMonth}`;
+            }
+        }
+    }
+    
+    // Update labels
+    const totalOrdersLabel = document.getElementById('totalOrdersLabel');
+    const totalRevenueLabel = document.getElementById('totalRevenueLabel');
+    const totalCommissionLabel = document.getElementById('totalCommissionLabel');
+    const todayOrdersLabel = document.getElementById('todayOrdersLabel');
+    
+    if (totalOrdersLabel) {
+        totalOrdersLabel.textContent = periodLabel ? `${periodLabel} - Đơn hàng` : 'Tổng đơn hàng';
+    }
+    if (totalRevenueLabel) {
+        totalRevenueLabel.textContent = periodLabel ? `${periodLabel} - Doanh thu` : 'Tổng doanh thu';
+    }
+    if (totalCommissionLabel) {
+        totalCommissionLabel.textContent = periodLabel ? `${periodLabel} - Hoa hồng` : 'Tổng hoa hồng';
+    }
+    if (todayOrdersLabel) {
+        todayOrdersLabel.textContent = periodLabel ? `${periodLabel} - TB/đơn` : 'Giá trị TB/đơn';
     }
 }
 
@@ -571,6 +751,21 @@ function filterOrdersData() {
             } else if (dateFilter === 'month') {
                 const monthStart = getVNStartOfMonth();
                 matchesDate = orderDate >= monthStart;
+            } else if (dateFilter === 'custom') {
+                // Custom date range filter
+                const startDateStr = document.getElementById('customDateStart').value;
+                const endDateStr = document.getElementById('customDateEnd').value;
+                
+                if (startDateStr && endDateStr) {
+                    const customStart = getVNStartOfDate(startDateStr);
+                    const customEnd = getVNEndOfDate(endDateStr);
+                    matchesDate = orderDate >= customStart && orderDate <= customEnd;
+                    
+                    // Debug custom date filter
+                    if (!matchesDate) {
+                        console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in range [${customStart.toISOString()} - ${customEnd.toISOString()}]`);
+                    }
+                }
             }
         }
 
@@ -584,8 +779,8 @@ function filterOrdersData() {
 
     currentPage = 1; // Reset to first page when filtering
 
-    // Note: Stats are NOT updated here because they should always show totals
-    // Stats are only updated when data is loaded (in loadOrdersData)
+    // Update stats based on filtered data
+    updateStats();
 
     renderOrdersTable();
 }
@@ -7040,6 +7235,13 @@ function selectDateFilterPreset(value, buttonElement) {
     // Update hidden input
     document.getElementById('dateFilter').value = value;
 
+    // Clear custom date values when selecting preset
+    if (value !== 'custom') {
+        document.getElementById('customDateStart').value = '';
+        document.getElementById('customDateEnd').value = '';
+        document.getElementById('customDateLabel').textContent = 'Chọn ngày';
+    }
+
     // Update button states
     document.querySelectorAll('.date-preset-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -7871,4 +8073,281 @@ function showOrdersChart() {
     if (chartSection && chartSection.querySelector('#ordersChart')) {
         chartSection.style.display = 'block';
     }
+}
+
+// ============================================
+// Custom Date Picker for Orders Filter
+// ============================================
+
+let currentDateMode = 'single'; // 'single' or 'range'
+let customDatePickerModal = null;
+
+/**
+ * Show custom date picker modal
+ */
+function showCustomDatePicker(event) {
+    event.stopPropagation();
+    
+    // Remove existing modal if any
+    if (customDatePickerModal) {
+        customDatePickerModal.remove();
+    }
+    
+    // Get current values or default to today
+    const today = getTodayDateString();
+    const startDate = document.getElementById('customDateStart').value || today;
+    const endDate = document.getElementById('customDateEnd').value || today;
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'date-picker-modal';
+    modal.innerHTML = `
+        <div class="date-picker-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
+                <button onclick="closeCustomDatePicker()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Mode Tabs -->
+            <div class="date-mode-tabs">
+                <button class="date-mode-tab ${currentDateMode === 'single' ? 'active' : ''}" onclick="switchDateMode('single')">
+                    Một ngày
+                </button>
+                <button class="date-mode-tab ${currentDateMode === 'range' ? 'active' : ''}" onclick="switchDateMode('range')">
+                    Khoảng thời gian
+                </button>
+            </div>
+            
+            <!-- Single Date Mode -->
+            <div id="singleDateMode" class="${currentDateMode === 'single' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="singleDateInput" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Range Date Mode -->
+            <div id="rangeDateMode" class="${currentDateMode === 'range' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="startDateInput" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="endDateInput" value="${endDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mt-6">
+                <button onclick="clearCustomDate()" 
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Xóa bộ lọc
+                </button>
+                <button onclick="applyCustomDate()" 
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    customDatePickerModal = modal;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeCustomDatePicker();
+        }
+    });
+}
+
+/**
+ * Close custom date picker modal
+ */
+function closeCustomDatePicker() {
+    if (customDatePickerModal) {
+        customDatePickerModal.style.opacity = '0';
+        setTimeout(() => {
+            customDatePickerModal.remove();
+            customDatePickerModal = null;
+        }, 200);
+    }
+}
+
+/**
+ * Switch between single and range date mode
+ */
+function switchDateMode(mode) {
+    currentDateMode = mode;
+    
+    // Update tabs
+    document.querySelectorAll('.date-mode-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Show/hide modes
+    const singleMode = document.getElementById('singleDateMode');
+    const rangeMode = document.getElementById('rangeDateMode');
+    
+    if (mode === 'single') {
+        singleMode.classList.remove('hidden');
+        rangeMode.classList.add('hidden');
+    } else {
+        singleMode.classList.add('hidden');
+        rangeMode.classList.remove('hidden');
+    }
+}
+
+/**
+ * Apply custom date filter
+ */
+function applyCustomDate() {
+    let startDate, endDate;
+    
+    if (currentDateMode === 'single') {
+        const singleDate = document.getElementById('singleDateInput').value;
+        if (!singleDate) {
+            showToast('Vui lòng chọn ngày', 'warning');
+            return;
+        }
+        startDate = singleDate;
+        endDate = singleDate;
+    } else {
+        startDate = document.getElementById('startDateInput').value;
+        endDate = document.getElementById('endDateInput').value;
+        
+        if (!startDate || !endDate) {
+            showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
+            return;
+        }
+        
+        // Validate date range
+        if (new Date(startDate) > new Date(endDate)) {
+            showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
+            return;
+        }
+    }
+    
+    // Store values
+    document.getElementById('customDateStart').value = startDate;
+    document.getElementById('customDateEnd').value = endDate;
+    document.getElementById('dateFilter').value = 'custom';
+    
+    // Update button label
+    updateCustomDateLabel(startDate, endDate);
+    
+    // Update button states
+    document.querySelectorAll('.date-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById('customDateBtn').classList.add('active');
+    
+    // Apply filter
+    filterOrdersData();
+    
+    // Close modal
+    closeCustomDatePicker();
+    
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+}
+
+/**
+ * Clear custom date filter
+ */
+function clearCustomDate() {
+    document.getElementById('customDateStart').value = '';
+    document.getElementById('customDateEnd').value = '';
+    document.getElementById('dateFilter').value = 'all';
+    
+    // Reset button label
+    document.getElementById('customDateLabel').textContent = 'Chọn ngày';
+    
+    // Update button states
+    document.querySelectorAll('.date-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector('.date-preset-btn[onclick*="all"]').classList.add('active');
+    
+    // Apply filter
+    filterOrdersData();
+    
+    // Close modal
+    closeCustomDatePicker();
+    
+    showToast('Đã xóa bộ lọc thời gian', 'info');
+}
+
+/**
+ * Update custom date button label
+ */
+function updateCustomDateLabel(startDate, endDate) {
+    const label = document.getElementById('customDateLabel');
+    
+    if (startDate === endDate) {
+        // Single date - format as DD/MM/YYYY
+        const date = new Date(startDate + 'T00:00:00');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        label.textContent = `${day}/${month}/${year}`;
+    } else {
+        // Date range - format as DD/MM - DD/MM/YYYY
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        
+        const startDay = String(start.getDate()).padStart(2, '0');
+        const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+        const endDay = String(end.getDate()).padStart(2, '0');
+        const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+        const endYear = end.getFullYear();
+        
+        if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+            // Same month
+            label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
+        } else {
+            // Different months
+            label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
+        }
+    }
+}
+
+/**
+ * Get today's date string in YYYY-MM-DD format
+ */
+function getTodayDateString() {
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    return vnDateStr;
+}
+
+/**
+ * Get start of a specific date in VN timezone
+ */
+function getVNStartOfDate(dateStr) {
+    const vnDateTime = new Date(dateStr + 'T00:00:00+07:00');
+    return vnDateTime;
+}
+
+/**
+ * Get end of a specific date in VN timezone
+ */
+function getVNEndOfDate(dateStr) {
+    const vnDateTime = new Date(dateStr + 'T23:59:59.999+07:00');
+    return vnDateTime;
 }

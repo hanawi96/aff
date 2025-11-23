@@ -29,15 +29,29 @@
             100% { background-position: -200% 0; }
         }
         
-        /* Disable ALL transitions and animations */
+        /* Disable most transitions and animations for performance */
         * {
             transition: none !important;
             animation: none !important;
         }
         
-        /* Only keep skeleton loading animation */
+        /* Keep essential animations */
         .skeleton {
             animation: loading 1.5s infinite !important;
+        }
+        
+        /* Allow spin animation for loading spinners */
+        .animate-spin {
+            animation: spin 1s linear infinite !important;
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
         
         /* Disable checkbox effects */
@@ -84,6 +98,89 @@
             border-color: #6366f1;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
+        }
+
+        /* Custom Date Picker Modal */
+        .date-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease-out !important;
+        }
+
+        .date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input-wrapper input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .date-input-wrapper input[type="date"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .date-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .date-mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-mode-tab.active {
+            background: white;
+            color: #6366f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
         }
     </style>
@@ -206,7 +303,21 @@
                         <button onclick="filterByPeriod('3months')" id="filter-3months" class="period-filter-btn px-3 py-2 text-xs font-medium rounded-lg border-2 whitespace-nowrap">3 tháng</button>
                         <button onclick="filterByPeriod('6months')" id="filter-6months" class="period-filter-btn px-3 py-2 text-xs font-medium rounded-lg border-2 whitespace-nowrap">6 tháng</button>
                         <button onclick="filterByPeriod('all')" id="filter-all" class="period-filter-btn px-3 py-2 text-xs font-medium rounded-lg border-2 whitespace-nowrap">Tất cả</button>
+                        
+                        <!-- Custom Date Picker Button -->
+                        <button onclick="showCustomDatePickerPayments(event)" 
+                            id="customDateBtnPayments"
+                            class="period-filter-btn px-3 py-2 text-xs font-medium rounded-lg border-2 whitespace-nowrap flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span id="customDateLabelPayments">Chọn ngày</span>
+                        </button>
                     </div>
+                    
+                    <!-- Hidden inputs for custom date -->
+                    <input type="hidden" id="customDateStartPayments" value="">
+                    <input type="hidden" id="customDateEndPayments" value="">
 
                     <!-- Status Filter -->
                     <div class="w-full lg:w-auto">
@@ -364,50 +475,6 @@
 
             <!-- History Tab Content -->
             <div id="historyContent" class="tab-content hidden">
-                <!-- History Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Tổng đã thanh toán</p>
-                                <p id="historyTotalAmount" class="text-2xl font-bold text-green-600">0đ</p>
-                            </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Số CTV đã thanh toán</p>
-                                <p id="historyTotalCTV" class="text-2xl font-bold text-blue-600">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Tổng đơn hàng</p>
-                                <p id="historyTotalOrders" class="text-2xl font-bold text-purple-600">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- History List -->
                 <div id="historyListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">

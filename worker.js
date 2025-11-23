@@ -142,11 +142,23 @@ async function handleGet(action, url, env, corsHeaders) {
 
         case 'getRevenueChart':
             const chartPeriod = url.searchParams.get('period') || 'week';
-            return await getRevenueChart({ period: chartPeriod }, env, corsHeaders);
+            const chartStartDate = url.searchParams.get('startDate');
+            const chartEndDate = url.searchParams.get('endDate');
+            return await getRevenueChart({ 
+                period: chartPeriod, 
+                startDate: chartStartDate, 
+                endDate: chartEndDate 
+            }, env, corsHeaders);
 
         case 'getOrdersChart':
             const ordersPeriod = url.searchParams.get('period') || 'week';
-            return await getOrdersChart({ period: ordersPeriod }, env, corsHeaders);
+            const ordersStartDate = url.searchParams.get('startDate');
+            const ordersEndDate = url.searchParams.get('endDate');
+            return await getOrdersChart({ 
+                period: ordersPeriod, 
+                startDate: ordersStartDate, 
+                endDate: ordersEndDate 
+            }, env, corsHeaders);
 
         case 'getDetailedAnalytics':
             const analyticsPeriod = url.searchParams.get('period') || 'month';
@@ -4077,7 +4089,33 @@ async function getRevenueChart(data, env, corsHeaders) {
         
         let currentStart, currentEnd, previousStart, previousEnd, groupBy, labels;
         
-        if (period === 'today') {
+        // Handle custom date range (when period='all' with startDate/endDate)
+        if (period === 'all' && data.startDate && data.endDate) {
+            currentStart = new Date(data.startDate).getTime();
+            currentEnd = new Date(data.endDate).getTime();
+            
+            // Calculate duration for comparison period
+            const duration = currentEnd - currentStart;
+            previousStart = currentStart - duration;
+            previousEnd = currentStart - 1;
+            
+            // Determine groupBy based on duration
+            const days = Math.ceil(duration / (24 * 60 * 60 * 1000));
+            if (days <= 1) {
+                groupBy = 'hour';
+                labels = Array.from({length: 24}, (_, i) => `${i}h`);
+            } else if (days <= 31) {
+                groupBy = 'day';
+                labels = Array.from({length: days}, (_, i) => `${i + 1}`);
+            } else if (days <= 365) {
+                groupBy = 'day';
+                const daysCount = Math.min(days, 31);
+                labels = Array.from({length: daysCount}, (_, i) => `${i + 1}`);
+            } else {
+                groupBy = 'month';
+                labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+            }
+        } else if (period === 'today') {
             // Today vs Yesterday
             currentStart = getVNStartOfDay(vnNow.year, vnNow.month, vnNow.date);
             currentEnd = currentStart + 24 * 60 * 60 * 1000 - 1;
@@ -4119,6 +4157,19 @@ async function getRevenueChart(data, env, corsHeaders) {
             currentEnd = getVNStartOfDay(vnNow.year + 1, 1, 1) - 1;
             previousStart = getVNStartOfDay(vnNow.year - 1, 1, 1);
             previousEnd = currentStart - 1;
+            groupBy = 'month';
+            labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+        } else {
+            // Default to 'all' - all time data
+            // Get first order date as start
+            const { results: firstOrder } = await env.DB.prepare(`
+                SELECT MIN(created_at_unix) as first_date FROM orders WHERE created_at_unix IS NOT NULL
+            `).all();
+            
+            currentStart = firstOrder[0]?.first_date || (now - 365 * 24 * 60 * 60 * 1000);
+            currentEnd = now;
+            previousStart = currentStart;
+            previousEnd = currentStart;
             groupBy = 'month';
             labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
         }
@@ -4270,7 +4321,27 @@ async function getOrdersChart(data, env, corsHeaders) {
         
         let currentStart, currentEnd, previousStart, previousEnd, groupBy, labels;
         
-        if (period === 'today') {
+        // Handle custom date range (when period='all' with startDate/endDate)
+        if (period === 'all' && data.startDate && data.endDate) {
+            currentStart = new Date(data.startDate).getTime();
+            currentEnd = new Date(data.endDate).getTime();
+            
+            const duration = currentEnd - currentStart;
+            previousStart = currentStart - duration;
+            previousEnd = currentStart - 1;
+            
+            const days = Math.ceil(duration / (24 * 60 * 60 * 1000));
+            if (days <= 1) {
+                groupBy = 'hour';
+                labels = Array.from({length: 24}, (_, i) => `${i}h`);
+            } else if (days <= 31) {
+                groupBy = 'day';
+                labels = Array.from({length: days}, (_, i) => `${i + 1}`);
+            } else {
+                groupBy = 'month';
+                labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+            }
+        } else if (period === 'today') {
             currentStart = getVNStartOfDay(vnNow.year, vnNow.month, vnNow.date);
             currentEnd = currentStart + 24 * 60 * 60 * 1000 - 1;
             previousStart = currentStart - 24 * 60 * 60 * 1000;
@@ -4303,6 +4374,18 @@ async function getOrdersChart(data, env, corsHeaders) {
             currentEnd = getVNStartOfDay(vnNow.year + 1, 1, 1) - 1;
             previousStart = getVNStartOfDay(vnNow.year - 1, 1, 1);
             previousEnd = currentStart - 1;
+            groupBy = 'month';
+            labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+        } else {
+            // Default to 'all' - all time data
+            const { results: firstOrder } = await env.DB.prepare(`
+                SELECT MIN(created_at_unix) as first_date FROM orders WHERE created_at_unix IS NOT NULL
+            `).all();
+            
+            currentStart = firstOrder[0]?.first_date || (now - 365 * 24 * 60 * 60 * 1000);
+            currentEnd = now;
+            previousStart = currentStart;
+            previousEnd = currentStart;
             groupBy = 'month';
             labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
         }
@@ -5547,7 +5630,7 @@ async function getPaidOrdersByMonth(month, env, corsHeaders) {
                 cp.referral_code,
                 cp.order_count,
                 cp.commission_amount,
-                cp.payment_date,
+                cp.payment_date_unix,
                 cp.payment_method,
                 cp.note,
                 cp.status,
@@ -5559,7 +5642,7 @@ async function getPaidOrdersByMonth(month, env, corsHeaders) {
             LEFT JOIN ctv c ON cp.referral_code = c.referral_code
             WHERE cp.month = ?
             AND cp.status = 'paid'
-            ORDER BY cp.payment_date DESC, cp.id DESC
+            ORDER BY cp.payment_date_unix DESC, cp.id DESC
         `).bind(month).all();
 
         return jsonResponse({
@@ -6030,19 +6113,17 @@ async function paySelectedOrders(data, env, corsHeaders) {
                 order_count,
                 commission_amount,
                 status,
-                payment_date,
                 payment_date_unix,
                 payment_method,
                 note,
                 created_at_unix,
                 updated_at_unix
-            ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?)
         `).bind(
             referralCode,
             new Date().toISOString().slice(0, 7), // YYYY-MM
             orders.length,
             totalCommission,
-            paymentDateStr,
             paymentDateUnix,
             paymentMethod || 'bank_transfer',
             note || '',

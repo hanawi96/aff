@@ -454,8 +454,11 @@ async function submitPayment(event) {
             // Remove paid orders from selected
             orderIds.forEach(id => selectedOrders.delete(id));
             
-            // Reload data
-            setTimeout(() => loadUnpaidOrders(), 1000);
+            // Reload both tabs data
+            setTimeout(() => {
+                loadUnpaidOrders();
+                loadPaymentHistory(); // Also reload payment history to update count
+            }, 1000);
         } else {
             throw new Error(data.error || 'Failed to process payment');
         }
@@ -635,6 +638,15 @@ function switchTab(tab) {
         
         unpaidContent.classList.remove('hidden');
         historyContent.classList.add('hidden');
+        
+        // Update summary cards for unpaid tab
+        // Re-calculate from current allCommissions data
+        const summary = {
+            total_ctv: allCommissions.length,
+            total_orders: allCommissions.reduce((sum, ctv) => sum + ctv.order_count, 0),
+            total_commission: allCommissions.reduce((sum, ctv) => sum + ctv.commission_amount, 0)
+        };
+        updateSummary(summary);
     } else {
         tabHistory.classList.add('active', 'border-green-600', 'text-green-600', 'bg-green-50');
         tabHistory.classList.remove('border-transparent', 'text-gray-500');
@@ -643,6 +655,9 @@ function switchTab(tab) {
         
         historyContent.classList.remove('hidden');
         unpaidContent.classList.add('hidden');
+        
+        // Update summary cards for history tab
+        updateSummaryForHistory();
     }
 }
 
@@ -664,14 +679,13 @@ async function loadPaymentHistory() {
         if (data.success) {
             paymentHistory = data.payments || [];
             
-            // Calculate stats from actual paid orders
-            const totalAmount = paymentHistory.reduce((sum, p) => sum + (p.commission_amount || 0), 0);
-            const totalOrders = paymentHistory.reduce((sum, p) => sum + (p.order_count || 0), 0);
-            
-            document.getElementById('historyTotalAmount').textContent = formatCurrency(totalAmount);
-            document.getElementById('historyTotalCTV').textContent = paymentHistory.length;
-            document.getElementById('historyTotalOrders').textContent = totalOrders;
+            // Update history count badge
             document.getElementById('historyCount').textContent = paymentHistory.length;
+            
+            // Update summary cards if currently on history tab
+            if (currentTab === 'history') {
+                updateSummaryForHistory();
+            }
             
             renderPaymentHistory(paymentHistory);
         }
@@ -679,6 +693,20 @@ async function loadPaymentHistory() {
         console.error('Error loading payment history:', error);
         showToast('Không thể tải lịch sử thanh toán', 'error');
     }
+}
+
+// Update summary cards for history tab
+function updateSummaryForHistory() {
+    // Calculate stats from payment history
+    const totalAmount = paymentHistory.reduce((sum, p) => sum + (p.commission_amount || 0), 0);
+    const totalOrders = paymentHistory.reduce((sum, p) => sum + (p.order_count || 0), 0);
+    const totalCTV = paymentHistory.length;
+    
+    // Update the 4 summary cards
+    document.getElementById('totalCTV').textContent = totalCTV;
+    document.getElementById('totalOrders').textContent = totalOrders;
+    document.getElementById('totalCommission').textContent = formatCurrency(totalAmount);
+    document.getElementById('selectedAmount').textContent = '0đ'; // No selection in history tab
 }
 
 // Render Payment History
@@ -714,6 +742,26 @@ function renderPaymentHistory(history) {
 function createHistoryCard(payment) {
     const card = document.createElement('div');
     card.className = 'history-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow';
+    
+    // Debug: Log payment data
+    console.log('💳 Payment data:', {
+        payment_date_unix: payment.payment_date_unix,
+        type: typeof payment.payment_date_unix,
+        date: payment.payment_date_unix ? new Date(payment.payment_date_unix) : null,
+        formatted: payment.payment_date_unix ? toVNShortDate(new Date(payment.payment_date_unix)) : 'N/A'
+    });
+    
+    // Format payment date - handle both number and string
+    let paymentDateDisplay = 'N/A';
+    if (payment.payment_date_unix) {
+        const timestamp = typeof payment.payment_date_unix === 'string' 
+            ? parseInt(payment.payment_date_unix) 
+            : payment.payment_date_unix;
+        
+        if (timestamp && timestamp > 0) {
+            paymentDateDisplay = toVNShortDate(new Date(timestamp));
+        }
+    }
     
     card.innerHTML = `
         <div class="flex items-start justify-between mb-4">
@@ -762,7 +810,7 @@ function createHistoryCard(payment) {
         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
             <div>
                 <p class="text-xs text-gray-500 mb-1">Ngày thanh toán</p>
-                <p class="text-sm font-semibold text-gray-900">${payment.payment_date ? toVNShortDate(payment.payment_date) : 'N/A'}</p>
+                <p class="text-sm font-semibold text-gray-900">${paymentDateDisplay}</p>
             </div>
             <div>
                 <p class="text-xs text-gray-500 mb-1">Phương thức</p>
@@ -853,6 +901,13 @@ filterCTV = function() {
 // Filter by period
 function filterByPeriod(period) {
     currentFilters.period = period;
+    
+    // Clear custom date values when selecting preset
+    if (period !== 'custom') {
+        document.getElementById('customDateStartPayments').value = '';
+        document.getElementById('customDateEndPayments').value = '';
+        document.getElementById('customDateLabelPayments').textContent = 'Chọn ngày';
+    }
     
     // Update button states - use new class names
     document.querySelectorAll('.period-filter-btn').forEach(btn => {
@@ -949,12 +1004,57 @@ function applyFilters() {
     // Filter by date range
     if (currentFilters.dateRange) {
         const { startDate, endDate } = currentFilters.dateRange;
+        
+        console.log('📅 Date Range Filter:', {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            startDateLocal: startDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            endDateLocal: endDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+        });
+        
+        let totalOrdersChecked = 0;
+        let totalOrdersMatched = 0;
+        
         filtered = filtered.map(ctv => {
             // Filter orders within each CTV
             if (ctv.orders && Array.isArray(ctv.orders)) {
                 const filteredOrders = ctv.orders.filter(order => {
-                    const orderDate = new Date(order.created_at || order.payment_date);
-                    return orderDate >= startDate && orderDate <= endDate;
+                    totalOrdersChecked++;
+                    
+                    // IMPORTANT: Use created_at_unix (milliseconds timestamp) if available
+                    // Otherwise fallback to created_at (ISO string)
+                    let orderDate;
+                    if (order.created_at_unix) {
+                        // Convert unix timestamp (milliseconds) to Date
+                        const timestamp = typeof order.created_at_unix === 'string' 
+                            ? parseInt(order.created_at_unix) 
+                            : order.created_at_unix;
+                        orderDate = new Date(timestamp);
+                    } else {
+                        // Fallback to ISO string
+                        orderDate = new Date(order.created_at || order.payment_date);
+                    }
+                    
+                    const matches = orderDate >= startDate && orderDate <= endDate;
+                    
+                    if (matches) totalOrdersMatched++;
+                    
+                    // Debug log for first 5 orders
+                    if (totalOrdersChecked <= 5) {
+                        console.log(`  📦 Order ${order.order_id || order.order_code}:`, {
+                            created_at_unix: order.created_at_unix,
+                            created_at: order.created_at,
+                            orderDate_ISO: orderDate.toISOString(),
+                            orderDate_VN: orderDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+                            startDate_VN: startDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+                            endDate_VN: endDate.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+                            matches,
+                            'orderDate >= startDate': orderDate >= startDate,
+                            'orderDate <= endDate': orderDate <= endDate
+                        });
+                    }
+                    
+                    return matches;
                 });
                 
                 return {
@@ -966,6 +1066,8 @@ function applyFilters() {
             }
             return ctv;
         }).filter(ctv => ctv.order_count > 0);
+        
+        console.log(`✅ Date filter result: ${totalOrdersMatched}/${totalOrdersChecked} orders matched`);
     }
     
     // Filter by status
@@ -1134,4 +1236,299 @@ function clearSearch() {
 // Override old filterCTV function to use new applyFilters
 function filterCTV() {
     applyFilters();
+}
+
+
+// ============================================
+// Custom Date Picker for Payments Filter
+// ============================================
+
+let currentDateModePayments = 'single'; // 'single' or 'range'
+let customDatePickerModalPayments = null;
+
+/**
+ * Show custom date picker modal for payments
+ */
+function showCustomDatePickerPayments(event) {
+    event.stopPropagation();
+    
+    // Remove existing modal if any
+    if (customDatePickerModalPayments) {
+        customDatePickerModalPayments.remove();
+    }
+    
+    // Get current values or default to today
+    const today = getTodayDateString();
+    const startDate = document.getElementById('customDateStartPayments').value || today;
+    const endDate = document.getElementById('customDateEndPayments').value || today;
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'date-picker-modal';
+    modal.innerHTML = `
+        <div class="date-picker-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
+                <button onclick="closeCustomDatePickerPayments()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Mode Tabs -->
+            <div class="date-mode-tabs">
+                <button class="date-mode-tab ${currentDateModePayments === 'single' ? 'active' : ''}" onclick="switchDateModePayments('single')">
+                    Một ngày
+                </button>
+                <button class="date-mode-tab ${currentDateModePayments === 'range' ? 'active' : ''}" onclick="switchDateModePayments('range')">
+                    Khoảng thời gian
+                </button>
+            </div>
+            
+            <!-- Single Date Mode -->
+            <div id="singleDateModePayments" class="${currentDateModePayments === 'single' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="singleDateInputPayments" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Range Date Mode -->
+            <div id="rangeDateModePayments" class="${currentDateModePayments === 'range' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="startDateInputPayments" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="endDateInputPayments" value="${endDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mt-6">
+                <button onclick="clearCustomDatePayments()" 
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Xóa bộ lọc
+                </button>
+                <button onclick="applyCustomDatePayments()" 
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    customDatePickerModalPayments = modal;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeCustomDatePickerPayments();
+        }
+    });
+}
+
+/**
+ * Close custom date picker modal
+ */
+function closeCustomDatePickerPayments() {
+    if (customDatePickerModalPayments) {
+        customDatePickerModalPayments.style.opacity = '0';
+        setTimeout(() => {
+            customDatePickerModalPayments.remove();
+            customDatePickerModalPayments = null;
+        }, 200);
+    }
+}
+
+/**
+ * Switch between single and range date mode
+ */
+function switchDateModePayments(mode) {
+    currentDateModePayments = mode;
+    
+    // Update tabs
+    document.querySelectorAll('.date-mode-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Show/hide modes
+    const singleMode = document.getElementById('singleDateModePayments');
+    const rangeMode = document.getElementById('rangeDateModePayments');
+    
+    if (mode === 'single') {
+        singleMode.classList.remove('hidden');
+        rangeMode.classList.add('hidden');
+    } else {
+        singleMode.classList.add('hidden');
+        rangeMode.classList.remove('hidden');
+    }
+}
+
+/**
+ * Apply custom date filter
+ */
+function applyCustomDatePayments() {
+    let startDate, endDate;
+    
+    if (currentDateModePayments === 'single') {
+        const singleDate = document.getElementById('singleDateInputPayments').value;
+        if (!singleDate) {
+            showToast('Vui lòng chọn ngày', 'warning');
+            return;
+        }
+        startDate = singleDate;
+        endDate = singleDate;
+    } else {
+        startDate = document.getElementById('startDateInputPayments').value;
+        endDate = document.getElementById('endDateInputPayments').value;
+        
+        if (!startDate || !endDate) {
+            showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
+            return;
+        }
+        
+        // Validate date range
+        if (new Date(startDate) > new Date(endDate)) {
+            showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
+            return;
+        }
+    }
+    
+    // Store values
+    document.getElementById('customDateStartPayments').value = startDate;
+    document.getElementById('customDateEndPayments').value = endDate;
+    
+    // Update button label
+    updateCustomDateLabelPayments(startDate, endDate);
+    
+    // Update button states
+    document.querySelectorAll('.period-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById('customDateBtnPayments').classList.add('active');
+    
+    // Set custom date range in filters
+    const customStart = getVNStartOfDate(startDate);
+    const customEnd = getVNEndOfDate(endDate);
+    currentFilters.period = 'custom';
+    currentFilters.dateRange = { startDate: customStart, endDate: customEnd };
+    
+    // Load data for the month of startDate
+    // This ensures we have data for the selected date range
+    const startDateObj = new Date(startDate);
+    const year = startDateObj.getFullYear();
+    const month = String(startDateObj.getMonth() + 1).padStart(2, '0');
+    const targetMonth = `${year}-${month}`;
+    
+    // Only reload if different month
+    if (currentMonth !== targetMonth) {
+        currentMonth = targetMonth;
+        showToast('Đang tải dữ liệu...', 'info');
+        
+        loadUnpaidOrders().then(() => {
+            applyFilters();
+            showToast('Đã áp dụng bộ lọc thời gian', 'success');
+        }).catch(() => {
+            showToast('Không thể tải dữ liệu', 'error');
+        });
+    } else {
+        // Same month, just apply filter
+        applyFilters();
+        showToast('Đã áp dụng bộ lọc thời gian', 'success');
+    }
+    
+    // Close modal
+    closeCustomDatePickerPayments();
+}
+
+/**
+ * Clear custom date filter
+ */
+function clearCustomDatePayments() {
+    document.getElementById('customDateStartPayments').value = '';
+    document.getElementById('customDateEndPayments').value = '';
+    
+    // Reset button label
+    document.getElementById('customDateLabelPayments').textContent = 'Chọn ngày';
+    
+    // Apply default filter (thisMonth)
+    filterByPeriod('thisMonth');
+    
+    // Close modal
+    closeCustomDatePickerPayments();
+    
+    showToast('Đã xóa bộ lọc thời gian', 'info');
+}
+
+/**
+ * Update custom date button label
+ */
+function updateCustomDateLabelPayments(startDate, endDate) {
+    const label = document.getElementById('customDateLabelPayments');
+    
+    if (startDate === endDate) {
+        // Single date - format as DD/MM/YYYY
+        const date = new Date(startDate + 'T00:00:00');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        label.textContent = `${day}/${month}/${year}`;
+    } else {
+        // Date range - format as DD/MM - DD/MM/YYYY
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        
+        const startDay = String(start.getDate()).padStart(2, '0');
+        const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+        const endDay = String(end.getDate()).padStart(2, '0');
+        const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+        const endYear = end.getFullYear();
+        
+        if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+            // Same month
+            label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
+        } else {
+            // Different months
+            label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
+        }
+    }
+}
+
+/**
+ * Get today's date string in YYYY-MM-DD format (VN timezone)
+ */
+function getTodayDateString() {
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    return vnDateStr;
+}
+
+/**
+ * Get start of a specific date in VN timezone
+ */
+function getVNStartOfDate(dateStr) {
+    const vnDateTime = new Date(dateStr + 'T00:00:00+07:00');
+    return vnDateTime;
+}
+
+/**
+ * Get end of a specific date in VN timezone
+ */
+function getVNEndOfDate(dateStr) {
+    const vnDateTime = new Date(dateStr + 'T23:59:59.999+07:00');
+    return vnDateTime;
 }

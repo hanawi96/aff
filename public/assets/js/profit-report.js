@@ -3,6 +3,7 @@ let currentPeriod = 'week'; // Single source of truth
 let currentLimit = 9999; // Show all products
 let allProductsData = [];
 let currentSort = { column: null, direction: null }; // null, 'asc', 'desc'
+let customDateRange = null; // Store custom date range { startDate, endDate }
 
 // Chart variables
 let revenueChart = null;
@@ -67,9 +68,55 @@ function switchChartTab(tab) {
     }
 }
 
+/**
+ * Get API period value (convert 'custom' to 'all' for backend compatibility)
+ */
+function getAPIPeriod() {
+    return currentPeriod === 'custom' ? 'all' : currentPeriod;
+}
+
+/**
+ * Get date range parameters for API call
+ * Returns { startDateParam, endDateParam }
+ */
+function getDateRangeParams() {
+    let startDateParam = '';
+    let endDateParam = '';
+    
+    if (currentPeriod === 'custom' && customDateRange) {
+        // Custom date range
+        const startDate = new Date(customDateRange.startDate + 'T00:00:00+07:00');
+        const endDate = new Date(customDateRange.endDate + 'T23:59:59.999+07:00');
+        startDateParam = `&startDate=${startDate.toISOString()}`;
+        endDateParam = `&endDate=${endDate.toISOString()}`;
+    } else if (currentPeriod === 'today') {
+        const vnStartOfToday = getVNStartOfToday();
+        startDateParam = `&startDate=${vnStartOfToday.toISOString()}`;
+    } else if (currentPeriod === 'week') {
+        const vnStartOfWeek = getVNStartOfWeek();
+        startDateParam = `&startDate=${vnStartOfWeek.toISOString()}`;
+    } else if (currentPeriod === 'month') {
+        const vnStartOfMonth = getVNStartOfMonth();
+        startDateParam = `&startDate=${vnStartOfMonth.toISOString()}`;
+    } else if (currentPeriod === 'year') {
+        const vnStartOfYear = getVNStartOfYear();
+        startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
+    }
+    
+    return { startDateParam, endDateParam };
+}
+
 // Change period - Single source of truth
 function changePeriod(period) {
     currentPeriod = period;
+    
+    // Clear custom date values when selecting preset
+    if (period !== 'custom') {
+        document.getElementById('customDateStartProfit').value = '';
+        document.getElementById('customDateEndProfit').value = '';
+        document.getElementById('customDateLabelProfit').textContent = 'Chọn ngày';
+        customDateRange = null;
+    }
 
     // Update button styles
     document.querySelectorAll('.period-btn').forEach(btn => {
@@ -207,60 +254,66 @@ function refreshData() {
 // Load top products
 async function loadTopProducts() {
     try {
-        // Check cache first for better performance (with TTL)
-        const now = Date.now();
-        const cache = dataCache[currentPeriod];
-        
-        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
-            console.log('📦 Using cached data for', currentPeriod, `(age: ${Math.round((now - cache.timestamp) / 1000)}s)`);
-            const cachedData = cache.data;
-            allProductsData = cachedData.top_products || [];
-            updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
-            renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
-            renderTopProductsTable();
-            return;
+        // Skip cache for custom period (each custom date range is unique)
+        if (currentPeriod !== 'custom') {
+            // Check cache first for better performance (with TTL)
+            const now = Date.now();
+            const cache = dataCache[currentPeriod];
+            
+            if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                console.log('📦 Using cached data for', currentPeriod, `(age: ${Math.round((now - cache.timestamp) / 1000)}s)`);
+                const cachedData = cache.data;
+                allProductsData = cachedData.top_products || [];
+                updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
+                renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
+                renderTopProductsTable();
+                return;
+            }
         }
 
         // Show skeleton loading
         showSkeletonLoading();
 
-        // Calculate startDate based on VN timezone for accurate filtering
-        let startDateParam = '';
-        if (currentPeriod === 'today') {
-            const vnStartOfToday = getVNStartOfToday();
-            startDateParam = `&startDate=${vnStartOfToday.toISOString()}`;
-        } else if (currentPeriod === 'week') {
-            const vnStartOfWeek = getVNStartOfWeek();
-            startDateParam = `&startDate=${vnStartOfWeek.toISOString()}`;
-        } else if (currentPeriod === 'month') {
-            const vnStartOfMonth = getVNStartOfMonth();
-            startDateParam = `&startDate=${vnStartOfMonth.toISOString()}`;
-        } else if (currentPeriod === 'year') {
-            const vnStartOfYear = getVNStartOfYear();
-            startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
-        }
+        // Get date range parameters (supports custom date)
+        const { startDateParam, endDateParam } = getDateRangeParams();
+        const apiPeriod = getAPIPeriod();
 
         // Load overview data (includes top products) - Single API call for better performance
         const overviewResponse = await fetch(
-            `${CONFIG.API_URL}?action=getDetailedAnalytics&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`
+            `${CONFIG.API_URL}?action=getDetailedAnalytics&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`
         );
 
         const overviewData = await overviewResponse.json();
 
         if (overviewData.success) {
-            // Cache the data for this period with timestamp
-            dataCache[currentPeriod] = {
-                data: overviewData,
-                timestamp: Date.now()
-            };
+            // Cache the data for this period with timestamp (only for non-custom)
+            if (currentPeriod !== 'custom') {
+                dataCache[currentPeriod] = {
+                    data: overviewData,
+                    timestamp: Date.now()
+                };
+            }
             
-            console.log('✅ Data loaded and cached for', currentPeriod);
+            console.log('✅ Data loaded for', currentPeriod);
             
-            // Use top_products from getDetailedAnalytics (no need for separate API call)
+            // Use top_products from getDetailedAnalytics
             allProductsData = overviewData.top_products || [];
-            updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
-            renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
-            renderTopProductsTable();
+            
+            // Check if data is empty
+            const hasData = allProductsData.length > 0 || 
+                           (overviewData.overview && overviewData.overview.total_orders > 0);
+            
+            if (!hasData) {
+                // Show empty state
+                showEmptyState();
+                // Still update stats to show zeros
+                updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
+            } else {
+                // Normal flow with data
+                updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
+                renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
+                renderTopProductsTable();
+            }
         } else {
             throw new Error('Failed to load data');
         }
@@ -617,23 +670,11 @@ async function showProductDetail(productId) {
     }
 
     try {
-        // Calculate startDate based on VN timezone for accurate filtering
-        let startDateParam = '';
-        if (currentPeriod === 'today') {
-            const vnStartOfToday = getVNStartOfToday();
-            startDateParam = `&startDate=${vnStartOfToday.toISOString()}`;
-        } else if (currentPeriod === 'week') {
-            const vnStartOfWeek = getVNStartOfWeek();
-            startDateParam = `&startDate=${vnStartOfWeek.toISOString()}`;
-        } else if (currentPeriod === 'month') {
-            const vnStartOfMonth = getVNStartOfMonth();
-            startDateParam = `&startDate=${vnStartOfMonth.toISOString()}`;
-        } else if (currentPeriod === 'year') {
-            const vnStartOfYear = getVNStartOfYear();
-            startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
-        }
+        // Get date range parameters (supports custom date)
+        const { startDateParam, endDateParam } = getDateRangeParams();
+        const apiPeriod = getAPIPeriod();
 
-        const response = await fetch(`${CONFIG.API_URL}?action=getProductStats&productId=${productId}&period=${currentPeriod}${startDateParam}&timestamp=${Date.now()}`);
+        const response = await fetch(`${CONFIG.API_URL}?action=getProductStats&productId=${productId}&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`);
         const data = await response.json();
 
         if (data.success) {
@@ -702,6 +743,50 @@ function hideSkeletonLoading() {
     // Skeleton will be replaced by actual data in renderTopProductsTable
 }
 
+// Show empty state when no data found
+function showEmptyState() {
+    const tbody = document.getElementById('topProductsTable');
+    const costBreakdownBody = document.getElementById('costBreakdownBody');
+    
+    // Empty state for products table
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="8" class="px-6 py-16 text-center">
+                <div class="flex flex-col items-center">
+                    <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Không có dữ liệu</h3>
+                    <p class="text-gray-500 mb-4">Không tìm thấy đơn hàng nào trong khoảng thời gian này</p>
+                    <button onclick="changePeriod('week')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        Xem tuần này
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    // Empty state for cost breakdown table
+    if (costBreakdownBody) {
+        costBreakdownBody.innerHTML = `
+            <tr>
+                <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                    Không có dữ liệu chi phí
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Hide charts when no data
+    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    if (chartSection && chartSection.querySelector('#ordersChart')) {
+        chartSection.style.display = 'none';
+    }
+    
+    // Show toast notification
+    showToast('Không có dữ liệu trong khoảng thời gian này', 'info');
+}
+
 // Utility functions
 function formatCurrency(amount) {
     if (amount === null || amount === undefined || isNaN(amount)) return '0đ';
@@ -746,14 +831,17 @@ async function loadRevenueChart() {
         // Show chart section
         showChart();
         
-        // Check cache
-        const now = Date.now();
-        const cache = chartCache[currentPeriod];
-        
-        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
-            console.log('📦 Using cached chart data for', currentPeriod);
-            renderRevenueChart(cache.data);
-            return;
+        // Skip cache for custom period
+        if (currentPeriod !== 'custom') {
+            // Check cache
+            const now = Date.now();
+            const cache = chartCache[currentPeriod];
+            
+            if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                console.log('📦 Using cached chart data for', currentPeriod);
+                renderRevenueChart(cache.data);
+                return;
+            }
         }
         
         // Show loading
@@ -763,16 +851,22 @@ async function loadRevenueChart() {
         if (loadingEl) loadingEl.classList.remove('hidden');
         if (containerEl) containerEl.classList.add('hidden');
         
+        // Get date range parameters (supports custom date)
+        const { startDateParam, endDateParam } = getDateRangeParams();
+        const apiPeriod = getAPIPeriod();
+        
         // Fetch data
-        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${currentPeriod}&timestamp=${Date.now()}`);
+        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
-            // Cache data
-            chartCache[currentPeriod] = {
-                data: data,
-                timestamp: now
-            };
+            // Cache data (only for non-custom periods)
+            if (currentPeriod !== 'custom') {
+                chartCache[currentPeriod] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+            }
             
             renderRevenueChart(data);
         } else {
@@ -798,9 +892,34 @@ async function loadRevenueChart() {
 
 // Render revenue chart
 function renderRevenueChart(data) {
+    // Check if data is empty
+    const hasData = data.current && data.current.revenue && 
+                    data.current.revenue.some(val => val > 0);
+    
+    if (!hasData) {
+        // Show empty state for chart
+        document.getElementById('chartLoading').classList.add('hidden');
+        const container = document.getElementById('chartContainer');
+        container.classList.remove('hidden');
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-16">
+                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p class="text-gray-500">Không có dữ liệu biểu đồ</p>
+            </div>
+        `;
+        return;
+    }
+    
     // Hide loading, show chart
     document.getElementById('chartLoading').classList.add('hidden');
-    document.getElementById('chartContainer').classList.remove('hidden');
+    const container = document.getElementById('chartContainer');
+    container.classList.remove('hidden');
+    // Restore canvas if it was replaced
+    if (!container.querySelector('#revenueChart')) {
+        container.innerHTML = '<canvas id="revenueChart"></canvas>';
+    }
     
     // Update comparison cards
     updateComparisonCards(data.comparison);
@@ -1010,14 +1129,17 @@ async function loadOrdersChart() {
         console.log('📊 Loading orders chart for period:', currentPeriod);
         showOrdersChart();
         
-        // Check cache
-        const now = Date.now();
-        const cache = ordersChartCache[currentPeriod];
-        
-        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
-            console.log('📦 Using cached orders chart data for', currentPeriod);
-            renderOrdersChart(cache.data);
-            return;
+        // Skip cache for custom period
+        if (currentPeriod !== 'custom') {
+            // Check cache
+            const now = Date.now();
+            const cache = ordersChartCache[currentPeriod];
+            
+            if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                console.log('📦 Using cached orders chart data for', currentPeriod);
+                renderOrdersChart(cache.data);
+                return;
+            }
         }
         
         // Show loading only if this is the active tab
@@ -1029,9 +1151,13 @@ async function loadOrdersChart() {
             if (containerEl) containerEl.classList.add('hidden');
         }
         
+        // Get date range parameters (supports custom date)
+        const { startDateParam, endDateParam } = getDateRangeParams();
+        const apiPeriod = getAPIPeriod();
+        
         // Fetch data
         console.log('🌐 Fetching orders chart data from API...');
-        const url = `${CONFIG.API_URL}?action=getOrdersChart&period=${currentPeriod}&timestamp=${Date.now()}`;
+        const url = `${CONFIG.API_URL}?action=getOrdersChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`;
         console.log('URL:', url);
         
         const response = await fetch(url);
@@ -1041,11 +1167,13 @@ async function loadOrdersChart() {
         console.log('Orders chart data:', data);
         
         if (data.success) {
-            // Cache data
-            ordersChartCache[currentPeriod] = {
-                data: data,
-                timestamp: now
-            };
+            // Cache data (only for non-custom periods)
+            if (currentPeriod !== 'custom') {
+                ordersChartCache[currentPeriod] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+            }
             
             console.log('✅ Orders chart data loaded successfully');
             renderOrdersChart(data);
@@ -1295,14 +1423,17 @@ async function loadProfitChart() {
     try {
         showProfitChart();
         
-        // Check cache - reuse revenue chart cache since it has profit data
-        const now = Date.now();
-        const cache = chartCache[currentPeriod];
-        
-        if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
-            console.log('📦 Using cached profit chart data for', currentPeriod);
-            renderProfitChart(cache.data);
-            return;
+        // Skip cache for custom period
+        if (currentPeriod !== 'custom') {
+            // Check cache - reuse revenue chart cache since it has profit data
+            const now = Date.now();
+            const cache = chartCache[currentPeriod];
+            
+            if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                console.log('📦 Using cached profit chart data for', currentPeriod);
+                renderProfitChart(cache.data);
+                return;
+            }
         }
         
         // Show loading only if this is the active tab
@@ -1314,16 +1445,22 @@ async function loadProfitChart() {
             if (containerEl) containerEl.classList.add('hidden');
         }
         
+        // Get date range parameters (supports custom date)
+        const { startDateParam, endDateParam } = getDateRangeParams();
+        const apiPeriod = getAPIPeriod();
+        
         // Fetch data from revenue chart API (it includes profit data)
-        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${currentPeriod}&timestamp=${Date.now()}`);
+        const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
-            // Cache data
-            chartCache[currentPeriod] = {
-                data: data,
-                timestamp: now
-            };
+            // Cache data (only for non-custom periods)
+            if (currentPeriod !== 'custom') {
+                chartCache[currentPeriod] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+            }
             
             renderProfitChart(data);
         } else {
@@ -1560,5 +1697,269 @@ function hideProfitChart() {
     const profitTabContent = document.getElementById('profitTabContent');
     if (profitTabContent) {
         profitTabContent.classList.add('hidden');
+    }
+}
+
+
+// ============================================
+// Custom Date Picker for Profit Report
+// ============================================
+
+let currentDateModeProfit = 'single'; // 'single' or 'range'
+let customDatePickerModalProfit = null;
+
+/**
+ * Get today's date string in YYYY-MM-DD format (VN timezone)
+ */
+function getTodayDateStringProfit() {
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    return vnDateStr;
+}
+
+/**
+ * Show custom date picker modal for profit report
+ */
+function showCustomDatePickerProfit(event) {
+    event.stopPropagation();
+    
+    // Remove existing modal if any
+    if (customDatePickerModalProfit) {
+        customDatePickerModalProfit.remove();
+    }
+    
+    // Get current values or default to today
+    const today = getTodayDateStringProfit();
+    const startDate = document.getElementById('customDateStartProfit').value || today;
+    const endDate = document.getElementById('customDateEndProfit').value || today;
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'date-picker-modal';
+    modal.innerHTML = `
+        <div class="date-picker-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
+                <button onclick="closeCustomDatePickerProfit()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Mode Tabs -->
+            <div class="date-mode-tabs">
+                <button class="date-mode-tab ${currentDateModeProfit === 'single' ? 'active' : ''}" onclick="switchDateModeProfit('single')">
+                    Một ngày
+                </button>
+                <button class="date-mode-tab ${currentDateModeProfit === 'range' ? 'active' : ''}" onclick="switchDateModeProfit('range')">
+                    Khoảng thời gian
+                </button>
+            </div>
+            
+            <!-- Single Date Mode -->
+            <div id="singleDateModeProfit" class="${currentDateModeProfit === 'single' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="singleDateInputProfit" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Range Date Mode -->
+            <div id="rangeDateModeProfit" class="${currentDateModeProfit === 'range' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="startDateInputProfit" value="${startDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="endDateInputProfit" value="${endDate}" 
+                            class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mt-6">
+                <button onclick="clearCustomDateProfit()" 
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Xóa bộ lọc
+                </button>
+                <button onclick="applyCustomDateProfit()" 
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    customDatePickerModalProfit = modal;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeCustomDatePickerProfit();
+        }
+    });
+}
+
+/**
+ * Close custom date picker modal
+ */
+function closeCustomDatePickerProfit() {
+    if (customDatePickerModalProfit) {
+        customDatePickerModalProfit.style.opacity = '0';
+        setTimeout(() => {
+            customDatePickerModalProfit.remove();
+            customDatePickerModalProfit = null;
+        }, 200);
+    }
+}
+
+/**
+ * Switch between single and range date mode
+ */
+function switchDateModeProfit(mode) {
+    currentDateModeProfit = mode;
+    
+    // Update tabs
+    document.querySelectorAll('.date-mode-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Show/hide modes
+    const singleMode = document.getElementById('singleDateModeProfit');
+    const rangeMode = document.getElementById('rangeDateModeProfit');
+    
+    if (mode === 'single') {
+        singleMode.classList.remove('hidden');
+        rangeMode.classList.add('hidden');
+    } else {
+        singleMode.classList.add('hidden');
+        rangeMode.classList.remove('hidden');
+    }
+}
+
+/**
+ * Apply custom date filter
+ */
+function applyCustomDateProfit() {
+    let startDate, endDate;
+    
+    if (currentDateModeProfit === 'single') {
+        const singleDate = document.getElementById('singleDateInputProfit').value;
+        if (!singleDate) {
+            showToast('Vui lòng chọn ngày', 'warning');
+            return;
+        }
+        startDate = singleDate;
+        endDate = singleDate;
+    } else {
+        startDate = document.getElementById('startDateInputProfit').value;
+        endDate = document.getElementById('endDateInputProfit').value;
+        
+        if (!startDate || !endDate) {
+            showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
+            return;
+        }
+        
+        // Validate date range
+        if (new Date(startDate) > new Date(endDate)) {
+            showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
+            return;
+        }
+    }
+    
+    // Store values
+    document.getElementById('customDateStartProfit').value = startDate;
+    document.getElementById('customDateEndProfit').value = endDate;
+    
+    // Update button label
+    updateCustomDateLabelProfit(startDate, endDate);
+    
+    // Update button states
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+    const customBtn = document.getElementById('customDateBtnProfit');
+    customBtn.classList.remove('bg-gray-100', 'text-gray-700');
+    customBtn.classList.add('bg-indigo-600', 'text-white');
+    
+    // Set custom period and reload data
+    currentPeriod = 'custom';
+    customDateRange = {
+        startDate: startDate,
+        endDate: endDate
+    };
+    
+    // Reload data with custom date range
+    loadAllData();
+    
+    // Close modal
+    closeCustomDatePickerProfit();
+    
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+}
+
+/**
+ * Clear custom date filter
+ */
+function clearCustomDateProfit() {
+    document.getElementById('customDateStartProfit').value = '';
+    document.getElementById('customDateEndProfit').value = '';
+    
+    // Reset button label
+    document.getElementById('customDateLabelProfit').textContent = 'Chọn ngày';
+    
+    // Apply default filter (week)
+    changePeriod('week');
+    
+    // Close modal
+    closeCustomDatePickerProfit();
+    
+    showToast('Đã xóa bộ lọc thời gian', 'info');
+}
+
+/**
+ * Update custom date button label
+ */
+function updateCustomDateLabelProfit(startDate, endDate) {
+    const label = document.getElementById('customDateLabelProfit');
+    
+    if (startDate === endDate) {
+        // Single date - format as DD/MM/YYYY
+        const date = new Date(startDate + 'T00:00:00');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        label.textContent = `${day}/${month}/${year}`;
+    } else {
+        // Date range - format as DD/MM - DD/MM/YYYY
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        
+        const startDay = String(start.getDate()).padStart(2, '0');
+        const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+        const endDay = String(end.getDate()).padStart(2, '0');
+        const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+        const endYear = end.getFullYear();
+        
+        if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+            // Same month
+            label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
+        } else {
+            // Different months
+            label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
+        }
     }
 }

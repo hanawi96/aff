@@ -57,6 +57,85 @@
                 background-position: -200% 0;
             }
         }
+
+        /* Custom Date Picker Modal */
+        .date-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .date-input-wrapper input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .date-input-wrapper input[type="date"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .date-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .date-mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-mode-tab.active {
+            background: white;
+            color: #6366f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
     </style>
     <link rel="stylesheet" href="../assets/css/admin.css">
     <!-- Chart.js -->
@@ -205,7 +284,21 @@
                                 class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
                                 Tất cả
                             </button>
+                            
+                            <!-- Custom Date Picker Button -->
+                            <button onclick="showCustomDatePickerProfit(event)" 
+                                id="customDateBtnProfit"
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span id="customDateLabelProfit">Chọn ngày</span>
+                            </button>
                         </div>
+                        
+                        <!-- Hidden inputs for custom date -->
+                        <input type="hidden" id="customDateStartProfit" value="">
+                        <input type="hidden" id="customDateEndProfit" value="">
                         <button onclick="refreshData()"
                             class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
