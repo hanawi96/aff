@@ -118,13 +118,18 @@ function changePeriod(period) {
         customDateRange = null;
     }
 
-    // Update button styles
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        if (btn.dataset.period === period) {
-            btn.className = 'period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white';
-        } else {
-            btn.className = 'period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200';
-        }
+    // Update button styles - optimized to prevent flash
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            const isActive = btn.dataset.period === period;
+            if (isActive) {
+                btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                btn.classList.add('bg-indigo-600', 'text-white');
+            } else {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+            }
+        });
     });
 
     // Load all data with new period
@@ -299,21 +304,10 @@ async function loadTopProducts() {
             // Use top_products from getDetailedAnalytics
             allProductsData = overviewData.top_products || [];
             
-            // Check if data is empty
-            const hasData = allProductsData.length > 0 || 
-                           (overviewData.overview && overviewData.overview.total_orders > 0);
-            
-            if (!hasData) {
-                // Show empty state
-                showEmptyState();
-                // Still update stats to show zeros
-                updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
-            } else {
-                // Normal flow with data
-                updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
-                renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
-                renderTopProductsTable();
-            }
+            // Always render data (tables will handle empty state themselves)
+            updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
+            renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
+            renderTopProductsTable();
         } else {
             throw new Error('Failed to load data');
         }
@@ -777,12 +771,6 @@ function showEmptyState() {
         `;
     }
     
-    // Hide charts when no data
-    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    if (chartSection && chartSection.querySelector('#ordersChart')) {
-        chartSection.style.display = 'none';
-    }
-    
     // Show toast notification
     showToast('Không có dữ liệu trong khoảng thời gian này', 'info');
 }
@@ -894,7 +882,8 @@ async function loadRevenueChart() {
 function renderRevenueChart(data) {
     // Hide loading, show chart
     document.getElementById('chartLoading').classList.add('hidden');
-    document.getElementById('chartContainer').classList.remove('hidden');
+    const container = document.getElementById('chartContainer');
+    container.classList.remove('hidden');
     
     // Update comparison cards
     updateComparisonCards(data.comparison);
@@ -902,10 +891,18 @@ function renderRevenueChart(data) {
     // Destroy existing chart
     if (revenueChart) {
         revenueChart.destroy();
+        revenueChart = null;
+    }
+    
+    // Ensure canvas exists
+    let canvas = document.getElementById('revenueChart');
+    if (!canvas) {
+        container.innerHTML = '<canvas id="revenueChart"></canvas>';
+        canvas = document.getElementById('revenueChart');
     }
     
     // Get canvas context
-    const ctx = document.getElementById('revenueChart').getContext('2d');
+    const ctx = canvas.getContext('2d');
     
     // Determine period labels
     let periodLabel = 'Kỳ này';
@@ -1861,14 +1858,16 @@ function applyCustomDateProfit() {
     // Update button label
     updateCustomDateLabelProfit(startDate, endDate);
     
-    // Update button states
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white');
-        btn.classList.add('bg-gray-100', 'text-gray-700');
+    // Update button states - optimized to prevent flash
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+            btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+        });
+        const customBtn = document.getElementById('customDateBtnProfit');
+        customBtn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+        customBtn.classList.add('bg-indigo-600', 'text-white');
     });
-    const customBtn = document.getElementById('customDateBtnProfit');
-    customBtn.classList.remove('bg-gray-100', 'text-gray-700');
-    customBtn.classList.add('bg-indigo-600', 'text-white');
     
     // Set custom period and reload data
     currentPeriod = 'custom';
