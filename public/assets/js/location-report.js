@@ -16,6 +16,8 @@ const dataCache = {
     today: { province: null, district: {}, ward: {}, previous: null },
     week: { province: null, district: {}, ward: {}, previous: null },
     month: { province: null, district: {}, ward: {}, previous: null },
+    quarter: { province: null, district: {}, ward: {}, previous: null },
+    'half-year': { province: null, district: {}, ward: {}, previous: null },
     year: { province: null, district: {}, ward: {}, previous: null },
     all: { province: null, district: {}, ward: {}, previous: null }
 };
@@ -278,15 +280,12 @@ function loadFromURL() {
     return hasParams;
 }
 
-// Update period buttons UI
+// Update period buttons UI - CSS-driven approach
 function updatePeriodButtons() {
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        if (btn.dataset.period === currentPeriod) {
-            btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-indigo-600 text-white';
-        } else {
-            btn.className = 'period-btn px-4 py-2 rounded-lg font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200';
-        }
-    });
+    const container = document.querySelector('.period-filter-container');
+    if (container) {
+        container.dataset.active = currentPeriod;
+    }
 }
 
 // Update URL without reload
@@ -550,6 +549,28 @@ function calculateDateRanges(period) {
         startDate = getVNStartOfMonth();
         previousStartDate = new Date(startDate);
         previousStartDate.setMonth(previousStartDate.getMonth() - 1);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    } else if (period === 'quarter') {
+        // 3 months ago from today (in VN timezone)
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
+        startDate = new Date(vnToday);
+        startDate.setMonth(startDate.getMonth() - 3);
+        // Previous period: 6 months ago to 3 months ago
+        previousStartDate = new Date(startDate);
+        previousStartDate.setMonth(previousStartDate.getMonth() - 3);
+        previousEndDate = new Date(startDate);
+        previousEndDate.setMilliseconds(-1);
+    } else if (period === 'half-year') {
+        // 6 months ago from today (in VN timezone)
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
+        startDate = new Date(vnToday);
+        startDate.setMonth(startDate.getMonth() - 6);
+        // Previous period: 12 months ago to 6 months ago
+        previousStartDate = new Date(startDate);
+        previousStartDate.setMonth(previousStartDate.getMonth() - 6);
         previousEndDate = new Date(startDate);
         previousEndDate.setMilliseconds(-1);
     } else if (period === 'year') {
