@@ -892,34 +892,9 @@ async function loadRevenueChart() {
 
 // Render revenue chart
 function renderRevenueChart(data) {
-    // Check if data is empty
-    const hasData = data.current && data.current.revenue && 
-                    data.current.revenue.some(val => val > 0);
-    
-    if (!hasData) {
-        // Show empty state for chart
-        document.getElementById('chartLoading').classList.add('hidden');
-        const container = document.getElementById('chartContainer');
-        container.classList.remove('hidden');
-        container.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-16">
-                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <p class="text-gray-500">Không có dữ liệu biểu đồ</p>
-            </div>
-        `;
-        return;
-    }
-    
     // Hide loading, show chart
     document.getElementById('chartLoading').classList.add('hidden');
-    const container = document.getElementById('chartContainer');
-    container.classList.remove('hidden');
-    // Restore canvas if it was replaced
-    if (!container.querySelector('#revenueChart')) {
-        container.innerHTML = '<canvas id="revenueChart"></canvas>';
-    }
+    document.getElementById('chartContainer').classList.remove('hidden');
     
     // Update comparison cards
     updateComparisonCards(data.comparison);
