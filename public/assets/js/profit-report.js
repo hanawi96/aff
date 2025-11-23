@@ -17,14 +17,17 @@ const dataCache = {
     today: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
-    year: { data: null, timestamp: 0 },
-    all: { data: null, timestamp: 0 }
+    quarter: { data: null, timestamp: 0 },
+    'half-year': { data: null, timestamp: 0 },
+    year: { data: null, timestamp: 0 }
 };
 
 const chartCache = {
     today: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
+    quarter: { data: null, timestamp: 0 },
+    'half-year': { data: null, timestamp: 0 },
     year: { data: null, timestamp: 0 }
 };
 
@@ -32,6 +35,8 @@ const ordersChartCache = {
     today: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
+    quarter: { data: null, timestamp: 0 },
+    'half-year': { data: null, timestamp: 0 },
     year: { data: null, timestamp: 0 }
 };
 
@@ -98,6 +103,22 @@ function getDateRangeParams() {
     } else if (currentPeriod === 'month') {
         const vnStartOfMonth = getVNStartOfMonth();
         startDateParam = `&startDate=${vnStartOfMonth.toISOString()}`;
+    } else if (currentPeriod === 'quarter') {
+        // 3 months ago from today (in VN timezone)
+        const now = new Date();
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
+        const threeMonthsAgo = new Date(vnToday);
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        startDateParam = `&startDate=${threeMonthsAgo.toISOString()}`;
+    } else if (currentPeriod === 'half-year') {
+        // 6 months ago from today (in VN timezone)
+        const now = new Date();
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
+        const sixMonthsAgo = new Date(vnToday);
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        startDateParam = `&startDate=${sixMonthsAgo.toISOString()}`;
     } else if (currentPeriod === 'year') {
         const vnStartOfYear = getVNStartOfYear();
         startDateParam = `&startDate=${vnStartOfYear.toISOString()}`;
@@ -118,19 +139,8 @@ function changePeriod(period) {
         customDateRange = null;
     }
 
-    // Update button styles - optimized to prevent flash
-    requestAnimationFrame(() => {
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            const isActive = btn.dataset.period === period;
-            if (isActive) {
-                btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-                btn.classList.add('bg-indigo-600', 'text-white');
-            } else {
-                btn.classList.remove('bg-indigo-600', 'text-white');
-                btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-            }
-        });
-    });
+    // Update active period - CSS handles all styling automatically
+    document.querySelector('.period-filter-container').dataset.active = period;
 
     // Load all data with new period
     loadAllData();
@@ -146,19 +156,10 @@ async function loadAllData() {
     // Load data in parallel for better performance
     const promises = [
         loadTopProducts(),
+        loadRevenueChart(),
+        loadProfitChart(),
+        loadOrdersChart()
     ];
-    
-    // Only load charts if period is not 'all' (charts don't support 'all')
-    if (currentPeriod !== 'all') {
-        // Preload all charts for smooth tab switching
-        promises.push(loadRevenueChart());
-        promises.push(loadProfitChart());
-        promises.push(loadOrdersChart());
-    } else {
-        hideChart();
-        hideOrdersChart();
-        hideProfitChart();
-    }
     
     try {
         await Promise.all(promises);
@@ -172,34 +173,26 @@ async function loadAllData() {
 // Show loading states
 function showLoadingStates() {
     // Charts loading - only show loading for active tab
-    if (currentPeriod !== 'all') {
-        if (currentChartTab === 'revenue') {
-            document.getElementById('chartLoading')?.classList.remove('hidden');
-            document.getElementById('chartContainer')?.classList.add('hidden');
-        } else if (currentChartTab === 'profit') {
-            document.getElementById('profitChartLoading')?.classList.remove('hidden');
-            document.getElementById('profitChartContainer')?.classList.add('hidden');
-        } else if (currentChartTab === 'orders') {
-            document.getElementById('ordersChartLoading')?.classList.remove('hidden');
-            document.getElementById('ordersChartContainer')?.classList.add('hidden');
-        }
-    }
-}
-
-// Hide chart when period is 'all'
-function hideChart() {
-    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    if (chartSection && chartSection.querySelector('#revenueChart')) {
-        chartSection.style.display = 'none';
+    if (currentChartTab === 'revenue') {
+        document.getElementById('chartLoading')?.classList.remove('hidden');
+        document.getElementById('chartContainer')?.classList.add('hidden');
+    } else if (currentChartTab === 'profit') {
+        document.getElementById('profitChartLoading')?.classList.remove('hidden');
+        document.getElementById('profitChartContainer')?.classList.add('hidden');
+    } else if (currentChartTab === 'orders') {
+        document.getElementById('ordersChartLoading')?.classList.remove('hidden');
+        document.getElementById('ordersChartContainer')?.classList.add('hidden');
     }
 }
 
 // Show chart
 function showChart() {
-    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    if (chartSection && chartSection.querySelector('#revenueChart')) {
-        chartSection.style.display = 'block';
-    }
+    const chartSections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
+    chartSections.forEach(section => {
+        if (section.querySelector('#revenueChart') || section.querySelector('#profitChart') || section.querySelector('#ordersChart')) {
+            section.style.display = 'block';
+        }
+    });
 }
 
 // Toggle sort column
@@ -1365,24 +1358,11 @@ function updateOrdersComparisonCards(data) {
     }
 }
 
-// Hide orders chart when period is 'all'
-function hideOrdersChart() {
-    const sections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    sections.forEach(section => {
-        if (section.querySelector('#ordersChart')) {
-            section.style.display = 'none';
-        }
-    });
-}
-
 // Show orders chart
 function showOrdersChart() {
-    const sections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    sections.forEach(section => {
-        if (section.querySelector('#ordersChart')) {
-            section.style.display = 'block';
-        }
-    });
+    // Orders chart is in the same section as revenue/profit charts
+    // So we use the shared showChart() function
+    showChart();
 }
 
 
@@ -1657,19 +1637,9 @@ function updateProfitComparisonCards(data) {
 
 // Show profit chart
 function showProfitChart() {
-    const chartSection = document.querySelector('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    if (chartSection) {
-        chartSection.style.display = 'block';
-    }
-}
-
-// Hide profit chart when period is 'all'
-function hideProfitChart() {
-    // Chart section is shared, so just hide the tab content
-    const profitTabContent = document.getElementById('profitTabContent');
-    if (profitTabContent) {
-        profitTabContent.classList.add('hidden');
-    }
+    // Profit chart is in the same section as revenue/orders charts
+    // So we use the shared showChart() function
+    showChart();
 }
 
 
@@ -1858,16 +1828,8 @@ function applyCustomDateProfit() {
     // Update button label
     updateCustomDateLabelProfit(startDate, endDate);
     
-    // Update button states - optimized to prevent flash
-    requestAnimationFrame(() => {
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.classList.remove('bg-indigo-600', 'text-white');
-            btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-        });
-        const customBtn = document.getElementById('customDateBtnProfit');
-        customBtn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
-        customBtn.classList.add('bg-indigo-600', 'text-white');
-    });
+    // Update active period - CSS handles all styling automatically
+    document.querySelector('.period-filter-container').dataset.active = 'custom';
     
     // Set custom period and reload data
     currentPeriod = 'custom';

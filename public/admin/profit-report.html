@@ -136,6 +136,38 @@
             color: #6366f1;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
+
+        /* Period Filter Buttons - CSS-driven styling */
+        .period-btn {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .period-btn:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* Active state based on data attribute */
+        .period-filter-container[data-active="today"] .period-btn[data-period="today"],
+        .period-filter-container[data-active="week"] .period-btn[data-period="week"],
+        .period-filter-container[data-active="month"] .period-btn[data-period="month"],
+        .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"],
+        .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"],
+        .period-filter-container[data-active="year"] .period-btn[data-period="year"],
+        .period-filter-container[data-active="custom"] .period-btn[data-period="custom"] {
+            background-color: #6366f1;
+            color: white;
+        }
+
+        .period-filter-container[data-active="today"] .period-btn[data-period="today"]:hover,
+        .period-filter-container[data-active="week"] .period-btn[data-period="week"]:hover,
+        .period-filter-container[data-active="month"] .period-btn[data-period="month"]:hover,
+        .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"]:hover,
+        .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"]:hover,
+        .period-filter-container[data-active="year"] .period-btn[data-period="year"]:hover,
+        .period-filter-container[data-active="custom"] .period-btn[data-period="custom"]:hover {
+            background-color: #4f46e5;
+        }
     </style>
     <link rel="stylesheet" href="../assets/css/admin.css">
     <!-- Chart.js -->
@@ -263,33 +295,37 @@
                     <!-- Actions -->
                     <div class="flex items-center space-x-3">
                         <!-- Time Filter -->
-                        <div class="flex items-center gap-2">
+                        <div class="period-filter-container flex items-center gap-2" data-active="week">
                             <button onclick="changePeriod('today')" data-period="today"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
                                 Hôm nay
                             </button>
                             <button onclick="changePeriod('week')" data-period="week"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
                                 Tuần
                             </button>
                             <button onclick="changePeriod('month')" data-period="month"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
                                 Tháng
                             </button>
-                            <button onclick="changePeriod('year')" data-period="year"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                Năm
+                            <button onclick="changePeriod('quarter')" data-period="quarter"
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
+                                3 tháng
                             </button>
-                            <button onclick="changePeriod('all')" data-period="all"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                Tất cả
+                            <button onclick="changePeriod('half-year')" data-period="half-year"
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
+                                6 tháng
+                            </button>
+                            <button onclick="changePeriod('year')" data-period="year"
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
+                                Năm
                             </button>
                             
                             <!-- Custom Date Picker Button -->
                             <button onclick="showCustomDatePickerProfit(event)" 
                                 id="customDateBtnProfit"
                                 data-period="custom"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center gap-1">
+                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
