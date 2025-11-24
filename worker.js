@@ -125,6 +125,16 @@ async function handleGet(action, url, env, corsHeaders) {
         case 'getDiscountUsageHistory':
             return await getDiscountUsageHistory(env, corsHeaders);
 
+        case 'checkCustomer':
+            const checkPhone = url.searchParams.get('phone');
+            if (!checkPhone || checkPhone.trim() === '') {
+                return jsonResponse({
+                    success: false,
+                    error: 'Phone parameter is missing or empty'
+                }, 400, corsHeaders);
+            }
+            return await checkCustomer(checkPhone.trim(), env, corsHeaders);
+
         case 'getCustomerDetail':
             const customerPhone = url.searchParams.get('phone');
             return await getCustomerDetail(customerPhone, env, corsHeaders);
@@ -3661,6 +3671,45 @@ async function getAllCustomers(env, corsHeaders) {
     }
 }
 
+// Quick check if customer is new or returning (lightweight query)
+async function checkCustomer(phone, env, corsHeaders) {
+    try {
+        console.log('checkCustomer called with phone:', phone);
+        
+        if (!phone || phone.trim() === '') {
+            console.log('Phone is empty or null');
+            return jsonResponse({
+                success: false,
+                error: 'Phone number is required'
+            }, 400, corsHeaders);
+        }
+
+        // Simple count query - very fast
+        const result = await env.DB.prepare(`
+            SELECT COUNT(*) as order_count
+            FROM orders
+            WHERE customer_phone = ?
+        `).bind(phone).first();
+
+        const orderCount = result?.order_count || 0;
+        console.log('Order count for phone', phone, ':', orderCount);
+
+        return jsonResponse({
+            success: true,
+            isNew: orderCount === 0,
+            orderCount: orderCount
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error checking customer:', error);
+        return jsonResponse({
+            success: false,
+            error: 'Internal server error',
+            details: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Get customer detail with order history
 async function getCustomerDetail(phone, env, corsHeaders) {
     try {
@@ -3694,7 +3743,7 @@ async function getCustomerDetail(phone, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // Get order history - use total_amount column
+        // Get order history - use total_amount column and include address fields
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 id,
@@ -3705,7 +3754,12 @@ async function getCustomerDetail(phone, env, corsHeaders) {
                 referral_code,
                 commission,
                 products,
-                shipping_fee
+                shipping_fee,
+                address,
+                province_id,
+                district_id,
+                ward_id,
+                street_address
             FROM orders 
             WHERE customer_phone = ? 
             ORDER BY order_date DESC

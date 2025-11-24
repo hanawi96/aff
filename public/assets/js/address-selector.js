@@ -168,6 +168,41 @@ class AddressSelector {
             wardSelect.addEventListener('change', onChangeCallback);
         }
     }
+
+    /**
+     * Set address programmatically (for auto-fill)
+     */
+    setAddress({ province_id, district_id, ward_id }) {
+        const provinceSelect = document.getElementById('newOrderProvince');
+        const districtSelect = document.getElementById('newOrderDistrict');
+        const wardSelect = document.getElementById('newOrderWard');
+
+        if (!provinceSelect || !districtSelect || !wardSelect) {
+            console.error('Address select elements not found');
+            return;
+        }
+
+        // Set province
+        if (province_id) {
+            provinceSelect.value = province_id;
+            this.renderDistricts(districtSelect, province_id);
+
+            // Set district after a short delay
+            setTimeout(() => {
+                if (district_id) {
+                    districtSelect.value = district_id;
+                    this.renderWards(wardSelect, province_id, district_id);
+
+                    // Set ward after another short delay
+                    setTimeout(() => {
+                        if (ward_id) {
+                            wardSelect.value = ward_id;
+                        }
+                    }, 100);
+                }
+            }, 100);
+        }
+    }
 }
 
 // Export singleton instance
