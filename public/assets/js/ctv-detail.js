@@ -375,4 +375,3 @@ function copyToClipboard(text) {
 
 // Show toast notification
 // showToast is now provided by toast-manager.js
-}

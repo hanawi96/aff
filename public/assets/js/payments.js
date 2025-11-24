@@ -110,18 +110,15 @@ function renderCTVList() {
     }
     
     // Remove old CTV cards but keep loading and empty states
-    Array.from(container.children).forEach(child => {
-        if (child.id !== 'loadingState' && child.id !== 'emptyState') {
-            child.remove();
-        }
-    });
+    const existingCards = container.querySelectorAll('.ctv-card');
+    existingCards.forEach(card => card.remove());
     
     filteredCommissions.forEach((ctv, index) => {
         const allSelected = ctv.orders.every(o => selectedOrders.has(o.order_id));
         const someSelected = ctv.orders.some(o => selectedOrders.has(o.order_id));
         
         const html = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="ctv-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <!-- CTV Header -->
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center justify-between">
@@ -567,11 +564,8 @@ function showLoading() {
     if (emptyState) emptyState.classList.add('hidden');
     
     const container = document.getElementById('ctvListContainer');
-    Array.from(container.children).forEach(child => {
-        if (child.id !== 'loadingState' && child.id !== 'emptyState') {
-            child.remove();
-        }
-    });
+    const existingCards = container.querySelectorAll('.ctv-card');
+    existingCards.forEach(card => card.remove());
 }
 
 function hideLoading() {

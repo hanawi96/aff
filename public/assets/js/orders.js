@@ -686,13 +686,27 @@ function updateStatLabels() {
 
 // Filter orders data
 function filterOrdersData() {
-    console.log('🎯 FILTER FUNCTION CALLED - Version 2.0');
+    console.log('🎯 FILTER FUNCTION CALLED - Version 3.0 (Fixed 7-day logic)');
 
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
     console.log('🔍 Filtering with:', { searchTerm, statusFilter, dateFilter });
+    
+    // Debug date ranges
+    if (dateFilter === 'today') {
+        console.log('📅 Today range:', getVNStartOfToday().toISOString(), '-', getVNEndOfToday().toISOString());
+    } else if (dateFilter === 'yesterday') {
+        const todayStart = getVNStartOfToday();
+        const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+        const yesterdayEnd = new Date(todayStart.getTime() - 1);
+        console.log('📅 Yesterday range:', yesterdayStart.toISOString(), '-', yesterdayEnd.toISOString());
+    } else if (dateFilter === 'week') {
+        console.log('📅 7-day range (last 7 days):', getVNStartOfLast7Days().toISOString(), '-', getVNEndOfToday().toISOString());
+    } else if (dateFilter === 'month') {
+        console.log('📅 30-day range (last 30 days):', getVNStartOfLast30Days().toISOString(), '-', getVNEndOfToday().toISOString());
+    }
 
     // Debug: Show unique status values in data
     if (statusFilter !== 'all') {
@@ -749,11 +763,23 @@ function filterOrdersData() {
                 const yesterdayEnd = new Date(todayStart.getTime() - 1);
                 matchesDate = orderDate >= yesterdayStart && orderDate <= yesterdayEnd;
             } else if (dateFilter === 'week') {
-                const weekStart = getVNStartOfWeek();
-                matchesDate = orderDate >= weekStart;
+                const weekStart = getVNStartOfLast7Days();
+                const todayEnd = getVNEndOfToday();
+                matchesDate = orderDate >= weekStart && orderDate <= todayEnd;
+                
+                // Debug logging for 7 days filter
+                if (!matchesDate) {
+                    console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in 7-day range [${weekStart.toISOString()} - ${todayEnd.toISOString()}]`);
+                }
             } else if (dateFilter === 'month') {
-                const monthStart = getVNStartOfMonth();
-                matchesDate = orderDate >= monthStart;
+                const monthStart = getVNStartOfLast30Days();
+                const todayEnd = getVNEndOfToday();
+                matchesDate = orderDate >= monthStart && orderDate <= todayEnd;
+                
+                // Debug logging for 30 days filter
+                if (!matchesDate) {
+                    console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in 30-day range [${monthStart.toISOString()} - ${todayEnd.toISOString()}]`);
+                }
             } else if (dateFilter === 'custom') {
                 // Custom date range filter
                 const startDateStr = document.getElementById('customDateStart').value;
@@ -4639,7 +4665,14 @@ async function showAddOrderModal(duplicateData = null) {
     const referralCode = duplicateData?.referral_code || '';
     const paymentMethod = duplicateData?.payment_method || 'cod';
     const shippingFee = duplicateData?.shipping_fee !== undefined ? duplicateData.shipping_fee : 30000;
-    const shippingCost = duplicateData?.shipping_cost !== undefined ? duplicateData.shipping_cost : 25000;
+    
+    // Get shipping cost from cost_config
+    let shippingCost = duplicateData?.shipping_cost;
+    if (shippingCost === undefined) {
+        // Find item with item_name = 'default_shipping_cost'
+        const shippingCostItem = packagingConfig.find(item => item.item_name === 'default_shipping_cost');
+        shippingCost = shippingCostItem ? shippingCostItem.item_cost : 25000;
+    }
 
     // PERFORMANCE FIX: Pre-calculate summary to avoid layout shift
     const productTotal = currentOrderProducts.reduce((sum, p) => {
@@ -5138,6 +5171,9 @@ async function showAddOrderModal(duplicateData = null) {
     // Setup customer check on phone input
     setupCustomerCheck();
 
+    // Setup auto-sync shipping cost with shipping fee
+    setupShippingCostSync();
+
     // Init address selector with duplicate data
     initAddressSelector(duplicateData);
 
@@ -5157,8 +5193,9 @@ async function showAddOrderModal(duplicateData = null) {
     requestAnimationFrame(() => {
         if (currentOrderProducts.length > 0) {
             renderOrderProducts();
-            updateOrderSummary();
         }
+        // Always call updateOrderSummary to show initial values
+        updateOrderSummary();
     });
 
     // Setup real-time profit calculation
@@ -6243,7 +6280,12 @@ function updateOrderSummary() {
 
     // Get shipping costs from form (if available)
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value || 0);
-    const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value || 0);
+    let shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value || 0);
+    
+    // If shipping cost is 0 but shipping fee has value, use shipping fee as default
+    if (shippingCost === 0 && shippingFee > 0) {
+        shippingCost = shippingFee;
+    }
 
     // Only calculate costs if there are products
     const hasProducts = currentOrderProducts.length > 0;
@@ -8353,6 +8395,34 @@ function getTodayDateString() {
 }
 
 /**
+ * Get start of last 7 days in VN timezone (7 ngày qua, không phải tuần này)
+ * Note: This overrides getVNStartOfWeek() from timezone-utils.js which returns "this week"
+ */
+function getVNStartOfLast7Days() {
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    const today = new Date(vnDateStr + 'T00:00:00+07:00');
+    
+    // Lùi lại 7 ngày (không phải tuần này, mà là 7 ngày qua)
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return sevenDaysAgo;
+}
+
+/**
+ * Get start of last 30 days in VN timezone (30 ngày qua)
+ * Note: This overrides getVNStartOfMonth() from timezone-utils.js which returns "this month"
+ */
+function getVNStartOfLast30Days() {
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    const today = new Date(vnDateStr + 'T00:00:00+07:00');
+    
+    // Lùi lại 30 ngày
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return thirtyDaysAgo;
+}
+
+/**
  * Get start of a specific date in VN timezone
  */
 function getVNStartOfDate(dateStr) {
@@ -8368,6 +8438,16 @@ function getVNEndOfDate(dateStr) {
     return vnDateTime;
 }
 
+
+// ============================================
+// SHIPPING COST AUTO-SYNC
+// ============================================
+
+// Setup auto-sync shipping cost with shipping fee (for display only, not input)
+function setupShippingCostSync() {
+    // No auto-sync for input fields - keep database values
+    // Only sync in display/summary section via updateOrderSummary()
+}
 
 // ============================================
 // CUSTOMER CHECK FEATURE
