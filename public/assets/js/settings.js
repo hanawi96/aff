@@ -20,7 +20,7 @@ function setupEventListeners() {
     }
 
     // Update preview on input change
-    const inputs = ['red_string', 'labor_cost', 'bag_zip', 'bag_red', 'thank_card', 'box_shipping', 'paper_print'];
+    const inputs = ['red_string', 'labor_cost', 'bag_zip', 'bag_red', 'thank_card', 'box_shipping', 'paper_print', 'customer_shipping_fee'];
     inputs.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
@@ -158,7 +158,12 @@ async function savePackagingConfig() {
             {
                 item_name: 'default_shipping_cost',
                 item_cost: parseFloat(document.getElementById('default_shipping_cost').value) || 0,
-                is_default: 0
+                is_default: 1
+            },
+            {
+                item_name: 'customer_shipping_fee',
+                item_cost: parseFloat(document.getElementById('customer_shipping_fee').value) || 0,
+                is_default: 1
             }
         ];
 
@@ -232,7 +237,8 @@ function hideLoading() {
             'box_shipping': '3000',
             'thank_card': '300',
             'paper_print': '200',
-            'default_shipping_cost': '25000'
+            'default_shipping_cost': '25000',
+            'customer_shipping_fee': '25000'
         };
         if (placeholders[input.id]) {
             input.placeholder = placeholders[input.id];

@@ -4664,7 +4664,14 @@ async function showAddOrderModal(duplicateData = null) {
     const address = duplicateData?.address || '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM';
     const referralCode = duplicateData?.referral_code || '';
     const paymentMethod = duplicateData?.payment_method || 'cod';
-    const shippingFee = duplicateData?.shipping_fee !== undefined ? duplicateData.shipping_fee : 30000;
+    
+    // Get customer shipping fee from cost_config
+    let shippingFee = duplicateData?.shipping_fee;
+    if (shippingFee === undefined) {
+        // Find item with item_name = 'customer_shipping_fee'
+        const customerShippingFeeItem = packagingConfig.find(item => item.item_name === 'customer_shipping_fee');
+        shippingFee = customerShippingFeeItem ? customerShippingFeeItem.item_cost : 30000;
+    }
     
     // Get shipping cost from cost_config
     let shippingCost = duplicateData?.shipping_cost;
