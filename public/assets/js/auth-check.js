@@ -2,12 +2,22 @@
 (function() {
     'use strict';
 
+    // Helper function to get correct login path
+    function getLoginPath() {
+        // Check if we're in /public/ path (local) or root (production)
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/public/')) {
+            return '../login.html';
+        }
+        return '/login.html';
+    }
+
     // Check if session token exists
     const sessionToken = localStorage.getItem('session_token');
     
     if (!sessionToken) {
         // No token, redirect to login
-        window.location.href = '/login.html';
+        window.location.href = getLoginPath();
         return;
     }
 
@@ -23,7 +33,7 @@
             // Invalid session, clear and redirect
             localStorage.removeItem('session_token');
             localStorage.removeItem('user_info');
-            window.location.href = '/login.html';
+            window.location.href = getLoginPath();
         } else {
             // Session valid, update user info
             localStorage.setItem('user_info', JSON.stringify(data.user));
@@ -37,7 +47,7 @@
         // On error, redirect to login
         localStorage.removeItem('session_token');
         localStorage.removeItem('user_info');
-        window.location.href = '/login.html';
+        window.location.href = getLoginPath();
     });
 
     // Update user profile in sidebar
@@ -98,6 +108,6 @@
         localStorage.removeItem('user_info');
         
         // Redirect to login
-        window.location.href = '/login.html';
+        window.location.href = getLoginPath();
     };
 })();
