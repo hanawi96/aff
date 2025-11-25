@@ -7,7 +7,7 @@
     
     if (!sessionToken) {
         // No token, redirect to login
-        window.location.href = '/public/login.html';
+        window.location.href = '/login.html';
         return;
     }
 
@@ -23,7 +23,7 @@
             // Invalid session, clear and redirect
             localStorage.removeItem('session_token');
             localStorage.removeItem('user_info');
-            window.location.href = '/public/login.html';
+            window.location.href = '/login.html';
         } else {
             // Session valid, update user info
             localStorage.setItem('user_info', JSON.stringify(data.user));
@@ -37,7 +37,7 @@
         // On error, redirect to login
         localStorage.removeItem('session_token');
         localStorage.removeItem('user_info');
-        window.location.href = '/public/login.html';
+        window.location.href = '/login.html';
     });
 
     // Update user profile in sidebar
@@ -98,6 +98,6 @@
         localStorage.removeItem('user_info');
         
         // Redirect to login
-        window.location.href = '/public/login.html';
+        window.location.href = '/login.html';
     };
 })();
