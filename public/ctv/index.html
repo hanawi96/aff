@@ -6,29 +6,293 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tra Cứu Đơn Hàng - CTV</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Smart routing: redirect to appropriate page
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        
-        if (code) {
-            // Has code, go to results
-            window.location.replace('results.html?code=' + encodeURIComponent(code));
-        } else {
-            // No code, go to search
-            window.location.replace('search.html');
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
         }
-    </script>
+
+        body {
+            background: linear-gradient(135deg, #fef3f8 0%, #fef7ed 25%, #f0f9ff 50%, #faf5ff 75%, #fef3f8 100%);
+            background-size: 400% 400%;
+            animation: gentleGradient 20s ease infinite;
+            position: relative;
+        }
+
+        @keyframes gentleGradient {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* Floating shapes - very subtle */
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+
+        .shape-1 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #fbbf24, #f472b6);
+            top: 10%;
+            left: 5%;
+            animation: float1 25s ease-in-out infinite;
+        }
+
+        .shape-2 {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            bottom: 15%;
+            right: 8%;
+            animation: float2 20s ease-in-out infinite;
+        }
+
+        .shape-3 {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #fb923c, #fbbf24);
+            top: 60%;
+            left: 10%;
+            animation: float3 18s ease-in-out infinite;
+        }
+
+        /* Mobile responsive shapes */
+        @media (max-width: 768px) {
+            .shape-1 {
+                width: 80px;
+                height: 80px;
+            }
+
+            .shape-2 {
+                width: 60px;
+                height: 60px;
+            }
+
+            .shape-3 {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @keyframes float1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+        }
+
+        @keyframes float2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-25px, 25px) scale(1.15);
+            }
+        }
+
+        @keyframes float3 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(20px, 20px) scale(1.2);
+            }
+        }
+
+        .main-card {
+            /* No animations */
+        }
+
+        .search-input:focus {
+            border-color: #ec4899;
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            transition: all 0.2s ease;
+        }
+
+        .btn-search:hover:not(:disabled) {
+            background: linear-gradient(135deg, #db2777 0%, #ec4899 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
+
+        .btn-search:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .support-link {
+            transition: all 0.2s ease;
+        }
+
+        .support-link:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Subtle sparkle effect */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: sparkle 3s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+        }
+
+        .sparkle-1 {
+            top: 20%;
+            left: 15%;
+            animation-delay: 0s;
+        }
+
+        .sparkle-2 {
+            top: 40%;
+            right: 20%;
+            animation-delay: 1s;
+        }
+
+        .sparkle-3 {
+            bottom: 30%;
+            left: 25%;
+            animation-delay: 2s;
+        }
+
+        .sparkle-4 {
+            top: 70%;
+            right: 15%;
+            animation-delay: 1.5s;
+        }
+    </style>
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center">
-    <div class="text-center">
-        <svg class="animate-spin h-12 w-12 mx-auto text-purple-600 mb-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p class="text-gray-700 font-medium">Đang chuyển hướng...</p>
+<body class="min-h-screen">
+    <!-- Floating shapes -->
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+
+    <!-- Sparkles -->
+    <div class="sparkle sparkle-1"></div>
+    <div class="sparkle sparkle-2"></div>
+    <div class="sparkle sparkle-3"></div>
+    <div class="sparkle sparkle-4"></div>
+
+    <div class="min-h-screen flex items-center justify-center px-4 py-8 relative z-10">
+        <div class="w-full max-w-md">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="avatar-container inline-block">
+                    <img src="../assets/avatar.jpg" alt="Logo"
+                        class="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg border-2 border-white">
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Tra Cứu Đơn Hàng</h1>
+                <p class="text-gray-600">Nhập mã CTV hoặc số điện thoại để xem đơn hàng</p>
+            </div>
+
+            <!-- Main Card -->
+            <div class="main-card bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <form id="searchForm" class="space-y-5">
+                    <div>
+                        <label for="referralCode" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Mã CTV hoặc Số Điện Thoại
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input type="text" id="referralCode" placeholder="VD: CTV123456 hoặc 0386190596" required
+                                class="search-input w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none transition-all text-gray-900 placeholder-gray-400">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="searchButton"
+                        class="btn-search w-full py-3 px-4 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <svg id="searchIcon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <svg id="loadingSpinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span id="searchButtonText">Tra cứu ngay</span>
+                    </button>
+                </form>
+
+                <!-- Support Section -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="text-center text-sm text-gray-500 mb-3">Cần hỗ trợ?</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="/"
+                            class="support-link flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium rounded-lg border border-gray-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            <span>Hướng dẫn</span>
+                        </a>
+                        <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                            class="support-link flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z" />
+                            </svg>
+                            <span>Nhóm Zalo</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/ctv-search.js"></script>
 </body>
 
 </html>
