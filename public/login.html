@@ -76,7 +76,9 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = '/admin/';
+                    // Smart redirect based on environment
+                    const isLocal = window.location.pathname.includes('/public/');
+                    window.location.href = isLocal ? 'admin/' : '/admin/';
                 }
             });
         }
@@ -110,8 +112,9 @@
                     localStorage.setItem('session_token', data.sessionToken);
                     localStorage.setItem('user_info', JSON.stringify(data.user));
                     
-                    // Redirect to admin
-                    window.location.href = '/admin/';
+                    // Smart redirect based on environment
+                    const isLocal = window.location.pathname.includes('/public/');
+                    window.location.href = isLocal ? 'admin/' : '/admin/';
                 } else {
                     throw new Error(data.error || 'Đăng nhập thất bại');
                 }
