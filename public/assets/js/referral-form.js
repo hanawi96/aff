@@ -10,8 +10,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const demoData = {
             fullName: 'Nguyễn Thị Yến',
             phone: '0901234567',
+            email: 'nguyenyen@gmail.com',
             city: 'Hà Nội',
             age: '26-30',
+            bankAccountNumber: '0123456789',
+            bankName: 'Techcombank',
             experience: '1-2 năm',
             motivation: 'Tôi muốn có thêm thu nhập để chăm sóc gia đình và chia sẻ những sản phẩm tốt cho mẹ và bé.'
         };
@@ -25,6 +28,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 input.style.backgroundColor = '#fffbeb'; // Light yellow
             }
         });
+
+        // Set bank name in hidden input and update display
+        const bankNameValue = document.getElementById('bankNameValue');
+        const bankSelectedText = document.getElementById('bankSelectedText');
+        if (bankNameValue && bankSelectedText) {
+            bankNameValue.value = 'Techcombank';
+            bankSelectedText.textContent = 'Techcombank - NHTMCP Ky thuong VN';
+            bankSelectedText.classList.remove('text-gray-500');
+            bankSelectedText.classList.add('text-gray-900');
+            document.getElementById('bankSelectButton').style.backgroundColor = '#fffbeb';
+        }
 
         // Check the terms checkbox
         const termsCheckbox = form.querySelector('#terms');
@@ -307,9 +321,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
                                     <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
                                 </svg>
-                                <span>Xem Hoa Hồng</span>
+                                <span>Cách Tính Hoa Hồng</span>
                             </button>
-                            <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                            <a href="https://zalo.me/g/vlyibe041" target="_blank"
                                 class="bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-600 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
@@ -370,14 +384,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="hidden sm:inline">Cửa Hàng</span>
                             <span class="sm:hidden">Shop</span>
                         </a>
-                        <a href="https://docs.google.com/spreadsheets/d/1QOXBlIcX1Th1ZnNKulnbxEJDD-HfAiKfOFKHn2pBo4o/edit?gid=525952340#gid=525952340" target="_blank"
+                        <a href="search.html" target="_blank"
                             class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-1.5">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                             </svg>
-                            <span class="hidden sm:inline">DS CTV</span>
-                            <span class="sm:hidden">CTV</span>
+                            <span class="hidden sm:inline">Kiểm tra đơn hàng</span>
+                            <span class="sm:hidden">Đơn hàng</span>
                         </a>
                     </div>
                 </div>
@@ -440,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <span>${message}</span>
         `;
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.style.animation = 'fadeOut 0.3s ease-out';
             setTimeout(() => toast.remove(), 300);
@@ -509,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
         commissionModal.innerHTML = `
             <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden flex flex-col" style="max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
                 <!-- Header -->
-                <div class="bg-gradient-to-r from-mom-pink to-mom-purple px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between flex-shrink-0">
+                <div class="bg-gradient-to-r from-pink-500 to-purple-600 px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between flex-shrink-0">
                     <h2 class="text-sm sm:text-lg font-bold text-white">Cách Tính Hoa Hồng</h2>
                     <button onclick="closeCommissionModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0" title="Đóng">
                         <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -562,18 +576,18 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <span class="text-gray-600">1.030.000đ</span>
                                 </div>
                                 
-                                <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg mt-2 p-2.5">
-                                    <div class="flex justify-between items-center mb-1.5">
-                                        <span class="text-white font-medium flex items-center gap-1.5">
+                                <div class="bg-green-50 border-2 border-green-500 rounded-lg mt-3 p-3">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-green-700 font-semibold flex items-center gap-1.5">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
                                             </svg>
                                             Hoa hồng 10%
                                         </span>
-                                        <span class="text-white font-bold text-lg">100.000đ</span>
+                                        <span class="text-green-700 font-bold text-xl">100.000đ</span>
                                     </div>
-                                    <div class="text-white/90 text-xs bg-white/10 rounded px-2 py-1">
+                                    <div class="text-green-600 text-xs bg-white/70 rounded px-2 py-1">
                                         1.000.000đ × 10% = 100.000đ
                                     </div>
                                 </div>
@@ -622,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- Footer - Fixed at bottom -->
                 <div class="p-3 sm:p-5 pt-2 sm:pt-3 border-t border-gray-100 flex-shrink-0 bg-white">
                     <div class="grid grid-cols-2 gap-2 sm:gap-3">
-                        <a href="https://zalo.me/g/gvqvxu828" target="_blank"
+                        <a href="https://zalo.me/g/vlyibe041" target="_blank"
                             class="bg-blue-500 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-base font-medium hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center space-x-1.5 sm:space-x-2">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
@@ -630,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span>Tham gia nhóm Zalo</span>
                         </a>
                         <button onclick="closeCommissionModal()" 
-                            class="bg-gradient-to-r from-mom-pink to-mom-purple text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-base font-medium hover:shadow-lg transition-all">
+                            class="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-base font-medium hover:from-pink-600 hover:to-purple-700 hover:shadow-lg transition-all">
                             Đã Hiểu
                         </button>
                     </div>
@@ -899,26 +913,26 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // Motivation preset selection
-window.selectMotivation = function(button, text) {
+window.selectMotivation = function (button, text) {
     const textarea = document.getElementById('motivationText');
     const currentValue = textarea.value.trim();
-    
+
     // Toggle selection
     const isSelected = button.classList.contains('selected');
-    
+
     if (isSelected) {
         // Deselect - remove this text from textarea
         const lines = currentValue.split('\n').filter(line => line.trim() !== text);
         textarea.value = lines.join('\n').trim();
-        button.classList.remove('selected', 'border-mom-pink', 'bg-mom-pink/20', 'text-mom-pink', 
-                                  'border-mom-blue', 'bg-mom-blue/20', 'text-mom-blue',
-                                  'border-mom-purple', 'bg-mom-purple/20', 'text-mom-purple');
+        button.classList.remove('selected', 'border-mom-pink', 'bg-mom-pink/20', 'text-mom-pink',
+            'border-mom-blue', 'bg-mom-blue/20', 'text-mom-blue',
+            'border-mom-purple', 'bg-mom-purple/20', 'text-mom-purple');
         button.classList.add('border-gray-300', 'bg-white');
     } else {
         // Select - add text to textarea
         const newValue = currentValue ? currentValue + '\n' + text : text;
         textarea.value = newValue;
-        
+
         // Add selected styling based on button's hover color
         button.classList.remove('border-gray-300', 'bg-white');
         if (button.classList.contains('hover:border-mom-pink')) {
@@ -936,7 +950,7 @@ window.selectMotivation = function(button, text) {
 // BANK DROPDOWN FUNCTIONALITY
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const bankSelectButton = document.getElementById('bankSelectButton');
     const bankSearchInput = document.getElementById('bankSearchInput');
     const bankDropdown = document.getElementById('bankDropdown');
@@ -1043,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Keyboard navigation
     bankSearchInput.addEventListener('keydown', function (e) {
         const visibleOptions = Array.from(bankOptions).filter(opt => opt.style.display !== 'none');
-        
+
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (visibleOptions.length > 0) {

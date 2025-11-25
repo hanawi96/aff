@@ -1,13 +1,15 @@
 // Cloudflare Worker API for CTV Management System
 // Using D1 Database (SQLite on Edge)
 
+import bcrypt from 'bcryptjs';
+
 export default {
     async fetch(request, env, ctx) {
         // CORS headers
         const corsHeaders = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         };
 
         // Handle CORS preflight
@@ -25,7 +27,7 @@ export default {
 
             // Route handling
             if (request.method === 'GET') {
-                return await handleGet(action, url, env, corsHeaders);
+                return await handleGet(action, url, request, env, corsHeaders);
             } else if (request.method === 'POST') {
                 // Check if action is in query string (for API calls with ?action=xxx)
                 if (action) {
@@ -50,8 +52,11 @@ export default {
 // GET REQUEST HANDLERS
 // ============================================
 
-async function handleGet(action, url, env, corsHeaders) {
+async function handleGet(action, url, request, env, corsHeaders) {
     switch (action) {
+        case 'verifySession':
+            return await handleVerifySession(request, env, corsHeaders);
+
         case 'getAllCTV':
             return await getAllCTV(env, corsHeaders);
 
@@ -280,6 +285,12 @@ async function handlePostWithAction(action, request, env, corsHeaders) {
     const data = await request.json();
 
     switch (action) {
+        case 'login':
+            return await handleLogin(data, request, env, corsHeaders);
+        case 'logout':
+            return await handleLogout(request, env, corsHeaders);
+        case 'changePassword':
+            return await handleChangePassword(data, request, env, corsHeaders);
         case 'getPackagingConfig':
             return await getPackagingConfig(env, corsHeaders);
         case 'updatePackagingConfig':
@@ -2696,6 +2707,210 @@ async function getCTVDashboardOptimized(env, corsHeaders) {
 
 // ============================================
 // HELPER FUNCTIONS
+// ============================================
+// AUTHENTICATION FUNCTIONS
+// ============================================
+
+// Helper: Generate session token
+function generateSessionToken() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper: Verify session token
+async function verifySession(request, env) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+
+    const token = authHeader.substring(7);
+    const now = Math.floor(Date.now() / 1000);
+
+    const result = await env.DB.prepare(`
+        SELECT s.*, u.id as user_id, u.username, u.full_name, u.role
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.id = ? AND s.expires_at > ? AND u.is_active = 1
+    `).bind(token, now).first();
+
+    return result;
+}
+
+// Login endpoint
+async function handleLogin(data, request, env, corsHeaders) {
+    try {
+        const { username, password } = data;
+
+        if (!username || !password) {
+            return jsonResponse({
+                success: false,
+                error: 'Username và password là bắt buộc'
+            }, 400, corsHeaders);
+        }
+
+        // Get user from database
+        const user = await env.DB.prepare(`
+            SELECT * FROM users WHERE username = ? AND is_active = 1
+        `).bind(username).first();
+
+        if (!user) {
+            return jsonResponse({
+                success: false,
+                error: 'Tên đăng nhập hoặc mật khẩu không đúng'
+            }, 401, corsHeaders);
+        }
+
+        // Verify password using bcrypt
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!isValidPassword) {
+            return jsonResponse({
+                success: false,
+                error: 'Tên đăng nhập hoặc mật khẩu không đúng'
+            }, 401, corsHeaders);
+        }
+
+        // Create session
+        const sessionToken = generateSessionToken();
+        const expiresAt = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60); // 7 days
+        const now = Math.floor(Date.now() / 1000);
+
+        await env.DB.prepare(`
+            INSERT INTO sessions (id, user_id, expires_at, created_at)
+            VALUES (?, ?, ?, ?)
+        `).bind(sessionToken, user.id, expiresAt, now).run();
+
+        return jsonResponse({
+            success: true,
+            sessionToken,
+            user: {
+                id: user.id,
+                username: user.username,
+                full_name: user.full_name,
+                role: user.role
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Login error:', error);
+        return jsonResponse({
+            success: false,
+            error: 'Lỗi đăng nhập: ' + error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Verify session endpoint
+async function handleVerifySession(request, env, corsHeaders) {
+    const session = await verifySession(request, env);
+
+    if (!session) {
+        return jsonResponse({
+            success: false,
+            error: 'Session không hợp lệ hoặc đã hết hạn'
+        }, 401, corsHeaders);
+    }
+
+    return jsonResponse({
+        success: true,
+        user: {
+            id: session.user_id,
+            username: session.username,
+            full_name: session.full_name,
+            role: session.role
+        }
+    }, 200, corsHeaders);
+}
+
+// Logout endpoint
+async function handleLogout(request, env, corsHeaders) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return jsonResponse({
+            success: false,
+            error: 'Không tìm thấy session token'
+        }, 400, corsHeaders);
+    }
+
+    const token = authHeader.substring(7);
+
+    await env.DB.prepare(`
+        DELETE FROM sessions WHERE id = ?
+    `).bind(token).run();
+
+    return jsonResponse({
+        success: true,
+        message: 'Đăng xuất thành công'
+    }, 200, corsHeaders);
+}
+
+// Change password endpoint
+async function handleChangePassword(data, request, env, corsHeaders) {
+    const session = await verifySession(request, env);
+    if (!session) {
+        return jsonResponse({
+            success: false,
+            error: 'Unauthorized'
+        }, 401, corsHeaders);
+    }
+
+    try {
+        const { currentPassword, newPassword } = data;
+
+        if (!currentPassword || !newPassword) {
+            return jsonResponse({
+                success: false,
+                error: 'Mật khẩu hiện tại và mật khẩu mới là bắt buộc'
+            }, 400, corsHeaders);
+        }
+
+        if (newPassword.length < 6) {
+            return jsonResponse({
+                success: false,
+                error: 'Mật khẩu mới phải có ít nhất 6 ký tự'
+            }, 400, corsHeaders);
+        }
+
+        // Get current user
+        const user = await env.DB.prepare(`
+            SELECT * FROM users WHERE id = ?
+        `).bind(session.user_id).first();
+
+        // Verify current password
+        const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+
+        if (!isValidPassword) {
+            return jsonResponse({
+                success: false,
+                error: 'Mật khẩu hiện tại không đúng'
+            }, 401, corsHeaders);
+        }
+
+        // Hash new password
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        const now = Math.floor(Date.now() / 1000);
+
+        // Update password
+        await env.DB.prepare(`
+            UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?
+        `).bind(newPasswordHash, now, session.user_id).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Đổi mật khẩu thành công'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Change password error:', error);
+        return jsonResponse({
+            success: false,
+            error: 'Lỗi đổi mật khẩu: ' + error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // ============================================
 
 function jsonResponse(data, status = 200, corsHeaders = {}) {

@@ -13,7 +13,7 @@ const CONFIG = {
     
     // Contact info
     CONTACT: {
-        zaloGroup: 'https://zalo.me/g/gvqvxu828',
+        zaloGroup: 'https://zalo.me/g/vlyibe041',
         zaloSupport1: '0972483892',
         zaloSupport2: '0386190596'
     },
@@ -22,7 +22,7 @@ const CONFIG = {
     SHOP_URL: 'https://shopvd.store',
     
     // Demo mode (set to false in production)
-    DEMO_MODE: false
+    DEMO_MODE: true
 };
 
 // Export for use in other files

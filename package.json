@@ -31,5 +31,8 @@
   "devDependencies": {
     "http-server": "^14.1.1",
     "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   }
 }

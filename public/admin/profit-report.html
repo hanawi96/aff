@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -196,7 +196,7 @@
 
             <!-- Navigation -->
             <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-                <a href="index.html"
+                <a href="ctv.html"
                     class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -205,7 +205,7 @@
                     <span>Danh sách CTV</span>
                 </a>
 
-                <a href="orders.html"
+                <a href="index.html"
                     class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -265,7 +265,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span>Cài đặt Chi phí</span>
+                    <span>Cài đặt</span>
                 </a>
 
                 <a href="customers.html"
@@ -277,8 +277,26 @@
                     <span>Khách hàng</span>
                 </a>
             </nav>
+            <!-- User Profile -->
+            <div class="mt-auto border-t border-gray-200 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                        AD
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
+                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
         </div>
-    </aside>
+            </aside>
 
     <!-- Main Content -->
     <div class="ml-64">
@@ -799,6 +817,7 @@
     <script src="../assets/js/toast-manager.js"></script>
     <script src="../assets/js/timezone-utils.js"></script>
     <script src="../assets/js/profit-report.js"></script>
+    <script src="../assets/js/auth-check.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,1348 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Cộng Tác Viên - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                        'admin-success': '#10b981',
+                        'admin-warning': '#f59e0b',
+                        'admin-danger': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+
+        /* Time Filter Buttons */
+        .time-filter-btn {
+            border-color: #e5e7eb;
+            color: #6b7280;
+            background: white;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-filter-btn:hover:not(.active) {
+            border-color: #6366f1;
+            color: #6366f1;
+            background: #eef2ff;
+            transform: translateY(-1px);
+        }
+
+        .time-filter-btn.active {
+            border-color: #6366f1;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+        }
+
+        /* Custom Date Picker Modal */
+        .date-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .date-input-wrapper {
+            position: relative;
+        }
+
+        .date-input-wrapper input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .date-input-wrapper input[type="date"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .date-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .date-mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-mode-tab.active {
+            background: white;
+            color: #6366f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        <div class="flex flex-col h-full">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
+                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <a href="ctv.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Danh sách CTV</span>
+                </a>
+                <a href="index.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a href="payments.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Thanh toán CTV</span>
+                </a>
+                <a href="products.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <span>Sản phẩm</span>
+                </a>
+                <a href="discounts.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    <span>Mã giảm giá</span>
+                </a>
+                <a href="profit-report.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Thống kê</span>
+                </a>
+                <a href="location-report.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Địa lý</span>
+                </a>
+                <a href="settings.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Cài đặt</span>
+                </a>
+                <a href="customers.html"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Khách hàng</span>
+                </a>
+            </nav>
+            <!-- User Profile -->
+            <div class="mt-auto border-t border-gray-200 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                        AD
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
+                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+            </aside>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div class="px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <!-- Page Title -->
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Danh sách Cộng Tác Viên</h2>
+                        <p class="text-sm text-gray-500">Quản lý và theo dõi hoạt động CTV</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-3">
+                        <button onclick="refreshData()"
+                            class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Làm mới">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                        <button onclick="showAddCTVModal()"
+                            class="px-4 py-2 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                            Thêm CTV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="px-6 lg:px-8 py-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Total CTV -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Tổng CTV</p>
+                            <div id="totalCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active CTV -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Đang hoạt động</p>
+                            <div id="activeCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New This Month -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Mới tháng này</p>
+                            <div id="newCTV" class="skeleton h-10 w-16 rounded mt-2"></div>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Commission -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Tổng hoa hồng</p>
+                            <div id="totalCommission" class="skeleton h-10 w-24 rounded mt-2"></div>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Orders -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
+                            <div id="totalOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
+                        </div>
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                                <path fill-rule="evenodd"
+                                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Top CTV Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Top CTV</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Theo doanh thu & đơn hàng</p>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="switchTopCTVMode('revenue')" id="topCTVRevenueBtn" 
+                                class="px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-700 transition-colors">
+                                Doanh thu
+                            </button>
+                            <button onclick="switchTopCTVMode('orders')" id="topCTVOrdersBtn" 
+                                class="px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors">
+                                Đơn hàng
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="topCTVChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Registration Trend Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Xu hướng đăng ký</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Số CTV mới theo thời gian</p>
+                        </div>
+                        <select id="trendPeriodSelect" onchange="updateRegistrationTrend()" 
+                            class="px-2.5 py-1 text-xs font-medium border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="7days">7 ngày</option>
+                            <option value="30days" selected>30 ngày</option>
+                            <option value="90days">90 ngày</option>
+                        </select>
+                    </div>
+                    <div class="relative" style="height: 280px;">
+                        <canvas id="registrationTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div class="flex flex-col lg:flex-row gap-3">
+                    <!-- Status Filter - Desktop -->
+                    <div class="relative hidden lg:block">
+                        <button id="statusFilterBtn" onclick="toggleCTVStatusFilter(event)" 
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors h-10 text-sm whitespace-nowrap">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span id="statusFilterLabel" class="text-gray-700">Trạng thái</span>
+                            <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="hidden" id="statusFilter" value="all">
+
+                    <!-- Search -->
+                    <div class="flex-1 min-w-0">
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, SĐT, mã CTV..."
+                                class="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
+                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Time Filter - Desktop -->
+                    <div class="hidden lg:flex items-center gap-2">
+                        <button onclick="filterByRegistrationTime('all')" id="timeFilterAll" class="time-filter-btn active px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tất cả
+                        </button>
+                        <button onclick="filterByRegistrationTime('today')" id="timeFilterToday" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Hôm nay
+                        </button>
+                        <button onclick="filterByRegistrationTime('week')" id="timeFilterWeek" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tuần này
+                        </button>
+                        <button onclick="filterByRegistrationTime('month')" id="timeFilterMonth" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            Tháng này
+                        </button>
+                        <button onclick="filterByRegistrationTime('3months')" id="timeFilter3Months" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            3 tháng
+                        </button>
+                        <button onclick="filterByRegistrationTime('6months')" id="timeFilter6Months" class="time-filter-btn px-3 py-2 text-xs font-medium rounded-lg transition-all border-2 whitespace-nowrap">
+                            6 tháng
+                        </button>
+                    </div>
+
+                    <!-- Mobile Filters -->
+                    <div class="lg:hidden flex flex-col gap-3">
+                        <!-- Status Filter - Mobile -->
+                        <div class="relative">
+                            <button id="statusFilterBtnMobile" onclick="toggleCTVStatusFilter(event)" 
+                                class="w-full inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors h-10 text-sm">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                <span id="statusFilterLabelMobile" class="text-gray-700 flex-1 text-left">Trạng thái</span>
+                                <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Time Filter - Mobile -->
+                        <select id="mobileTimeFilter" onchange="filterByRegistrationTime(this.value)" class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
+                            <option value="all">⏰ Tất cả thời gian</option>
+                            <option value="today">☀️ Hôm nay</option>
+                            <option value="week">📅 Tuần này</option>
+                            <option value="month">📆 Tháng này</option>
+                            <option value="3months">📊 3 tháng</option>
+                            <option value="6months">📈 6 tháng</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTV Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <!-- Table Header -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">Danh Sách Cộng Tác Viên</h2>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="p-8">
+                    <div class="space-y-4">
+                        <div class="skeleton h-16 rounded-lg"></div>
+                        <div class="skeleton h-16 rounded-lg"></div>
+                        <div class="skeleton h-16 rounded-lg"></div>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div id="tableContent" class="hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <div class="flex items-center gap-3">
+                                            <input type="checkbox" id="selectAllCheckbox"
+                                                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                                onchange="toggleSelectAll(this.checked)">
+                                            <span>STT</span>
+                                        </div>
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Thông tin CTV</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Liên hệ</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Mã CTV</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <button onclick="toggleRateSort()"
+                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
+                                            <span>Tỷ lệ HH</span>
+                                            <svg id="rateSortIcon"
+                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                            </svg>
+                                        </button>
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Số DH</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <button onclick="toggleCommissionSort()"
+                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
+                                            <span>Tổng HH</span>
+                                            <svg id="commissionSortIcon"
+                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                            </svg>
+                                        </button>
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Trạng thái</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <button onclick="toggleDateSort()"
+                                            class="flex items-center gap-2 hover:text-admin-primary transition-colors group">
+                                            <span>Ngày đăng ký</span>
+                                            <svg id="sortIcon"
+                                                class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                            </svg>
+                                        </button>
+                                    </th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ctvTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Data will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="paginationContainer"></div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden p-12 text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có cộng tác viên</h3>
+                    <p class="text-gray-500">Danh sách cộng tác viên sẽ hiển thị ở đây</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Bulk Actions Bar -->
+    <div id="bulkActionsBar" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <div
+            class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-xl px-4 py-2.5 flex items-center gap-4">
+            <!-- Selected Count -->
+            <div class="flex items-center gap-2 border-r border-white/30 pr-4">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="text-white">
+                    <p class="text-xs opacity-90">Đã chọn</p>
+                    <p class="text-lg font-bold leading-tight"><span id="selectedCount">0</span> CTV</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <!-- Export -->
+                <button onclick="bulkExportCTV()"
+                    class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Export</span>
+                </button>
+
+                <!-- Update Commission -->
+                <button onclick="bulkUpdateCommission()"
+                    class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Sửa HH</span>
+                </button>
+
+                <!-- Delete -->
+                <button onclick="bulkDeleteCTV()"
+                    class="px-3 py-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Xóa</span>
+                </button>
+
+                <!-- Clear Selection -->
+                <button onclick="clearSelection()"
+                    class="ml-1 w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all flex items-center justify-center backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add CTV Modal -->
+    <div id="addCTVModal"
+        class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div
+                class="bg-gradient-to-r from-admin-primary to-admin-secondary px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Thêm Cộng Tác Viên Mới</h2>
+                        <p class="text-sm text-white/80">Điền thông tin để đăng ký CTV</p>
+                    </div>
+                </div>
+                <button onclick="closeAddCTVModal()"
+                    class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="addCTVForm" class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Họ tên -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Họ và Tên <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="fullName" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="Nguyễn Văn A">
+                    </div>
+
+                    <!-- Số điện thoại -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Số điện thoại <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" name="phone" required pattern="[0-9]{10,11}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="0912345678">
+                        <p class="text-xs text-gray-500 mt-1">10-11 chữ số</p>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="email@example.com">
+                    </div>
+
+                    <!-- Tỉnh/Thành -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tỉnh/Thành phố</label>
+                        <input type="text" name="city"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="Hà Nội">
+                    </div>
+
+                    <!-- Độ tuổi -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Độ tuổi</label>
+                        <select name="age"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
+                            <option value="">Chọn độ tuổi</option>
+                            <option value="18-25">18-25 tuổi</option>
+                            <option value="26-30">26-30 tuổi</option>
+                            <option value="31-35">31-35 tuổi</option>
+                            <option value="36-40">36-40 tuổi</option>
+                            <option value="40+">Trên 40 tuổi</option>
+                        </select>
+                    </div>
+
+                    <!-- Số tài khoản -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Số tài khoản</label>
+                        <input type="text" name="bankAccountNumber" pattern="[0-9]{6,20}"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent"
+                            placeholder="1234567890">
+                        <p class="text-xs text-gray-500 mt-1">6-20 chữ số</p>
+                    </div>
+
+                    <!-- Tên ngân hàng -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tên ngân hàng</label>
+                        <div class="relative">
+                            <!-- Select Button -->
+                            <button type="button" id="bankSelectButton"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors">
+                                <span id="bankSelectedText" class="text-gray-500">Chọn ngân hàng</span>
+                                <svg class="w-5 h-5 text-gray-400 transition-transform" id="bankDropdownIcon"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="bankName" id="bankNameValue">
+
+                            <!-- Dropdown -->
+                            <div id="bankDropdown"
+                                class="hidden fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden"
+                                style="width: 0; max-width: 600px;">
+                                <!-- Search Input inside dropdown -->
+                                <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                    <div class="relative">
+                                        <input type="text" id="bankSearchInput" placeholder="Tìm kiếm..."
+                                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm"
+                                            autocomplete="off">
+                                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Options List -->
+                                <div class="max-h-60 overflow-y-auto">
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors border-b border-gray-100"
+                                        data-value="">
+                                        <span class="text-gray-500 italic">Chọn ngân hàng</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors border-b border-gray-100"
+                                        data-value="ABBank">
+                                        <span class="font-medium text-gray-900">ABBank</span> - <span
+                                            class="text-gray-600">NHTMCP An Binh</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="ACB">
+                                        <span class="font-medium text-gray-900">ACB</span> - <span
+                                            class="text-gray-600">NH
+                                            TMCP A Chau</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Agribank">
+                                        <span class="font-medium text-gray-900">Agribank</span> - <span
+                                            class="text-gray-600">NH NN & PTNT Viet Nam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="ANZ Bank">
+                                        <span class="font-medium text-gray-900">ANZ Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Bac A Bank">
+                                        <span class="font-medium text-gray-900">Bac A Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Bac A</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="BaoViet Bank">
+                                        <span class="font-medium text-gray-900">BaoViet Bank</span> - <span
+                                            class="text-gray-600">NH TMCP Bao Viet</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="BIDV">
+                                        <span class="font-medium text-gray-900">BIDV</span> - <span
+                                            class="text-gray-600">NH
+                                            Dau tu & Phat trien Viet Nam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Citibank">
+                                        <span class="font-medium text-gray-900">Citibank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Dong A Bank">
+                                        <span class="font-medium text-gray-900">Dong A Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Dong A</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Eximbank">
+                                        <span class="font-medium text-gray-900">Eximbank</span> - <span
+                                            class="text-gray-600">NHTMCP Xuat Nhap Khau</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="GPBank">
+                                        <span class="font-medium text-gray-900">GPBank</span> - <span
+                                            class="text-gray-600">NHTMCP Dau khi Toan cau</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="HDBank">
+                                        <span class="font-medium text-gray-900">HDBank</span> - <span
+                                            class="text-gray-600">NHTMCP phat trien Tp HCM</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="HSBC">
+                                        <span class="font-medium text-gray-900">HSBC</span> - <span
+                                            class="text-gray-600">Hong Kong and Shanghai Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Hong Leong Bank">
+                                        <span class="font-medium text-gray-900">Hong Leong Bank</span> - <span
+                                            class="text-gray-600">Vietnam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="IBK">
+                                        <span class="font-medium text-gray-900">IBK</span> - <span
+                                            class="text-gray-600">Industrial Bank of Korea</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="IVB">
+                                        <span class="font-medium text-gray-900">IVB</span> - <span
+                                            class="text-gray-600">NH
+                                            TNHH Indovina</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Kien Long Bank">
+                                        <span class="font-medium text-gray-900">Kien Long Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Kien Long</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Kookmin Bank">
+                                        <span class="font-medium text-gray-900">Kookmin Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="LienVietPostBank">
+                                        <span class="font-medium text-gray-900">LienVietPostBank</span> - <span
+                                            class="text-gray-600">NH TMCP Buu Dien Lien Viet</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="MB">
+                                        <span class="font-medium text-gray-900">MB</span> - <span
+                                            class="text-gray-600">NHTMCP Quan Doi</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Maritime Bank">
+                                        <span class="font-medium text-gray-900">Maritime Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Hang Hai</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="May Bank">
+                                        <span class="font-medium text-gray-900">May Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Nam A Bank">
+                                        <span class="font-medium text-gray-900">Nam A Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Nam A</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="NCB">
+                                        <span class="font-medium text-gray-900">NCB</span> - <span
+                                            class="text-gray-600">NHTMCP Quoc Dan</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="OCB">
+                                        <span class="font-medium text-gray-900">OCB</span> - <span
+                                            class="text-gray-600">NHTMCP Phuong Dong</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Oceanbank">
+                                        <span class="font-medium text-gray-900">Oceanbank</span> - <span
+                                            class="text-gray-600">NHTMCP Dai Duong</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="PGBank">
+                                        <span class="font-medium text-gray-900">PGBank</span> - <span
+                                            class="text-gray-600">NHTMCP Xang dau Petrolimex</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="PVcomBank">
+                                        <span class="font-medium text-gray-900">PVcomBank</span> - <span
+                                            class="text-gray-600">NH TMCP Dai Chung Viet Nam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Sacombank">
+                                        <span class="font-medium text-gray-900">Sacombank</span> - <span
+                                            class="text-gray-600">NHTMCP Sai gon Thuong Tin</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="SaigonBank">
+                                        <span class="font-medium text-gray-900">SaigonBank</span> - <span
+                                            class="text-gray-600">NHTMCP Sai Gon Cong Thuong</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="SCB">
+                                        <span class="font-medium text-gray-900">SCB</span> - <span
+                                            class="text-gray-600">NHTMCP Sai Gon</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="SeABank">
+                                        <span class="font-medium text-gray-900">SeABank</span> - <span
+                                            class="text-gray-600">NHTMCP Dong Nam A</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="SHB">
+                                        <span class="font-medium text-gray-900">SHB</span> - <span
+                                            class="text-gray-600">NHTMCP Sai gon - Ha Noi</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Shinhan Bank">
+                                        <span class="font-medium text-gray-900">Shinhan Bank</span> - <span
+                                            class="text-gray-600">Vietnam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Standard Chartered">
+                                        <span class="font-medium text-gray-900">Standard Chartered</span> - <span
+                                            class="text-gray-600">Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Techcombank">
+                                        <span class="font-medium text-gray-900">Techcombank</span> - <span
+                                            class="text-gray-600">NHTMCP Ky thuong VN</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="TPBank">
+                                        <span class="font-medium text-gray-900">TPBank</span> - <span
+                                            class="text-gray-600">NH TMCP Tien Phong</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VBSP">
+                                        <span class="font-medium text-gray-900">VBSP</span> - <span
+                                            class="text-gray-600">NH
+                                            Chinh sach xa hoi</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VCB">
+                                        <span class="font-medium text-gray-900">VCB</span> - <span
+                                            class="text-gray-600">NH
+                                            TMCP Ngoai Thuong Viet Nam (Vietcombank)</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VDB">
+                                        <span class="font-medium text-gray-900">VDB</span> - <span
+                                            class="text-gray-600">NH
+                                            Phat trien Viet Nam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VIB">
+                                        <span class="font-medium text-gray-900">VIB</span> - <span
+                                            class="text-gray-600">NHTMCP Quoc Te</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VID Public Bank">
+                                        <span class="font-medium text-gray-900">VID Public Bank</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Viet Capital Bank">
+                                        <span class="font-medium text-gray-900">Viet Capital Bank</span> - <span
+                                            class="text-gray-600">NHTMCP Ban Viet</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VietABank">
+                                        <span class="font-medium text-gray-900">VietABank</span> - <span
+                                            class="text-gray-600">NHTMCP Viet A</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VietBank">
+                                        <span class="font-medium text-gray-900">VietBank</span> - <span
+                                            class="text-gray-600">NHTMCP Viet Nam Thuong Tin</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VietinBank">
+                                        <span class="font-medium text-gray-900">VietinBank</span> - <span
+                                            class="text-gray-600">NH Cong Thuong Viet Nam</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Vinasiam Bank">
+                                        <span class="font-medium text-gray-900">Vinasiam Bank</span> - <span
+                                            class="text-gray-600">NH Lien doanh Viet Thai</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VNCB">
+                                        <span class="font-medium text-gray-900">VNCB</span> - <span
+                                            class="text-gray-600">NHTMCP Xay dung VN</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VPBank">
+                                        <span class="font-medium text-gray-900">VPBank</span> - <span
+                                            class="text-gray-600">NHTMCP VN Thinh Vuong</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="VRB">
+                                        <span class="font-medium text-gray-900">VRB</span> - <span
+                                            class="text-gray-600">NH
+                                            Lien doanh Viet Nga</span>
+                                    </div>
+                                    <div class="bank-option px-4 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                        data-value="Woori Bank">
+                                        <span class="font-medium text-gray-900">Woori Bank</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tỷ lệ hoa hồng -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Tỷ lệ hoa hồng (%) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" name="commissionRate" value="10" min="0" max="100" step="1" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Mặc định: 10%</p>
+                    </div>
+
+                    <!-- Trạng thái -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                        <select name="status"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
+                            <option value="Mới">Mới</option>
+                            <option value="Đang hoạt động">Đang hoạt động</option>
+                            <option value="Tạm ngưng">Tạm ngưng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Lưu ý:</p>
+                            <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                <li>Mã CTV sẽ được tự động tạo sau khi đăng ký</li>
+                                <li>Số điện thoại phải là duy nhất trong hệ thống</li>
+                                <li>Tỷ lệ hoa hồng có thể thay đổi sau</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeAddCTVModal()"
+                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                    Hủy
+                </button>
+                <button type="submit" form="addCTVForm"
+                    class="px-6 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Thêm CTV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/toast-manager.js"></script>
+    <script src="../assets/js/timezone-utils.js"></script>
+    <script src="../assets/js/admin.js"></script>
+    <script>
+        // Searchable Bank Select
+        document.addEventListener('DOMContentLoaded', function () {
+            const bankSelectButton = document.getElementById('bankSelectButton');
+            const bankSearchInput = document.getElementById('bankSearchInput');
+            const bankDropdown = document.getElementById('bankDropdown');
+            const bankNameValue = document.getElementById('bankNameValue');
+            const bankSelectedText = document.getElementById('bankSelectedText');
+            const bankDropdownIcon = document.getElementById('bankDropdownIcon');
+            const bankOptions = document.querySelectorAll('.bank-option');
+
+            // Toggle dropdown when button is clicked
+            bankSelectButton.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isHidden = bankDropdown.classList.contains('hidden');
+
+                if (isHidden) {
+                    // Position dropdown using fixed positioning
+                    const buttonRect = bankSelectButton.getBoundingClientRect();
+                    const dropdownMaxHeight = 300;
+                    const spaceBelow = window.innerHeight - buttonRect.bottom;
+                    const spaceAbove = buttonRect.top;
+                    
+                    // Set width to match button
+                    bankDropdown.style.width = buttonRect.width + 'px';
+                    bankDropdown.style.left = buttonRect.left + 'px';
+                    
+                    // Check if dropdown should open upward
+                    if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+                        // Open upward
+                        bankDropdown.style.bottom = (window.innerHeight - buttonRect.top + 4) + 'px';
+                        bankDropdown.style.top = 'auto';
+                    } else {
+                        // Open downward (default)
+                        bankDropdown.style.top = (buttonRect.bottom + 4) + 'px';
+                        bankDropdown.style.bottom = 'auto';
+                    }
+                    
+                    bankDropdown.classList.remove('hidden');
+                    bankDropdownIcon.style.transform = 'rotate(180deg)';
+                    // Focus on search input when dropdown opens
+                    setTimeout(() => bankSearchInput.focus(), 100);
+                    filterBankOptions('');
+                } else {
+                    bankDropdown.classList.add('hidden');
+                    bankDropdownIcon.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            // Filter banks as user types
+            bankSearchInput.addEventListener('input', function () {
+                const searchTerm = this.value.toLowerCase();
+                filterBankOptions(searchTerm);
+            });
+
+            // Prevent dropdown from closing when clicking inside search input
+            bankSearchInput.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Filter function
+            function filterBankOptions(searchTerm) {
+                let hasVisibleOptions = false;
+                bankOptions.forEach(option => {
+                    const text = option.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        option.style.display = 'block';
+                        hasVisibleOptions = true;
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+
+                // Show "No results" message if no options match
+                const optionsList = bankDropdown.querySelector('.max-h-60');
+                let noResultsDiv = document.getElementById('noResultsMessage');
+
+                if (!hasVisibleOptions && searchTerm) {
+                    if (!noResultsDiv) {
+                        noResultsDiv = document.createElement('div');
+                        noResultsDiv.id = 'noResultsMessage';
+                        noResultsDiv.className = 'px-4 py-3 text-gray-500 text-center text-sm';
+                        noResultsDiv.textContent = 'Không tìm thấy ngân hàng';
+                        optionsList.appendChild(noResultsDiv);
+                    }
+                    noResultsDiv.style.display = 'block';
+                } else {
+                    if (noResultsDiv) {
+                        noResultsDiv.style.display = 'none';
+                    }
+                }
+            }
+
+            // Handle option selection
+            bankOptions.forEach(option => {
+                option.addEventListener('click', function () {
+                    const value = this.getAttribute('data-value');
+                    const bankName = this.querySelector('.font-medium')?.textContent || this.textContent.trim();
+
+                    bankNameValue.value = value;
+
+                    if (value) {
+                        bankSelectedText.textContent = bankName;
+                        bankSelectedText.classList.remove('text-gray-500');
+                        bankSelectedText.classList.add('text-gray-900');
+                    } else {
+                        bankSelectedText.textContent = 'Chọn ngân hàng';
+                        bankSelectedText.classList.add('text-gray-500');
+                        bankSelectedText.classList.remove('text-gray-900');
+                    }
+
+                    bankSearchInput.value = '';
+                    bankDropdown.classList.add('hidden');
+                    bankDropdownIcon.style.transform = 'rotate(0deg)';
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (event) {
+                if (!bankSelectButton.contains(event.target) && !bankDropdown.contains(event.target)) {
+                    bankDropdown.classList.add('hidden');
+                    bankDropdownIcon.style.transform = 'rotate(0deg)';
+                    bankSearchInput.value = '';
+                }
+            });
+
+            // Keyboard navigation
+            let currentFocus = -1;
+            bankSearchInput.addEventListener('keydown', function (e) {
+                const visibleOptions = Array.from(bankOptions).filter(opt => opt.style.display !== 'none');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocus++;
+                    if (currentFocus >= visibleOptions.length) currentFocus = 0;
+                    setActive(visibleOptions);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = visibleOptions.length - 1;
+                    setActive(visibleOptions);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentFocus > -1 && visibleOptions[currentFocus]) {
+                        visibleOptions[currentFocus].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    bankDropdown.classList.add('hidden');
+                    bankDropdownIcon.style.transform = 'rotate(0deg)';
+                    bankSearchInput.value = '';
+                }
+            });
+
+            function setActive(options) {
+                removeActive(options);
+                if (currentFocus >= options.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = options.length - 1;
+                options[currentFocus].classList.add('bg-indigo-100');
+                options[currentFocus].scrollIntoView({ block: 'nearest' });
+            }
+
+            function removeActive(options) {
+                options.forEach(option => {
+                    option.classList.remove('bg-indigo-100');
+                });
+            }
+        });
+    </script>
+    <script src="../assets/js/auth-check.js"></script>
+</body>
+
+</html>
