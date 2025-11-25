@@ -76,7 +76,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Smart redirect based on environment
+                    // Smart redirect based on environmentt
                     const isLocal = window.location.pathname.includes('/public/');
                     window.location.href = isLocal ? 'admin/' : '/admin/';
                 }
