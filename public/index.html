@@ -3,52 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý CTV</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Chuyển hướng...</title>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <div class="max-w-4xl w-full">
-            <div class="text-center mb-12">
-                <h1 class="text-5xl font-bold text-white mb-4">Hệ Thống Quản Lý CTV</h1>
-                <p class="text-xl text-white/90">Chọn chức năng bạn muốn sử dụng</p>
-            </div>
-            
-            <div class="grid md:grid-cols-3 gap-6">
-                <!-- Admin -->
-                <a href="admin/index.html" class="group bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition-all hover:-translate-y-2">
-                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Quản Trị</h3>
-                    <p class="text-gray-600">Quản lý đơn hàng, CTV, thanh toán</p>
-                </a>
-
-                <!-- CTV -->
-                <a href="ctv/index.html" class="group bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition-all hover:-translate-y-2">
-                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Tra Cứu CTV</h3>
-                    <p class="text-gray-600">Xem đơn hàng và hoa hồng</p>
-                </a>
-
-                <!-- Register -->
-                <a href="ctv/register.html" class="group bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition-all hover:-translate-y-2">
-                    <div class="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Đăng Ký CTV</h3>
-                    <p class="text-gray-600">Trở thành cộng tác viên</p>
-                </a>
-            </div>
-        </div>
-    </div>
+<body>
+    <script>
+        window.location.replace('admin/index.html');
+    </script>
 </body>
 </html>
