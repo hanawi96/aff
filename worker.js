@@ -3827,6 +3827,8 @@ async function getAllCustomers(env, corsHeaders) {
                 customer_phone as phone,
                 MAX(customer_name) as name,
                 MAX(address) as address,
+                MAX(province_id) as province_id,
+                MAX(province_name) as province_name,
                 COUNT(*) as total_orders,
                 SUM(total_amount) as total_spent,
                 MAX(order_date) as last_order_date,
@@ -3872,9 +3874,12 @@ async function getAllCustomers(env, corsHeaders) {
             };
         });
 
+        console.log('📊 getAllCustomers: Total customers =', enrichedCustomers.length);
+        
         return jsonResponse({
             success: true,
-            customers: enrichedCustomers
+            customers: enrichedCustomers,
+            total: enrichedCustomers.length
         }, 200, corsHeaders);
 
     } catch (error) {
@@ -5391,7 +5396,9 @@ async function getLocationStats(params, env, corsHeaders) {
                     COUNT(DISTINCT customer_phone) as customers,
                     AVG(total_amount) as avgValue
                 FROM orders
-                WHERE province_id IS NOT NULL 
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND province_id IS NOT NULL 
                     AND province_id != ''
                     AND created_at_unix >= ?
                 GROUP BY province_id, province_name
@@ -5407,7 +5414,9 @@ async function getLocationStats(params, env, corsHeaders) {
                         COUNT(*) as orders,
                         SUM(total_amount) as revenue
                     FROM orders
-                    WHERE province_id IS NOT NULL 
+                    WHERE customer_phone IS NOT NULL 
+                        AND customer_phone != ''
+                        AND province_id IS NOT NULL 
                         AND province_id != ''
                         AND created_at_unix >= ?
                         AND created_at_unix <= ?
@@ -5425,7 +5434,9 @@ async function getLocationStats(params, env, corsHeaders) {
                     COUNT(DISTINCT customer_phone) as customers,
                     AVG(total_amount) as avgValue
                 FROM orders
-                WHERE province_id = ?
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND province_id = ?
                     AND district_id IS NOT NULL 
                     AND district_id != ''
                     AND created_at_unix >= ?
@@ -5442,7 +5453,9 @@ async function getLocationStats(params, env, corsHeaders) {
                         COUNT(*) as orders,
                         SUM(total_amount) as revenue
                     FROM orders
-                    WHERE province_id = ?
+                    WHERE customer_phone IS NOT NULL 
+                        AND customer_phone != ''
+                        AND province_id = ?
                         AND district_id IS NOT NULL 
                         AND district_id != ''
                         AND created_at_unix >= ?
@@ -5461,7 +5474,9 @@ async function getLocationStats(params, env, corsHeaders) {
                     COUNT(DISTINCT customer_phone) as customers,
                     AVG(total_amount) as avgValue
                 FROM orders
-                WHERE province_id = ?
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND province_id = ?
                     AND district_id = ?
                     AND ward_id IS NOT NULL 
                     AND ward_id != ''
@@ -5479,7 +5494,9 @@ async function getLocationStats(params, env, corsHeaders) {
                         COUNT(*) as orders,
                         SUM(total_amount) as revenue
                     FROM orders
-                    WHERE province_id = ?
+                    WHERE customer_phone IS NOT NULL 
+                        AND customer_phone != ''
+                        AND province_id = ?
                         AND district_id = ?
                         AND ward_id IS NOT NULL 
                         AND ward_id != ''
@@ -5541,12 +5558,47 @@ async function getLocationStats(params, env, corsHeaders) {
             revenue: loc.revenue || 0
         }));
 
+        // Calculate unique customers across all locations (to avoid double counting)
+        // Count all customers with phone, not just those with address
+        let uniqueCustomersQuery;
+        if (level === 'province') {
+            uniqueCustomersQuery = await env.DB.prepare(`
+                SELECT COUNT(DISTINCT customer_phone) as unique_customers
+                FROM orders
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND created_at_unix >= ?
+            `).bind(startTimestamp).first();
+        } else if (level === 'district') {
+            uniqueCustomersQuery = await env.DB.prepare(`
+                SELECT COUNT(DISTINCT customer_phone) as unique_customers
+                FROM orders
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND province_id = ?
+                    AND created_at_unix >= ?
+            `).bind(provinceId, startTimestamp).first();
+        } else if (level === 'ward') {
+            uniqueCustomersQuery = await env.DB.prepare(`
+                SELECT COUNT(DISTINCT customer_phone) as unique_customers
+                FROM orders
+                WHERE customer_phone IS NOT NULL 
+                    AND customer_phone != ''
+                    AND province_id = ?
+                    AND district_id = ?
+                    AND created_at_unix >= ?
+            `).bind(provinceId, districtId, startTimestamp).first();
+        }
+
+        const uniqueCustomers = uniqueCustomersQuery?.unique_customers || 0;
+
         return jsonResponse({
             success: true,
             level: level,
             period: period || 'all',
             locations: formattedLocations,
             previousLocations: formattedPreviousLocations,
+            uniqueCustomers: uniqueCustomers,
             total: formattedLocations.length
         }, 200, corsHeaders);
 

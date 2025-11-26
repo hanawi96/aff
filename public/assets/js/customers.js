@@ -63,6 +63,8 @@ async function loadCustomers() {
         if (data.success) {
             allCustomers = data.customers || [];
             filteredCustomers = [...allCustomers];
+            console.log('📊 Total customers loaded:', allCustomers.length);
+            console.log('📊 Customers data:', allCustomers);
             updateStats();
             renderCustomers();
             hideLoading();

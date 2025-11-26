@@ -493,8 +493,12 @@ async function loadLocationData() {
 
         if (data.success) {
             console.log('✅ API Success - Locations:', data.locations?.length);
+            console.log('✅ Unique customers:', data.uniqueCustomers);
             allLocationData = data.locations || [];
             previousPeriodData = data.previousLocations || [];
+            
+            // Store unique customers count from API
+            window.uniqueCustomersCount = data.uniqueCustomers || 0;
             
             // Calculate growth for each location
             allLocationData = allLocationData.map(loc => {
@@ -623,7 +627,8 @@ function renderInsights() {
 function updateSummaryStats() {
     const totalOrders = allLocationData.reduce((sum, loc) => sum + (loc.orders || 0), 0);
     const totalRevenue = allLocationData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
-    const totalCustomers = allLocationData.reduce((sum, loc) => sum + (loc.customers || 0), 0);
+    // Use unique customers count from API instead of summing (to avoid double counting)
+    const totalCustomers = window.uniqueCustomersCount || 0;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     document.getElementById('totalOrders').textContent = formatNumber(totalOrders);
