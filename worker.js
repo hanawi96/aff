@@ -5612,9 +5612,25 @@ async function getDetailedAnalytics(data, env, corsHeaders) {
             WHERE o.created_at_unix >= ?
         `).bind(startDate.getTime()).first();
 
+        // Get unique customers count (by phone number)
+        // Handle both milliseconds (13 digits) and seconds (10 digits) timestamps
+        const startTimeMs = startDate.getTime();
+        const startTimeSec = Math.floor(startTimeMs / 1000);
+        const customerData = await env.DB.prepare(`
+            SELECT COUNT(DISTINCT customer_phone) as unique_customers
+            FROM orders
+            WHERE (
+                (LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix >= ?) OR
+                (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix >= ?)
+            )
+              AND customer_phone IS NOT NULL 
+              AND customer_phone != ''
+        `).bind(startTimeMs, startTimeSec).first();
+
         // Merge results
         overview.total_products_sold = productData.total_products_sold || 0;
         overview.product_cost = productData.product_cost || 0;
+        overview.unique_customers = customerData?.unique_customers || 0;
 
         const totalRevenue = overview.total_revenue || 0;
         const totalCost = (overview.product_cost || 0) + (overview.total_shipping_cost || 0) + 
@@ -5729,6 +5745,7 @@ async function getDetailedAnalytics(data, env, corsHeaders) {
             overview: {
                 total_orders: overview.total_orders || 0,
                 total_products_sold: overview.total_products_sold || 0,
+                unique_customers: overview.unique_customers || 0,
                 total_revenue: totalRevenue,
                 total_cost: totalCost,
                 total_profit: totalProfit,

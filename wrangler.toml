@@ -1,6 +1,9 @@
-# Cloudflare Pages Configuration
-name = "ctv-management"
+# Cloudflare Workers Configuration
+name = "ctv-api"
+main = "worker.js"
 compatibility_date = "2024-01-01"
 
-[site]
-bucket = "./public"
+[[d1_databases]]
+binding = "DB"
+database_name = "vdt"
+database_id = "19917e57-ced3-4fc3-adad-368a2e989ea7"

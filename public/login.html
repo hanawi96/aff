@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,13 +12,16 @@
         }
     </style>
 </head>
+
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <!-- Logo/Header -->
         <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div
+                class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-gray-900">Đăng nhập Admin</h1>
@@ -40,7 +44,8 @@
                     placeholder="••••••••" autocomplete="current-password">
             </div>
 
-            <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div id="errorMessage"
+                class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             </div>
 
             <button type="submit" id="loginBtn"
@@ -73,19 +78,19 @@
                     'Authorization': `Bearer ${sessionToken}`
                 }
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Smart redirect based on environmentt
-                    const isLocal = window.location.pathname.includes('/public/');
-                    window.location.href = isLocal ? 'admin/' : '/admin/';
-                }
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Smart redirect based on environmentt
+                        const isLocal = window.location.pathname.includes('/public/');
+                        window.location.href = isLocal ? 'admin/' : '/admin/';
+                    }
+                });
         }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
@@ -111,7 +116,7 @@
                     // Save session token
                     localStorage.setItem('session_token', data.sessionToken);
                     localStorage.setItem('user_info', JSON.stringify(data.user));
-                    
+
                     // Smart redirect based on environment
                     const isLocal = window.location.pathname.includes('/public/');
                     window.location.href = isLocal ? 'admin/' : '/admin/';
@@ -121,11 +126,12 @@
             } catch (error) {
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
-                
+
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = 'Đăng nhập';
             }
         });
     </script>
 </body>
+
 </html>

@@ -318,8 +318,9 @@ function updateSummaryStats(overview, costs) {
     // Remove skeleton classes
     const statElements = [
         'totalProductsSold', 'totalOrders', 'totalRevenue', 'avgOrderValue',
-        'totalProfit', 'avgProfit', 'profitMargin', 'totalCost',
-        'totalCommission', 'commissionPercent', 'totalAllCosts', 'costBreakdown'
+        'totalProfit', 'avgProfit', 'totalCost',
+        'totalCommission', 'commissionPercent', 'totalAllCosts', 'costBreakdown',
+        'uniqueCustomers', 'avgOrdersPerCustomer', 'profitRatio'
     ];
 
     statElements.forEach(id => {
@@ -333,7 +334,6 @@ function updateSummaryStats(overview, costs) {
     document.getElementById('totalRevenue').textContent = formatCurrency(overview.total_revenue);
     document.getElementById('totalProfit').textContent = formatCurrency(overview.total_profit);
     document.getElementById('avgProfit').textContent = `TB: ${formatCurrency(overview.avg_profit_per_order)}/đơn`;
-    document.getElementById('profitMargin').textContent = `${overview.profit_margin.toFixed(1)}%`;
 
     document.getElementById('totalProductsSold').textContent = formatNumber(overview.total_products_sold);
     document.getElementById('totalOrders').textContent = formatNumber(overview.total_orders);
@@ -349,6 +349,15 @@ function updateSummaryStats(overview, costs) {
     // Use total_cost from backend (already calculated)
     document.getElementById('totalAllCosts').textContent = formatCurrency(overview.total_cost);
     document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(overview.avg_cost_per_order)}/đơn`;
+
+    // Update unique customers stats
+    const uniqueCustomers = overview.unique_customers || 0;
+    document.getElementById('uniqueCustomers').textContent = formatNumber(uniqueCustomers);
+    const avgOrdersPerCustomer = uniqueCustomers > 0 ? (overview.total_orders / uniqueCustomers).toFixed(1) : 0;
+    document.getElementById('avgOrdersPerCustomer').textContent = `${avgOrdersPerCustomer} đơn/KH`;
+
+    // Update profit ratio
+    document.getElementById('profitRatio').textContent = `${overview.profit_margin.toFixed(1)}%`;
 }
 
 // Chart instance
