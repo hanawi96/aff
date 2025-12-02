@@ -112,7 +112,6 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            animation: fadeIn 0.2s ease-out !important;
         }
 
         .date-picker-content {
@@ -122,18 +121,6 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 400px;
             width: 90%;
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
         }
 
         .date-input-wrapper {
@@ -307,6 +294,18 @@
                         </div>
                     </div>
 
+                    <!-- Status Filter -->
+                    <div class="relative" style="min-width: 180px;">
+                        <input type="hidden" id="statusFilter" value="all">
+                        <button type="button" id="statusFilterBtn" onclick="toggleStatusFilter(event)" 
+                                class="w-full h-10 px-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700 flex items-center justify-between gap-2 bg-white">
+                            <span id="statusFilterLabel" class="truncate">Tất cả trạng thái</span>
+                            <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+
                     <!-- Time Filters - Desktop -->
                     <div class="hidden lg:flex items-center gap-2">
                         <button onclick="filterByPeriod('today')" id="filter-today" class="period-filter-btn px-3 py-2 text-xs font-medium rounded-lg border-2 whitespace-nowrap">Hôm nay</button>
@@ -330,16 +329,6 @@
                     <!-- Hidden inputs for custom date -->
                     <input type="hidden" id="customDateStartPayments" value="">
                     <input type="hidden" id="customDateEndPayments" value="">
-
-                    <!-- Status Filter -->
-                    <div class="w-full lg:w-auto">
-                        <select id="statusFilter" onchange="applyFilters()" 
-                                class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="pending">Chưa thanh toán</option>
-                            <option value="paid">Đã thanh toán</option>
-                        </select>
-                    </div>
 
                     <!-- Clear Button -->
                     <button onclick="clearAllFilters()" 

@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadOrdersData();
     loadPackagingConfig();
     setupEventListeners();
-    
+
     // Check URL hash to auto-open modal
     checkUrlHash();
 
@@ -574,10 +574,10 @@ async function loadOrdersData() {
 function updateStats() {
     // Use filteredOrdersData to show stats based on current filter
     // This allows stats to update when date filter changes
-    const dataToUse = filteredOrdersData.length > 0 || document.getElementById('dateFilter')?.value !== 'all' 
-        ? filteredOrdersData 
+    const dataToUse = filteredOrdersData.length > 0 || document.getElementById('dateFilter')?.value !== 'all'
+        ? filteredOrdersData
         : allOrdersData;
-    
+
     const totalOrders = dataToUse.length;
 
     // Calculate total revenue from total_amount (already includes products + shipping_fee)
@@ -607,7 +607,7 @@ function updateStats() {
     updateStatElement('totalRevenue', formatCurrency(totalRevenue), 'text-3xl font-bold text-green-600');
     updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-3xl font-bold text-orange-600');
     updateStatElement('todayOrders', formatCurrency(avgOrderValue), 'text-3xl font-bold text-purple-600');
-    
+
     // Update stat labels based on filter
     updateStatLabels();
 }
@@ -627,9 +627,9 @@ function updateStatLabels() {
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
     const customDateStart = document.getElementById('customDateStart')?.value;
     const customDateEnd = document.getElementById('customDateEnd')?.value;
-    
+
     let periodLabel = '';
-    
+
     if (dateFilter === 'all') {
         periodLabel = 'Tổng';
     } else if (dateFilter === 'today') {
@@ -655,7 +655,7 @@ function updateStatLabels() {
             const startMonth = String(start.getMonth() + 1).padStart(2, '0');
             const endDay = String(end.getDate()).padStart(2, '0');
             const endMonth = String(end.getMonth() + 1).padStart(2, '0');
-            
+
             if (start.getMonth() === end.getMonth()) {
                 periodLabel = `${startDay}-${endDay}/${endMonth}`;
             } else {
@@ -663,13 +663,13 @@ function updateStatLabels() {
             }
         }
     }
-    
+
     // Update labels
     const totalOrdersLabel = document.getElementById('totalOrdersLabel');
     const totalRevenueLabel = document.getElementById('totalRevenueLabel');
     const totalCommissionLabel = document.getElementById('totalCommissionLabel');
     const todayOrdersLabel = document.getElementById('todayOrdersLabel');
-    
+
     if (totalOrdersLabel) {
         totalOrdersLabel.textContent = periodLabel ? `${periodLabel} - Đơn hàng` : 'Tổng đơn hàng';
     }
@@ -693,7 +693,7 @@ function filterOrdersData() {
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
     console.log('🔍 Filtering with:', { searchTerm, statusFilter, dateFilter });
-    
+
     // Debug date ranges
     if (dateFilter === 'today') {
         console.log('📅 Today range:', getVNStartOfToday().toISOString(), '-', getVNEndOfToday().toISOString());
@@ -766,7 +766,7 @@ function filterOrdersData() {
                 const weekStart = getVNStartOfLast7Days();
                 const todayEnd = getVNEndOfToday();
                 matchesDate = orderDate >= weekStart && orderDate <= todayEnd;
-                
+
                 // Debug logging for 7 days filter
                 if (!matchesDate) {
                     console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in 7-day range [${weekStart.toISOString()} - ${todayEnd.toISOString()}]`);
@@ -775,7 +775,7 @@ function filterOrdersData() {
                 const monthStart = getVNStartOfLast30Days();
                 const todayEnd = getVNEndOfToday();
                 matchesDate = orderDate >= monthStart && orderDate <= todayEnd;
-                
+
                 // Debug logging for 30 days filter
                 if (!matchesDate) {
                     console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in 30-day range [${monthStart.toISOString()} - ${todayEnd.toISOString()}]`);
@@ -784,12 +784,12 @@ function filterOrdersData() {
                 // Custom date range filter
                 const startDateStr = document.getElementById('customDateStart').value;
                 const endDateStr = document.getElementById('customDateEnd').value;
-                
+
                 if (startDateStr && endDateStr) {
                     const customStart = getVNStartOfDate(startDateStr);
                     const customEnd = getVNEndOfDate(endDateStr);
                     matchesDate = orderDate >= customStart && orderDate <= customEnd;
-                    
+
                     // Debug custom date filter
                     if (!matchesDate) {
                         console.log(`❌ Order ${order.order_id}: date=${orderDate.toISOString()} not in range [${customStart.toISOString()} - ${customEnd.toISOString()}]`);
@@ -4664,7 +4664,7 @@ async function showAddOrderModal(duplicateData = null) {
     const address = duplicateData?.address || '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM';
     const referralCode = duplicateData?.referral_code || '';
     const paymentMethod = duplicateData?.payment_method || 'cod';
-    
+
     // Get customer shipping fee from cost_config
     let shippingFee = duplicateData?.shipping_fee;
     if (shippingFee === undefined) {
@@ -4672,7 +4672,7 @@ async function showAddOrderModal(duplicateData = null) {
         const customerShippingFeeItem = packagingConfig.find(item => item.item_name === 'customer_shipping_fee');
         shippingFee = customerShippingFeeItem ? customerShippingFeeItem.item_cost : 30000;
     }
-    
+
     // Get shipping cost from cost_config
     let shippingCost = duplicateData?.shipping_cost;
     if (shippingCost === undefined) {
@@ -4956,15 +4956,24 @@ async function showAddOrderModal(duplicateData = null) {
                                 </svg>
                                 Danh sách sản phẩm
                             </h3>
-                            <button onclick="showProductSelectionModal()" class="w-full px-4 py-2 bg-white hover:bg-purple-50 border-2 border-dashed border-purple-400 hover:border-purple-500 rounded-2xl font-semibold text-purple-600 transition-all flex items-center justify-center gap-2">
-                                <div class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                </div>
-                                <span class="text-base">Thêm sản phẩm</span>
-                            </button>
-                        </div>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <button onclick="showProductSelectionModal()" class="px-4 py-2 bg-white hover:bg-purple-50 border-2 border-dashed border-purple-400 hover:border-purple-500 rounded-xl font-semibold text-purple-600 transition-all flex items-center justify-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                    </div>
+                                    <span>Thêm sản phẩm có sẵn</span>
+                                </button>
+                                <button onclick="showCustomProductModal()" class="px-4 py-2 bg-white hover:bg-blue-50 border-2 border-dashed border-blue-400 hover:border-blue-500 rounded-xl font-semibold text-blue-600 transition-all flex items-center justify-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                    </div>
+                                    <span>Thêm sản phẩm tùy chỉnh</span>
+                                </button>
+                            </div>
 
                         <!-- Products Container -->
                         <div id="newOrderProductsList" class="space-y-2 mb-3 max-h-96 overflow-y-auto">
@@ -5471,7 +5480,7 @@ function closeAddOrderModal() {
         modal.remove();
         currentOrderProducts = [];
         currentOrderNotes = '';
-        
+
         // Remove hash from URL
         if (window.location.hash === '#add-order') {
             window.history.pushState(null, '', window.location.pathname + window.location.search);
@@ -6288,7 +6297,7 @@ function updateOrderSummary() {
     // Get shipping costs from form (if available)
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value || 0);
     let shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value || 0);
-    
+
     // If shipping cost is 0 but shipping fee has value, use shipping fee as default
     if (shippingCost === 0 && shippingFee > 0) {
         shippingCost = shippingFee;
@@ -8152,17 +8161,17 @@ let customDatePickerModal = null;
  */
 function showCustomDatePicker(event) {
     event.stopPropagation();
-    
+
     // Remove existing modal if any
     if (customDatePickerModal) {
         customDatePickerModal.remove();
     }
-    
+
     // Get current values or default to today
     const today = getTodayDateString();
     const startDate = document.getElementById('customDateStart').value || today;
     const endDate = document.getElementById('customDateEnd').value || today;
-    
+
     // Create modal
     const modal = document.createElement('div');
     modal.className = 'date-picker-modal';
@@ -8229,12 +8238,12 @@ function showCustomDatePicker(event) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     customDatePickerModal = modal;
-    
+
     // Close on backdrop click
-    modal.addEventListener('click', function(e) {
+    modal.addEventListener('click', function (e) {
         if (e.target === modal) {
             closeCustomDatePicker();
         }
@@ -8259,17 +8268,17 @@ function closeCustomDatePicker() {
  */
 function switchDateMode(mode) {
     currentDateMode = mode;
-    
+
     // Update tabs
     document.querySelectorAll('.date-mode-tab').forEach(tab => {
         tab.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     // Show/hide modes
     const singleMode = document.getElementById('singleDateMode');
     const rangeMode = document.getElementById('rangeDateMode');
-    
+
     if (mode === 'single') {
         singleMode.classList.remove('hidden');
         rangeMode.classList.add('hidden');
@@ -8284,7 +8293,7 @@ function switchDateMode(mode) {
  */
 function applyCustomDate() {
     let startDate, endDate;
-    
+
     if (currentDateMode === 'single') {
         const singleDate = document.getElementById('singleDateInput').value;
         if (!singleDate) {
@@ -8296,39 +8305,39 @@ function applyCustomDate() {
     } else {
         startDate = document.getElementById('startDateInput').value;
         endDate = document.getElementById('endDateInput').value;
-        
+
         if (!startDate || !endDate) {
             showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
             return;
         }
-        
+
         // Validate date range
         if (new Date(startDate) > new Date(endDate)) {
             showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
             return;
         }
     }
-    
+
     // Store values
     document.getElementById('customDateStart').value = startDate;
     document.getElementById('customDateEnd').value = endDate;
     document.getElementById('dateFilter').value = 'custom';
-    
+
     // Update button label
     updateCustomDateLabel(startDate, endDate);
-    
+
     // Update button states
     document.querySelectorAll('.date-preset-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     document.getElementById('customDateBtn').classList.add('active');
-    
+
     // Apply filter
     filterOrdersData();
-    
+
     // Close modal
     closeCustomDatePicker();
-    
+
     showToast('Đã áp dụng bộ lọc thời gian', 'success');
 }
 
@@ -8339,22 +8348,22 @@ function clearCustomDate() {
     document.getElementById('customDateStart').value = '';
     document.getElementById('customDateEnd').value = '';
     document.getElementById('dateFilter').value = 'all';
-    
+
     // Reset button label
     document.getElementById('customDateLabel').textContent = 'Chọn ngày';
-    
+
     // Update button states
     document.querySelectorAll('.date-preset-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     document.querySelector('.date-preset-btn[onclick*="all"]').classList.add('active');
-    
+
     // Apply filter
     filterOrdersData();
-    
+
     // Close modal
     closeCustomDatePicker();
-    
+
     showToast('Đã xóa bộ lọc thời gian', 'info');
 }
 
@@ -8363,7 +8372,7 @@ function clearCustomDate() {
  */
 function updateCustomDateLabel(startDate, endDate) {
     const label = document.getElementById('customDateLabel');
-    
+
     if (startDate === endDate) {
         // Single date - format as DD/MM/YYYY
         const date = new Date(startDate + 'T00:00:00');
@@ -8375,13 +8384,13 @@ function updateCustomDateLabel(startDate, endDate) {
         // Date range - format as DD/MM - DD/MM/YYYY
         const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T00:00:00');
-        
+
         const startDay = String(start.getDate()).padStart(2, '0');
         const startMonth = String(start.getMonth() + 1).padStart(2, '0');
         const endDay = String(end.getDate()).padStart(2, '0');
         const endMonth = String(end.getMonth() + 1).padStart(2, '0');
         const endYear = end.getFullYear();
-        
+
         if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
             // Same month
             label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
@@ -8409,7 +8418,7 @@ function getVNStartOfLast7Days() {
     const now = new Date();
     const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
     const today = new Date(vnDateStr + 'T00:00:00+07:00');
-    
+
     // Lùi lại 7 ngày (không phải tuần này, mà là 7 ngày qua)
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     return sevenDaysAgo;
@@ -8423,7 +8432,7 @@ function getVNStartOfLast30Days() {
     const now = new Date();
     const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
     const today = new Date(vnDateStr + 'T00:00:00+07:00');
-    
+
     // Lùi lại 30 ngày
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     return thirtyDaysAgo;
@@ -8467,9 +8476,9 @@ function setupCustomerCheck() {
     const phoneInput = document.getElementById('newOrderCustomerPhone');
     if (!phoneInput) return;
 
-    phoneInput.addEventListener('input', function() {
+    phoneInput.addEventListener('input', function () {
         const phone = this.value.trim();
-        
+
         // Clear previous timeout
         if (customerCheckTimeout) {
             clearTimeout(customerCheckTimeout);
@@ -8501,10 +8510,10 @@ async function autoFillLastOrder(phone) {
     try {
         // Show loading toast
         const loadingId = showToast('Đang tải thông tin...', 'info');
-        
+
         // Get customer detail with last order
         const response = await fetch(`${CONFIG.API_URL}?action=getCustomerDetail&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`);
-        
+
         if (!response.ok) {
             showToast('Không thể tải thông tin khách hàng', 'error', null, loadingId);
             return;
@@ -8514,7 +8523,7 @@ async function autoFillLastOrder(phone) {
 
         if (data.success && data.customer && data.customer.orders && data.customer.orders.length > 0) {
             const lastOrder = data.customer.orders[0]; // First order is the most recent
-            
+
             // Fill customer name
             const nameInput = document.getElementById('newOrderCustomerName');
             if (nameInput && data.customer.name) {
@@ -8529,7 +8538,7 @@ async function autoFillLastOrder(phone) {
                     district_id: lastOrder.district_id,
                     ward_id: lastOrder.ward_id
                 });
-                
+
                 // Fill street address
                 if (lastOrder.street_address) {
                     const streetInput = document.getElementById('newOrderStreetAddress');
@@ -8546,13 +8555,13 @@ async function autoFillLastOrder(phone) {
                         lastOrder.district_id,
                         lastOrder.ward_id
                     );
-                    
+
                     // Update preview text
                     const addressPreview = document.getElementById('newOrderAddressPreview');
                     if (addressPreview && fullAddress) {
                         addressPreview.textContent = fullAddress;
                     }
-                    
+
                     // Update hidden input
                     const hiddenAddress = document.getElementById('newOrderAddress');
                     if (hiddenAddress && fullAddress) {
@@ -8601,7 +8610,7 @@ async function checkCustomerStatus(phone) {
 
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=checkCustomer&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`);
-        
+
         if (!response.ok) {
             console.error('API returned error:', response.status);
             hintEl.classList.add('hidden');
@@ -8649,7 +8658,7 @@ async function checkCustomerStatus(phone) {
 // Check URL hash and auto-open modal if needed
 function checkUrlHash() {
     const hash = window.location.hash;
-    
+
     if (hash === '#add-order') {
         // Wait a bit for page to fully load
         setTimeout(() => {
@@ -8659,6 +8668,175 @@ function checkUrlHash() {
 }
 
 // Listen for hash changes (when user clicks back/forward)
-window.addEventListener('hashchange', function() {
+window.addEventListener('hashchange', function () {
     checkUrlHash();
 });
+
+
+// ============================================
+// ============================================
+// CUSTOM PRODUCT MODAL (Thêm sản phẩm tùy chỉnh)
+// ============================================
+
+// Show custom product modal (Tự nhập) - SỬ DỤNG FORM CÓ SẴN
+function showCustomProductModal() {
+    // Reset selected products để chỉ dùng custom input
+    selectedProducts = [];
+    selectedCategory = 'custom';
+
+    const modal = document.createElement('div');
+    modal.id = 'customProductModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Tự nhập sản phẩm</h3>
+                            <p class="text-white/80 text-sm">Sản phẩm không có trong danh sách</p>
+                        </div>
+                    </div>
+                    <button onclick="closeCustomProductModal()" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 transition-all">
+                        <svg class="w-5 h-5 text-white mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form - SỬ DỤNG FORM CÓ SẴN TỪ MODAL GỐC -->
+            <div class="p-6">
+                <div class="bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-xl p-4 border border-purple-200">
+                    <!-- Form Fields -->
+                    <div class="space-y-3">
+                        <!-- Product Name -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Tên sản phẩm <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="modalCustomProductNameInput" 
+                                placeholder="Nhập tên sản phẩm..." 
+                                class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" />
+                        </div>
+
+                        <!-- Price and Cost Price Grid -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    Giá bán <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="modalCustomProductPriceInput" 
+                                        placeholder="50000" 
+                                        min="0" 
+                                        step="1000" 
+                                        oninput="calculateModalCustomProfit()"
+                                        class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
+                                    <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    💰 Giá vốn
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="modalCustomProductCostInput" 
+                                        placeholder="25000" 
+                                        min="0" 
+                                        step="1000" 
+                                        oninput="calculateModalCustomProfit()"
+                                        class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" />
+                                    <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profit Display -->
+                        <div id="modalCustomProfitDisplay" class="hidden">
+                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg px-3 py-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-gray-600">Lãi dự kiến:</span>
+                                    <div class="text-right">
+                                        <span id="modalCustomProfitAmount" class="text-sm font-bold text-green-600">0đ</span>
+                                        <span class="text-xs text-green-500 ml-2">(<span id="modalCustomProfitMargin">0</span>%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="modalCustomLossWarning" class="hidden">
+                            <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                <p class="text-xs text-red-600 font-medium">⚠️ Giá vốn cao hơn giá bán!</p>
+                            </div>
+                        </div>
+
+                        <!-- Quantity and Weight Grid -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    Số lượng
+                                </label>
+                                <input type="number" id="modalCustomProductQtyInput" 
+                                    value="1" 
+                                    min="1" 
+                                    class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    Cân nặng
+                                </label>
+                                <input type="text" id="modalCustomProductWeightInput" 
+                                    placeholder="5kg" 
+                                    class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Lưu ý
+                            </label>
+                            <textarea id="modalCustomProductNotesInput" 
+                                rows="2" 
+                                placeholder="Ghi chú thêm về sản phẩm..." 
+                                class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3 border-t border-gray-200">
+                <button onclick="closeCustomProductModal()" class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                    Hủy
+                </button>
+                <button onclick="addProductFromModal(); closeCustomProductModal();" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Thêm vào đơn
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Focus first input
+    setTimeout(() => document.getElementById('modalCustomProductNameInput')?.focus(), 100);
+}
+
+// Close custom product modal
+function closeCustomProductModal() {
+    const modal = document.getElementById('customProductModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 200);
+    }
+}

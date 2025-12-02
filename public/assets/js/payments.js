@@ -1339,11 +1339,8 @@ function showCustomDatePickerPayments(event) {
  */
 function closeCustomDatePickerPayments() {
     if (customDatePickerModalPayments) {
-        customDatePickerModalPayments.style.opacity = '0';
-        setTimeout(() => {
-            customDatePickerModalPayments.remove();
-            customDatePickerModalPayments = null;
-        }, 200);
+        customDatePickerModalPayments.remove();
+        customDatePickerModalPayments = null;
     }
 }
 
@@ -1525,4 +1522,85 @@ function getVNStartOfDate(dateStr) {
 function getVNEndOfDate(dateStr) {
     const vnDateTime = new Date(dateStr + 'T23:59:59.999+07:00');
     return vnDateTime;
+}
+
+
+// ============================================
+// CUSTOM STATUS FILTER DROPDOWN
+// ============================================
+
+// Toggle status filter dropdown
+function toggleStatusFilter(event) {
+    event.stopPropagation();
+
+    // Close if already open
+    const existingMenu = document.getElementById('statusFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const statuses = [
+        { value: 'all', label: 'Tất cả trạng thái', color: 'gray', icon: '●' },
+        { value: 'pending', label: 'Chưa thanh toán', color: 'yellow', icon: '●' },
+        { value: 'paid', label: 'Đã thanh toán', color: 'green', icon: '●' }
+    ];
+
+    const currentValue = document.getElementById('statusFilter').value;
+    const button = event.currentTarget;
+
+    const menu = document.createElement('div');
+    menu.id = 'statusFilterMenu';
+    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 w-full mt-1';
+    menu.style.left = '0';
+    menu.style.top = '100%';
+
+    menu.innerHTML = statuses.map(s => {
+        const colorClasses = {
+            'gray': 'text-gray-500',
+            'yellow': 'text-yellow-500',
+            'green': 'text-emerald-500'
+        };
+        
+        const bgClasses = {
+            'gray': 'bg-gray-50',
+            'yellow': 'bg-yellow-50',
+            'green': 'bg-emerald-50'
+        };
+
+        return `
+        <button 
+            onclick="selectStatusFilter('${s.value}', '${s.label}')"
+            class="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? bgClasses[s.color] : ''}"
+        >
+            <span class="text-lg ${colorClasses[s.color]}">${s.icon}</span>
+            <span class="text-sm text-gray-700 flex-1">${s.label}</span>
+            ${s.value === currentValue ? `
+                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `}).join('');
+
+    button.style.position = 'relative';
+    button.parentElement.appendChild(menu);
+
+    // Close when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!button.parentElement.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+// Select status filter
+function selectStatusFilter(value, label) {
+    document.getElementById('statusFilter').value = value;
+    document.getElementById('statusFilterLabel').textContent = label;
+    document.getElementById('statusFilterMenu')?.remove();
+    applyFilters();
 }
