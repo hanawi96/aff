@@ -1,7 +1,7 @@
 {
   "name": "ctv-system",
   "version": "2.0.0",
-  "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé (Cloudflare D1)",
+  "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé (Turso Database)",
   "main": "worker.js",
   "scripts": {
     "dev": "npx http-server public -p 8080 -o",
@@ -9,10 +9,10 @@
     "build": "echo 'Static site - no build needed'",
     "deploy": "wrangler deploy",
     "deploy:pages": "wrangler pages publish public --project-name=ctv-system",
-    "db:create": "wrangler d1 create ctv-database",
-    "db:migrate": "wrangler d1 execute ctv-database --file=database/schema.sql",
-    "db:query": "wrangler d1 execute ctv-database --command",
-    "db:backup": "wrangler d1 export ctv-database --output=database/backup.sql",
+    "db:shell": "turso db shell vdt-yendev96",
+    "db:backup": "turso db shell vdt-yendev96 .dump > database/backup.sql",
+    "db:verify": "node scripts/verify-migration.js",
+    "db:replicas": "turso db replicas list vdt-yendev96",
     "migrate:sheets": "node database/migrate-from-sheets.js",
     "logs": "wrangler tail",
     "test": "echo 'No tests yet'"
@@ -33,6 +33,8 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3"
+    "@libsql/client": "^0.17.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3"
   }
 }

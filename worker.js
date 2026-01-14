@@ -1,10 +1,15 @@
 // Cloudflare Worker API for CTV Management System
-// Using D1 Database (SQLite on Edge)
+// Using Turso Database (Remote SQLite)
 
 import bcrypt from 'bcryptjs';
+import { initTurso } from './database/turso-client.js';
 
 export default {
     async fetch(request, env, ctx) {
+        // Initialize Turso database connection
+        const DB = initTurso(env);
+        env.DB = DB;
+        
         // CORS headers
         const corsHeaders = {
             'Access-Control-Allow-Origin': '*',

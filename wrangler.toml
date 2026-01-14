@@ -1,9 +1,20 @@
-# Cloudflare Workers Configuration
+# Cloudflare Workers Configuration with Turso
 name = "ctv-api"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "vdt"
-database_id = "19917e57-ced3-4fc3-adad-368a2e989ea7"
+# ============================================
+# Turso Configuration
+# ============================================
+
+[vars]
+TURSO_DATABASE_URL = "libsql://vdt-yendev96.aws-ap-northeast-1.turso.io"
+
+# ============================================
+# Old D1 Configuration (backup - DO NOT DELETE)
+# ============================================
+# Keep this commented for rollback if needed
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "vdt"
+# database_id = "19917e57-ced3-4fc3-adad-368a2e989ea7"

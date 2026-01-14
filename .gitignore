@@ -4,5 +4,18 @@ node_modules/
 *.log
 .DS_Store
 
+# Environment variables (contains sensitive tokens)
+.env
+.env.local
+.env.production
+
+# Turso credentials
+.turso/
+
+# Backups
+backups/*.sql
+d1_*.sql
+*.backup
+
 # Keep public folder structure
 !/public/
