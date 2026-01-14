@@ -1599,3 +1599,220 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// ============================================
+// QUICK DISCOUNT FUNCTIONS
+// ============================================
+
+function showQuickDiscountModal() {
+    const modal = document.getElementById('quickDiscountModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.getElementById('quickPhone').focus();
+        
+        // Setup form submit
+        const form = document.getElementById('quickDiscountForm');
+        form.onsubmit = handleQuickDiscountSubmit;
+    }
+}
+
+function selectQuickType(type) {
+    // Update radio input
+    const radios = document.querySelectorAll('input[name="quickType"]');
+    radios.forEach(radio => {
+        radio.checked = (radio.value === type);
+    });
+    
+    // Update visual state
+    const options = document.querySelectorAll('.quick-radio-option');
+    options.forEach(option => {
+        if (option.dataset.value === type) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+    
+    // Update value unit
+    updateQuickValueUnit();
+}
+
+function updateRadioVisuals() {
+    // This function is no longer needed with the new design
+    // Keeping it for compatibility
+}
+
+function closeQuickDiscountModal() {
+    const modal = document.getElementById('quickDiscountModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('quickDiscountForm').reset();
+    }
+}
+
+function updateQuickValueUnit() {
+    const type = document.querySelector('input[name="quickType"]:checked').value;
+    const unit = document.getElementById('quickValueUnit');
+    if (unit) {
+        unit.textContent = type === 'percentage' ? '%' : 'đ';
+    }
+}
+
+async function handleQuickDiscountSubmit(e) {
+    e.preventDefault();
+    
+    const phone = document.getElementById('quickPhone').value.trim();
+    const type = document.querySelector('input[name="quickType"]:checked').value;
+    const value = parseInt(document.getElementById('quickValue').value);
+    const minOrder = parseInt(document.getElementById('quickMinOrder').value) || 0;
+    const expiryDays = parseInt(document.getElementById('quickExpiry').value);
+    const notes = document.getElementById('quickNotes').value.trim();
+    
+    // Validate phone
+    if (!/^0\d{9}$/.test(phone)) {
+        showError('Số điện thoại không hợp lệ (phải có 10 số, bắt đầu bằng 0)');
+        return;
+    }
+    
+    // Validate value
+    if (!value || value <= 0) {
+        showError('Giá trị giảm phải lớn hơn 0');
+        return;
+    }
+    
+    if (type === 'percentage' && value > 100) {
+        showError('Giảm % không được vượt quá 100%');
+        return;
+    }
+    
+    // Show loading on button
+    const submitBtn = document.getElementById('quickSubmitBtn');
+    const loadingIcon = document.getElementById('quickLoadingIcon');
+    const submitText = document.getElementById('quickSubmitText');
+    
+    submitBtn.disabled = true;
+    loadingIcon.classList.remove('hidden');
+    submitText.textContent = 'Đang tạo...';
+    
+    try {
+        const response = await fetch(`${API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'createQuickDiscount',
+                customerPhone: phone,
+                type: type,
+                discountValue: value,
+                minOrderAmount: minOrder,
+                expiryDays: expiryDays,
+                notes: notes || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            closeQuickDiscountModal();
+            showSuccess(`Tạo mã thành công! Mã: ${data.discount.code}`);
+            
+            // Show code in a nice popup
+            showDiscountCodePopup(data.discount);
+            
+            // Reload list
+            await loadDiscounts();
+        } else {
+            showError(data.error || 'Không thể tạo mã giảm giá');
+        }
+    } catch (error) {
+        console.error('Error creating quick discount:', error);
+        showError('Lỗi kết nối đến server');
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        loadingIcon.classList.add('hidden');
+        submitText.textContent = 'Tạo Mã Ngay';
+    }
+}
+
+function showDiscountCodePopup(discount) {
+    const popup = document.createElement('div');
+    popup.className = 'fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4';
+    popup.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Tạo Mã Thành Công!</h3>
+                <p class="text-gray-600 mb-6">Mã giảm giá đã được tạo cho khách hàng</p>
+                
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-6">
+                    <p class="text-sm text-gray-600 mb-2">Mã giảm giá:</p>
+                    <div class="flex items-center justify-center gap-3">
+                        <p class="text-3xl font-bold text-green-600 tracking-wider">${discount.code}</p>
+                        <button onclick="copyDiscountCode('${discount.code}')" 
+                            class="p-2 hover:bg-green-100 rounded-lg transition-colors" title="Copy mã">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Khách hàng:</span>
+                        <span class="font-semibold text-gray-900">${discount.customerPhone}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Giảm:</span>
+                        <span class="font-semibold text-gray-900">${formatDiscountValue(discount.type, discount.discountValue)}</span>
+                    </div>
+                    ${discount.minOrderAmount > 0 ? `
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Đơn tối thiểu:</span>
+                        <span class="font-semibold text-gray-900">${formatCurrency(discount.minOrderAmount)}</span>
+                    </div>
+                    ` : ''}
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Hết hạn:</span>
+                        <span class="font-semibold text-gray-900">${formatDate(discount.expiryDate)} (${discount.expiryDays} ngày)</span>
+                    </div>
+                </div>
+                
+                <button onclick="this.closest('.fixed').remove()" 
+                    class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popup);
+}
+
+function copyDiscountCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        showSuccess('Đã copy mã: ' + code);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        showError('Không thể copy mã');
+    });
+}
+
+function formatCurrency(amount) {
+    if (!amount) return '0đ';
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+    }).format(amount);
+}
+
+function formatDiscountValue(type, value) {
+    if (type === 'percentage') {
+        return `${value}%`;
+    } else {
+        return formatCurrency(value);
+    }
+}
