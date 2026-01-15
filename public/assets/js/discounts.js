@@ -255,11 +255,10 @@ function renderDiscounts() {
                     </div>
                 </td>
                 <td class="px-6 py-4">
-                    <div class="text-sm">
-                        <div class="font-semibold text-gray-900">${discount.usage_count || 0}</div>
+                    <div class="text-sm whitespace-nowrap">
                         ${discount.max_total_uses ? 
-                            `<div class="text-xs text-gray-500">/ ${discount.max_total_uses}</div>` : 
-                            '<div class="text-xs text-gray-500">Không giới hạn</div>'
+                            `<span class="font-semibold text-gray-900">${discount.usage_count || 0}</span><span class="text-gray-500"> / ${discount.max_total_uses}</span>` : 
+                            `<span class="font-semibold text-gray-900">${discount.usage_count || 0}</span><span class="text-xs text-gray-500"> (Không giới hạn)</span>`
                         }
                     </div>
                 </td>
