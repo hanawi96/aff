@@ -202,11 +202,14 @@ async function bulkExport() {
         const result = await exportToSPXExcel(selectedOrders);
         
         if (result.success) {
-            showToast(`✅ Đã export ${result.count} đơn hàng (${result.rows} dòng) - ${result.filename}`, 'success');
+            showToast(`✅ Đã export ${result.count} đơn hàng - ${result.filename}`, 'success');
+            
+            // Clear selection
+            clearSelection();
         }
     } catch (error) {
         console.error('Error exporting:', error);
-        showToast('Không thể export: ' + error.message, 'error');
+        showToast('Lỗi: ' + error.message, 'error');
     }
 }
 
