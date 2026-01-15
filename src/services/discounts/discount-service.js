@@ -10,7 +10,7 @@ export async function getAllDiscounts(env, corsHeaders) {
                 gift_product_id, gift_product_name, gift_quantity,
                 min_order_amount, min_items,
                 max_total_uses, max_uses_per_customer,
-                customer_type, combinable_with_other_discounts,
+                customer_type, allowed_customer_phones, combinable_with_other_discounts,
                 active, visible,
                 start_date, expiry_date,
                 created_at, updated_at,

@@ -219,7 +219,17 @@ function renderDiscounts() {
                 </td>
                 <td class="px-6 py-4">
                     <div class="max-w-xs">
-                        <p class="font-medium text-gray-900">${discount.title}</p>
+                        <div class="flex items-center gap-2">
+                            <p class="font-medium text-gray-900">${discount.title}</p>
+                            ${discount.allowed_customer_phones && discount.allowed_customer_phones !== 'null' ? 
+                                `<span class="inline-flex items-center justify-center w-5 h-5 bg-green-100 rounded-full" title="Mã cá nhân">
+                                    <svg class="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>` : 
+                                ''
+                            }
+                        </div>
                         ${discount.description ? 
                             `<p class="text-xs text-gray-500 mt-1 truncate">${discount.description}</p>` : 
                             ''
