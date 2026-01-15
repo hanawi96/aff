@@ -204,13 +204,71 @@ async function bulkExport() {
         if (result.success) {
             showToast(`✅ Đã export ${result.count} đơn hàng - ${result.filename}`, 'success');
             
-            // Clear selection
+            // Auto-update status to "shipped" for all exported orders
+            const ordersToUpdate = selectedOrders.filter(order => {
+                const currentStatus = order.status || 'pending';
+                return currentStatus !== 'shipped' && currentStatus !== 'in_transit' && 
+                       currentStatus !== 'delivered' && currentStatus !== 'failed';
+            });
+            
+            // Clear selection immediately
             clearSelection();
+            
+            // Update status after a small delay to ensure UI is responsive
+            if (ordersToUpdate.length > 0) {
+                setTimeout(() => updateOrdersStatusBackground(ordersToUpdate), 500);
+            }
         }
     } catch (error) {
         console.error('Error exporting:', error);
         showToast('Lỗi: ' + error.message, 'error');
     }
+}
+
+// Update orders status one by one (using Promise chain to avoid blocking)
+function updateOrdersStatusBackground(orders) {
+    const total = orders.length;
+    let successCount = 0;
+    let currentIndex = 0;
+    
+    function updateNext() {
+        if (currentIndex >= orders.length) {
+            // All done - render and show toast
+            renderOrdersTable();
+            showToast(`✅ Đã cập nhật ${successCount}/${total} đơn sang "Đã gửi hàng"`, 'success');
+            return;
+        }
+        
+        const order = orders[currentIndex];
+        currentIndex++;
+        
+        fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateOrderStatus',
+                orderId: order.id,
+                status: 'shipped'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateOrderData(order.id, { status: 'shipped' });
+                successCount++;
+            }
+        })
+        .catch(err => {
+            console.error(`Error updating order ${order.order_id}:`, err);
+        })
+        .finally(() => {
+            // Continue with next order
+            setTimeout(updateNext, 50);
+        });
+    }
+    
+    // Start the chain
+    updateNext();
 }
 
 // Load XLSX library dynamically

@@ -220,8 +220,13 @@ async function exportToSPXExcel(orders) {
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `SPX_DonHang_${timestamp}_${orders.length}don.xlsx`;
     
-    // Write file
-    XLSX.writeFile(wb, filename);
+    // Write file in next tick to avoid blocking UI
+    await new Promise(resolve => {
+        setTimeout(() => {
+            XLSX.writeFile(wb, filename);
+            resolve();
+        }, 0);
+    });
     
     return {
         success: true,
