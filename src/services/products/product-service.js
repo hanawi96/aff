@@ -1,4 +1,5 @@
 import { jsonResponse } from '../../utils/response.js';
+import { deleteImageByUrl } from '../upload/image-upload.js';
 
 // Get all products (OPTIMIZED - No N+1 queries)
 export async function getAllProducts(env, corsHeaders) {
@@ -243,9 +244,9 @@ export async function updateProduct(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Check if product exists
+        // Check if product exists and get old image URL
         const existing = await env.DB.prepare(`
-            SELECT id FROM products WHERE id = ?
+            SELECT id, image_url FROM products WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -253,6 +254,11 @@ export async function updateProduct(data, env, corsHeaders) {
                 success: false,
                 error: 'Product not found'
             }, 404, corsHeaders);
+        }
+
+        // If updating image_url, delete old image from R2
+        if (data.image_url !== undefined && existing.image_url && existing.image_url !== data.image_url) {
+            await deleteImageByUrl(env, existing.image_url);
         }
 
         // Validate price if provided
@@ -400,9 +406,9 @@ export async function deleteProduct(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Check if product exists
+        // Check if product exists and get image URL
         const existing = await env.DB.prepare(`
-            SELECT id FROM products WHERE id = ?
+            SELECT id, image_url FROM products WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -410,6 +416,11 @@ export async function deleteProduct(data, env, corsHeaders) {
                 success: false,
                 error: 'Product not found'
             }, 404, corsHeaders);
+        }
+
+        // Delete image from R2 if exists
+        if (existing.image_url) {
+            await deleteImageByUrl(env, existing.image_url);
         }
 
         // Soft delete (set is_active = 0)

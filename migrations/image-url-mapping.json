@@ -1,0 +1,1343 @@
+[
+  {
+    "oldUrls": [
+      "./assets/images/avatar-placeholder.svg",
+      "../assets/images/avatar-placeholder.svg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/avatar-placeholder.svg",
+    "relativePath": "avatar-placeholder.svg",
+    "size": 460
+  },
+  {
+    "oldUrls": [
+      "./assets/images/banner.webp",
+      "../assets/images/banner.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/banner.webp",
+    "relativePath": "banner.webp",
+    "size": 85628
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bi-bac/bi-bac-ta-3ly.webp",
+      "../assets/images/product_img/bi-bac/bi-bac-ta-3ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bi-bac/bi-bac-ta-3ly.webp",
+    "relativePath": "product_img/bi-bac/bi-bac-ta-3ly.webp",
+    "size": 86384
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bi-bac/bi-bac-ta-4ly.webp",
+      "../assets/images/product_img/bi-bac/bi-bac-ta-4ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bi-bac/bi-bac-ta-4ly.webp",
+    "relativePath": "product_img/bi-bac/bi-bac-ta-4ly.webp",
+    "size": 105532
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bi-bac/bi-bac-ta-5ly.webp",
+      "../assets/images/product_img/bi-bac/bi-bac-ta-5ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bi-bac/bi-bac-ta-5ly.webp",
+    "relativePath": "product_img/bi-bac/bi-bac-ta-5ly.webp",
+    "size": 90672
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bi-bac/bi-bac-ta.webp",
+      "../assets/images/product_img/bi-bac/bi-bac-ta.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bi-bac/bi-bac-ta.webp",
+    "relativePath": "product_img/bi-bac/bi-bac-ta.webp",
+    "size": 128366
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_7_hat_bo_de.webp",
+    "size": 102192
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de_day_vang.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de_day_vang.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de_day_vang.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_7_hat_bo_de_day_vang.webp",
+    "size": 107354
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_9_hat_bo_de_chi_vang.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_9_hat_bo_de_chi_vang.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_9_hat_bo_de_chi_vang.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_9_hat_bo_de_chi_vang.webp",
+    "size": 103008
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_hat_bo_de_day_ngu_sac.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_hat_bo_de_day_ngu_sac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_hat_bo_de_day_ngu_sac.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_hat_bo_de_day_ngu_sac.webp",
+    "size": 103904
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_mix_hat_bo_de_co_gian.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_mix_hat_bo_de_co_gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_mix_hat_bo_de_co_gian.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_mix_hat_bo_de_co_gian.webp",
+    "size": 99726
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo de/vong_dau_tam_sole_9_hat_bo_de.webp",
+      "../assets/images/product_img/bo de/vong_dau_tam_sole_9_hat_bo_de.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo de/vong_dau_tam_sole_9_hat_bo_de.webp",
+    "relativePath": "product_img/bo de/vong_dau_tam_sole_9_hat_bo_de.webp",
+    "size": 103622
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo-dau-tam-de-phong.jpg",
+      "../assets/images/product_img/bo-dau-tam-de-phong.jpg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo-dau-tam-de-phong.jpg",
+    "relativePath": "product_img/bo-dau-tam-de-phong.jpg",
+    "size": 168408
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/bo-dau-tam-de-phong.webp",
+      "../assets/images/product_img/bo-dau-tam-de-phong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/bo-dau-tam-de-phong.webp",
+    "relativePath": "product_img/bo-dau-tam-de-phong.webp",
+    "size": 142382
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp",
+      "../assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp",
+    "relativePath": "product_img/charm ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp",
+    "size": 100534
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-co-gian.webp",
+      "../assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-co-gian.webp",
+    "relativePath": "product_img/charm ran/sole-3ly-charm-ran-the-ten-co-gian.webp",
+    "size": 99090
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-7-bi-bac-charm-ran.webp",
+      "../assets/images/product_img/charm ran/vong-7-bi-bac-charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-7-bi-bac-charm-ran.webp",
+    "relativePath": "product_img/charm ran/vong-7-bi-bac-charm-ran.webp",
+    "size": 158954
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-9-bi-bac-charm-ran.webp",
+      "../assets/images/product_img/charm ran/vong-9-bi-bac-charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-9-bi-bac-charm-ran.webp",
+    "relativePath": "product_img/charm ran/vong-9-bi-bac-charm-ran.webp",
+    "size": 154236
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-dau-tam-tron-charm-ran.webp",
+      "../assets/images/product_img/charm ran/vong-dau-tam-tron-charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-dau-tam-tron-charm-ran.webp",
+    "relativePath": "product_img/charm ran/vong-dau-tam-tron-charm-ran.webp",
+    "size": 139508
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-mix-3ly-charm-ran-co-gian.webp",
+      "../assets/images/product_img/charm ran/vong-mix-3ly-charm-ran-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-mix-3ly-charm-ran-co-gian.webp",
+    "relativePath": "product_img/charm ran/vong-mix-3ly-charm-ran-co-gian.webp",
+    "size": 155502
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-mix-4ly-charm-ran-co-gian.webp",
+      "../assets/images/product_img/charm ran/vong-mix-4ly-charm-ran-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-mix-4ly-charm-ran-co-gian.webp",
+    "relativePath": "product_img/charm ran/vong-mix-4ly-charm-ran-co-gian.webp",
+    "size": 156332
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp",
+      "../assets/images/product_img/charm ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp",
+    "relativePath": "product_img/charm ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp",
+    "size": 159132
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-4li-chamr-ran-mix-chuong.webp",
+      "../assets/images/product_img/charm ran/vong-sole-4li-chamr-ran-mix-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-4li-chamr-ran-mix-chuong.webp",
+    "relativePath": "product_img/charm ran/vong-sole-4li-chamr-ran-mix-chuong.webp",
+    "size": 68290
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp",
+      "../assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp",
+    "relativePath": "product_img/charm ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp",
+    "size": 74330
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp",
+      "../assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp",
+    "relativePath": "product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp",
+    "size": 73700
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong.webp",
+      "../assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong.webp",
+    "relativePath": "product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong.webp",
+    "size": 77996
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran.webp",
+      "../assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran.webp",
+    "relativePath": "product_img/charm ran/vong-sole-bac-3ly-charm-ran.webp",
+    "size": 155546
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm ran/vong-sole-bac-4ly-charm-ran.webp",
+      "../assets/images/product_img/charm ran/vong-sole-bac-4ly-charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm ran/vong-sole-bac-4ly-charm-ran.webp",
+    "relativePath": "product_img/charm ran/vong-sole-bac-4ly-charm-ran.webp",
+    "size": 77114
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-cuc-hoa-mi.webp",
+      "../assets/images/product_img/charm-bac/charm-cuc-hoa-mi.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-cuc-hoa-mi.webp",
+    "relativePath": "product_img/charm-bac/charm-cuc-hoa-mi.webp",
+    "size": 66354
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-hoa-sen-treo.webp",
+      "../assets/images/product_img/charm-bac/charm-hoa-sen-treo.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-hoa-sen-treo.webp",
+    "relativePath": "product_img/charm-bac/charm-hoa-sen-treo.webp",
+    "size": 55184
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-hoa-sen-xo-ngang.webp",
+      "../assets/images/product_img/charm-bac/charm-hoa-sen-xo-ngang.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-hoa-sen-xo-ngang.webp",
+    "relativePath": "product_img/charm-bac/charm-hoa-sen-xo-ngang.webp",
+    "size": 53250
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-ngoi-sao.webp",
+      "../assets/images/product_img/charm-bac/charm-ngoi-sao.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-ngoi-sao.webp",
+    "relativePath": "product_img/charm-bac/charm-ngoi-sao.webp",
+    "size": 54204
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-ran.webp",
+      "../assets/images/product_img/charm-bac/charm-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-ran.webp",
+    "relativePath": "product_img/charm-bac/charm-ran.webp",
+    "size": 54926
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/charm-rong.webp",
+      "../assets/images/product_img/charm-bac/charm-rong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/charm-rong.webp",
+    "relativePath": "product_img/charm-bac/charm-rong.webp",
+    "size": 57644
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/co-4-la-dac.webp",
+      "../assets/images/product_img/charm-bac/co-4-la-dac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/co-4-la-dac.webp",
+    "relativePath": "product_img/charm-bac/co-4-la-dac.webp",
+    "size": 75734
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/co-4-la-rong.webp",
+      "../assets/images/product_img/charm-bac/co-4-la-rong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/co-4-la-rong.webp",
+    "relativePath": "product_img/charm-bac/co-4-la-rong.webp",
+    "size": 64372
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/co-4-la.webp",
+      "../assets/images/product_img/charm-bac/co-4-la.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/co-4-la.webp",
+    "relativePath": "product_img/charm-bac/co-4-la.webp",
+    "size": 52854
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/thanh-gia-xo-ngang.webp",
+      "../assets/images/product_img/charm-bac/thanh-gia-xo-ngang.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/thanh-gia-xo-ngang.webp",
+    "relativePath": "product_img/charm-bac/thanh-gia-xo-ngang.webp",
+    "size": 57860
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/the-hinh-ran.webp",
+      "../assets/images/product_img/charm-bac/the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/the-hinh-ran.webp",
+    "relativePath": "product_img/charm-bac/the-hinh-ran.webp",
+    "size": 56522
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/charm-bac/the-ten-tron.webp",
+      "../assets/images/product_img/charm-bac/the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/charm-bac/the-ten-tron.webp",
+    "relativePath": "product_img/charm-bac/the-ten-tron.webp",
+    "size": 54354
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/sole-10bi-bac-3ly-chuong.webp",
+      "../assets/images/product_img/chuong/sole-10bi-bac-3ly-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/sole-10bi-bac-3ly-chuong.webp",
+    "relativePath": "product_img/chuong/sole-10bi-bac-3ly-chuong.webp",
+    "size": 101164
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/sole-3ly-chuong-co-gian.webp",
+      "../assets/images/product_img/chuong/sole-3ly-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/sole-3ly-chuong-co-gian.webp",
+    "relativePath": "product_img/chuong/sole-3ly-chuong-co-gian.webp",
+    "size": 97742
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/sole-3ly-mix-2-chuong-co-gian.webp",
+      "../assets/images/product_img/chuong/sole-3ly-mix-2-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/sole-3ly-mix-2-chuong-co-gian.webp",
+    "relativePath": "product_img/chuong/sole-3ly-mix-2-chuong-co-gian.webp",
+    "size": 103850
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/sole-4ly-chuong-co-gian.webp",
+      "../assets/images/product_img/chuong/sole-4ly-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/sole-4ly-chuong-co-gian.webp",
+    "relativePath": "product_img/chuong/sole-4ly-chuong-co-gian.webp",
+    "size": 102848
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong-mix-bac-4ly-charm-chuong.webp",
+      "../assets/images/product_img/chuong/vong-mix-bac-4ly-charm-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong-mix-bac-4ly-charm-chuong.webp",
+    "relativePath": "product_img/chuong/vong-mix-bac-4ly-charm-chuong.webp",
+    "size": 103530
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong-sole-3ly-mix-2-chuong.webp",
+      "../assets/images/product_img/chuong/vong-sole-3ly-mix-2-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong-sole-3ly-mix-2-chuong.webp",
+    "relativePath": "product_img/chuong/vong-sole-3ly-mix-2-chuong.webp",
+    "size": 107386
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong-sole-3ly-mix-4-chuong-the-ten.webp",
+      "../assets/images/product_img/chuong/vong-sole-3ly-mix-4-chuong-the-ten.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong-sole-3ly-mix-4-chuong-the-ten.webp",
+    "relativePath": "product_img/chuong/vong-sole-3ly-mix-4-chuong-the-ten.webp",
+    "size": 106798
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong-sole-3ly-mix-bac-6ly-chuong.webp",
+      "../assets/images/product_img/chuong/vong-sole-3ly-mix-bac-6ly-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong-sole-3ly-mix-bac-6ly-chuong.webp",
+    "relativePath": "product_img/chuong/vong-sole-3ly-mix-bac-6ly-chuong.webp",
+    "size": 102116
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong-tron-charm-chuong.webp",
+      "../assets/images/product_img/chuong/vong-tron-charm-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong-tron-charm-chuong.webp",
+    "relativePath": "product_img/chuong/vong-tron-charm-chuong.webp",
+    "size": 108446
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong_dau_tam_sole_3ly_chuong.webp",
+      "../assets/images/product_img/chuong/vong_dau_tam_sole_3ly_chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong_dau_tam_sole_3ly_chuong.webp",
+    "relativePath": "product_img/chuong/vong_dau_tam_sole_3ly_chuong.webp",
+    "size": 102380
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/chuong/vong_dau_tam_sole_4ly_chuong.webp",
+      "../assets/images/product_img/chuong/vong_dau_tam_sole_4ly_chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/chuong/vong_dau_tam_sole_4ly_chuong.webp",
+    "relativePath": "product_img/chuong/vong_dau_tam_sole_4ly_chuong.webp",
+    "size": 103764
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/co gian/sole-3ly-charm-rong-co-gian.webp",
+      "../assets/images/product_img/co gian/sole-3ly-charm-rong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/co gian/sole-3ly-charm-rong-co-gian.webp",
+    "relativePath": "product_img/co gian/sole-3ly-charm-rong-co-gian.webp",
+    "size": 100552
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/co gian/vong_tron_co_gian.webp",
+      "../assets/images/product_img/co gian/vong_tron_co_gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/co gian/vong_tron_co_gian.webp",
+    "relativePath": "product_img/co gian/vong_tron_co_gian.webp",
+    "size": 99522
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/combo/combo-7-bi-bac-tui-dau.webp",
+      "../assets/images/product_img/combo/combo-7-bi-bac-tui-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/combo/combo-7-bi-bac-tui-dau.webp",
+    "relativePath": "product_img/combo/combo-7-bi-bac-tui-dau.webp",
+    "size": 107810
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/combo/combo-9-bi-bac-tui-dau.webp",
+      "../assets/images/product_img/combo/combo-9-bi-bac-tui-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/combo/combo-9-bi-bac-tui-dau.webp",
+    "relativePath": "product_img/combo/combo-9-bi-bac-tui-dau.webp",
+    "size": 110200
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/combo/combo-tron-co-gian-tui-dau.webp",
+      "../assets/images/product_img/combo/combo-tron-co-gian-tui-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/combo/combo-tron-co-gian-tui-dau.webp",
+    "relativePath": "product_img/combo/combo-tron-co-gian-tui-dau.webp",
+    "size": 102404
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/combo/combo-tron-tui-dau.webp",
+      "../assets/images/product_img/combo/combo-tron-tui-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/combo/combo-tron-tui-dau.webp",
+    "relativePath": "product_img/combo/combo-tron-tui-dau.webp",
+    "size": 110348
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do-chuong.webp",
+      "../assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do-chuong.webp",
+    "relativePath": "product_img/da do/vong-sole-3ly-co-gian-da-do-chuong.webp",
+    "size": 95810
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do.webp",
+      "../assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do.webp",
+    "relativePath": "product_img/da do/vong-sole-3ly-co-gian-da-do.webp",
+    "size": 101746
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong-sole-3ly-da-do-chuong.webp",
+      "../assets/images/product_img/da do/vong-sole-3ly-da-do-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong-sole-3ly-da-do-chuong.webp",
+    "relativePath": "product_img/da do/vong-sole-3ly-da-do-chuong.webp",
+    "size": 103410
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong-sole-4ly-co-gian-da-do.webp",
+      "../assets/images/product_img/da do/vong-sole-4ly-co-gian-da-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong-sole-4ly-co-gian-da-do.webp",
+    "relativePath": "product_img/da do/vong-sole-4ly-co-gian-da-do.webp",
+    "size": 100002
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong_dau_tam_sole_3ly_da_do.webp",
+      "../assets/images/product_img/da do/vong_dau_tam_sole_3ly_da_do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong_dau_tam_sole_3ly_da_do.webp",
+    "relativePath": "product_img/da do/vong_dau_tam_sole_3ly_da_do.webp",
+    "size": 110606
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong_dau_tam_sole_4ly_da_do.webp",
+      "../assets/images/product_img/da do/vong_dau_tam_sole_4ly_da_do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong_dau_tam_sole_4ly_da_do.webp",
+    "relativePath": "product_img/da do/vong_dau_tam_sole_4ly_da_do.webp",
+    "size": 103534
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/da do/vong_dau_tam_tron_da_do.webp",
+      "../assets/images/product_img/da do/vong_dau_tam_tron_da_do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/da do/vong_dau_tam_tron_da_do.webp",
+    "relativePath": "product_img/da do/vong_dau_tam_tron_da_do.webp",
+    "size": 99748
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hat-bo-de-tinh-nguyet.jpg",
+      "../assets/images/product_img/hat-bo-de-tinh-nguyet.jpg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hat-bo-de-tinh-nguyet.jpg",
+    "relativePath": "product_img/hat-bo-de-tinh-nguyet.jpg",
+    "size": 114438
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hat_dau_tam.webp",
+      "../assets/images/product_img/hat_dau_tam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hat_dau_tam.webp",
+    "relativePath": "product_img/hat_dau_tam.webp",
+    "size": 73998
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong-co-gian.webp",
+      "../assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong-co-gian.webp",
+    "relativePath": "product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong-co-gian.webp",
+    "size": 99522
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong.webp",
+      "../assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong.webp",
+    "relativePath": "product_img/hoa-sen/sole-bac-3ly-hoa-sen-chuong.webp",
+    "size": 101608
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-co-gian.webp",
+      "../assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/sole-bac-3ly-hoa-sen-co-gian.webp",
+    "relativePath": "product_img/hoa-sen/sole-bac-3ly-hoa-sen-co-gian.webp",
+    "size": 100864
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/sole-bac-4ly-hoa-sen-co-gian.webp",
+      "../assets/images/product_img/hoa-sen/sole-bac-4ly-hoa-sen-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/sole-bac-4ly-hoa-sen-co-gian.webp",
+    "relativePath": "product_img/hoa-sen/sole-bac-4ly-hoa-sen-co-gian.webp",
+    "size": 103990
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/vong-sole-3ly-hoa-sen.webp",
+      "../assets/images/product_img/hoa-sen/vong-sole-3ly-hoa-sen.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/vong-sole-3ly-hoa-sen.webp",
+    "relativePath": "product_img/hoa-sen/vong-sole-3ly-hoa-sen.webp",
+    "size": 168770
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/hoa-sen/vong-tron-hoa-sen.webp",
+      "../assets/images/product_img/hoa-sen/vong-tron-hoa-sen.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/hoa-sen/vong-tron-hoa-sen.webp",
+    "relativePath": "product_img/hoa-sen/vong-tron-hoa-sen.webp",
+    "size": 105386
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/moc_chia_khoa_dau_tam_co_hop_kim.jpg",
+      "../assets/images/product_img/moc_chia_khoa_dau_tam_co_hop_kim.jpg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/moc_chia_khoa_dau_tam_co_hop_kim.jpg",
+    "relativePath": "product_img/moc_chia_khoa_dau_tam_co_hop_kim.jpg",
+    "size": 110476
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp",
+      "../assets/images/product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp",
+    "relativePath": "product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp",
+    "size": 144636
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-1.webp",
+      "../assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-1.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-1.webp",
+    "relativePath": "product_img/nguoi-lon/mix-bac-3ly-mau-1.webp",
+    "size": 105052
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-2.webp",
+      "../assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-2.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/nguoi-lon/mix-bac-3ly-mau-2.webp",
+    "relativePath": "product_img/nguoi-lon/mix-bac-3ly-mau-2.webp",
+    "size": 101408
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/nguoi-lon/mix-bac-4ly-co-gian.webp",
+      "../assets/images/product_img/nguoi-lon/mix-bac-4ly-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/nguoi-lon/mix-bac-4ly-co-gian.webp",
+    "relativePath": "product_img/nguoi-lon/mix-bac-4ly-co-gian.webp",
+    "size": 102610
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/nguoi-lon/vong-tron-nguoi-lon.webp",
+      "../assets/images/product_img/nguoi-lon/vong-tron-nguoi-lon.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/nguoi-lon/vong-tron-nguoi-lon.webp",
+    "relativePath": "product_img/nguoi-lon/vong-tron-nguoi-lon.webp",
+    "size": 100996
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/mix-10-bi-bac-3ly.webp",
+      "../assets/images/product_img/Sole bac/mix-10-bi-bac-3ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/mix-10-bi-bac-3ly.webp",
+    "relativePath": "product_img/Sole bac/mix-10-bi-bac-3ly.webp",
+    "size": 75484
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong-sole-3ly-mix-6ly-chuong.webp",
+      "../assets/images/product_img/Sole bac/vong-sole-3ly-mix-6ly-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong-sole-3ly-mix-6ly-chuong.webp",
+    "relativePath": "product_img/Sole bac/vong-sole-3ly-mix-6ly-chuong.webp",
+    "size": 153542
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_7_bi_bac.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_7_bi_bac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_7_bi_bac.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_7_bi_bac.webp",
+    "size": 75228
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_9_bi_bac.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_9_bi_bac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_9_bi_bac.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_9_bi_bac.webp",
+    "size": 74876
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp",
+    "size": 78910
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_sole_bac_3ly.webp",
+    "size": 78100
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly_co_gian.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly_co_gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly_co_gian.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_sole_bac_3ly_co_gian.webp",
+    "size": 76030
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_sole_bac_4ly.webp",
+    "size": 159850
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly_co_gian.webp",
+      "../assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly_co_gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly_co_gian.webp",
+    "relativePath": "product_img/Sole bac/vong_dau_tam_sole_bac_4ly_co_gian.webp",
+    "size": 228520
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/7-ho-phach-nau-do.webp",
+      "../assets/images/product_img/Sole ho phach/7-ho-phach-nau-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/7-ho-phach-nau-do.webp",
+    "relativePath": "product_img/Sole ho phach/7-ho-phach-nau-do.webp",
+    "size": 106018
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/7-ho-phach-vang-cam.webp",
+      "../assets/images/product_img/Sole ho phach/7-ho-phach-vang-cam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/7-ho-phach-vang-cam.webp",
+    "relativePath": "product_img/Sole ho phach/7-ho-phach-vang-cam.webp",
+    "size": 105422
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/9-ho-phach-nau-do.webp",
+      "../assets/images/product_img/Sole ho phach/9-ho-phach-nau-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/9-ho-phach-nau-do.webp",
+    "relativePath": "product_img/Sole ho phach/9-ho-phach-nau-do.webp",
+    "size": 109100
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/9-ho-phach-vang-cam.webp",
+      "../assets/images/product_img/Sole ho phach/9-ho-phach-vang-cam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/9-ho-phach-vang-cam.webp",
+    "relativePath": "product_img/Sole ho phach/9-ho-phach-vang-cam.webp",
+    "size": 104840
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/mix-ho-phach-nau-do.webp",
+      "../assets/images/product_img/Sole ho phach/mix-ho-phach-nau-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/mix-ho-phach-nau-do.webp",
+    "relativePath": "product_img/Sole ho phach/mix-ho-phach-nau-do.webp",
+    "size": 106526
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/mix-ho-phach-vang-cam.webp",
+      "../assets/images/product_img/Sole ho phach/mix-ho-phach-vang-cam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/mix-ho-phach-vang-cam.webp",
+    "relativePath": "product_img/Sole ho phach/mix-ho-phach-vang-cam.webp",
+    "size": 104764
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/sole-ho-phach-nau-do-co-gian.webp",
+      "../assets/images/product_img/Sole ho phach/sole-ho-phach-nau-do-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/sole-ho-phach-nau-do-co-gian.webp",
+    "relativePath": "product_img/Sole ho phach/sole-ho-phach-nau-do-co-gian.webp",
+    "size": 103566
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/sole-ho-phach-vang-cam-co-gian.webp",
+      "../assets/images/product_img/Sole ho phach/sole-ho-phach-vang-cam-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/sole-ho-phach-vang-cam-co-gian.webp",
+    "relativePath": "product_img/Sole ho phach/sole-ho-phach-vang-cam-co-gian.webp",
+    "size": 102088
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/vong-mix-ho-phach.webp",
+      "../assets/images/product_img/Sole ho phach/vong-mix-ho-phach.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/vong-mix-ho-phach.webp",
+    "relativePath": "product_img/Sole ho phach/vong-mix-ho-phach.webp",
+    "size": 85364
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-nau-do.webp",
+      "../assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-nau-do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-nau-do.webp",
+    "relativePath": "product_img/Sole ho phach/vong-tron-mix-2-ho-phach-nau-do.webp",
+    "size": 93422
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-vang-cam.webp",
+      "../assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-vang-cam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-vang-cam.webp",
+    "relativePath": "product_img/Sole ho phach/vong-tron-mix-2-ho-phach-vang-cam.webp",
+    "size": 91980
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/tat-ca-mau.jpg",
+      "../assets/images/product_img/tat-ca-mau.jpg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/tat-ca-mau.jpg",
+    "relativePath": "product_img/tat-ca-mau.jpg",
+    "size": 102295
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/tat-ca-mau.webp",
+      "../assets/images/product_img/tat-ca-mau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/tat-ca-mau.webp",
+    "relativePath": "product_img/tat-ca-mau.webp",
+    "size": 85974
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong-co-gian.webp",
+      "../assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong-co-gian.webp",
+    "relativePath": "product_img/thanh-gia/sole-3ly-thanh-gia-chuong-co-gian.webp",
+    "size": 106082
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong.webp",
+      "../assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-chuong.webp",
+    "relativePath": "product_img/thanh-gia/sole-3ly-thanh-gia-chuong.webp",
+    "size": 109388
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-co-gian.webp",
+      "../assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-co-gian.webp",
+    "relativePath": "product_img/thanh-gia/sole-3ly-thanh-gia-co-gian.webp",
+    "size": 100862
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-the-ten.webp",
+      "../assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-the-ten.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-3ly-thanh-gia-the-ten.webp",
+    "relativePath": "product_img/thanh-gia/sole-3ly-thanh-gia-the-ten.webp",
+    "size": 109296
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-3ly-thanh-gia.webp",
+      "../assets/images/product_img/thanh-gia/sole-3ly-thanh-gia.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-3ly-thanh-gia.webp",
+    "relativePath": "product_img/thanh-gia/sole-3ly-thanh-gia.webp",
+    "size": 111822
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/sole-4ly-thanh-gia-co-gian.webp",
+      "../assets/images/product_img/thanh-gia/sole-4ly-thanh-gia-co-gian.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/sole-4ly-thanh-gia-co-gian.webp",
+    "relativePath": "product_img/thanh-gia/sole-4ly-thanh-gia-co-gian.webp",
+    "size": 102010
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/thanh-gia/tron-thanh-gia.webp",
+      "../assets/images/product_img/thanh-gia/tron-thanh-gia.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/thanh-gia/tron-thanh-gia.webp",
+    "relativePath": "product_img/thanh-gia/tron-thanh-gia.webp",
+    "size": 101406
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/7-bi-bac-the-ten-be.webp",
+      "../assets/images/product_img/the-ten/7-bi-bac-the-ten-be.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/7-bi-bac-the-ten-be.webp",
+    "relativePath": "product_img/the-ten/7-bi-bac-the-ten-be.webp",
+    "size": 108366
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/sole-10-bac-3ly-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/sole-10-bac-3ly-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/sole-10-bac-3ly-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/sole-10-bac-3ly-the-hinh-ran.webp",
+    "size": 102002
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/sole-3ly-khac-the-ten-hoa-4-canh.webp",
+      "../assets/images/product_img/the-ten/sole-3ly-khac-the-ten-hoa-4-canh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/sole-3ly-khac-the-ten-hoa-4-canh.webp",
+    "relativePath": "product_img/the-ten/sole-3ly-khac-the-ten-hoa-4-canh.webp",
+    "size": 108834
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/sole-3ly-khac-the-ten-tron.webp",
+      "../assets/images/product_img/the-ten/sole-3ly-khac-the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/sole-3ly-khac-the-ten-tron.webp",
+    "relativePath": "product_img/the-ten/sole-3ly-khac-the-ten-tron.webp",
+    "size": 103292
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/sole-3ly-mix-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/sole-3ly-mix-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/sole-3ly-mix-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/sole-3ly-mix-the-hinh-ran.webp",
+    "size": 108662
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/sole-3ly-mix-the-tron.webp",
+      "../assets/images/product_img/the-ten/sole-3ly-mix-the-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/sole-3ly-mix-the-tron.webp",
+    "relativePath": "product_img/the-ten/sole-3ly-mix-the-tron.webp",
+    "size": 102386
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-sole-3ly-2-charm-chuong-the-ten.webp",
+      "../assets/images/product_img/the-ten/vong-sole-3ly-2-charm-chuong-the-ten.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-sole-3ly-2-charm-chuong-the-ten.webp",
+    "relativePath": "product_img/the-ten/vong-sole-3ly-2-charm-chuong-the-ten.webp",
+    "size": 108872
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-sole-3ly-charm-chuong-the-ten.webp",
+      "../assets/images/product_img/the-ten/vong-sole-3ly-charm-chuong-the-ten.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-sole-3ly-charm-chuong-the-ten.webp",
+    "relativePath": "product_img/the-ten/vong-sole-3ly-charm-chuong-the-ten.webp",
+    "size": 107254
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-2-mix-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/vong-tron-2-mix-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-2-mix-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/vong-tron-2-mix-the-hinh-ran.webp",
+    "size": 103010
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-hoa-4-canh.webp",
+      "../assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-hoa-4-canh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-hoa-4-canh.webp",
+    "relativePath": "product_img/the-ten/vong-tron-2-mix-the-ten-hoa-4-canh.webp",
+    "size": 101834
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-tron.webp",
+      "../assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-2-mix-the-ten-tron.webp",
+    "relativePath": "product_img/the-ten/vong-tron-2-mix-the-ten-tron.webp",
+    "size": 101540
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-3-mix-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/vong-tron-3-mix-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-3-mix-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/vong-tron-3-mix-the-hinh-ran.webp",
+    "size": 100180
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-3-mix-the-hoa-4-canh.webp",
+      "../assets/images/product_img/the-ten/vong-tron-3-mix-the-hoa-4-canh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-3-mix-the-hoa-4-canh.webp",
+    "relativePath": "product_img/the-ten/vong-tron-3-mix-the-hoa-4-canh.webp",
+    "size": 101174
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-3-mix-the-ten-tron.webp",
+      "../assets/images/product_img/the-ten/vong-tron-3-mix-the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-3-mix-the-ten-tron.webp",
+    "relativePath": "product_img/the-ten/vong-tron-3-mix-the-ten-tron.webp",
+    "size": 97468
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-5-mix-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/vong-tron-5-mix-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-5-mix-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/vong-tron-5-mix-the-hinh-ran.webp",
+    "size": 101758
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-hoa-4-canh.webp",
+      "../assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-hoa-4-canh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-hoa-4-canh.webp",
+    "relativePath": "product_img/the-ten/vong-tron-5-mix-the-ten-hoa-4-canh.webp",
+    "size": 97580
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-tron.webp",
+      "../assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-5-mix-the-ten-tron.webp",
+    "relativePath": "product_img/the-ten/vong-tron-5-mix-the-ten-tron.webp",
+    "size": 100058
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-mix-the-hinh-ran.webp",
+      "../assets/images/product_img/the-ten/vong-tron-mix-the-hinh-ran.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-mix-the-hinh-ran.webp",
+    "relativePath": "product_img/the-ten/vong-tron-mix-the-hinh-ran.webp",
+    "size": 102716
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-mix-the-ten-hoa-4-canh.webp",
+      "../assets/images/product_img/the-ten/vong-tron-mix-the-ten-hoa-4-canh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-mix-the-ten-hoa-4-canh.webp",
+    "relativePath": "product_img/the-ten/vong-tron-mix-the-ten-hoa-4-canh.webp",
+    "size": 99668
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/the-ten/vong-tron-mix-the-ten-tron.webp",
+      "../assets/images/product_img/the-ten/vong-tron-mix-the-ten-tron.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/the-ten/vong-tron-mix-the-ten-tron.webp",
+    "relativePath": "product_img/the-ten/vong-tron-mix-the-ten-tron.webp",
+    "size": 95032
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/tui_dau_tam.webp",
+      "../assets/images/product_img/tui_dau_tam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/tui_dau_tam.webp",
+    "relativePath": "product_img/tui_dau_tam.webp",
+    "size": 147582
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Vong tron/vong-tron-buoc-moi.webp",
+      "../assets/images/product_img/Vong tron/vong-tron-buoc-moi.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Vong tron/vong-tron-buoc-moi.webp",
+    "relativePath": "product_img/Vong tron/vong-tron-buoc-moi.webp",
+    "size": 126784
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Vong tron/vong_dau_tam_tron_1_bi_bac.webp",
+      "../assets/images/product_img/Vong tron/vong_dau_tam_tron_1_bi_bac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Vong tron/vong_dau_tam_tron_1_bi_bac.webp",
+    "relativePath": "product_img/Vong tron/vong_dau_tam_tron_1_bi_bac.webp",
+    "size": 76078
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Vong tron/vong_dau_tam_tron_2_bi_bac.webp",
+      "../assets/images/product_img/Vong tron/vong_dau_tam_tron_2_bi_bac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Vong tron/vong_dau_tam_tron_2_bi_bac.webp",
+    "relativePath": "product_img/Vong tron/vong_dau_tam_tron_2_bi_bac.webp",
+    "size": 78244
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/Vong tron/vong_dau_tam_tron_3_bi_bac.webp",
+      "../assets/images/product_img/Vong tron/vong_dau_tam_tron_3_bi_bac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/Vong tron/vong_dau_tam_tron_3_bi_bac.webp",
+    "relativePath": "product_img/Vong tron/vong_dau_tam_tron_3_bi_bac.webp",
+    "size": 63426
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong-ngu-sac/ngu-sac-mix-1-hat-dau.webp",
+      "../assets/images/product_img/vong-ngu-sac/ngu-sac-mix-1-hat-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong-ngu-sac/ngu-sac-mix-1-hat-dau.webp",
+    "relativePath": "product_img/vong-ngu-sac/ngu-sac-mix-1-hat-dau.webp",
+    "size": 79802
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong-ngu-sac/vong-ngu-sac-mix-1-hat-dau.webp",
+      "../assets/images/product_img/vong-ngu-sac/vong-ngu-sac-mix-1-hat-dau.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong-ngu-sac/vong-ngu-sac-mix-1-hat-dau.webp",
+    "relativePath": "product_img/vong-ngu-sac/vong-ngu-sac-mix-1-hat-dau.webp",
+    "size": 222688
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_do.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_do.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_do.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_do.webp",
+    "size": 68120
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_hong.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_hong.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_hong.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_hong.webp",
+    "size": 66904
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_ngu_sac.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_ngu_sac.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_ngu_sac.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_ngu_sac.webp",
+    "size": 59218
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_tim.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_tim.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_tim.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_tim.webp",
+    "size": 68792
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_vang.jpg",
+      "../assets/images/product_img/vong_tron_co_dien_day_vang.jpg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_vang.jpg",
+    "relativePath": "product_img/vong_tron_co_dien_day_vang.jpg",
+    "size": 116623
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_vang.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_vang.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_vang.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_vang.webp",
+    "size": 69820
+  },
+  {
+    "oldUrls": [
+      "./assets/images/product_img/vong_tron_co_dien_day_xanh.webp",
+      "../assets/images/product_img/vong_tron_co_dien_day_xanh.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/product_img/vong_tron_co_dien_day_xanh.webp",
+    "relativePath": "product_img/vong_tron_co_dien_day_xanh.webp",
+    "size": 68624
+  },
+  {
+    "oldUrls": [
+      "./assets/images/profile_img.webp",
+      "../assets/images/profile_img.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/profile_img.webp",
+    "relativePath": "profile_img.webp",
+    "size": 27380
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/2.webp",
+      "../assets/images/quy-trinh-lam-vong/2.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/2.webp",
+    "relativePath": "quy-trinh-lam-vong/2.webp",
+    "size": 202426
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/3.webp",
+      "../assets/images/quy-trinh-lam-vong/3.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/3.webp",
+    "relativePath": "quy-trinh-lam-vong/3.webp",
+    "size": 178648
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/4.webp",
+      "../assets/images/quy-trinh-lam-vong/4.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/4.webp",
+    "relativePath": "quy-trinh-lam-vong/4.webp",
+    "size": 107674
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/5.webp",
+      "../assets/images/quy-trinh-lam-vong/5.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/5.webp",
+    "relativePath": "quy-trinh-lam-vong/5.webp",
+    "size": 105632
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp",
+      "../assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp",
+    "relativePath": "quy-trinh-lam-vong/chat-canh-dau-tam.webp",
+    "size": 243726
+  },
+  {
+    "oldUrls": [
+      "./assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp",
+      "../assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp",
+    "relativePath": "quy-trinh-lam-vong/vong-dau-tam-gia.webp",
+    "size": 28874
+  },
+  {
+    "oldUrls": [
+      "./assets/images/shopping-bag.svg",
+      "../assets/images/shopping-bag.svg"
+    ],
+    "newUrl": "https://6732e495e6dc332a4d51e0aba6c0408a.r2.cloudflarestorage.com/vdt-image/assets/images/shopping-bag.svg",
+    "relativePath": "shopping-bag.svg",
+    "size": 372
+  }
+]

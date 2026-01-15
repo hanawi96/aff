@@ -324,8 +324,13 @@ function createProductCard(product) {
     // Generate image URL
     let imageUrl;
     if (product.image_url) {
+        // If it's already a full URL (http/https), use it directly with URL encoding
+        if (product.image_url.startsWith('http://') || product.image_url.startsWith('https://')) {
+            // URL encode the path to handle spaces
+            imageUrl = encodeURI(product.image_url);
+        }
         // If image_url starts with ./ or assets/, convert to relative path from admin folder
-        if (product.image_url.startsWith('./assets/')) {
+        else if (product.image_url.startsWith('./assets/')) {
             imageUrl = '../' + product.image_url.substring(2); // Remove ./ and add ../
         } else if (product.image_url.startsWith('assets/')) {
             imageUrl = '../' + product.image_url; // Just add ../
@@ -591,7 +596,11 @@ function showAddProductModal() {
                     <!-- Danh mục -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                        <div id="categorySelector"></div>
+                        <div id="categoryCheckboxList" class="space-y-2">
+                            <div class="flex items-center justify-center py-8 text-gray-400">
+                                <div class="animate-spin rounded-full h-8 h-8 border-b-2 border-purple-600"></div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Thông tin bổ sung -->
@@ -642,10 +651,37 @@ function showAddProductModal() {
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">URL ảnh</label>
-                                <input type="url" id="productImageURL"
-                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                    placeholder="../assets/images/product.webp">
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Ảnh sản phẩm</label>
+                                
+                                <!-- Image Preview -->
+                                <div id="imagePreviewContainer" class="mb-3 hidden">
+                                    <div class="relative w-full h-48 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
+                                        <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-contain">
+                                        <div class="absolute top-2 right-2">
+                                            <button type="button" onclick="clearImagePreview()" class="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <input type="url" id="productImageURL"
+                                        class="flex-1 px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="URL ảnh hoặc upload file"
+                                        readonly
+                                        onchange="updateImagePreview(this.value)">
+                                    <label class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium cursor-pointer flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Upload
+                                        <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Chọn file ảnh để upload lên R2 Storage</p>
                             </div>
                         </div>
                     </div>
@@ -673,14 +709,8 @@ function showAddProductModal() {
 
     document.body.appendChild(modal);
 
-    // Initialize multi-category selector
-    window.categorySelector = new MultiCategorySelector('categorySelector', {
-        placeholder: 'Chọn danh mục...',
-        searchPlaceholder: 'Tìm kiếm danh mục...',
-        onChange: (selectedIds) => {
-            console.log('Selected categories:', selectedIds);
-        }
-    });
+    // Load and render categories inline
+    loadCategoriesInline();
 }
 
 // Close product modal
@@ -691,13 +721,179 @@ function closeProductModal() {
     }
 }
 
+// Handle image upload
+async function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        showToast('Vui lòng chọn file ảnh', 'warning');
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Kích thước ảnh không được vượt quá 5MB', 'warning');
+        return;
+    }
+    
+    try {
+        // Show loading
+        const urlInput = document.getElementById('productImageURL');
+        const originalValue = urlInput.value;
+        urlInput.value = 'Đang upload...';
+        urlInput.disabled = true;
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('filename', file.name);
+        
+        // Upload to R2
+        const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            urlInput.value = data.url;
+            updateImagePreview(data.url);
+            showToast('Upload ảnh thành công!', 'success');
+        } else {
+            urlInput.value = originalValue;
+            showToast('Lỗi upload: ' + (data.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showToast('Lỗi upload ảnh', 'error');
+        urlInput.value = originalValue;
+    } finally {
+        urlInput.disabled = false;
+        // Reset file input
+        input.value = '';
+    }
+}
+
+// Update image preview
+function updateImagePreview(url) {
+    const container = document.getElementById('imagePreviewContainer');
+    const preview = document.getElementById('imagePreview');
+    
+    if (!container || !preview) return;
+    
+    if (url && url.trim()) {
+        // Encode URL to handle spaces
+        const encodedUrl = encodeURI(url);
+        preview.src = encodedUrl;
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+        preview.src = '';
+    }
+}
+
+// Clear image preview
+function clearImagePreview() {
+    const urlInput = document.getElementById('productImageURL');
+    const container = document.getElementById('imagePreviewContainer');
+    const preview = document.getElementById('imagePreview');
+    
+    if (urlInput) urlInput.value = '';
+    if (container) container.classList.add('hidden');
+    if (preview) preview.src = '';
+}
+
+// Load categories inline (checkbox list)
+async function loadCategoriesInline() {
+    const container = document.getElementById('categoryCheckboxList');
+    if (!container) return;
+    
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.categories && data.categories.length > 0) {
+            // Render categories in 2 columns
+            container.innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    ${data.categories.map(cat => `
+                        <label class="flex items-center gap-2 p-2.5 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 cursor-pointer transition-all">
+                            <input type="checkbox" 
+                                   class="category-checkbox w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" 
+                                   value="${cat.id}"
+                                   data-name="${cat.name}"
+                                   data-icon="${cat.icon || '📦'}"
+                                   data-color="${cat.color || '#9333ea'}">
+                            <span class="flex items-center gap-1.5 text-sm">
+                                <span>${cat.icon || '📦'}</span>
+                                <span class="font-medium text-gray-700">${cat.name}</span>
+                            </span>
+                        </label>
+                    `).join('')}
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                    <span class="text-xs text-gray-500">Chọn 1 hoặc nhiều danh mục</span>
+                    <span class="text-xs font-semibold text-purple-600" id="selectedCategoryCount">Đã chọn: 0</span>
+                </div>
+            `;
+            
+            // Add change event listeners
+            const checkboxes = container.querySelectorAll('.category-checkbox');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateSelectedCategoryCount);
+            });
+        } else {
+            container.innerHTML = `
+                <div class="text-center py-4 text-gray-500">
+                    <p class="text-sm">Chưa có danh mục nào</p>
+                    <p class="text-xs mt-1">Vui lòng tạo danh mục trước</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        container.innerHTML = `
+            <div class="text-center py-4 text-red-500">
+                <p class="text-sm">Lỗi tải danh mục</p>
+            </div>
+        `;
+    }
+}
+
+// Update selected category count
+function updateSelectedCategoryCount() {
+    const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+    const countEl = document.getElementById('selectedCategoryCount');
+    if (countEl) {
+        countEl.textContent = `Đã chọn: ${checkboxes.length}`;
+    }
+}
+
+// Get selected category IDs
+function getSelectedCategoryIds() {
+    const checkboxes = document.querySelectorAll('.category-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+// Set selected category IDs
+function setSelectedCategoryIds(ids) {
+    const checkboxes = document.querySelectorAll('.category-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = ids.includes(parseInt(cb.value));
+    });
+    updateSelectedCategoryCount();
+}
+
 // Save product (create or update)
 async function saveProduct(productId = null) {
     const name = document.getElementById('productName')?.value.trim();
     const price = parseFormattedNumber(document.getElementById('productPrice')?.value);
     const originalPrice = parseFormattedNumber(document.getElementById('productOriginalPrice')?.value);
     const costPrice = parseFormattedNumber(document.getElementById('productCostPrice')?.value);
-    const categoryIds = window.categorySelector ? window.categorySelector.getSelectedIds() : [];
+    const categoryIds = getSelectedCategoryIds();
     const stockQuantity = parseFormattedNumber(document.getElementById('productStockQuantity')?.value);
     const rating = document.getElementById('productRating')?.value;
     const purchases = parseFormattedNumber(document.getElementById('productPurchases')?.value);
@@ -992,8 +1188,15 @@ async function editProduct(productId) {
                         
                         <!-- Danh mục -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                            <div id="categorySelector"></div>
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">
+                                Danh mục
+                                <span id="selectedCategoryCount" class="ml-2 text-sm font-normal text-gray-500">(0 đã chọn)</span>
+                            </h4>
+                            <div id="categoryCheckboxList" class="space-y-2">
+                                <div class="flex items-center justify-center py-8 text-gray-400">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Thông tin bổ sung -->
@@ -1044,10 +1247,37 @@ async function editProduct(productId) {
                                 </div>
                                 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">URL ảnh</label>
-                                    <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="../assets/images/product.webp">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Ảnh sản phẩm</label>
+                                    
+                                    <!-- Image Preview -->
+                                    <div id="imagePreviewContainer" class="mb-3 ${product.image_url ? '' : 'hidden'}">
+                                        <div class="relative w-full h-48 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
+                                            <img id="imagePreview" src="${encodeURI(product.image_url || '')}" alt="Preview" class="w-full h-full object-contain">
+                                            <div class="absolute top-2 right-2">
+                                                <button type="button" onclick="clearImagePreview()" class="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-2">
+                                        <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
+                                            class="flex-1 px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                            placeholder="URL ảnh hoặc upload file"
+                                            readonly
+                                            onchange="updateImagePreview(this.value)">
+                                        <label class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium cursor-pointer flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            Upload
+                                            <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                        </label>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Chọn file ảnh để upload lên R2 Storage</p>
                                 </div>
                             </div>
                         </div>
@@ -1075,23 +1305,16 @@ async function editProduct(productId) {
 
         document.body.appendChild(modal);
 
-        // Initialize multi-category selector
-        window.categorySelector = new MultiCategorySelector('categorySelector', {
-            placeholder: 'Chọn danh mục...',
-            searchPlaceholder: 'Tìm kiếm danh mục...',
-            onChange: (selectedIds) => {
-                console.log('Selected categories:', selectedIds);
-            },
-            onReady: () => {
-                // Set selected categories after component is ready
-                if (product.category_ids && product.category_ids.length > 0) {
-                    window.categorySelector.setSelectedIds(product.category_ids);
-                } else if (product.category_id) {
-                    // Fallback for old data
-                    window.categorySelector.setSelectedIds([product.category_id]);
-                }
-            }
-        });
+        // Load categories inline
+        await loadCategoriesInline();
+        
+        // Set selected categories after loading
+        if (product.category_ids && product.category_ids.length > 0) {
+            setSelectedCategoryIds(product.category_ids);
+        } else if (product.category_id) {
+            // Fallback for old data
+            setSelectedCategoryIds([product.category_id]);
+        }
 
         // Calculate profit on load
         setTimeout(() => calculateExpectedProfit(), 100);

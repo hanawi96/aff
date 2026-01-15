@@ -76,12 +76,32 @@ import {
     paySelectedOrders
 } from '../services/payments/payment-service.js';
 
+// Upload
+import { uploadImage } from '../services/upload/image-upload.js';
+
 // ============================================
 // POST WITH ACTION (Query String)
 // ============================================
 
 export async function handlePostWithAction(action, request, env, corsHeaders) {
-    // Read JSON body once
+    // Special handling for uploadImage (multipart form data)
+    if (action === 'uploadImage') {
+        const formData = await request.formData();
+        const file = formData.get('image');
+        const filename = formData.get('filename') || file?.name || 'image.jpg';
+        
+        if (!file) {
+            return jsonResponse({
+                success: false,
+                error: 'No image file provided'
+            }, 400, corsHeaders);
+        }
+        
+        const result = await uploadImage(env, file, filename);
+        return jsonResponse(result, result.success ? 200 : 500, corsHeaders);
+    }
+    
+    // Read JSON body for other actions
     const data = await request.json();
 
     switch (action) {

@@ -11,6 +11,13 @@ compatibility_date = "2024-01-01"
 TURSO_DATABASE_URL = "libsql://vdt-yendev96.aws-ap-northeast-1.turso.io"
 
 # ============================================
+# R2 Storage Configuration
+# ============================================
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "vdt-image"
+
+# ============================================
 # Old D1 Configuration (backup - DO NOT DELETE)
 # ============================================
 # Keep this commented for rollback if needed

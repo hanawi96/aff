@@ -1,0 +1,308 @@
+[
+  {
+    "id": 8,
+    "name": "Vòng trơn buộc mối",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong tron/vong-tron-buoc-moi.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong-tron/vong-tron-buoc-moi.webp"
+  },
+  {
+    "id": 9,
+    "name": "Trơn mix 1 bi bạc",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong tron/vong_dau_tam_tron_1_bi_bac.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong-tron/vong_dau_tam_tron_1_bi_bac.webp"
+  },
+  {
+    "id": 10,
+    "name": "Trơn mix 2 bi bạc",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong tron/vong_dau_tam_tron_2_bi_bac.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong-tron/vong_dau_tam_tron_2_bi_bac.webp"
+  },
+  {
+    "id": 11,
+    "name": "Trơn mix 3 bi bạc",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong tron/vong_dau_tam_tron_3_bi_bac.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong-tron/vong_dau_tam_tron_3_bi_bac.webp"
+  },
+  {
+    "id": 12,
+    "name": "Trơn + Charm rắn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-dau-tam-tron-charm-ran.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-dau-tam-tron-charm-ran.webp"
+  },
+  {
+    "id": 13,
+    "name": "Mix bạc 3ly + Charm rắn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-bac-3ly-charm-ran.webp"
+  },
+  {
+    "id": 14,
+    "name": "Mix bạc 3ly + Charm rắn co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-mix-3ly-charm-ran-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-mix-3ly-charm-ran-co-gian.webp"
+  },
+  {
+    "id": 15,
+    "name": "Mix bạc 4ly + Charm rắn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-bac-4ly-charm-ran.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-bac-4ly-charm-ran.webp"
+  },
+  {
+    "id": 16,
+    "name": "Mix bạc 4ly + Charm rắn co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-mix-4ly-charm-ran-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-mix-4ly-charm-ran-co-gian.webp"
+  },
+  {
+    "id": 17,
+    "name": "Mix 7 bi bạc + Charm rắn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-7-bi-bac-charm-ran.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-7-bi-bac-charm-ran.webp"
+  },
+  {
+    "id": 18,
+    "name": "Mix 9 bi bạc + Charm rắn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-9-bi-bac-charm-ran.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-9-bi-bac-charm-ran.webp"
+  },
+  {
+    "id": 19,
+    "name": "Mix bạc 3ly + Charm rắn + Chuông",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-bac-3ly-charm-ran-chuong.webp"
+  },
+  {
+    "id": 20,
+    "name": "Mix bạc 3ly + Charm rắn + Chuông co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-bac-3ly-charm-ran-chuong-co-gian.webp"
+  },
+  {
+    "id": 21,
+    "name": "Mix bạc 3ly + Charm rắn + 2 Chuông co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-bac-3ly-charm-ran-2-chuong-co-gian.webp"
+  },
+  {
+    "id": 22,
+    "name": "Mix bạc 3ly + Charm rắn + Thẻ tên co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/sole-3ly-charm-ran-the-ten-co-gian.webp"
+  },
+  {
+    "id": 23,
+    "name": "Mix bạc 3ly + Charm rắn + Chuông + Thẻ tên co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/sole-3ly-charm-ran-the-ten-chuong-co-gian.webp"
+  },
+  {
+    "id": 24,
+    "name": "Mix bạc 3ly + Charm rắn + Chuông",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-3ly-charm-ran-the-ten-chuong.webp"
+  },
+  {
+    "id": 25,
+    "name": "Mix bạc 4ly + Charm rắn+ Chuông",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm ran/vong-sole-4li-chamr-ran-mix-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/charm-ran/vong-sole-4li-chamr-ran-mix-chuong.webp"
+  },
+  {
+    "id": 30,
+    "name": "Trơn + 2 hổ phách vàng cam",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-vang-cam.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/vong-tron-mix-2-ho-phach-vang-cam.webp"
+  },
+  {
+    "id": 31,
+    "name": "Trơn + 2 hổ phách nâu đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/vong-tron-mix-2-ho-phach-nau-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/vong-tron-mix-2-ho-phach-nau-do.webp"
+  },
+  {
+    "id": 32,
+    "name": "Sole hổ phách vàng cam",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/mix-ho-phach-vang-cam.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/mix-ho-phach-vang-cam.webp"
+  },
+  {
+    "id": 33,
+    "name": "Sole hổ phách nâu đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/mix-ho-phach-nau-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/mix-ho-phach-nau-do.webp"
+  },
+  {
+    "id": 34,
+    "name": "7 hổ phách vàng cam",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/7-ho-phach-vang-cam.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/7-ho-phach-vang-cam.webp"
+  },
+  {
+    "id": 35,
+    "name": "7 hổ phách nâu đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/7-ho-phach-nau-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/7-ho-phach-nau-do.webp"
+  },
+  {
+    "id": 36,
+    "name": "9 hổ phách vàng cam",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/9-ho-phach-nau-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/9-ho-phach-nau-do.webp"
+  },
+  {
+    "id": 37,
+    "name": "9 hổ phách vàng cam",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/9-ho-phach-vang-cam.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/9-ho-phach-vang-cam.webp"
+  },
+  {
+    "id": 52,
+    "name": "Vòng trơn mix đá đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong_dau_tam_tron_da_do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong_dau_tam_tron_da_do.webp"
+  },
+  {
+    "id": 53,
+    "name": "Sole bạc 3ly mix đá đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong_dau_tam_sole_3ly_da_do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong_dau_tam_sole_3ly_da_do.webp"
+  },
+  {
+    "id": 54,
+    "name": "Sole bạc 4ly mix đá đỏ",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong_dau_tam_sole_4ly_da_do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong_dau_tam_sole_4ly_da_do.webp"
+  },
+  {
+    "id": 96,
+    "name": "Sole 10 bi bạc 3ly tai dâu",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/mix-10-bi-bac-3ly.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/mix-10-bi-bac-3ly.webp"
+  },
+  {
+    "id": 97,
+    "name": "Mix bi bạc 3ly",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_sole_bac_3ly.webp"
+  },
+  {
+    "id": 98,
+    "name": "Mix bi bạc 3ly co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_3ly_co_gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_sole_bac_3ly_co_gian.webp"
+  },
+  {
+    "id": 99,
+    "name": "Mix bi bạc 4ly",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_sole_bac_4ly.webp"
+  },
+  {
+    "id": 100,
+    "name": "Mix bi bạc 4ly co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_sole_bac_4ly_co_gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_sole_bac_4ly_co_gian.webp"
+  },
+  {
+    "id": 101,
+    "name": "Mix bi bạc 3ly + bi 6ly",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_sole_3ly_mix_bac_6ly.webp"
+  },
+  {
+    "id": 102,
+    "name": "Mix 7 bi bạc",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_7_bi_bac.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_7_bi_bac.webp"
+  },
+  {
+    "id": 103,
+    "name": "Mix 9 bi bạc",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong_dau_tam_9_bi_bac.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong_dau_tam_9_bi_bac.webp"
+  },
+  {
+    "id": 104,
+    "name": "Mix bi bạc 3ly + bi 6ly + chuông",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole bac/vong-sole-3ly-mix-6ly-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-bac/vong-sole-3ly-mix-6ly-chuong.webp"
+  },
+  {
+    "id": 105,
+    "name": "Sole bạc 3ly mix đá đỏ co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong-sole-3ly-co-gian-da-do.webp"
+  },
+  {
+    "id": 106,
+    "name": "Sole bạc 3ly mix đá đỏ + chuông",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong-sole-3ly-da-do-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong-sole-3ly-da-do-chuong.webp"
+  },
+  {
+    "id": 107,
+    "name": "Sole bạc 3ly mix đá đỏ + chuông co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong-sole-3ly-co-gian-da-do-chuong.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong-sole-3ly-co-gian-da-do-chuong.webp"
+  },
+  {
+    "id": 108,
+    "name": "Trơn co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/co gian/vong_tron_co_gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/co-gian/vong_tron_co_gian.webp"
+  },
+  {
+    "id": 109,
+    "name": "Mix hổ phách vàng cam co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/sole-ho-phach-vang-cam-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/sole-ho-phach-vang-cam-co-gian.webp"
+  },
+  {
+    "id": 110,
+    "name": "Mix hổ phách nâu đỏ co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole ho phach/sole-ho-phach-nau-do-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Sole-ho-phach/sole-ho-phach-nau-do-co-gian.webp"
+  },
+  {
+    "id": 111,
+    "name": "Mix bạc 3ly + Charm rồng co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/co gian/sole-3ly-charm-rong-co-gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/co-gian/sole-3ly-charm-rong-co-gian.webp"
+  },
+  {
+    "id": 113,
+    "name": "Mix hạt bồ đề co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo de/vong_dau_tam_mix_hat_bo_de_co_gian.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-de/vong_dau_tam_mix_hat_bo_de_co_gian.webp"
+  },
+  {
+    "id": 114,
+    "name": "Sole bạc 4ly mix đá đỏ co giãn",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da do/vong-sole-4ly-co-gian-da-do.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/da-do/vong-sole-4ly-co-gian-da-do.webp"
+  },
+  {
+    "id": 115,
+    "name": "Mix 7 hạt bồ đề",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-de/vong_dau_tam_7_hat_bo_de.webp"
+  },
+  {
+    "id": 116,
+    "name": "Mix 9 hạt bồ đề",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo de/vong_dau_tam_sole_9_hat_bo_de.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-de/vong_dau_tam_sole_9_hat_bo_de.webp"
+  },
+  {
+    "id": 117,
+    "name": "Mix 7 hạt bồ đề chỉ vàng",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo de/vong_dau_tam_7_hat_bo_de_day_vang.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-de/vong_dau_tam_7_hat_bo_de_day_vang.webp"
+  },
+  {
+    "id": 118,
+    "name": "Mix 9 hạt bồ đề chỉ vàng",
+    "oldUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo de/vong_dau_tam_9_hat_bo_de_chi_vang.webp",
+    "newUrl": "https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-de/vong_dau_tam_9_hat_bo_de_chi_vang.webp"
+  }
+]
