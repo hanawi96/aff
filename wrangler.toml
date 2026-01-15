@@ -17,6 +17,10 @@ TURSO_DATABASE_URL = "libsql://vdt-yendev96.aws-ap-northeast-1.turso.io"
 binding = "R2_BUCKET"
 bucket_name = "vdt-image"
 
+[[r2_buckets]]
+binding = "R2_EXCEL_BUCKET"
+bucket_name = "excel-orders"
+
 # ============================================
 # Old D1 Configuration (backup - DO NOT DELETE)
 # ============================================

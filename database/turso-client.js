@@ -77,7 +77,9 @@ export class TursoAdapter {
             success: true,
             meta: {
               changes: result.rowsAffected,
-              last_row_id: result.lastInsertRowid,
+              last_row_id: typeof result.lastInsertRowid === 'bigint' 
+                ? Number(result.lastInsertRowid) 
+                : result.lastInsertRowid,
               duration: result.duration || 0,
             },
           };
@@ -123,7 +125,9 @@ export class TursoAdapter {
               success: true,
               meta: {
                 changes: result.rowsAffected,
-                last_row_id: result.lastInsertRowid,
+                last_row_id: typeof result.lastInsertRowid === 'bigint' 
+                  ? Number(result.lastInsertRowid) 
+                  : result.lastInsertRowid,
                 duration: result.duration || 0,
               },
             };
@@ -161,7 +165,9 @@ export class TursoAdapter {
         results: result.rows,
         meta: {
           changes: result.rowsAffected,
-          last_row_id: result.lastInsertRowid,
+          last_row_id: typeof result.lastInsertRowid === 'bigint' 
+            ? Number(result.lastInsertRowid) 
+            : result.lastInsertRowid,
         },
       }));
     } catch (error) {

@@ -103,17 +103,92 @@ function parseProducts(productsJson) {
 }
 
 /**
- * Export selected orders to SPX Excel format
+ * Convert Uint8Array to base64 in chunks to avoid blocking UI
  */
-async function exportToSPXExcel(orders) {
+function arrayBufferToBase64Chunked(buffer) {
+    return new Promise((resolve) => {
+        const uint8Array = new Uint8Array(buffer);
+        const chunkSize = 8192; // Process 8KB at a time
+        let binary = '';
+        let offset = 0;
+        
+        function processChunk() {
+            const end = Math.min(offset + chunkSize, uint8Array.length);
+            
+            // Process chunk
+            for (let i = offset; i < end; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            
+            offset = end;
+            
+            // If more chunks remain, schedule next chunk
+            if (offset < uint8Array.length) {
+                setTimeout(processChunk, 0); // Let UI breathe
+            } else {
+                // All done, convert to base64
+                resolve(btoa(binary));
+            }
+        }
+        
+        processChunk();
+    });
+}
+
+/**
+ * Export selected orders to SPX Excel format and save to R2
+ */
+async function exportToSPXExcelAndSave(orders) {
     if (!orders || orders.length === 0) {
         throw new Error('Không có đơn hàng nào để export');
     }
 
+    // Create Excel file
+    const { wb, filename, orderIds } = createSPXExcelWorkbook(orders);
+    
+    // Convert workbook to binary
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    
+    // Convert to base64 in chunks (non-blocking)
+    const base64 = await arrayBufferToBase64Chunked(wbout);
+    
+    // Save to R2 via API
+    const response = await fetch(`${CONFIG.API_URL}?action=saveExport`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            fileName: filename,
+            fileData: base64,
+            orderIds: orderIds,
+            orderCount: orders.length
+        })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+        throw new Error(data.error || 'Không thể lưu file export');
+    }
+    
+    return {
+        success: true,
+        exportId: data.exportId,
+        filename: filename,
+        count: orders.length
+    };
+}
+
+/**
+ * Create SPX Excel workbook (shared logic)
+ */
+function createSPXExcelWorkbook(orders) {
     // Prepare data rows
     const rows = [];
+    const orderIds = [];
     
     orders.forEach(order => {
+        orderIds.push(order.id);
+        
         const address = parseAddress(order.address);
         const products = parseProducts(order.products);
         
@@ -220,6 +295,15 @@ async function exportToSPXExcel(orders) {
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `SPX_DonHang_${timestamp}_${orders.length}don.xlsx`;
     
+    return { wb, filename, orderIds };
+}
+
+/**
+ * Export selected orders to SPX Excel format (legacy - download immediately)
+ */
+async function exportToSPXExcel(orders) {
+    const { wb, filename } = createSPXExcelWorkbook(orders);
+    
     // Write file in next tick to avoid blocking UI
     await new Promise(resolve => {
         setTimeout(() => {
@@ -232,6 +316,6 @@ async function exportToSPXExcel(orders) {
         success: true,
         filename: filename,
         count: orders.length,
-        rows: rows.length
+        rows: orders.length
     };
 }

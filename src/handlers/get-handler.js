@@ -49,6 +49,12 @@ import {
     searchCustomers 
 } from '../services/customers/customer-service.js';
 
+// Export History
+import { 
+    getExportHistory, 
+    downloadExport 
+} from '../services/orders/export-service.js';
+
 // Discounts
 import { 
     getAllDiscounts, 
@@ -301,6 +307,20 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'validateDiscount':
             return await validateDiscount(url, env, corsHeaders);
+
+        case 'getExportHistory':
+            return await getExportHistory(env).then(data => jsonResponse(data, 200, corsHeaders));
+
+        case 'downloadExport':
+            const exportId = url.searchParams.get('id');
+            const exportData = await downloadExport(exportId, env);
+            return new Response(exportData.file, {
+                headers: {
+                    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Content-Disposition': `attachment; filename="${exportData.fileName}"`,
+                    ...corsHeaders
+                }
+            });
 
         default:
             return jsonResponse({

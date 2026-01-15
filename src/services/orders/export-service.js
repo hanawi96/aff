@@ -1,0 +1,192 @@
+// Export History Service
+
+// Get export history
+export async function getExportHistory(env) {
+    const { results: exports } = await env.DB.prepare(`
+        SELECT 
+            id,
+            created_at,
+            order_count,
+            order_ids,
+            file_name,
+            status,
+            downloaded_at
+        FROM export_history
+        ORDER BY created_at DESC
+        LIMIT 50
+    `).all();
+
+    return {
+        success: true,
+        exports: exports
+    };
+}
+
+// Save export to R2 and database
+export async function saveExport(data, env) {
+    const { fileName, fileData, orderIds, orderCount } = data;
+
+    if (!fileName || !fileData || !orderIds) {
+        throw new Error('Missing required fields');
+    }
+
+    // Decode base64 file data
+    const fileBuffer = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
+    
+    // Generate file path
+    const timestamp = Date.now();
+    const filePath = `exports/${timestamp}_${fileName}`;
+
+    // Upload to R2
+    await env.R2_EXCEL_BUCKET.put(filePath, fileBuffer, {
+        httpMetadata: {
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+    });
+
+    // Save to database
+    const result = await env.DB.prepare(`
+        INSERT INTO export_history (created_at, order_count, order_ids, file_name, file_path, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+    `).bind(
+        timestamp,
+        orderCount,
+        JSON.stringify(orderIds),
+        fileName,
+        filePath
+    ).run();
+
+    // Check if insert was successful
+    if (!result.success) {
+        throw new Error(result.error || 'Failed to save to database');
+    }
+
+    // Convert BigInt to Number for JSON serialization
+    const exportId = result.meta?.last_row_id 
+        ? (typeof result.meta.last_row_id === 'bigint' 
+            ? Number(result.meta.last_row_id) 
+            : result.meta.last_row_id)
+        : timestamp;
+
+    return {
+        success: true,
+        exportId: exportId,
+        fileName: fileName
+    };
+}
+
+// Download export file
+export async function downloadExport(exportId, env) {
+    if (!exportId) {
+        throw new Error('Export ID is required');
+    }
+
+    // Get export info from database
+    const exportInfo = await env.DB.prepare(`
+        SELECT file_path, file_name, order_ids, status
+        FROM export_history
+        WHERE id = ?
+    `).bind(exportId).first();
+
+    if (!exportInfo) {
+        throw new Error('Export not found');
+    }
+
+    // Get file from R2
+    const object = await env.R2_EXCEL_BUCKET.get(exportInfo.file_path);
+    
+    if (!object) {
+        throw new Error('File not found in storage');
+    }
+
+    return {
+        file: object.body,
+        fileName: exportInfo.file_name,
+        orderIds: JSON.parse(exportInfo.order_ids)
+    };
+}
+
+// Mark export as downloaded and update order statuses
+export async function markExportDownloaded(exportId, env) {
+    if (!exportId) {
+        throw new Error('Export ID is required');
+    }
+
+    // Get export info
+    const exportInfo = await env.DB.prepare(`
+        SELECT order_ids, status
+        FROM export_history
+        WHERE id = ?
+    `).bind(exportId).first();
+
+    if (!exportInfo) {
+        throw new Error('Export not found');
+    }
+
+    // Update export status
+    const now = Date.now();
+    await env.DB.prepare(`
+        UPDATE export_history
+        SET status = 'downloaded', downloaded_at = ?, updated_at = ?
+        WHERE id = ?
+    `).bind(now, now, exportId).run();
+
+    // Update order statuses to "shipped"
+    const orderIds = JSON.parse(exportInfo.order_ids);
+    let updatedCount = 0;
+
+    for (const orderId of orderIds) {
+        try {
+            // Check current status
+            const order = await env.DB.prepare(`
+                SELECT status FROM orders WHERE id = ?
+            `).bind(orderId).first();
+
+            if (order && order.status !== 'shipped' && order.status !== 'in_transit' && 
+                order.status !== 'delivered' && order.status !== 'failed') {
+                
+                await env.DB.prepare(`
+                    UPDATE orders SET status = 'shipped' WHERE id = ?
+                `).bind(orderId).run();
+                
+                updatedCount++;
+            }
+        } catch (err) {
+            console.error(`Error updating order ${orderId}:`, err);
+        }
+    }
+
+    return {
+        success: true,
+        updatedCount: updatedCount
+    };
+}
+
+// Delete export
+export async function deleteExport(exportId, env) {
+    if (!exportId) {
+        throw new Error('Export ID is required');
+    }
+
+    // Get file path
+    const exportInfo = await env.DB.prepare(`
+        SELECT file_path FROM export_history WHERE id = ?
+    `).bind(exportId).first();
+
+    if (!exportInfo) {
+        throw new Error('Export not found');
+    }
+
+    // Delete from R2
+    await env.R2_EXCEL_BUCKET.delete(exportInfo.file_path);
+
+    // Delete from database
+    await env.DB.prepare(`
+        DELETE FROM export_history WHERE id = ?
+    `).bind(exportId).run();
+
+    return {
+        success: true,
+        message: 'Export deleted successfully'
+    };
+}

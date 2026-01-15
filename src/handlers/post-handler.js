@@ -62,6 +62,13 @@ import {
 
 import { getDiscountUsageHistory } from '../services/discounts/discount-usage.js';
 
+// Export History
+import { 
+    saveExport, 
+    markExportDownloaded, 
+    deleteExport 
+} from '../services/orders/export-service.js';
+
 // Settings
 import { getPackagingConfig, updatePackagingConfig } from '../services/settings/packaging.js';
 import { updateTaxRate } from '../services/settings/tax.js';
@@ -102,7 +109,16 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
     }
     
     // Read JSON body for other actions
-    const data = await request.json();
+    let data;
+    try {
+        data = await request.json();
+    } catch (error) {
+        console.error('Error parsing JSON body:', error);
+        return jsonResponse({
+            success: false,
+            error: 'Invalid JSON body: ' + error.message
+        }, 400, corsHeaders);
+    }
 
     switch (action) {
         case 'login':
@@ -139,6 +155,12 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await toggleDiscountStatus(data, env, corsHeaders);
         case 'getDiscountUsageHistory':
             return await getDiscountUsageHistory(env, corsHeaders);
+        case 'saveExport':
+            return await saveExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'markExportDownloaded':
+            return await markExportDownloaded(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'deleteExport':
+            return await deleteExport(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
         default:
             return jsonResponse({
                 success: false,
