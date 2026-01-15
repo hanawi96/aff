@@ -206,8 +206,9 @@ async function bulkExport() {
             // Clear selection
             clearSelection();
             
-            // Update badge
-            updateExportHistoryBadge();
+            // Invalidate cache and update badge
+            exportHistoryCache = null;
+            await updateExportHistoryBadge();
             
             // Show export history modal
             showExportHistoryModal();
@@ -238,14 +239,39 @@ function loadXLSXLibrary() {
 // EXPORT HISTORY FUNCTIONS
 // ============================================
 
-// Load and update export history badge
+// Cache for export history to avoid duplicate API calls
+let exportHistoryCache = null;
+let exportHistoryCacheTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds
+
+// Load export history with caching
+async function loadExportHistory(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Return cache if valid and not forcing refresh
+    if (!forceRefresh && exportHistoryCache && (now - exportHistoryCacheTime < CACHE_DURATION)) {
+        return exportHistoryCache;
+    }
+    
+    // Fetch fresh data
+    const response = await fetch(`${CONFIG.API_URL}?action=getExportHistory&timestamp=${now}`);
+    const data = await response.json();
+    
+    if (data.success) {
+        exportHistoryCache = data;
+        exportHistoryCacheTime = now;
+        return data;
+    }
+    
+    throw new Error(data.error || 'Không thể tải lịch sử export');
+}
+
+// Update export history badge
 async function updateExportHistoryBadge() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}?action=getExportHistory&timestamp=${Date.now()}`);
-        const data = await response.json();
+        const data = await loadExportHistory();
         
-        if (data.success && data.exports) {
-            // Count pending exports (not downloaded yet)
+        if (data.exports) {
             const pendingCount = data.exports.filter(exp => exp.status === 'pending').length;
             
             const badge = document.getElementById('exportHistoryBadge');
@@ -266,13 +292,8 @@ async function updateExportHistoryBadge() {
 // Show export history modal
 async function showExportHistoryModal() {
     try {
-        // Load export history
-        const response = await fetch(`${CONFIG.API_URL}?action=getExportHistory&timestamp=${Date.now()}`);
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Không thể tải lịch sử export');
-        }
+        // Use cached data
+        const data = await loadExportHistory();
         
         // Create modal
         const modal = document.createElement('div');
@@ -281,7 +302,7 @@ async function showExportHistoryModal() {
         modal.innerHTML = `
             <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
                 <!-- Header -->
-                <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                             <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -431,8 +452,9 @@ async function downloadAndUpdateExport(exportId) {
         if (data.success) {
             showToast(`✅ Đã tải file và cập nhật ${data.updatedCount} đơn sang "Đã gửi hàng"`, 'success');
             
-            // Update badge
-            updateExportHistoryBadge();
+            // Invalidate cache and update badge
+            exportHistoryCache = null;
+            await updateExportHistoryBadge();
             
             // Reload orders and close modal
             await loadOrdersData();
@@ -464,8 +486,9 @@ async function deleteExportFile(exportId) {
         
         if (data.success) {
             showToast('Đã xóa file export', 'success');
-            // Update badge
-            updateExportHistoryBadge();
+            // Invalidate cache and update badge
+            exportHistoryCache = null;
+            await updateExportHistoryBadge();
             // Reload modal
             closeExportHistoryModal();
             setTimeout(() => showExportHistoryModal(), 300);

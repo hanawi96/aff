@@ -56,22 +56,19 @@ export async function saveExport(data, env) {
         filePath
     ).run();
 
-    // Check if insert was successful
     if (!result.success) {
         throw new Error(result.error || 'Failed to save to database');
     }
 
-    // Convert BigInt to Number for JSON serialization
-    const exportId = result.meta?.last_row_id 
-        ? (typeof result.meta.last_row_id === 'bigint' 
-            ? Number(result.meta.last_row_id) 
-            : result.meta.last_row_id)
-        : timestamp;
+    // Convert BigInt to Number (Turso returns BigInt)
+    const exportId = typeof result.meta?.last_row_id === 'bigint' 
+        ? Number(result.meta.last_row_id) 
+        : (result.meta?.last_row_id || timestamp);
 
     return {
         success: true,
-        exportId: exportId,
-        fileName: fileName
+        exportId,
+        fileName
     };
 }
 

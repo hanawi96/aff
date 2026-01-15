@@ -297,25 +297,3 @@ function createSPXExcelWorkbook(orders) {
     
     return { wb, filename, orderIds };
 }
-
-/**
- * Export selected orders to SPX Excel format (legacy - download immediately)
- */
-async function exportToSPXExcel(orders) {
-    const { wb, filename } = createSPXExcelWorkbook(orders);
-    
-    // Write file in next tick to avoid blocking UI
-    await new Promise(resolve => {
-        setTimeout(() => {
-            XLSX.writeFile(wb, filename);
-            resolve();
-        }, 0);
-    });
-    
-    return {
-        success: true,
-        filename: filename,
-        count: orders.length,
-        rows: orders.length
-    };
-}
