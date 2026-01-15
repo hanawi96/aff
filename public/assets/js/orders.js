@@ -225,50 +225,63 @@ async function bulkExport() {
     }
 }
 
-// Update orders status one by one (using Promise chain to avoid blocking)
+// Update orders status using requestIdleCallback for optimal performance
 function updateOrdersStatusBackground(orders) {
     const total = orders.length;
+    const batchSize = 5; // Process 5 orders at a time
+    let currentBatch = 0;
     let successCount = 0;
-    let currentIndex = 0;
     
-    function updateNext() {
-        if (currentIndex >= orders.length) {
-            // All done - render and show toast
+    function processBatch() {
+        const startIdx = currentBatch * batchSize;
+        const endIdx = Math.min(startIdx + batchSize, orders.length);
+        const batch = orders.slice(startIdx, endIdx);
+        
+        if (batch.length === 0) {
+            // All done
             renderOrdersTable();
             showToast(`✅ Đã cập nhật ${successCount}/${total} đơn sang "Đã gửi hàng"`, 'success');
             return;
         }
         
-        const order = orders[currentIndex];
-        currentIndex++;
-        
-        fetch(`${CONFIG.API_URL}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'updateOrderStatus',
-                orderId: order.id,
-                status: 'shipped'
+        // Process batch in parallel
+        const batchPromises = batch.map(order =>
+            fetch(`${CONFIG.API_URL}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'updateOrderStatus',
+                    orderId: order.id,
+                    status: 'shipped'
+                })
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateOrderData(order.id, { status: 'shipped' });
-                successCount++;
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateOrderData(order.id, { status: 'shipped' });
+                    successCount++;
+                }
+            })
+            .catch(err => {
+                console.error(`Error updating order ${order.order_id}:`, err);
+            })
+        );
+        
+        // Wait for batch to complete, then schedule next batch
+        Promise.allSettled(batchPromises).then(() => {
+            currentBatch++;
+            
+            // Use requestIdleCallback if available, otherwise setTimeout
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(() => processBatch(), { timeout: 1000 });
+            } else {
+                setTimeout(processBatch, 50);
             }
-        })
-        .catch(err => {
-            console.error(`Error updating order ${order.order_id}:`, err);
-        })
-        .finally(() => {
-            // Continue with next order
-            setTimeout(updateNext, 50);
         });
     }
     
-    // Start the chain
-    updateNext();
+    // Start processing
+    processBatch();
 }
 
 // Load XLSX library dynamically
