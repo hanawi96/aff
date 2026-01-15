@@ -179,7 +179,7 @@ function clearSelection() {
     updateBulkActionsUI();
 }
 
-// Bulk Export - Export selected orders to Excel/CSV
+// Bulk Export - Export selected orders to SPX Excel format
 async function bulkExport() {
     if (selectedOrderIds.size === 0) {
         showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
@@ -187,37 +187,43 @@ async function bulkExport() {
     }
 
     try {
+        // Check if XLSX library is loaded
+        if (typeof XLSX === 'undefined') {
+            showToast('Đang tải thư viện Excel...', 'info');
+            // Load XLSX library dynamically
+            await loadXLSXLibrary();
+        }
+
         const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
-
-        // Create CSV content
-        let csv = 'Mã đơn,Khách hàng,SĐT,Địa chỉ,Sản phẩm,Giá trị,Ngày đặt,Trạng thái\n';
-
-        selectedOrders.forEach(order => {
-            const products = order.products_display || order.products || '';
-            const productsText = products.replace(/"/g, '""'); // Escape quotes
-
-            csv += `"${order.order_id}",`;
-            csv += `"${order.customer_name || ''}",`;
-            csv += `"${order.customer_phone || ''}",`;
-            csv += `"${(order.address || '').replace(/"/g, '""')}",`;
-            csv += `"${productsText}",`;
-            csv += `"${order.total_amount || 0}",`;
-            csv += `"${formatDateTime(order.created_at || order.order_date)}",`;
-            csv += `"${order.status || 'pending'}"\n`;
-        });
-
-        // Download CSV
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `don-hang-${Date.now()}.csv`;
-        link.click();
-
-        showToast(`Đã export ${selectedOrderIds.size} đơn hàng`, 'success');
+        
+        showToast('Đang tạo file Excel...', 'info');
+        
+        // Export to SPX format
+        const result = await exportToSPXExcel(selectedOrders);
+        
+        if (result.success) {
+            showToast(`✅ Đã export ${result.count} đơn hàng (${result.rows} dòng) - ${result.filename}`, 'success');
+        }
     } catch (error) {
         console.error('Error exporting:', error);
         showToast('Không thể export: ' + error.message, 'error');
     }
+}
+
+// Load XLSX library dynamically
+function loadXLSXLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof XLSX !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Không thể tải thư viện Excel'));
+        document.head.appendChild(script);
+    });
 }
 
 // Show bulk status menu
@@ -1963,6 +1969,29 @@ async function copySPXFormat(orderId) {
         return;
     }
 
+    // Helper function to format product name with size/weight
+    // Logic: Only "cm" suffix = size tay, everything else = cân nặng (kg)
+    function formatProductNameWithSize(name, size) {
+        if (!size) return name;
+        
+        const sizeStr = size.toString().toLowerCase().trim();
+        
+        // Check if size contains 'cm' - for bracelet size
+        if (sizeStr.includes('cm')) {
+            const cmValue = sizeStr.replace(/[^0-9.]/g, '');
+            return `${name} cho size tay ${cmValue}cm`;
+        }
+        
+        // Everything else is weight (kg) - including numbers without suffix
+        const kgValue = sizeStr.replace(/[^0-9.]/g, '');
+        if (kgValue) {
+            return `${name} cho bé ${kgValue}kg`;
+        }
+        
+        // If no number found, return as is
+        return name;
+    }
+
     // Parse products
     let productsText = '';
     if (order.products) {
@@ -1971,6 +2000,7 @@ async function copySPXFormat(orderId) {
             // Try parse JSON
             try {
                 products = JSON.parse(order.products);
+                console.log('📦 Copy SPX - Parsed products:', products);
             } catch (e) {
                 // If not JSON, parse text format
                 const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
@@ -1981,23 +2011,27 @@ async function copySPXFormat(orderId) {
                     }
                     return { name: line, quantity: 1 };
                 });
+                console.log('📦 Copy SPX - Parsed text products:', products);
             }
 
             // Format each product
             const productLines = products.map((product, index) => {
                 const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
                 const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
+                const size = typeof product === 'object' && product.size ? product.size : null;
                 const weight = typeof product === 'object' && product.weight ? product.weight : null;
                 const notes = typeof product === 'object' && product.notes ? product.notes : null;
 
-                // Build product line
-                let line = name;
-                line += ` - Số lượng: ${quantity}`;
+                // Determine which field to use for formatting
+                // Priority: size > weight
+                let sizeOrWeight = size || weight;
+                
+                // Format product name with size/weight (like Excel export)
+                const formattedName = formatProductNameWithSize(name, sizeOrWeight);
 
-                // Add size (weight or size) if exists
-                if (weight) {
-                    line += ` - Size: ${weight}`;
-                }
+                // Build product line
+                let line = formattedName;
+                line += ` - Số lượng: ${quantity}`;
 
                 // Add notes if exists
                 if (notes) {
