@@ -738,7 +738,7 @@ async function showAddOrderModal(duplicateData = null) {
                                     <div class="flex justify-between items-center text-sm py-1">
                                         <div class="flex items-center gap-1.5">
                                             <span class="text-gray-500">- Chi phí</span>
-                                            <button onclick="event.stopPropagation(); document.getElementById('profitPackagingDetails').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180');" 
+                                            <button onclick="event.stopPropagation(); document.getElementById('profitCostDetails').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180');" 
                                                 class="text-gray-400 hover:text-blue-600 transition-all duration-200 p-0.5 rounded hover:bg-blue-50" 
                                                 title="Xem chi tiết">
                                                 <svg class="w-3.5 h-3.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -746,29 +746,35 @@ async function showAddOrderModal(duplicateData = null) {
                                                 </svg>
                                             </button>
                                         </div>
-                                        <span id="profitPackaging" class="text-gray-600">0đ</span>
+                                        <span id="profitTotalCosts" class="text-gray-600">0đ</span>
                                     </div>
-                                    <div class="pl-6 space-y-1.5 hidden" id="profitPackagingDetails">
-                                        <div class="flex justify-between items-center text-xs py-0.5">
-                                            <span class="text-gray-400">• Dây đỏ + Công</span>
-                                            <span id="profitPackagingPerProduct" class="text-gray-500">0đ</span>
-                                        </div>
+                                    <div class="pl-6 space-y-1.5 hidden" id="profitCostDetails">
                                         <div class="flex justify-between items-center text-xs py-0.5">
                                             <span class="text-gray-400">• Đóng gói</span>
-                                            <span id="profitPackagingPerOrder" class="text-gray-500">0đ</span>
+                                            <span id="profitPackaging" class="text-gray-500">0đ</span>
                                         </div>
-                                    </div>
-                                    <div class="flex justify-between items-center text-sm py-1">
-                                        <span class="text-gray-500">- Phí ship thực tế</span>
-                                        <span id="profitShipping" class="text-gray-600">0đ</span>
+                                        <div class="pl-3 space-y-1 mt-1">
+                                            <div class="flex justify-between items-center text-xs py-0.5">
+                                                <span class="text-gray-400">- Dây đỏ + Công</span>
+                                                <span id="profitPackagingPerProduct" class="text-gray-400">0đ</span>
+                                            </div>
+                                            <div class="flex justify-between items-center text-xs py-0.5">
+                                                <span class="text-gray-400">- Túi + Hộp</span>
+                                                <span id="profitPackagingPerOrder" class="text-gray-400">0đ</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span class="text-gray-400">• Phí ship thực tế</span>
+                                            <span id="profitShipping" class="text-gray-500">0đ</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-xs py-0.5">
+                                            <span id="profitTaxLabel" class="text-gray-400">• Thuế</span>
+                                            <span id="profitTax" class="text-gray-500">0đ</span>
+                                        </div>
                                     </div>
                                     <div class="flex justify-between items-center text-sm py-1">
                                         <span id="profitCommissionLabel" class="text-gray-500">- Hoa hồng</span>
                                         <span id="profitCommission" class="text-gray-600">0đ</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-sm py-1">
-                                        <span id="profitTaxLabel" class="text-gray-500">- Thuế</span>
-                                        <span id="profitTax" class="text-gray-600">0đ</span>
                                     </div>
                                 </div>
                             </div>

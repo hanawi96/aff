@@ -140,6 +140,12 @@ function updateOrderSummary() {
     }
 
     document.getElementById('profitCost').textContent = formatCurrency(productCost);
+    
+    // Update total costs (packaging + shipping + tax) - displayed in collapsed view
+    const totalCostsWithoutCommission = totalPackaging + shippingCost + tax;
+    document.getElementById('profitTotalCosts').textContent = formatCurrency(totalCostsWithoutCommission);
+    
+    // Update individual cost items (shown when expanded)
     document.getElementById('profitPackaging').textContent = formatCurrency(totalPackaging);
     document.getElementById('profitPackagingPerProduct').textContent = formatCurrency(packagingPerProductCost);
     document.getElementById('profitPackagingPerOrder').textContent = formatCurrency(packagingPerOrderCost);
@@ -156,14 +162,14 @@ function updateOrderSummary() {
         commissionValue.textContent = '0đ';
     }
 
-    // Update tax display
+    // Update tax display (in expanded view)
     const taxLabel = document.getElementById('profitTaxLabel');
     const taxValue = document.getElementById('profitTax');
     if (tax > 0) {
-        taxLabel.textContent = `- Thuế (${(taxRate * 100).toFixed(1)}%)`;
+        taxLabel.textContent = `• Thuế (${(taxRate * 100).toFixed(1)}%)`;
         taxValue.textContent = formatCurrency(tax);
     } else {
-        taxLabel.textContent = '- Thuế';
+        taxLabel.textContent = '• Thuế';
         taxValue.textContent = '0đ';
     }
 
