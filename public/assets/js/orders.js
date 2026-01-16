@@ -309,7 +309,7 @@ async function showAddOrderModal(duplicateData = null) {
             </div>
 
             <!-- Content -->
-            <div class="p-6 overflow-y-auto flex-1">
+            <div class="flex-1 overflow-y-auto p-6">
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <!-- Left: Order Info (2 cols) -->
                     <div class="lg:col-span-2 space-y-3">
@@ -754,17 +754,29 @@ async function showAddOrderModal(duplicateData = null) {
                     </div>
                 </div>
             </div>
+            </div>
+            <!-- End Content -->
 
             <!-- Footer -->
-            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3 border-t border-gray-200 flex-shrink-0">
-                <button onclick="closeAddOrderModal()" class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
-                    Hủy
-                </button>
-                <button onclick="submitNewOrder()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Tạo đơn hàng
-                </button>
+            <div class="bg-white px-8 py-4 rounded-b-2xl flex items-center justify-between border-t border-gray-200 flex-shrink-0">
+                <div class="flex items-center gap-2 text-gray-500 text-sm">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Kiểm tra kỹ thông tin trước khi tạo đơn</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="closeAddOrderModal()" class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
+                        Hủy
+                    </button>
+                    <button onclick="submitNewOrder()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                        Tạo đơn hàng
+                    </button>
+                </div>
             </div>
+            <!-- End Footer -->
         </div>
+        <!-- End Modal Container -->
     `;
 
     document.body.appendChild(modal);
