@@ -50,6 +50,32 @@ async function submitNewOrder() {
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0;
     const orderNotes = document.getElementById('newOrderNotes')?.value.trim() || '';
 
+    // Get address data (both text and structured)
+    const provinceSelect = document.getElementById('newOrderProvince');
+    const districtSelect = document.getElementById('newOrderDistrict');
+    const wardSelect = document.getElementById('newOrderWard');
+    
+    const provinceId = provinceSelect?.value || null;
+    const districtId = districtSelect?.value || null;
+    const wardId = wardSelect?.value || null;
+    const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
+    
+    // Get names from selected options
+    const provinceName = provinceSelect?.selectedOptions[0]?.text || null;
+    const districtName = districtSelect?.selectedOptions[0]?.text || null;
+    const wardName = wardSelect?.selectedOptions[0]?.text || null;
+
+    console.log('📍 Address data:', {
+        address,
+        provinceId,
+        provinceName,
+        districtId,
+        districtName,
+        wardId,
+        wardName,
+        streetAddress
+    });
+
     // Get discount data
     const discountId = document.getElementById('appliedDiscountId')?.value || null;
     const discountCode = document.getElementById('appliedDiscountCode')?.value || null;
@@ -72,6 +98,13 @@ async function submitNewOrder() {
             phone: customerPhone
         },
         address: address,
+        province_id: provinceId,
+        province_name: provinceName,
+        district_id: districtId,
+        district_name: districtName,
+        ward_id: wardId,
+        ward_name: wardName,
+        street_address: streetAddress,
         paymentMethod: paymentMethod,
         payment_method: paymentMethod,
         status: status,

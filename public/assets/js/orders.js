@@ -17,6 +17,7 @@ let packagingConfig = [];
 // Product and order management variables
 let allProductsList = [];
 let allCategoriesList = [];
+let allDiscountsList = [];
 let currentOrderProducts = [];
 let currentOrderNotes = '';
 let selectedCategory = null;
@@ -449,13 +450,30 @@ async function showAddOrderModal(duplicateData = null) {
                             </div>
                             
                             <div class="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    id="newOrderDiscountCode" 
-                                    placeholder="Nhập mã (VD: GG5K)" 
-                                    class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase font-medium"
-                                    oninput="this.value = this.value.toUpperCase()"
-                                />
+                                <div class="flex-1 relative">
+                                    <input 
+                                        type="text" 
+                                        id="newOrderDiscountCode" 
+                                        placeholder="Nhập mã hoặc chọn từ danh sách" 
+                                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase font-medium"
+                                        oninput="this.value = this.value.toUpperCase()"
+                                    />
+                                    <!-- Discount Dropdown - Dropup (mở lên trên) -->
+                                    <div id="discountDropdown" class="hidden absolute bottom-full left-0 mb-1 w-[600px] bg-white rounded-xl shadow-2xl border-2 border-purple-200 max-h-[400px] overflow-y-auto" style="z-index: 1000;">
+                                        <div id="discountDropdownContent"></div>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onclick="toggleDiscountDropdown(event)"
+                                    class="px-3 py-1.5 bg-white border border-purple-300 text-purple-600 text-sm font-semibold rounded-lg hover:bg-purple-50 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                    title="Chọn mã từ danh sách"
+                                >
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                    </svg>
+                                    Chọn
+                                </button>
                                 <button 
                                     type="button"
                                     onclick="applyDiscountCode()"

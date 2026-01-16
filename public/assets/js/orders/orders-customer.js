@@ -104,6 +104,8 @@ async function checkCustomerStatus(phone) {
 
 // Auto-fill form with last order info
 window.autoFillLastOrder = async function autoFillLastOrder(phone) {
+    console.log('🔍 [AutoFill] Starting auto-fill for phone:', phone);
+    
     try {
         // Show loading toast
         const loadingId = showToast('Đang tải thông tin...', 'info');
@@ -112,66 +114,81 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
         const response = await fetch(`${CONFIG.API_URL}?action=getCustomerDetail&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`);
 
         if (!response.ok) {
+            console.error('❌ [AutoFill] API response not OK:', response.status);
             showToast('Không thể tải thông tin khách hàng', 'error', null, loadingId);
             return;
         }
 
         const data = await response.json();
+        console.log('📦 [AutoFill] API response data:', data);
 
         if (data.success && data.customer && data.customer.orders && data.customer.orders.length > 0) {
             const lastOrder = data.customer.orders[0]; // First order is the most recent
+            console.log('📋 [AutoFill] Last order data:', lastOrder);
 
             // Fill customer name
             const nameInput = document.getElementById('newOrderCustomerName');
             if (nameInput && data.customer.name) {
                 nameInput.value = data.customer.name;
+                console.log('✅ [AutoFill] Filled customer name:', data.customer.name);
             }
 
             // Fill address 4 levels using address selector
+            console.log('🏠 [AutoFill] Checking address selector...');
+            console.log('  - window.addressSelector exists:', !!window.addressSelector);
+            console.log('  - lastOrder.province_id:', lastOrder.province_id);
+            console.log('  - lastOrder.district_id:', lastOrder.district_id);
+            console.log('  - lastOrder.ward_id:', lastOrder.ward_id);
+            console.log('  - lastOrder.street_address:', lastOrder.street_address);
+            
             if (window.addressSelector && lastOrder.province_id) {
+                console.log('🔧 [AutoFill] Using address selector to set address...');
+                
                 // Use address selector to set values
                 window.addressSelector.setAddress({
                     province_id: lastOrder.province_id,
                     district_id: lastOrder.district_id,
                     ward_id: lastOrder.ward_id
                 });
+                console.log('✅ [AutoFill] Called setAddress()');
 
                 // Fill street address
                 if (lastOrder.street_address) {
                     const streetInput = document.getElementById('newOrderStreetAddress');
                     if (streetInput) {
                         streetInput.value = lastOrder.street_address;
+                        console.log('✅ [AutoFill] Filled street address:', lastOrder.street_address);
                     }
                 }
 
-                // Update address preview after a delay (wait for dropdowns to populate)
+                // Update address preview after dropdowns are populated
+                console.log('⏳ [AutoFill] Waiting 500ms for dropdowns to populate...');
                 setTimeout(() => {
-                    const fullAddress = window.addressSelector.generateFullAddress(
-                        lastOrder.street_address || '',
-                        lastOrder.province_id,
-                        lastOrder.district_id,
-                        lastOrder.ward_id
-                    );
-
-                    // Update preview text
+                    console.log('🔄 [AutoFill] Triggering address update...');
+                    // Trigger the address update event
+                    const streetInput = document.getElementById('newOrderStreetAddress');
+                    if (streetInput) {
+                        streetInput.dispatchEvent(new Event('input'));
+                        console.log('✅ [AutoFill] Triggered input event on street address');
+                    }
+                    
+                    // Log final state
                     const addressPreview = document.getElementById('newOrderAddressPreview');
-                    if (addressPreview && fullAddress) {
-                        addressPreview.textContent = fullAddress;
-                    }
-
-                    // Update hidden input
                     const hiddenAddress = document.getElementById('newOrderAddress');
-                    if (hiddenAddress && fullAddress) {
-                        hiddenAddress.value = fullAddress;
-                    }
-                }, 300);
+                    console.log('📍 [AutoFill] Final address state:');
+                    console.log('  - Preview text:', addressPreview?.textContent);
+                    console.log('  - Hidden input value:', hiddenAddress?.value);
+                }, 500); // Increased timeout to ensure dropdowns are ready
             } else {
+                console.log('⚠️ [AutoFill] Address selector not available or no province_id, using fallback...');
                 // Fallback: Fill address text field if available
                 if (lastOrder.address) {
+                    console.log('📝 [AutoFill] Using fallback address:', lastOrder.address);
                     // Update hidden input
                     const addressInput = document.getElementById('newOrderAddress');
                     if (addressInput) {
                         addressInput.value = lastOrder.address;
+                        console.log('✅ [AutoFill] Set hidden address input');
                     }
                     
                     // Update preview text
@@ -180,6 +197,7 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
                         addressPreview.textContent = lastOrder.address;
                         addressPreview.classList.remove('text-gray-400');
                         addressPreview.classList.add('text-gray-700');
+                        console.log('✅ [AutoFill] Set address preview');
                     }
                 }
             }
@@ -191,15 +209,18 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
                     ctvInput.value = lastOrder.referral_code;
                     // Trigger verification
                     ctvInput.dispatchEvent(new Event('blur'));
+                    console.log('✅ [AutoFill] Filled CTV code:', lastOrder.referral_code);
                 }
             }
 
+            console.log('✅ [AutoFill] Auto-fill completed successfully');
             showToast('✅ Đã điền thông tin từ đơn gần nhất', 'success', null, loadingId);
         } else {
+            console.warn('⚠️ [AutoFill] No orders found for customer');
             showToast('Không tìm thấy đơn hàng trước đó', 'warning', null, loadingId);
         }
     } catch (error) {
-        console.error('Error auto-filling order:', error);
+        console.error('❌ [AutoFill] Error:', error);
         showToast('Có lỗi khi tải thông tin', 'error');
     }
 }

@@ -2,10 +2,7 @@
 // TIMEZONE UTILITIES FOR ORDERS
 // ============================================
 // Custom date picker and timezone utilities for orders filter
-
-// Vietnam timezone constant
-const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
-const VN_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7 in milliseconds
+// Uses VIETNAM_TIMEZONE and VN_OFFSET_MS from timezone-utils.js
 
 /**
  * Convert UTC timestamp/date string to Vietnam Date object

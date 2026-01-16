@@ -138,7 +138,9 @@ function showDiscountSuccess(discount, discountAmount) {
     document.getElementById('discountTitle').textContent = discount.code;
 
     let description = '';
-    if (discount.type === 'fixed') {
+    if (discount.type === 'custom') {
+        description = discount.title || 'Giảm giá tùy chỉnh';
+    } else if (discount.type === 'fixed') {
         description = `Giảm ${formatCurrency(discount.discount_value)}`;
     } else if (discount.type === 'percentage') {
         description = `Giảm ${discount.discount_value}%`;
