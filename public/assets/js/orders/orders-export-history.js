@@ -363,6 +363,18 @@ function updateSelectionUI() {
     if (bulkActionsEl) {
         if (count > 0) {
             bulkActionsEl.classList.remove('hidden');
+            
+            // Show/hide "Gộp & Tải" and "Tải từng file" buttons based on count (>= 2)
+            const mergeButton = bulkActionsEl.querySelector('button[onclick="bulkMergeAndDownloadExports()"]');
+            const downloadButton = bulkActionsEl.querySelector('button[onclick="bulkDownloadExports()"]');
+            
+            if (count >= 2) {
+                if (mergeButton) mergeButton.classList.remove('hidden');
+                if (downloadButton) downloadButton.classList.remove('hidden');
+            } else {
+                if (mergeButton) mergeButton.classList.add('hidden');
+                if (downloadButton) downloadButton.classList.add('hidden');
+            }
         } else {
             bulkActionsEl.classList.add('hidden');
         }
