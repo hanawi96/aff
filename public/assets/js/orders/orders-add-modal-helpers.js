@@ -33,7 +33,7 @@ function updateOrderSummary() {
 
     currentOrderProducts.forEach(product => {
         const price = parseFloat(product.price) || 0;
-        const cost = parseFloat(product.cost) || 0;
+        const cost = parseFloat(product.cost_price) || 0;  // FIX: đổi từ product.cost → product.cost_price
         const quantity = parseInt(product.quantity) || 1;
         
         productTotal += price * quantity;
@@ -47,30 +47,44 @@ function updateOrderSummary() {
     // Calculate revenue (product total + shipping fee - discount)
     const totalRevenue = productTotal + shippingFee - discountAmount;
 
-    // Calculate packaging costs
-    const packagingPerProduct = packagingConfig.find(item => item.item_name === 'packaging_per_product')?.item_cost || 2000;
-    const packagingPerOrder = packagingConfig.find(item => item.item_name === 'packaging_per_order')?.item_cost || 5000;
-    const totalPackaging = (packagingPerProduct * productCount) + packagingPerOrder;
+    // Calculate packaging costs - use actual config values
+    let packagingPerProductCost = 0;
+    let packagingPerOrderCost = 0;
+    
+    // Per-product items
+    const redString = packagingConfig.find(item => item.item_name === 'red_string')?.item_cost || 0;
+    const laborCost = packagingConfig.find(item => item.item_name === 'labor_cost')?.item_cost || 0;
+    packagingPerProductCost = (redString + laborCost) * productCount;
+    
+    // Per-order items
+    const bagZip = packagingConfig.find(item => item.item_name === 'bag_zip')?.item_cost || 0;
+    const bagRed = packagingConfig.find(item => item.item_name === 'bag_red')?.item_cost || 0;
+    const boxShipping = packagingConfig.find(item => item.item_name === 'box_shipping')?.item_cost || 0;
+    const thankCard = packagingConfig.find(item => item.item_name === 'thank_card')?.item_cost || 0;
+    const paperPrint = packagingConfig.find(item => item.item_name === 'paper_print')?.item_cost || 0;
+    packagingPerOrderCost = bagZip + bagRed + boxShipping + thankCard + paperPrint;
+    
+    const totalPackaging = packagingPerProductCost + packagingPerOrderCost;
 
     // Calculate commission (only if referral code exists)
     let commission = 0;
     let commissionRate = 0;
     if (referralCode) {
-        // Get commission rate from CTV data if available
-        const ctvData = window.currentCTVData;
-        if (ctvData && ctvData.commission_rate !== undefined) {
-            commissionRate = parseFloat(ctvData.commission_rate) || 0;
+        // Get commission rate from hidden input (set by CTV verification)
+        const commissionRateInput = document.getElementById('ctvCommissionRate');
+        if (commissionRateInput && commissionRateInput.value) {
+            commissionRate = parseFloat(commissionRateInput.value) || 0;
         } else {
-            // Default commission rate
-            commissionRate = 0.05; // 5%
+            // Default commission rate if not verified yet
+            commissionRate = 0.1; // 10%
         }
+        // Commission calculated on product total only (not including shipping, not including discount)
         commission = productTotal * commissionRate;
     }
 
-    // Calculate tax
-    const taxRate = window.currentTaxRate || 0;
-    const taxableAmount = totalRevenue - shippingFee; // Tax on products only, not shipping
-    const tax = taxableAmount * taxRate;
+    // Calculate tax on total revenue (same as calculateOrderProfit)
+    const taxRate = COST_CONSTANTS.TAX_RATE || 0;
+    const tax = Math.round(totalRevenue * taxRate);
 
     // Calculate total costs
     const totalCosts = productCost + totalPackaging + shippingCost + commission + tax;
@@ -109,8 +123,8 @@ function updateOrderSummary() {
 
     document.getElementById('profitCost').textContent = formatCurrency(productCost);
     document.getElementById('profitPackaging').textContent = formatCurrency(totalPackaging);
-    document.getElementById('profitPackagingPerProduct').textContent = formatCurrency(packagingPerProduct * productCount);
-    document.getElementById('profitPackagingPerOrder').textContent = formatCurrency(packagingPerOrder);
+    document.getElementById('profitPackagingPerProduct').textContent = formatCurrency(packagingPerProductCost);
+    document.getElementById('profitPackagingPerOrder').textContent = formatCurrency(packagingPerOrderCost);
     document.getElementById('profitShipping').textContent = formatCurrency(shippingCost);
     
     // Update commission display

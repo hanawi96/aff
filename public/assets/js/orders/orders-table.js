@@ -184,10 +184,25 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center';
     const paymentMethod = order.payment_method || 'COD';
     const paymentMethodDisplay = paymentMethod === 'COD' ? 'Tiền mặt' : paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : paymentMethod;
+    
+    // Calculate actual order value: total_amount should include shipping_fee
+    // But if it doesn't, calculate it: product_total + shipping_fee - discount
+    const shippingFee = order.shipping_fee || 0;
+    const discountAmount = order.discount_amount || 0;
+    
+    // Use total_amount from DB (should be correct if triggers are working)
+    // If total_amount seems wrong (= 0 or doesn't include shipping), recalculate
+    let displayAmount = order.total_amount || 0;
+    
+    // Fallback: If total_amount is 0 or suspiciously low, recalculate
+    if (displayAmount === 0 && order.product_total) {
+        displayAmount = (order.product_total || 0) + shippingFee - discountAmount;
+    }
+    
     tdAmount.innerHTML = `
         <div class="flex flex-col gap-1.5 items-center">
             <div class="group cursor-pointer hover:bg-green-50 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-2" onclick="editAmount(${order.id}, '${escapeHtml(order.order_id)}')">
-                <span class="text-sm font-bold text-green-600">${formatCurrency(order.total_amount || 0)}</span>
+                <span class="text-sm font-bold text-green-600">${formatCurrency(displayAmount)}</span>
                 <button class="opacity-0 group-hover:opacity-100 transition-opacity text-green-600 hover:text-green-700" title="Chỉnh sửa giá trị">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

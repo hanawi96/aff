@@ -69,17 +69,22 @@ async function submitNewOrder() {
             phone: customerPhone
         },
         address: address,
+        paymentMethod: paymentMethod,
         payment_method: paymentMethod,
         status: status,
         referralCode: referralCode || null,
+        shippingFee: shippingFee,
         shipping_fee: shippingFee,
+        shippingCost: shippingCost,
         shipping_cost: shippingCost,
         total: totalAmount,
         totalAmount: totalAmount,
         cart: currentOrderProducts, // Products array
         notes: orderNotes || null,
         discount_id: discountId,
+        discountCode: discountCode,
         discount_code: discountCode,
+        discountAmount: discountAmount,
         discount_amount: discountAmount
     };
 

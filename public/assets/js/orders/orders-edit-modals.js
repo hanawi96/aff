@@ -142,7 +142,7 @@ function editProductName(productId, orderId, orderCode) {
                             min="1"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập số lượng"
-                            oninput="calculateEditModalProfit('quantity')"
+                            oninput="updateEditModalTotalPrices()"
                         />
                     </div>
                     <div>
@@ -172,7 +172,6 @@ function editProductName(productId, orderId, orderCode) {
                             value=""
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá bán"
-                            oninput="calculateEditModalProfit('price')"
                         />
                         <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
@@ -188,34 +187,13 @@ function editProductName(productId, orderId, orderCode) {
                             value=""
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá vốn"
-                            oninput="calculateEditModalProfit('cost')"
                         />
                         <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
                         </div>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 -mt-2">💡 Nhập tổng tiền cho tất cả sản phẩm. Đơn giá sẽ tự động tính = tổng tiền ÷ số lượng</p>
                 
-                <!-- Profit Display -->
-                <div id="editModalProfitDisplay" class="hidden">
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-600 font-medium">💰 Lãi dự kiến:</span>
-                            <span id="editModalProfitAmount" class="text-lg font-bold text-green-600">0đ</span>
-                        </div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs text-gray-500">Tỷ suất:</span>
-                            <span id="editModalProfitMargin" class="text-sm font-semibold text-green-600">0%</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="editModalLossWarning" class="hidden">
-                    <div class="bg-red-50 border-2 border-red-200 rounded-lg px-4 py-3">
-                        <p class="text-sm text-red-600 font-medium">⚠️ Giá vốn cao hơn giá bán - Sản phẩm này sẽ bị lỗ!</p>
-                    </div>
-                </div>
-
                 <!-- Notes -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -262,34 +240,19 @@ function editProductName(productId, orderId, orderCode) {
     editModalUnitPrice = parseFloat(String(productData.price).replace(/[^\d]/g, '')) || 0;
     editModalUnitCost = parseFloat(String(productData.cost_price).replace(/[^\d]/g, '')) || 0;
 
-    console.log('🔧 editProductName - Modal opened:', {
-        productIndex,
-        quantity,
-        unitPrice: editModalUnitPrice,
-        unitCost: editModalUnitCost,
-        totalPrice: editModalUnitPrice * quantity,
-        totalCost: editModalUnitCost * quantity
-    });
-
     // Set input values to TOTAL prices (unit price × quantity)
-    // Use setTimeout to ensure DOM is fully rendered
     setTimeout(() => {
         const priceInput = document.getElementById('editProductPrice');
         const costPriceInput = document.getElementById('editProductCostPrice');
         
         if (priceInput && editModalUnitPrice > 0) {
             priceInput.value = editModalUnitPrice * quantity;
-            console.log('✅ Set price input:', priceInput.value);
         }
         if (costPriceInput && editModalUnitCost > 0) {
             costPriceInput.value = editModalUnitCost * quantity;
-            console.log('✅ Set cost input:', costPriceInput.value);
         }
         
-        // Calculate profit display
-        calculateEditModalProfit();
-        
-        // Focus first input
+        updateEditModalTotalPrices();
         document.getElementById('editProductName')?.focus();
     }, 0);
 
@@ -421,11 +384,9 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
 }
 
 
-// Calculate profit in edit modal (for order product editing)
-function calculateEditModalProfit(sourceField = null) {
+// Update total prices when quantity changes in edit modal
+function updateEditModalTotalPrices() {
     if (editModalIsUpdating) return;
-
-    console.log('🧮 calculateEditModalProfit:', { sourceField });
 
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
@@ -435,140 +396,28 @@ function calculateEditModalProfit(sourceField = null) {
 
     const quantity = parseInt(quantityInput.value) || 1;
 
-    // Parse current input values
-    const currentPriceValue = parseFloat(priceInput.value?.replace(/[^\d]/g, '')) || 0;
-    const currentCostValue = parseFloat(costPriceInput.value?.replace(/[^\d]/g, '')) || 0;
+    // Recalculate total prices when quantity changes
+    editModalIsUpdating = true;
+    if (editModalUnitPrice > 0) priceInput.value = editModalUnitPrice * quantity;
+    if (editModalUnitCost > 0) costPriceInput.value = editModalUnitCost * quantity;
+    editModalIsUpdating = false;
 
-    console.log('📥 Current values:', {
-        quantity,
-        currentPriceValue,
-        currentCostValue,
-        unitPrice_before: editModalUnitPrice,
-        unitCost_before: editModalUnitCost
-    });
-
-    // When user edits price/cost directly, update unit price
-    if (sourceField === 'price') {
-        editModalUnitPrice = currentPriceValue / quantity;
-        console.log('💵 Updated unit price:', editModalUnitPrice);
-    }
-    if (sourceField === 'cost') {
-        editModalUnitCost = currentCostValue / quantity;
-        console.log('💰 Updated unit cost:', editModalUnitCost);
-    }
-
-    // When quantity changes, recalculate total prices
-    if (sourceField === 'quantity') {
-        console.log('🔢 Quantity changed, recalculating totals...');
-        const totalRevenue = editModalUnitPrice * quantity;
-        const totalCost = editModalUnitCost * quantity;
-
-        editModalIsUpdating = true;
-        if (editModalUnitPrice > 0) {
-            priceInput.value = totalRevenue;
-            console.log('  → New total price:', totalRevenue);
-        }
-        if (editModalUnitCost > 0) {
-            costPriceInput.value = totalCost;
-            console.log('  → New total cost:', totalCost);
-        }
-        editModalIsUpdating = false;
-    }
-
-    console.log('📤 Final unit prices:', {
-        editModalUnitPrice,
-        editModalUnitCost
-    });
-
-    // Update unit price labels (show only when quantity > 1)
+    // Show/hide unit price labels (only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
     const costUnitDiv = document.getElementById('editProductCostUnit');
 
-    if (quantity > 1) {
-        if (editModalUnitPrice > 0) {
-            document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editModalUnitPrice);
-            priceUnitDiv?.classList.remove('hidden');
-        } else {
-            priceUnitDiv?.classList.add('hidden');
-        }
-
-        if (editModalUnitCost > 0) {
-            document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editModalUnitCost);
-            costUnitDiv?.classList.remove('hidden');
-        } else {
-            costUnitDiv?.classList.add('hidden');
-        }
+    if (quantity > 1 && editModalUnitPrice > 0) {
+        document.getElementById('editProductPriceUnitValue').textContent = formatCurrency(editModalUnitPrice);
+        priceUnitDiv?.classList.remove('hidden');
     } else {
         priceUnitDiv?.classList.add('hidden');
-        costUnitDiv?.classList.add('hidden');
     }
 
-    // Calculate profit
-    const price = currentPriceValue / quantity;
-    const costPrice = currentCostValue / quantity;
-    const totalRevenue = currentPriceValue;
-    const totalCost = currentCostValue;
-
-    const profitDisplay = document.getElementById('editModalProfitDisplay');
-    const lossWarning = document.getElementById('editModalLossWarning');
-
-    if (price > 0 && costPrice > 0) {
-        // Calculate per-unit profit
-        const profitPerUnit = price - costPrice;
-        const margin = (profitPerUnit / price) * 100;
-
-        // Calculate total profit (profit per unit × quantity)
-        const totalProfit = profitPerUnit * quantity;
-
-        if (profitPerUnit > 0) {
-            // Show profit with breakdown
-            const profitAmountEl = document.getElementById('editModalProfitAmount');
-            const profitMarginEl = document.getElementById('editModalProfitMargin');
-
-            if (quantity > 1) {
-                profitAmountEl.innerHTML = `
-                    <div class="text-right">
-                        <div class="text-lg font-bold text-green-600">${formatCurrency(totalProfit)}</div>
-                        <div class="text-xs text-gray-500">(${formatCurrency(profitPerUnit)}/sp × ${quantity})</div>
-                    </div>
-                `;
-            } else {
-                profitAmountEl.textContent = formatCurrency(totalProfit);
-            }
-
-            profitMarginEl.textContent = `${margin.toFixed(1)}%`;
-            profitDisplay.classList.remove('hidden');
-            lossWarning.classList.add('hidden');
-
-            // Update display to show total revenue and cost in profit box
-            const existingBreakdown = document.getElementById('editModalBreakdown');
-            if (!existingBreakdown) {
-                const breakdownDiv = document.createElement('div');
-                breakdownDiv.id = 'editModalBreakdown';
-                breakdownDiv.className = 'text-xs text-gray-600 mt-2 pt-2 border-t border-green-200 space-y-1';
-                breakdownDiv.innerHTML = `
-                    <div class="flex justify-between">
-                        <span>📊 Tổng giá bán:</span>
-                        <span class="font-semibold text-gray-800" id="editModalTotalRevenue">${formatCurrency(totalRevenue)}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>📊 Tổng giá vốn:</span>
-                        <span class="font-semibold text-gray-800" id="editModalTotalCost">${formatCurrency(totalCost)}</span>
-                    </div>
-                `;
-                profitDisplay.querySelector('div').appendChild(breakdownDiv);
-            } else {
-                document.getElementById('editModalTotalRevenue').textContent = formatCurrency(totalRevenue);
-                document.getElementById('editModalTotalCost').textContent = formatCurrency(totalCost);
-            }
-        } else {
-            // Show loss warning
-            profitDisplay.classList.add('hidden');
-            lossWarning.classList.remove('hidden');
-        }
+    if (quantity > 1 && editModalUnitCost > 0) {
+        document.getElementById('editProductCostUnitValue').textContent = formatCurrency(editModalUnitCost);
+        costUnitDiv?.classList.remove('hidden');
     } else {
-        profitDisplay.classList.add('hidden');
-        lossWarning.classList.add('hidden');
+        costUnitDiv?.classList.add('hidden');
     }
 }
 
@@ -586,9 +435,13 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
 
     const weight = weightInput ? weightInput.value.trim() : '';
     const size = sizeInput ? sizeInput.value.trim() : '';
-    const price = priceInput ? priceInput.value.trim() : '';
-    const costPrice = costPriceInput ? costPriceInput.value.trim() : '';
     const notes = notesInput ? notesInput.value.trim() : '';
+
+    // Calculate unit prices from total input values
+    const totalPrice = priceInput ? parseFloat(priceInput.value.replace(/[^\d]/g, '')) || 0 : 0;
+    const totalCost = costPriceInput ? parseFloat(costPriceInput.value.replace(/[^\d]/g, '')) || 0 : 0;
+    const unitPrice = totalPrice / quantity;
+    const unitCost = totalCost / quantity;
 
     // Validate
     if (!name) {
@@ -640,14 +493,9 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         if (weight) updatedProduct.weight = weight;
         if (size) updatedProduct.size = size;
 
-        // IMPORTANT: Always use UNIT prices (not total)
-        // editModalUnitPrice and editModalUnitCost are calculated from input / quantity
-        if (editModalUnitPrice > 0) {
-            updatedProduct.price = editModalUnitPrice;
-        }
-        if (editModalUnitCost > 0) {
-            updatedProduct.cost_price = editModalUnitCost;
-        }
+        // Store UNIT prices (not total)
+        if (unitPrice > 0) updatedProduct.price = unitPrice;
+        if (unitCost > 0) updatedProduct.cost_price = unitCost;
 
         if (notes) updatedProduct.notes = notes;
 
@@ -657,8 +505,6 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         const updatedProductsJson = JSON.stringify(products);
 
         // Update in database via API
-        // Backend will calculate total_amount (trigger auto-calculates from order_items + shipping_fee)
-        // Backend will also calculate commission based on CTV's commission_rate
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
             headers: {
