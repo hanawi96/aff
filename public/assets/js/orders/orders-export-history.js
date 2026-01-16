@@ -15,6 +15,58 @@ const CACHE_DURATION = 30000; // 30 seconds
 let selectedExportIds = new Set();
 
 // ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Get empty state HTML (DRY - reusable)
+ */
+function getEmptyStateHTML() {
+    return `
+        <div class="text-center py-16">
+            <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
+            <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
+        </div>
+    `;
+}
+
+/**
+ * Handle empty state after deletion
+ */
+function handleEmptyState() {
+    const itemsContainer = document.querySelector('.space-y-3');
+    if (itemsContainer && itemsContainer.children.length === 0) {
+        itemsContainer.innerHTML = getEmptyStateHTML();
+        // Hide bulk actions bar
+        const bulkActionsBar = document.querySelector('.px-6.py-3.bg-gray-50');
+        if (bulkActionsBar) bulkActionsBar.remove();
+    }
+}
+
+/**
+ * Load XLSX library dynamically
+ */
+function loadXLSXLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof XLSX !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Không thể tải thư viện Excel'));
+        document.head.appendChild(script);
+    });
+}
+
+// ============================================
 // LOAD EXPORT HISTORY
 // ============================================
 
@@ -120,12 +172,19 @@ async function showExportHistoryModal() {
                             <span id="selectedCount" class="text-sm text-gray-500">0 đã chọn</span>
                         </div>
                         <div id="bulkActions" class="hidden flex items-center gap-2">
+                            <button onclick="bulkMergeAndDownloadExports()" 
+                                class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                                Gộp & Tải
+                            </button>
                             <button onclick="bulkDownloadExports()" 
                                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                Tải xuống
+                                Tải từng file
                             </button>
                             <button onclick="bulkDeleteExports()" 
                                 class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-medium flex items-center gap-2">
@@ -140,17 +199,7 @@ async function showExportHistoryModal() {
                 
                 <!-- Content -->
                 <div class="flex-1 overflow-y-auto p-6">
-                    ${data.exports.length === 0 ? `
-                        <div class="text-center py-16">
-                            <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
-                            <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
-                        </div>
-                    ` : `
+                    ${data.exports.length === 0 ? getEmptyStateHTML() : `
                         <div class="space-y-3">
                             ${data.exports.map(exp => renderExportItem(exp)).join('')}
                         </div>
@@ -185,7 +234,7 @@ function renderExportItem(exp) {
         : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>Chưa tải</span>';
     
     return `
-        <div class="flex items-center gap-3 p-4 border-2 ${exp.status === 'pending' ? 'border-yellow-200 bg-yellow-50' : 'border-gray-200'} rounded-xl hover:shadow-md transition-all">
+        <div class="export-item flex items-center gap-3 p-4 border-2 ${exp.status === 'pending' ? 'border-yellow-200 bg-yellow-50' : 'border-gray-200'} rounded-xl hover:shadow-md transition-all" data-export-item-id="${exp.id}">
             <!-- Checkbox -->
             <input type="checkbox" 
                 class="export-checkbox w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer" 
@@ -383,76 +432,54 @@ async function deleteExportFile(exportId) {
         return;
     }
     
-    // Find the item element
-    const itemElement = document.querySelector(`[data-export-id="${exportId}"]`)?.closest('.flex.items-center.gap-3');
+    const itemElement = document.querySelector(`[data-export-item-id="${exportId}"]`);
+    if (!itemElement) return;
     
-    if (!itemElement) {
-        console.error('Could not find export item element');
-        return;
-    }
+    // Store original state for rollback
+    const wasSelected = selectedExportIds.has(exportId);
     
     try {
-        // Optimistic UI: Fade out and remove item immediately
+        // Optimistic UI: Fade out
         itemElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
         itemElement.style.opacity = '0';
         itemElement.style.transform = 'translateX(-20px)';
         
-        // Remove from selection if selected
+        // Update selection
         selectedExportIds.delete(exportId);
         updateSelectionUI();
         
-        // Wait for animation then remove from DOM
+        // Remove from DOM after animation
         setTimeout(() => {
             itemElement.remove();
-            
-            // Check if no items left, show empty state
-            const itemsContainer = document.querySelector('.space-y-3');
-            if (itemsContainer && itemsContainer.children.length === 0) {
-                itemsContainer.innerHTML = `
-                    <div class="text-center py-16">
-                        <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                            <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
-                        <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
-                    </div>
-                `;
-                // Hide bulk actions bar
-                const bulkActionsBar = document.querySelector('.px-6.py-3.bg-gray-50');
-                if (bulkActionsBar) bulkActionsBar.remove();
-            }
+            handleEmptyState();
         }, 300);
         
-        // Delete from server in background
+        // Delete from server
         const response = await fetch(`${CONFIG.API_URL}?action=deleteExport`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exportId: exportId })
+            body: JSON.stringify({ exportId })
         });
         
         const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Không thể xóa file');
         
-        if (data.success) {
-            showToast('Đã xóa file export', 'success');
-            // Invalidate cache and update badge
-            exportHistoryCache = null;
-            await updateExportHistoryBadge();
-        } else {
-            throw new Error(data.error || 'Không thể xóa file');
-        }
+        showToast('Đã xóa file export', 'success');
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
         
     } catch (error) {
         console.error('Error deleting export:', error);
         showToast('Lỗi: ' + error.message, 'error');
         
-        // Rollback: Restore item if delete failed
-        if (itemElement && itemElement.parentElement) {
+        // Rollback
+        if (itemElement.parentElement) {
             itemElement.style.opacity = '1';
             itemElement.style.transform = 'translateX(0)';
+            if (wasSelected) selectedExportIds.add(exportId);
+            updateSelectionUI();
         } else {
-            // If already removed, reload modal
+            // Already removed, reload modal
             closeExportHistoryModal();
             setTimeout(() => showExportHistoryModal(), 300);
         }
@@ -462,6 +489,86 @@ async function deleteExportFile(exportId) {
 // ============================================
 // BULK ACTIONS
 // ============================================
+
+/**
+ * Bulk merge and download selected exports (Smart merge)
+ */
+async function bulkMergeAndDownloadExports() {
+    if (selectedExportIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 file để gộp', 'warning');
+        return;
+    }
+    
+    const count = selectedExportIds.size;
+    
+    // If only 1 file selected, just download it
+    if (count === 1) {
+        const exportId = Array.from(selectedExportIds)[0];
+        await downloadAndUpdateExport(exportId);
+        return;
+    }
+    
+    if (!confirm(`Bạn có muốn gộp ${count} file thành 1 file Excel duy nhất?`)) {
+        return;
+    }
+    
+    try {
+        // Check if XLSX library is loaded
+        if (typeof XLSX === 'undefined') {
+            showToast('Đang tải thư viện Excel...', 'info');
+            await loadXLSXLibrary();
+        }
+        
+        showToast(`Đang gộp ${count} file...`, 'info');
+        
+        // Call backend to merge exports
+        const response = await fetch(`${CONFIG.API_URL}?action=mergeExports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exportIds: Array.from(selectedExportIds) })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Không thể gộp file');
+        }
+        
+        showToast(`Đã gộp ${data.exportCount} file (${data.totalOrders} đơn hàng), đang tạo Excel...`, 'info');
+        
+        // Create merged Excel file on client
+        const { wb, filename } = createSPXExcelWorkbook(data.orders);
+        
+        // Download immediately
+        XLSX.writeFile(wb, filename);
+        
+        showToast(`✅ Đã tải file gộp: ${filename}`, 'success');
+        
+        // Mark all as downloaded
+        const exportIdsArray = Array.from(selectedExportIds);
+        for (const exportId of exportIdsArray) {
+            try {
+                await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exportId })
+                });
+            } catch (err) {
+                console.error(`Error marking export ${exportId}:`, err);
+            }
+        }
+        
+        // Refresh UI
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
+        await loadOrdersData();
+        closeExportHistoryModal();
+        
+    } catch (error) {
+        console.error('Error merging exports:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
+}
 
 /**
  * Bulk download selected exports
@@ -549,51 +656,29 @@ async function bulkDeleteExports() {
     try {
         showToast(`Đang xóa ${count} file...`, 'info');
         
-        // Collect all items to delete
-        const itemsToDelete = [];
-        selectedExportIds.forEach(exportId => {
-            const itemElement = document.querySelector(`[data-export-id="${exportId}"]`)?.closest('.flex.items-center.gap-3');
-            if (itemElement) {
-                itemsToDelete.push({ exportId, element: itemElement });
-            }
-        });
+        // Collect items using optimized selector
+        const itemsToDelete = Array.from(selectedExportIds).map(exportId => {
+            const element = document.querySelector(`[data-export-item-id="${exportId}"]`);
+            return element ? { exportId, element } : null;
+        }).filter(Boolean);
         
-        // Optimistic UI: Fade out all selected items
+        // Optimistic UI: Fade out all
         itemsToDelete.forEach(({ element }) => {
             element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             element.style.opacity = '0';
             element.style.transform = 'translateX(-20px)';
         });
         
-        // Clear selection
         selectedExportIds.clear();
         updateSelectionUI();
         
         // Remove from DOM after animation
         setTimeout(() => {
             itemsToDelete.forEach(({ element }) => element.remove());
-            
-            // Check if no items left
-            const itemsContainer = document.querySelector('.space-y-3');
-            if (itemsContainer && itemsContainer.children.length === 0) {
-                itemsContainer.innerHTML = `
-                    <div class="text-center py-16">
-                        <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                            <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
-                        <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
-                    </div>
-                `;
-                // Hide bulk actions bar
-                const bulkActionsBar = document.querySelector('.px-6.py-3.bg-gray-50');
-                if (bulkActionsBar) bulkActionsBar.remove();
-            }
+            handleEmptyState();
         }, 300);
         
-        // Delete from server in background
+        // Delete from server
         let successCount = 0;
         let errorCount = 0;
         
@@ -602,16 +687,11 @@ async function bulkDeleteExports() {
                 const response = await fetch(`${CONFIG.API_URL}?action=deleteExport`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ exportId: exportId })
+                    body: JSON.stringify({ exportId })
                 });
                 
                 const data = await response.json();
-                
-                if (data.success) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                }
+                data.success ? successCount++ : errorCount++;
                 
             } catch (error) {
                 console.error(`Error deleting export ${exportId}:`, error);
@@ -620,13 +700,13 @@ async function bulkDeleteExports() {
         }
         
         // Show result
-        if (errorCount === 0) {
-            showToast(`✅ Đã xóa thành công ${successCount} file`, 'success');
-        } else {
-            showToast(`⚠️ Đã xóa ${successCount} file, ${errorCount} file lỗi`, 'warning');
-        }
+        showToast(
+            errorCount === 0 
+                ? `✅ Đã xóa thành công ${successCount} file` 
+                : `⚠️ Đã xóa ${successCount} file, ${errorCount} file lỗi`,
+            errorCount === 0 ? 'success' : 'warning'
+        );
         
-        // Invalidate cache and update badge
         exportHistoryCache = null;
         await updateExportHistoryBadge();
         

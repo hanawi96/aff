@@ -66,7 +66,8 @@ import { getDiscountUsageHistory } from '../services/discounts/discount-usage.js
 import { 
     saveExport, 
     markExportDownloaded, 
-    deleteExport 
+    deleteExport,
+    mergeExports
 } from '../services/orders/export-service.js';
 
 // Settings
@@ -161,6 +162,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await markExportDownloaded(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'deleteExport':
             return await deleteExport(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'mergeExports':
+            return await mergeExports(data.exportIds, env).then(result => jsonResponse(result, 200, corsHeaders));
         default:
             return jsonResponse({
                 success: false,

@@ -187,3 +187,52 @@ export async function deleteExport(exportId, env) {
         message: 'Export deleted successfully'
     };
 }
+
+// Merge multiple exports into one
+export async function mergeExports(exportIds, env) {
+    if (!exportIds || !Array.isArray(exportIds) || exportIds.length === 0) {
+        throw new Error('Export IDs array is required');
+    }
+
+    // Get all export info
+    const placeholders = exportIds.map(() => '?').join(',');
+    const { results: exports } = await env.DB.prepare(`
+        SELECT id, order_ids, file_name
+        FROM export_history
+        WHERE id IN (${placeholders})
+    `).bind(...exportIds).all();
+
+    if (!exports || exports.length === 0) {
+        throw new Error('No exports found');
+    }
+
+    // Collect all unique order IDs
+    const allOrderIds = new Set();
+    exports.forEach(exp => {
+        const orderIds = JSON.parse(exp.order_ids);
+        orderIds.forEach(id => allOrderIds.add(id));
+    });
+
+    // Fetch all orders
+    const orderIdsArray = Array.from(allOrderIds);
+    const orderPlaceholders = orderIdsArray.map(() => '?').join(',');
+    const { results: orders } = await env.DB.prepare(`
+        SELECT 
+            id, order_id, customer_name, customer_phone, address,
+            products, notes, total_amount, payment_method
+        FROM orders
+        WHERE id IN (${orderPlaceholders})
+        ORDER BY created_at DESC
+    `).bind(...orderIdsArray).all();
+
+    if (!orders || orders.length === 0) {
+        throw new Error('No orders found');
+    }
+
+    return {
+        success: true,
+        orders: orders,
+        totalOrders: orders.length,
+        exportCount: exports.length
+    };
+}
