@@ -244,9 +244,9 @@ async function showAddOrderModal(duplicateData = null) {
     selectedProducts = [];
 
     // Demo data for quick testing
-    const customerName = duplicateData?.customer_name || 'Nguyễn Văn A';
-    const customerPhone = duplicateData?.customer_phone || '0386190596';
-    const address = duplicateData?.address || '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM';
+    const customerName = duplicateData?.customer_name || '';
+    const customerPhone = duplicateData?.customer_phone || '';
+    const address = duplicateData?.address || '';
     const referralCode = duplicateData?.referral_code || '';
     const paymentMethod = duplicateData?.payment_method || 'cod';
 

@@ -15,6 +15,7 @@ async function submitNewOrder() {
     // Validate required fields
     const customerName = document.getElementById('newOrderCustomerName')?.value.trim();
     const customerPhone = document.getElementById('newOrderCustomerPhone')?.value.trim();
+    const addressPreview = document.getElementById('newOrderAddressPreview')?.textContent.trim();
     const address = document.getElementById('newOrderAddress')?.value.trim();
 
     if (!customerName) {
@@ -29,8 +30,10 @@ async function submitNewOrder() {
         return;
     }
 
-    if (!address) {
-        showToast('Vui lòng nhập địa chỉ giao hàng', 'warning');
+    // Check if address is selected (not default text)
+    if (!address || address === '' || addressPreview === 'Vui lòng chọn địa chỉ') {
+        showToast('Vui lòng chọn địa chỉ giao hàng đầy đủ', 'warning');
+        document.getElementById('newOrderProvince')?.focus();
         return;
     }
 
