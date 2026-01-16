@@ -90,6 +90,9 @@ function renderBestSellingProductsBox() {
                                 Thêm
                             </button>
                         </div>
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            ${[3,4,5,6,7,8,9,10].map(kg => `<button onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
+                        </div>
                     </div>
                 `;
     }).join('')}
@@ -222,6 +225,14 @@ function quickChangeQty(inputId, delta) {
     const currentVal = parseInt(input.value) || 1;
     const newVal = Math.max(1, currentVal + delta);
     input.value = newVal;
+}
+
+// Set size/weight from preset button for quick add products
+function setQuickProductSize(sizeInputId, value) {
+    const input = document.getElementById(sizeInputId);
+    if (input) {
+        input.value = value;
+    }
 }
 
 // Quick add product to order (for best selling products)

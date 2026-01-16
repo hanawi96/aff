@@ -196,16 +196,46 @@ function renderOrderProducts() {
         const quantity = parseInt(product.quantity) || 1;
         const subtotal = price * quantity;
         
-        // Build product info line
-        let productInfo = `${quantity}x ${escapeHtml(product.name)}`;
+        // Build product info with quantity badge
+        const quantityBadge = `<span class="inline-flex items-center px-2 py-0.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-sm">×${quantity}</span>`;
         
-        // Add weight/size if available
+        // Product details on same line with proper labels
+        let detailsLine = [];
+        
+        // Handle weight field
         if (product.weight) {
-            productInfo += ` - ${product.weight}g`;
+            const weightStr = String(product.weight).toLowerCase();
+            if (weightStr.includes('kg')) {
+                detailsLine.push(`⚖️ Cân nặng: ${product.weight}`);
+            } else if (weightStr.includes('g')) {
+                detailsLine.push(`⚖️ Cân nặng: ${product.weight}`);
+            } else {
+                // Just a number, assume grams
+                detailsLine.push(`⚖️ Cân nặng: ${product.weight}g`);
+            }
         }
+        
+        // Handle size field - check if it's a measurement (cm, tay) or weight (kg, number)
         if (product.size) {
-            productInfo += ` - ${product.size}`;
+            const sizeStr = String(product.size).toLowerCase();
+            
+            if (sizeStr.includes('cm') || sizeStr.includes('tay')) {
+                // It's a size measurement
+                detailsLine.push(`📏 Size tay: ${product.size}`);
+            } else if (sizeStr.includes('kg') || sizeStr.includes('g')) {
+                // It's a weight
+                detailsLine.push(`⚖️ Cân nặng: ${product.size}`);
+            } else if (!isNaN(parseFloat(sizeStr))) {
+                // Just a number - assume it's weight in kg
+                detailsLine.push(`⚖️ Cân nặng: ${product.size}kg`);
+            } else {
+                // Unknown format, just display as is
+                detailsLine.push(product.size);
+            }
         }
+        
+        // Add unit price with icon (using tag emoji which has better color support)
+        detailsLine.push(`🏷️ Đơn giá: ${formatCurrency(price)}`);
         
         // Add notes if available
         let notesHtml = '';
@@ -222,14 +252,11 @@ function renderOrderProducts() {
 
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate">${productInfo}</p>
-                        ${notesHtml}
-                        <div class="flex items-center gap-3 mt-1">
-                            <span class="text-xs text-gray-500">Đơn giá: ${formatCurrency(price)}</span>
-                            <span class="text-xs font-semibold text-blue-600">Tổng: ${formatCurrency(subtotal)}</span>
-                        </div>
+                <!-- Top row: Badge + Name | Edit + Delete buttons -->
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        ${quantityBadge}
+                        <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(product.name)}</p>
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                         <button onclick="editProductInOrder(${index})" class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors flex items-center justify-center" title="Sửa">
@@ -242,6 +269,17 @@ function renderOrderProducts() {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
+                    </div>
+                </div>
+                
+                <!-- Bottom row: Details (left) | Total price (right) -->
+                <div class="flex items-end justify-between gap-3">
+                    <div class="flex-1 min-w-0 ml-9">
+                        <p class="text-xs text-gray-500">${detailsLine.join(' • ')}</p>
+                        ${notesHtml}
+                    </div>
+                    <div class="flex-shrink-0 text-right">
+                        <span class="text-sm font-bold text-blue-600">${formatCurrency(subtotal)}</span>
                     </div>
                 </div>
             </div>
