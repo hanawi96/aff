@@ -44,7 +44,8 @@ function updateOrderSummary() {
     // Get discount amount
     const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value) || 0;
 
-    // Calculate revenue (product total + shipping fee - discount)
+    // Calculate revenue - same formula for both COD and Bank transfer
+    // Revenue = product total + shipping fee - discount
     const totalRevenue = productTotal + shippingFee - discountAmount;
 
     // Calculate packaging costs - use actual config values
@@ -97,6 +98,23 @@ function updateOrderSummary() {
     document.getElementById('orderTotalAmount').textContent = formatCurrency(totalRevenue);
     document.getElementById('orderProductTotal').textContent = formatCurrency(productTotal);
     document.getElementById('orderShippingFee').textContent = formatCurrency(shippingFee);
+    
+    // Update COD amount based on payment method
+    const paymentMethod = document.getElementById('newOrderPaymentMethod')?.value || 'cod';
+    const codAmountEl = document.getElementById('orderCODAmount');
+    const codNoteEl = document.getElementById('orderCODNote');
+    
+    if (paymentMethod === 'bank') {
+        // Đã chuyển khoản = COD 0đ
+        codAmountEl.textContent = '0đ';
+        codAmountEl.className = 'text-xl font-bold text-green-600';
+        codNoteEl.classList.remove('hidden');
+    } else {
+        // COD = Thu tiền khi giao
+        codAmountEl.textContent = formatCurrency(totalRevenue);
+        codAmountEl.className = 'text-xl font-bold text-orange-600';
+        codNoteEl.classList.add('hidden');
+    }
 
     // Show/hide discount row
     const discountRow = document.getElementById('orderDiscountRow');

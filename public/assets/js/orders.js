@@ -371,38 +371,45 @@ async function showAddOrderModal(duplicateData = null) {
                             <div id="ctvVerifyStatus"></div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Thanh toán</label>
-                                <div class="relative">
-                                    <button type="button" onclick="togglePaymentDropdown(event)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none bg-white text-left flex items-center justify-between hover:border-blue-400 transition-colors">
-                                        <span id="selectedPaymentText" class="flex items-center gap-2">
-                                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                                            <span>${paymentMethod === 'bank' ? 'Chuyển khoản' : paymentMethod === 'momo' ? 'MoMo' : 'COD'}</span>
-                                        </span>
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                    <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
-                                </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Thanh toán</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-btn ${paymentMethod === 'cod' ? 'active' : ''} flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all font-medium text-sm">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <span>COD</span>
+                                </button>
+                                <button type="button" onclick="selectPaymentMethodDirect('bank')" id="paymentBtn_bank" class="payment-method-btn ${paymentMethod === 'bank' ? 'active' : ''} flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all font-medium text-sm">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>Đã chuyển khoản</span>
+                                </button>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-                                <div class="relative">
-                                    <button type="button" onclick="toggleStatusDropdown(event)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none bg-white text-left flex items-center justify-between hover:border-blue-400 transition-colors">
-                                        <span id="selectedStatusText" class="flex items-center gap-2">
-                                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                            <span>Chờ xử lý</span>
-                                        </span>
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                    <input type="hidden" id="newOrderStatus" value="pending" />
-                                </div>
-                            </div>
+                            <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
                         </div>
+                        <input type="hidden" id="newOrderStatus" value="pending" />
+
+                        <style>
+                            .payment-method-btn {
+                                border-color: #d1d5db;
+                                background: white;
+                                color: #6b7280;
+                            }
+                            .payment-method-btn:hover {
+                                border-color: #9ca3af;
+                                background: #f9fafb;
+                            }
+                            .payment-method-btn.active {
+                                border-color: #3b82f6;
+                                background: #eff6ff;
+                                color: #2563eb;
+                            }
+                            .payment-method-btn.active svg {
+                                color: #2563eb;
+                            }
+                        </style>
 
                         <!-- Shipping Costs -->
                         <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
@@ -637,31 +644,46 @@ async function showAddOrderModal(duplicateData = null) {
                                 <span class="text-base font-bold text-gray-800">Tổng quan đơn hàng</span>
                             </div>
 
-                            <!-- Main Summary - Tổng tiền với breakdown -->
-                            <div class="bg-white rounded-lg p-4 mb-4 border border-gray-100 shadow-sm">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm font-medium text-gray-600">Tổng tiền</span>
-                                    <span id="orderTotalAmount" class="text-2xl font-bold text-gray-900">${formatCurrency(initialSummary.totalRevenue)}</span>
-                                </div>
-                                <div class="space-y-1 pt-2 border-t border-gray-100">
+                            <!-- Main Summary - Compact Design -->
+                            <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border-2 border-blue-200">
+                                <!-- Doanh thu đơn hàng -->
+                                <div class="mb-3">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-xs font-medium text-gray-600">Doanh thu đơn hàng</span>
+                                        <span id="orderTotalAmount" class="text-2xl font-bold text-blue-600">${formatCurrency(initialSummary.totalRevenue)}</span>
+                                    </div>
                                     <div class="flex justify-between items-center text-xs text-gray-500">
-                                        <span>Sản phẩm + Phí ship</span>
+                                        <span>Sản phẩm + Ship</span>
                                         <span>
                                             <span id="orderProductTotal">${formatCurrency(initialSummary.productTotal)}</span>
                                             <span class="mx-1">+</span>
                                             <span id="orderShippingFee">${formatCurrency(initialSummary.shippingFee)}</span>
                                         </span>
                                     </div>
-                                    <!-- Discount row - hidden by default -->
-                                    <div id="orderDiscountRow" class="hidden flex justify-between items-center text-xs">
+                                    <!-- Discount row -->
+                                    <div id="orderDiscountRow" class="hidden flex justify-between items-center text-xs mt-1">
                                         <div class="flex items-center gap-1">
                                             <svg class="w-3 h-3 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                             </svg>
-                                            <span class="text-purple-600 font-medium">Mã giảm giá</span>
+                                            <span class="text-purple-600 font-medium">Giảm giá</span>
                                         </div>
                                         <span id="orderDiscountAmount" class="text-purple-600 font-semibold">-0đ</span>
                                     </div>
+                                </div>
+                                
+                                <!-- Tiền COD (Thu hộ) -->
+                                <div class="pt-3 border-t-2 border-blue-300">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            <span class="text-xs font-semibold text-gray-700">Tiền COD (Thu hộ)</span>
+                                        </div>
+                                        <span id="orderCODAmount" class="text-xl font-bold text-orange-600">${formatCurrency(initialSummary.totalRevenue)}</span>
+                                    </div>
+                                    <p id="orderCODNote" class="text-xs text-gray-500 mt-1 hidden">✓ Đã thanh toán qua chuyển khoản</p>
                                 </div>
                             </div>
 
@@ -868,7 +890,9 @@ function toggleFreeShipping() {
         shippingFeeInput.classList.add('bg-gray-100', 'cursor-not-allowed');
     } else {
         // Disable free shipping - restore default value
-        shippingFeeInput.value = '30000';
+        const customerShippingFeeItem = packagingConfig.find(item => item.item_name === 'customer_shipping_fee');
+        const defaultShippingFee = customerShippingFeeItem ? customerShippingFeeItem.item_cost : 30000;
+        shippingFeeInput.value = defaultShippingFee;
         shippingFeeInput.disabled = false;
         shippingFeeInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
@@ -912,8 +936,7 @@ function togglePaymentDropdown(event) {
 
     const paymentOptions = [
         { value: 'cod', label: 'COD', color: 'orange' },
-        { value: 'bank', label: 'Chuyển khoản', color: 'blue' },
-        { value: 'momo', label: 'MoMo', color: 'pink' }
+        { value: 'bank', label: 'Đã chuyển khoản', color: 'blue' }
     ];
 
     const menu = document.createElement('div');
@@ -943,7 +966,22 @@ function togglePaymentDropdown(event) {
     }, 10);
 }
 
-// Select payment method
+// Select payment method directly (for button preset)
+function selectPaymentMethodDirect(method) {
+    // Update hidden input
+    document.getElementById('newOrderPaymentMethod').value = method;
+    
+    // Update button states
+    document.querySelectorAll('.payment-method-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`paymentBtn_${method}`).classList.add('active');
+    
+    // Update order summary
+    updateOrderSummary();
+}
+
+// Select payment method (legacy for dropdown - can be removed if not used elsewhere)
 function selectPaymentMethod(value, label, color) {
     document.getElementById('newOrderPaymentMethod').value = value;
     document.getElementById('selectedPaymentText').innerHTML = `
@@ -952,79 +990,9 @@ function selectPaymentMethod(value, label, color) {
     `;
     const menu = document.getElementById('paymentDropdownMenu');
     if (menu) menu.remove();
-}
-
-// Toggle status dropdown in add order modal
-function toggleStatusDropdown(event) {
-    event.stopPropagation();
-
-    // Close payment dropdown if open
-    const paymentMenu = document.getElementById('paymentDropdownMenu');
-    if (paymentMenu) paymentMenu.remove();
-
-    // Close if already open
-    const existingMenu = document.getElementById('statusDropdownMenu');
-    if (existingMenu) {
-        existingMenu.remove();
-        return;
-    }
-
-    const button = event.currentTarget;
-    const rect = button.getBoundingClientRect();
-
-    const statusOptions = [
-        { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
-        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
-        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
-        { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
-        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
-    ];
-
-    const menu = document.createElement('div');
-    menu.id = 'statusDropdownMenu';
-    menu.className = 'fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]';
-    menu.style.zIndex = '9999';
-    menu.style.left = rect.left + 'px';
-
-    // Check if there's enough space below
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const menuHeight = 300;
-
-    if (spaceBelow < menuHeight && rect.top > menuHeight) {
-        menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-    } else {
-        menu.style.top = (rect.bottom + 4) + 'px';
-    }
-
-    const currentValue = document.getElementById('newOrderStatus').value;
-
-    menu.innerHTML = statusOptions.map(option => `
-        <button 
-            onclick="selectOrderStatus('${option.value}', '${option.label}', '${option.color}')"
-            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${option.value === currentValue ? 'bg-blue-50' : ''}"
-        >
-            <div class="w-3 h-3 rounded-full bg-${option.color}-500 flex-shrink-0"></div>
-            <span class="text-base text-gray-700 flex-1">${option.label}</span>
-        </button>
-    `).join('');
-
-    document.body.appendChild(menu);
-
-    setTimeout(() => {
-        document.addEventListener('click', 
-);
-    }, 10);
-}
-
-// Select order status
-function selectOrderStatus(value, label, color) {
-    document.getElementById('newOrderStatus').value = value;
-    document.getElementById('selectedStatusText').innerHTML = `
-        <span class="w-2 h-2 rounded-full bg-${color}-500"></span>
-        <span>${label}</span>
-    `;
-    const menu = document.getElementById('statusDropdownMenu');
-    if (menu) menu.remove();
+    
+    // Update order summary when payment method changes
+    updateOrderSummary();
 }
 
 let productRowCounter = 0;

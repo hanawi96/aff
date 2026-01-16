@@ -44,9 +44,6 @@ function duplicateOrder(orderId) {
         // status: Không sao chép - luôn để "pending" cho đơn mới
         shipping_fee: order.shipping_fee || 0,
         shipping_cost: order.shipping_cost || 0,
-        // Discount info
-        discount_code: order.discount_code || '',
-        discount_amount: order.discount_amount || 0,
         products: products
     });
 
