@@ -103,7 +103,7 @@ async function checkCustomerStatus(phone) {
 }
 
 // Auto-fill form with last order info
-async function autoFillLastOrder(phone) {
+window.autoFillLastOrder = async function autoFillLastOrder(phone) {
     try {
         // Show loading toast
         const loadingId = showToast('Đang tải thông tin...', 'info');
@@ -167,9 +167,20 @@ async function autoFillLastOrder(phone) {
                 }, 300);
             } else {
                 // Fallback: Fill address text field if available
-                const addressInput = document.getElementById('newOrderAddress');
-                if (addressInput && lastOrder.address) {
-                    addressInput.value = lastOrder.address;
+                if (lastOrder.address) {
+                    // Update hidden input
+                    const addressInput = document.getElementById('newOrderAddress');
+                    if (addressInput) {
+                        addressInput.value = lastOrder.address;
+                    }
+                    
+                    // Update preview text
+                    const addressPreview = document.getElementById('newOrderAddressPreview');
+                    if (addressPreview) {
+                        addressPreview.textContent = lastOrder.address;
+                        addressPreview.classList.remove('text-gray-400');
+                        addressPreview.classList.add('text-gray-700');
+                    }
                 }
             }
 

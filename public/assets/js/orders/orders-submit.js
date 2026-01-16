@@ -137,73 +137,7 @@ async function submitNewOrder() {
     }
 }
 
-/**
- * Setup customer check on phone input
- * Checks if customer exists when phone number is entered
- */
-function setupCustomerCheck() {
-    const phoneInput = document.getElementById('newOrderCustomerPhone');
-    const nameInput = document.getElementById('newOrderCustomerName');
-    const statusHint = document.getElementById('customerStatusHint');
-
-    if (!phoneInput || !nameInput || !statusHint) return;
-
-    let debounceTimer;
-
-    phoneInput.addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        const phone = this.value.trim();
-
-        if (phone.length < 10) {
-            statusHint.classList.add('hidden');
-            return;
-        }
-
-        debounceTimer = setTimeout(async () => {
-            try {
-                const response = await fetch(`${CONFIG.API_URL}/customers/check-phone?phone=${encodeURIComponent(phone)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                const result = await response.json();
-
-                if (result.exists) {
-                    // Customer exists - show info and auto-fill
-                    statusHint.innerHTML = `
-                        <div class="flex items-center gap-1 text-green-600">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                            <span>Khách hàng cũ: ${result.customer.name}</span>
-                        </div>
-                    `;
-                    statusHint.classList.remove('hidden');
-
-                    // Auto-fill name if empty
-                    if (!nameInput.value.trim()) {
-                        nameInput.value = result.customer.name;
-                    }
-                } else {
-                    // New customer
-                    statusHint.innerHTML = `
-                        <div class="flex items-center gap-1 text-blue-600">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                            </svg>
-                            <span>Khách hàng mới</span>
-                        </div>
-                    `;
-                    statusHint.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Error checking customer:', error);
-                statusHint.classList.add('hidden');
-            }
-        }, 500);
-    });
-}
+// Note: setupCustomerCheck() is defined in orders-customer.js
 
 /**
  * Setup shipping cost sync with shipping fee
