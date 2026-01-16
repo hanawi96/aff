@@ -298,18 +298,11 @@ function renderExportItem(exp) {
  * Close export history modal
  */
 function closeExportHistoryModal() {
-    console.log('🟣 [CLOSE_MODAL] Start closing...');
     const modal = document.getElementById('exportHistoryModal');
     if (modal) {
-        console.log('🟣 [CLOSE_MODAL] Modal found, removing...');
         modal.remove();
-        console.log('🟣 [CLOSE_MODAL] Modal removed');
         selectedExportIds.clear();
-        console.log('🟣 [CLOSE_MODAL] Selection cleared');
-    } else {
-        console.log('🟣 [CLOSE_MODAL] Modal not found');
     }
-    console.log('🟣 [CLOSE_MODAL] ✅ Completed');
 }
 
 // ============================================
@@ -501,56 +494,41 @@ async function deleteExportFile(exportId) {
  * Bulk merge and download selected exports (Smart merge)
  */
 async function bulkMergeAndDownloadExports() {
-    console.log('🔵 [MERGE] Start - Selected IDs:', Array.from(selectedExportIds));
-    
     if (selectedExportIds.size === 0) {
         showToast('Vui lòng chọn ít nhất 1 file để gộp', 'warning');
         return;
     }
     
     const count = selectedExportIds.size;
-    console.log('🔵 [MERGE] Count:', count);
     
     // If only 1 file selected, just download it
     if (count === 1) {
-        console.log('🔵 [MERGE] Only 1 file, calling downloadAndUpdateExport');
         const exportId = Array.from(selectedExportIds)[0];
         await downloadAndUpdateExport(exportId);
-        console.log('🔵 [MERGE] downloadAndUpdateExport completed');
         return;
     }
     
     if (!confirm(`Bạn có muốn gộp ${count} file thành 1 file Excel duy nhất?`)) {
-        console.log('🔵 [MERGE] User cancelled');
         return;
     }
     
     try {
-        console.log('🔵 [MERGE] Starting merge process...');
-        
         // Check if XLSX library is loaded
         if (typeof XLSX === 'undefined') {
-            console.log('🔵 [MERGE] Loading XLSX library...');
             showToast('Đang tải thư viện Excel...', 'info');
             await loadXLSXLibrary();
-            console.log('🔵 [MERGE] XLSX library loaded');
-        } else {
-            console.log('🔵 [MERGE] XLSX library already loaded');
         }
         
         showToast(`Đang gộp ${count} file...`, 'info');
         
         // Call backend to merge exports
-        console.log('🔵 [MERGE] Calling API mergeExports...');
         const response = await fetch(`${CONFIG.API_URL}?action=mergeExports`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ exportIds: Array.from(selectedExportIds) })
         });
-        console.log('🔵 [MERGE] API response received');
         
         const data = await response.json();
-        console.log('🔵 [MERGE] API data parsed:', { success: data.success, totalOrders: data.totalOrders, exportCount: data.exportCount });
         
         if (!data.success) {
             throw new Error(data.error || 'Không thể gộp file');
@@ -559,46 +537,54 @@ async function bulkMergeAndDownloadExports() {
         showToast(`Đã gộp ${data.exportCount} file (${data.totalOrders} đơn hàng), đang tạo Excel...`, 'info');
         
         // Create merged Excel file on client
-        console.log('🔵 [MERGE] Creating Excel workbook...');
         const { wb, filename } = createSPXExcelWorkbook(data.orders);
-        console.log('🔵 [MERGE] Workbook created:', filename);
         
         // Save exportIds BEFORE closing modal (to avoid race condition)
         const exportIdsArray = Array.from(selectedExportIds);
-        console.log('🔵 [MERGE] Saved export IDs:', exportIdsArray);
         
         // Close modal BEFORE downloading file
-        console.log('🔵 [MERGE] Closing modal before download...');
         closeExportHistoryModal();
-        console.log('🔵 [MERGE] Modal closed');
         
         // Download file using requestAnimationFrame to avoid blocking
-        console.log('🔵 [MERGE] Scheduling file download...');
         requestAnimationFrame(() => {
-            console.log('🔵 [MERGE] Writing file...');
             XLSX.writeFile(wb, filename);
-            console.log('🔵 [MERGE] File written successfully');
             
             // Mark exports as downloaded in background (after download completes)
-            setTimeout(() => {
-                console.log('🔵 [MERGE] Marking exports as downloaded...');
-                exportIdsArray.forEach(exportId => {
-                    fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ exportId })
-                    }).catch(err => console.error(`❌ [MERGE] Error marking export ${exportId}:`, err));
-                });
-                console.log('🔵 [MERGE] All mark requests sent');
+            // This will update orders to "shipped" status via backend
+            setTimeout(async () => {
+                let updatedCount = 0;
+                
+                for (const exportId of exportIdsArray) {
+                    try {
+                        const markResponse = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ exportId })
+                        });
+                        
+                        const markData = await markResponse.json();
+                        if (markData.success) {
+                            updatedCount += markData.updatedCount || 0;
+                        }
+                    } catch (err) {
+                        console.error(`Error marking export ${exportId}:`, err);
+                    }
+                }
+                
+                // Invalidate cache and reload orders
+                exportHistoryCache = null;
+                await updateExportHistoryBadge();
+                
+                // Reload orders to show updated statuses
+                if (updatedCount > 0) {
+                    await loadOrdersData();
+                    showToast(`✅ Đã cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
+                }
             }, 1000);
-            
-            console.log('🔵 [MERGE] ✅ DONE');
         });
         
-        console.log('🔵 [MERGE] ✅ Main process completed');
-        
     } catch (error) {
-        console.error('❌ [MERGE] Error merging exports:', error);
+        console.error('Error merging exports:', error);
         showToast('Lỗi: ' + error.message, 'error');
     }
 }
@@ -622,6 +608,7 @@ async function bulkDownloadExports() {
         
         let successCount = 0;
         let errorCount = 0;
+        let totalUpdatedOrders = 0;
         
         // Download each file with delay to avoid overwhelming browser
         for (const exportId of selectedExportIds) {
@@ -635,14 +622,20 @@ async function bulkDownloadExports() {
                 link.click();
                 document.body.removeChild(link);
                 
-                // Mark as downloaded
-                await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
+                // Mark as downloaded and get updated count
+                const markResponse = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ exportId: exportId })
                 });
                 
-                successCount++;
+                const markData = await markResponse.json();
+                if (markData.success) {
+                    successCount++;
+                    totalUpdatedOrders += markData.updatedCount || 0;
+                } else {
+                    errorCount++;
+                }
                 
                 // Small delay between downloads
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -653,20 +646,22 @@ async function bulkDownloadExports() {
             }
         }
         
-        // Show result
-        if (errorCount === 0) {
-            showToast(`✅ Đã tải thành công ${successCount} file`, 'success');
-        } else {
-            showToast(`⚠️ Đã tải ${successCount} file, ${errorCount} file lỗi`, 'warning');
-        }
-        
         // Close modal immediately
         closeExportHistoryModal();
         
         // Refresh in background (non-blocking)
         exportHistoryCache = null;
-        updateExportHistoryBadge();
-        loadOrdersData().catch(err => console.error('Error reloading orders:', err));
+        await updateExportHistoryBadge();
+        
+        // Reload orders to show updated statuses
+        await loadOrdersData();
+        
+        // Show result
+        if (errorCount === 0) {
+            showToast(`✅ Đã tải thành công ${successCount} file và cập nhật ${totalUpdatedOrders} đơn sang "Đã gửi hàng"`, 'success');
+        } else {
+            showToast(`⚠️ Đã tải ${successCount} file, ${errorCount} file lỗi. Cập nhật ${totalUpdatedOrders} đơn hàng`, 'warning');
+        }
         
     } catch (error) {
         console.error('Error bulk downloading:', error);

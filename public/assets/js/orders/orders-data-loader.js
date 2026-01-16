@@ -83,46 +83,35 @@ function calculatePackagingCost() {
 
 // Load orders data from API
 async function loadOrdersData() {
-    console.log('🟢 [LOAD_ORDERS] Start loading...');
     try {
         showLoading();
-        console.log('🟢 [LOAD_ORDERS] Loading indicator shown');
 
         const response = await fetch(`${CONFIG.API_URL}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
-        console.log('🟢 [LOAD_ORDERS] API response received');
 
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
 
         const data = await response.json();
-        console.log('🟢 [LOAD_ORDERS] Data parsed, orders count:', data.orders?.length);
 
         if (data.success) {
             allOrdersData = data.orders || [];
             filteredOrdersData = [...allOrdersData];
-            console.log('🟢 [LOAD_ORDERS] Data assigned to global variables');
 
             // Apply default sorting (newest first)
-            console.log('🟢 [LOAD_ORDERS] Applying sorting...');
             applySorting();
             updateDateSortIcon();
             updateAmountSortIcon();
-            console.log('🟢 [LOAD_ORDERS] Sorting applied');
 
-            console.log('🟢 [LOAD_ORDERS] Updating stats...');
             updateStats();
-            console.log('🟢 [LOAD_ORDERS] Rendering table...');
             renderOrdersTable();
-            console.log('🟢 [LOAD_ORDERS] Hiding loading...');
             hideLoading();
-            console.log('🟢 [LOAD_ORDERS] ✅ Completed successfully');
         } else {
             throw new Error(data.error || 'Failed to load data');
         }
 
     } catch (error) {
-        console.error('❌ [LOAD_ORDERS] Error loading orders data:', error);
+        console.error('Error loading orders data:', error);
         hideLoading();
         showError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
     }
