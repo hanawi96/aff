@@ -10,6 +10,11 @@ let exportHistoryCacheTime = 0;
 const CACHE_DURATION = 30000; // 30 seconds
 
 // ============================================
+// SELECTION STATE
+// ============================================
+let selectedExportIds = new Set();
+
+// ============================================
 // LOAD EXPORT HISTORY
 // ============================================
 
@@ -71,6 +76,9 @@ async function updateExportHistoryBadge() {
  */
 async function showExportHistoryModal() {
     try {
+        // Reset selection
+        selectedExportIds.clear();
+        
         // Use cached data
         const data = await loadExportHistory();
         
@@ -99,6 +107,36 @@ async function showExportHistoryModal() {
                         </svg>
                     </button>
                 </div>
+                
+                <!-- Bulk Actions Bar -->
+                ${data.exports.length > 0 ? `
+                    <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="selectAllExports" onchange="toggleSelectAllExports()" 
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                                <span class="text-sm font-medium text-gray-700">Chọn tất cả</span>
+                            </label>
+                            <span id="selectedCount" class="text-sm text-gray-500">0 đã chọn</span>
+                        </div>
+                        <div id="bulkActions" class="hidden flex items-center gap-2">
+                            <button onclick="bulkDownloadExports()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Tải xuống
+                            </button>
+                            <button onclick="bulkDeleteExports()" 
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-medium flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Xóa
+                            </button>
+                        </div>
+                    </div>
+                ` : ''}
                 
                 <!-- Content -->
                 <div class="flex-1 overflow-y-auto p-6">
@@ -147,53 +185,61 @@ function renderExportItem(exp) {
         : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>Chưa tải</span>';
     
     return `
-        <div class="flex items-center justify-between p-4 border-2 ${exp.status === 'pending' ? 'border-yellow-200 bg-yellow-50' : 'border-gray-200'} rounded-xl hover:shadow-md transition-all">
-            <div class="flex items-center gap-4 flex-1">
-                <!-- File Icon -->
-                <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+        <div class="flex items-center gap-3 p-4 border-2 ${exp.status === 'pending' ? 'border-yellow-200 bg-yellow-50' : 'border-gray-200'} rounded-xl hover:shadow-md transition-all">
+            <!-- Checkbox -->
+            <input type="checkbox" 
+                class="export-checkbox w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer" 
+                data-export-id="${exp.id}"
+                onchange="toggleExportSelection(${exp.id})" />
+            
+            <div class="flex items-center justify-between flex-1">
+                <div class="flex items-center gap-4 flex-1">
+                    <!-- File Icon -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    
+                    <!-- File Info -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-semibold text-gray-900 truncate">${exp.file_name}</h3>
+                            ${statusBadge}
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                ${dateStr}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                ${exp.order_count} đơn hàng
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- File Info -->
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                        <h3 class="font-semibold text-gray-900 truncate">${exp.file_name}</h3>
-                        ${statusBadge}
-                    </div>
-                    <div class="flex items-center gap-3 text-sm text-gray-500">
-                        <span class="flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            ${dateStr}
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            ${exp.order_count} đơn hàng
-                        </span>
-                    </div>
+                <!-- Actions -->
+                <div class="flex items-center gap-2 ml-4">
+                    <button onclick="downloadAndUpdateExport(${exp.id})" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium flex items-center gap-2 hover:scale-105">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Tải xuống
+                    </button>
+                    <button onclick="deleteExportFile(${exp.id})" 
+                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Xóa file">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
                 </div>
-            </div>
-            
-            <!-- Actions -->
-            <div class="flex items-center gap-2 ml-4">
-                <button onclick="downloadAndUpdateExport(${exp.id})" 
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium flex items-center gap-2 hover:scale-105">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Tải xuống
-                </button>
-                <button onclick="deleteExportFile(${exp.id})" 
-                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Xóa file">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
             </div>
         </div>
     `;
@@ -206,6 +252,77 @@ function closeExportHistoryModal() {
     const modal = document.getElementById('exportHistoryModal');
     if (modal) {
         modal.remove();
+        selectedExportIds.clear();
+    }
+}
+
+// ============================================
+// SELECTION FUNCTIONS
+// ============================================
+
+/**
+ * Toggle single export selection
+ */
+function toggleExportSelection(exportId) {
+    if (selectedExportIds.has(exportId)) {
+        selectedExportIds.delete(exportId);
+    } else {
+        selectedExportIds.add(exportId);
+    }
+    updateSelectionUI();
+}
+
+/**
+ * Toggle select all exports
+ */
+function toggleSelectAllExports() {
+    const selectAllCheckbox = document.getElementById('selectAllExports');
+    const checkboxes = document.querySelectorAll('.export-checkbox');
+    
+    if (selectAllCheckbox.checked) {
+        // Select all
+        checkboxes.forEach(cb => {
+            const exportId = parseInt(cb.dataset.exportId);
+            selectedExportIds.add(exportId);
+            cb.checked = true;
+        });
+    } else {
+        // Deselect all
+        selectedExportIds.clear();
+        checkboxes.forEach(cb => cb.checked = false);
+    }
+    
+    updateSelectionUI();
+}
+
+/**
+ * Update selection UI (count and bulk actions visibility)
+ */
+function updateSelectionUI() {
+    const count = selectedExportIds.size;
+    const selectedCountEl = document.getElementById('selectedCount');
+    const bulkActionsEl = document.getElementById('bulkActions');
+    const selectAllCheckbox = document.getElementById('selectAllExports');
+    const totalCheckboxes = document.querySelectorAll('.export-checkbox').length;
+    
+    // Update count
+    if (selectedCountEl) {
+        selectedCountEl.textContent = `${count} đã chọn`;
+    }
+    
+    // Show/hide bulk actions
+    if (bulkActionsEl) {
+        if (count > 0) {
+            bulkActionsEl.classList.remove('hidden');
+        } else {
+            bulkActionsEl.classList.add('hidden');
+        }
+    }
+    
+    // Update select all checkbox state
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = count === totalCheckboxes && count > 0;
+        selectAllCheckbox.indeterminate = count > 0 && count < totalCheckboxes;
     }
 }
 
@@ -259,14 +376,56 @@ async function downloadAndUpdateExport(exportId) {
 }
 
 /**
- * Delete export file
+ * Delete export file (Optimistic UI)
  */
 async function deleteExportFile(exportId) {
     if (!confirm('Bạn có chắc chắn muốn xóa file export này?')) {
         return;
     }
     
+    // Find the item element
+    const itemElement = document.querySelector(`[data-export-id="${exportId}"]`)?.closest('.flex.items-center.gap-3');
+    
+    if (!itemElement) {
+        console.error('Could not find export item element');
+        return;
+    }
+    
     try {
+        // Optimistic UI: Fade out and remove item immediately
+        itemElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        itemElement.style.opacity = '0';
+        itemElement.style.transform = 'translateX(-20px)';
+        
+        // Remove from selection if selected
+        selectedExportIds.delete(exportId);
+        updateSelectionUI();
+        
+        // Wait for animation then remove from DOM
+        setTimeout(() => {
+            itemElement.remove();
+            
+            // Check if no items left, show empty state
+            const itemsContainer = document.querySelector('.space-y-3');
+            if (itemsContainer && itemsContainer.children.length === 0) {
+                itemsContainer.innerHTML = `
+                    <div class="text-center py-16">
+                        <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
+                        <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
+                    </div>
+                `;
+                // Hide bulk actions bar
+                const bulkActionsBar = document.querySelector('.px-6.py-3.bg-gray-50');
+                if (bulkActionsBar) bulkActionsBar.remove();
+            }
+        }, 300);
+        
+        // Delete from server in background
         const response = await fetch(`${CONFIG.API_URL}?action=deleteExport`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -280,15 +439,199 @@ async function deleteExportFile(exportId) {
             // Invalidate cache and update badge
             exportHistoryCache = null;
             await updateExportHistoryBadge();
-            // Reload modal
-            closeExportHistoryModal();
-            setTimeout(() => showExportHistoryModal(), 300);
         } else {
             throw new Error(data.error || 'Không thể xóa file');
         }
         
     } catch (error) {
         console.error('Error deleting export:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+        
+        // Rollback: Restore item if delete failed
+        if (itemElement && itemElement.parentElement) {
+            itemElement.style.opacity = '1';
+            itemElement.style.transform = 'translateX(0)';
+        } else {
+            // If already removed, reload modal
+            closeExportHistoryModal();
+            setTimeout(() => showExportHistoryModal(), 300);
+        }
+    }
+}
+
+// ============================================
+// BULK ACTIONS
+// ============================================
+
+/**
+ * Bulk download selected exports
+ */
+async function bulkDownloadExports() {
+    if (selectedExportIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 file để tải', 'warning');
+        return;
+    }
+    
+    const count = selectedExportIds.size;
+    if (!confirm(`Bạn có chắc chắn muốn tải ${count} file đã chọn?`)) {
+        return;
+    }
+    
+    try {
+        showToast(`Đang tải ${count} file...`, 'info');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Download each file with delay to avoid overwhelming browser
+        for (const exportId of selectedExportIds) {
+            try {
+                // Download file
+                const downloadUrl = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Mark as downloaded
+                await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exportId: exportId })
+                });
+                
+                successCount++;
+                
+                // Small delay between downloads
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (error) {
+                console.error(`Error downloading export ${exportId}:`, error);
+                errorCount++;
+            }
+        }
+        
+        // Show result
+        if (errorCount === 0) {
+            showToast(`✅ Đã tải thành công ${successCount} file`, 'success');
+        } else {
+            showToast(`⚠️ Đã tải ${successCount} file, ${errorCount} file lỗi`, 'warning');
+        }
+        
+        // Refresh UI
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
+        await loadOrdersData();
+        closeExportHistoryModal();
+        
+    } catch (error) {
+        console.error('Error bulk downloading:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Bulk delete selected exports (Optimistic UI)
+ */
+async function bulkDeleteExports() {
+    if (selectedExportIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 file để xóa', 'warning');
+        return;
+    }
+    
+    const count = selectedExportIds.size;
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${count} file đã chọn? Hành động này không thể hoàn tác.`)) {
+        return;
+    }
+    
+    try {
+        showToast(`Đang xóa ${count} file...`, 'info');
+        
+        // Collect all items to delete
+        const itemsToDelete = [];
+        selectedExportIds.forEach(exportId => {
+            const itemElement = document.querySelector(`[data-export-id="${exportId}"]`)?.closest('.flex.items-center.gap-3');
+            if (itemElement) {
+                itemsToDelete.push({ exportId, element: itemElement });
+            }
+        });
+        
+        // Optimistic UI: Fade out all selected items
+        itemsToDelete.forEach(({ element }) => {
+            element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            element.style.opacity = '0';
+            element.style.transform = 'translateX(-20px)';
+        });
+        
+        // Clear selection
+        selectedExportIds.clear();
+        updateSelectionUI();
+        
+        // Remove from DOM after animation
+        setTimeout(() => {
+            itemsToDelete.forEach(({ element }) => element.remove());
+            
+            // Check if no items left
+            const itemsContainer = document.querySelector('.space-y-3');
+            if (itemsContainer && itemsContainer.children.length === 0) {
+                itemsContainer.innerHTML = `
+                    <div class="text-center py-16">
+                        <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có file export nào</h3>
+                        <p class="text-gray-500">Export đơn hàng để tạo file Excel đầu tiên</p>
+                    </div>
+                `;
+                // Hide bulk actions bar
+                const bulkActionsBar = document.querySelector('.px-6.py-3.bg-gray-50');
+                if (bulkActionsBar) bulkActionsBar.remove();
+            }
+        }, 300);
+        
+        // Delete from server in background
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const { exportId } of itemsToDelete) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=deleteExport`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exportId: exportId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+                
+            } catch (error) {
+                console.error(`Error deleting export ${exportId}:`, error);
+                errorCount++;
+            }
+        }
+        
+        // Show result
+        if (errorCount === 0) {
+            showToast(`✅ Đã xóa thành công ${successCount} file`, 'success');
+        } else {
+            showToast(`⚠️ Đã xóa ${successCount} file, ${errorCount} file lỗi`, 'warning');
+        }
+        
+        // Invalidate cache and update badge
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
+        
+    } catch (error) {
+        console.error('Error bulk deleting:', error);
         showToast('Lỗi: ' + error.message, 'error');
     }
 }
