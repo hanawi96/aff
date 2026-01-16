@@ -66,73 +66,6 @@ function showProductSelectionModal() {
                     </div>
                 </div>
                 <div id="modalProductDetailsForm" class="hidden pt-4 border-t border-gray-200">
-                    <div id="modalCustomInputFields" class="hidden">
-                        <div class="bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-xl p-4 border border-purple-200">
-                            <div class="flex items-center gap-2 mb-3 pb-3 border-b border-purple-200">
-                                <div class="w-7 h-7 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center shadow-sm">
-                                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="text-sm font-bold text-gray-900">Tự nhập sản phẩm</h4>
-                                    <p class="text-xs text-gray-600">Sản phẩm không có trong danh sách</p>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Tên sản phẩm <span class="text-red-500">*</span></label>
-                                    <input type="text" id="modalCustomProductNameInput" placeholder="Nhập tên sản phẩm..." class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" />
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Giá bán <span class="text-red-500">*</span></label>
-                                        <div class="relative">
-                                            <input type="number" id="modalCustomProductPriceInput" placeholder="50000" min="0" step="1000" oninput="calculateModalCustomProfit()" class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
-                                            <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">💰 Giá vốn</label>
-                                        <div class="relative">
-                                            <input type="number" id="modalCustomProductCostInput" placeholder="25000" min="0" step="1000" oninput="calculateModalCustomProfit()" class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" />
-                                            <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="modalCustomProfitDisplay" class="hidden">
-                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg px-3 py-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs text-gray-600">Lãi dự kiến:</span>
-                                            <div class="text-right">
-                                                <span id="modalCustomProfitAmount" class="text-sm font-bold text-green-600">0đ</span>
-                                                <span class="text-xs text-green-500 ml-2">(<span id="modalCustomProfitMargin">0</span>%)</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="modalCustomLossWarning" class="hidden">
-                                    <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                        <p class="text-xs text-red-600 font-medium">⚠️ Giá vốn cao hơn giá bán!</p>
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Số lượng</label>
-                                        <input type="number" id="modalCustomProductQtyInput" value="1" min="1" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Cân nặng</label>
-                                        <input type="text" id="modalCustomProductWeightInput" placeholder="5kg" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Lưu ý</label>
-                                    <textarea id="modalCustomProductNotesInput" rows="2" placeholder="Ghi chú thêm về sản phẩm..." class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all resize-none"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div id="modalSelectedProductDisplay" class="hidden bg-purple-50 rounded-lg p-3 border border-purple-300 mb-3">
                         <p class="text-xs text-gray-600 mb-1">Sản phẩm đã chọn:</p>
                         <p class="font-semibold text-gray-900" id="modalSelectedProductName"></p>
@@ -180,12 +113,11 @@ function closeProductSelectionModal() {
 function renderModalCategories() {
     const container = document.getElementById('modalCategoriesGrid');
     if (!container) return;
-    const categories = [...allCategoriesList, { id: 'custom', name: 'Tự nhập', icon: null, color: '#6b7280' }];
+    const categories = [...allCategoriesList];
     container.innerHTML = categories.map(cat => {
         const isSelected = selectedCategory === cat.id;
-        const isCustom = cat.id === 'custom';
         const categoryColor = cat.color || '#6b7280';
-        return `<button onclick="selectModalCategory(${isCustom ? "'custom'" : cat.id})" id="modal_cat_${cat.id}" class="group inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'}"><div class="flex-shrink-0 w-2 h-2 rounded-full transition-all ${isSelected ? 'ring-2 ring-purple-400 ring-offset-1' : ''}" style="background-color: ${isSelected ? '#a855f7' : categoryColor}"></div><span class="text-sm font-medium whitespace-nowrap ${isSelected ? 'text-purple-900' : 'text-gray-700 group-hover:text-purple-700'}">${escapeHtml(cat.name)}</span>${isSelected ? '<svg class="w-4 h-4 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>' : ''}</button>`;
+        return `<button onclick="selectModalCategory(${cat.id})" id="modal_cat_${cat.id}" class="group inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-gray-50'}"><div class="flex-shrink-0 w-2 h-2 rounded-full transition-all ${isSelected ? 'ring-2 ring-purple-400 ring-offset-1' : ''}" style="background-color: ${isSelected ? '#a855f7' : categoryColor}"></div><span class="text-sm font-medium whitespace-nowrap ${isSelected ? 'text-purple-900' : 'text-gray-700 group-hover:text-purple-700'}">${escapeHtml(cat.name)}</span>${isSelected ? '<svg class="w-4 h-4 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>' : ''}</button>`;
     }).join('');
 }
 
@@ -193,22 +125,11 @@ function selectModalCategory(categoryId) {
     selectedCategory = categoryId;
     renderModalCategories();
     const step2Container = document.getElementById('modalStep2Container');
-    const customFields = document.getElementById('modalCustomInputFields');
-    const selectedDisplay = document.getElementById('modalSelectedProductDisplay');
     const detailsForm = document.getElementById('modalProductDetailsForm');
-    if (categoryId === 'custom') {
-        if (step2Container) step2Container.classList.add('hidden');
-        if (detailsForm) detailsForm.classList.remove('hidden');
-        if (customFields) customFields.classList.remove('hidden');
-        if (selectedDisplay) selectedDisplay.classList.add('hidden');
-        selectedProducts = [];
-        setTimeout(() => document.getElementById('modalCustomProductNameInput')?.focus(), 100);
-    } else {
-        if (step2Container) step2Container.classList.remove('hidden');
-        if (detailsForm) detailsForm.classList.add('hidden');
-        renderModalProductsList(categoryId);
-        if (customFields) customFields.classList.add('hidden');
-    }
+    
+    if (step2Container) step2Container.classList.remove('hidden');
+    if (detailsForm) detailsForm.classList.add('hidden');
+    renderModalProductsList(categoryId);
 }
 
 
@@ -221,6 +142,14 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
         const query = searchQuery.toLowerCase();
         products = products.filter(p => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)));
     }
+    
+    // Sort by purchases (best selling first)
+    products.sort((a, b) => {
+        const purchasesA = a.purchases || 0;
+        const purchasesB = b.purchases || 0;
+        return purchasesB - purchasesA; // Descending order (highest first)
+    });
+    
     if (products.length === 0) {
         container.innerHTML = '<div class="col-span-2 p-8 text-center text-gray-500 text-sm italic">Không có sản phẩm nào</div>';
         return;
@@ -238,7 +167,7 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
             const regex = new RegExp(`(${escapeHtml(searchQuery)})`, 'gi');
             displayName = displayName.replace(regex, '<mark class="bg-yellow-200 px-0.5">$1</mark>');
         }
-        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-2 p-3 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-start gap-2"><div class="flex-shrink-0 mt-0.5"><div class="w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div><div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-tight mb-1">${displayName}</p><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${isSelected ? `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2"><label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div></div><div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] || ''}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div><div class="col-span-7"><label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div></div>${!isAdultBracelet ? `<div class="flex flex-wrap gap-1.5 pt-1">${[3,4,5,6,7,8,9,10].map(kg => `<button onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}</div>` : ''}</div>` : ''}</div>`;
+        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-2 p-3 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-start gap-2"><div class="flex-shrink-0 mt-0.5"><div class="w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div><div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-tight mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${isSelected ? `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2"><label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div></div><div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] || ''}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div><div class="col-span-7"><label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div></div>${!isAdultBracelet ? `<div class="flex flex-wrap gap-1.5 pt-1">${[3,4,5,6,7,8,9,10].map(kg => `<button onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}</div>` : ''}</div>` : ''}</div>`;
     }).join('');
 }
 
@@ -361,30 +290,6 @@ function setupModalProductSearch() {
     });
 }
 
-function calculateModalCustomProfit() {
-    const price = parseFloat(document.getElementById('modalCustomProductPriceInput')?.value) || 0;
-    const costPrice = parseFloat(document.getElementById('modalCustomProductCostInput')?.value) || 0;
-    const profitDisplay = document.getElementById('modalCustomProfitDisplay');
-    const lossWarning = document.getElementById('modalCustomLossWarning');
-    if (price > 0 && costPrice > 0) {
-        const profit = price - costPrice;
-        const margin = (profit / price) * 100;
-        if (profit > 0) {
-            document.getElementById('modalCustomProfitAmount').textContent = formatCurrency(profit);
-            document.getElementById('modalCustomProfitMargin').textContent = margin.toFixed(1);
-            profitDisplay.classList.remove('hidden');
-            lossWarning.classList.add('hidden');
-        } else {
-            profitDisplay.classList.add('hidden');
-            lossWarning.classList.remove('hidden');
-        }
-    } else {
-        profitDisplay.classList.add('hidden');
-        lossWarning.classList.add('hidden');
-    }
-}
-
-
 function addProductFromModal() {
     if (currentEditingOrderId) {
         saveProductsToExistingOrder();
@@ -449,48 +354,7 @@ function addProductFromModal() {
         updateOrderNotesDisplay();
         closeProductSelectionModal();
         showToast(`Đã thêm ${addedCount} sản phẩm`, 'success');
-        return;
     }
-    const customName = document.getElementById('modalCustomProductNameInput')?.value.trim();
-    const customPrice = parseFloat(document.getElementById('modalCustomProductPriceInput')?.value) || 0;
-    const customCostPrice = parseFloat(document.getElementById('modalCustomProductCostInput')?.value) || 0;
-    const customQuantity = parseInt(document.getElementById('modalCustomProductQtyInput')?.value) || 1;
-    let customWeight = document.getElementById('modalCustomProductWeightInput')?.value.trim() || '';
-    const customNotes = document.getElementById('modalCustomProductNotesInput')?.value.trim() || '';
-    if (customWeight && /^\d+(\.\d+)?$/.test(customWeight)) {
-        customWeight = customWeight + 'kg';
-    }
-    if (!customName) {
-        showToast('Vui lòng nhập tên sản phẩm', 'warning');
-        document.getElementById('modalCustomProductNameInput')?.focus();
-        return;
-    }
-    if (customPrice <= 0) {
-        showToast('Vui lòng nhập giá sản phẩm', 'warning');
-        document.getElementById('modalCustomProductPriceInput')?.focus();
-        return;
-    }
-    const existingProduct = currentOrderProducts.find(p => p.name === customName && (p.weight || '') === (customWeight || '') && (p.notes || '') === (customNotes || '') && p.price === customPrice);
-    if (existingProduct) {
-        existingProduct.quantity += customQuantity;
-    } else {
-        const newProduct = { name: customName, price: customPrice, quantity: customQuantity };
-        if (customCostPrice > 0) newProduct.cost_price = customCostPrice;
-        if (customWeight) {
-            if (customWeight.includes('cm') || customWeight.toLowerCase().includes('size')) {
-                newProduct.size = customWeight;
-            } else {
-                newProduct.weight = customWeight;
-            }
-        }
-        if (customNotes) newProduct.notes = customNotes;
-        currentOrderProducts.push(newProduct);
-    }
-    renderOrderProducts();
-    updateOrderSummary();
-    updateOrderNotesDisplay();
-    closeProductSelectionModal();
-    showToast('Đã thêm sản phẩm', 'success');
 }
 
 console.log('✅ orders-product-selection-modal.js loaded');
