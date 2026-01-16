@@ -179,7 +179,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         </div>
     `;
 
-    // Giá trị (COD Amount)
+    // Giá trị (Total Amount - Doanh thu)
     const tdAmount = document.createElement('td');
     tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center';
     const paymentMethod = order.payment_method || 'cod';
@@ -194,16 +194,13 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         totalAmount = (order.product_total || 0) + shippingFee - discountAmount;
     }
     
-    // Calculate COD amount (tiền thu hộ)
-    // - If bank transfer: COD = 0đ (already paid)
-    // - If COD: COD = total amount (collect on delivery)
-    const codAmount = paymentMethod === 'bank' ? 0 : totalAmount;
+    // Determine color based on payment method
     const isBankTransfer = paymentMethod === 'bank';
     
     tdAmount.innerHTML = `
         <div class="flex flex-col gap-1.5 items-center">
             <div class="group cursor-pointer hover:bg-green-50 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-2" onclick="editAmount(${order.id}, '${escapeHtml(order.order_id)}')">
-                <span class="text-sm font-bold ${isBankTransfer ? 'text-green-600' : 'text-orange-600'}">${formatCurrency(codAmount)}</span>
+                <span class="text-sm font-bold ${isBankTransfer ? 'text-green-600' : 'text-orange-600'}">${formatCurrency(totalAmount)}</span>
                 <button class="opacity-0 group-hover:opacity-100 transition-opacity ${isBankTransfer ? 'text-green-600 hover:text-green-700' : 'text-orange-600 hover:text-orange-700'}" title="Chỉnh sửa giá trị">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

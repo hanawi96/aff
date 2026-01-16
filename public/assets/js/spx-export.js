@@ -211,6 +211,14 @@ function createSPXExcelWorkbook(orders) {
             }
         }
         
+        // Determine COD amount based on payment method
+        // - If bank transfer: COD = 0 (already paid)
+        // - If COD: COD = total_amount (collect on delivery)
+        const paymentMethod = order.payment_method || 'cod';
+        const isBankTransfer = paymentMethod === 'bank';
+        const codAmount = isBankTransfer ? 0 : (order.total_amount || 0);
+        const collectCOD = isBankTransfer ? 'N' : 'Y';
+        
         // Create single row per order
         const row = {
             '*Mã đơn hàng': order.order_id || '',
@@ -236,8 +244,8 @@ function createSPXExcelWorkbook(orders) {
             '*Cho xem hàng, không cho thử (Y/N)': 'Y',
             'Thu phí từ chối nhận hàng (Y/N)': '',
             'Phí từ chối nhận hàng cần thu': '',
-            '*Thu COD (Y/N)': 'Y',
-            'Số tiền COD': order.total_amount || 0,
+            '*Thu COD (Y/N)': collectCOD,
+            'Số tiền COD': codAmount,
             'bưu gửi giá trị cao (Y/N)': '',
             '*Hình thức thanh Toán': 'Người gửi trả',
             'Lưu ý giao hàng': '',
