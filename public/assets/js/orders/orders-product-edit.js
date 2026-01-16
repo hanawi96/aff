@@ -21,6 +21,14 @@ function editProductInOrder(index) {
     const product = currentOrderProducts[index];
     if (!product) return;
 
+    console.log('🔧 editProductInOrder - Opening modal for product:', {
+        index,
+        product: JSON.parse(JSON.stringify(product)),
+        price: product.price,
+        cost_price: product.cost_price,
+        quantity: product.quantity
+    });
+
     // Create edit modal
     const modal = document.createElement('div');
     modal.id = 'editProductModal';
@@ -127,14 +135,24 @@ function editProductInOrder(index) {
 
     document.body.appendChild(modal);
 
-    // Reset unit prices
+    // Initialize unit prices correctly
+    // product.price and product.cost_price are ALWAYS unit prices (per item)
     editOrderUnitPrice = parseFloat(product.price) || 0;
     editOrderUnitCost = parseFloat(product.cost_price) || 0;
+
+    console.log('💰 Initialized unit prices:', {
+        editOrderUnitPrice,
+        editOrderUnitCost,
+        quantity: product.quantity,
+        expectedTotalPrice: editOrderUnitPrice * (product.quantity || 1),
+        expectedTotalCost: editOrderUnitCost * (product.quantity || 1)
+    });
 
     // Focus first input
     setTimeout(() => {
         document.getElementById('editProductName')?.focus();
-        calculateEditProfit();
+        // Update display to show total prices based on quantity
+        updateEditModalDisplay();
     }, 100);
 }
 
@@ -146,10 +164,8 @@ function closeEditProductModal() {
     }
 }
 
-// Calculate and update unit prices in edit modal (for new order)
-function calculateEditProfit(sourceField = null) {
-    if (editOrderIsUpdating) return;
-
+// Update edit modal display with total prices
+function updateEditModalDisplay() {
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
     const quantityInput = document.getElementById('editProductQty');
@@ -158,34 +174,33 @@ function calculateEditProfit(sourceField = null) {
 
     const quantity = parseInt(quantityInput.value) || 1;
 
-    // Parse current input values
-    const currentPriceValue = parseFloat(priceInput.value) || 0;
-    const currentCostValue = parseFloat(costPriceInput.value) || 0;
+    console.log('📊 updateEditModalDisplay called:', {
+        quantity,
+        editOrderUnitPrice,
+        editOrderUnitCost,
+        calculatedTotalPrice: editOrderUnitPrice * quantity,
+        calculatedTotalCost: editOrderUnitCost * quantity
+    });
 
-    // Update unit prices based on what user is editing
-    if (sourceField === 'price' || (editOrderUnitPrice === 0 && currentPriceValue > 0)) {
-        editOrderUnitPrice = currentPriceValue / quantity;
+    // Display total prices (unit price * quantity)
+    if (editOrderUnitPrice > 0) {
+        priceInput.value = editOrderUnitPrice * quantity;
     }
-    if (sourceField === 'cost' || (editOrderUnitCost === 0 && currentCostValue > 0)) {
-        editOrderUnitCost = currentCostValue / quantity;
-    }
-
-    // Only auto-calculate total when quantity changes, not when price/cost changes
-    if (sourceField === 'quantity') {
-        const totalRevenue = editOrderUnitPrice * quantity;
-        const totalCost = editOrderUnitCost * quantity;
-
-        editOrderIsUpdating = true;
-        if (editOrderUnitPrice > 0) {
-            priceInput.value = totalRevenue;
-        }
-        if (editOrderUnitCost > 0) {
-            costPriceInput.value = totalCost;
-        }
-        editOrderIsUpdating = false;
+    if (editOrderUnitCost > 0) {
+        costPriceInput.value = editOrderUnitCost * quantity;
     }
 
-    // Update unit price labels (show only when quantity > 1)
+    console.log('✅ Updated input values:', {
+        priceInputValue: priceInput.value,
+        costPriceInputValue: costPriceInput.value
+    });
+
+    // Update unit price labels
+    updateUnitPriceLabels(quantity);
+}
+
+// Update unit price labels
+function updateUnitPriceLabels(quantity) {
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
     const costUnitDiv = document.getElementById('editProductCostUnit');
 
@@ -209,6 +224,66 @@ function calculateEditProfit(sourceField = null) {
     }
 }
 
+// Calculate and update unit prices in edit modal (for new order)
+function calculateEditProfit(sourceField = null) {
+    if (editOrderIsUpdating) return;
+
+    console.log('🧮 calculateEditProfit called:', { sourceField });
+
+    const priceInput = document.getElementById('editProductPrice');
+    const costPriceInput = document.getElementById('editProductCostPrice');
+    const quantityInput = document.getElementById('editProductQty');
+
+    if (!priceInput || !costPriceInput || !quantityInput) return;
+
+    const quantity = parseInt(quantityInput.value) || 1;
+    const currentPriceValue = parseFloat(priceInput.value) || 0;
+    const currentCostValue = parseFloat(costPriceInput.value) || 0;
+
+    console.log('📥 Current values:', {
+        quantity,
+        currentPriceValue,
+        currentCostValue,
+        editOrderUnitPrice_before: editOrderUnitPrice,
+        editOrderUnitCost_before: editOrderUnitCost
+    });
+
+    // When user edits price/cost directly, update unit price
+    if (sourceField === 'price') {
+        editOrderUnitPrice = currentPriceValue / quantity;
+        console.log('💵 Updated unit price:', editOrderUnitPrice);
+    }
+    if (sourceField === 'cost') {
+        editOrderUnitCost = currentCostValue / quantity;
+        console.log('💰 Updated unit cost:', editOrderUnitCost);
+    }
+
+    // When quantity changes, recalculate total prices
+    if (sourceField === 'quantity') {
+        console.log('🔢 Quantity changed, recalculating totals...');
+        editOrderIsUpdating = true;
+        if (editOrderUnitPrice > 0) {
+            const newTotalPrice = editOrderUnitPrice * quantity;
+            priceInput.value = newTotalPrice;
+            console.log('  → New total price:', newTotalPrice);
+        }
+        if (editOrderUnitCost > 0) {
+            const newTotalCost = editOrderUnitCost * quantity;
+            costPriceInput.value = newTotalCost;
+            console.log('  → New total cost:', newTotalCost);
+        }
+        editOrderIsUpdating = false;
+    }
+
+    console.log('📤 Final unit prices:', {
+        editOrderUnitPrice,
+        editOrderUnitCost
+    });
+
+    // Update unit price labels
+    updateUnitPriceLabels(quantity);
+}
+
 // Save edited product
 function saveEditedProduct(index) {
     const name = document.getElementById('editProductName')?.value.trim();
@@ -218,6 +293,16 @@ function saveEditedProduct(index) {
     const costPrice = editOrderUnitCost;
     const size = document.getElementById('editProductSize')?.value.trim();
     const notes = document.getElementById('editProductNotes')?.value.trim();
+
+    console.log('💾 saveEditedProduct called:', {
+        index,
+        name,
+        quantity,
+        unitPrice: price,
+        unitCost: costPrice,
+        size,
+        notes
+    });
 
     if (!name) {
         showToast('Vui lòng nhập tên sản phẩm', 'warning');
@@ -234,6 +319,8 @@ function saveEditedProduct(index) {
     if (costPrice > 0) currentOrderProducts[index].cost_price = costPrice;
     if (size) currentOrderProducts[index].size = size;
     if (notes) currentOrderProducts[index].notes = notes;
+
+    console.log('✅ Product saved:', currentOrderProducts[index]);
 
     closeEditProductModal();
     renderOrderProducts();

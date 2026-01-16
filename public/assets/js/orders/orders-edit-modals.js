@@ -70,9 +70,10 @@ function editProductName(productId, orderId, orderCode) {
             quantity: quantity,
             weight: product.weight || '',
             size: product.size || '',
-            // IMPORTANT: Divide by quantity to get UNIT price (in case it's stored as total)
-            price: product.price ? (product.price / quantity) : '',
-            cost_price: product.cost_price ? (product.cost_price / quantity) : '',
+            // IMPORTANT: price and cost_price are ALWAYS stored as UNIT prices (per item)
+            // DO NOT divide by quantity - they are already unit prices!
+            price: product.price || '',
+            cost_price: product.cost_price || '',
             notes: product.notes || ''
         };
 
@@ -163,12 +164,12 @@ function editProductName(productId, orderId, orderCode) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Giá bán <span class="text-xs text-gray-500 font-normal">(VD: 50000)</span>
+                            Giá bán <span class="text-xs text-gray-500 font-normal">(Tổng tiền)</span>
                         </label>
                         <input 
                             type="text" 
                             id="editProductPrice" 
-                            value="${escapeHtml(productData.price)}"
+                            value=""
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá bán"
                             oninput="calculateEditModalProfit('price')"
@@ -179,12 +180,12 @@ function editProductName(productId, orderId, orderCode) {
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            💰 Giá vốn
+                            💰 Giá vốn <span class="text-xs text-gray-500 font-normal">(Tổng tiền)</span>
                         </label>
                         <input 
                             type="text" 
                             id="editProductCostPrice" 
-                            value="${escapeHtml(productData.cost_price || '')}"
+                            value=""
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="Nhập giá vốn"
                             oninput="calculateEditModalProfit('cost')"
@@ -194,7 +195,7 @@ function editProductName(productId, orderId, orderCode) {
                         </div>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 -mt-2">💡 Giá nhập là giá 1 sản phẩm. Tổng tiền sẽ tự động tính = giá × số lượng</p>
+                <p class="text-xs text-gray-500 -mt-2">💡 Nhập tổng tiền cho tất cả sản phẩm. Đơn giá sẽ tự động tính = tổng tiền ÷ số lượng</p>
                 
                 <!-- Profit Display -->
                 <div id="editModalProfitDisplay" class="hidden">
@@ -257,15 +258,40 @@ function editProductName(productId, orderId, orderCode) {
 
     document.body.appendChild(modal);
 
-    // Reset unit prices
+    // Initialize unit prices - productData.price and productData.cost_price are ALREADY unit prices
     editModalUnitPrice = parseFloat(String(productData.price).replace(/[^\d]/g, '')) || 0;
     editModalUnitCost = parseFloat(String(productData.cost_price).replace(/[^\d]/g, '')) || 0;
 
-    // Focus first input immediately
-    document.getElementById('editProductName')?.focus();
+    console.log('🔧 editProductName - Modal opened:', {
+        productIndex,
+        quantity,
+        unitPrice: editModalUnitPrice,
+        unitCost: editModalUnitCost,
+        totalPrice: editModalUnitPrice * quantity,
+        totalCost: editModalUnitCost * quantity
+    });
 
-    // Calculate profit immediately to show totals if quantity > 1
-    setTimeout(() => calculateEditModalProfit(), 50);
+    // Set input values to TOTAL prices (unit price × quantity)
+    // Use setTimeout to ensure DOM is fully rendered
+    setTimeout(() => {
+        const priceInput = document.getElementById('editProductPrice');
+        const costPriceInput = document.getElementById('editProductCostPrice');
+        
+        if (priceInput && editModalUnitPrice > 0) {
+            priceInput.value = editModalUnitPrice * quantity;
+            console.log('✅ Set price input:', priceInput.value);
+        }
+        if (costPriceInput && editModalUnitCost > 0) {
+            costPriceInput.value = editModalUnitCost * quantity;
+            console.log('✅ Set cost input:', costPriceInput.value);
+        }
+        
+        // Calculate profit display
+        calculateEditModalProfit();
+        
+        // Focus first input
+        document.getElementById('editProductName')?.focus();
+    }, 0);
 
     // Close on Escape
     const escapeHandler = (e) => {
@@ -284,7 +310,6 @@ function closeEditProductModal() {
         modal.remove();
     }
 }
-
 
 // Save product name
 async function saveProductName(productId, orderId, orderCode, newName, oldName) {
@@ -400,6 +425,8 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
 function calculateEditModalProfit(sourceField = null) {
     if (editModalIsUpdating) return;
 
+    console.log('🧮 calculateEditModalProfit:', { sourceField });
+
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
     const quantityInput = document.getElementById('editProductQuantity');
@@ -412,28 +439,46 @@ function calculateEditModalProfit(sourceField = null) {
     const currentPriceValue = parseFloat(priceInput.value?.replace(/[^\d]/g, '')) || 0;
     const currentCostValue = parseFloat(costPriceInput.value?.replace(/[^\d]/g, '')) || 0;
 
-    // Update unit prices based on what user is editing
-    if (sourceField === 'price' || (editModalUnitPrice === 0 && currentPriceValue > 0)) {
+    console.log('📥 Current values:', {
+        quantity,
+        currentPriceValue,
+        currentCostValue,
+        unitPrice_before: editModalUnitPrice,
+        unitCost_before: editModalUnitCost
+    });
+
+    // When user edits price/cost directly, update unit price
+    if (sourceField === 'price') {
         editModalUnitPrice = currentPriceValue / quantity;
+        console.log('💵 Updated unit price:', editModalUnitPrice);
     }
-    if (sourceField === 'cost' || (editModalUnitCost === 0 && currentCostValue > 0)) {
+    if (sourceField === 'cost') {
         editModalUnitCost = currentCostValue / quantity;
+        console.log('💰 Updated unit cost:', editModalUnitCost);
     }
 
-    // Only auto-calculate total when quantity changes, not when price/cost changes
+    // When quantity changes, recalculate total prices
     if (sourceField === 'quantity') {
+        console.log('🔢 Quantity changed, recalculating totals...');
         const totalRevenue = editModalUnitPrice * quantity;
         const totalCost = editModalUnitCost * quantity;
 
         editModalIsUpdating = true;
         if (editModalUnitPrice > 0) {
             priceInput.value = totalRevenue;
+            console.log('  → New total price:', totalRevenue);
         }
         if (editModalUnitCost > 0) {
             costPriceInput.value = totalCost;
+            console.log('  → New total cost:', totalCost);
         }
         editModalIsUpdating = false;
     }
+
+    console.log('📤 Final unit prices:', {
+        editModalUnitPrice,
+        editModalUnitCost
+    });
 
     // Update unit price labels (show only when quantity > 1)
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
