@@ -408,13 +408,17 @@ function parseAddress(addressText) {
             
             // Step 1: Extract ward (if exists)
             if (hasWard) {
-                const wardMatch = remainingText.match(/(xã|phường|thị trấn|tt)\s+([^,]+?)(?=\s*(?:quận|huyện|thành phố|tp|thi xa|tx|tỉnh|tinh)|$)/i);
+                // Match with original text (not normalized) to preserve Vietnamese tones
+                const wardMatch = remainingText.match(/(xã|xa|phường|phuong|thị trấn|thi tran|tt)\s+([^,]+?)(?=\s*(?:quận|quan|huyện|huyen|thành phố|thanh pho|tp|thị xã|thi xa|tx|tỉnh|tinh)|$)/i);
+                console.log(`    🔍 Ward regex match:`, wardMatch);
                 if (wardMatch) {
                     const wardPart = wardMatch[0].trim();
                     subParts.push(wardPart);
                     console.log(`    → Split ward: "${wardPart}"`);
                     // Remove ward from remaining text
                     remainingText = remainingText.substring(wardMatch.index + wardMatch[0].length).trim();
+                } else {
+                    console.log(`    ⚠️ Ward keyword found but regex didn't match`);
                 }
             }
             
@@ -604,10 +608,32 @@ function parseAddress(addressText) {
     // Priority keywords for districts
     const districtKeywords = ['thanh pho', 'tp', 'quan', 'huyen', 'thi xa', 'tx'];
     
+    // Track which part was used for province to avoid reusing it
+    let provincePartIndex = -1;
+    if (result.province) {
+        // Find which part matched the province
+        for (let i = 0; i < parts.length; i++) {
+            const match = fuzzyMatch(parts[i], [result.province], 0.7);
+            if (match && match.score >= 0.7) {
+                provincePartIndex = i;
+                console.log(`    📍 Province part index: ${i} ("${parts[i]}")`);
+                break;
+            }
+        }
+    }
+    
     // If province found, search within that province
     if (result.province) {
         // First pass: Check parts with district keywords (higher priority)
-        for (const part of parts) {
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            
+            // Skip if this part was used for province
+            if (i === provincePartIndex) {
+                console.log(`    ⏭️ Skipping province part: "${part}"`);
+                continue;
+            }
+            
             const normalized = removeVietnameseTones(part).toLowerCase();
             const hasKeyword = districtKeywords.some(kw => normalized.includes(kw));
             const wordCount = part.split(/\s+/).length;
@@ -630,22 +656,35 @@ function parseAddress(addressText) {
         }
         
         // Second pass: Check all parts if not found with good score
+        // IMPORTANT: Iterate from END to START (parts closer to province are more likely to be district)
         if (bestDistrictScore < 0.7) {
-            for (const part of parts) {
+            for (let i = parts.length - 1; i >= 0; i--) {
+                const part = parts[i];
+                
+                // Skip if this part was used for province
+                if (i === provincePartIndex) {
+                    console.log(`    ⏭️ Skipping province part: "${part}"`);
+                    continue;
+                }
+                
                 if (part.length < 4) continue;
                 const wordCount = part.split(/\s+/).length;
                 
                 const districtMatch = fuzzyMatch(part, result.province.Districts, 0.4);
                 if (districtMatch) {
+                    // For similar scores, prefer parts closer to end (near province)
                     const shouldReplace = 
                         districtMatch.score > bestDistrictScore + 0.05 ||
-                        (Math.abs(districtMatch.score - bestDistrictScore) <= 0.05 && wordCount > bestDistrictWordCount);
+                        (Math.abs(districtMatch.score - bestDistrictScore) <= 0.05 && i > parts.indexOf(parts.find(p => {
+                            const m = fuzzyMatch(p, result.province.Districts, 0.4);
+                            return m && m.score === bestDistrictScore;
+                        })));
                     
                     if (shouldReplace) {
                         bestDistrictMatch = districtMatch;
                         bestDistrictScore = districtMatch.score;
                         bestDistrictWordCount = wordCount;
-                        console.log(`    ✓ District candidate: "${part}" (${wordCount} words) → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)})`);
+                        console.log(`    ✓ District candidate: "${part}" (${wordCount} words, pos: ${i}) → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)})`);
                     }
                 }
             }
@@ -710,8 +749,27 @@ function parseAddress(addressText) {
         // Priority keywords for wards
         const wardKeywords = ['phuong', 'xa', 'thi tran', 'tt'];
         
+        // Track which part was used for district to avoid reusing it
+        let districtPartIndex = -1;
+        for (let i = 0; i < parts.length; i++) {
+            const match = fuzzyMatch(parts[i], [result.district], 0.7);
+            if (match && match.score >= 0.7) {
+                districtPartIndex = i;
+                console.log(`    📍 District part index: ${i} ("${parts[i]}")`);
+                break;
+            }
+        }
+        
         // First pass: Check parts with ward keywords (higher priority)
-        for (const part of parts) {
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            
+            // Skip if this part was used for province or district
+            if (i === provincePartIndex || i === districtPartIndex) {
+                console.log(`    ⏭️ Skipping province/district part: "${part}"`);
+                continue;
+            }
+            
             const normalized = removeVietnameseTones(part).toLowerCase();
             const hasKeyword = wardKeywords.some(kw => normalized.includes(kw));
             
@@ -750,7 +808,15 @@ function parseAddress(addressText) {
         
         // Second pass: Check all parts if not found with good score
         if (bestWardScore < 0.7) {
-            for (const part of parts) {
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                
+                // Skip if this part was used for province or district
+                if (i === provincePartIndex || i === districtPartIndex) {
+                    console.log(`    ⏭️ Skipping province/district part: "${part}"`);
+                    continue;
+                }
+                
                 if (part.length < 4) continue;
                 const wordCount = part.split(/\s+/).length;
                 
