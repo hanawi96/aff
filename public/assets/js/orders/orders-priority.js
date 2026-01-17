@@ -4,14 +4,16 @@
 /**
  * Toggle order priority status
  */
-async function toggleOrderPriority(orderId, currentPriority) {
+async function toggleOrderPriority(orderId, currentPriority, silent = false, skipRender = false) {
     const isPriority = currentPriority === 1;
     const newPriority = !isPriority;
     
     try {
-        // Optimistic UI update
-        updatePriorityIcon(orderId, newPriority);
-        updateRowStyle(orderId, newPriority);
+        // Optimistic UI update (only if not skipping render)
+        if (!skipRender) {
+            updatePriorityIcon(orderId, newPriority);
+            updateRowStyle(orderId, newPriority);
+        }
         
         // Call API (toggle mode - no explicit value)
         const response = await fetch(`${CONFIG.API_URL}`, {
@@ -40,20 +42,30 @@ async function toggleOrderPriority(orderId, currentPriority) {
             filteredOrdersData[filteredIndex].is_priority = data.isPriority;
         }
         
-        // Re-sort to move priority orders to top
-        applySorting();
-        renderOrdersTable();
+        // Re-sort and render (only if not skipped)
+        if (!skipRender) {
+            applySorting();
+            renderOrdersTable();
+        }
         
-        showToast(data.message, 'success');
+        // Show toast only if not silent
+        if (!silent) {
+            showToast(data.message, 'success');
+        }
         
     } catch (error) {
         console.error('Error toggling priority:', error);
         
-        // Rollback UI on error
-        updatePriorityIcon(orderId, isPriority);
-        updateRowStyle(orderId, isPriority);
+        // Rollback UI on error (only if not skipping render)
+        if (!skipRender) {
+            updatePriorityIcon(orderId, isPriority);
+            updateRowStyle(orderId, isPriority);
+        }
         
-        showToast('Lỗi: ' + error.message, 'error');
+        // Show error toast only if not silent
+        if (!silent) {
+            showToast('Lỗi: ' + error.message, 'error');
+        }
     }
 }
 

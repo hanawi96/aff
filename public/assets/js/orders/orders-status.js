@@ -123,14 +123,16 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
 }
 
 // Update order status
-async function updateOrderStatus(orderId, newStatus, orderCode) {
+async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, skipRender = false) {
     // Close menu
     const menu = document.getElementById('statusMenu');
     if (menu) menu.remove();
 
-    // Show loading toast với ID
+    // Show loading toast với ID (only if not silent)
     const updateId = `update-status-${orderId}`;
-    showToast('Đang cập nhật trạng thái...', 'info', 0, updateId);
+    if (!silent) {
+        showToast('Đang cập nhật trạng thái...', 'info', 0, updateId);
+    }
 
     try {
         // Update via API
@@ -161,26 +163,33 @@ async function updateOrderStatus(orderId, newStatus, orderCode) {
                 filteredOrdersData[filteredIndex].status = newStatus;
             }
 
-            // Re-render the table
-            renderOrdersTable();
+            // Re-render the table (only if not skipped)
+            if (!skipRender) {
+                renderOrdersTable();
+            }
 
-            // Get status label
-            const statusLabels = {
-                'pending': 'Chờ xử lý',
-                'shipped': 'Đã gửi hàng',
-                'in_transit': 'Đang vận chuyển',
-                'delivered': 'Đã giao hàng',
-                'failed': 'Giao hàng thất bại'
-            };
+            // Show success toast (only if not silent)
+            if (!silent) {
+                // Get status label
+                const statusLabels = {
+                    'pending': 'Chờ xử lý',
+                    'shipped': 'Đã gửi hàng',
+                    'in_transit': 'Đang vận chuyển',
+                    'delivered': 'Đã giao hàng',
+                    'failed': 'Giao hàng thất bại'
+                };
 
-            showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success', null, updateId);
+                showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success', null, updateId);
+            }
         } else {
             throw new Error(data.error || 'Không thể cập nhật trạng thái');
         }
 
     } catch (error) {
         console.error('Error updating status:', error);
-        showToast('Không thể cập nhật trạng thái: ' + error.message, 'error', null, updateId);
+        if (!silent) {
+            showToast('Không thể cập nhật trạng thái: ' + error.message, 'error', null, updateId);
+        }
     }
 }
 

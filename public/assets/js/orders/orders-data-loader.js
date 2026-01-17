@@ -117,120 +117,147 @@ function refreshData() {
 // ============================================
 
 // Copy SPX format
+let copySPXInProgress = false; // Prevent multiple simultaneous calls
+
 async function copySPXFormat(orderId) {
-    const order = allOrdersData.find(o => o.id === orderId);
-    if (!order) {
-        showToast('Không tìm thấy đơn hàng', 'error');
+    // Prevent multiple simultaneous calls
+    if (copySPXInProgress) {
+        showToast('Đang xử lý, vui lòng đợi...', 'warning');
         return;
     }
 
-    // Helper function to format product name with size/weight
-    // Logic: Only "cm" suffix = size tay, everything else = cân nặng (kg)
-    function formatProductNameWithSize(name, size) {
-        if (!size) return name;
-        
-        const sizeStr = size.toString().toLowerCase().trim();
-        
-        // Check if size contains 'cm' - for bracelet size
-        if (sizeStr.includes('cm')) {
-            const cmValue = sizeStr.replace(/[^0-9.]/g, '');
-            return `${name} cho size tay ${cmValue}cm`;
-        }
-        
-        // Everything else is weight (kg) - including numbers without suffix
-        const kgValue = sizeStr.replace(/[^0-9.]/g, '');
-        if (kgValue) {
-            return `${name} cho bé ${kgValue}kg`;
-        }
-        
-        // If no number found, return as is
-        return name;
-    }
+    copySPXInProgress = true;
 
-    // Parse products
-    let productsText = '';
-    if (order.products) {
-        try {
-            let products = [];
-            // Try parse JSON
-            try {
-                products = JSON.parse(order.products);
-            } catch (e) {
-                // If not JSON, parse text format
-                const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
-                products = lines.map(line => {
-                    const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
-                    if (match) {
-                        return { name: match[1].trim(), quantity: parseInt(match[2]) };
-                    }
-                    return { name: line, quantity: 1 };
-                });
+    try {
+        const order = allOrdersData.find(o => o.id === orderId);
+        if (!order) {
+            showToast('Không tìm thấy đơn hàng', 'error');
+            return;
+        }
+
+        // Helper function to format product name with size/weight
+        // Logic: Only "cm" suffix = size tay, everything else = cân nặng (kg)
+        function formatProductNameWithSize(name, size) {
+            if (!size) return name;
+            
+            const sizeStr = size.toString().toLowerCase().trim();
+            
+            // Check if size contains 'cm' - for bracelet size
+            if (sizeStr.includes('cm')) {
+                const cmValue = sizeStr.replace(/[^0-9.]/g, '');
+                return `${name} cho size tay ${cmValue}cm`;
             }
+            
+            // Everything else is weight (kg) - including numbers without suffix
+            const kgValue = sizeStr.replace(/[^0-9.]/g, '');
+            if (kgValue) {
+                return `${name} cho bé ${kgValue}kg`;
+            }
+            
+            // If no number found, return as is
+            return name;
+        }
 
-            // Format each product
-            const productLines = products.map((product, index) => {
-                const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
-                const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
-                const size = typeof product === 'object' && product.size ? product.size : null;
-                const weight = typeof product === 'object' && product.weight ? product.weight : null;
-                const notes = typeof product === 'object' && product.notes ? product.notes : null;
-
-                // Determine which field to use for formatting
-                // Priority: size > weight
-                let sizeOrWeight = size || weight;
-                
-                // Format product name with size/weight (like Excel export)
-                const formattedName = formatProductNameWithSize(name, sizeOrWeight);
-
-                // Build product line
-                let line = formattedName;
-                line += ` - Số lượng: ${quantity}`;
-
-                // Add notes if exists
-                if (notes) {
-                    line += ` - Lưu ý: ${notes}`;
+        // Parse products
+        let productsText = '';
+        if (order.products) {
+            try {
+                let products = [];
+                // Try parse JSON
+                try {
+                    products = JSON.parse(order.products);
+                } catch (e) {
+                    // If not JSON, parse text format
+                    const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
+                    products = lines.map(line => {
+                        const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+                        if (match) {
+                            return { name: match[1].trim(), quantity: parseInt(match[2]) };
+                        }
+                        return { name: line, quantity: 1 };
+                    });
                 }
 
-                // Wrap in brackets
-                return `[${line}]`;
-            });
+                // Format each product
+                const productLines = products.map((product, index) => {
+                    const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
+                    const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
+                    const size = typeof product === 'object' && product.size ? product.size : null;
+                    const weight = typeof product === 'object' && product.weight ? product.weight : null;
+                    const notes = typeof product === 'object' && product.notes ? product.notes : null;
 
-            // Join products with " ----- " separator (on same line)
-            productsText = productLines.join(' ----- ');
+                    // Determine which field to use for formatting
+                    // Priority: size > weight
+                    let sizeOrWeight = size || weight;
+                    
+                    // Format product name with size/weight (like Excel export)
+                    const formattedName = formatProductNameWithSize(name, sizeOrWeight);
 
-            // Add order notes if exists and has multiple products
-            if (products.length >= 2 && order.notes && order.notes.trim()) {
-                productsText += ` ----- Lưu ý tổng: ${order.notes.trim()}`;
+                    // Build product line
+                    let line = formattedName;
+                    line += ` - Số lượng: ${quantity}`;
+
+                    // Add notes if exists
+                    if (notes) {
+                        line += ` - Lưu ý: ${notes}`;
+                    }
+
+                    // Wrap in brackets
+                    return `[${line}]`;
+                });
+
+                // Join products with " ----- " separator (on same line)
+                productsText = productLines.join(' ----- ');
+
+                // Add order notes if exists and has multiple products
+                if (products.length >= 2 && order.notes && order.notes.trim()) {
+                    productsText += ` ----- Lưu ý tổng: ${order.notes.trim()}`;
+                }
+            } catch (e) {
+                // Fallback to raw text
+                productsText = order.products;
             }
-        } catch (e) {
-            // Fallback to raw text
-            productsText = order.products;
         }
-    }
 
-    // Format: Họ và tên\nSố điện thoại\nĐịa chỉ cụ thể\nDanh sách sản phẩm
-    let spxFormat = `${order.customer_name || 'N/A'}
+        // Format: Họ và tên\nSố điện thoại\nĐịa chỉ cụ thể\nDanh sách sản phẩm
+        let spxFormat = `${order.customer_name || 'N/A'}
 ${order.customer_phone || 'N/A'}
 ${order.address || 'N/A'}`;
 
-    if (productsText) {
-        spxFormat += '\n' + productsText;
-    }
+        if (productsText) {
+            spxFormat += '\n' + productsText;
+        }
 
-    try {
         // Copy to clipboard
         await navigator.clipboard.writeText(spxFormat);
         showToast('Đã copy format SPX', 'success');
 
-        // Auto-update status to "shipped" (Đã gửi hàng)
-        // Only update if current status is not already shipped, in_transit, delivered, or failed
+        // Batch update: status + priority (render only once at the end)
         const currentStatus = order.status || 'pending';
-        if (currentStatus !== 'shipped' && currentStatus !== 'in_transit' && currentStatus !== 'delivered' && currentStatus !== 'failed') {
-            await updateOrderStatus(orderId, 'shipped', order.order_id);
+        const needsStatusUpdate = currentStatus !== 'shipped' && currentStatus !== 'in_transit' && currentStatus !== 'delivered' && currentStatus !== 'failed';
+        const needsPriorityRemoval = order.is_priority === 1;
+
+        // Update status (skip render)
+        if (needsStatusUpdate) {
+            await updateOrderStatus(orderId, 'shipped', order.order_id, true, true); // silent + skipRender
+        }
+
+        // Remove priority (skip render)
+        if (needsPriorityRemoval) {
+            await toggleOrderPriority(orderId, 1, true, true); // silent + skipRender
+        }
+
+        // Render once after all updates
+        if (needsStatusUpdate || needsPriorityRemoval) {
+            applySorting();
+            renderOrdersTable();
         }
     } catch (err) {
         console.error('Failed to copy:', err);
         showToast('Lỗi khi copy', 'error');
+    } finally {
+        // Always release the lock
+        copySPXInProgress = false;
     }
 }
 

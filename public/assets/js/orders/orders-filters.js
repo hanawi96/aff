@@ -20,43 +20,14 @@ let allCTVList = []; // Cache CTV list for filter dropdown
  * Filter orders data based on search, status, payment method, CTV, and date filters
  */
 function filterOrdersData() {
-    console.log('🎯 FILTER FUNCTION CALLED - Version 4.0 (Added CTV filter)');
-
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || 'all';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
-    console.log('🔍 Filtering with:', { searchTerm, statusFilter, paymentFilter, ctvFilter, dateFilter });
-
-    // Debug date ranges
-    if (dateFilter === 'today') {
-        console.log('📅 Today range:', getVNStartOfToday().toISOString(), '-', getVNEndOfToday().toISOString());
-    } else if (dateFilter === 'yesterday') {
-        const todayStart = getVNStartOfToday();
-        const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
-        const yesterdayEnd = new Date(todayStart.getTime() - 1);
-        console.log('📅 Yesterday range:', yesterdayStart.toISOString(), '-', yesterdayEnd.toISOString());
-    } else if (dateFilter === 'week') {
-        console.log('📅 7-day range (last 7 days):', getVNStartOfLast7Days().toISOString(), '-', getVNEndOfToday().toISOString());
-    } else if (dateFilter === 'month') {
-        console.log('📅 30-day range (last 30 days):', getVNStartOfLast30Days().toISOString(), '-', getVNEndOfToday().toISOString());
-    }
-
-    // Debug: Show unique status values in data
-    if (statusFilter !== 'all') {
-        const uniqueStatuses = [...new Set(allOrdersData.map(o => o.status || 'pending'))];
-        console.log('📊 Unique status values in data:', uniqueStatuses);
-        console.log('📊 Total orders with each status:');
-        uniqueStatuses.forEach(status => {
-            const count = allOrdersData.filter(o => (o.status || 'pending').toLowerCase().trim() === status.toLowerCase().trim()).length;
-            console.log(`   - ${status}: ${count} orders`);
-        });
-    }
-
     filteredOrdersData = allOrdersData.filter(order => {
-        // Search filter - now includes address AND products
+        // Search filter - includes order ID, customer, phone, CTV code, address, and products
         let matchesSearch = !searchTerm;
         if (searchTerm) {
             matchesSearch = 
@@ -66,35 +37,31 @@ function filterOrdersData() {
                 (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm)) ||
                 (order.address && removeVietnameseTones(order.address.toLowerCase()).includes(removeVietnameseTones(searchTerm)));
             
-            // Also search in products if not matched yet
+            // Search in products if not matched yet
             if (!matchesSearch) {
                 try {
                     const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
                     if (Array.isArray(products)) {
                         matchesSearch = products.some(p => {
-                            const productName = (p.name || '').toLowerCase();
-                            const normalizedName = removeVietnameseTones(productName);
+                            const normalizedName = removeVietnameseTones((p.name || '').toLowerCase());
                             const normalizedSearch = removeVietnameseTones(searchTerm);
                             return normalizedName.includes(normalizedSearch);
                         });
                     }
                 } catch (e) {
                     // Fallback: search in raw string
-                    const productsStr = (order.products || '').toLowerCase();
-                    const normalizedStr = removeVietnameseTones(productsStr);
+                    const normalizedStr = removeVietnameseTones((order.products || '').toLowerCase());
                     const normalizedSearch = removeVietnameseTones(searchTerm);
                     matchesSearch = normalizedStr.includes(normalizedSearch);
                 }
             }
         }
 
-        // Priority filter - NEW
+        // Priority filter
         const matchesPriority = !priorityFilterActive || order.is_priority === 1;
 
-        // Status filter - normalize status value and handle both Vietnamese and English
+        // Status filter
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
-
-        // Map Vietnamese status to English for comparison
         const statusMap = {
             'mới': 'pending',
             'chờ xử lý': 'pending',
@@ -103,25 +70,23 @@ function filterOrdersData() {
             'đã giao hàng': 'delivered',
             'giao hàng thất bại': 'failed'
         };
-
         const normalizedStatus = statusMap[orderStatus] || orderStatus;
         const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
 
-        // Payment method filter - simple and fast
+        // Payment method filter
         const orderPayment = (order.payment_method || 'cod').toLowerCase().trim();
         const matchesPayment = paymentFilter === 'all' || orderPayment === paymentFilter;
 
-        // CTV filter - simple: all / has_ctv / no_ctv
+        // CTV filter
         const orderCTV = (order.referral_code || '').toLowerCase().trim();
         let matchesCTV = true;
         if (ctvFilter === 'has_ctv') {
-            matchesCTV = !!orderCTV; // Has CTV code
+            matchesCTV = !!orderCTV;
         } else if (ctvFilter === 'no_ctv') {
-            matchesCTV = !orderCTV; // No CTV code
+            matchesCTV = !orderCTV;
         }
-        // If 'all', matchesCTV stays true
 
-        // Date filter - using VN timezone for accurate comparison
+        // Date filter
         let matchesDate = true;
         if (dateFilter !== 'all') {
             const orderDate = new Date(order.created_at || order.order_date);
@@ -144,7 +109,6 @@ function filterOrdersData() {
                 const todayEnd = getVNEndOfToday();
                 matchesDate = orderDate >= monthStart && orderDate <= todayEnd;
             } else if (dateFilter === 'custom') {
-                // Custom date range filter
                 const startDateStr = document.getElementById('customDateStart').value;
                 const endDateStr = document.getElementById('customDateEnd').value;
 
@@ -158,8 +122,6 @@ function filterOrdersData() {
 
         return matchesSearch && matchesPriority && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
-
-    console.log(`✅ Filtered: ${filteredOrdersData.length} orders (from ${allOrdersData.length} total)`);
 
     // Apply sorting
     applySorting();

@@ -8,6 +8,66 @@
 // ============================================
 
 /**
+ * Cache customer statistics for performance
+ * Calculated once before rendering table
+ */
+let customerStatsCache = {};
+
+/**
+ * Build customer statistics cache
+ */
+function buildCustomerStatsCache() {
+    customerStatsCache = {};
+    
+    allOrdersData.forEach(order => {
+        const phone = order.customer_phone;
+        if (!phone) return;
+        
+        if (!customerStatsCache[phone]) {
+            customerStatsCache[phone] = {
+                count: 0,
+                totalSpent: 0
+            };
+        }
+        
+        customerStatsCache[phone].count++;
+        customerStatsCache[phone].totalSpent += (order.total_amount || 0);
+    });
+}
+
+/**
+ * Get customer badge info from cache
+ */
+function getCustomerBadge(customerPhone) {
+    if (!customerPhone || !customerStatsCache[customerPhone]) {
+        return '';
+    }
+    
+    const stats = customerStatsCache[customerPhone];
+    const orderCount = stats.count;
+    const totalSpent = stats.totalSpent;
+    
+    let badgeClass = '';
+    let badgeText = '';
+    
+    if (orderCount === 1) {
+        badgeClass = 'bg-blue-100 text-blue-700';
+        badgeText = 'Mới';
+    } else if (orderCount === 2) {
+        badgeClass = 'bg-purple-100 text-purple-700';
+        badgeText = 'Quen';
+    } else if (orderCount >= 3 && orderCount <= 9) {
+        badgeClass = 'bg-yellow-100 text-yellow-700';
+        badgeText = 'VIP';
+    } else if (orderCount >= 10) {
+        badgeClass = 'bg-orange-100 text-orange-700';
+        badgeText = 'Thân thiết';
+    }
+    
+    return `<span class="text-xs px-2 py-0.5 rounded-full ${badgeClass} font-medium" title="${orderCount} đơn hàng • ${formatCurrency(totalSpent)}">${badgeText}</span>`;
+}
+
+/**
  * Render orders table with current filtered data
  */
 function renderOrdersTable() {
@@ -22,6 +82,9 @@ function renderOrdersTable() {
         showEmptyState();
         return;
     }
+
+    // Build customer stats cache once before rendering
+    buildCustomerStatsCache();
 
     tbody.innerHTML = '';
 
@@ -161,33 +224,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdCustomer.className = 'px-4 py-4 whitespace-nowrap text-center';
     const customerId = `customer_${order.id}`;
     
-    // Calculate customer badge based on order count
-    const customerPhone = order.customer_phone;
-    let customerBadge = '';
-    if (customerPhone) {
-        const customerOrders = allOrdersData.filter(o => o.customer_phone === customerPhone);
-        const orderCount = customerOrders.length;
-        const totalSpent = customerOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-        
-        let badgeClass = '';
-        let badgeText = '';
-        
-        if (orderCount === 1) {
-            badgeClass = 'bg-blue-100 text-blue-700';
-            badgeText = 'Mới';
-        } else if (orderCount === 2) {
-            badgeClass = 'bg-purple-100 text-purple-700';
-            badgeText = 'Quen';
-        } else if (orderCount >= 3 && orderCount <= 9) {
-            badgeClass = 'bg-yellow-100 text-yellow-700';
-            badgeText = 'VIP';
-        } else if (orderCount >= 10) {
-            badgeClass = 'bg-orange-100 text-orange-700';
-            badgeText = 'Thân thiết';
-        }
-        
-        customerBadge = `<span class="text-xs px-2 py-0.5 rounded-full ${badgeClass} font-medium" title="${orderCount} đơn hàng • ${formatCurrency(totalSpent)}">${badgeText}</span>`;
-    }
+    // Get customer badge from cache (already calculated)
+    const customerBadge = getCustomerBadge(order.customer_phone);
     
     tdCustomer.innerHTML = `
         <div id="${customerId}" class="group cursor-pointer hover:bg-blue-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
