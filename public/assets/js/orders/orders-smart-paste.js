@@ -119,7 +119,7 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         
         // 1. Exact match (highest priority)
         if (normalizedOption === normalizedInput || cleanOption === cleanInput) {
-            console.log(`      [EXACT] ${option.Name}: 1.00`);
+            // console.log(`      [EXACT] ${option.Name}: 1.00`);
             return { match: option, score: 1.0, confidence: 'high' };
         }
         
@@ -128,7 +128,7 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         if (normalizedInput.includes(cleanOption) && cleanOption.length >= 4) {
             score = 0.9;
             type = 'input-contains-option';
-            console.log(`      [CONTAINS-1] ${option.Name}: ${score.toFixed(2)} (${type})`);
+            // console.log(`      [CONTAINS-1] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Check if option contains input (user typed less)
         else if (cleanOption.includes(cleanInput) && cleanInput.length >= 4) {
@@ -166,13 +166,13 @@ function fuzzyMatch(input, options, threshold = 0.6) {
                     type = 'option-contains-input-reversed';
                 }
             }
-            console.log(`      [CONTAINS-2] ${option.Name}: ${score.toFixed(2)} (${type})`);
+            // console.log(`      [CONTAINS-2] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Full normalized contains
         else if (normalizedOption.includes(normalizedInput) || normalizedInput.includes(normalizedOption)) {
             score = 0.8;
             type = 'contains-full';
-            console.log(`      [CONTAINS-3] ${option.Name}: ${score.toFixed(2)} (${type})`);
+            // console.log(`      [CONTAINS-3] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         
         // 3. Word-by-word matching with ALL words must match
@@ -210,16 +210,16 @@ function fuzzyMatch(input, options, threshold = 0.6) {
                     if (isSequential) {
                         score = 0.98; // Higher than reversed order
                         type = `word-match-sequential-${matchCount}`;
-                        console.log(`      [WORD-SEQ] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
+                        // console.log(`      [WORD-SEQ] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
                     } else {
                         score = 0.80; // Reversed or mixed order - LOWER than contains match (0.85)
                         type = `word-match-all-${matchCount}`;
-                        console.log(`      [WORD-REV] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
+                        // console.log(`      [WORD-REV] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
                     }
                 } else {
                     score = (matchCount / Math.max(inputWords.length, optionWords.length)) * 0.7;
                     type = `word-match-${matchCount}/${inputWords.length}`;
-                    console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
+                    // console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
                 }
             }
         }
@@ -344,7 +344,7 @@ function extractCustomerName(lines, phoneInfo) {
  * Enhanced to handle addresses WITHOUT commas and with typos
  * PRIORITY: Longer phrases (2-3 words) over single words
  */
-function parseAddress(addressText) {
+async function parseAddress(addressText) {
     const result = {
         street: '',
         ward: null,
@@ -930,9 +930,139 @@ function parseAddress(addressText) {
         console.log(`  ⚠️ No district found`);
     }
     
-    // Step 3: Find Ward - PRIORITIZE LONGER PHRASES with keywords
+    // ============================================
+    // EARLY STREET EXTRACTION (for PASS 0)
+    // ============================================
+    // Extract street address BEFORE ward matching for learning database
+    // This is a simplified extraction - full extraction happens in Step 4
     if (result.district) {
-        console.log('  🔍 Step 3: Finding Ward...');
+        // Strategy 1: Extract from original addressText (before district/province)
+        // Example: "ngõ 2 sau đình hậu dưỡng đông anh hà nội"
+        // → Extract everything before "đông anh" (district name)
+        
+        const districtName = removeVietnameseTones(result.district.Name).toLowerCase()
+            .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, ''); // Remove prefix
+        
+        const normalizedAddress = removeVietnameseTones(addressText).toLowerCase();
+        const districtIndex = normalizedAddress.indexOf(districtName);
+        
+        if (districtIndex > 0) {
+            // Extract everything before district name
+            result.street = addressText.substring(0, districtIndex).trim();
+            console.log(`  🏠 Early street extraction (before district): "${result.street}"`);
+        } else {
+            // Fallback: Extract from parts (for comma-separated addresses)
+            const locationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
+            
+            for (const part of parts) {
+                const normalized = removeVietnameseTones(part).toLowerCase();
+                const hasLocationKeyword = locationKeywords.some(kw => normalized.includes(kw));
+                
+                if (!hasLocationKeyword && part.length >= 5) {
+                    // This looks like street address
+                    result.street = part;
+                    console.log(`  🏠 Early street extraction (from parts): "${result.street}"`);
+                    break;
+                }
+            }
+            
+            // If still no street found, try regex
+            if (!result.street && addressText) {
+                const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx|khóm)/i);
+                if (match && match[1].trim()) {
+                    result.street = match[1].trim();
+                    console.log(`  🏠 Early street extraction (regex): "${result.street}"`);
+                }
+            }
+        }
+    }
+    
+    // ============================================
+    // PASS 0: Learning Database (Highest Priority)
+    // ============================================
+    // Check if we have learned this address pattern before
+    // This is MUCH faster than fuzzy matching (50ms vs 200-500ms)
+    // IMPORTANT: Run BEFORE Step 3 (fuzzy ward matching)
+    if (result.district && result.street && !result.ward) {
+        console.log('🔍 PASS 0: Checking Learning Database...');
+        console.log(`   District: ${result.district.Name} (ID: ${result.district.Id})`);
+        console.log(`   Street: "${result.street}"`);
+        
+        try {
+            // Extract keywords from street address
+            const keywords = extractAddressKeywords(result.street);
+            console.log(`   Keywords extracted: [${keywords.join(', ')}]`);
+            
+            if (keywords.length > 0) {
+                // Search in learning database
+                const learningResult = await searchAddressLearning(keywords, result.district.Id);
+                
+                if (learningResult.found) {
+                    console.log(`   ✅ Found in learning DB!`);
+                    console.log(`      Ward ID: ${learningResult.ward_id}`);
+                    console.log(`      Ward Name: ${learningResult.ward_name}`);
+                    console.log(`      Confidence: ${learningResult.confidence} (need ≥2 to auto-fill)`);
+                    
+                    // Only auto-fill if confidence >= 2 (used at least twice)
+                    if (learningResult.confidence >= 2) {
+                        // Find ward object from ID
+                        // IMPORTANT: Compare both as strings and numbers (API may return different formats)
+                        console.log(`   🔍 Searching for ward ID: ${learningResult.ward_id} (type: ${typeof learningResult.ward_id})`);
+                        console.log(`   📊 District has ${result.district.Wards.length} wards`);
+                        
+                        const learnedWard = result.district.Wards.find(w => {
+                            // Try both strict and loose comparison
+                            return w.Id == learningResult.ward_id || // Loose (493 == "493")
+                                   w.Id === learningResult.ward_id || // Strict
+                                   w.Id === String(learningResult.ward_id) || // String comparison
+                                   parseInt(w.Id) === parseInt(learningResult.ward_id); // Number comparison
+                        });
+                        
+                        if (learnedWard) {
+                            result.ward = learnedWard;
+                            result.confidence = 'high';
+                            console.log(`   🎯 PASS 0 SUCCESS: Auto-filled ward "${learnedWard.Name}" (ID: ${learnedWard.Id})`);
+                            console.log(`   ⚡ Skipping Step 3 (fuzzy matching)`);
+                            
+                            // Extract street address (skip to Step 4)
+                            // This is a simplified version - full logic is in Step 4 below
+                            if (addressText.includes(',') || addressText.includes('.')) {
+                                // Has separators - already extracted in result.street
+                            } else {
+                                // No separators - take first 3-5 words
+                                const words = addressText.split(/\s+/);
+                                result.street = words.slice(0, Math.min(5, words.length)).join(' ');
+                            }
+                            
+                            console.log('  🏠 Street address:', result.street || '(none)');
+                            
+                            // Return early - skip fuzzy matching (Step 3)
+                            return result;
+                        } else {
+                            console.warn(`   ⚠️ Ward ID ${learningResult.ward_id} not found in district wards`);
+                            // Debug: Show first 3 ward IDs
+                            const sampleWards = result.district.Wards.slice(0, 3).map(w => `${w.Name} (ID: ${w.Id}, type: ${typeof w.Id})`);
+                            console.warn(`   📋 Sample wards: ${sampleWards.join(', ')}`);
+                        }
+                    } else {
+                        console.log(`   ⏭️ Confidence too low (${learningResult.confidence} < 2), will use fuzzy matching`);
+                    }
+                } else {
+                    console.log(`   ❌ Not found in learning DB, will use fuzzy matching`);
+                }
+            } else {
+                console.log(`   ⚠️ No keywords extracted from street address`);
+            }
+        } catch (error) {
+            console.error('   ❌ PASS 0 Error:', error);
+            console.log('   ⏭️ Falling back to fuzzy matching');
+        }
+    }
+    
+    // Step 3: Find Ward - PRIORITIZE LONGER PHRASES with keywords
+    // IMPORTANT: Only run if PASS 0 didn't find a ward
+    if (result.district && !result.ward) {
+        console.log('  🔍 Step 3: Finding Ward (fuzzy matching)...');
         let bestWardMatch = null;
         let bestWardScore = 0;
         let bestWardWordCount = 0;
@@ -1216,14 +1346,24 @@ async function smartParseCustomerInfo(text) {
     const nameInfo = extractCustomerName(lines, phoneInfo);
     
     // Extract address (all lines except phone and name)
-    let addressLines = lines.filter(line => {
-        if (phoneInfo && line.includes(phoneInfo.phone)) return false;
-        if (nameInfo && line === nameInfo.name) return false;
-        return true;
-    });
+    // IMPROVED: Remove phone from line instead of removing entire line
+    let addressLines = lines
+        .filter(line => {
+            // Skip if this line is ONLY the name
+            if (nameInfo && line === nameInfo.name) return false;
+            return true;
+        })
+        .map(line => {
+            // Remove phone number from line if present
+            if (phoneInfo && line.includes(phoneInfo.phone)) {
+                return line.replace(phoneInfo.phone, '').trim();
+            }
+            return line;
+        })
+        .filter(line => line.length > 0); // Remove empty lines after phone removal
     
     const addressText = addressLines.join(', ');
-    const addressInfo = parseAddress(addressText);
+    const addressInfo = await parseAddress(addressText);
     
     // Calculate overall confidence
     let overallConfidence = 'low';
