@@ -412,7 +412,11 @@ async function parseAddress(addressText) {
     let processedAddress = addressText;
     
     // Expand city abbreviations FIRST (highest priority)
-    // TP HN, TP.HN, tp hn, tp.hn → Thành phố Hà Nội
+    // TP HCM, TP.HCM, TPHCM, tp hcm, tphcm → Thành phố Hồ Chí Minh
+    // TP HN, TP.HN, TPHN, tp hn, tphn → Thành phố Hà Nội
+    // Sài Gòn, SG → Thành phố Hồ Chí Minh
+    
+    // Pattern 1: TP HCM, TP.HCM, tp hcm, tp.hcm
     processedAddress = processedAddress.replace(/\b(tp|thanh pho)\.?\s*(hn|hcm|dn|hp|ct)\b/gi, (match, prefix, city) => {
         const cityMap = {
             'hn': 'Thành phố Hà Nội',
@@ -424,8 +428,48 @@ async function parseAddress(addressText) {
         return cityMap[city.toLowerCase()] || match;
     });
     
+    // Pattern 2: TPHCM, tphcm, TPHN, tphn (no space/dot)
+    processedAddress = processedAddress.replace(/\btp(hn|hcm|dn|hp|ct)\b/gi, (match, city) => {
+        const cityMap = {
+            'hn': 'Thành phố Hà Nội',
+            'hcm': 'Thành phố Hồ Chí Minh',
+            'dn': 'Thành phố Đà Nẵng',
+            'hp': 'Thành phố Hải Phòng',
+            'ct': 'Thành phố Cần Thơ'
+        };
+        return cityMap[city.toLowerCase()] || match;
+    });
+    
+    // Pattern 3: Sài Gòn, SG → TP.HCM
+    processedAddress = processedAddress.replace(/\b(sai gon|saigon|sg)\b/gi, 'Thành phố Hồ Chí Minh');
+    
+    // Pattern 4: "hồ chí minh" (without "thành phố") → add prefix
+    // IMPORTANT: Check if "Thành phố" already exists before it
+    processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ho chi minh|hồ chí minh)\b/gi, 'Thành phố Hồ Chí Minh');
+    
+    // Pattern 5: "hà nội" (without "thành phố") → add prefix  
+    // IMPORTANT: Check if "Thành phố" already exists before it
+    processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ha noi|hà nội)\b/gi, 'Thành phố Hà Nội');
+    
     // Normalize "Ấp3" → "Ấp 3" (add space between Ấp and number)
     processedAddress = processedAddress.replace(/\b([ấấĂăÂâ]p)(\d+)\b/gi, '$1 $2');
+    
+    // Normalize Tây Nguyên place names (Đắk Lắk, Ea Súp, M'Đrắk...)
+    // "daklak" → "dak lak", "easup" → "ea sup", "mdrak" → "m'drak"
+    processedAddress = processedAddress.replace(/\b(dak|đak)(lak|nong|song|glei|mil|ha|po|rlap|to)\b/gi, '$1 $2');
+    processedAddress = processedAddress.replace(/\b(ea)(h'leo|kar|sup|sol|kly|wy|tul|pok|kmat|dar|drong|na|ral)\b/gi, '$1 $2');
+    processedAddress = processedAddress.replace(/\b(krong|krông)(buk|bong|nang|pak|ana|no)\b/gi, '$1 $2');
+    processedAddress = processedAddress.replace(/\b(cu)(jut|mgar|kuin|se)\b/gi, '$1 $2');
+    processedAddress = processedAddress.replace(/\b(m)('?)(drak|nak|nong)\b/gi, "m'$3");
+    
+    // Remove "cũ" and "mới" from district names (for TP.HCM administrative changes)
+    // "quận 9 cũ" → "quận 9", "quận 2 mới" → "quận 2"
+    // SAFE: Only remove exact words "cũ" and "mới", use lookahead to handle comma/space/end
+    processedAddress = processedAddress.replace(/\b(quận|huyện|phường|xã)\s+([^\s,]+)\s+(cũ|mới)(?=\s|,|$)/gi, '$1 $2');
+    
+    // Remove noise phrases before province names
+    // "nay là tp hcm" → "tp hcm", "hiện nay là hà nội" → "hà nội"
+    processedAddress = processedAddress.replace(/\b(nay là|hiện nay là|bây giờ là|giờ là)\s+/gi, '');
     
     // Expand ward abbreviations: F17, F.17, f17, f.17 → Phường 17
     // Also: P17, P.17, p17, p.17 → Phường 17
