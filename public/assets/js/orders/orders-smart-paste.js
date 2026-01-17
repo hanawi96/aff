@@ -966,6 +966,58 @@ async function parseAddress(addressText) {
     }
     
     // ============================================
+    // STEP 2.5: REVERSE LOOKUP - Find Ward first, then infer District/Province
+    // ============================================
+    // If no district found, try to find ward directly across ALL provinces
+    // Then infer district and province from the ward
+    if (!result.district && !result.ward) {
+        console.log('  🔍 Step 2.5: Reverse Lookup - Finding Ward across all provinces...');
+        
+        let bestWardMatch = null;
+        let bestWardScore = 0;
+        let wardParentDistrict = null;
+        let wardParentProvince = null;
+        
+        // Check parts with ward keywords
+        const wardKeywords = ['phuong', 'xa', 'thi tran', 'tt', 'khom'];
+        
+        for (const part of parts) {
+            const normalized = removeVietnameseTones(part).toLowerCase();
+            const hasWardKeyword = wardKeywords.some(kw => normalized.includes(kw));
+            
+            if (hasWardKeyword && part.length >= 4) {
+                console.log(`    🔍 Checking ward part: "${part}"`);
+                
+                // Search across ALL provinces and districts
+                for (const province of vietnamAddressData) {
+                    for (const district of province.Districts) {
+                        const wardMatch = fuzzyMatch(part, district.Wards, 0.6);
+                        if (wardMatch && wardMatch.score > bestWardScore) {
+                            bestWardScore = wardMatch.score;
+                            bestWardMatch = wardMatch.match;
+                            wardParentDistrict = district;
+                            wardParentProvince = province;
+                            console.log(`      ✓ Ward candidate: "${part}" → ${wardMatch.match.Name} in ${district.Name}, ${province.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (bestWardMatch && bestWardScore >= 0.7) {
+            result.ward = bestWardMatch;
+            result.district = wardParentDistrict;
+            result.province = wardParentProvince;
+            result.confidence = 'medium'; // Medium confidence for reverse lookup
+            console.log(`  ✅ Reverse Lookup SUCCESS: ${result.ward.Name} → ${result.district.Name} → ${result.province.Name}`);
+        } else if (bestWardMatch) {
+            console.log(`  ⚠️ Reverse Lookup: Ward score too low (${bestWardScore.toFixed(2)} < 0.7)`);
+        } else {
+            console.log(`  ⚠️ Reverse Lookup: No ward found`);
+        }
+    }
+    
+    // ============================================
     // EARLY STREET EXTRACTION (for PASS 0)
     // ============================================
     // Extract street address BEFORE ward matching for learning database
@@ -1640,24 +1692,51 @@ async function applyParsedDataToForm(parsedData) {
         console.warn('⚠️ No province found in parsed data');
     }
     
-    // Show result toast
+    // Show result toast - SMART LOGIC
     const confidenceEmoji = {
         'high': '✅',
         'medium': '⚠️',
         'low': '❓'
     };
     
-    const confidenceText = {
-        'high': 'Phân tích chính xác',
-        'medium': 'Vui lòng kiểm tra lại',
-        'low': 'Cần kiểm tra kỹ'
-    };
+    // Determine toast message based on what was found
+    let toastMessage = '';
+    let toastType = 'success';
     
-    showToast(
-        `${confidenceEmoji[confidence]} ${confidenceText[confidence]} - Đã điền thông tin tự động`,
-        confidence === 'high' ? 'success' : confidence === 'medium' ? 'warning' : 'info',
-        3000
-    );
+    if (confidence === 'high') {
+        // High confidence - everything perfect
+        toastMessage = '✅ Phân tích chính xác - Đã điền thông tin tự động';
+        toastType = 'success';
+    } else if (confidence === 'medium') {
+        // Medium confidence - check what was found
+        const hasProvince = provinceSelect && provinceSelect.value;
+        const hasDistrict = districtSelect && districtSelect.value;
+        const hasWard = wardSelect && wardSelect.value;
+        
+        if (hasProvince && hasDistrict && hasWard) {
+            // All fields filled - good!
+            toastMessage = '✅ Đã tìm thấy đầy đủ địa chỉ - Vui lòng kiểm tra lại';
+            toastType = 'success';
+        } else if (hasProvince && hasDistrict) {
+            // Missing ward only
+            toastMessage = '⚠️ Đã tìm thấy Tỉnh/Huyện - Vui lòng chọn Xã/Phường';
+            toastType = 'warning';
+        } else if (hasProvince) {
+            // Missing district and ward
+            toastMessage = '⚠️ Chỉ tìm thấy Tỉnh - Vui lòng chọn Huyện và Xã';
+            toastType = 'warning';
+        } else {
+            // Nothing found
+            toastMessage = '❓ Không tìm thấy địa chỉ - Vui lòng nhập thủ công';
+            toastType = 'info';
+        }
+    } else {
+        // Low confidence
+        toastMessage = '❓ Cần kiểm tra kỹ - Thông tin có thể chưa chính xác';
+        toastType = 'info';
+    }
+    
+    showToast(toastMessage, toastType, 3000);
 }
 
 // Initialize on page load - NO LONGER NEEDED, use addressSelector data
