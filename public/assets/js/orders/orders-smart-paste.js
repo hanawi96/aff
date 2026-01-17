@@ -1374,9 +1374,26 @@ async function parseAddress(addressText) {
             const locationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
             const hasLocationKeyword = locationKeywords.some(kw => normalized.includes(kw));
             
-            if (!hasLocationKeyword && firstPart.length >= 3) {
+            // Check if first part matches province name
+            const isProvinceName = result.province && 
+                fuzzyMatch(firstPart, [result.province], 0.7) && 
+                fuzzyMatch(firstPart, [result.province], 0.7).score >= 0.7;
+            
+            if (!hasLocationKeyword && !isProvinceName && firstPart.length >= 3) {
                 result.street = firstPart;
                 console.log(`  🏠 Early street extraction (from split parts): "${result.street}"`);
+            } else if (isProvinceName) {
+                console.log(`  ⏭️ Skipping province name as street: "${firstPart}"`);
+                
+                // Look for locality markers (xóm, thôn, ấp...) in other parts
+                for (const part of parts) {
+                    const partNormalized = removeVietnameseTones(part).toLowerCase();
+                    if (/\b(xom|thon|ap|khom|khu|to|cum|bon|lang)\b/.test(partNormalized)) {
+                        result.street = part;
+                        console.log(`  🏠 Early street extraction (locality): "${result.street}"`);
+                        break;
+                    }
+                }
             }
         }
         
