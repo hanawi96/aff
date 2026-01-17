@@ -317,6 +317,37 @@ async function showAddOrderModal(duplicateData = null) {
                             Thông tin đơn hàng
                         </h3>
 
+                        <!-- Smart Paste Textarea -->
+                        <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 border-2 border-dashed border-purple-300 mb-4">
+                            <div class="flex items-start gap-3 mb-2">
+                                <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-bold text-gray-900 mb-1">🚀 Dán nhanh thông tin khách hàng</h4>
+                                    <p class="text-xs text-gray-600">Dán toàn bộ thông tin (Địa chỉ, SĐT, Tên) → Hệ thống tự động phân tích</p>
+                                </div>
+                            </div>
+                            <textarea 
+                                id="smartPasteInput" 
+                                placeholder="Ví dụ:&#10;198/8 nguyễn bỉnh khiêm, phường vĩnh quang, tp Rạch Giá, kiên giang&#10;0765322529&#10;Huyền"
+                                class="w-full px-3 py-2 text-sm border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                rows="3"
+                            ></textarea>
+                            <button 
+                                type="button"
+                                onclick="handleSmartPaste()"
+                                class="mt-2 w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm flex items-center justify-center gap-2"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Phân tích tự động
+                            </button>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại <span class="text-red-500">*</span></label>
                             <input type="tel" id="newOrderCustomerPhone" value="${escapeHtml(customerPhone)}" placeholder="0123456789" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
@@ -930,6 +961,28 @@ function closeAddOrderModal() {
             window.history.pushState(null, '', window.location.pathname + window.location.search);
         }
     }
+}
+
+// Handle Smart Paste - Parse customer info automatically
+async function handleSmartPaste() {
+    const textarea = document.getElementById('smartPasteInput');
+    const text = textarea.value.trim();
+    
+    if (!text) {
+        showToast('Vui lòng dán thông tin khách hàng vào ô trên', 'warning');
+        return;
+    }
+    
+    // Show loading
+    showToast('Đang phân tích thông tin...', 'info', 1000);
+    
+    // Parse the text (now async)
+    const parsedData = await smartParseCustomerInfo(text);
+    
+    // Apply to form
+    await applyParsedDataToForm(parsedData);
+    
+    // Keep textarea content for user reference (don't clear)
 }
 
 // Toggle payment dropdown in add order modal
