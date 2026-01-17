@@ -279,7 +279,7 @@ function extractPhoneNumber(text) {
  */
 function extractCustomerName(lines, phoneInfo) {
     // Remove lines that contain phone or address keywords
-    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 'khu', 'số', 'so', 'đống', 'dong', 'ngõ', 'ngo', 'hem', 'hẻm'];
+    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 'khu', 'số', 'so', 'đống', 'dong', 'ngõ', 'ngo', 'hem', 'hẻm', 'khóm', 'khom', 'tổ', 'to'];
     
     console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
@@ -719,6 +719,7 @@ function parseAddress(addressText) {
                         bestDistrictMatch = districtMatch;
                         bestDistrictScore = districtMatch.score;
                         bestDistrictWordCount = wordCount;
+                        result.district = districtMatch.match;
                         console.log(`    ✓ District candidate (keyword): "${part}" (${wordCount} words) → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)})`);
                     }
                 }
@@ -790,6 +791,7 @@ function parseAddress(addressText) {
                 bestDistrictMatch = { match: bestCandidate.district, score: bestCandidate.score, confidence: 'high' };
                 bestDistrictScore = bestCandidate.score;
                 bestDistrictWordCount = bestCandidate.wordCount;
+                result.district = bestCandidate.district;
                 console.log(`    ✅ Best district (verified): "${bestCandidate.part}" → ${bestCandidate.district.Name} (ward_score: ${bestCandidate.wardScore.toFixed(2)})`);
             } else if (districtCandidates.length === 1) {
                 // Only one candidate
@@ -797,6 +799,7 @@ function parseAddress(addressText) {
                 bestDistrictMatch = { match: candidate.district, score: candidate.score, confidence: 'high' };
                 bestDistrictScore = candidate.score;
                 bestDistrictWordCount = candidate.wordCount;
+                result.district = candidate.district;
                 console.log(`    ✓ District candidate: "${candidate.part}" (${candidate.wordCount} words, pos: ${candidate.index}) → ${candidate.district.Name} (score: ${candidate.score.toFixed(2)})`);
             }
         }
@@ -826,6 +829,7 @@ function parseAddress(addressText) {
                         bestDistrictMatch = districtMatch;
                         bestDistrictScore = districtMatch.score;
                         bestDistrictWordCount = wordCount;
+                        result.district = districtMatch.match;
                         // IMPORTANT: Set province from district's parent
                         result.province = province;
                         console.log(`    ✓ District found in province: "${part}" → ${districtMatch.match.Name} in ${province.Name} (score: ${districtMatch.score.toFixed(2)})`);
@@ -840,10 +844,40 @@ function parseAddress(addressText) {
         }
     }
     
-    if (bestDistrictMatch) {
-        result.district = bestDistrictMatch.match;
-        console.log(`  ✅ District matched: ${result.district.Name} (score: ${bestDistrictScore.toFixed(2)}, ${bestDistrictWordCount} words)`);
-        if (bestDistrictMatch.confidence === 'high') {
+    // ENHANCEMENT: If no district found but part has ward keyword, try to extract ward name and search district
+    if (!result.district && result.province) {
+        console.log(`  🔍 No district found, trying to extract from ward keywords...`);
+        
+        for (const part of parts) {
+            if (part === parts[provincePartIndex]) continue;
+            
+            const normalized = removeVietnameseTones(part).toLowerCase();
+            const wardKeywords = ['phuong', 'xa', 'thi tran', 'tt'];
+            const hasWardKeyword = wardKeywords.some(kw => normalized.includes(kw));
+            
+            if (hasWardKeyword) {
+                // Extract ward name (without keyword)
+                // Example: "thị trấn Năm Căn" → "Năm Căn"
+                const wardNameMatch = part.match(/(?:phường|phuong|xã|xa|thị trấn|thi tran|tt)\s+([^,]+)/i);
+                if (wardNameMatch) {
+                    const wardName = wardNameMatch[1].trim();
+                    console.log(`    📍 Extracted ward name: "${wardName}"`);
+                    
+                    // Search district with ward name (many cases: ward name = district name)
+                    const districtMatch = fuzzyMatch(wardName, result.province.Districts, 0.6);
+                    if (districtMatch) {
+                        result.district = districtMatch.match;
+                        console.log(`    ✅ District found from ward name: ${result.district.Name} (score: ${districtMatch.score.toFixed(2)})`);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (result.district) {
+        console.log(`  ✅ District matched: ${result.district.Name}`);
+        if (bestDistrictMatch && bestDistrictMatch.confidence === 'high') {
             result.confidence = 'high';
         }
     } else {
