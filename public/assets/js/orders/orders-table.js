@@ -53,14 +53,17 @@ function renderOrdersTable() {
  */
 function createOrderRow(order, index, pageIndex, totalPageItems) {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-gray-50 transition-colors fade-in';
+    tr.className = 'transition-colors fade-in';
     tr.setAttribute('data-order-id', order.id);
     
     // Apply priority styling
     const isPriority = order.is_priority === 1;
     if (isPriority) {
-        tr.classList.add('bg-yellow-50', 'border-l-4', 'border-yellow-400');
-        tr.classList.remove('hover:bg-gray-50');
+        tr.classList.add('bg-yellow-50', 'hover:bg-yellow-100');
+        // Use inline style to ensure border is applied
+        tr.style.borderLeft = '4px solid #facc15'; // yellow-400
+    } else {
+        tr.classList.add('hover:bg-gray-50');
     }
 
     // STT with Checkbox and Priority Star (only show star for priority orders)

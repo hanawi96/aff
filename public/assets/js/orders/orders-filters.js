@@ -9,22 +9,26 @@
 let customDatePickerModal = null;
 let currentDateMode = 'single'; // 'single' or 'range'
 let priorityFilterActive = false; // Track priority filter state
+let allCTVList = []; // Cache CTV list for filter dropdown
+// Note: allProductsList is declared in orders.js
 
 // ============================================
 // MAIN FILTER FUNCTION
 // ============================================
 
 /**
- * Filter orders data based on search, status, and date filters
+ * Filter orders data based on search, status, payment method, CTV, and date filters
  */
 function filterOrdersData() {
-    console.log('🎯 FILTER FUNCTION CALLED - Version 3.0 (Fixed 7-day logic)');
+    console.log('🎯 FILTER FUNCTION CALLED - Version 4.0 (Added CTV filter)');
 
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
+    const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
-    console.log('🔍 Filtering with:', { searchTerm, statusFilter, dateFilter });
+    console.log('🔍 Filtering with:', { searchTerm, statusFilter, paymentFilter, ctvFilter, dateFilter });
 
     // Debug date ranges
     if (dateFilter === 'today') {
@@ -52,13 +56,37 @@ function filterOrdersData() {
     }
 
     filteredOrdersData = allOrdersData.filter(order => {
-        // Search filter - now includes address
-        const matchesSearch = !searchTerm ||
-            (order.order_id && order.order_id.toLowerCase().includes(searchTerm)) ||
-            (order.customer_name && order.customer_name.toLowerCase().includes(searchTerm)) ||
-            (order.customer_phone && order.customer_phone.includes(searchTerm)) ||
-            (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm)) ||
-            (order.address && removeVietnameseTones(order.address.toLowerCase()).includes(removeVietnameseTones(searchTerm)));
+        // Search filter - now includes address AND products
+        let matchesSearch = !searchTerm;
+        if (searchTerm) {
+            matchesSearch = 
+                (order.order_id && order.order_id.toLowerCase().includes(searchTerm)) ||
+                (order.customer_name && order.customer_name.toLowerCase().includes(searchTerm)) ||
+                (order.customer_phone && order.customer_phone.includes(searchTerm)) ||
+                (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm)) ||
+                (order.address && removeVietnameseTones(order.address.toLowerCase()).includes(removeVietnameseTones(searchTerm)));
+            
+            // Also search in products if not matched yet
+            if (!matchesSearch) {
+                try {
+                    const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
+                    if (Array.isArray(products)) {
+                        matchesSearch = products.some(p => {
+                            const productName = (p.name || '').toLowerCase();
+                            const normalizedName = removeVietnameseTones(productName);
+                            const normalizedSearch = removeVietnameseTones(searchTerm);
+                            return normalizedName.includes(normalizedSearch);
+                        });
+                    }
+                } catch (e) {
+                    // Fallback: search in raw string
+                    const productsStr = (order.products || '').toLowerCase();
+                    const normalizedStr = removeVietnameseTones(productsStr);
+                    const normalizedSearch = removeVietnameseTones(searchTerm);
+                    matchesSearch = normalizedStr.includes(normalizedSearch);
+                }
+            }
+        }
 
         // Priority filter - NEW
         const matchesPriority = !priorityFilterActive || order.is_priority === 1;
@@ -78,6 +106,20 @@ function filterOrdersData() {
 
         const normalizedStatus = statusMap[orderStatus] || orderStatus;
         const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
+
+        // Payment method filter - simple and fast
+        const orderPayment = (order.payment_method || 'cod').toLowerCase().trim();
+        const matchesPayment = paymentFilter === 'all' || orderPayment === paymentFilter;
+
+        // CTV filter - simple: all / has_ctv / no_ctv
+        const orderCTV = (order.referral_code || '').toLowerCase().trim();
+        let matchesCTV = true;
+        if (ctvFilter === 'has_ctv') {
+            matchesCTV = !!orderCTV; // Has CTV code
+        } else if (ctvFilter === 'no_ctv') {
+            matchesCTV = !orderCTV; // No CTV code
+        }
+        // If 'all', matchesCTV stays true
 
         // Date filter - using VN timezone for accurate comparison
         let matchesDate = true;
@@ -114,7 +156,7 @@ function filterOrdersData() {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesStatus && matchesDate;
+        return matchesSearch && matchesPriority && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
     console.log(`✅ Filtered: ${filteredOrdersData.length} orders (from ${allOrdersData.length} total)`);
@@ -221,6 +263,168 @@ function selectStatusFilter(value, label) {
     document.getElementById('statusFilter').value = value;
     document.getElementById('statusFilterLabel').textContent = label;
     document.getElementById('statusFilterMenu')?.remove();
+    filterOrdersData();
+}
+
+// ============================================
+// PAYMENT METHOD FILTER
+// ============================================
+
+/**
+ * Toggle payment method filter dropdown
+ */
+function togglePaymentFilter(event) {
+    event.stopPropagation();
+
+    // Close status filter if open
+    const statusMenu = document.getElementById('statusFilterMenu');
+    if (statusMenu) statusMenu.remove();
+
+    // Close if already open
+    const existingMenu = document.getElementById('paymentFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const paymentMethods = [
+        { value: 'all', label: 'Tất cả thanh toán', icon: '💳', color: 'gray' },
+        { value: 'cod', label: 'COD (Tiền mặt)', icon: '💵', color: 'orange' },
+        { value: 'bank', label: 'Chuyển khoản', icon: '🏦', color: 'green' }
+    ];
+
+    const currentValue = document.getElementById('paymentFilter').value;
+    const button = event.currentTarget;
+
+    const menu = document.createElement('div');
+    menu.id = 'paymentFilterMenu';
+    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[220px] mt-1';
+    menu.style.left = '0';
+    menu.style.top = '100%';
+
+    menu.innerHTML = paymentMethods.map(p => `
+        <button 
+            onclick="selectPaymentFilter('${p.value}', '${p.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${p.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <span class="text-xl flex-shrink-0">${p.icon}</span>
+            <span class="text-sm text-gray-700 flex-1">${p.label}</span>
+            ${p.value === currentValue ? `
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    button.style.position = 'relative';
+    button.appendChild(menu);
+
+    // Close when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!button.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+/**
+ * Select payment method filter value
+ */
+function selectPaymentFilter(value, label) {
+    document.getElementById('paymentFilter').value = value;
+    document.getElementById('paymentFilterLabel').textContent = label;
+    document.getElementById('paymentFilterMenu')?.remove();
+    filterOrdersData();
+}
+
+// ============================================
+// CTV FILTER
+// ============================================
+
+/**
+ * Toggle CTV filter dropdown - SIMPLIFIED VERSION
+ */
+function toggleCTVFilter(event) {
+    event.stopPropagation();
+
+    // Close other menus
+    const statusMenu = document.getElementById('statusFilterMenu');
+    const paymentMenu = document.getElementById('paymentFilterMenu');
+    if (statusMenu) statusMenu.remove();
+    if (paymentMenu) paymentMenu.remove();
+
+    // Close if already open
+    const existingMenu = document.getElementById('ctvFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const button = event.currentTarget;
+    const currentValue = document.getElementById('ctvFilter').value;
+
+    // Count orders
+    const totalOrders = allOrdersData.length;
+    const ordersWithCTV = allOrdersData.filter(o => o.referral_code).length;
+    const ordersWithoutCTV = totalOrders - ordersWithCTV;
+
+    // Simple 3 options
+    const options = [
+        { value: 'all', label: 'Tất cả đơn', icon: '📦', count: totalOrders },
+        { value: 'has_ctv', label: 'Đơn từ CTV', icon: '👥', count: ordersWithCTV },
+        { value: 'no_ctv', label: 'Không có CTV', icon: '🚫', count: ordersWithoutCTV }
+    ];
+
+    // Create menu
+    const menu = document.createElement('div');
+    menu.id = 'ctvFilterMenu';
+    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[240px] mt-1';
+    menu.style.left = '0';
+    menu.style.top = '100%';
+
+    menu.innerHTML = options.map(opt => `
+        <button 
+            onclick="selectCTVFilter('${opt.value}', '${opt.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${opt.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <span class="text-xl flex-shrink-0">${opt.icon}</span>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm text-gray-700 font-medium">${opt.label}</div>
+                <div class="text-xs text-gray-500">${opt.count} đơn hàng</div>
+            </div>
+            ${opt.value === currentValue ? `
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    button.style.position = 'relative';
+    button.appendChild(menu);
+
+    // Close when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!button.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+/**
+ * Select CTV filter value
+ */
+function selectCTVFilter(value, label) {
+    document.getElementById('ctvFilter').value = value;
+    document.getElementById('ctvFilterLabel').textContent = label;
+    document.getElementById('ctvFilterMenu')?.remove();
     filterOrdersData();
 }
 
@@ -517,35 +721,29 @@ function updateCustomDateLabel(startDate, endDate) {
 
 /**
  * Toggle priority filter (show only priority orders or all orders)
+ * Button text stays as "Tất cả đơn ưu tiên" - only highlight changes
  */
 function togglePriorityFilter() {
     const button = document.getElementById('priorityFilterBtn');
-    const label = document.getElementById('priorityFilterLabel');
     const icon = button.querySelector('svg');
     
     // Toggle state
     priorityFilterActive = !priorityFilterActive;
     
     if (priorityFilterActive) {
-        // Active state: Show only priority orders
+        // Active state: Show only priority orders - highlight button
         button.classList.remove('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
         button.classList.add('bg-yellow-50', 'border-yellow-500');
         icon.classList.remove('text-gray-500');
         icon.classList.add('text-yellow-500');
         icon.setAttribute('fill', 'currentColor');
-        label.textContent = 'Chỉ đơn ưu tiên';
-        label.classList.remove('text-gray-700');
-        label.classList.add('text-yellow-700');
     } else {
-        // Inactive state: Show all orders
+        // Inactive state: Show all orders - unhighlight button
         button.classList.remove('bg-yellow-50', 'border-yellow-500');
         button.classList.add('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
         icon.classList.remove('text-yellow-500');
         icon.classList.add('text-gray-500');
         icon.setAttribute('fill', 'none');
-        label.textContent = 'Tất cả đơn';
-        label.classList.remove('text-yellow-700');
-        label.classList.add('text-gray-700');
     }
     
     // Apply filter
