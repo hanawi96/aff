@@ -18,54 +18,116 @@ function normalizeText(text) {
 
 /**
  * Extract keywords from street address
- * Returns array of meaningful keywords (2-4 word phrases)
- * Enhanced: Creates all meaningful word combinations, not just consecutive
+ * OPTIMIZED: Only extract locality-related keywords (thôn, xóm, ấp...)
+ * Returns 2-3 most important keywords
  */
 function extractKeywords(streetAddress) {
     if (!streetAddress) return [];
     
-    // Remove numbers, common prefixes
-    const cleaned = streetAddress
-        .replace(/^(số|so|ngõ|ngo|hẻm|hem|đường|duong)\s*\d*/gi, '')
-        .replace(/\d+/g, '')
-        .trim();
+    // Step 1: Find locality markers (thôn, xóm, ấp, khóm...)
+    const localityMarkers = [
+        'thon', 'xom', 'ap', 'khom', 'khu', 'to', 'cum', 'bon', 'lang'
+    ];
     
-    const normalized = normalizeText(cleaned);
-    const words = normalized.split(/\s+/).filter(w => w.length >= 3);
+    const normalized = normalizeText(streetAddress);
     
-    if (words.length === 0) return [];
-    
-    const keywords = new Set();
-    
-    // Strategy 1: Consecutive 2-word phrases (most reliable)
-    for (let i = 0; i < words.length - 1; i++) {
-        keywords.add(words[i] + ' ' + words[i + 1]);
-    }
-    
-    // Strategy 2: Consecutive 3-word phrases
-    for (let i = 0; i < words.length - 2; i++) {
-        keywords.add(words[i] + ' ' + words[i + 1] + ' ' + words[i + 2]);
-    }
-    
-    // Strategy 3: Non-consecutive 2-word combinations (NEW!)
-    // Example: "sau dinh hau duong" → also create "sau hau", "dinh duong"
-    // But limit to avoid too many combinations
-    if (words.length >= 3 && words.length <= 6) {
-        for (let i = 0; i < words.length - 1; i++) {
-            for (let j = i + 2; j < words.length && j <= i + 3; j++) {
-                // Skip if distance > 2 (avoid unrelated words)
-                if (j - i <= 3) {
-                    keywords.add(words[i] + ' ' + words[j]);
-                }
-            }
+    // Find first occurrence of locality marker
+    let localityStart = -1;
+    for (const marker of localityMarkers) {
+        const regex = new RegExp(`\\b${marker}\\b`);
+        const match = normalized.match(regex);
+        if (match && (localityStart === -1 || match.index < localityStart)) {
+            localityStart = match.index;
         }
     }
     
-    return Array.from(keywords);
+    // If no locality marker found → SKIP (don't save)
+    if (localityStart === -1) {
+        console.log('⚠️ No locality marker found, skipping learning');
+        return [];
+    }
+    
+    // Step 2: Extract locality portion
+    const localityPortion = normalized.substring(localityStart);
+    
+    // Step 3: Split into words, keep numbers (for "xóm 4", "thôn 5")
+    // Filter: length >= 1 (to keep single digit numbers like "4", "5")
+    const words = localityPortion.split(/\s+/).filter(w => w.length >= 1);
+    const limitedWords = words.slice(0, 5);
+    
+    if (limitedWords.length === 0) return [];
+    
+    // Step 4: Create only 2-3 MOST IMPORTANT keywords
+    const keywords = [];
+    
+    // 4.1. Full phrase (if ≤ 4 words)
+    if (limitedWords.length <= 4) {
+        keywords.push(limitedWords.join(' '));
+    }
+    
+    // 4.2. First 2 words (locality type + number/name)
+    if (limitedWords.length >= 2) {
+        keywords.push(limitedWords.slice(0, 2).join(' '));
+    }
+    
+    // 4.3. Last 2 words (main locality name)
+    if (limitedWords.length >= 2) {
+        keywords.push(limitedWords.slice(-2).join(' '));
+    }
+    
+    // 4.4. If has number, create version without number
+    const hasNumber = limitedWords.some(w => /\d/.test(w));
+    if (hasNumber && limitedWords.length >= 3) {
+        const wordsNoNum = limitedWords.filter(w => !/^\d+$/.test(w));
+        if (wordsNoNum.length >= 2) {
+            keywords.push(wordsNoNum.slice(0, 3).join(' '));
+        }
+    }
+    
+    // Remove duplicates
+    return [...new Set(keywords)];
 }
 
 /**
- * Search for learned address mapping
+ * Calculate Levenshtein distance for fuzzy matching
+ */
+function levenshteinDistance(str1, str2) {
+    const len1 = str1.length;
+    const len2 = str2.length;
+    const matrix = [];
+
+    for (let i = 0; i <= len1; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+
+    return matrix[len1][len2];
+}
+
+/**
+ * Calculate similarity score (0-1)
+ */
+function calculateSimilarity(str1, str2) {
+    const distance = levenshteinDistance(str1, str2);
+    const maxLen = Math.max(str1.length, str2.length);
+    return 1 - (distance / maxLen);
+}
+
+/**
+ * Search for learned address mapping - TIER 1: Exact Match
  */
 export async function searchLearning(env, keywords, districtId) {
     if (!keywords || keywords.length === 0 || !districtId) {
@@ -73,9 +135,10 @@ export async function searchLearning(env, keywords, districtId) {
     }
     
     try {
-        // Try each keyword, prefer longer phrases
+        // Sort by length (longest first)
         const sortedKeywords = keywords.sort((a, b) => b.length - a.length);
         
+        // TIER 1: Exact Match
         for (const keyword of sortedKeywords) {
             const result = await env.DB.prepare(`
                 SELECT ward_id, ward_name, match_count, last_used_at
@@ -86,19 +149,151 @@ export async function searchLearning(env, keywords, districtId) {
             `).bind(keyword, districtId).first();
             
             if (result) {
+                console.log(`✅ TIER 1 - Exact match: "${keyword}" → ${result.ward_name}`);
                 return {
                     found: true,
                     ward_id: result.ward_id,
                     ward_name: result.ward_name,
                     confidence: result.match_count,
-                    last_used: result.last_used_at
+                    last_used: result.last_used_at,
+                    match_type: 'exact',
+                    matched_keyword: keyword
                 };
             }
         }
         
-        return { found: false };
+        // TIER 2: Partial Match
+        console.log('⚠️ TIER 1 failed, trying TIER 2 - Partial match...');
+        return await searchLearningPartial(env, keywords, districtId);
+        
     } catch (error) {
         console.error('Search learning error:', error);
+        return { found: false, error: error.message };
+    }
+}
+
+/**
+ * TIER 2: Partial Match - Find keywords containing input words
+ */
+async function searchLearningPartial(env, keywords, districtId) {
+    try {
+        // Get all keywords in this district
+        const allKeywords = await env.DB.prepare(`
+            SELECT keywords, ward_id, ward_name, match_count
+            FROM address_learning
+            WHERE district_id = ?
+            ORDER BY match_count DESC
+        `).bind(districtId).all();
+        
+        if (!allKeywords.results || allKeywords.results.length === 0) {
+            console.log('⚠️ TIER 2 failed - No keywords in district, trying TIER 3...');
+            return await searchLearningFuzzy(env, keywords, districtId);
+        }
+        
+        let bestMatch = null;
+        let bestScore = 0;
+        
+        for (const inputKeyword of keywords) {
+            const inputWords = inputKeyword.split(' ');
+            
+            for (const dbRow of allKeywords.results) {
+                const dbKeyword = dbRow.keywords;
+                const dbWords = dbKeyword.split(' ');
+                
+                // Count matching words
+                let matchCount = 0;
+                for (const inputWord of inputWords) {
+                    if (dbWords.includes(inputWord)) {
+                        matchCount++;
+                    }
+                }
+                
+                // Calculate score
+                const score = matchCount / Math.max(inputWords.length, dbWords.length);
+                
+                // Bonus from usage history (max +0.2)
+                const historyBonus = Math.min(dbRow.match_count * 0.05, 0.2);
+                const finalScore = score + historyBonus;
+                
+                if (finalScore > bestScore && finalScore >= 0.5) {
+                    bestScore = finalScore;
+                    bestMatch = dbRow;
+                }
+            }
+        }
+        
+        if (bestMatch) {
+            console.log(`✅ TIER 2 - Partial match: score=${bestScore.toFixed(2)} → ${bestMatch.ward_name}`);
+            return {
+                found: true,
+                ward_id: bestMatch.ward_id,
+                ward_name: bestMatch.ward_name,
+                confidence: bestMatch.match_count,
+                match_type: 'partial',
+                score: bestScore
+            };
+        }
+        
+        // TIER 3: Fuzzy Match
+        console.log('⚠️ TIER 2 failed, trying TIER 3 - Fuzzy match...');
+        return await searchLearningFuzzy(env, keywords, districtId);
+        
+    } catch (error) {
+        console.error('Partial match error:', error);
+        return { found: false, error: error.message };
+    }
+}
+
+/**
+ * TIER 3: Fuzzy Match - Handle typos using Levenshtein distance
+ */
+async function searchLearningFuzzy(env, keywords, districtId) {
+    try {
+        const allKeywords = await env.DB.prepare(`
+            SELECT keywords, ward_id, ward_name, match_count
+            FROM address_learning
+            WHERE district_id = ?
+        `).bind(districtId).all();
+        
+        if (!allKeywords.results || allKeywords.results.length === 0) {
+            console.log('❌ TIER 3 failed - No keywords in district');
+            return { found: false };
+        }
+        
+        let bestMatch = null;
+        let bestScore = 0;
+        
+        for (const inputKeyword of keywords) {
+            for (const dbRow of allKeywords.results) {
+                const dbKeyword = dbRow.keywords;
+                
+                // Calculate similarity (0-1)
+                const similarity = calculateSimilarity(inputKeyword, dbKeyword);
+                
+                if (similarity > bestScore && similarity >= 0.75) {
+                    bestScore = similarity;
+                    bestMatch = dbRow;
+                }
+            }
+        }
+        
+        if (bestMatch) {
+            console.log(`✅ TIER 3 - Fuzzy match: similarity=${bestScore.toFixed(2)} → ${bestMatch.ward_name}`);
+            return {
+                found: true,
+                ward_id: bestMatch.ward_id,
+                ward_name: bestMatch.ward_name,
+                confidence: bestMatch.match_count,
+                match_type: 'fuzzy',
+                similarity: bestScore
+            };
+        }
+        
+        console.log('❌ All tiers failed - No match found');
+        return { found: false };
+        
+    } catch (error) {
+        console.error('Fuzzy match error:', error);
         return { found: false, error: error.message };
     }
 }

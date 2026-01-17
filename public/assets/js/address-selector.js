@@ -68,9 +68,9 @@ class AddressSelector {
      */
     renderDistricts(selectElement, provinceId) {
         selectElement.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+        selectElement.disabled = false; // Always keep enabled
         
         if (!provinceId) {
-            selectElement.disabled = true;
             return;
         }
 
@@ -82,7 +82,6 @@ class AddressSelector {
                 option.textContent = district.Name;
                 selectElement.appendChild(option);
             });
-            selectElement.disabled = false;
         }
     }
 
@@ -91,9 +90,9 @@ class AddressSelector {
      */
     renderWards(selectElement, provinceId, districtId) {
         selectElement.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+        selectElement.disabled = false; // Always keep enabled
         
         if (!provinceId || !districtId) {
-            selectElement.disabled = true;
             return;
         }
 
@@ -107,7 +106,6 @@ class AddressSelector {
                 option.textContent = ward.Name;
                 selectElement.appendChild(option);
             });
-            selectElement.disabled = false;
         }
     }
 
@@ -151,7 +149,7 @@ class AddressSelector {
             const provinceId = e.target.value;
             this.renderDistricts(districtSelect, provinceId);
             wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
-            wardSelect.disabled = true;
+            // Don't disable ward - keep it enabled for user interaction
             if (onChangeCallback) onChangeCallback();
         });
 

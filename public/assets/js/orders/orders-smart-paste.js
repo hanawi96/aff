@@ -479,10 +479,11 @@ async function parseAddress(addressText) {
             // Step 1: Extract ward (if exists)
             if (hasWard) {
                 // Match with original text (not normalized) to preserve Vietnamese tones
-                // IMPORTANT: Match ward keyword + ward name (can be number or text)
-                // Example: "phường 14 gò vấp" → match "phường 14", leave "gò vấp" for district
-                // Regex: Match ward keyword + 1-2 words, stop at next keyword OR 2+ words without keyword
-                const wardMatch = remainingText.match(/(xã|xa|phường|phuong|thị trấn|thi tran|tt|khóm|khom)\s+(\S+(?:\s+\S+)??)(?=\s+(?:xã|xa|phường|phuong|thị trấn|thi tran|tt|khóm|khom|quận|quan|huyện|huyen|thành phố|thanh pho|tp|thị xã|thi xa|tx|tỉnh|tinh|\S+\s+\S+)|$)/i);
+                // IMPORTANT: Match ward keyword + ward name (can be 1-3 words)
+                // Example: "xã thanh long" → match "xã thanh long" (3 words)
+                // Example: "phường 14" → match "phường 14" (2 words)
+                // Regex: Match ward keyword + 1-3 words, stop at next keyword
+                const wardMatch = remainingText.match(/(xã|xa|phường|phuong|thị trấn|thi tran|tt|khóm|khom)\s+(\S+(?:\s+\S+)?(?:\s+\S+)?)(?=\s+(?:xã|xa|phường|phuong|thị trấn|thi tran|tt|khóm|khom|quận|quan|huyện|huyen|thành phố|thanh pho|tp|thị xã|thi xa|tx|tỉnh|tinh)|$)/i);
                 console.log(`    🔍 Ward regex match:`, wardMatch);
                 if (wardMatch) {
                     // IMPORTANT: Save street portion BEFORE ward keyword
@@ -970,58 +971,88 @@ async function parseAddress(addressText) {
     // Extract street address BEFORE ward matching for learning database
     // This is a simplified extraction - full extraction happens in Step 4
     if (result.district) {
-        // Strategy 1: Extract from original addressText (before district/province)
-        // Example: "ngõ 2 sau đình hậu dưỡng đông anh hà nội"
-        // → Extract everything before "đông anh" (district name)
+        // Strategy 1: Use the first part that was split (if available)
+        // Example: parts = ["595/15f cmt8", "Phường 15", "quận 10"]
+        // → Street = "595/15f cmt8"
         
-        const districtName = removeVietnameseTones(result.district.Name).toLowerCase()
-            .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, ''); // Remove prefix
-        
-        const normalizedAddress = removeVietnameseTones(addressText).toLowerCase();
-        
-        // IMPROVED: Find LAST occurrence of district name (more reliable)
-        // This handles cases where district name appears multiple times
-        // Example: "đông anh đông anh hà nội" → use last "đông anh"
-        const occurrences = [];
-        let index = normalizedAddress.indexOf(districtName);
-        while (index !== -1) {
-            occurrences.push(index);
-            index = normalizedAddress.indexOf(districtName, index + 1);
+        if (parts.length > 1) {
+            // Check if first part looks like street address (no location keywords)
+            const firstPart = parts[0];
+            const normalized = removeVietnameseTones(firstPart).toLowerCase();
+            const locationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
+            const hasLocationKeyword = locationKeywords.some(kw => normalized.includes(kw));
+            
+            if (!hasLocationKeyword && firstPart.length >= 3) {
+                result.street = firstPart;
+                console.log(`  🏠 Early street extraction (from split parts): "${result.street}"`);
+            }
         }
         
-        if (occurrences.length > 0) {
-            // Use LAST occurrence (most likely the actual district mention)
-            const lastIndex = occurrences[occurrences.length - 1];
-            result.street = addressText.substring(0, lastIndex).trim();
+        // Strategy 2: If no street from parts, extract from original addressText
+        if (!result.street) {
+            const districtName = removeVietnameseTones(result.district.Name).toLowerCase()
+                .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, ''); // Remove prefix
             
-            if (occurrences.length > 1) {
-                console.log(`  🏠 Early street extraction (last of ${occurrences.length} occurrences): "${result.street}"`);
-            } else {
-                console.log(`  🏠 Early street extraction (before district): "${result.street}"`);
+            const normalizedAddress = removeVietnameseTones(addressText).toLowerCase();
+            
+            // Find LAST occurrence of district name
+            const occurrences = [];
+            let index = normalizedAddress.indexOf(districtName);
+            while (index !== -1) {
+                occurrences.push(index);
+                index = normalizedAddress.indexOf(districtName, index + 1);
             }
-        } else {
-            // Fallback: Extract from parts (for comma-separated addresses)
-            const locationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
             
-            for (const part of parts) {
-                const normalized = removeVietnameseTones(part).toLowerCase();
-                const hasLocationKeyword = locationKeywords.some(kw => normalized.includes(kw));
+            if (occurrences.length > 0) {
+                // Use LAST occurrence (most likely the actual district mention)
+                const lastIndex = occurrences[occurrences.length - 1];
                 
-                if (!hasLocationKeyword && part.length >= 5) {
-                    // This looks like street address
-                    result.street = part;
-                    console.log(`  🏠 Early street extraction (from parts): "${result.street}"`);
-                    break;
+                // Look backwards from lastIndex to find district keyword
+                const beforeDistrict = normalizedAddress.substring(0, lastIndex).trim();
+                const districtKeywords = ['quan', 'huyen', 'thanh pho', 'tp', 'thi xa', 'tx'];
+                
+                let actualDistrictStart = lastIndex;
+                
+                // Check if there's a district keyword right before the district name
+                for (const keyword of districtKeywords) {
+                    const keywordIndex = beforeDistrict.lastIndexOf(keyword);
+                    if (keywordIndex !== -1) {
+                        // Check if keyword is right before district name (with optional space)
+                        const textBetween = beforeDistrict.substring(keywordIndex + keyword.length).trim();
+                        if (textBetween === '' || normalizedAddress.substring(keywordIndex).startsWith(keyword + ' ' + districtName)) {
+                            actualDistrictStart = keywordIndex;
+                            break;
+                        }
+                    }
+                }
+                
+                // Now find the FIRST location keyword (ward/district) to extract street before it
+                const allLocationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
+                let firstKeywordIndex = actualDistrictStart;
+                
+                for (const keyword of allLocationKeywords) {
+                    const keywordIndex = normalizedAddress.indexOf(keyword);
+                    if (keywordIndex !== -1 && keywordIndex < firstKeywordIndex) {
+                        firstKeywordIndex = keywordIndex;
+                    }
+                }
+                
+                result.street = addressText.substring(0, firstKeywordIndex).trim();
+                
+                if (occurrences.length > 1) {
+                    console.log(`  🏠 Early street extraction (last of ${occurrences.length} occurrences): "${result.street}"`);
+                } else {
+                    console.log(`  🏠 Early street extraction (before first location keyword): "${result.street}"`);
                 }
             }
-            
-            // If still no street found, try regex
-            if (!result.street && addressText) {
-                const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx|khóm)/i);
-                if (match && match[1].trim()) {
-                    result.street = match[1].trim();
-                    console.log(`  🏠 Early street extraction (regex): "${result.street}"`);
-                }
+        }
+        
+        // Strategy 3: Fallback - regex to find text before first location keyword
+        if (!result.street && addressText) {
+            const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx|khóm)/i);
+            if (match && match[1].trim()) {
+                result.street = match[1].trim();
+                console.log(`  🏠 Early street extraction (regex): "${result.street}"`);
             }
         }
     }
@@ -1362,9 +1393,20 @@ async function parseAddress(addressText) {
         
         result.street = streetParts.join(', ').trim();
     } else {
-        // No commas - take first 3-5 words as street address
-        const words = addressText.split(/\s+/);
-        result.street = words.slice(0, Math.min(5, words.length)).join(' ');
+        // No commas - use street from Early Street Extraction if available
+        // Otherwise, extract from first part before location keywords
+        if (!result.street) {
+            // Fallback: Extract text before first location keyword
+            const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx|khóm)/i);
+            if (match && match[1].trim()) {
+                result.street = match[1].trim();
+            } else {
+                // Last resort: take first 3-5 words
+                const words = addressText.split(/\s+/);
+                result.street = words.slice(0, Math.min(5, words.length)).join(' ');
+            }
+        }
+        // If result.street already set from Early Street Extraction, keep it
     }
     
     console.log('  🏠 Street address:', result.street || '(none)');
@@ -1554,17 +1596,24 @@ async function applyParsedDataToForm(parsedData) {
             districtSelect.value = data.address.district.Id;
             console.log('✅ District set to:', districtSelect.value);
             
-            // Render wards for this district
+            // IMPORTANT: Always render wards when district is set (even if ward not found)
+            // This allows user to manually select ward from dropdown
+            window.addressSelector.renderWards(wardSelect, data.address.province.Id, data.address.district.Id);
+            
+            // Wait for render to complete
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            // Set ward if found
             if (data.address.ward) {
-                window.addressSelector.renderWards(wardSelect, data.address.province.Id, data.address.district.Id);
-                
-                // Wait for render to complete
-                await new Promise(resolve => setTimeout(resolve, 50));
-                
-                // Set ward
                 wardSelect.value = data.address.ward.Id;
                 console.log('✅ Ward set to:', wardSelect.value);
+            } else {
+                console.log('⚠️ Ward not found, but dropdown is enabled for manual selection');
             }
+        } else if (data.address.province) {
+            // Province found but no district - still render districts for manual selection
+            window.addressSelector.renderDistricts(districtSelect, data.address.province.Id);
+            console.log('⚠️ District not found, but dropdown is enabled for manual selection');
         }
         
         // Set street address

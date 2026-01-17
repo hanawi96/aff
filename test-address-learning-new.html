@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Address Learning - New Logic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #2196F3;
+        }
+        .input {
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .keywords {
+            color: #F57C00;
+            margin: 5px 0;
+        }
+        .result {
+            color: #388E3C;
+            margin: 5px 0;
+        }
+        .error {
+            color: #D32F2F;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .log {
+            background: #263238;
+            color: #00FF00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Address Learning - New Logic</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Extract Keywords</h2>
+        <button onclick="testExtractKeywords()">Run Test</button>
+        <div id="extract-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Search Learning Database</h2>
+        <button onclick="testSearchLearning()">Run Test</button>
+        <div id="search-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Full Flow (Learn + Search)</h2>
+        <button onclick="testFullFlow()">Run Test</button>
+        <div id="full-results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://ctv-api.yendev96.workers.dev';
+        
+        // Normalize text (same as backend)
+        function normalizeText(text) {
+            if (!text) return '';
+            return text
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .trim();
+        }
+        
+        // Extract keywords (same logic as backend)
+        function extractKeywords(streetAddress) {
+            if (!streetAddress) return [];
+            
+            const localityMarkers = [
+                'thon', 'xom', 'ap', 'khom', 'khu', 'to', 'cum', 'bon', 'lang'
+            ];
+            
+            const normalized = normalizeText(streetAddress);
+            
+            let localityStart = -1;
+            for (const marker of localityMarkers) {
+                const regex = new RegExp(`\\b${marker}\\b`);
+                const match = normalized.match(regex);
+                if (match && (localityStart === -1 || match.index < localityStart)) {
+                    localityStart = match.index;
+                }
+            }
+            
+            if (localityStart === -1) {
+                return [];
+            }
+            
+            const localityPortion = normalized.substring(localityStart);
+            const words = localityPortion.split(/\s+/).filter(w => w.length >= 2);
+            const limitedWords = words.slice(0, 5);
+            
+            if (limitedWords.length === 0) return [];
+            
+            const keywords = [];
+            
+            if (limitedWords.length <= 4) {
+                keywords.push(limitedWords.join(' '));
+            }
+            
+            if (limitedWords.length >= 2) {
+                keywords.push(limitedWords.slice(0, 2).join(' '));
+            }
+            
+            if (limitedWords.length >= 2) {
+                keywords.push(limitedWords.slice(-2).join(' '));
+            }
+            
+            const hasNumber = limitedWords.some(w => /\d/.test(w));
+            if (hasNumber && limitedWords.length >= 3) {
+                const wordsNoNum = limitedWords.filter(w => !/^\d+$/.test(w));
+                if (wordsNoNum.length >= 2) {
+                    keywords.push(wordsNoNum.slice(0, 3).join(' '));
+                }
+            }
+            
+            return [...new Set(keywords)];
+        }
+        
+        // Test 1: Extract Keywords
+        function testExtractKeywords() {
+            const testCases = [
+                "nhà Yến Tuệ, gần nhà văn hóa xóm 4, Dong Cao",
+                "xóm 4, Dong Cao",
+                "Dong Cao",
+                "thôn Hậu Dương",
+                "123 Nguyễn Trãi",
+                "xóm Đông Cao",
+                "ấp 3, Tân Vĩnh Hiệp"
+            ];
+            
+            let html = '';
+            testCases.forEach(testCase => {
+                const keywords = extractKeywords(testCase);
+                html += `
+                    <div class="test-case">
+                        <div class="input">Input: "${testCase}"</div>
+                        <div class="keywords">Keywords: [${keywords.map(k => `"${k}"`).join(', ')}]</div>
+                        <div class="result">Count: ${keywords.length}</div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('extract-results').innerHTML = html;
+        }
+        
+        // Test 2: Search Learning Database
+        async function testSearchLearning() {
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<div class="log">Testing...</div>';
+            
+            const testCases = [
+                { keywords: ["xom 4"], districtId: 250, expected: "Xã Tráng Việt" },
+                { keywords: ["dong cao"], districtId: 250, expected: "Xã Tráng Việt" },
+                { keywords: ["xom"], districtId: 250, expected: "Xã Tráng Việt (partial)" },
+                { keywords: ["thon hau"], districtId: 17, expected: "Xã Kim Chung" },
+                { keywords: ["hau duong"], districtId: 17, expected: "Xã Kim Chung" }
+            ];
+            
+            let html = '';
+            for (const testCase of testCases) {
+                try {
+                    const keywordsParam = testCase.keywords.join(',');
+                    const response = await fetch(
+                        `${API_URL}?action=searchAddressLearning&keywords=${encodeURIComponent(keywordsParam)}&district_id=${testCase.districtId}`
+                    );
+                    const result = await response.json();
+                    
+                    const success = result.found && result.ward_name === testCase.expected;
+                    html += `
+                        <div class="test-case">
+                            <div class="input">Keywords: [${testCase.keywords.map(k => `"${k}"`).join(', ')}], District: ${testCase.districtId}</div>
+                            <div class="result ${success ? '' : 'error'}">
+                                ${result.found ? 
+                                    `✅ Found: ${result.ward_name} (${result.match_type}, confidence: ${result.confidence})` : 
+                                    '❌ Not found'}
+                            </div>
+                            <div>Expected: ${testCase.expected}</div>
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `
+                        <div class="test-case">
+                            <div class="error">❌ Error: ${error.message}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Test 3: Full Flow
+        async function testFullFlow() {
+            const resultsDiv = document.getElementById('full-results');
+            resultsDiv.innerHTML = '<div class="log">Testing full flow...</div>';
+            
+            // Step 1: Learn a new address
+            const testAddress = {
+                street: "xóm 5 Đông Cao",
+                districtId: 250,
+                wardId: 9022,
+                wardName: "Xã Tráng Việt"
+            };
+            
+            let html = '<h3>Step 1: Learn Address</h3>';
+            
+            try {
+                const learnResponse = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'learnAddress',
+                        street_address: testAddress.street,
+                        district_id: testAddress.districtId,
+                        ward_id: testAddress.wardId,
+                        ward_name: testAddress.wardName
+                    })
+                });
+                const learnResult = await learnResponse.json();
+                
+                html += `
+                    <div class="test-case">
+                        <div class="input">Learning: "${testAddress.street}" → ${testAddress.wardName}</div>
+                        <div class="result">${learnResult.success ? 
+                            `✅ Learned ${learnResult.keywords_saved} keywords` : 
+                            `❌ Failed: ${learnResult.error}`}</div>
+                    </div>
+                `;
+                
+                // Step 2: Search for it
+                if (learnResult.success) {
+                    html += '<h3>Step 2: Search for Learned Address</h3>';
+                    
+                    const searchTests = [
+                        "xóm 5",
+                        "Đông Cao",
+                        "xóm 5 Đông Cao"
+                    ];
+                    
+                    for (const searchInput of searchTests) {
+                        const keywords = extractKeywords(searchInput);
+                        const keywordsParam = keywords.join(',');
+                        
+                        const searchResponse = await fetch(
+                            `${API_URL}?action=searchAddressLearning&keywords=${encodeURIComponent(keywordsParam)}&district_id=${testAddress.districtId}`
+                        );
+                        const searchResult = await searchResponse.json();
+                        
+                        html += `
+                            <div class="test-case">
+                                <div class="input">Search: "${searchInput}"</div>
+                                <div class="keywords">Keywords: [${keywords.map(k => `"${k}"`).join(', ')}]</div>
+                                <div class="result ${searchResult.found ? '' : 'error'}">
+                                    ${searchResult.found ? 
+                                        `✅ Found: ${searchResult.ward_name} (${searchResult.match_type})` : 
+                                        '❌ Not found'}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+            } catch (error) {
+                html += `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

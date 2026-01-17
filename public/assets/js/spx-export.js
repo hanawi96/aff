@@ -6,33 +6,20 @@
  * Fallback to parsing old address field if structured fields not available
  */
 function parseAddressForExport(order) {
-    console.log('🔍 [parseAddressForExport] Input order:', {
-        id: order.id,
-        order_id: order.order_id,
-        address: order.address,
-        province_name: order.province_name,
-        district_name: order.district_name,
-        ward_name: order.ward_name,
-        street_address: order.street_address
-    });
-    
     // PRIORITY 1: Use structured address fields (new format)
     if (order.province_name || order.district_name || order.ward_name || order.street_address) {
-        const result = {
+        return {
             province: order.province_name || '',
             district: order.district_name || '',
             ward: order.ward_name || '',
             detail: order.street_address || ''
         };
-        console.log('✅ [parseAddressForExport] Using structured fields:', result);
-        return result;
     }
     
     // PRIORITY 2: Parse old address field (backward compatibility)
     const address = order.address;
     
     if (!address) {
-        console.warn('⚠️ [parseAddressForExport] No address data found for order:', order.order_id);
         return {
             province: '',
             district: '',
@@ -41,17 +28,12 @@ function parseAddressForExport(order) {
         };
     }
 
-    console.log('📝 [parseAddressForExport] Parsing old address field:', address);
-
     // Split by comma
     const parts = address.split(',').map(p => p.trim());
-    console.log('📝 [parseAddressForExport] Split into', parts.length, 'parts:', parts);
-    
-    let result;
     
     if (parts.length >= 4) {
         // Full format: detail, ward, district, province
-        result = {
+        return {
             province: parts[parts.length - 1],
             district: parts[parts.length - 2],
             ward: parts[parts.length - 3],
@@ -59,7 +41,7 @@ function parseAddressForExport(order) {
         };
     } else if (parts.length === 3) {
         // Missing ward: detail, district, province
-        result = {
+        return {
             province: parts[2],
             district: parts[1],
             ward: '',
@@ -67,7 +49,7 @@ function parseAddressForExport(order) {
         };
     } else if (parts.length === 2) {
         // Only district and province: detail, province
-        result = {
+        return {
             province: parts[1],
             district: '',
             ward: '',
@@ -75,16 +57,13 @@ function parseAddressForExport(order) {
         };
     } else {
         // Only one part - treat as detail
-        result = {
+        return {
             province: '',
             district: '',
             ward: '',
             detail: address
         };
     }
-    
-    console.log('✅ [parseAddressForExport] Parsed result:', result);
-    return result;
 }
 
 /**
@@ -174,9 +153,6 @@ function arrayBufferToBase64Chunked(buffer) {
  * Export selected orders to SPX Excel format and save to R2
  */
 async function exportToSPXExcelAndSave(orders) {
-    console.log('🚀 [exportToSPXExcelAndSave] Starting export for', orders.length, 'orders');
-    console.log('📦 [exportToSPXExcelAndSave] First order sample:', orders[0]);
-    
     if (!orders || orders.length === 0) {
         throw new Error('Không có đơn hàng nào để export');
     }
@@ -184,18 +160,11 @@ async function exportToSPXExcelAndSave(orders) {
     // Create Excel file
     const { wb, filename, orderIds } = createSPXExcelWorkbook(orders);
     
-    console.log('📊 [exportToSPXExcelAndSave] Workbook created, converting to binary...');
-    
     // Convert workbook to binary
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     
-    console.log('📊 [exportToSPXExcelAndSave] Binary size:', wbout.byteLength, 'bytes');
-    
     // Convert to base64 in chunks (non-blocking)
     const base64 = await arrayBufferToBase64Chunked(wbout);
-    
-    console.log('📊 [exportToSPXExcelAndSave] Base64 size:', base64.length, 'chars');
-    console.log('💾 [exportToSPXExcelAndSave] Saving to R2...');
     
     // Save to R2 via API
     const response = await fetch(`${CONFIG.API_URL}?action=saveExport`, {
@@ -227,23 +196,16 @@ async function exportToSPXExcelAndSave(orders) {
  * Create SPX Excel workbook (shared logic)
  */
 function createSPXExcelWorkbook(orders) {
-    console.log('📊 [createSPXExcelWorkbook] Creating workbook for', orders.length, 'orders');
-    
     // Prepare data rows
     const rows = [];
     const orderIds = [];
     
-    orders.forEach((order, index) => {
-        console.log(`\n📦 [Order ${index + 1}/${orders.length}] Processing order:`, order.order_id);
-        
+    orders.forEach(order => {
         orderIds.push(order.id);
         
         // IMPROVED: Pass entire order object to parseAddressForExport
         const address = parseAddressForExport(order);
         const products = parseProducts(order.products);
-        
-        console.log('📍 [Order] Address parsed:', address);
-        console.log('📦 [Order] Products:', products.length, 'items');
         
         // Format all products into one line (like Copy SPX Format)
         let productText = '';
@@ -305,20 +267,8 @@ function createSPXExcelWorkbook(orders) {
             'Nhắc nhở điền đúng số tiền COD': '',
             'Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"': ''
         };
-        
-        console.log('📋 [Order] Excel row created:', {
-            order_id: row['*Mã đơn hàng'],
-            province: row['*Tỉnh/Thành Phố'],
-            district: row['*Quận/Huyện'],
-            ward: row['*Xã/Phường'],
-            detail: row['*Địa chỉ chi tiết']
-        });
-        
         rows.push(row);
     });
-    
-    console.log('✅ [createSPXExcelWorkbook] Created', rows.length, 'rows');
-    console.log('📊 [createSPXExcelWorkbook] Sample row 1:', rows[0]);
 
     // Create workbook
     const wb = XLSX.utils.book_new();

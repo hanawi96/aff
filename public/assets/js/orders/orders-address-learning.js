@@ -21,49 +21,74 @@ function normalizeTextForLearning(text) {
 
 /**
  * Extract keywords from street address
- * Enhanced: Creates all meaningful word combinations, not just consecutive
+ * OPTIMIZED: Only extract locality-related keywords (thôn, xóm, ấp...)
+ * Returns 2-3 most important keywords
  */
 function extractAddressKeywords(streetAddress) {
     if (!streetAddress) return [];
     
-    // Remove numbers, common prefixes
-    const cleaned = streetAddress
-        .replace(/^(số|so|ngõ|ngo|hẻm|hem|đường|duong)\s*\d*/gi, '')
-        .replace(/\d+/g, '')
-        .trim();
+    // Step 1: Find locality markers (thôn, xóm, ấp, khóm...)
+    const localityMarkers = [
+        'thon', 'xom', 'ap', 'khom', 'khu', 'to', 'cum', 'bon', 'lang'
+    ];
     
-    const normalized = normalizeTextForLearning(cleaned);
-    const words = normalized.split(/\s+/).filter(w => w.length >= 3);
+    const normalized = normalizeTextForLearning(streetAddress);
     
-    if (words.length === 0) return [];
-    
-    const keywords = new Set();
-    
-    // Strategy 1: Consecutive 2-word phrases (most reliable)
-    for (let i = 0; i < words.length - 1; i++) {
-        keywords.add(words[i] + ' ' + words[i + 1]);
-    }
-    
-    // Strategy 2: Consecutive 3-word phrases
-    for (let i = 0; i < words.length - 2; i++) {
-        keywords.add(words[i] + ' ' + words[i + 1] + ' ' + words[i + 2]);
-    }
-    
-    // Strategy 3: Non-consecutive 2-word combinations (NEW!)
-    // Example: "sau dinh hau duong" → also create "sau hau", "dinh duong"
-    // But limit to avoid too many combinations
-    if (words.length >= 3 && words.length <= 6) {
-        for (let i = 0; i < words.length - 1; i++) {
-            for (let j = i + 2; j < words.length && j <= i + 3; j++) {
-                // Skip if distance > 2 (avoid unrelated words)
-                if (j - i <= 3) {
-                    keywords.add(words[i] + ' ' + words[j]);
-                }
-            }
+    // Find first occurrence of locality marker
+    let localityStart = -1;
+    for (const marker of localityMarkers) {
+        const regex = new RegExp(`\\b${marker}\\b`);
+        const match = normalized.match(regex);
+        if (match && (localityStart === -1 || match.index < localityStart)) {
+            localityStart = match.index;
         }
     }
     
-    return Array.from(keywords);
+    // If no locality marker found → SKIP (don't save)
+    if (localityStart === -1) {
+        console.log('⚠️ No locality marker found, skipping learning');
+        return [];
+    }
+    
+    // Step 2: Extract locality portion
+    const localityPortion = normalized.substring(localityStart);
+    
+    // Step 3: Split into words, keep numbers (for "xóm 4", "thôn 5")
+    // Filter: length >= 1 (to keep single digit numbers like "4", "5")
+    const words = localityPortion.split(/\s+/).filter(w => w.length >= 1);
+    const limitedWords = words.slice(0, 5);
+    
+    if (limitedWords.length === 0) return [];
+    
+    // Step 4: Create only 2-3 MOST IMPORTANT keywords
+    const keywords = [];
+    
+    // 4.1. Full phrase (if ≤ 4 words)
+    if (limitedWords.length <= 4) {
+        keywords.push(limitedWords.join(' '));
+    }
+    
+    // 4.2. First 2 words (locality type + number/name)
+    if (limitedWords.length >= 2) {
+        keywords.push(limitedWords.slice(0, 2).join(' '));
+    }
+    
+    // 4.3. Last 2 words (main locality name)
+    if (limitedWords.length >= 2) {
+        keywords.push(limitedWords.slice(-2).join(' '));
+    }
+    
+    // 4.4. If has number, create version without number
+    const hasNumber = limitedWords.some(w => /\d/.test(w));
+    if (hasNumber && limitedWords.length >= 3) {
+        const wordsNoNum = limitedWords.filter(w => !/^\d+$/.test(w));
+        if (wordsNoNum.length >= 2) {
+            keywords.push(wordsNoNum.slice(0, 3).join(' '));
+        }
+    }
+    
+    // Remove duplicates
+    return [...new Set(keywords)];
 }
 
 /**
