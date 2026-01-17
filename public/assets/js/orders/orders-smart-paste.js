@@ -824,12 +824,24 @@ async function parseAddress(addressText) {
                     console.log(`    📊 District "${candidate.part}" → ${candidate.district.Name}: district_score=${candidate.score.toFixed(2)}, best_ward_score=${bestWardScoreForDistrict.toFixed(2)}`);
                 }
                 
-                // Choose district with best combined score (ward score is priority)
+                // Choose district with best combined score
+                // IMPROVED: Prioritize district_score when difference is significant (≥0.3)
                 districtCandidates.sort((a, b) => {
-                    // Priority: ward score (more important), then district score
+                    // Case 1: If district_score difference is HUGE (≥0.3), prioritize district_score
+                    // Example: "Mê Linh" (1.00) vs "Dong Cao" (0.64) → Choose "Mê Linh"
+                    const districtScoreDiff = Math.abs(a.score - b.score);
+                    if (districtScoreDiff >= 0.3) {
+                        console.log(`    📊 Large district_score diff (${districtScoreDiff.toFixed(2)}), prioritizing district_score`);
+                        return b.score - a.score;
+                    }
+                    
+                    // Case 2: District scores similar, check ward_score
+                    // If ward_score difference is significant (>0.1), prioritize ward_score
                     if (Math.abs(a.wardScore - b.wardScore) > 0.1) {
                         return b.wardScore - a.wardScore;
                     }
+                    
+                    // Case 3: Both similar, prioritize district_score
                     return b.score - a.score;
                 });
                 
@@ -837,7 +849,7 @@ async function parseAddress(addressText) {
                 bestDistrictMatch = { match: bestCandidate.district, score: bestCandidate.score, confidence: 'high' };
                 bestDistrictScore = bestCandidate.score;
                 bestDistrictWordCount = bestCandidate.wordCount;
-                console.log(`    ✅ Best district (verified): "${bestCandidate.part}" → ${bestCandidate.district.Name} (ward_score: ${bestCandidate.wardScore.toFixed(2)})`);
+                console.log(`    ✅ Best district (verified): "${bestCandidate.part}" → ${bestCandidate.district.Name} (district_score: ${bestCandidate.score.toFixed(2)}, ward_score: ${bestCandidate.wardScore.toFixed(2)})`);
             } else if (districtCandidates.length === 1) {
                 // Only one candidate
                 const candidate = districtCandidates[0];
@@ -1001,10 +1013,11 @@ async function parseAddress(addressText) {
                     console.log(`   ✅ Found in learning DB!`);
                     console.log(`      Ward ID: ${learningResult.ward_id}`);
                     console.log(`      Ward Name: ${learningResult.ward_name}`);
-                    console.log(`      Confidence: ${learningResult.confidence} (need ≥2 to auto-fill)`);
+                    console.log(`      Confidence: ${learningResult.confidence} (need ≥1 to auto-fill)`);
                     
-                    // Only auto-fill if confidence >= 2 (used at least twice)
-                    if (learningResult.confidence >= 2) {
+                    // Only auto-fill if confidence >= 1 (TEMPORARY: Allow confidence=1 for testing)
+                    // TODO: Change back to >=2 for production
+                    if (learningResult.confidence >= 1) {
                         // Find ward object from ID
                         // IMPORTANT: Compare both as strings and numbers (API may return different formats)
                         console.log(`   🔍 Searching for ward ID: ${learningResult.ward_id} (type: ${typeof learningResult.ward_id})`);
@@ -1045,7 +1058,7 @@ async function parseAddress(addressText) {
                             console.warn(`   📋 Sample wards: ${sampleWards.join(', ')}`);
                         }
                     } else {
-                        console.log(`   ⏭️ Confidence too low (${learningResult.confidence} < 2), will use fuzzy matching`);
+                        console.log(`   ⏭️ Confidence too low (${learningResult.confidence} < 1), will use fuzzy matching`);
                     }
                 } else {
                     console.log(`   ❌ Not found in learning DB, will use fuzzy matching`);
@@ -1102,9 +1115,21 @@ async function parseAddress(addressText) {
                 continue;
             }
             
-            // SPECIAL CASE: If part was used for district, still check if it matches a ward
-            // Example: "thị trấn Năm Căn" matches both "Huyện Năm Căn" (district) and "Thị trấn Năm Căn" (ward)
+            // IMPROVED: Skip if this part matches district name exactly
+            // Example: "Mê Linh" matches "Huyện Mê Linh" → Skip when finding ward
+            // This prevents matching "Xã Mê Linh" when district is "Huyện Mê Linh"
             const isDistrictPart = (i === districtPartIndex);
+            if (isDistrictPart) {
+                const normalizedPart = removeVietnameseTones(part).toLowerCase();
+                const normalizedDistrictName = removeVietnameseTones(result.district.Name).toLowerCase()
+                    .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, '');
+                
+                // If part matches district name (without prefix), skip it
+                if (normalizedPart === normalizedDistrictName || normalizedDistrictName.includes(normalizedPart)) {
+                    console.log(`    ⏭️ Skipping district part: "${part}" (matches district name)`);
+                    continue;
+                }
+            }
             
             const normalized = removeVietnameseTones(part).toLowerCase();
             const hasKeyword = wardKeywords.some(kw => normalized.includes(kw));
@@ -1169,8 +1194,18 @@ async function parseAddress(addressText) {
                     continue;
                 }
                 
-                // SPECIAL CASE: If part was used for district, still check if it matches a ward
+                // IMPROVED: Skip if this part matches district name exactly
                 const isDistrictPart = (i === districtPartIndex);
+                if (isDistrictPart) {
+                    const normalizedPart = removeVietnameseTones(part).toLowerCase();
+                    const normalizedDistrictName = removeVietnameseTones(result.district.Name).toLowerCase()
+                        .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, '');
+                    
+                    if (normalizedPart === normalizedDistrictName || normalizedDistrictName.includes(normalizedPart)) {
+                        console.log(`    ⏭️ Skipping district part (pass 2): "${part}"`);
+                        continue;
+                    }
+                }
                 
                 if (part.length < 4) continue;
                 const wordCount = part.split(/\s+/).length;
