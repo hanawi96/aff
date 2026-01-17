@@ -266,4 +266,3 @@ function showProfitBreakdown(orderId) {
     document.body.appendChild(modal);
 }
 
-console.log('✅ orders-profit-modal.js loaded');

@@ -6,13 +6,14 @@
  */
 async function toggleOrderPriority(orderId, currentPriority) {
     const isPriority = currentPriority === 1;
+    const newPriority = !isPriority;
     
     try {
         // Optimistic UI update
-        updatePriorityIcon(orderId, !isPriority);
-        updateRowStyle(orderId, !isPriority);
+        updatePriorityIcon(orderId, newPriority);
+        updateRowStyle(orderId, newPriority);
         
-        // Call API
+        // Call API (toggle mode - no explicit value)
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -28,7 +29,7 @@ async function toggleOrderPriority(orderId, currentPriority) {
             throw new Error(data.error || 'Không thể cập nhật');
         }
         
-        // Update local data
+        // Update local data with actual value from backend
         const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
         if (orderIndex !== -1) {
             allOrdersData[orderIndex].is_priority = data.isPriority;
@@ -48,7 +49,7 @@ async function toggleOrderPriority(orderId, currentPriority) {
     } catch (error) {
         console.error('Error toggling priority:', error);
         
-        // Rollback UI
+        // Rollback UI on error
         updatePriorityIcon(orderId, isPriority);
         updateRowStyle(orderId, isPriority);
         
@@ -63,15 +64,9 @@ function updatePriorityIcon(orderId, isPriority) {
     const iconButton = document.querySelector(`[data-priority-order-id="${orderId}"]`);
     
     if (isPriority) {
-        // Priority: Show yellow star
+        // Priority: Show yellow star icon
         if (iconButton) {
-            // Icon already exists, just update it
-            iconButton.innerHTML = `
-                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-            `;
-            iconButton.title = 'Đơn ưu tiên - Click để bỏ đánh dấu';
+            // Icon exists, just ensure it's visible
             iconButton.style.display = '';
         } else {
             // Icon doesn't exist, create it
@@ -94,7 +89,7 @@ function updatePriorityIcon(orderId, isPriority) {
             }
         }
     } else {
-        // Normal: Hide icon completely
+        // Normal: Remove icon completely
         if (iconButton) {
             iconButton.remove();
         }
@@ -119,80 +114,5 @@ function updateRowStyle(orderId, isPriority) {
     }
 }
 
-/**
- * Bulk toggle priority for selected orders
- */
-async function bulkTogglePriority(setPriority) {
-    const selectedIds = getSelectedOrderIds();
-    
-    if (selectedIds.length === 0) {
-        showToast('Vui lòng chọn ít nhất 1 đơn hàng', 'warning');
-        return;
-    }
-    
-    const action = setPriority ? 'đánh dấu ưu tiên' : 'bỏ đánh dấu ưu tiên';
-    if (!confirm(`Bạn có chắc chắn muốn ${action} ${selectedIds.length} đơn hàng đã chọn?`)) {
-        return;
-    }
-    
-    try {
-        showToast(`Đang ${action}...`, 'info');
-        
-        let successCount = 0;
-        let errorCount = 0;
-        
-        for (const orderId of selectedIds) {
-            try {
-                const response = await fetch(`${CONFIG.API_URL}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'toggleOrderPriority',
-                        orderId: orderId
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update local data
-                    const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
-                    if (orderIndex !== -1) {
-                        allOrdersData[orderIndex].is_priority = data.isPriority;
-                    }
-                    
-                    const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-                    if (filteredIndex !== -1) {
-                        filteredOrdersData[filteredIndex].is_priority = data.isPriority;
-                    }
-                    
-                    successCount++;
-                } else {
-                    errorCount++;
-                }
-                
-            } catch (error) {
-                console.error(`Error toggling priority for order ${orderId}:`, error);
-                errorCount++;
-            }
-        }
-        
-        // Re-render table
-        applySorting();
-        renderOrdersTable();
-        
-        // Clear selection
-        clearSelection();
-        
-        // Show result
-        if (errorCount === 0) {
-            showToast(`✅ Đã ${action} ${successCount} đơn hàng`, 'success');
-        } else {
-            showToast(`⚠️ Đã ${action} ${successCount} đơn, ${errorCount} đơn lỗi`, 'warning');
-        }
-        
-    } catch (error) {
-        console.error('Error bulk toggling priority:', error);
-        showToast('Lỗi: ' + error.message, 'error');
-    }
-}
+// NOTE: bulkTogglePriority() is defined in orders-bulk-actions.js
+// This avoids code duplication and keeps bulk operations in one place

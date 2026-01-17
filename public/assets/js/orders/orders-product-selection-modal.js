@@ -4,8 +4,6 @@
 // Modal for selecting products to add to orders
 // Includes category selection, product search, and custom product input
 
-console.log('📦 Loading orders-product-selection-modal.js');
-
 // Product quantity, weight, size and notes management (global state)
 const productQuantities = {};
 const productWeights = {};
@@ -17,7 +15,6 @@ const productNotes = {};
  * Opens a modal for selecting products from catalog or custom input
  */
 function showProductSelectionModal() {
-    console.log('🎯 showProductSelectionModal called');
     // Close existing modal if any
     const existingModal = document.getElementById('productSelectionModal');
     if (existingModal) {
@@ -357,4 +354,3 @@ function addProductFromModal() {
     }
 }
 
-console.log('✅ orders-product-selection-modal.js loaded');

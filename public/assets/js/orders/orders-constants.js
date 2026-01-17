@@ -42,7 +42,6 @@ async function loadCurrentTaxRate() {
         const data = await response.json();
         if (data.success && data.taxRate) {
             COST_CONSTANTS.TAX_RATE = data.taxRate;
-            console.log(`✅ Tax rate loaded: ${(data.taxRate * 100).toFixed(1)}%`);
         }
     } catch (error) {
         console.warn('⚠️ Could not load tax rate, using default 1.5%');
@@ -73,7 +72,6 @@ function calculateOrderTotals(order) {
         try {
             const products = JSON.parse(order.products);
             if (Array.isArray(products)) {
-                console.log(`📦 Fallback: Parsing products JSON for order ${order.order_id}:`, products);
                 productCost = products.reduce((sum, item) => {
                     let cost = item.cost_price || item.cost || 0;
                     const qty = item.quantity || 1;
@@ -85,7 +83,6 @@ function calculateOrderTotals(order) {
                     const unitCost = cost / qty;
                     const subtotal = unitCost * qty;
 
-                    console.log(`  - ${item.name || 'Unknown'}: cost=${cost}, qty=${qty}, unit=${unitCost}, subtotal=${subtotal}`);
                     return sum + subtotal;
                 }, 0);
                 console.warn(`⚠️ Using fallback cost calculation for order ${order.order_id}: ${productCost}`);
@@ -139,4 +136,3 @@ function updateOrderData(orderId, updates) {
     }
 }
 
-console.log('✅ orders-constants.js loaded');

@@ -128,7 +128,7 @@ export async function markExportDownloaded(exportId, env) {
         WHERE id = ?
     `).bind(now, now, exportId).run();
 
-    // Update order statuses to "shipped"
+    // Update order statuses to "shipped" and remove priority flag
     const orderIds = JSON.parse(exportInfo.order_ids);
     let updatedCount = 0;
 
@@ -142,11 +142,21 @@ export async function markExportDownloaded(exportId, env) {
             if (order && order.status !== 'shipped' && order.status !== 'in_transit' && 
                 order.status !== 'delivered' && order.status !== 'failed') {
                 
+                // Update status to "shipped" AND remove priority flag
                 await env.DB.prepare(`
-                    UPDATE orders SET status = 'shipped' WHERE id = ?
+                    UPDATE orders 
+                    SET status = 'shipped', is_priority = 0 
+                    WHERE id = ?
                 `).bind(orderId).run();
                 
                 updatedCount++;
+            } else if (order) {
+                // Order already shipped/delivered, just remove priority flag
+                await env.DB.prepare(`
+                    UPDATE orders 
+                    SET is_priority = 0 
+                    WHERE id = ?
+                `).bind(orderId).run();
             }
         } catch (err) {
             console.error(`Error updating order ${orderId}:`, err);

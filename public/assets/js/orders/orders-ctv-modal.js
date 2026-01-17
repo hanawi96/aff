@@ -210,4 +210,3 @@ function closeCollaboratorModal() {
     }
 }
 
-console.log('✅ orders-ctv-modal.js loaded');

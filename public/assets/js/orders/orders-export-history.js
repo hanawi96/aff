@@ -301,8 +301,8 @@ function closeExportHistoryModal() {
     const modal = document.getElementById('exportHistoryModal');
     if (modal) {
         modal.remove();
-        selectedExportIds.clear();
     }
+    selectedExportIds.clear();
 }
 
 // ============================================
@@ -432,18 +432,29 @@ async function downloadAndUpdateExport(exportId) {
         // Download file
         await downloadExportFile(exportId);
         
-        // Mark as downloaded and update order statuses
-        const updatedCount = await markExportAsDownloaded(exportId);
-        
-        showToast(`✅ Đã tải file và cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
-        
-        // Invalidate cache and update badge
-        exportHistoryCache = null;
-        await updateExportHistoryBadge();
-        
-        // Reload orders and close modal
-        await loadOrdersData();
+        // Close modal IMMEDIATELY to avoid blocking UI
         closeExportHistoryModal();
+        
+        // Mark as downloaded in background (non-blocking)
+        setTimeout(async () => {
+            try {
+                const updatedCount = await markExportAsDownloaded(exportId);
+                
+                // Invalidate cache and update badge (non-blocking)
+                exportHistoryCache = null;
+                updateExportHistoryBadge().catch(err => console.error('Error updating badge:', err));
+                
+                // Reload orders data (non-blocking)
+                loadOrdersData().catch(err => console.error('Error reloading orders:', err));
+                
+                // Show success message
+                if (updatedCount > 0) {
+                    showToast(`✅ Đã tải file và cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
+                }
+            } catch (err) {
+                console.error('Error marking export:', err);
+            }
+        }, 500);
         
     } catch (error) {
         console.error('Error downloading export:', error);

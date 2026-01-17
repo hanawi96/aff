@@ -13,7 +13,6 @@
 async function loadActiveDiscounts() {
     // Return if already loaded
     if (allDiscountsList.length > 0) {
-        console.log('✅ Discounts already loaded:', allDiscountsList.length);
         return;
     }
 
@@ -31,7 +30,6 @@ async function loadActiveDiscounts() {
                 if (d.start_date && new Date(d.start_date) > now) return false;
                 return true;
             });
-            console.log('✅ Loaded active discounts:', allDiscountsList.length);
         }
     } catch (error) {
         console.error('❌ Error loading discounts:', error);

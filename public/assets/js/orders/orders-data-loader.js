@@ -27,7 +27,6 @@ async function loadPackagingConfig() {
 
         if (data.success && data.config) {
             packagingConfig = data.config;
-            console.log('✅ Packaging config loaded:', packagingConfig);
         }
     } catch (error) {
         console.error('❌ Error loading packaging config:', error);
@@ -67,16 +66,6 @@ function calculatePackagingCost() {
         (packagingPrices.paper_print || 0);
 
     const total = perProductCost + perOrderCost;
-
-    // Debug logging
-    console.log('📦 Packaging Cost Calculation:', {
-        totalProducts,
-        packagingPrices,
-        perProductCost,
-        perOrderCost,
-        total,
-        formula: `(red_string + labor_cost) × ${totalProducts} + (bag_zip + bag_red + box_shipping + thank_card + paper_print) = ${total}`
-    });
 
     return total;
 }
@@ -166,7 +155,6 @@ async function copySPXFormat(orderId) {
             // Try parse JSON
             try {
                 products = JSON.parse(order.products);
-                console.log('📦 Copy SPX - Parsed products:', products);
             } catch (e) {
                 // If not JSON, parse text format
                 const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
@@ -177,7 +165,6 @@ async function copySPXFormat(orderId) {
                     }
                     return { name: line, quantity: 1 };
                 });
-                console.log('📦 Copy SPX - Parsed text products:', products);
             }
 
             // Format each product
@@ -362,40 +349,29 @@ async function saveOrderNotes(orderId, orderCode) {
 
 // Setup event listeners
 function setupEventListeners() {
-    console.log('🔧 Setting up event listeners...');
-
     // Create debounced search function
     const debouncedSearch = debounce(filterOrdersData, 300);
 
     // Use event delegation on document to ensure events work even if elements are re-rendered
     document.addEventListener('input', function (e) {
         if (e.target.id === 'searchInput') {
-            console.log('🔍 Search input changed');
             debouncedSearch();
         }
     });
 
     document.addEventListener('change', function (e) {
         if (e.target.id === 'statusFilter') {
-            console.log('📋 Status filter changed to:', e.target.value);
-            console.log('📋 Calling filterOrdersData()...');
             try {
                 filterOrdersData();
-                console.log('✅ filterOrdersData() completed');
             } catch (error) {
                 console.error('❌ Error in filterOrdersData():', error);
             }
         } else if (e.target.id === 'dateFilter') {
-            console.log('📅 Date filter changed to:', e.target.value);
-            console.log('📅 Calling filterOrdersData()...');
             try {
                 filterOrdersData();
-                console.log('✅ filterOrdersData() completed');
             } catch (error) {
                 console.error('❌ Error in filterOrdersData():', error);
             }
         }
     });
-
-    console.log('✅ Event delegation setup complete');
 }

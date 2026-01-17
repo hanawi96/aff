@@ -4,14 +4,11 @@
 // Helper functions for the add order modal
 // Handles order summary calculations, profit preview, and product rendering
 
-console.log('📊 Loading orders-add-modal-helpers.js');
-
 /**
  * Update order summary and profit preview
  * Calculates totals, discounts, costs, and profit
  */
 function updateOrderSummary() {
-    console.log('💰 updateOrderSummary called');
     // Get values from inputs
     const shippingFeeInput = document.getElementById('newOrderShippingFee');
     const shippingCostInput = document.getElementById('newOrderShippingCost');

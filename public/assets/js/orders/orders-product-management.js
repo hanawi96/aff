@@ -10,7 +10,6 @@
 async function loadProductsAndCategories() {
     // Return immediately if already loaded
     if (allProductsList.length > 0 && allCategoriesList.length > 0) {
-        console.log('✅ Products already loaded from cache:', allProductsList.length);
         return Promise.resolve();
     }
 
@@ -28,11 +27,9 @@ async function loadProductsAndCategories() {
 
         if (productsData.success) {
             allProductsList = productsData.products || [];
-            console.log('✅ Loaded products:', allProductsList.length);
         }
         if (categoriesData.success) {
             allCategoriesList = categoriesData.categories || [];
-            console.log('✅ Loaded categories:', allCategoriesList.length);
         }
     } catch (error) {
         console.error('❌ Error loading data:', error);

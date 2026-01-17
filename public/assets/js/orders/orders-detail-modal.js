@@ -290,4 +290,3 @@ function formatProductsForModal(productsText, orderId, orderCode, orderNotes = n
     return html;
 }
 
-console.log('✅ orders-detail-modal.js loaded');

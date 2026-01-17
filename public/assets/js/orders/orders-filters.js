@@ -8,6 +8,7 @@
 // ============================================
 let customDatePickerModal = null;
 let currentDateMode = 'single'; // 'single' or 'range'
+let priorityFilterActive = false; // Track priority filter state
 
 // ============================================
 // MAIN FILTER FUNCTION
@@ -58,6 +59,9 @@ function filterOrdersData() {
             (order.customer_phone && order.customer_phone.includes(searchTerm)) ||
             (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm)) ||
             (order.address && removeVietnameseTones(order.address.toLowerCase()).includes(removeVietnameseTones(searchTerm)));
+
+        // Priority filter - NEW
+        const matchesPriority = !priorityFilterActive || order.is_priority === 1;
 
         // Status filter - normalize status value and handle both Vietnamese and English
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
@@ -110,7 +114,7 @@ function filterOrdersData() {
             }
         }
 
-        return matchesSearch && matchesStatus && matchesDate;
+        return matchesSearch && matchesPriority && matchesStatus && matchesDate;
     });
 
     console.log(`✅ Filtered: ${filteredOrdersData.length} orders (from ${allOrdersData.length} total)`);
@@ -504,5 +508,54 @@ function updateCustomDateLabel(startDate, endDate) {
             // Different months
             label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
         }
+    }
+}
+
+// ============================================
+// PRIORITY FILTER
+// ============================================
+
+/**
+ * Toggle priority filter (show only priority orders or all orders)
+ */
+function togglePriorityFilter() {
+    const button = document.getElementById('priorityFilterBtn');
+    const label = document.getElementById('priorityFilterLabel');
+    const icon = button.querySelector('svg');
+    
+    // Toggle state
+    priorityFilterActive = !priorityFilterActive;
+    
+    if (priorityFilterActive) {
+        // Active state: Show only priority orders
+        button.classList.remove('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
+        button.classList.add('bg-yellow-50', 'border-yellow-500');
+        icon.classList.remove('text-gray-500');
+        icon.classList.add('text-yellow-500');
+        icon.setAttribute('fill', 'currentColor');
+        label.textContent = 'Chỉ đơn ưu tiên';
+        label.classList.remove('text-gray-700');
+        label.classList.add('text-yellow-700');
+    } else {
+        // Inactive state: Show all orders
+        button.classList.remove('bg-yellow-50', 'border-yellow-500');
+        button.classList.add('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
+        icon.classList.remove('text-yellow-500');
+        icon.classList.add('text-gray-500');
+        icon.setAttribute('fill', 'none');
+        label.textContent = 'Tất cả đơn';
+        label.classList.remove('text-yellow-700');
+        label.classList.add('text-gray-700');
+    }
+    
+    // Apply filter
+    filterOrdersData();
+    
+    // Show toast
+    if (priorityFilterActive) {
+        const priorityCount = allOrdersData.filter(o => o.is_priority === 1).length;
+        showToast(`Đang hiển thị ${priorityCount} đơn ưu tiên`, 'info');
+    } else {
+        showToast('Đang hiển thị tất cả đơn hàng', 'info');
     }
 }

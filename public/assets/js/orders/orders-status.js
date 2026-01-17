@@ -192,4 +192,3 @@ function quickUpdateStatus(orderId, status) {
     }
 }
 
-console.log('✅ orders-status.js loaded');

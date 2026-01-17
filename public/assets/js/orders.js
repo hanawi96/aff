@@ -2,8 +2,6 @@
 // All constants, utilities, and core functions have been extracted to separate modules
 // This file now only contains functions that haven't been modularized yet
 
-console.log('🚀 Loading orders.js - Main file');
-
 // Global data arrays
 let allOrdersData = [];
 let filteredOrdersData = [];
@@ -33,7 +31,6 @@ let currentEditingOrderCode = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Orders Dashboard initialized');
     loadCurrentTaxRate(); // Load tax rate first
     loadOrdersData();
     loadPackagingConfig();
@@ -46,9 +43,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // PERFORMANCE: Preload products in background for instant modal
     setTimeout(() => {
         if (allProductsList.length === 0) {
-            console.log('⚡ Preloading products for faster modal...');
             loadProductsAndCategories().then(() => {
-                console.log('✅ Products preloaded:', allProductsList.length);
+                // Products preloaded
             });
         }
     }, 1000); // Wait 1s after page load to not block initial render
@@ -883,7 +879,6 @@ async function showAddOrderModal(duplicateData = null) {
     // FIX: Wait for products to load before rendering quick add products
     // This ensures data is always available and prevents flickering
     productsPromise.then(() => {
-        console.log('✅ Products loaded, rendering quick add section...');
         renderQuickAddProducts();
     }).catch(error => {
         console.error('❌ Error loading products:', error);
@@ -1077,15 +1072,3 @@ let productRowCounter = 0;
 
 
 
-// ============================================
-// DEBUG: Check if functions are loaded
-// ============================================
-console.log('🔍 Checking function availability:');
-console.log('  - showProductSelectionModal:', typeof showProductSelectionModal);
-console.log('  - updateOrderSummary:', typeof updateOrderSummary);
-console.log('  - renderOrderProducts:', typeof renderOrderProducts);
-console.log('  - updateOrderNotesDisplay:', typeof updateOrderNotesDisplay);
-console.log('  - clearOrderNotes:', typeof clearOrderNotes);
-console.log('  - submitNewOrder:', typeof submitNewOrder);
-console.log('  - showAddOrderModal:', typeof showAddOrderModal);
-console.log('✅ orders.js loaded completely');

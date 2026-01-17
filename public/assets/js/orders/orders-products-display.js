@@ -250,4 +250,3 @@ function toggleProducts(uniqueId) {
     }
 }
 
-console.log('✅ orders-products-display.js loaded');

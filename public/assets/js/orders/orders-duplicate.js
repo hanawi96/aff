@@ -29,7 +29,7 @@ function duplicateOrder(orderId) {
         });
     }
 
-    // Show modal with pre-filled data (không sao chép mã CTV và trạng thái)
+    // Show modal with pre-filled data (không sao chép mã CTV, trạng thái, và ưu tiên)
     showAddOrderModal({
         customer_name: order.customer_name,
         customer_phone: order.customer_phone,
@@ -44,8 +44,8 @@ function duplicateOrder(orderId) {
         // status: Không sao chép - luôn để "pending" cho đơn mới
         shipping_fee: order.shipping_fee || 0,
         shipping_cost: order.shipping_cost || 0,
-        products: products,
-        is_priority: order.is_priority || 0 // Sao chép trạng thái ưu tiên
+        products: products
+        // is_priority: Không sao chép - đơn mới luôn là đơn thường
     });
 
     showToast('Đã sao chép thông tin đơn hàng', 'info');

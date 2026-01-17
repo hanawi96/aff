@@ -364,15 +364,15 @@ async function bulkTogglePriority(setPriority) {
                     body: JSON.stringify({
                         action: 'toggleOrderPriority',
                         orderId: orderId,
-                        isPriority: setPriority ? 1 : 0
+                        isPriority: setPriority ? 1 : 0 // Explicit value for bulk actions
                     })
                 });
 
                 const data = await response.json();
                 if (data.success) {
                     successCount++;
-                    // Update local data
-                    updateOrderData(orderId, { is_priority: setPriority ? 1 : 0 });
+                    // Update local data with actual value from backend
+                    updateOrderData(orderId, { is_priority: data.isPriority });
                 } else {
                     failCount++;
                 }
@@ -382,18 +382,21 @@ async function bulkTogglePriority(setPriority) {
             }
         }
 
-        // Clear selection and re-render
-        clearSelection();
+        // Re-sort and re-render to move priority orders to top
+        applySorting();
         renderOrdersTable();
+        
+        // Clear selection
+        clearSelection();
 
         // Show result
         if (failCount === 0) {
-            showToast(`Đã ${action} thành công ${successCount} đơn hàng`, 'success', null, 'bulk-priority');
+            showToast(`✅ Đã ${action} ${successCount} đơn hàng`, 'success', null, 'bulk-priority');
         } else {
-            showToast(`Đã ${action} ${successCount} đơn, thất bại ${failCount} đơn`, 'warning', null, 'bulk-priority');
+            showToast(`⚠️ Đã ${action} ${successCount} đơn, ${failCount} đơn lỗi`, 'warning', null, 'bulk-priority');
         }
     } catch (error) {
         console.error('Error bulk toggling priority:', error);
-        showToast(`Không thể ${action}: ` + error.message, 'error', null, 'bulk-priority');
+        showToast(`Lỗi: ${error.message}`, 'error', null, 'bulk-priority');
     }
 }
