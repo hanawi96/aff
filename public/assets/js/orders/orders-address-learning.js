@@ -31,7 +31,9 @@ function extractAddressKeywords(streetAddress) {
     
     // Step 1: Check for landmarks (sau, gần, đối diện, cạnh...)
     const landmarkPatterns = [
+        // Pattern 1: "sau đình hậu dưỡng" → extract "hậu dưỡng"
         { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+(dinh|chua|cho|truong|benh vien|cong ty)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|duong|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 3 },
+        // Pattern 2: "sau hậu dưỡng" → extract "hậu dưỡng"
         { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|duong|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 2 }
     ];
     
@@ -54,12 +56,19 @@ function extractAddressKeywords(streetAddress) {
                     keywords.push(words.slice(0, 2).join(' '));
                 }
                 
-                // Last 2 words
+                // Last 2 words (most important for learning)
                 if (words.length >= 2) {
                     keywords.push(words.slice(-2).join(' '));
                 }
                 
-                console.log(`✓ Landmark keywords extracted: [${keywords.join(', ')}]`);
+                // Single words (if >= 3 chars)
+                for (const word of words) {
+                    if (word.length >= 3) {
+                        keywords.push(word);
+                    }
+                }
+                
+                console.log(`✓ Landmark keywords extracted from "${match[0]}": [${keywords.join(', ')}]`);
                 return [...new Set(keywords)];
             }
         }
