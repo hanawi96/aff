@@ -392,6 +392,37 @@ function updateSelectionUI() {
 // ============================================
 
 /**
+ * Download single export file (helper function)
+ */
+async function downloadExportFile(exportId) {
+    const downloadUrl = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Mark export as downloaded and return updated count
+ */
+async function markExportAsDownloaded(exportId) {
+    const response = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exportId })
+    });
+    
+    const data = await response.json();
+    if (!data.success) {
+        throw new Error(data.error || 'Không thể cập nhật trạng thái');
+    }
+    
+    return data.updatedCount || 0;
+}
+
+/**
  * Download export and update order statuses
  */
 async function downloadAndUpdateExport(exportId) {
@@ -399,36 +430,20 @@ async function downloadAndUpdateExport(exportId) {
         showToast('Đang tải file...', 'info');
         
         // Download file
-        const downloadUrl = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = '';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        await downloadExportFile(exportId);
         
         // Mark as downloaded and update order statuses
-        const response = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exportId: exportId })
-        });
+        const updatedCount = await markExportAsDownloaded(exportId);
         
-        const data = await response.json();
+        showToast(`✅ Đã tải file và cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
         
-        if (data.success) {
-            showToast(`✅ Đã tải file và cập nhật ${data.updatedCount} đơn sang "Đã gửi hàng"`, 'success');
-            
-            // Invalidate cache and update badge
-            exportHistoryCache = null;
-            await updateExportHistoryBadge();
-            
-            // Reload orders and close modal
-            await loadOrdersData();
-            closeExportHistoryModal();
-        } else {
-            throw new Error(data.error || 'Không thể cập nhật trạng thái');
-        }
+        // Invalidate cache and update badge
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
+        
+        // Reload orders and close modal
+        await loadOrdersData();
+        closeExportHistoryModal();
         
     } catch (error) {
         console.error('Error downloading export:', error);
@@ -568,29 +583,20 @@ async function bulkMergeAndDownloadExports() {
                 
                 for (const exportId of exportIdsArray) {
                     try {
-                        const markResponse = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ exportId })
-                        });
-                        
-                        const markData = await markResponse.json();
-                        if (markData.success) {
-                            updatedCount += markData.updatedCount || 0;
-                        }
+                        const count = await markExportAsDownloaded(exportId);
+                        updatedCount += count;
                     } catch (err) {
                         console.error(`Error marking export ${exportId}:`, err);
                     }
                 }
                 
-                // Invalidate cache and reload orders
+                // Invalidate cache and update badge
                 exportHistoryCache = null;
-                await updateExportHistoryBadge();
+                updateExportHistoryBadge().catch(err => console.error('Error updating badge:', err));
                 
-                // Reload orders to show updated statuses
+                // Reload orders if any were updated (without blocking)
                 if (updatedCount > 0) {
-                    await loadOrdersData();
-                    showToast(`✅ Đã cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
+                    loadOrdersData().catch(err => console.error('Error reloading orders:', err));
                 }
             }, 1000);
         });
@@ -625,29 +631,11 @@ async function bulkDownloadExports() {
         // Download each file with delay to avoid overwhelming browser
         for (const exportId of selectedExportIds) {
             try {
-                // Download file
-                const downloadUrl = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = '';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                await downloadExportFile(exportId);
+                const updatedCount = await markExportAsDownloaded(exportId);
                 
-                // Mark as downloaded and get updated count
-                const markResponse = await fetch(`${CONFIG.API_URL}?action=markExportDownloaded`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ exportId: exportId })
-                });
-                
-                const markData = await markResponse.json();
-                if (markData.success) {
-                    successCount++;
-                    totalUpdatedOrders += markData.updatedCount || 0;
-                } else {
-                    errorCount++;
-                }
+                successCount++;
+                totalUpdatedOrders += updatedCount;
                 
                 // Small delay between downloads
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -663,10 +651,8 @@ async function bulkDownloadExports() {
         
         // Refresh in background (non-blocking)
         exportHistoryCache = null;
-        await updateExportHistoryBadge();
-        
-        // Reload orders to show updated statuses
-        await loadOrdersData();
+        updateExportHistoryBadge().catch(err => console.error('Error updating badge:', err));
+        loadOrdersData().catch(err => console.error('Error reloading orders:', err));
         
         // Show result
         if (errorCount === 0) {
