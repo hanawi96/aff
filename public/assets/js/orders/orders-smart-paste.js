@@ -424,9 +424,20 @@ async function parseAddress(addressText) {
         return cityMap[city.toLowerCase()] || match;
     });
     
+    // Normalize "Ấp3" → "Ấp 3" (add space between Ấp and number)
+    processedAddress = processedAddress.replace(/\b([ấấĂăÂâ]p)(\d+)\b/gi, '$1 $2');
+    
     // Expand ward abbreviations: F17, F.17, f17, f.17 → Phường 17
     // Also: P17, P.17, p17, p.17 → Phường 17
-    processedAddress = processedAddress.replace(/\b[FP]\.?(\d{1,2})\b/gi, 'Phường $1');
+    // IMPORTANT: Don't match "Ấp3" (should remain as "Ấp 3")
+    processedAddress = processedAddress.replace(/\b([FP])\.?(\d{1,2})\b/gi, (match, letter, num) => {
+        // Check if this is part of "Ấp" or "ấp"
+        const beforeMatch = processedAddress.substring(0, processedAddress.indexOf(match));
+        if (/[ấấĂăÂâ]$/i.test(beforeMatch)) {
+            return match; // Don't replace if preceded by Ấ/ấ/Ă/ă/Â/â
+        }
+        return `Phường ${num}`;
+    });
     
     // Expand district abbreviations: Q8, Q.8, q8, q.8 → Quận 8
     processedAddress = processedAddress.replace(/\bQ\.?(\d{1,2})\b/gi, 'Quận $1');
