@@ -685,6 +685,16 @@ async function parseAddress(addressText) {
                                     /\b(nha be|nhà bè)\b/i,
                                     /\b(can gio|cần giờ)\b/i,
                                     /\b(cu chi|củ chi)\b/i,
+                                    // Bình Dương districts
+                                    /\b(thu dau mot|thủ dầu một)\b/i,
+                                    /\b(di an|dĩ an)\b/i,
+                                    /\b(thuan an|thuận an)\b/i,
+                                    /\b(ben cat|bến cát)\b/i,
+                                    /\b(tan uyen|tân uyên)\b/i,
+                                    /\b(bau bang|bàu bàng)\b/i,
+                                    /\b(dau tieng|dầu tiếng)\b/i,
+                                    /\b(phu giao|phú giáo)\b/i,
+                                    /\b(bac tan uyen|bắc tân uyên)\b/i,
                                     // Long An districts
                                     /\b(can giuoc|cần giuộc)\b/i,
                                     /\b(tan an|tân an)\b/i,
@@ -698,19 +708,37 @@ async function parseAddress(addressText) {
                                 ];
                                 
                                 // Check last 2-3 words
-                                for (let lastWordCount = 2; lastWordCount <= Math.min(3, words.length); lastWordCount++) {
+                                for (let lastWordCount = 3; lastWordCount >= 2; lastWordCount--) {
                                     const lastWords = words.slice(-lastWordCount).join(' ');
                                     const lastWordsNormalized = removeVietnameseTones(lastWords).toLowerCase();
                                     
+                                    let foundPattern = false;
                                     for (const pattern of knownDistrictPatterns) {
                                         if (pattern.test(lastWordsNormalized)) {
-                                            wardWordCount = words.length - lastWordCount;
-                                            bestSplitScore = 3.0;
-                                            console.log(`    ✅✅ Found district in LAST ${lastWordCount} words: "${lastWords}" → ward=${wardWordCount} words`);
-                                            break;
+                                            // IMPORTANT: Verify that the match is the FULL lastWords, not a substring
+                                            // Example: "14 gò vấp" should NOT match pattern "gò vấp" for 3 words
+                                            // Only "gò vấp" (2 words) should match
+                                            
+                                            const match = lastWordsNormalized.match(pattern);
+                                            if (match && match[0]) {
+                                                const matchedText = match[0].trim();
+                                                const matchedWords = matchedText.split(/\s+/).length;
+                                                
+                                                // Only accept if matched word count equals lastWordCount
+                                                // OR if lastWords is exactly the matched text
+                                                if (matchedWords === lastWordCount || lastWordsNormalized === matchedText) {
+                                                    wardWordCount = words.length - lastWordCount;
+                                                    bestSplitScore = 3.0;
+                                                    foundPattern = true;
+                                                    console.log(`    ✅✅ Found district in LAST ${lastWordCount} words: "${lastWords}" → ward=${wardWordCount} words`);
+                                                    break;
+                                                } else {
+                                                    console.log(`    ⚠️ Pattern matched but word count mismatch: "${lastWords}" (${lastWordCount} words) vs pattern "${matchedText}" (${matchedWords} words)`);
+                                                }
+                                            }
                                         }
                                     }
-                                    if (bestSplitScore >= 3.0) break;
+                                    if (foundPattern) break;
                                 }
                             }
                             
