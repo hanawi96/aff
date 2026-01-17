@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Long An Address Fix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-case {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            background: #f9f9f9;
+        }
+        .result.error {
+            border-left-color: #f44336;
+        }
+        .expected {
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.pass {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.fail {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Long An Address Recognition Fix</h1>
+    <p>Testing the fix for "long an" province recognition with BOOST score</p>
+
+    <div id="test-results"></div>
+
+    <script src="/public/assets/data/vietnamAddress.json" type="application/json"></script>
+    <script>
+        // Load Vietnam address data
+        let vietnamAddressData = null;
+        
+        fetch('/public/assets/data/vietnamAddress.json')
+            .then(response => response.json())
+            .then(data => {
+                vietnamAddressData = data;
+                runTests();
+            })
+            .catch(error => {
+                console.error('Error loading address data:', error);
+                document.getElementById('test-results').innerHTML = 
+                    '<div class="test-case"><div class="result error">❌ Failed to load address data</div></div>';
+            });
+
+        // Copy fuzzy match function from orders-smart-paste.js
+        function removeVietnameseTones(str) {
+            str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
+            return str;
+        }
+
+        function fuzzyMatch(input, candidates, threshold = 0.5) {
+            if (!input || !candidates || candidates.length === 0) return null;
+            
+            const normalizedInput = removeVietnameseTones(input).toLowerCase().trim();
+            let bestMatch = null;
+            let bestScore = 0;
+            
+            for (const candidate of candidates) {
+                if (!candidate || !candidate.Name) continue;
+                
+                const normalizedCandidate = removeVietnameseTones(candidate.Name).toLowerCase().trim();
+                
+                // Exact match
+                if (normalizedInput === normalizedCandidate) {
+                    return { match: candidate, score: 1.0 };
+                }
+                
+                // Contains match
+                if (normalizedCandidate.includes(normalizedInput)) {
+                    const score = normalizedInput.length / normalizedCandidate.length;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = candidate;
+                    }
+                }
+                
+                // Reverse contains
+                if (normalizedInput.includes(normalizedCandidate)) {
+                    const score = normalizedCandidate.length / normalizedInput.length * 0.9;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = candidate;
+                    }
+                }
+            }
+            
+            if (bestMatch && bestScore >= threshold) {
+                return { match: bestMatch, score: bestScore };
+            }
+            
+            return null;
+        }
+
+        function testAddressParsing(input, expected) {
+            console.log(`\n🧪 Testing: "${input}"`);
+            
+            // Simulate the parsing logic
+            const parts = input.split(/\s+/);
+            const lastTwoWords = parts.slice(-2).join(' ');
+            
+            console.log(`Last 2 words: "${lastTwoWords}"`);
+            
+            const candidates = [];
+            
+            // Check if last 2 words match province
+            for (const province of vietnamAddressData) {
+                const provinceScore = fuzzyMatch(lastTwoWords, [province]);
+                if (provinceScore && provinceScore.score >= 0.7) {
+                    const boostedScore = provinceScore.score * 1.3;
+                    console.log(`✨ Province match: "${lastTwoWords}" → ${province.Name} (score: ${provinceScore.score.toFixed(2)} → ${boostedScore.toFixed(2)})`);
+                    candidates.push({
+                        type: 'province',
+                        name: province.Name,
+                        score: boostedScore,
+                        strategy: 'last-2-words-province-match',
+                        province: province
+                    });
+                }
+            }
+            
+            // Check district matches (with penalty for last 2 words)
+            for (const province of vietnamAddressData) {
+                for (const district of province.Districts) {
+                    const districtScore = fuzzyMatch(lastTwoWords, [district]);
+                    if (districtScore && districtScore.score >= 0.7) {
+                        const penalizedScore = districtScore.score - 0.30;
+                        console.log(`⚠️ District match (penalized): "${lastTwoWords}" → ${district.Name} in ${province.Name} (score: ${districtScore.score.toFixed(2)} → ${penalizedScore.toFixed(2)})`);
+                        candidates.push({
+                            type: 'district',
+                            name: district.Name,
+                            provinceName: province.Name,
+                            score: penalizedScore,
+                            strategy: 'district-match',
+                            province: province,
+                            district: district
+                        });
+                    }
+                }
+            }
+            
+            // Sort by score
+            candidates.sort((a, b) => b.score - a.score);
+            
+            const bestCandidate = candidates[0];
+            
+            if (!bestCandidate) {
+                return {
+                    success: false,
+                    error: 'No candidates found'
+                };
+            }
+            
+            console.log(`🏆 Best candidate: ${bestCandidate.name} (${bestCandidate.type}, score: ${bestCandidate.score.toFixed(2)})`);
+            
+            let result = {
+                province: null,
+                district: null
+            };
+            
+            if (bestCandidate.strategy === 'last-2-words-province-match') {
+                result.province = bestCandidate.province;
+                
+                // Now find district
+                const remainingParts = parts.slice(0, -2).join(' ');
+                console.log(`Searching for district in: "${remainingParts}"`);
+                
+                for (const district of result.province.Districts) {
+                    const districtMatch = fuzzyMatch(remainingParts, [district]);
+                    if (districtMatch && districtMatch.score >= 0.4) {
+                        result.district = district;
+                        console.log(`✓ District found: ${district.Name} (score: ${districtMatch.score.toFixed(2)})`);
+                        break;
+                    }
+                }
+            } else {
+                result.province = bestCandidate.province;
+                result.district = bestCandidate.district;
+            }
+            
+            return {
+                success: true,
+                province: result.province?.Name,
+                district: result.district?.Name,
+                candidates: candidates.slice(0, 5) // Top 5
+            };
+        }
+
+        function runTests() {
+            const testCases = [
+                {
+                    input: 'ấp thuan bac xa thuan thanh can giuoc long an',
+                    expected: {
+                        province: 'Tỉnh Long An',
+                        district: 'Huyện Cần Giuộc'
+                    }
+                },
+                {
+                    input: 'xa thuan thanh can giuoc long an',
+                    expected: {
+                        province: 'Tỉnh Long An',
+                        district: 'Huyện Cần Giuộc'
+                    }
+                },
+                {
+                    input: 'can giuoc long an',
+                    expected: {
+                        province: 'Tỉnh Long An',
+                        district: 'Huyện Cần Giuộc'
+                    }
+                }
+            ];
+
+            const resultsHtml = testCases.map((testCase, index) => {
+                const result = testAddressParsing(testCase.input, testCase.expected);
+                
+                const provinceMatch = result.province === testCase.expected.province;
+                const districtMatch = result.district === testCase.expected.district;
+                const passed = provinceMatch && districtMatch;
+                
+                return `
+                    <div class="test-case">
+                        <h2>Test Case ${index + 1} <span class="status ${passed ? 'pass' : 'fail'}">${passed ? 'PASS' : 'FAIL'}</span></h2>
+                        <div class="input"><strong>Input:</strong> ${testCase.input}</div>
+                        <div class="expected">
+                            <strong>Expected:</strong><br>
+                            Province: ${testCase.expected.province}<br>
+                            District: ${testCase.expected.district}
+                        </div>
+                        <div class="result ${passed ? '' : 'error'}">
+                            <strong>Result:</strong><br>
+                            Province: ${result.province || 'Not found'} ${provinceMatch ? '✓' : '✗'}<br>
+                            District: ${result.district || 'Not found'} ${districtMatch ? '✓' : '✗'}
+                            ${result.candidates ? `
+                                <br><br><strong>Top Candidates:</strong>
+                                <ol>
+                                    ${result.candidates.map(c => `
+                                        <li>${c.name} (${c.type}, score: ${c.score.toFixed(2)}, strategy: ${c.strategy})</li>
+                                    `).join('')}
+                                </ol>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('test-results').innerHTML = resultsHtml;
+        }
+    </script>
+</body>
+</html>
