@@ -2,6 +2,32 @@
 // Intelligently extracts name, phone, and address from pasted text
 
 /**
+ * Search ward by name using Vietnam Provinces API
+ * @param {string} query - Search query (hamlet name, ward name, etc.)
+ * @param {number} districtCode - District code to filter
+ * @returns {Promise<Array>} - Array of search results
+ */
+async function searchWardByAPI(query, districtCode) {
+    try {
+        const apiUrl = `https://provinces.open-api.vn/api/v1/w/search/?q=${encodeURIComponent(query)}&d=${districtCode}`;
+        console.log(`    🌐 API Search: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            console.error(`    ❌ API Error: ${response.status}`);
+            return [];
+        }
+        
+        const results = await response.json();
+        console.log(`    ✅ API returned ${results.length} result(s)`);
+        return results;
+    } catch (error) {
+        console.error(`    ❌ API Error:`, error);
+        return [];
+    }
+}
+
+/**
  * Generate n-grams from word array
  * Used for parsing addresses without commas
  */
@@ -219,7 +245,7 @@ function fuzzyMatch(input, options, threshold = 0.6) {
                 } else {
                     score = (matchCount / Math.max(inputWords.length, optionWords.length)) * 0.7;
                     type = `word-match-${matchCount}/${inputWords.length}`;
-                    console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
+                    // console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
                 }
             }
         }
@@ -339,7 +365,7 @@ function extractCustomerName(lines, phoneInfo) {
  * Enhanced to handle addresses WITHOUT commas and with typos
  * PRIORITY: Longer phrases (2-3 words) over single words
  */
-function parseAddress(addressText) {
+async function parseAddress(addressText) {
     const result = {
         street: '',
         ward: null,
@@ -463,6 +489,7 @@ function parseAddress(addressText) {
             
             // STRATEGY: Split by keywords in order: ward → district → province
             let remainingText = part;
+            let streetPortion = ''; // Track street address before ward
             
             // Step 1: Extract ward (if exists)
             if (hasWard) {
@@ -470,6 +497,15 @@ function parseAddress(addressText) {
                 const wardMatch = remainingText.match(/(xã|xa|phường|phuong|thị trấn|thi tran|tt)\s+([^,]+?)(?=\s*(?:quận|quan|huyện|huyen|thành phố|thanh pho|tp|thị xã|thi xa|tx|tỉnh|tinh)|$)/i);
                 console.log(`    🔍 Ward regex match:`, wardMatch);
                 if (wardMatch) {
+                    // IMPORTANT: Save street portion BEFORE ward keyword
+                    if (wardMatch.index > 0) {
+                        streetPortion = remainingText.substring(0, wardMatch.index).trim();
+                        if (streetPortion) {
+                            console.log(`    → Split street: "${streetPortion}"`);
+                            subParts.push(streetPortion);
+                        }
+                    }
+                    
                     const wardPart = wardMatch[0].trim();
                     subParts.push(wardPart);
                     console.log(`    → Split ward: "${wardPart}"`);
@@ -898,16 +934,39 @@ function parseAddress(addressText) {
         let districtPartIndex = -1;
         let shortestDistrictMatchLength = Infinity;
         
+        // IMPORTANT: Prioritize parts with district keywords over ward keywords
+        // Example: "xã Nhơn an" vs "thị xã An Nhơn" - should prefer the latter
+        const districtKeywordsForMatch = ['quan', 'huyen', 'thanh pho', 'tp', 'thi xa', 'tx'];
+        
         for (let i = 0; i < parts.length; i++) {
             const match = fuzzyMatch(parts[i], [result.district], 0.7);
             if (match && match.score >= 0.7) {
                 const partLength = parts[i].length;
+                const normalized = removeVietnameseTones(parts[i]).toLowerCase();
+                
+                // Check if part has district keyword
+                const hasDistrictKeyword = districtKeywordsForMatch.some(kw => normalized.includes(kw));
                 
                 // Prefer shorter matches (more precise)
-                if (partLength < shortestDistrictMatchLength) {
+                // BUT: If current best has no district keyword and this one has, prefer this one
+                if (districtPartIndex === -1) {
+                    // First match
                     districtPartIndex = i;
                     shortestDistrictMatchLength = partLength;
-                    console.log(`    📍 District part candidate: ${i} ("${parts[i]}", length: ${partLength})`);
+                    console.log(`    📍 District part candidate: ${i} ("${parts[i]}", length: ${partLength}, hasKeyword: ${hasDistrictKeyword})`);
+                } else {
+                    const currentNormalized = removeVietnameseTones(parts[districtPartIndex]).toLowerCase();
+                    const currentHasKeyword = districtKeywordsForMatch.some(kw => currentNormalized.includes(kw));
+                    
+                    // Replace if:
+                    // 1. Current has no keyword but this has keyword, OR
+                    // 2. Both have keyword (or both don't) and this is shorter
+                    if ((!currentHasKeyword && hasDistrictKeyword) || 
+                        (currentHasKeyword === hasDistrictKeyword && partLength < shortestDistrictMatchLength)) {
+                        districtPartIndex = i;
+                        shortestDistrictMatchLength = partLength;
+                        console.log(`    📍 District part candidate: ${i} ("${parts[i]}", length: ${partLength}, hasKeyword: ${hasDistrictKeyword})`);
+                    }
                 }
             }
         }
@@ -936,7 +995,8 @@ function parseAddress(addressText) {
                 
                 // Try to extract ward portion using regex
                 // IMPORTANT: Stop at district keywords (quận, huyện, etc.)
-                const wardMatch = part.match(/(phường|xã|thị trấn|tt)\s+([^,]+?)(?=\s*(?:quận|huyện|thành phố|tp|thi xa|tx)|$)/i);
+                // CRITICAL: Must include "thị xã" in lookahead to avoid extracting "xã" from "thị xã"
+                const wardMatch = part.match(/(phường|xã|thị trấn|tt)\s+([^,]+?)(?=\s*(?:quận|huyện|thành phố|tp|thị xã|thi xa|tx)|$)/i);
                 if (wardMatch) {
                     // wardMatch[0] = full match including keyword
                     // wardMatch[1] = ward keyword (phường, xã, etc.)
@@ -955,24 +1015,56 @@ function parseAddress(addressText) {
                     const match = fuzzyMatch(wardPart, [ward], 0.4);
                     if (match && match.score >= 0.4) {
                         console.log(`      → ${ward.Name}: score=${match.score.toFixed(2)}`);
+                        
+                        // IMPROVEMENT: If scores are equal, prefer exact name match
+                        // Example: "xã Nhơn An" should prefer "Xã Nhơn An" over "Phường Nhơn Thành"
                         if (match.score > bestScoreForPart) {
                             bestWardForPart = ward;
                             bestScoreForPart = match.score;
+                        } else if (match.score === bestScoreForPart && bestWardForPart) {
+                            // Same score - check which one has better name match
+                            const wardPartNormalized = removeVietnameseTones(wardPart).toLowerCase();
+                            const currentWardNormalized = removeVietnameseTones(ward.Name).toLowerCase();
+                            const bestWardNormalized = removeVietnameseTones(bestWardForPart.Name).toLowerCase();
+                            
+                            // Extract name without prefix (xã, phường, etc.)
+                            const wardPartName = wardPartNormalized.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                            const currentWardName = currentWardNormalized.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                            const bestWardName = bestWardNormalized.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                            
+                            // Prefer exact name match
+                            if (currentWardName === wardPartName && bestWardName !== wardPartName) {
+                                bestWardForPart = ward;
+                                bestScoreForPart = match.score;
+                                console.log(`      ✓ Prefer exact name match: ${ward.Name}`);
+                            }
                         }
                     }
                 }
                 
                 if (bestWardForPart && bestScoreForPart >= 0.4) {
-                    const wordCount = wardPart.split(/\s+/).length;
-                    const shouldReplace = 
-                        bestScoreForPart > bestWardScore + 0.01 || // Lower threshold to prefer higher scores
-                        (Math.abs(bestScoreForPart - bestWardScore) <= 0.01 && wordCount > bestWardWordCount);
+                    // IMPORTANT: Skip ward if its name is too similar to district name
+                    // Example: "Thị trấn Đông Anh" in "Huyện Đông Anh" should be skipped
+                    const normalizedDistrict = removeVietnameseTones(result.district.Name).toLowerCase();
+                    const normalizedWard = removeVietnameseTones(bestWardForPart.Name).toLowerCase();
+                    const districtNameWithoutPrefix = normalizedDistrict.replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/, '');
+                    const wardNameWithoutPrefix = normalizedWard.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
                     
-                    if (shouldReplace) {
-                        bestWardMatch = { match: bestWardForPart, score: bestScoreForPart, confidence: 'high' };
-                        bestWardScore = bestScoreForPart;
-                        bestWardWordCount = wordCount;
-                        console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${bestWardForPart.Name} (score: ${bestScoreForPart.toFixed(2)})`);
+                    if (wardNameWithoutPrefix === districtNameWithoutPrefix) {
+                        console.log(`    ⏭️ Skipping ward with same name as district: ${bestWardForPart.Name}`);
+                        // Don't update bestWardMatch
+                    } else {
+                        const wordCount = wardPart.split(/\s+/).length;
+                        const shouldReplace = 
+                            bestScoreForPart > bestWardScore + 0.01 || // Lower threshold to prefer higher scores
+                            (Math.abs(bestScoreForPart - bestWardScore) <= 0.01 && wordCount > bestWardWordCount);
+                        
+                        if (shouldReplace) {
+                            bestWardMatch = { match: bestWardForPart, score: bestScoreForPart, confidence: 'high' };
+                            bestWardScore = bestScoreForPart;
+                            bestWardWordCount = wordCount;
+                            console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${bestWardForPart.Name} (score: ${bestScoreForPart.toFixed(2)})`);
+                        }
                     }
                 }
             }
@@ -994,6 +1086,18 @@ function parseAddress(addressText) {
                 
                 const wardMatchResult = fuzzyMatch(part, result.district.Wards, 0.4);
                 if (wardMatchResult) {
+                    // IMPORTANT: Skip ward if its name is too similar to district name
+                    // Example: "Thị trấn Đông Anh" in "Huyện Đông Anh" should be skipped
+                    const normalizedDistrict = removeVietnameseTones(result.district.Name).toLowerCase();
+                    const normalizedWard = removeVietnameseTones(wardMatchResult.match.Name).toLowerCase();
+                    const districtNameWithoutPrefix = normalizedDistrict.replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/, '');
+                    const wardNameWithoutPrefix = normalizedWard.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                    
+                    if (wardNameWithoutPrefix === districtNameWithoutPrefix) {
+                        console.log(`    ⏭️ Skipping ward with same name as district: ${wardMatchResult.match.Name}`);
+                        continue;
+                    }
+                    
                     const shouldReplace = 
                         wardMatchResult.score > bestWardScore + 0.05 ||
                         (Math.abs(wardMatchResult.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount);
@@ -1003,6 +1107,229 @@ function parseAddress(addressText) {
                         bestWardScore = wardMatchResult.score;
                         bestWardWordCount = wordCount;
                         console.log(`    ✓ Ward candidate: "${part}" (${wordCount} words) → ${wardMatchResult.match.Name} (score: ${wardMatchResult.score.toFixed(2)})`);
+                    }
+                }
+            }
+        }
+        
+        // Third pass: SMART SEARCH - Find ward by hamlet/village name (thôn, xóm, ấp)
+        // Example: "hậu dưỡng" → find ward containing "Hậu Dưỡng" in name
+        // Extract potential hamlet names from all parts (used in both third and fourth pass)
+        const hamletKeywords = ['thon', 'xom', 'ap', 'khom', 'to', 'khu'];
+        const potentialHamletNames = [];
+        
+        if (bestWardScore < 0.7) {
+            console.log(`    🔍 Third pass: Searching by hamlet/village name...`);
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                
+                // Skip if this part was used for province or district
+                if (i === provincePartIndex || i === districtPartIndex) continue;
+                
+                const normalized = removeVietnameseTones(part).toLowerCase();
+                
+                // Check if part has hamlet keyword
+                const hasHamletKeyword = hamletKeywords.some(kw => normalized.includes(kw));
+                
+                if (hasHamletKeyword) {
+                    // Extract hamlet name after keyword
+                    // Example: "thôn Hậu Dưỡng" → "Hậu Dưỡng"
+                    const hamletMatch = part.match(/(?:thôn|xóm|ấp|khóm|tổ|khu)\s+([^\s,]+(?:\s+[^\s,]+)?)/i);
+                    if (hamletMatch && hamletMatch[1]) {
+                        potentialHamletNames.push(hamletMatch[1].trim());
+                        console.log(`    📍 Found hamlet name: "${hamletMatch[1].trim()}" from "${part}"`);
+                    }
+                } else {
+                    // No keyword - check if this could be a hamlet name
+                    // Usually 2-3 words, no admin keywords
+                    const words = part.split(/\s+/).filter(w => w.length > 0);
+                    const adminKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx'];
+                    const hasAdminKeyword = adminKeywords.some(kw => normalized.includes(kw));
+                    
+                    if (!hasAdminKeyword && words.length >= 2 && words.length <= 3 && part.length >= 4) {
+                        potentialHamletNames.push(part);
+                        console.log(`    📍 Potential hamlet name (no keyword): "${part}"`);
+                    }
+                }
+            }
+            
+            // Search wards containing these hamlet names
+            if (potentialHamletNames.length > 0) {
+                console.log(`    🔍 Searching ${result.district.Wards.length} wards for hamlet names:`, potentialHamletNames);
+                
+                for (const hamletName of potentialHamletNames) {
+                    const normalizedHamlet = removeVietnameseTones(hamletName).toLowerCase();
+                    
+                    for (const ward of result.district.Wards) {
+                        const normalizedWard = removeVietnameseTones(ward.Name).toLowerCase();
+                        
+                        // IMPORTANT: Skip ward if its name is too similar to district name
+                        // Example: "Thị trấn Đông Anh" in "Huyện Đông Anh" should be skipped
+                        const normalizedDistrict = removeVietnameseTones(result.district.Name).toLowerCase();
+                        const districtNameWithoutPrefix = normalizedDistrict.replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/, '');
+                        const wardNameWithoutPrefix = normalizedWard.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                        
+                        if (wardNameWithoutPrefix === districtNameWithoutPrefix) {
+                            console.log(`    ⏭️ Skipping ward with same name as district: ${ward.Name}`);
+                            continue;
+                        }
+                        
+                        // Check if ward name contains hamlet name
+                        // Example: "Xã Kim Chung" contains "kim chung" which might match "kim chung"
+                        // But more importantly, check ward's full name or alternative names
+                        
+                        // Strategy 1: Direct contains match
+                        if (normalizedWard.includes(normalizedHamlet)) {
+                            const score = 0.85; // High score for contains match
+                            
+                            if (score > bestWardScore) {
+                                bestWardMatch = { match: ward, score: score, confidence: 'medium' };
+                                bestWardScore = score;
+                                console.log(`    ✓ Ward found by hamlet name (contains): "${hamletName}" → ${ward.Name} (score: ${score.toFixed(2)})`);
+                            }
+                        }
+                        
+                        // Strategy 2: Fuzzy match hamlet name with ward name
+                        const similarity = similarityScore(normalizedHamlet, normalizedWard);
+                        if (similarity >= 0.6) {
+                            const score = similarity * 0.8; // Slightly lower than contains
+                            
+                            if (score > bestWardScore) {
+                                bestWardMatch = { match: ward, score: score, confidence: 'medium' };
+                                bestWardScore = score;
+                                console.log(`    ✓ Ward found by hamlet name (fuzzy): "${hamletName}" → ${ward.Name} (score: ${score.toFixed(2)})`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fourth pass: API SEARCH - Use Vietnam Provinces API to search by hamlet name
+        // This is the most powerful method as it searches across all ward data
+        if (bestWardScore < 0.7) {
+            console.log(`    🔍 Fourth pass: Using API search...`);
+            
+            // Get district code for API
+            const districtCode = result.district.Id;
+            
+            // Strategy 1: Search with extracted hamlet names
+            if (potentialHamletNames.length > 0) {
+                for (const hamletName of potentialHamletNames) {
+                    console.log(`    🌐 Searching API for hamlet: "${hamletName}" in district ${districtCode}`);
+                    
+                    try {
+                        const apiResults = await searchWardByAPI(hamletName, districtCode);
+                        
+                        if (apiResults && apiResults.length > 0) {
+                            console.log(`    📊 API found ${apiResults.length} ward(s)`);
+                            
+                            // Find the best match from API results
+                            for (const apiResult of apiResults) {
+                                // Find this ward in our local data
+                                const ward = result.district.Wards.find(w => w.Id === apiResult.code);
+                                
+                                if (ward) {
+                                    // Skip ward with same name as district
+                                    const normalizedDistrict = removeVietnameseTones(result.district.Name).toLowerCase();
+                                    const normalizedWard = removeVietnameseTones(ward.Name).toLowerCase();
+                                    const districtNameWithoutPrefix = normalizedDistrict.replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/, '');
+                                    const wardNameWithoutPrefix = normalizedWard.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                                    
+                                    if (wardNameWithoutPrefix === districtNameWithoutPrefix) {
+                                        console.log(`    ⏭️ Skipping ward with same name as district: ${ward.Name}`);
+                                        continue;
+                                    }
+                                    
+                                    // Calculate score based on API match quality
+                                    // API returns matches object with positions, we can use this for scoring
+                                    let score = 0.9; // High score for API match
+                                    
+                                    // If API provides match info, use it to calculate better score
+                                    if (apiResult.matches && Object.keys(apiResult.matches).length > 0) {
+                                        score = 0.95; // Even higher for exact word match
+                                    }
+                                    
+                                    if (score > bestWardScore) {
+                                        bestWardMatch = { match: ward, score: score, confidence: 'high' };
+                                        bestWardScore = score;
+                                        console.log(`    ✅ Ward found by API: "${hamletName}" → ${ward.Name} (score: ${score.toFixed(2)})`);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`    ❌ API search failed:`, error);
+                    }
+                }
+            }
+            
+            // Strategy 2: If still not found, try searching with individual words from address
+            if (bestWardScore < 0.7) {
+                console.log(`    🔍 Strategy 2: Searching with individual words...`);
+                
+                // Extract meaningful words (2+ chars, not admin keywords)
+                const meaningfulWords = [];
+                const adminKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'thon', 'xom', 'ap', 'khom', 'to', 'khu'];
+                
+                for (const part of parts) {
+                    if (part === parts[provincePartIndex] || part === parts[districtPartIndex]) continue;
+                    
+                    const words = part.split(/\s+/).filter(w => w.length >= 2);
+                    for (const word of words) {
+                        const normalized = removeVietnameseTones(word).toLowerCase();
+                        if (!adminKeywords.includes(normalized) && !meaningfulWords.includes(word)) {
+                            meaningfulWords.push(word);
+                        }
+                    }
+                }
+                
+                console.log(`    📝 Meaningful words:`, meaningfulWords);
+                
+                // Try searching with each word
+                for (const word of meaningfulWords.slice(0, 3)) { // Limit to first 3 words to avoid too many API calls
+                    if (word.length < 3) continue; // Skip very short words
+                    
+                    console.log(`    🌐 Searching API for word: "${word}"`);
+                    
+                    try {
+                        const apiResults = await searchWardByAPI(word, districtCode);
+                        
+                        if (apiResults && apiResults.length > 0) {
+                            console.log(`    📊 API found ${apiResults.length} ward(s) for "${word}"`);
+                            
+                            for (const apiResult of apiResults) {
+                                const ward = result.district.Wards.find(w => w.Id === apiResult.code);
+                                
+                                if (ward) {
+                                    // Skip ward with same name as district
+                                    const normalizedDistrict = removeVietnameseTones(result.district.Name).toLowerCase();
+                                    const normalizedWard = removeVietnameseTones(ward.Name).toLowerCase();
+                                    const districtNameWithoutPrefix = normalizedDistrict.replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/, '');
+                                    const wardNameWithoutPrefix = normalizedWard.replace(/^(xa|phuong|thi tran|tt)\s+/, '');
+                                    
+                                    if (wardNameWithoutPrefix === districtNameWithoutPrefix) {
+                                        continue;
+                                    }
+                                    
+                                    // Lower score for individual word match
+                                    let score = 0.75;
+                                    
+                                    if (apiResult.matches && Object.keys(apiResult.matches).length > 0) {
+                                        score = 0.8;
+                                    }
+                                    
+                                    if (score > bestWardScore) {
+                                        bestWardMatch = { match: ward, score: score, confidence: 'medium' };
+                                        bestWardScore = score;
+                                        console.log(`    ✅ Ward found by word: "${word}" → ${ward.Name} (score: ${score.toFixed(2)})`);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`    ❌ API search failed for "${word}":`, error);
                     }
                 }
             }
@@ -1170,7 +1497,7 @@ async function smartParseCustomerInfo(text) {
     });
     
     const addressText = addressLines.join(', ');
-    const addressInfo = parseAddress(addressText);
+    const addressInfo = await parseAddress(addressText);
     
     // Calculate overall confidence
     let overallConfidence = 'low';
