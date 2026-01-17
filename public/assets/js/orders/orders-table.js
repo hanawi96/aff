@@ -231,11 +231,9 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         <div id="${customerId}" class="group cursor-pointer hover:bg-blue-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
             <div class="flex items-center gap-2">
                 <div class="flex-1">
-                    <div class="flex items-center gap-2 justify-center">
-                        <div class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</div>
-                        ${customerBadge}
-                    </div>
+                    <div class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</div>
                     <div class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</div>
+                    ${customerBadge ? `<div class="mt-1">${customerBadge}</div>` : ''}
                 </div>
                 <button class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 flex-shrink-0" title="Chỉnh sửa thông tin khách hàng">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
