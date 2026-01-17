@@ -416,7 +416,7 @@ async function parseAddress(addressText) {
     // TP HN, TP.HN, TPHN, tp hn, tphn → Thành phố Hà Nội
     // Sài Gòn, SG → Thành phố Hồ Chí Minh
     
-    // Pattern 1: TP HCM, TP.HCM, tp hcm, tp.hcm
+    // Pattern 1: TP HCM, TP.HCM, tp hcm, tp.hcm (with space/dot)
     processedAddress = processedAddress.replace(/\b(tp|thanh pho)\.?\s*(hn|hcm|dn|hp|ct)\b/gi, (match, prefix, city) => {
         const cityMap = {
             'hn': 'Thành phố Hà Nội',
@@ -450,6 +450,12 @@ async function parseAddress(addressText) {
     // Pattern 5: "hà nội" (without "thành phố") → add prefix  
     // IMPORTANT: Check if "Thành phố" already exists before it
     processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ha noi|hà nội)\b/gi, 'Thành phố Hà Nội');
+    
+    // Pattern 6: "tp HCM", "tp HN" at end → add comma before
+    // Example: "quận Tân Phú tp HCM" → "quận Tân Phú, tp HCM"
+    // IMPORTANT: Also handle "TPHcM" (mixed case without space)
+    // Then Pattern 1-2 will expand "tp HCM" → "Thành phố Hồ Chí Minh"
+    processedAddress = processedAddress.replace(/\s+(tp\s*h[cn]m?|tph[cn]m?)\b/gi, ', $1');
     
     // Normalize "Ấp3" → "Ấp 3" (add space between Ấp and number)
     processedAddress = processedAddress.replace(/\b([ấấĂăÂâ]p)(\d+)\b/gi, '$1 $2');
@@ -663,14 +669,22 @@ async function parseAddress(addressText) {
                             
                             console.log(`    🔍 Analyzing last keyword "${current.keyword}" with ${words.length} words after: [${words.join(', ')}]`);
                             
-                            // IMPROVED: Try to find district/province names in remaining words
+                            // IMPROVED: Check if remaining words match district/province names
                             // Check each possible split point and see if remaining matches known locations
                             let wardWordCount = Math.min(2, words.length); // Default: 2 words
                             let bestSplitScore = 0;
                             
-                            // CRITICAL: Check last 2 words for known district names FIRST
-                            // Example: "14 gò vấp" → "gò vấp" is district name
-                            if (words.length >= 2) {
+                            // CRITICAL: Check if this is "Thành phố Hồ Chí Minh" (special case)
+                            // Don't split it!
+                            const fullText = current.keyword + words.join(' ');
+                            const fullTextNormalized = removeVietnameseTones(fullText).toLowerCase();
+                            
+                            if (fullTextNormalized === 'thanh pho ho chi minh' || fullTextNormalized === 'tp ho chi minh') {
+                                // This is the full province name - don't split!
+                                wardWordCount = 0; // No ward, all is province
+                                bestSplitScore = 10.0; // Highest priority
+                                console.log(`    ✅✅✅ Detected full province name: "${fullText}" → no split needed`);
+                            } else if (words.length >= 2) {
                                 const knownDistrictPatterns = [
                                     // HCMC districts
                                     /\b(go vap|gò vấp)\b/i,
@@ -1867,8 +1881,11 @@ async function parseAddress(addressText) {
             if (hasWardKeyword && part.length >= 4) {
                 console.log(`    🔍 Checking ward part: "${part}"`);
                 
-                // Search across ALL provinces and districts
-                for (const province of vietnamAddressData) {
+                // Search across provinces (filtered if province already found)
+                // IMPORTANT: If province found in Step 1, only search in that province
+                const provincesToSearch = result.province ? [result.province] : vietnamAddressData;
+                
+                for (const province of provincesToSearch) {
                     for (const district of province.Districts) {
                         const wardMatch = fuzzyMatch(part, district.Wards, 0.7);
                         if (wardMatch && wardMatch.score > bestWardScore) {
@@ -2018,13 +2035,23 @@ async function parseAddress(addressText) {
                 }
                 
                 // Now find the FIRST location keyword (ward/district) to extract street before it
+                // IMPORTANT: Use word boundary check to avoid matching "tx" in "ktx" or "tt" in other words
                 const allLocationKeywords = ['phuong', 'xa', 'quan', 'huyen', 'thanh pho', 'tp', 'tinh', 'thi tran', 'tt', 'thi xa', 'tx', 'khom'];
                 let firstKeywordIndex = actualDistrictStart;
                 
                 for (const keyword of allLocationKeywords) {
-                    const keywordIndex = normalizedAddress.indexOf(keyword);
-                    if (keywordIndex !== -1 && keywordIndex < firstKeywordIndex) {
-                        firstKeywordIndex = keywordIndex;
+                    // Use regex with word boundary for short keywords (tt, tx, tp)
+                    if (keyword === 'tt' || keyword === 'tx' || keyword === 'tp') {
+                        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                        const match = normalizedAddress.match(regex);
+                        if (match && match.index < firstKeywordIndex) {
+                            firstKeywordIndex = match.index;
+                        }
+                    } else {
+                        const keywordIndex = normalizedAddress.indexOf(keyword);
+                        if (keywordIndex !== -1 && keywordIndex < firstKeywordIndex) {
+                            firstKeywordIndex = keywordIndex;
+                        }
                     }
                 }
                 
@@ -2041,8 +2068,10 @@ async function parseAddress(addressText) {
         }
         
         // Strategy 3: Fallback - regex to find text before first location keyword
+        // IMPORTANT: Don't match "TX" if it's part of "KTX" (ký túc xá)
+        // Use word boundary \b to avoid matching within words
         if (!result.street && addressText) {
-            const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx|khóm)/i);
+            const match = addressText.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|\btt\b|thành phố|tp|tỉnh|thị xã|\btx\b|khóm)/i);
             if (match && match[1].trim()) {
                 result.street = match[1].trim();
                 console.log(`  🏠 Early street extraction (regex): "${result.street}"`);
