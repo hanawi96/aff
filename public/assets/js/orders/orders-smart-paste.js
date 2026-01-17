@@ -351,7 +351,7 @@ function parseAddress(addressText) {
         addressText = processedAddress;
     }
     
-    // Split by comma OR dash (-)
+    // Split by comma OR dash (-) OR period (.)
     // BUT: Don't split if comma is between numbers (e.g., "4,5" = decimal)
     let parts = [];
     let currentPart = '';
@@ -361,7 +361,7 @@ function parseAddress(addressText) {
         const prevChar = i > 0 ? addressText[i - 1] : '';
         const nextChar = i < addressText.length - 1 ? addressText[i + 1] : '';
         
-        if ((char === ',' || char === '-') && 
+        if ((char === ',' || char === '-' || char === '.') && 
             !(char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar))) {
             // This is a separator (not a decimal comma)
             if (currentPart.trim()) {
@@ -378,7 +378,7 @@ function parseAddress(addressText) {
         parts.push(currentPart.trim());
     }
     
-    console.log('📝 Address parts (split by comma/dash):', parts.length, 'parts');
+    console.log('📝 Address parts (split by comma/dash/period):', parts.length, 'parts');
     
     // ENHANCEMENT: Split parts that contain multiple location keywords
     // Example: "phường 14 quận 8" → ["phường 14", "quận 8"]
@@ -914,9 +914,9 @@ function parseAddress(addressText) {
     // Step 4: Extract street address - Filter out matched location parts
     let streetParts = [];
     
-    if (addressText.includes(',')) {
-        // Has commas - filter out parts that matched province/district/ward
-        // IMPORTANT: Use the same smart comma splitting logic to preserve decimals like "4,5"
+    if (addressText.includes(',') || addressText.includes('.')) {
+        // Has commas or periods - filter out parts that matched province/district/ward
+        // IMPORTANT: Use the same smart separator splitting logic to preserve decimals like "4,5"
         let commaParts = [];
         let currentPart = '';
         
@@ -925,7 +925,7 @@ function parseAddress(addressText) {
             const prevChar = i > 0 ? addressText[i - 1] : '';
             const nextChar = i < addressText.length - 1 ? addressText[i + 1] : '';
             
-            if (char === ',' && !(char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar))) {
+            if ((char === ',' || char === '.') && !(char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar))) {
                 // This is a separator (not a decimal comma)
                 if (currentPart.trim()) {
                     commaParts.push(currentPart.trim());
