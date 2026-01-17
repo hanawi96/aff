@@ -51,12 +51,13 @@ function filterOrdersData() {
     }
 
     filteredOrdersData = allOrdersData.filter(order => {
-        // Search filter
+        // Search filter - now includes address
         const matchesSearch = !searchTerm ||
             (order.order_id && order.order_id.toLowerCase().includes(searchTerm)) ||
             (order.customer_name && order.customer_name.toLowerCase().includes(searchTerm)) ||
             (order.customer_phone && order.customer_phone.includes(searchTerm)) ||
-            (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm));
+            (order.referral_code && order.referral_code.toLowerCase().includes(searchTerm)) ||
+            (order.address && removeVietnameseTones(order.address.toLowerCase()).includes(removeVietnameseTones(searchTerm)));
 
         // Status filter - normalize status value and handle both Vietnamese and English
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
@@ -123,6 +124,22 @@ function filterOrdersData() {
     updateStats();
 
     renderOrdersTable();
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Remove Vietnamese tones for search normalization
+ */
+function removeVietnameseTones(str) {
+    if (!str) return '';
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
 }
 
 // ============================================
