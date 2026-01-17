@@ -221,7 +221,7 @@ function extractPhoneNumber(text) {
  */
 function extractCustomerName(lines, phoneInfo) {
     // Remove lines that contain phone or address keywords
-    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa'];
+    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 'khu', 'số', 'so'];
     
     console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
@@ -352,7 +352,31 @@ function parseAddress(addressText) {
     }
     
     // Split by comma OR dash (-)
-    let parts = addressText.split(/[,\-]/).map(p => p.trim()).filter(p => p.length > 0);
+    // BUT: Don't split if comma is between numbers (e.g., "4,5" = decimal)
+    let parts = [];
+    let currentPart = '';
+    
+    for (let i = 0; i < addressText.length; i++) {
+        const char = addressText[i];
+        const prevChar = i > 0 ? addressText[i - 1] : '';
+        const nextChar = i < addressText.length - 1 ? addressText[i + 1] : '';
+        
+        if ((char === ',' || char === '-') && 
+            !(char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar))) {
+            // This is a separator (not a decimal comma)
+            if (currentPart.trim()) {
+                parts.push(currentPart.trim());
+            }
+            currentPart = '';
+        } else {
+            currentPart += char;
+        }
+    }
+    
+    // Add last part
+    if (currentPart.trim()) {
+        parts.push(currentPart.trim());
+    }
     
     console.log('📝 Address parts (split by comma/dash):', parts.length, 'parts');
     
@@ -373,39 +397,46 @@ function parseAddress(addressText) {
         if (levelCount > 1) {
             console.log(`  📌 Part has ${levelCount} admin levels: "${part}"`);
             console.log(`     Normalized: "${normalized}"`);
-            console.log(`     hasWard: ${hasWard}, hasDistrict: ${hasDistrict}`);
+            console.log(`     hasWard: ${hasWard}, hasDistrict: ${hasDistrict}, hasProvince: ${hasProvince}`);
             
             // Simple split by common patterns
-            // Pattern: "phường X quận Y" or "xã X huyện Y"
+            // Pattern: "xã X huyện Y tỉnh Z" → split into 3 parts
             let subParts = [];
             
-            // Try to split by district keywords - IMPROVED REGEX
-            if (hasWard && hasDistrict) {
-                // Match district keyword + following word(s) - USE ORIGINAL TEXT
-                // Example: "quận 8" or "huyện Can Lộc"
-                const districtRegex = /(quận|huyện|thành phố|tp|thị xã|tx)\s+[^\s,]+(\s+[^\s,]+)*/i;
-                const districtMatch = part.match(districtRegex);
-                
-                console.log(`     District match:`, districtMatch);
-                
+            // STRATEGY: Split by keywords in order: ward → district → province
+            let remainingText = part;
+            
+            // Step 1: Extract ward (if exists)
+            if (hasWard) {
+                const wardMatch = remainingText.match(/(xã|phường|thị trấn|tt)\s+([^,]+?)(?=\s*(?:quận|huyện|thành phố|tp|thi xa|tx|tỉnh|tinh)|$)/i);
+                if (wardMatch) {
+                    const wardPart = wardMatch[0].trim();
+                    subParts.push(wardPart);
+                    console.log(`    → Split ward: "${wardPart}"`);
+                    // Remove ward from remaining text
+                    remainingText = remainingText.substring(wardMatch.index + wardMatch[0].length).trim();
+                }
+            }
+            
+            // Step 2: Extract district (if exists)
+            if (hasDistrict && remainingText) {
+                const districtMatch = remainingText.match(/(quận|huyện|thành phố|tp|thị xã|tx)\s+([^,]+?)(?=\s*(?:tỉnh|tinh|thành phố|tp)|$)/i);
                 if (districtMatch) {
                     const districtPart = districtMatch[0].trim();
-                    const districtIndex = part.indexOf(districtMatch[0]);
-                    const wardPart = part.substring(0, districtIndex).trim();
-                    
-                    if (wardPart) {
-                        subParts.push(wardPart);
-                        console.log(`    → Split ward: "${wardPart}"`);
-                    }
                     subParts.push(districtPart);
                     console.log(`    → Split district: "${districtPart}"`);
-                    
-                    // Check if there's anything after district (province?)
-                    const afterDistrict = part.substring(districtIndex + districtMatch[0].length).trim();
-                    if (afterDistrict) {
-                        subParts.push(afterDistrict);
-                        console.log(`    → Split remaining: "${afterDistrict}"`);
-                    }
+                    // Remove district from remaining text
+                    remainingText = remainingText.substring(districtMatch.index + districtMatch[0].length).trim();
+                }
+            }
+            
+            // Step 3: Extract province (if exists)
+            if (hasProvince && remainingText) {
+                const provinceMatch = remainingText.match(/(tỉnh|tinh|thành phố|tp)\s+.+/i);
+                if (provinceMatch) {
+                    const provincePart = provinceMatch[0].trim();
+                    subParts.push(provincePart);
+                    console.log(`    → Split province: "${provincePart}"`);
                 }
             }
             
@@ -428,6 +459,22 @@ function parseAddress(addressText) {
         console.log('⚠️ No commas found, using n-gram approach');
         const words = addressText.split(/\s+/).filter(w => w.length > 0);
         console.log('📝 Words:', words.length, 'words');
+        
+        // STRATEGY: For addresses without commas, try to identify district/ward by keywords first
+        // Then infer province from district
+        // Example: "26 duong so 6 thôn phú tây điện quang điện bàn quảng nam"
+        // → Should identify "điện bàn" as district, "điện quang" as ward, then infer "quảng nam" as province
+        
+        // Check if text contains district/ward keywords
+        const normalized = removeVietnameseTones(addressText).toLowerCase();
+        const hasDistrictKeyword = /(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i.test(addressText);
+        const hasWardKeyword = /(phuong|xa|thi tran|tt)\s+/i.test(addressText);
+        
+        if (hasDistrictKeyword || hasWardKeyword) {
+            console.log('📍 Found district/ward keywords, will prioritize finding district first');
+            // Generate n-grams but will search for district first (see below)
+        }
+        
         parts = generateNGrams(words, 2, 4); // 2-4 word combinations (skip single words for now)
         console.log('📝 Generated', parts.length, 'n-grams (2-4 words)');
     }
@@ -467,20 +514,63 @@ function parseAddress(addressText) {
     
     // If no abbreviation found, do normal matching
     if (!bestProvinceMatch) {
+        // IMPORTANT: Skip parts with district/ward keywords when looking for province
+        // Example: "quận Bình Tân" should NOT be checked for province
+        // BUT: Be careful with words like "quảng" which can be part of province name
+        const districtWardKeywords = ['phuong', 'xa', 'thi tran', 'tt', 'thi xa', 'tx'];
+        // District keywords that should be checked more carefully
+        const districtKeywordsCareful = ['quan', 'huyen', 'thanh pho', 'tp'];
+        
         for (let i = parts.length - 1; i >= 0; i--) {
             const part = parts[i];
+            const normalized = removeVietnameseTones(part).toLowerCase().trim();
             const wordCount = part.split(/\s+/).length;
             
             // Skip very short parts (less than 4 chars for provinces)
             if (part.length < 4) continue;
             
-            const provinceMatch = fuzzyMatch(part, vietnamAddressData, 0.4); // Increased threshold from 0.35 to 0.4
+            // SKIP if part has ward keywords (phường, xã, thị trấn)
+            const hasWardKeyword = districtWardKeywords.some(kw => normalized.includes(kw));
+            if (hasWardKeyword) {
+                console.log(`  ⏭️ Skipping part with ward keyword: "${part}"`);
+                continue;
+            }
+            
+            // For district keywords, only skip if they appear as SEPARATE WORDS
+            // Example: "quận 7" should be skipped, but "quảng nam" should NOT
+            const hasDistrictKeywordSeparate = districtKeywordsCareful.some(kw => {
+                const regex = new RegExp(`\\b${kw}\\b`, 'i');
+                return regex.test(normalized);
+            });
+            
+            if (hasDistrictKeywordSeparate) {
+                console.log(`  ⏭️ Skipping part with district keyword: "${part}"`);
+                continue;
+            }
+            
+            const provinceMatch = fuzzyMatch(part, vietnamAddressData, 0.4);
             if (provinceMatch) {
-                // PRIORITY: High score beats everything
-                // Only prefer longer phrases if scores are VERY similar (within 0.05)
-                const shouldReplace = 
-                    provinceMatch.score > bestProvinceScore + 0.05 || // Better score (more than 0.05 difference)
-                    (Math.abs(provinceMatch.score - bestProvinceScore) <= 0.05 && wordCount > bestProvinceWordCount); // Similar score AND longer phrase
+                // PRIORITY: When iterating from END to START (i from high to low)
+                // - First good match (score >= 0.7) wins (province usually at end)
+                // - For lower scores, prefer higher score or longer phrase
+                
+                const isGoodMatch = provinceMatch.score >= 0.7;
+                const isBestGood = bestProvinceScore >= 0.7;
+                
+                let shouldReplace = false;
+                
+                if (isGoodMatch && !isBestGood) {
+                    // Good match beats weak match
+                    shouldReplace = true;
+                } else if (isGoodMatch && isBestGood) {
+                    // Both good - prefer higher score, or longer phrase if similar
+                    shouldReplace = provinceMatch.score > bestProvinceScore + 0.05 ||
+                                  (Math.abs(provinceMatch.score - bestProvinceScore) <= 0.05 && wordCount > bestProvinceWordCount);
+                } else {
+                    // Both weak - prefer higher score or longer phrase
+                    shouldReplace = provinceMatch.score > bestProvinceScore + 0.05 ||
+                                  (Math.abs(provinceMatch.score - bestProvinceScore) <= 0.05 && wordCount > bestProvinceWordCount);
+                }
                 
                 if (shouldReplace) {
                     bestProvinceMatch = provinceMatch;
@@ -492,13 +582,17 @@ function parseAddress(addressText) {
         }
     }
     
-    if (bestProvinceMatch) {
+    if (bestProvinceMatch && bestProvinceScore >= 0.7) {
         result.province = bestProvinceMatch.match;
         result.confidence = bestProvinceMatch.confidence;
         console.log(`  ✅ Province matched: ${result.province.Name} (score: ${bestProvinceScore.toFixed(2)}, ${bestProvinceWordCount} words)`);
     } else {
-        console.log(`  ⚠️ No province found directly, will try to infer from district...`);
-        // Don't return yet - try to find district first, then infer province
+        if (bestProvinceMatch) {
+            console.log(`  ⚠️ Province match score too low (${bestProvinceScore.toFixed(2)}), will try to infer from district...`);
+        } else {
+            console.log(`  ⚠️ No province found directly, will try to infer from district...`);
+        }
+        // Don't set province yet - try to find district first, then infer province
     }
     
     // Step 2: Find District - PRIORITIZE LONGER PHRASES with keywords
@@ -560,28 +654,31 @@ function parseAddress(addressText) {
         // Province not found - Search ALL provinces for district match
         console.log(`    🔍 Province not found, searching ALL provinces for district...`);
         
-        for (const part of parts) {
+        // PRIORITY: Check parts with district keywords FIRST
+        const partsWithKeywords = parts.filter(part => {
             const normalized = removeVietnameseTones(part).toLowerCase();
-            const hasKeyword = districtKeywords.some(kw => normalized.includes(kw));
-            
-            if (hasKeyword && part.length >= 4) {
-                // Search across ALL provinces
-                for (const province of vietnamAddressData) {
-                    const districtMatch = fuzzyMatch(part, province.Districts, 0.4);
-                    if (districtMatch) {
-                        const wordCount = part.split(/\s+/).length;
-                        const shouldReplace = 
-                            districtMatch.score > bestDistrictScore + 0.05 ||
-                            (Math.abs(districtMatch.score - bestDistrictScore) <= 0.05 && wordCount > bestDistrictWordCount);
-                        
-                        if (shouldReplace) {
-                            bestDistrictMatch = districtMatch;
-                            bestDistrictScore = districtMatch.score;
-                            bestDistrictWordCount = wordCount;
-                            // IMPORTANT: Set province from district's parent
-                            result.province = province;
-                            console.log(`    ✓ District found in province: "${part}" → ${districtMatch.match.Name} in ${province.Name} (score: ${districtMatch.score.toFixed(2)})`);
-                        }
+            return districtKeywords.some(kw => normalized.includes(kw));
+        });
+        
+        console.log(`    📌 Parts with district keywords:`, partsWithKeywords.length);
+        
+        for (const part of partsWithKeywords) {
+            // Search across ALL provinces
+            for (const province of vietnamAddressData) {
+                const districtMatch = fuzzyMatch(part, province.Districts, 0.5); // Higher threshold for safety
+                if (districtMatch) {
+                    const wordCount = part.split(/\s+/).length;
+                    const shouldReplace = 
+                        districtMatch.score > bestDistrictScore + 0.05 ||
+                        (Math.abs(districtMatch.score - bestDistrictScore) <= 0.05 && wordCount > bestDistrictWordCount);
+                    
+                    if (shouldReplace) {
+                        bestDistrictMatch = districtMatch;
+                        bestDistrictScore = districtMatch.score;
+                        bestDistrictWordCount = wordCount;
+                        // IMPORTANT: Set province from district's parent
+                        result.province = province;
+                        console.log(`    ✓ District found in province: "${part}" → ${districtMatch.match.Name} in ${province.Name} (score: ${districtMatch.score.toFixed(2)})`);
                     }
                 }
             }
@@ -617,20 +714,35 @@ function parseAddress(addressText) {
         for (const part of parts) {
             const normalized = removeVietnameseTones(part).toLowerCase();
             const hasKeyword = wardKeywords.some(kw => normalized.includes(kw));
-            const wordCount = part.split(/\s+/).length;
             
             if (hasKeyword && part.length >= 4) {
-                const wardMatch = fuzzyMatch(part, result.district.Wards, 0.4); // Increased threshold
+                // Extract ward name from part (may contain street address too)
+                // Example: "83/7 đường... phường Bình Hưng Hòa B quận..." → extract "phường Bình Hưng Hòa B"
+                let wardPart = part;
+                
+                // Try to extract ward portion using regex
+                // IMPORTANT: Stop at district keywords (quận, huyện, etc.)
+                const wardMatch = part.match(/(phường|xã|thị trấn|tt)\s+([^,]+?)(?=\s*(?:quận|huyện|thành phố|tp|thi xa|tx)|$)/i);
                 if (wardMatch) {
+                    // wardMatch[0] = full match including keyword
+                    // wardMatch[1] = ward keyword (phường, xã, etc.)
+                    // wardMatch[2] = ward name without keyword
+                    wardPart = wardMatch[0].trim();
+                    console.log(`    📍 Extracted ward portion: "${wardPart}" from "${part}"`);
+                }
+                
+                const wardMatchResult = fuzzyMatch(wardPart, result.district.Wards, 0.4);
+                if (wardMatchResult) {
+                    const wordCount = wardPart.split(/\s+/).length;
                     const shouldReplace = 
-                        wardMatch.score > bestWardScore + 0.05 || // Better score
-                        (Math.abs(wardMatch.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount); // Similar score AND longer
+                        wardMatchResult.score > bestWardScore + 0.05 ||
+                        (Math.abs(wardMatchResult.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount);
                     
                     if (shouldReplace) {
-                        bestWardMatch = wardMatch;
-                        bestWardScore = wardMatch.score;
+                        bestWardMatch = wardMatchResult;
+                        bestWardScore = wardMatchResult.score;
                         bestWardWordCount = wordCount;
-                        console.log(`    ✓ Ward candidate (keyword): "${part}" (${wordCount} words) → ${wardMatch.match.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                        console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${wardMatchResult.match.Name} (score: ${wardMatchResult.score.toFixed(2)})`);
                     }
                 }
             }
@@ -639,20 +751,20 @@ function parseAddress(addressText) {
         // Second pass: Check all parts if not found with good score
         if (bestWardScore < 0.7) {
             for (const part of parts) {
-                if (part.length < 4) continue; // Minimum 4 chars
+                if (part.length < 4) continue;
                 const wordCount = part.split(/\s+/).length;
                 
-                const wardMatch = fuzzyMatch(part, result.district.Wards, 0.4); // Increased threshold
-                if (wardMatch) {
+                const wardMatchResult = fuzzyMatch(part, result.district.Wards, 0.4);
+                if (wardMatchResult) {
                     const shouldReplace = 
-                        wardMatch.score > bestWardScore + 0.05 || // Better score
-                        (Math.abs(wardMatch.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount); // Similar score AND longer
+                        wardMatchResult.score > bestWardScore + 0.05 ||
+                        (Math.abs(wardMatchResult.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount);
                     
                     if (shouldReplace) {
-                        bestWardMatch = wardMatch;
-                        bestWardScore = wardMatch.score;
+                        bestWardMatch = wardMatchResult;
+                        bestWardScore = wardMatchResult.score;
                         bestWardWordCount = wordCount;
-                        console.log(`    ✓ Ward candidate: "${part}" (${wordCount} words) → ${wardMatch.match.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                        console.log(`    ✓ Ward candidate: "${part}" (${wordCount} words) → ${wardMatchResult.match.Name} (score: ${wardMatchResult.score.toFixed(2)})`);
                     }
                 }
             }
@@ -674,7 +786,30 @@ function parseAddress(addressText) {
     
     if (addressText.includes(',')) {
         // Has commas - filter out parts that matched province/district/ward
-        const commaParts = addressText.split(',').map(p => p.trim());
+        // IMPORTANT: Use the same smart comma splitting logic to preserve decimals like "4,5"
+        let commaParts = [];
+        let currentPart = '';
+        
+        for (let i = 0; i < addressText.length; i++) {
+            const char = addressText[i];
+            const prevChar = i > 0 ? addressText[i - 1] : '';
+            const nextChar = i < addressText.length - 1 ? addressText[i + 1] : '';
+            
+            if (char === ',' && !(char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar))) {
+                // This is a separator (not a decimal comma)
+                if (currentPart.trim()) {
+                    commaParts.push(currentPart.trim());
+                }
+                currentPart = '';
+            } else {
+                currentPart += char;
+            }
+        }
+        
+        // Add last part
+        if (currentPart.trim()) {
+            commaParts.push(currentPart.trim());
+        }
         
         for (const part of commaParts) {
             let isLocation = false;
@@ -709,6 +844,14 @@ function parseAddress(addressText) {
             const hasLocationKeyword = locationKeywords.some(kw => normalized.includes(kw));
             
             if (hasLocationKeyword) {
+                // Part has location keyword - extract street portion BEFORE the keyword
+                // Example: "83/7 đường liên khu 4,5 phường bình Hưng hòa B" → "83/7 đường liên khu 4,5"
+                const streetMatch = part.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx)/i);
+                if (streetMatch && streetMatch[1].trim()) {
+                    const streetPortion = streetMatch[1].trim();
+                    console.log(`    📍 Extracted street from location part: "${streetPortion}" from "${part}"`);
+                    streetParts.push(streetPortion);
+                }
                 isLocation = true;
             }
             
