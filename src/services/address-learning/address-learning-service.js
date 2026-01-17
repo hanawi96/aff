@@ -177,7 +177,7 @@ export async function searchLearning(env, keywords, districtId) {
  */
 async function searchLearningPartial(env, keywords, districtId) {
     try {
-        // Get all keywords in this district
+        // Get all keywords in this district (will be reused in TIER 3)
         const allKeywords = await env.DB.prepare(`
             SELECT keywords, ward_id, ward_name, match_count
             FROM address_learning
@@ -187,7 +187,8 @@ async function searchLearningPartial(env, keywords, districtId) {
         
         if (!allKeywords.results || allKeywords.results.length === 0) {
             console.log('⚠️ TIER 2 failed - No keywords in district, trying TIER 3...');
-            return await searchLearningFuzzy(env, keywords, districtId);
+            // Pass empty array to TIER 3 to avoid re-query
+            return await searchLearningFuzzy(env, keywords, districtId, []);
         }
         
         let bestMatch = null;
@@ -234,9 +235,9 @@ async function searchLearningPartial(env, keywords, districtId) {
             };
         }
         
-        // TIER 3: Fuzzy Match
+        // TIER 3: Fuzzy Match - Pass cached data to avoid re-query
         console.log('⚠️ TIER 2 failed, trying TIER 3 - Fuzzy match...');
-        return await searchLearningFuzzy(env, keywords, districtId);
+        return await searchLearningFuzzy(env, keywords, districtId, allKeywords.results);
         
     } catch (error) {
         console.error('Partial match error:', error);
@@ -246,16 +247,24 @@ async function searchLearningPartial(env, keywords, districtId) {
 
 /**
  * TIER 3: Fuzzy Match - Handle typos using Levenshtein distance
+ * @param {Array} cachedKeywords - Optional cached keywords from TIER 2 to avoid re-query
  */
-async function searchLearningFuzzy(env, keywords, districtId) {
+async function searchLearningFuzzy(env, keywords, districtId, cachedKeywords = null) {
     try {
-        const allKeywords = await env.DB.prepare(`
-            SELECT keywords, ward_id, ward_name, match_count
-            FROM address_learning
-            WHERE district_id = ?
-        `).bind(districtId).all();
+        // Use cached data if available, otherwise query
+        let allKeywords = cachedKeywords;
         
-        if (!allKeywords.results || allKeywords.results.length === 0) {
+        if (!allKeywords || allKeywords.length === 0) {
+            const result = await env.DB.prepare(`
+                SELECT keywords, ward_id, ward_name, match_count
+                FROM address_learning
+                WHERE district_id = ?
+            `).bind(districtId).all();
+            
+            allKeywords = result.results || [];
+        }
+        
+        if (allKeywords.length === 0) {
             console.log('❌ TIER 3 failed - No keywords in district');
             return { found: false };
         }
@@ -264,7 +273,7 @@ async function searchLearningFuzzy(env, keywords, districtId) {
         let bestScore = 0;
         
         for (const inputKeyword of keywords) {
-            for (const dbRow of allKeywords.results) {
+            for (const dbRow of allKeywords) {
                 const dbKeyword = dbRow.keywords;
                 
                 // Calculate similarity (0-1)
