@@ -149,6 +149,37 @@ async function submitNewOrder() {
 
         if (response.ok && result.success) {
             showToast('✅ Tạo đơn hàng thành công!', 'success');
+            
+            // Learn from this address (async, don't wait)
+            console.log('🔍 Learning check:', {
+                streetAddress,
+                districtId,
+                wardId,
+                wardName,
+                hasFunction: typeof learnFromAddress !== 'undefined'
+            });
+            
+            if (streetAddress && districtId && wardId && wardName) {
+                console.log('📚 Calling learnFromAddress...');
+                learnFromAddress(streetAddress, parseInt(districtId), parseInt(wardId), wardName)
+                    .then(result => {
+                        console.log('📚 Learning result:', result);
+                        if (result.success) {
+                            console.log('✅ Address learned:', result.keywords_saved, 'keywords');
+                        } else {
+                            console.error('❌ Learning failed:', result);
+                        }
+                    })
+                    .catch(err => console.error('❌ Learning error:', err));
+            } else {
+                console.warn('⚠️ Missing data for learning:', {
+                    hasStreet: !!streetAddress,
+                    hasDistrict: !!districtId,
+                    hasWard: !!wardId,
+                    hasWardName: !!wardName
+                });
+            }
+            
             closeAddOrderModal();
             
             // Reload orders data

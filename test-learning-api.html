@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Learning API</title>
+</head>
+<body>
+    <h1>Test Address Learning API</h1>
+    
+    <h2>1. Test Learn Address</h2>
+    <button onclick="testLearn()">Test Learn</button>
+    <pre id="learnResult"></pre>
+    
+    <h2>2. Test Search Address</h2>
+    <button onclick="testSearch()">Test Search</button>
+    <pre id="searchResult"></pre>
+    
+    <h2>3. Test Stats</h2>
+    <button onclick="testStats()">Test Stats</button>
+    <pre id="statsResult"></pre>
+    
+    <script>
+        const API_URL = 'https://ctv-api.yendev96.workers.dev';
+        
+        async function testLearn() {
+            const result = document.getElementById('learnResult');
+            result.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'learnAddress',
+                        street_address: 'ngõ 2 sau đình hậu dưỡng',
+                        district_id: 18,
+                        ward_id: 595,
+                        ward_name: 'Xã Kim Chung'
+                    })
+                });
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testSearch() {
+            const result = document.getElementById('searchResult');
+            result.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(
+                    `${API_URL}?action=searchAddressLearning&keywords=hau duong&district_id=18`
+                );
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testStats() {
+            const result = document.getElementById('statsResult');
+            result.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(
+                    `${API_URL}?action=getAddressLearningStats`
+                );
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

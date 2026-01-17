@@ -41,6 +41,9 @@ import {
 // Product Categories
 import { getProductCategories } from '../services/products/product-categories.js';
 
+// Address Learning
+import { searchLearning, getLearningStats } from '../services/address-learning/address-learning-service.js';
+
 // Customers
 import { 
     getAllCustomers, 
@@ -321,6 +324,15 @@ export async function handleGet(action, url, request, env, corsHeaders) {
                     ...corsHeaders
                 }
             });
+
+        // Address Learning
+        case 'searchAddressLearning':
+            const keywords = url.searchParams.get('keywords')?.split(',').filter(k => k.trim()) || [];
+            const learningDistrictId = parseInt(url.searchParams.get('district_id'));
+            return await searchLearning(env, keywords, learningDistrictId).then(data => jsonResponse(data, 200, corsHeaders));
+
+        case 'getAddressLearningStats':
+            return await getLearningStats(env).then(data => jsonResponse(data, 200, corsHeaders));
 
         default:
             return jsonResponse({

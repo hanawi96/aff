@@ -88,6 +88,9 @@ import {
 // Upload
 import { uploadImage } from '../services/upload/image-upload.js';
 
+// Address Learning
+import { learnAddress } from '../services/address-learning/address-learning-service.js';
+
 // ============================================
 // POST WITH ACTION (Query String)
 // ============================================
@@ -288,6 +291,9 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateTaxRate(data, env, corsHeaders);
             case 'getProfitReport':
                 return await getProfitReport(data, env, corsHeaders);
+            case 'learnAddress':
+                return await learnAddress(env, data.street_address, data.district_id, data.ward_id, data.ward_name)
+                    .then(result => jsonResponse(result, 200, corsHeaders));
             default:
                 return jsonResponse({
                     success: false,
