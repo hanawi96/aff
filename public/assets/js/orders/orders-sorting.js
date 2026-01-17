@@ -117,11 +117,22 @@ function updateAmountSortIcon() {
 
 /**
  * Apply current sorting to filteredOrdersData
+ * Priority orders always appear first, then apply other sorting
  */
 function applySorting() {
-    // Ưu tiên sắp xếp theo amount nếu đang active
-    if (amountSortOrder !== 'none') {
-        filteredOrdersData.sort((a, b) => {
+    // Sort by priority first (priority = 1 comes first)
+    filteredOrdersData.sort((a, b) => {
+        const priorityA = a.is_priority || 0;
+        const priorityB = b.is_priority || 0;
+        
+        // If priorities are different, priority orders come first
+        if (priorityA !== priorityB) {
+            return priorityB - priorityA;
+        }
+        
+        // If same priority, apply secondary sorting
+        // Ưu tiên sắp xếp theo amount nếu đang active
+        if (amountSortOrder !== 'none') {
             const amountA = a.total_amount || 0;
             const amountB = b.total_amount || 0;
 
@@ -130,9 +141,7 @@ function applySorting() {
             } else {
                 return amountA - amountB;
             }
-        });
-    } else if (dateSortOrder !== 'none') {
-        filteredOrdersData.sort((a, b) => {
+        } else if (dateSortOrder !== 'none') {
             const dateA = new Date(a.created_at || a.order_date || 0);
             const dateB = new Date(b.created_at || b.order_date || 0);
 
@@ -141,6 +150,11 @@ function applySorting() {
             } else {
                 return dateA - dateB;
             }
-        });
-    }
+        }
+        
+        // Default: newest first
+        const dateA = new Date(a.created_at || a.order_date || 0);
+        const dateB = new Date(b.created_at || b.order_date || 0);
+        return dateB - dateA;
+    });
 }

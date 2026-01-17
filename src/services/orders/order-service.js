@@ -169,6 +169,9 @@ export async function createOrder(data, env, corsHeaders) {
         // Get discount data
         const discountCode = data.discountCode || null;
         const discountAmount = data.discountAmount || 0;
+        const isPriority = data.is_priority || 0;
+        
+        console.log('⭐ Creating order with priority:', isPriority, 'from data:', data.is_priority);
 
         const orderTimestamp = new Date(orderDate).getTime();
         const result = await env.DB.prepare(`
@@ -180,8 +183,8 @@ export async function createOrder(data, env, corsHeaders) {
                 tax_amount, tax_rate, created_at_unix,
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
-                discount_code, discount_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                discount_code, discount_amount, is_priority
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             orderDate,
@@ -212,7 +215,8 @@ export async function createOrder(data, env, corsHeaders) {
             data.ward_name || null,
             data.street_address || null,
             discountCode,
-            discountAmount
+            discountAmount,
+            isPriority
         ).run();
 
         if (!result.success) {
@@ -655,6 +659,69 @@ export async function updateOrderStatus(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error updating order status:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Toggle order priority
+export async function toggleOrderPriority(data, env, corsHeaders) {
+    try {
+        if (!data.orderId) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu orderId'
+            }, 400, corsHeaders);
+        }
+
+        // Check if isPriority is explicitly provided (for bulk actions)
+        let newPriority;
+        if (data.isPriority !== undefined && data.isPriority !== null) {
+            // Use explicit value (0 or 1)
+            newPriority = data.isPriority;
+        } else {
+            // Toggle mode: Get current priority status and flip it
+            const order = await env.DB.prepare(`
+                SELECT is_priority FROM orders WHERE id = ?
+            `).bind(data.orderId).first();
+
+            if (!order) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Không tìm thấy đơn hàng'
+                }, 404, corsHeaders);
+            }
+
+            // Toggle priority (0 -> 1, 1 -> 0)
+            newPriority = order.is_priority === 1 ? 0 : 1;
+        }
+
+        // Update in D1
+        const result = await env.DB.prepare(`
+            UPDATE orders 
+            SET is_priority = ?
+            WHERE id = ?
+        `).bind(newPriority, data.orderId).run();
+
+        if (result.meta.changes === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Không thể cập nhật'
+            }, 500, corsHeaders);
+        }
+
+        console.log('✅ Updated order priority:', data.orderId, '->', newPriority);
+
+        return jsonResponse({
+            success: true,
+            isPriority: newPriority,
+            message: newPriority === 1 ? 'Đã đánh dấu ưu tiên' : 'Đã bỏ đánh dấu ưu tiên'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error toggling order priority:', error);
         return jsonResponse({
             success: false,
             error: error.message

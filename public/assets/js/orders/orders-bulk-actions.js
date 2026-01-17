@@ -332,3 +332,68 @@ async function bulkDelete() {
         showToast('Không thể xóa đơn hàng: ' + error.message, 'error', null, 'bulk-delete');
     }
 }
+
+// ============================================
+// BULK PRIORITY TOGGLE
+// ============================================
+
+/**
+ * Bulk Toggle Priority - Mark/unmark selected orders as priority
+ * @param {boolean} setPriority - true to mark as priority, false to unmark
+ */
+async function bulkTogglePriority(setPriority) {
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    const count = selectedOrderIds.size;
+    const action = setPriority ? 'đánh dấu ưu tiên' : 'bỏ đánh dấu ưu tiên';
+
+    try {
+        showToast(`Đang ${action} ${count} đơn hàng...`, 'info', 0, 'bulk-priority');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const orderId of selectedOrderIds) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'toggleOrderPriority',
+                        orderId: orderId,
+                        isPriority: setPriority ? 1 : 0
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                    // Update local data
+                    updateOrderData(orderId, { is_priority: setPriority ? 1 : 0 });
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`Error toggling priority for order ${orderId}:`, error);
+            }
+        }
+
+        // Clear selection and re-render
+        clearSelection();
+        renderOrdersTable();
+
+        // Show result
+        if (failCount === 0) {
+            showToast(`Đã ${action} thành công ${successCount} đơn hàng`, 'success', null, 'bulk-priority');
+        } else {
+            showToast(`Đã ${action} ${successCount} đơn, thất bại ${failCount} đơn`, 'warning', null, 'bulk-priority');
+        }
+    } catch (error) {
+        console.error('Error bulk toggling priority:', error);
+        showToast(`Không thể ${action}: ` + error.message, 'error', null, 'bulk-priority');
+    }
+}

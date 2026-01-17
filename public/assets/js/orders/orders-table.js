@@ -54,12 +54,30 @@ function renderOrdersTable() {
 function createOrderRow(order, index, pageIndex, totalPageItems) {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-gray-50 transition-colors fade-in';
+    tr.setAttribute('data-order-id', order.id);
+    
+    // Apply priority styling
+    const isPriority = order.is_priority === 1;
+    if (isPriority) {
+        tr.classList.add('bg-yellow-50', 'border-l-4', 'border-yellow-400');
+        tr.classList.remove('hover:bg-gray-50');
+    }
 
-    // STT with Checkbox
+    // STT with Checkbox and Priority Star (only show star for priority orders)
     const tdIndex = document.createElement('td');
     tdIndex.className = 'px-4 py-4 whitespace-nowrap text-center';
     tdIndex.innerHTML = `
         <div class="flex items-center justify-center gap-2">
+            ${isPriority ? `
+                <button onclick="toggleOrderPriority(${order.id}, ${order.is_priority || 0})" 
+                        class="priority-icon hover:scale-110 transition-transform cursor-pointer"
+                        data-priority-order-id="${order.id}"
+                        title="Đơn ưu tiên - Click để bỏ đánh dấu">
+                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                </button>
+            ` : ''}
             <input type="checkbox" 
                    class="order-checkbox w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer" 
                    data-order-id="${order.id}"

@@ -25,7 +25,8 @@ import {
     updateAddress,
     updateAmount,
     deleteOrder,
-    updateOrderStatus
+    updateOrderStatus,
+    toggleOrderPriority
 } from '../services/orders/order-service.js';
 import { updateOrderProducts } from '../services/orders/order-items.js';
 
@@ -228,7 +229,9 @@ export async function handlePost(path, request, env, corsHeaders) {
                     district_name: data.district_name,
                     ward_id: data.ward_id,
                     ward_name: data.ward_name,
-                    street_address: data.street_address
+                    street_address: data.street_address,
+                    // Priority
+                    is_priority: data.is_priority || 0
                 };
                 return await createOrder(orderData, env, corsHeaders);
             case 'updateOrderProducts':
@@ -245,6 +248,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await deleteOrder(data, env, corsHeaders);
             case 'updateOrderStatus':
                 return await updateOrderStatus(data, env, corsHeaders);
+            case 'toggleOrderPriority':
+                return await toggleOrderPriority(data, env, corsHeaders);
             case 'createProduct':
                 return await createProduct(data, env, corsHeaders);
             case 'updateProduct':

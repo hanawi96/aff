@@ -521,6 +521,24 @@
                                     <span class="text-sm">Sửa trạng thái</span>
                                 </button>
                                 
+                                <button onclick="bulkTogglePriority(true)" 
+                                    class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
+                                    title="Đánh dấu ưu tiên">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <span class="text-sm">Ưu tiên</span>
+                                </button>
+                                
+                                <button onclick="bulkTogglePriority(false)" 
+                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
+                                    title="Bỏ đánh dấu ưu tiên">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <span class="text-sm">Bỏ ưu tiên</span>
+                                </button>
+                                
                                 <button onclick="bulkExport()" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
                                     title="Export đơn hàng đã chọn">
@@ -659,13 +677,14 @@
     <script src="../assets/js/orders/orders-utils.js?v=1"></script>
     <script src="../assets/js/orders/orders-ui-states.js?v=1"></script>
     <script src="../assets/js/orders/orders-pagination.js?v=1"></script>
-    <script src="../assets/js/orders/orders-sorting.js?v=1"></script>
+    <script src="../assets/js/orders/orders-sorting.js?v=2"></script>
     <script src="../assets/js/orders/orders-stats.js?v=1"></script>
     <script src="../assets/js/orders/orders-data-loader.js?v=3"></script>
     <script src="../assets/js/orders/orders-filters.js?v=2"></script>
     <script src="../assets/js/orders/orders-bulk-actions.js?v=1"></script>
     <script src="../assets/js/orders/orders-export-history.js?v=25"></script>
-    <script src="../assets/js/orders/orders-table.js?v=2"></script>
+    <script src="../assets/js/orders/orders-priority.js?v=1"></script>
+    <script src="../assets/js/orders/orders-table.js?v=3"></script>
     <script src="../assets/js/orders/orders-status.js?v=1"></script>
     <script src="../assets/js/orders/orders-products-display.js?v=1"></script>
     <script src="../assets/js/orders/orders-detail-modal.js?v=1"></script>

@@ -49,6 +49,32 @@ async function submitNewOrder() {
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0;
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0;
     const orderNotes = document.getElementById('newOrderNotes')?.value.trim() || '';
+    
+    // Check for duplicate IDs
+    const allPriorityCheckboxes = document.querySelectorAll('#newOrderPriority');
+    console.log('🔍 Number of priority checkboxes found:', allPriorityCheckboxes.length);
+    if (allPriorityCheckboxes.length > 1) {
+        console.error('❌ DUPLICATE ID DETECTED! Multiple checkboxes with id="newOrderPriority"');
+    }
+    
+    const priorityCheckbox = document.getElementById('newOrderPriority');
+    const isPriority = priorityCheckbox?.checked ? 1 : 0;
+    
+    console.log('🔍 Priority checkbox debug:', {
+        element: priorityCheckbox,
+        exists: !!priorityCheckbox,
+        checked: priorityCheckbox?.checked,
+        value: priorityCheckbox?.value,
+        type: priorityCheckbox?.type,
+        isPriority: isPriority
+    });
+    
+    // TEMPORARY DEBUG: Alert to confirm
+    if (isPriority === 1) {
+        console.log('✅ PRIORITY ORDER - is_priority = 1');
+    } else {
+        console.log('⚪ NORMAL ORDER - is_priority = 0');
+    }
 
     // Get address data (both text and structured)
     const provinceSelect = document.getElementById('newOrderProvince');
@@ -121,10 +147,12 @@ async function submitNewOrder() {
         discountCode: discountCode,
         discount_code: discountCode,
         discountAmount: discountAmount,
-        discount_amount: discountAmount
+        discount_amount: discountAmount,
+        is_priority: isPriority
     };
 
     console.log('📦 Order data:', orderData);
+    console.log('⭐ is_priority value:', orderData.is_priority);
 
     // Show loading state
     const submitButton = event?.target;
