@@ -119,6 +119,7 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         
         // 1. Exact match (highest priority)
         if (normalizedOption === normalizedInput || cleanOption === cleanInput) {
+            console.log(`      [EXACT] ${option.Name}: 1.00`);
             return { match: option, score: 1.0, confidence: 'high' };
         }
         
@@ -127,16 +128,51 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         if (normalizedInput.includes(cleanOption) && cleanOption.length >= 4) {
             score = 0.9;
             type = 'input-contains-option';
+            console.log(`      [CONTAINS-1] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Check if option contains input (user typed less)
         else if (cleanOption.includes(cleanInput) && cleanInput.length >= 4) {
             score = 0.85;
             type = 'option-contains-input';
+            
+            // IMPORTANT: Check word order for partial matches
+            // Example: "Tân Vĩnh" should match "Tân Vĩnh Hiệp" (0.85) better than "Vĩnh Tân" (0.85 → 0.80)
+            const inputWords = cleanInput.split(/\s+/).filter(w => w.length > 0);
+            const optionWords = cleanOption.split(/\s+/).filter(w => w.length > 0);
+            
+            if (inputWords.length >= 2) {
+                // Check if input words appear in same order in option
+                let lastIndex = -1;
+                let isSequential = true;
+                
+                for (const iw of inputWords) {
+                    let found = false;
+                    for (let j = lastIndex + 1; j < optionWords.length; j++) {
+                        if (optionWords[j] === iw || optionWords[j].includes(iw) || iw.includes(optionWords[j])) {
+                            lastIndex = j;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        isSequential = false;
+                        break;
+                    }
+                }
+                
+                // If words are NOT in sequential order, reduce score
+                if (!isSequential) {
+                    score = 0.80; // Penalty for reversed/mixed order
+                    type = 'option-contains-input-reversed';
+                }
+            }
+            console.log(`      [CONTAINS-2] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Full normalized contains
         else if (normalizedOption.includes(normalizedInput) || normalizedInput.includes(normalizedOption)) {
             score = 0.8;
             type = 'contains-full';
+            console.log(`      [CONTAINS-3] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         
         // 3. Word-by-word matching with ALL words must match
@@ -145,10 +181,14 @@ function fuzzyMatch(input, options, threshold = 0.6) {
             const optionWords = cleanOption.split(/\s+/).filter(w => w.length > 0);
             
             let matchCount = 0;
+            const matchedIndices = []; // Track which option word indices matched
+            
             for (const iw of inputWords) {
-                for (const ow of optionWords) {
+                for (let j = 0; j < optionWords.length; j++) {
+                    const ow = optionWords[j];
                     if (iw === ow || ow.includes(iw) || iw.includes(ow)) {
                         matchCount++;
+                        matchedIndices.push(j);
                         break;
                     }
                 }
@@ -157,11 +197,29 @@ function fuzzyMatch(input, options, threshold = 0.6) {
             if (matchCount > 0) {
                 // Higher score if ALL input words matched
                 if (matchCount === inputWords.length) {
-                    score = 0.95;
-                    type = `word-match-all-${matchCount}`;
+                    // Check if words are in same order (sequential indices)
+                    let isSequential = true;
+                    for (let i = 1; i < matchedIndices.length; i++) {
+                        if (matchedIndices[i] <= matchedIndices[i - 1]) {
+                            isSequential = false;
+                            break;
+                        }
+                    }
+                    
+                    // BONUS: Same order gets higher score
+                    if (isSequential) {
+                        score = 0.98; // Higher than reversed order
+                        type = `word-match-sequential-${matchCount}`;
+                        console.log(`      [WORD-SEQ] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
+                    } else {
+                        score = 0.80; // Reversed or mixed order - LOWER than contains match (0.85)
+                        type = `word-match-all-${matchCount}`;
+                        console.log(`      [WORD-REV] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
+                    }
                 } else {
                     score = (matchCount / Math.max(inputWords.length, optionWords.length)) * 0.7;
                     type = `word-match-${matchCount}/${inputWords.length}`;
+                    console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
                 }
             }
         }
@@ -853,18 +911,34 @@ function parseAddress(addressText) {
                     console.log(`    📍 Extracted ward portion: "${wardPart}" from "${part}"`);
                 }
                 
-                const wardMatchResult = fuzzyMatch(wardPart, result.district.Wards, 0.4);
-                if (wardMatchResult) {
+                // Check ALL wards to find best match (word order matters!)
+                let bestWardForPart = null;
+                let bestScoreForPart = 0;
+                
+                console.log(`    🔍 Checking all ${result.district.Wards.length} wards for "${wardPart}"...`);
+                
+                for (const ward of result.district.Wards) {
+                    const match = fuzzyMatch(wardPart, [ward], 0.4);
+                    if (match && match.score >= 0.4) {
+                        console.log(`      → ${ward.Name}: score=${match.score.toFixed(2)}`);
+                        if (match.score > bestScoreForPart) {
+                            bestWardForPart = ward;
+                            bestScoreForPart = match.score;
+                        }
+                    }
+                }
+                
+                if (bestWardForPart && bestScoreForPart >= 0.4) {
                     const wordCount = wardPart.split(/\s+/).length;
                     const shouldReplace = 
-                        wardMatchResult.score > bestWardScore + 0.05 ||
-                        (Math.abs(wardMatchResult.score - bestWardScore) <= 0.05 && wordCount > bestWardWordCount);
+                        bestScoreForPart > bestWardScore + 0.01 || // Lower threshold to prefer higher scores
+                        (Math.abs(bestScoreForPart - bestWardScore) <= 0.01 && wordCount > bestWardWordCount);
                     
                     if (shouldReplace) {
-                        bestWardMatch = wardMatchResult;
-                        bestWardScore = wardMatchResult.score;
+                        bestWardMatch = { match: bestWardForPart, score: bestScoreForPart, confidence: 'high' };
+                        bestWardScore = bestScoreForPart;
                         bestWardWordCount = wordCount;
-                        console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${wardMatchResult.match.Name} (score: ${wardMatchResult.score.toFixed(2)})`);
+                        console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${bestWardForPart.Name} (score: ${bestScoreForPart.toFixed(2)})`);
                     }
                 }
             }
