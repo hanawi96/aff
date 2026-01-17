@@ -221,7 +221,7 @@ function extractPhoneNumber(text) {
  */
 function extractCustomerName(lines, phoneInfo) {
     // Remove lines that contain phone or address keywords
-    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 'khu', 'số', 'so'];
+    const addressKeywords = ['phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 'khu', 'số', 'so', 'đống', 'dong', 'ngõ', 'ngo', 'hem', 'hẻm'];
     
     console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
@@ -611,14 +611,26 @@ function parseAddress(addressText) {
     // Track which part was used for province to avoid reusing it
     let provincePartIndex = -1;
     if (result.province) {
-        // Find which part matched the province
+        // Find which part matched the province - prefer SHORTEST match
+        // Example: prefer "thanh hoá" over "thọ xuân thanh hoá"
+        let shortestMatchLength = Infinity;
+        
         for (let i = 0; i < parts.length; i++) {
             const match = fuzzyMatch(parts[i], [result.province], 0.7);
             if (match && match.score >= 0.7) {
-                provincePartIndex = i;
-                console.log(`    📍 Province part index: ${i} ("${parts[i]}")`);
-                break;
+                const partLength = parts[i].length;
+                
+                // Prefer shorter matches (more precise)
+                if (partLength < shortestMatchLength) {
+                    provincePartIndex = i;
+                    shortestMatchLength = partLength;
+                    console.log(`    📍 Province part candidate: ${i} ("${parts[i]}", length: ${partLength})`);
+                }
             }
+        }
+        
+        if (provincePartIndex >= 0) {
+            console.log(`    ✅ Province part index: ${provincePartIndex} ("${parts[provincePartIndex]}")`);
         }
     }
     
@@ -656,37 +668,78 @@ function parseAddress(addressText) {
         }
         
         // Second pass: Check all parts if not found with good score
-        // IMPORTANT: Iterate from END to START (parts closer to province are more likely to be district)
+        // IMPORTANT: Check all districts to find multiple matches for verification
         if (bestDistrictScore < 0.7) {
-            for (let i = parts.length - 1; i >= 0; i--) {
+            // Collect all district candidates first
+            const districtCandidates = [];
+            
+            for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
                 
                 // Skip if this part was used for province
-                if (i === provincePartIndex) {
-                    console.log(`    ⏭️ Skipping province part: "${part}"`);
-                    continue;
-                }
-                
+                if (i === provincePartIndex) continue;
                 if (part.length < 4) continue;
-                const wordCount = part.split(/\s+/).length;
                 
-                const districtMatch = fuzzyMatch(part, result.province.Districts, 0.4);
-                if (districtMatch) {
-                    // For similar scores, prefer parts closer to end (near province)
-                    const shouldReplace = 
-                        districtMatch.score > bestDistrictScore + 0.05 ||
-                        (Math.abs(districtMatch.score - bestDistrictScore) <= 0.05 && i > parts.indexOf(parts.find(p => {
-                            const m = fuzzyMatch(p, result.province.Districts, 0.4);
-                            return m && m.score === bestDistrictScore;
-                        })));
-                    
-                    if (shouldReplace) {
-                        bestDistrictMatch = districtMatch;
-                        bestDistrictScore = districtMatch.score;
-                        bestDistrictWordCount = wordCount;
-                        console.log(`    ✓ District candidate: "${part}" (${wordCount} words, pos: ${i}) → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)})`);
+                // Check ALL districts in province, not just best match
+                for (const district of result.province.Districts) {
+                    const match = fuzzyMatch(part, [district], 0.4);
+                    if (match && match.score >= 0.4) {
+                        districtCandidates.push({
+                            part,
+                            index: i,
+                            district: district,
+                            score: match.score,
+                            wordCount: part.split(/\s+/).length
+                        });
                     }
                 }
+            }
+            
+            console.log(`    📊 Found ${districtCandidates.length} district candidate(s)`);
+            
+            // If multiple candidates with similar scores, verify with ward data
+            if (districtCandidates.length > 1) {
+                console.log(`    🔍 Multiple district candidates found, verifying with ward data...`);
+                
+                // Check which district has better ward matches
+                for (const candidate of districtCandidates) {
+                    let bestWardScoreForDistrict = 0;
+                    
+                    // Check all parts for ward matches in this district
+                    for (let j = 0; j < parts.length; j++) {
+                        if (j === provincePartIndex || j === candidate.index) continue;
+                        
+                        const wardMatch = fuzzyMatch(parts[j], candidate.district.Wards, 0.4);
+                        if (wardMatch && wardMatch.score > bestWardScoreForDistrict) {
+                            bestWardScoreForDistrict = wardMatch.score;
+                        }
+                    }
+                    
+                    candidate.wardScore = bestWardScoreForDistrict;
+                    console.log(`    📊 District "${candidate.part}" → ${candidate.district.Name}: district_score=${candidate.score.toFixed(2)}, best_ward_score=${bestWardScoreForDistrict.toFixed(2)}`);
+                }
+                
+                // Choose district with best combined score (ward score is priority)
+                districtCandidates.sort((a, b) => {
+                    // Priority: ward score (more important), then district score
+                    if (Math.abs(a.wardScore - b.wardScore) > 0.1) {
+                        return b.wardScore - a.wardScore;
+                    }
+                    return b.score - a.score;
+                });
+                
+                const bestCandidate = districtCandidates[0];
+                bestDistrictMatch = { match: bestCandidate.district, score: bestCandidate.score, confidence: 'high' };
+                bestDistrictScore = bestCandidate.score;
+                bestDistrictWordCount = bestCandidate.wordCount;
+                console.log(`    ✅ Best district (verified): "${bestCandidate.part}" → ${bestCandidate.district.Name} (ward_score: ${bestCandidate.wardScore.toFixed(2)})`);
+            } else if (districtCandidates.length === 1) {
+                // Only one candidate
+                const candidate = districtCandidates[0];
+                bestDistrictMatch = { match: candidate.district, score: candidate.score, confidence: 'high' };
+                bestDistrictScore = candidate.score;
+                bestDistrictWordCount = candidate.wordCount;
+                console.log(`    ✓ District candidate: "${candidate.part}" (${candidate.wordCount} words, pos: ${candidate.index}) → ${candidate.district.Name} (score: ${candidate.score.toFixed(2)})`);
             }
         }
     } else {
@@ -751,13 +804,24 @@ function parseAddress(addressText) {
         
         // Track which part was used for district to avoid reusing it
         let districtPartIndex = -1;
+        let shortestDistrictMatchLength = Infinity;
+        
         for (let i = 0; i < parts.length; i++) {
             const match = fuzzyMatch(parts[i], [result.district], 0.7);
             if (match && match.score >= 0.7) {
-                districtPartIndex = i;
-                console.log(`    📍 District part index: ${i} ("${parts[i]}")`);
-                break;
+                const partLength = parts[i].length;
+                
+                // Prefer shorter matches (more precise)
+                if (partLength < shortestDistrictMatchLength) {
+                    districtPartIndex = i;
+                    shortestDistrictMatchLength = partLength;
+                    console.log(`    📍 District part candidate: ${i} ("${parts[i]}", length: ${partLength})`);
+                }
             }
+        }
+        
+        if (districtPartIndex >= 0) {
+            console.log(`    ✅ District part index: ${districtPartIndex} ("${parts[districtPartIndex]}")`);
         }
         
         // First pass: Check parts with ward keywords (higher priority)
