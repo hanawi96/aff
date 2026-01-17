@@ -668,7 +668,53 @@ async function parseAddress(addressText) {
                             let wardWordCount = Math.min(2, words.length); // Default: 2 words
                             let bestSplitScore = 0;
                             
-                            if (words.length > 3) {
+                            // CRITICAL: Check last 2 words for known district names FIRST
+                            // Example: "14 gò vấp" → "gò vấp" is district name
+                            if (words.length >= 2) {
+                                const knownDistrictPatterns = [
+                                    // HCMC districts
+                                    /\b(go vap|gò vấp)\b/i,
+                                    /\b(tan binh|tân bình)\b/i,
+                                    /\b(binh thanh|bình thạnh)\b/i,
+                                    /\b(phu nhuan|phú nhuận)\b/i,
+                                    /\b(tan phu|tân phú)\b/i,
+                                    /\b(binh tan|bình tân)\b/i,
+                                    /\b(thu duc|thủ đức)\b/i,
+                                    /\b(binh chanh|bình chánh)\b/i,
+                                    /\b(hoc mon|hóc môn)\b/i,
+                                    /\b(nha be|nhà bè)\b/i,
+                                    /\b(can gio|cần giờ)\b/i,
+                                    /\b(cu chi|củ chi)\b/i,
+                                    // Long An districts
+                                    /\b(can giuoc|cần giuộc)\b/i,
+                                    /\b(tan an|tân an)\b/i,
+                                    /\b(ben luc|bến lức)\b/i,
+                                    /\b(duc hoa|đức hòa)\b/i,
+                                    /\b(thu thua|thủ thừa)\b/i,
+                                    // Nghệ An districts
+                                    /\b(thanh chuong|thanh chương)\b/i,
+                                    /\b(nghi loc|nghi lộc)\b/i,
+                                    /\b(nam dan|nam đàn)\b/i
+                                ];
+                                
+                                // Check last 2-3 words
+                                for (let lastWordCount = 2; lastWordCount <= Math.min(3, words.length); lastWordCount++) {
+                                    const lastWords = words.slice(-lastWordCount).join(' ');
+                                    const lastWordsNormalized = removeVietnameseTones(lastWords).toLowerCase();
+                                    
+                                    for (const pattern of knownDistrictPatterns) {
+                                        if (pattern.test(lastWordsNormalized)) {
+                                            wardWordCount = words.length - lastWordCount;
+                                            bestSplitScore = 3.0;
+                                            console.log(`    ✅✅ Found district in LAST ${lastWordCount} words: "${lastWords}" → ward=${wardWordCount} words`);
+                                            break;
+                                        }
+                                    }
+                                    if (bestSplitScore >= 3.0) break;
+                                }
+                            }
+                            
+                            if (bestSplitScore < 3.0 && words.length > 2) {
                                 // Try different split points (1-3 words for ward)
                                 // IMPORTANT: Try from LONGEST to SHORTEST (3→2→1)
                                 // This prefers more specific ward names
