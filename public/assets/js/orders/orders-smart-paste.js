@@ -443,6 +443,84 @@ async function parseAddress(addressText) {
     // Pattern 3: Sài Gòn, SG → TP.HCM
     processedAddress = processedAddress.replace(/\b(sai gon|saigon|sg)\b/gi, 'Thành phố Hồ Chí Minh');
     
+    // Pattern 3.2: Standalone city codes at END of address (without "tp" prefix)
+    // "quận tân phú hcm" → "quận tân phú Thành phố Hồ Chí Minh"
+    // IMPORTANT: Only match at end or before comma/space
+    processedAddress = processedAddress.replace(/\s+(hcm|hn|dn)(?:\s|,|$)/gi, (match, city) => {
+        const cityMap = {
+            'hn': ' Thành phố Hà Nội',
+            'hcm': ' Thành phố Hồ Chí Minh',
+            'dn': ' Thành phố Đà Nẵng'
+        };
+        const trailing = match.match(/[\s,]$/)?.[0] || '';
+        return cityMap[city.toLowerCase()] + trailing;
+    });
+    
+    // Pattern 3.5: Province abbreviations (common 2-letter codes)
+    // IMPORTANT: These must be at word boundaries to avoid false matches
+    // CONFLICT HANDLING: Some codes are ambiguous, prioritize most common usage
+    
+    // 4-letter codes (no conflicts)
+    processedAddress = processedAddress.replace(/\bbrvt\b/gi, 'Bà Rịa - Vũng Tàu');
+    processedAddress = processedAddress.replace(/\btth\b/gi, 'Thừa Thiên Huế');
+    processedAddress = processedAddress.replace(/\bbtr\b/gi, 'Bến Tre');
+    
+    // 2-letter codes - UNAMBIGUOUS (safe to expand)
+    processedAddress = processedAddress.replace(/\bbn\b/gi, 'Bắc Ninh');
+    processedAddress = processedAddress.replace(/\bbg\b/gi, 'Bắc Giang');
+    processedAddress = processedAddress.replace(/\bbk\b/gi, 'Bắc Kạn');
+    processedAddress = processedAddress.replace(/\bhb\b/gi, 'Hòa Bình');
+    processedAddress = processedAddress.replace(/\bhy\b/gi, 'Hưng Yên');
+    processedAddress = processedAddress.replace(/\bls\b/gi, 'Lạng Sơn');
+    processedAddress = processedAddress.replace(/\blc\b/gi, 'Lào Cai');
+    processedAddress = processedAddress.replace(/\bnb\b/gi, 'Ninh Bình');
+    processedAddress = processedAddress.replace(/\bpt\b/gi, 'Phú Thọ');
+    processedAddress = processedAddress.replace(/\bsl\b/gi, 'Sơn La');
+    processedAddress = processedAddress.replace(/\btb\b/gi, 'Thái Bình');
+    processedAddress = processedAddress.replace(/\btq\b/gi, 'Tuyên Quang');
+    processedAddress = processedAddress.replace(/\bvp\b/gi, 'Vĩnh Phúc');
+    processedAddress = processedAddress.replace(/\byb\b/gi, 'Yên Bái');
+    processedAddress = processedAddress.replace(/\bna\b/gi, 'Nghệ An');
+    processedAddress = processedAddress.replace(/\bht\b/gi, 'Hà Tĩnh');
+    processedAddress = processedAddress.replace(/\bqb\b/gi, 'Quảng Bình');
+    processedAddress = processedAddress.replace(/\bqt\b/gi, 'Quảng Trị');
+    processedAddress = processedAddress.replace(/\bqng\b/gi, 'Quảng Ngãi');
+    processedAddress = processedAddress.replace(/\bpy\b/gi, 'Phú Yên');
+    processedAddress = processedAddress.replace(/\bkh\b/gi, 'Khánh Hòa');
+    processedAddress = processedAddress.replace(/\bnt\b/gi, 'Ninh Thuận');
+    processedAddress = processedAddress.replace(/\bgl\b/gi, 'Gia Lai');
+    processedAddress = processedAddress.replace(/\bkt\b/gi, 'Kon Tum');
+    processedAddress = processedAddress.replace(/\bld\b/gi, 'Lâm Đồng');
+    processedAddress = processedAddress.replace(/\bbp\b/gi, 'Bình Phước');
+    processedAddress = processedAddress.replace(/\bla\b/gi, 'Long An');
+    processedAddress = processedAddress.replace(/\btg\b/gi, 'Tiền Giang');
+    processedAddress = processedAddress.replace(/\bvl\b/gi, 'Vĩnh Long');
+    processedAddress = processedAddress.replace(/\bdt\b/gi, 'Đồng Tháp');
+    processedAddress = processedAddress.replace(/\bag\b/gi, 'An Giang');
+    processedAddress = processedAddress.replace(/\bkg\b/gi, 'Kiên Giang');
+    processedAddress = processedAddress.replace(/\bbl\b/gi, 'Bạc Liêu');
+    processedAddress = processedAddress.replace(/\bcm\b/gi, 'Cà Mau');
+    processedAddress = processedAddress.replace(/\bst\b/gi, 'Sóc Trăng');
+    processedAddress = processedAddress.replace(/\btv\b/gi, 'Trà Vinh');
+    
+    // 2-letter codes - AMBIGUOUS (need context or prioritize common usage)
+    // BD: Bình Dương (more common) vs Bình Định
+    processedAddress = processedAddress.replace(/\bbd\b/gi, 'Bình Dương');
+    // BT: Bình Thuận (more common) vs Bến Tre (use BTR)
+    processedAddress = processedAddress.replace(/\bbt\b/gi, 'Bình Thuận');
+    // DN: Đồng Nai (more common) vs Đắk Nông (use DL for Đắk Lắk region)
+    processedAddress = processedAddress.replace(/\bdn\b/gi, 'Đồng Nai');
+    // DL: Đắk Lắk (more common than Đồng Nai in this context)
+    processedAddress = processedAddress.replace(/\bdl\b/gi, 'Đắk Lắk');
+    // TN: Thái Nguyên (more common) vs Tây Ninh
+    processedAddress = processedAddress.replace(/\btn\b/gi, 'Thái Nguyên');
+    // HG: Hà Giang (Northern, more common) vs Hậu Giang (Southern)
+    processedAddress = processedAddress.replace(/\bhg\b/gi, 'Hà Giang');
+    // QN: Quảng Ninh (more common) vs Quảng Nam
+    processedAddress = processedAddress.replace(/\bqn\b/gi, 'Quảng Ninh');
+    // HN: Hà Nam (province) - but be careful with Hà Nội (city, already handled)
+    processedAddress = processedAddress.replace(/\bhn\b/gi, 'Hà Nam');
+    
     // Pattern 4: "hồ chí minh" (without "thành phố") → add prefix
     // IMPORTANT: Check if "Thành phố" already exists before it
     processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ho chi minh|hồ chí minh)\b/gi, 'Thành phố Hồ Chí Minh');
@@ -464,11 +542,31 @@ async function parseAddress(addressText) {
     // IMPORTANT: Match full province/district names first (most specific)
     // "tỉnh đaklak" → "tỉnh Đắk Lắk", "huyện easup" → "huyện Ea Súp"
     
-    // Province level (highest priority)
-    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(dak\s*lak|đak\s*lak|daklak|đaklak)\b/gi, 'Tỉnh Đắk Lắk');
-    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(dak\s*nong|đak\s*nông|daknong|đaknông)\b/gi, 'Tỉnh Đắk Nông');
+    // Province level (highest priority) - with and without prefix
+    // Đắk Lắk - MANY VARIANTS (customers often misspell)
+    // IMPORTANT: "ă" vs "ắ" - both must be handled!
+    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(dak\s*lak|đak\s*lak|dac\s*lac|đắc\s*lắc|daklak|đaklak|đăklăk|đắklắk|daclac|đắclắc|dak\s*lac|đak\s*lac|dac\s*lak|đắc\s*lak|đăk\s*lăk)\b/gi, 'Tỉnh Đắk Lắk');
+    // Đắk Nông - variants
+    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(dak\s*nong|đak\s*nông|dac\s*nong|đắc\s*nông|daknong|đaknông|dacnong|đắcnông|đăk\s*nông)\b/gi, 'Tỉnh Đắk Nông');
+    // Other provinces
+    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(gia\s*lai|gialai)\b/gi, 'Tỉnh Gia Lai');
+    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(kon\s*tum|kontum)\b/gi, 'Tỉnh Kon Tum');
+    processedAddress = processedAddress.replace(/\b(tinh|tỉnh)\s+(lam\s*dong|lâm\s*đồng|lamdong|lâmđồng)\b/gi, 'Tỉnh Lâm Đồng');
     
-    // District/Ward level
+    // Province names WITHOUT prefix (standalone) - Đắk Lắk variants
+    // CRITICAL: \b doesn't work with Unicode! Use (?:^|[,\s]) and (?:[,\s]|$) instead
+    processedAddress = processedAddress.replace(/(?:^|[,\s])(dak\s*lak|daklak|đaklak|đăklăk|đắklắk|dac\s*lac|daclac|đắclắc|dak\s*lac|dac\s*lak|đak\s*lac|đắc\s*lak|đắc\s*lắc|đăk\s*lăk)(?![a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ])/gi, (match, p1) => {
+        // Preserve leading comma/space
+        const leading = match.match(/^[,\s]/)?.[0] || '';
+        return leading + 'Đắk Lắk';
+    });
+    processedAddress = processedAddress.replace(/(?:^|[,\s])(dak\s*nong|daknong|đaknông|dac\s*nong|dacnong|đắcnông|đăk\s*nông)(?![a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ])/gi, (match, p1) => {
+        const leading = match.match(/^[,\s]/)?.[0] || '';
+        return leading + 'Đắk Nông';
+    });
+    
+    // District/Ward level - EXPANDED with more patterns
+    // Ea districts
     processedAddress = processedAddress.replace(/\b(huyen|huyện|tt|thi\s*tran|thị\s*trấn)\s+(ea\s*sup|easup)\b/gi, (match, prefix) => {
         const prefixMap = {
             'huyen': 'Huyện',
@@ -479,16 +577,74 @@ async function parseAddress(addressText) {
         };
         return `${prefixMap[prefix.toLowerCase().replace(/\s+/g, ' ')] || prefix} Ea Súp`;
     });
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(ea\s*h'?leo|eahleo|eah'leo)\b/gi, "Huyện Ea H'Leo");
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(ea\s*kar|eakar)\b/gi, 'Huyện Ea Kar');
+    
+    // Krông districts - normalize spacing
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*a\s*na|krongana)\b/gi, 'Huyện Krông A Na');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*buk|krongbuk|krông\s*búk)\b/gi, 'Huyện Krông Búk');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*nang|krongnang|krông\s*năng)\b/gi, 'Huyện Krông Năng');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*bong|krongbong|krông\s*bông)\b/gi, 'Huyện Krông Bông');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*pac|krongpac|krông\s*pắc)\b/gi, 'Huyện Krông Pắc');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(krong\s*no|krongno|krông\s*nô)\b/gi, 'Huyện Krông Nô');
+    
+    // M' districts
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(m'?drak|mdrak|m'?đrắk)\b/gi, "Huyện M'Đrắk");
+    
+    // Cu districts
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(cu\s*jut|cujut|cu\s*jút)\b/gi, 'Huyện Cu Jút');
+    processedAddress = processedAddress.replace(/\b(huyen|huyện)\s+(cu\s*mgar|cumgar|cu\s*m'gar)\b/gi, "Huyện Cu M'gar");
+    
+    // Buôn districts
+    processedAddress = processedAddress.replace(/\b(huyen|huyện|tx|thi\s*xa|thị\s*xã)\s+(buon\s*don|buôn\s*đôn|buondon)\b/gi, 'Huyện Buôn Đôn');
+    processedAddress = processedAddress.replace(/\b(tx|thi\s*xa|thị\s*xã)\s+(buon\s*ho|buôn\s*hồ|buonho)\b/gi, 'Thị xã Buôn Hồ');
+    
+    // Ea wards - normalize spacing
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*na|eana)\b/gi, 'Xã Ea Na');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*sin|easin)\b/gi, 'Xã Ea Sin');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*ngai|eangai)\b/gi, 'Xã Ea Ngai');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*sol|easol)\b/gi, 'Xã Ea Sol');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*ral|earal)\b/gi, 'Xã Ea Ral');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ea\s*tul|eatul)\b/gi, 'Xã Ea Tul');
+    
+    // Cu wards - normalize spacing (Cu Kty, Cu Pui, etc.)
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(cu\s*kty|cukty|cư\s*kty|cưkty)\b/gi, 'Xã Cu Kty');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(cu\s*pui|cupui)\b/gi, 'Xã Cu Pui');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(cu\s*bao|cubao)\b/gi, 'Xã Cu Bao');
+    
+    // Buôn wards
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(buon\s*ma\s*thuot|buôn\s*ma\s*thuột|buonmathuot)\b/gi, 'Xã Buôn Ma Thuột');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(buon\s*trap|buôn\s*trap|buontrap)\b/gi, 'Xã Buôn Trap');
+    
+    // Ia wards (Gia Lai)
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ia\s*grai|iagrai)\b/gi, 'Xã Ia Grai');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ia\s*ly|ialy)\b/gi, 'Xã Ia Ly');
+    processedAddress = processedAddress.replace(/\b(xa|xã)\s+(ia\s*nan|ianan)\b/gi, 'Xã Ia Nan');
     
     // General place names (lower priority - only if not already matched above)
-    processedAddress = processedAddress.replace(/\b(dak|đak)\s*(lak|lắk)\b/gi, 'Đắk Lắk');
-    processedAddress = processedAddress.replace(/\b(dak|đak)\s*(nong|nông)\b/gi, 'Đắk Nông');
+    // Đắk Lắk - all variants (with space) - MUST handle ă vs ắ
+    // CRITICAL: \b doesn't work with Unicode! Use negative lookahead instead
+    processedAddress = processedAddress.replace(/(?:^|[,\s])(dak|đak|dac|đắc|đăk)\s+(lak|lắk|lac|lắc|lăk)(?![a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ])/gi, (match) => {
+        const leading = match.match(/^[,\s]/)?.[0] || '';
+        return leading + 'Đắk Lắk';
+    });
+    processedAddress = processedAddress.replace(/(?:^|[,\s])(dak|đak|dac|đắc|đăk)\s+(nong|nông)(?![a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ])/gi, (match) => {
+        const leading = match.match(/^[,\s]/)?.[0] || '';
+        return leading + 'Đắk Nông';
+    });
     processedAddress = processedAddress.replace(/\b(ea)\s*(sup|súp)\b/gi, 'Ea Súp');
-    processedAddress = processedAddress.replace(/\b(ea)\s*(h'leo|hleo)\b/gi, "Ea H'Leo");
+    processedAddress = processedAddress.replace(/\b(ea)\s*(h'?leo|hleo)\b/gi, "Ea H'Leo");
     processedAddress = processedAddress.replace(/\b(ea)\s*(kar|kăr)\b/gi, 'Ea Kar');
+    processedAddress = processedAddress.replace(/\b(ea)\s*(na)\b/gi, 'Ea Na');
+    processedAddress = processedAddress.replace(/\b(krong|krông)\s*(a\s*na)\b/gi, 'Krông A Na');
     processedAddress = processedAddress.replace(/\b(krong|krông)\s*(buk|búk)\b/gi, 'Krông Búk');
+    processedAddress = processedAddress.replace(/\b(krong|krông)\s*(bong|bông)\b/gi, 'Krông Bông');
+    processedAddress = processedAddress.replace(/\b(buon|buôn)\s*(ma\s*thuot|ma\s*thuột)\b/gi, 'Buôn Ma Thuột');
     processedAddress = processedAddress.replace(/\b(cu)\s*(jut|jút)\b/gi, 'Cu Jút');
+    processedAddress = processedAddress.replace(/\b(cu)\s*(mgar|m'gar)\b/gi, "Cu M'gar");
+    processedAddress = processedAddress.replace(/\b(cu)\s*(kty|cư\s*kty)\b/gi, 'Cu Kty');
     processedAddress = processedAddress.replace(/\b(m)('?)(drak|đrắk)\b/gi, "M'Đrắk");
+    processedAddress = processedAddress.replace(/\b(ia)\s*(grai)\b/gi, 'Ia Grai');
     
     // Remove "cũ" and "mới" from district names (for TP.HCM administrative changes)
     // "quận 9 cũ" → "quận 9", "quận 2 mới" → "quận 2"
@@ -2202,9 +2358,18 @@ async function parseAddress(addressText) {
             const part = parts[i];
             
             // Skip if this part was used for province
+            // IMPORTANT: Only skip if it's ACTUALLY a province (not a ward with province-like name)
             if (i === provincePartIndex) {
-                console.log(`    ⏭️ Skipping province part: "${part}"`);
-                continue;
+                // Check if this part has ward keyword - if yes, DON'T skip it!
+                const normalized = removeVietnameseTones(part).toLowerCase();
+                const hasWardKeyword = wardKeywords.some(kw => normalized.includes(kw));
+                
+                if (!hasWardKeyword) {
+                    console.log(`    ⏭️ Skipping province part: "${part}"`);
+                    continue;
+                } else {
+                    console.log(`    ✓ Province part has ward keyword, will check: "${part}"`);
+                }
             }
             
             // IMPROVED: Skip if this part matches district name exactly
