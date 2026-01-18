@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bình Dương Fix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+        .test-case {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 10px 0;
+        }
+        .input {
+            font-weight: bold;
+            color: #2980b9;
+            margin-bottom: 10px;
+        }
+        .expected {
+            color: #27ae60;
+            margin: 5px 0;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Bình Dương False Positive Fix</h1>
+        
+        <div class="info">
+            <strong>Problem:</strong> "xã Phước Hòa Phú Giáo Bình Dương" was misidentified as Hà Nội<br>
+            <strong>Root causes:</strong>
+            <ol>
+                <li>"Bình Dương" getting street_prefix penalty because "Dương" matched street pattern</li>
+                <li>Province score too low (0.18) triggered Early Ward Lookup</li>
+                <li>Early Ward Lookup matched "xã Phước" → "Phường Phú Thượng" in Hà Nội (WRONG!)</li>
+            </ol>
+            <strong>Fixes implemented:</strong>
+            <ol>
+                <li>✅ Street prefix regex requires space after: <code>/\b(duong|đường|dg|đg|đuong|đương)\s+/i</code></li>
+                <li>✅ Increased Early Ward Lookup threshold from 0.95 to 0.98</li>
+                <li>✅ Added validation: Check if input actually contains ward name</li>
+            </ol>
+        </div>
+
+        <h2>Test Cases</h2>
+        
+        <div class="test-case">
+            <div class="input">Input: xã Phước Hòa Phú Giáo Bình Dương</div>
+            <div class="expected">Expected Province: Tỉnh Bình Dương</div>
+            <div class="expected">Expected District: Huyện Phú Giáo (or Thị xã Phú Giáo)</div>
+            <div class="expected">Expected Ward: Xã Phước Hoà (note: database has "Hoà" not "Hòa")</div>
+            <div id="result1" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <div class="input">Input: Phước Hòa, Phú Giáo, Bình Dương</div>
+            <div class="expected">Expected Province: Tỉnh Bình Dương</div>
+            <div class="expected">Expected District: Huyện Phú Giáo (or Thị xã Phú Giáo)</div>
+            <div class="expected">Expected Ward: Xã Phước Hòa</div>
+            <div id="result2" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <div class="input">Input: xã Phước Hòa, huyện Phú Giáo, tỉnh Bình Dương</div>
+            <div class="expected">Expected Province: Tỉnh Bình Dương</div>
+            <div class="expected">Expected District: Huyện Phú Giáo</div>
+            <div class="expected">Expected Ward: Xã Phước Hòa</div>
+            <div id="result3" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <div class="input">Input: Đường Bình Dương, Quận 1, HCM</div>
+            <div class="expected">Expected Province: Thành phố Hồ Chí Minh</div>
+            <div class="expected">Expected District: Quận 1</div>
+            <div class="expected">Expected Street: Đường Bình Dương (should NOT match province)</div>
+            <div id="result4" class="result"></div>
+        </div>
+
+        <button onclick="runTests()">Run All Tests</button>
+        <button onclick="location.reload()">Reset</button>
+    </div>
+
+    <script src="/assets/data/vietnamAddress.json" type="application/json"></script>
+    <script src="/assets/js/orders/orders-smart-paste.js"></script>
+    
+    <script>
+        async function loadAddressData() {
+            try {
+                const response = await fetch('/assets/data/vietnamAddress.json');
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading address data:', error);
+                return null;
+            }
+        }
+
+        function displayResult(elementId, input, result) {
+            const element = document.getElementById(elementId);
+            
+            if (!result || !result.success) {
+                element.className = 'result fail';
+                element.innerHTML = `
+                    <strong>❌ FAILED</strong><br>
+                    Error: ${result?.error || 'Unknown error'}
+                `;
+                return;
+            }
+
+            const { province, district, ward, street, confidence } = result.data;
+            
+            element.className = 'result success';
+            element.innerHTML = `
+                <strong>✅ SUCCESS (${confidence} confidence)</strong><br>
+                Province: ${province?.Name || 'Not found'}<br>
+                District: ${district?.Name || 'Not found'}<br>
+                Ward: ${ward?.Name || 'Not found'}<br>
+                Street: ${street || 'Not found'}
+            `;
+        }
+
+        async function runTests() {
+            console.log('🧪 Starting Bình Dương fix tests...');
+            
+            const addressData = await loadAddressData();
+            if (!addressData) {
+                alert('Failed to load address data');
+                return;
+            }
+
+            // Test 1: Original problematic case
+            console.log('\n=== Test 1: xã Phước Hòa Phú Giáo Bình Dương ===');
+            const result1 = parseAddressWithOptimizations('xã Phước Hòa Phú Giáo Bình Dương', addressData);
+            displayResult('result1', 'xã Phước Hòa Phú Giáo Bình Dương', result1);
+
+            // Test 2: With commas
+            console.log('\n=== Test 2: Phước Hòa, Phú Giáo, Bình Dương ===');
+            const result2 = parseAddressWithOptimizations('Phước Hòa, Phú Giáo, Bình Dương', addressData);
+            displayResult('result2', 'Phước Hòa, Phú Giáo, Bình Dương', result2);
+
+            // Test 3: With full keywords
+            console.log('\n=== Test 3: xã Phước Hòa, huyện Phú Giáo, tỉnh Bình Dương ===');
+            const result3 = parseAddressWithOptimizations('xã Phước Hòa, huyện Phú Giáo, tỉnh Bình Dương', addressData);
+            displayResult('result3', 'xã Phước Hòa, huyện Phú Giáo, tỉnh Bình Dương', result3);
+
+            // Test 4: Street name "Đường Bình Dương" should NOT match province
+            console.log('\n=== Test 4: Đường Bình Dương, Quận 1, HCM ===');
+            const result4 = parseAddressWithOptimizations('Đường Bình Dương, Quận 1, HCM', addressData);
+            displayResult('result4', 'Đường Bình Dương, Quận 1, HCM', result4);
+
+            console.log('\n✅ All tests completed!');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>
