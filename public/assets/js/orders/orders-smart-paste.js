@@ -512,50 +512,83 @@ function extractLandmark(addressText) {
     }
     
     // Extract parts
-    const street = addressText.substring(0, landmarkStart).trim();
+    let street = addressText.substring(0, landmarkStart).trim();
     const landmark = addressText.substring(landmarkStart, landmarkEnd).trim();
     let remaining = addressText.substring(landmarkEnd).trim();
     
     // Remove leading comma from remaining
     remaining = remaining.replace(/^[,，]\s*/, '');
     
+    // SMART FIX: If street is empty, extract text between landmark phrase and next separator
+    // Example: "Công ty formosa - kỳ liên" → street should be "formosa", not empty
+    let finalStreet = street;
+    if (!street && landmark) {
+        // Look for separator after landmark in remaining text
+        // Example: "formosa - kỳ liên" → take "formosa"
+        const separatorMatch = remaining.match(/[\-,，]/);
+        if (separatorMatch) {
+            // Take text before first separator
+            finalStreet = remaining.substring(0, separatorMatch.index).trim();
+            // Update remaining to exclude the extracted street
+            remaining = remaining.substring(separatorMatch.index + 1).trim();
+        } else {
+            // No separator - check if remaining has multiple words
+            const words = remaining.split(/\s+/);
+            if (words.length > 2) {
+                // Take first 1-2 words as street (company/building name)
+                finalStreet = words.slice(0, 2).join(' ');
+                remaining = words.slice(2).join(' ');
+            } else {
+                // Use all remaining as street
+                finalStreet = remaining;
+                remaining = '';
+            }
+        }
+    }
+    
     // SMART: Add commas to remaining if it doesn't have any
     // This helps parsing when address has no commas: "đông anh hà nội" → "đông anh, hà nội"
     if (remaining && !remaining.includes(',')) {
-        const remainingNormalized = removeVietnameseTones(remaining).toLowerCase();
-        
-        // Try to detect location names (district/province) and add commas between them
-        // Common patterns:
-        // - "dong anh ha noi" → "dong anh, ha nội" (2 words + 2 words)
-        // - "quan 10 ho chi minh" → "quan 10, ho chi minh" (keyword + name)
-        
-        // Strategy 1: Look for major city names
-        const majorCities = ['ha noi', 'ho chi minh', 'hcm', 'da nang', 'hai phong', 'can tho', 'bien hoa', 'vung tau', 'nha trang', 'hue'];
-        
-        for (const city of majorCities) {
-            const cityIndex = remainingNormalized.indexOf(city);
-            if (cityIndex > 0) {
-                // Found city name - add comma before it
-                const beforeCity = remaining.substring(0, cityIndex).trim();
-                const cityPart = remaining.substring(cityIndex).trim();
-                remaining = beforeCity + ', ' + cityPart;
-                break;
+        // CRITICAL: If remaining has dashes, convert them to commas first
+        // Example: "kỳ liên - kỳ anh - hà tĩnh" → "kỳ liên, kỳ anh, hà tĩnh"
+        if (remaining.includes('-')) {
+            remaining = remaining.replace(/\s*-\s*/g, ', ');
+        } else {
+            const remainingNormalized = removeVietnameseTones(remaining).toLowerCase();
+            
+            // Try to detect location names (district/province) and add commas between them
+            // Common patterns:
+            // - "dong anh ha noi" → "dong anh, ha nội" (2 words + 2 words)
+            // - "quan 10 ho chi minh" → "quan 10, ho chi minh" (keyword + name)
+            
+            // Strategy 1: Look for major city names
+            const majorCities = ['ha noi', 'ho chi minh', 'hcm', 'da nang', 'hai phong', 'can tho', 'bien hoa', 'vung tau', 'nha trang', 'hue'];
+            
+            for (const city of majorCities) {
+                const cityIndex = remainingNormalized.indexOf(city);
+                if (cityIndex > 0) {
+                    // Found city name - add comma before it
+                    const beforeCity = remaining.substring(0, cityIndex).trim();
+                    const cityPart = remaining.substring(cityIndex).trim();
+                    remaining = beforeCity + ', ' + cityPart;
+                    break;
+                }
             }
-        }
-        
-        // Strategy 2: If still no comma and has 4+ words, split at midpoint
-        if (!remaining.includes(',') && remaining.split(/\s+/).length >= 4) {
-            const words = remaining.split(/\s+/);
-            const midPoint = Math.floor(words.length / 2);
-            remaining = words.slice(0, midPoint).join(' ') + ', ' + words.slice(midPoint).join(' ');
+            
+            // Strategy 2: If still no comma and has 4+ words, split at midpoint
+            if (!remaining.includes(',') && remaining.split(/\s+/).length >= 4) {
+                const words = remaining.split(/\s+/);
+                const midPoint = Math.floor(words.length / 2);
+                remaining = words.slice(0, midPoint).join(' ') + ', ' + words.slice(midPoint).join(' ');
+            }
         }
     }
     
     // Reconstruct without landmark
-    const cleanAddress = street + (remaining ? ', ' + remaining : '');
+    const cleanAddress = (finalStreet ? finalStreet + ', ' : '') + remaining;
     
     return {
-        street,
+        street: finalStreet,
         landmark,
         cleanAddress
     };
@@ -3185,6 +3218,27 @@ async function parseAddress(addressText) {
         if (!result.street) {
             const addressForStreetExtraction = (typeof originalFullAddress !== 'undefined') ? originalFullAddress : addressText;
             
+            // PRIORITY 1: Check for locality markers (xóm, thôn, ấp, khu...)
+            // These are the most specific street addresses
+            // Example: "phú thọ huyện Tân sơn xã thu ngạc xóm cọ sơn" → street = "xóm cọ sơn"
+            const normalizedForLocality = removeVietnameseTones(addressForStreetExtraction).toLowerCase();
+            const localityMatch = normalizedForLocality.match(/\b(xom|thon|ap|khom|khu|to|cum|bon|lang)\s+[^\s,]+(?:\s+[^\s,]+)*/i);
+            
+            if (localityMatch) {
+                // Extract locality from original text (preserve Vietnamese tones)
+                const localityStart = localityMatch.index;
+                // Find end: take until next comma or location keyword
+                let localityEnd = addressForStreetExtraction.length;
+                const afterLocality = addressForStreetExtraction.substring(localityStart);
+                const endMatch = afterLocality.match(/[,，]|\s+(xa|phuong|quan|huyen|tinh|thanh pho|thi xa|thi tran)\s+/i);
+                if (endMatch) {
+                    localityEnd = localityStart + endMatch.index;
+                }
+                
+                result.street = addressForStreetExtraction.substring(localityStart, localityEnd).trim();
+                console.log(`  🏠 Early street extraction (locality marker): "${result.street}"`);
+            } else {
+            
             const districtName = removeVietnameseTones(result.district.Name).toLowerCase()
                 .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, ''); // Remove prefix
             
@@ -3263,6 +3317,7 @@ async function parseAddress(addressText) {
             }
             
             } // End of else block (no landmark found)
+            } // End of else block (no locality marker)
         }
         
         // Strategy 3: Fallback - regex to find text before first location keyword
@@ -4122,6 +4177,13 @@ async function parseAddress(addressText) {
             result.ward = bestWardMatch.match;
             console.log(`  ✅ Ward matched: ${result.ward.Name} (score: ${bestWardScore.toFixed(2)}, ${bestWardWordCount} words)`);
             
+            // CRITICAL: If score is too low (< 0.7), try Step 2.5 Reverse Lookup
+            // This handles cases where district/province hint is WRONG
+            if (bestWardScore < 0.7) {
+                console.log(`  ⚠️ Ward score too low (${bestWardScore.toFixed(2)} < 0.7), will try Reverse Lookup...`);
+                // Don't set ward yet, let Step 2.5 handle it
+                result.ward = null;
+            } else {
             // ============================================
             // WARD NAME VALIDATION (Soft - Option 1)
             // ============================================
@@ -4215,8 +4277,105 @@ async function parseAddress(addressText) {
                     }
                 }
             }
+            } // End of else block (bestWardScore >= 0.7)
         } else {
-            console.log(`  ⚠️ No ward found`);
+            console.log(`  ⚠️ No ward found in current district`);
+        }
+        
+        // ============================================
+        // FALLBACK: Search ALL provinces for ward name
+        // ============================================
+        // This handles cases where province/district hint is COMPLETELY WRONG
+        // Run this AFTER ward matching, if result.ward is still null
+        // Example: "xã Kim Thái, tỉnh Ninh Bình" → Actually in "Huyện Vụ Bản, Tỉnh Nam Định"
+        if (!result.ward) {
+            console.log(`  🔍 FALLBACK: Searching ALL provinces for ward name...`);
+            
+            // Extract potential ward names from address parts
+            const potentialWardNames = [];
+            // Also extract potential district/province hints (parts without ward keywords)
+            const potentialHints = [];
+            
+            for (const part of parts) {
+                const normalized = removeVietnameseTones(part).toLowerCase();
+                // Check if part has ward keyword
+                if (/\b(xa|phuong|thi tran|tt|khom)\b/.test(normalized)) {
+                    potentialWardNames.push(part);
+                } else if (part.length > 3) {
+                    // Non-ward parts could be district/province hints
+                    potentialHints.push(part);
+                }
+            }
+            
+            console.log(`  📝 Potential ward names: ${potentialWardNames.length} - [${potentialWardNames.join(', ')}]`);
+            console.log(`  📝 Potential hints: ${potentialHints.length} - [${potentialHints.join(', ')}]`);
+            
+            if (potentialWardNames.length > 0 && window.addressSelector && window.addressSelector.data) {
+                let bestGlobalMatch = null;
+                let bestGlobalScore = 0;
+                let bestGlobalProvince = null;
+                let bestGlobalDistrict = null;
+                
+                // Search all provinces
+                for (const province of window.addressSelector.data) {
+                    for (const district of province.Districts) {
+                        // Try matching each potential ward name against all wards in this district
+                        for (const wardName of potentialWardNames) {
+                            const matchResult = fuzzyMatch(wardName, district.Wards, 0.4);
+                            
+                            if (matchResult && matchResult.score > 0) {
+                                let finalScore = matchResult.score;
+                                
+                                // BONUS: Check if district/province name matches any hint
+                                // This prioritizes correct location when multiple wards have same name
+                                for (const hint of potentialHints) {
+                                    const hintNormalized = removeVietnameseTones(hint).toLowerCase();
+                                    const districtNormalized = removeVietnameseTones(district.Name).toLowerCase();
+                                    const provinceNormalized = removeVietnameseTones(province.Name).toLowerCase();
+                                    
+                                    // Check district name similarity
+                                    if (districtNormalized.includes(hintNormalized) || hintNormalized.includes(districtNormalized)) {
+                                        finalScore += 0.5; // Big bonus for district match
+                                        console.log(`     🎯 District hint match: "${hint}" ≈ "${district.Name}" (+0.5)`);
+                                    }
+                                    
+                                    // Check province name similarity
+                                    if (provinceNormalized.includes(hintNormalized) || hintNormalized.includes(provinceNormalized)) {
+                                        finalScore += 0.3; // Bonus for province match
+                                        console.log(`     🎯 Province hint match: "${hint}" ≈ "${province.Name}" (+0.3)`);
+                                    }
+                                }
+                                
+                                if (finalScore > bestGlobalScore) {
+                                    bestGlobalMatch = matchResult;
+                                    bestGlobalScore = finalScore;
+                                    bestGlobalProvince = province;
+                                    bestGlobalDistrict = district;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If found a good match (score >= 0.7), use it
+                if (bestGlobalMatch && bestGlobalScore >= 0.7) {
+                    console.log(`  ✅ FALLBACK SUCCESS: Found ward in different province!`);
+                    console.log(`     Ward: ${bestGlobalMatch.match.Name} (base score: ${bestGlobalMatch.score.toFixed(2)}, final: ${bestGlobalScore.toFixed(2)})`);
+                    console.log(`     District: ${bestGlobalDistrict.Name}`);
+                    console.log(`     Province: ${bestGlobalProvince.Name}`);
+                    
+                    // Update result with correct location
+                    result.ward = bestGlobalMatch.match;
+                    result.district = bestGlobalDistrict;
+                    result.province = bestGlobalProvince;
+                    result.confidence = bestGlobalScore >= 0.85 ? 'high' : 'medium';
+                    
+                    // Add warning about province/district correction
+                    result.warnings.push(`⚠️ Đã tự động sửa địa chỉ: ${bestGlobalProvince.Name} - ${bestGlobalDistrict.Name}`);
+                } else {
+                    console.log(`  ❌ FALLBACK: No good match found in any province (best score: ${bestGlobalScore.toFixed(2)})`);
+                }
+            }
         }
         } // End of if (bestWardScore < 1.2) - n-gram matching block
     }
@@ -4299,8 +4458,18 @@ async function parseAddress(addressText) {
                 const streetMatch = part.match(/^(.+?)\s*(?:phường|xã|quận|huyện|thị trấn|tt|thành phố|tp|tỉnh|thị xã|tx)/i);
                 if (streetMatch && streetMatch[1].trim()) {
                     const streetPortion = streetMatch[1].trim();
-                    console.log(`    📍 Extracted street from location part: "${streetPortion}" from "${part}"`);
-                    streetParts.push(streetPortion);
+                    
+                    // CRITICAL FIX: Don't add if it's ONLY ward name without street info
+                    // Example: "phường 14 quận 8" → "phường 14" is NOT street, skip it
+                    // Check if extracted portion has numbers or street keywords
+                    const hasStreetInfo = /\d|đường|duong|phố|pho|ngõ|ngo|hẻm|hem|số|so|khu|thôn|thon|ấp|ap|xóm|xom/i.test(streetPortion);
+                    
+                    if (hasStreetInfo) {
+                        console.log(`    📍 Extracted street from location part: "${streetPortion}" from "${part}"`);
+                        streetParts.push(streetPortion);
+                    } else {
+                        console.log(`    ⏭️ Skipping ward-only part: "${streetPortion}" (no street info)`);
+                    }
                 }
                 isLocation = true;
             }
