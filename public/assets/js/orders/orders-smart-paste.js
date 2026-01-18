@@ -592,30 +592,42 @@ function extractCustomerName(lines, phoneInfo) {
         'phường', 'xã', 'quận', 'huyện', 'thành phố', 'tỉnh', 'tp', 
         'đường', 'phố', 'thôn', 'thon', 'xa', 'xom', 'xóm', 'ấp', 'ap', 
         'khu', 'số', 'so', 'đống', 'dong', 'ngõ', 'ngo', 'hem', 'hẻm',
-        'khóm', 'khom', 'thị trấn', 'thi tran', 'tt', 'thị xã', 'thi xa', 'tx'
+        'khóm', 'khom', 'thị trấn', 'thi tran', 'tt', 'thị xã', 'thi xa', 'tx',
+        'tầng', 'tang', 'tòa', 'toa', 'lầu', 'lau' // Building/floor keywords
     ];
     
     console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
     const candidateLines = lines.filter(line => {
         const lower = line.toLowerCase();
+        const normalized = removeVietnameseTones(lower);
+        
         // Skip if contains phone
         if (phoneInfo && line.includes(phoneInfo.phone)) {
             console.log(`  ✗ Skip (has phone): "${line}"`);
             return false;
         }
+        
+        // Skip if contains district abbreviations (Q1, Q2, P1, P2, etc.)
+        if (/\b[qp]\d+\b/i.test(line)) {
+            console.log(`  ✗ Skip (has district abbreviation): "${line}"`);
+            return false;
+        }
+        
         // Skip if contains address keywords
-        if (addressKeywords.some(kw => lower.includes(kw))) {
+        if (addressKeywords.some(kw => normalized.includes(kw))) {
             console.log(`  ✗ Skip (has address keyword): "${line}"`);
             return false;
         }
+        
         // Skip if too long (likely address)
         if (line.length > 50) {
             console.log(`  ✗ Skip (too long): "${line}"`);
             return false;
         }
-        // Skip if contains too many numbers
-        if ((line.match(/\d/g) || []).length > 3) {
+        
+        // Skip if contains too many numbers (reduce threshold to 2)
+        if ((line.match(/\d/g) || []).length > 2) {
             console.log(`  ✗ Skip (too many numbers): "${line}"`);
             return false;
         }
@@ -973,7 +985,8 @@ async function parseAddress(addressText) {
     processedAddress = processedAddress.replace(/\bqt\b/gi, 'Quảng Trị');
     processedAddress = processedAddress.replace(/\bqng\b/gi, 'Quảng Ngãi');
     processedAddress = processedAddress.replace(/\bpy\b/gi, 'Phú Yên');
-    processedAddress = processedAddress.replace(/\bkh\b/gi, 'Khánh Hòa');
+    // FIXED: Don't match "kh" in "khóm" or "khom"
+    processedAddress = processedAddress.replace(/\bkh\b(?!óm|om)/gi, 'Khánh Hòa');
     processedAddress = processedAddress.replace(/\bnt\b/gi, 'Ninh Thuận');
     processedAddress = processedAddress.replace(/\bgl\b/gi, 'Gia Lai');
     processedAddress = processedAddress.replace(/\bkt\b/gi, 'Kon Tum');
@@ -1014,7 +1027,8 @@ async function parseAddress(addressText) {
     
     // Pattern 5: "hà nội" (without "thành phố") → add prefix  
     // IMPORTANT: Check if "Thành phố" already exists before it
-    processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ha noi|hà nội)\b/gi, 'Thành phố Hà Nội');
+    // DISABLED: This causes issues with n-gram matching (e.g., "Dong Cao Mê Linh Hà Nội" → loses "Dong Cao")
+    // processedAddress = processedAddress.replace(/(?<!thành phố\s)\b(ha noi|hà nội)\b/gi, 'Thành phố Hà Nội');
     
     // Pattern 6: "tp HCM", "tp HN" at end → add comma before
     // Example: "quận Tân Phú tp HCM" → "quận Tân Phú, tp HCM"
@@ -1988,24 +2002,100 @@ async function parseAddress(addressText) {
         if (wardParts.length > 0) {
             console.log(`    📌 Found ${wardParts.length} parts with ward keywords`);
             
+            // CRITICAL: Check for province/district hints in OTHER parts first
+            let provinceHint = null;
+            let districtHint = null;
+            
+            // Strategy 1: Check non-ward parts for province/district names
+            const nonWardParts = parts.filter(p => !wardParts.includes(p));
+            console.log(`    🔍 Checking ${nonWardParts.length} non-ward parts for province/district hints...`);
+            
+            for (const part of nonWardParts) {
+                if (part.length < 4) continue;
+                
+                // Try to match province (try full part first, then last 2 words)
+                if (!provinceHint) {
+                    // Try full part
+                    const provinceMatch = fuzzyMatch(part, vietnamAddressData, 0.7);
+                    if (provinceMatch && provinceMatch.score >= 0.7) {
+                        provinceHint = provinceMatch.match;
+                        console.log(`    ✓ Province hint (full): "${part}" → ${provinceHint.Name} (score: ${provinceMatch.score.toFixed(2)})`);
+                    }
+                    
+                    // Try last 2 words (common pattern: "Đức Hòa Long An" → "Long An")
+                    if (!provinceHint) {
+                        const words = part.split(/\s+/).filter(w => w.length > 0);
+                        if (words.length >= 2) {
+                            const last2Words = words.slice(-2).join(' ');
+                            const provinceMatch2 = fuzzyMatch(last2Words, vietnamAddressData, 0.7);
+                            if (provinceMatch2 && provinceMatch2.score >= 0.7) {
+                                provinceHint = provinceMatch2.match;
+                                console.log(`    ✓ Province hint (last 2 words): "${last2Words}" from "${part}" → ${provinceHint.Name} (score: ${provinceMatch2.score.toFixed(2)})`);
+                            }
+                        }
+                    }
+                }
+                
+                // Try to match district (if we have province hint)
+                if (provinceHint && !districtHint) {
+                    // Try full part
+                    const districtMatch = fuzzyMatch(part, provinceHint.Districts, 0.7);
+                    if (districtMatch && districtMatch.score >= 0.7) {
+                        districtHint = districtMatch.match;
+                        console.log(`    ✓ District hint (full): "${part}" → ${districtHint.Name} (score: ${districtMatch.score.toFixed(2)})`);
+                    }
+                    
+                    // Try first 2 words (common pattern: "Đức Hòa Long An" → "Đức Hòa")
+                    if (!districtHint) {
+                        const words = part.split(/\s+/).filter(w => w.length > 0);
+                        if (words.length >= 2) {
+                            const first2Words = words.slice(0, 2).join(' ');
+                            const districtMatch2 = fuzzyMatch(first2Words, provinceHint.Districts, 0.7);
+                            if (districtMatch2 && districtMatch2.score >= 0.7) {
+                                districtHint = districtMatch2.match;
+                                console.log(`    ✓ District hint (first 2 words): "${first2Words}" from "${part}" → ${districtHint.Name} (score: ${districtMatch2.score.toFixed(2)})`);
+                            }
+                        }
+                    }
+                }
+            }
+            
             let bestWardMatch = null;
             let bestWardScore = 0;
             let wardParentDistrict = null;
             let wardParentProvince = null;
             
-            // Search each ward part across ALL provinces
+            // Search each ward part - FILTER by province/district hints if available
             for (const wardPart of wardParts) {
                 console.log(`    🔍 Searching ward: "${wardPart}"`);
                 
-                for (const province of vietnamAddressData) {
-                    for (const district of province.Districts) {
+                // If we have hints, search ONLY in that province/district
+                if (provinceHint) {
+                    console.log(`    📍 Filtering by province hint: ${provinceHint.Name}`);
+                    const districtsToSearch = districtHint ? [districtHint] : provinceHint.Districts;
+                    
+                    for (const district of districtsToSearch) {
                         const wardMatch = fuzzyMatch(wardPart, district.Wards, 0.7);
                         if (wardMatch && wardMatch.score > bestWardScore) {
                             bestWardMatch = wardMatch.match;
                             bestWardScore = wardMatch.score;
                             wardParentDistrict = district;
-                            wardParentProvince = province;
-                            console.log(`      ✓ Ward match: "${wardPart}" → ${wardMatch.match.Name} in ${district.Name}, ${province.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                            wardParentProvince = provinceHint;
+                            console.log(`      ✓ Ward match (filtered): "${wardPart}" → ${wardMatch.match.Name} in ${district.Name}, ${provinceHint.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                        }
+                    }
+                } else {
+                    // No hints - search ALL provinces (original behavior)
+                    for (const province of vietnamAddressData) {
+                        for (const district of province.Districts) {
+                            const wardMatch = fuzzyMatch(wardPart, district.Wards, 0.7);
+                            if (wardMatch && wardMatch.score > bestWardScore) {
+                                bestWardMatch = wardMatch.match;
+                                bestWardScore = wardMatch.score;
+                                wardParentDistrict = district;
+                                wardParentProvince = province;
+                                console.log(`      ✓ Ward match: "${wardPart}" → ${wardMatch.match.Name} in ${district.Name}, ${province.Name} (score: ${wardMatch.score.toFixed(2)})`);
+                            }
                         }
                     }
                 }
@@ -2052,6 +2142,19 @@ async function parseAddress(addressText) {
                 }
             } else if (bestWardMatch) {
                 console.log(`  ⚠️ Early Ward Lookup: Score too low (${bestWardScore.toFixed(2)} < 0.98), will continue normal flow`);
+            }
+            
+            // IMPORTANT: Even if ward match failed, pass province/district hints to Step 2
+            if (provinceHint && !result.province) {
+                result.province = provinceHint;
+                console.log(`  ✓ Using province hint from Early Ward Lookup: ${provinceHint.Name}`);
+            }
+            if (districtHint && !result.district) {
+                result.district = districtHint;
+                bestDistrictMatch = { match: districtHint, score: 1.0 };
+                bestDistrictScore = 1.0;
+                bestDistrictWordCount = 2;
+                console.log(`  ✓ Using district hint from Early Ward Lookup: ${districtHint.Name}`);
             }
         }
         
@@ -2519,7 +2622,7 @@ async function parseAddress(addressText) {
                 const normalized = removeVietnameseTones(part).toLowerCase();
                 const hasWardKeyword = ['phuong', 'xa', 'thi tran', 'tt', 'khom', 'ap', 'thon', 'xom'].some(kw => normalized.includes(kw));
                 
-                let searchParts = [part]; // Array of parts to search
+                let searchParts = [{ text: part, strategy: 'original' }]; // Array of parts to search
                 
                 // If has ward keyword, try multiple extraction strategies
                 if (hasWardKeyword) {
@@ -2528,7 +2631,7 @@ async function parseAddress(addressText) {
                     const afterWardMatch = part.match(/(phường|xã|thị trấn|tt|khóm|ấp|ap|thôn|thon|xóm|xom)\s+\S+(?:\s+\S+)?\s+(.+)/i);
                     if (afterWardMatch && afterWardMatch[2]) {
                         const afterWard = afterWardMatch[2].trim();
-                        searchParts.push(afterWard);
+                        searchParts.push({ text: afterWard, strategy: 'strategy-1' });
                         console.log(`    📍 Strategy 1 - After ward: "${afterWard}"`);
                         
                         // IMPROVED: Extract multiple segments from afterWard
@@ -2537,19 +2640,19 @@ async function parseAddress(addressText) {
                         if (afterWardWords.length >= 3) {
                             // Try first 2 words (likely district)
                             const first2 = afterWardWords.slice(0, 2).join(' ');
-                            searchParts.push(first2);
+                            searchParts.push({ text: first2, strategy: 'strategy-1b' });
                             console.log(`    📍 Strategy 1b - First 2 words after ward: "${first2}" (likely district)`);
                             
                             // Try middle 2 words (if exists)
                             if (afterWardWords.length >= 4) {
                                 const middle2 = afterWardWords.slice(1, 3).join(' ');
-                                searchParts.push(middle2);
+                                searchParts.push({ text: middle2, strategy: 'strategy-1c' });
                                 console.log(`    📍 Strategy 1c - Middle 2 words: "${middle2}" (possible district)`);
                                 
                                 // Try words 2-3 (another middle segment)
                                 if (afterWardWords.length >= 5) {
                                     const middle2b = afterWardWords.slice(2, 4).join(' ');
-                                    searchParts.push(middle2b);
+                                    searchParts.push({ text: middle2b, strategy: 'strategy-1d' });
                                     console.log(`    📍 Strategy 1d - Middle 2 words (2-3): "${middle2b}" (possible district)`);
                                 }
                             }
@@ -2563,35 +2666,97 @@ async function parseAddress(addressText) {
                     if (words.length >= 4) {
                         // Try last 2 words (VERY LIKELY PROVINCE - will get strong penalty)
                         const last2 = words.slice(-2).join(' ');
-                        searchParts.push(last2);
+                        searchParts.push({ text: last2, strategy: 'strategy-2-last2' });
                         console.log(`    📍 Strategy 2 - Last 2 words: "${last2}" (VERY likely province)`);
                         
                         // Try last 1 word (EXTREMELY LIKELY PROVINCE - will get very strong penalty)
                         const last1 = words[words.length - 1];
                         if (last1.length >= 3) {
-                            searchParts.push(last1);
+                            searchParts.push({ text: last1, strategy: 'strategy-2-last1' });
                             console.log(`    📍 Strategy 2 - Last word: "${last1}" (EXTREMELY likely province)`);
                         }
                     }
                     
-                    // Strategy 3: Extract words after ward keyword (skip ward name)
-                    // "phường 14 gò vấp" → skip "14", get "gò vấp"
-                    // This is MIDDLE position - good for district
-                    const afterKeywordMatch = part.match(/(phường|xã|thị trấn|tt|khóm)\s+\S+\s+(.+)/i);
-                    if (afterKeywordMatch && afterKeywordMatch[2]) {
-                        searchParts.push(afterKeywordMatch[2].trim());
-                        console.log(`    📍 Strategy 3 - After keyword+name: "${afterKeywordMatch[2].trim()}" (middle position)`);
+                    // Strategy 3: Extract district name after ward keyword
+                    // SMART: Try ALL possible ward name lengths (1-3 words)
+                    // Example: "thị trấn Năm Căn Cà Mau"
+                    //   - If ward = 1 word ("Năm") → district might be "Căn Cà" or "Cà Mau"
+                    //   - If ward = 2 words ("Năm Căn") → district might be "Cà Mau" ✅
+                    //   - If ward = 3 words ("Năm Căn Cà") → district might be "Mau"
+                    const afterKeywordMatch = part.match(/(phường|xã|thị trấn|tt|khóm)\s+(.+)/i);
+                    if (afterKeywordMatch) {
+                        const wardKeyword = afterKeywordMatch[1];
+                        const afterKeyword = afterKeywordMatch[2].trim(); // Everything after keyword
+                        const words = afterKeyword.split(/\s+/);
+                        
+                        if (words.length >= 2) {
+                            // CRITICAL: Also try ward name itself as district search
+                            // Example: "thị trấn Năm Căn" might match "Huyện Năm Căn"
+                            // Try first 1 word as ward name
+                            if (words.length >= 1) {
+                                const ward1Word = words[0];
+                                searchParts.push({ text: ward1Word, strategy: 'strategy-3-ward1' });
+                                console.log(`    📍 Strategy 3-ward1 - Ward name (1 word): "${ward1Word}"`);
+                            }
+                            
+                            // Try first 2 words as ward name
+                            if (words.length >= 2) {
+                                const ward2Words = words.slice(0, 2).join(' ');
+                                searchParts.push({ text: ward2Words, strategy: 'strategy-3-ward2' });
+                                console.log(`    📍 Strategy 3-ward2 - Ward name (2 words): "${ward2Words}"`);
+                            }
+                            
+                            // Try first 3 words as ward name
+                            if (words.length >= 3) {
+                                const ward3Words = words.slice(0, 3).join(' ');
+                                searchParts.push({ text: ward3Words, strategy: 'strategy-3-ward3' });
+                                console.log(`    📍 Strategy 3-ward3 - Ward name (3 words): "${ward3Words}"`);
+                            }
+                            
+                            // Try ward name = 1 word, extract remaining 2+ words as district
+                            if (words.length >= 3) {
+                                const remaining2Words = words.slice(1, 3).join(' ');
+                                searchParts.push({ text: remaining2Words, strategy: 'strategy-3a' });
+                                console.log(`    📍 Strategy 3a - Ward=1word, District=2words: "${remaining2Words}"`);
+                            }
+                            
+                            // Try ward name = 2 words, extract remaining as district
+                            if (words.length >= 4) {
+                                const remaining2Words = words.slice(2, 4).join(' ');
+                                searchParts.push({ text: remaining2Words, strategy: 'strategy-3b' });
+                                console.log(`    📍 Strategy 3b - Ward=2words, District=2words: "${remaining2Words}"`);
+                            }
+                            
+                            // Try ward name = 2 words, extract last 2 words as district (most common)
+                            if (words.length >= 3) {
+                                const last2Words = words.slice(-2).join(' ');
+                                searchParts.push({ text: last2Words, strategy: 'strategy-3c' });
+                                console.log(`    📍 Strategy 3c - Last 2 words: "${last2Words}"`);
+                            }
+                        }
                     }
                 } else {
                     // No ward keyword, search as-is
+                    searchParts.push({ text: part, strategy: 'no-ward-keyword' });
                     console.log(`    📍 No ward keyword, search as-is: "${part}"`);
                 }
                 
-                // Remove duplicates
-                searchParts = [...new Set(searchParts)];
+                // Remove duplicates (by text)
+                const uniqueSearchParts = [];
+                const seenTexts = new Set();
+                for (const sp of searchParts) {
+                    if (!seenTexts.has(sp.text)) {
+                        seenTexts.add(sp.text);
+                        uniqueSearchParts.push(sp);
+                    }
+                }
+                searchParts = uniqueSearchParts;
                 
                 // Search each extracted part
-                for (const searchPart of searchParts) {
+                for (const searchPartObj of searchParts) {
+                    const searchPart = searchPartObj.text;
+                    const strategy = searchPartObj.strategy;
+                    
                     if (searchPart.length < 3) continue;
                     
                     // FIRST: Check if this is last 2 words and matches a PROVINCE
@@ -2615,7 +2780,8 @@ async function parseAddress(addressText) {
                                     province: province,
                                     score: boostedScore,
                                     wordCount: searchPart.split(/\s+/).length,
-                                    strategy: 'last-2-words-province-match'
+                                    strategy: 'last-2-words-province-match',
+                                    extractionStrategy: strategy
                                 });
                             }
                         }
@@ -2635,9 +2801,19 @@ async function parseAddress(addressText) {
                             const isAtEnd = (searchPartEnd >= originalPart.length - 3); // Within 3 chars of end
                             const isNearEnd = (searchPartEnd >= originalPart.length * 0.7); // In last 30%
                             
-                            // Apply penalty/bonus based on position
+                            // Apply penalty/bonus based on position AND extraction strategy
                             let adjustedScore = districtMatch.score;
-                            if (isLast2Words) {
+                            
+                            // CRITICAL: BOOST for Strategy 3 (extracted from ward keyword)
+                            // These are HIGHLY LIKELY to be correct district names
+                            if (strategy.startsWith('strategy-3-ward')) {
+                                // Ward name matching district name (e.g., "Năm Căn" ward → "Huyện Năm Căn")
+                                adjustedScore += 0.50; // EXTRA STRONG BOOST
+                                console.log(`    ✨✨✨✨ Strategy 3-ward BOOST: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                            } else if (strategy.startsWith('strategy-3')) {
+                                adjustedScore += 0.40; // STRONG BOOST for Strategy 3
+                                console.log(`    ✨✨✨ Strategy 3 BOOST: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                            } else if (isLast2Words) {
                                 adjustedScore -= 0.30; // EXTRA strong penalty for last 2 words (likely province)
                                 console.log(`    ⚠️ Last 2 words DISTRICT penalty: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
                             } else if (isAtEnd) {
@@ -2662,7 +2838,8 @@ async function parseAddress(addressText) {
                                     province: province,
                                     score: adjustedScore,
                                     wordCount: wordCount,
-                                    strategy: 'district-match'
+                                    strategy: 'district-match',
+                                    extractionStrategy: strategy
                                 });
                                 console.log(`    ✓ District found: "${searchPart}" → ${districtMatch.match.Name} in ${province.Name} (score: ${districtMatch.score.toFixed(2)}, adjusted: ${adjustedScore.toFixed(2)})`);
                             }
@@ -2754,32 +2931,38 @@ async function parseAddress(addressText) {
             }
             
             districtCandidates.sort((a, b) => {
-                // 1. Prioritize province matches (strategy: last-2-words-province-match)
+                // 1. HIGHEST PRIORITY: Strategy 3 district matches (extracted from ward keyword)
+                const aIsStrategy3 = a.extractionStrategy && a.extractionStrategy.startsWith('strategy-3');
+                const bIsStrategy3 = b.extractionStrategy && b.extractionStrategy.startsWith('strategy-3');
+                if (aIsStrategy3 && !bIsStrategy3) return -1;
+                if (!aIsStrategy3 && bIsStrategy3) return 1;
+                
+                // 2. Prioritize province matches (strategy: last-2-words-province-match)
                 const aIsProvince = a.strategy === 'last-2-words-province-match';
                 const bIsProvince = b.strategy === 'last-2-words-province-match';
                 if (aIsProvince && !bIsProvince) return -1;
                 if (!aIsProvince && bIsProvince) return 1;
                 
-                // 2. Prioritize multi-word matches over single-word (more specific)
+                // 3. Prioritize multi-word matches over single-word (more specific)
                 if (a.wordCount >= 2 && b.wordCount === 1) return -1;
                 if (b.wordCount >= 2 && a.wordCount === 1) return 1;
                 
-                // 3. Then by score (but only if difference is significant)
+                // 4. Then by score (but only if difference is significant)
                 if (Math.abs(a.score - b.score) > 0.15) {
                     return b.score - a.score;
                 }
                 
-                // 4. If scores similar, prefer more words (more specific)
+                // 5. If scores similar, prefer more words (more specific)
                 if (a.wordCount !== b.wordCount) {
                     return b.wordCount - a.wordCount;
                 }
                 
-                // 5. Finally by score
+                // 6. Finally by score
                 return b.score - a.score;
             });
             
             const bestCandidate = districtCandidates[0];
-            console.log(`  🏆 Best candidate: "${bestCandidate.part}" (strategy: ${bestCandidate.strategy}, score: ${bestCandidate.score.toFixed(2)}, words: ${bestCandidate.wordCount})`);
+            console.log(`  🏆 Best candidate: "${bestCandidate.part}" (strategy: ${bestCandidate.strategy}, extraction: ${bestCandidate.extractionStrategy || 'N/A'}, score: ${bestCandidate.score.toFixed(2)}, words: ${bestCandidate.wordCount})`);
             
             if (bestCandidate.strategy === 'last-2-words-province-match') {
                 // This is a province match
