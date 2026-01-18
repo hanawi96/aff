@@ -1,6 +1,28 @@
 // Smart Paste - Auto-parse customer information
 // Intelligently extracts name, phone, and address from pasted text
 
+// ============================================
+// OPTIMIZATION FLAGS (Feature Toggles)
+// ============================================
+// Control optimization features independently
+// Set to false to disable, true to enable
+const OPTIMIZATION_FLAGS = {
+    NGRAM_LIMIT: true,              // Limit n-gram generation (Priority 1)
+    FUZZY_EARLY_EXIT: true,         // Skip weak candidates in fuzzy match (Priority 2)
+    LEVENSHTEIN_LENGTH_CHECK: true, // Skip Levenshtein for very different lengths (Priority 2)
+    LEARNING_EXPANDED: true,        // Expand keyword extraction for learning DB (Priority 5)
+    PROVINCE_FIRST_VALIDATION: true // Validate district/ward within found province (Priority 3)
+};
+
+// Metrics tracking
+const OPTIMIZATION_METRICS = {
+    ngramReduction: 0,
+    fuzzySkipped: 0,
+    levenshteinSkipped: 0,
+    rollbackCount: 0,
+    provinceValidationUsed: 0
+};
+
 /**
  * Generate n-grams from word array
  * Used for parsing addresses without commas
@@ -141,7 +163,24 @@ function fuzzyMatch(input, options, threshold = 0.6) {
     let bestScore = 0;
     let matchType = '';
     
+    // ============================================
+    // OPTIMIZATION: Track skipped candidates
+    // ============================================
+    let skippedCount = 0;
+    
     for (const option of options) {
+        // ============================================
+        // OPTIMIZATION: Early skip for weak candidates
+        // ============================================
+        if (OPTIMIZATION_FLAGS.FUZZY_EARLY_EXIT && bestScore >= 0.95) {
+            // Quick length check (if length diff > 5, unlikely to match)
+            const lengthDiff = Math.abs(input.length - option.Name.length);
+            if (lengthDiff > 5) {
+                skippedCount++;
+                continue; // Skip this option
+            }
+        }
+        
         const normalizedOption = removeVietnameseTones(option.Name);
         const cleanOption = normalizedOption
             .replace(/^(tinh|thanh pho|tp|quan|huyen|phuong|xa|thi tran|tt|thi xa|tx)\s+/i, '')
@@ -260,12 +299,24 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         
         // 4. Fuzzy matching with edit distance (for typos)
         if (score < 0.7) {
-            const similarity = similarityScore(cleanInput, cleanOption);
-            if (similarity > 0.6) {
-                const editScore = similarity * 0.85;
-                if (editScore > score) {
-                    score = editScore;
-                    type = 'edit-distance';
+            // ============================================
+            // OPTIMIZATION: Skip Levenshtein for very different lengths
+            // ============================================
+            const lengthDiff = Math.abs(cleanInput.length - cleanOption.length);
+            
+            // If length difference > 5, edit distance will be high anyway
+            // Skip expensive calculation
+            if (OPTIMIZATION_FLAGS.LEVENSHTEIN_LENGTH_CHECK && lengthDiff > 5) {
+                // Skip Levenshtein calculation
+                OPTIMIZATION_METRICS.levenshteinSkipped++;
+            } else {
+                const similarity = similarityScore(cleanInput, cleanOption);
+                if (similarity > 0.6) {
+                    const editScore = similarity * 0.85;
+                    if (editScore > score) {
+                        score = editScore;
+                        type = 'edit-distance';
+                    }
                 }
             }
         }
@@ -278,12 +329,64 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         }
     }
     
+    // ============================================
+    // OPTIMIZATION: Log skipped candidates
+    // ============================================
+    if (OPTIMIZATION_FLAGS.FUZZY_EARLY_EXIT && skippedCount > 0) {
+        OPTIMIZATION_METRICS.fuzzySkipped += skippedCount;
+        // console.log(`  ⚡ Fuzzy: Skipped ${skippedCount}/${options.length} weak candidates`);
+    }
+    
     if (bestScore >= threshold) {
         const confidence = bestScore >= 0.85 ? 'high' : bestScore >= 0.65 ? 'medium' : 'low';
         return { match: bestMatch, score: bestScore, confidence };
     }
     
     return null;
+}
+
+/**
+ * Extract street names from address (for learning DB)
+ * Example: "135/17/43 Nguyễn Hữu Cảnh" → ["nguyễn", "hữu", "cảnh"]
+ */
+function extractStreetNames(text) {
+    const keywords = [];
+    
+    // Pattern: Vietnamese name (2-4 words, capitalized)
+    // Example: "Nguyễn Hữu Cảnh", "Lê Lợi", "Trần Hưng Đạo"
+    const namePattern = /\b([A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+\s+){1,3}[A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+/g;
+    
+    const matches = text.match(namePattern);
+    if (matches) {
+        for (const match of matches) {
+            // Split into words and normalize
+            const words = match.split(/\s+/)
+                .map(w => removeVietnameseTones(w).toLowerCase())
+                .filter(w => w.length >= 3); // Skip short words
+            
+            keywords.push(...words);
+        }
+    }
+    
+    return keywords;
+}
+
+/**
+ * Extract street numbers from address (for learning DB)
+ * Example: "135/17/43" → ["135/17/43"]
+ */
+function extractStreetNumbers(text) {
+    const keywords = [];
+    
+    // Pattern: House number (123, 123/45, 123/45/67)
+    const numberPattern = /\b\d+(?:\/\d+){0,2}\b/g;
+    
+    const matches = text.match(numberPattern);
+    if (matches) {
+        keywords.push(...matches);
+    }
+    
+    return keywords;
 }
 
 /**
@@ -404,12 +507,109 @@ async function parseAddress(addressText) {
     
     console.log('📊 Address data:', vietnamAddressData.length, 'provinces loaded');
     
-    // PRE-PROCESSING: Expand common abbreviations
+    // ============================================
+    // LAYER 0: PRE-NORMALIZATION (NEW - Safe)
+    // ============================================
+    // Normalize patterns BEFORE processing
+    // Rule: Only handle 100% clear patterns, don't guess
+    let processedAddress = addressText;
+    
+    console.log('🔧 Layer 0: Pre-normalization...');
+    
+    // Step 1: Normalize abbreviations with space (P. 22 → P.22)
+    // Pattern: "P.\s+\d+" → "P.\d+" (remove space between abbreviation and number)
+    // Safe: Only affects clear patterns like "P. 22", "Q. 8", "F. 17"
+    processedAddress = processedAddress.replace(/\b([PQFpqf])\.(\s+)(\d{1,2})\b/g, '$1.$3');
+    
+    // Step 2: Normalize abbreviations with space and word (Q. B/Thạnh → Q.B/Thạnh)
+    // Pattern: "Q.\s+\w+" → "Q.\w+"
+    // Safe: Only affects patterns with Q./q. followed by space and word
+    processedAddress = processedAddress.replace(/\b([Qq])\.(\s+)(\w+)/g, '$1.$3');
+    
+    if (processedAddress !== addressText) {
+        console.log('  ✓ Normalized:', addressText, '→', processedAddress);
+    } else {
+        console.log('  ⏭️ No normalization needed');
+    }
+    
+    // ============================================
+    // LAYER 1: DISTRICT DICTIONARY (NEW - Safe)
+    // ============================================
+    // Expand special district abbreviations (TP.HCM only)
+    // Rule: Only apply when context is clear (has street number, not conflicting province)
+    
+    console.log('🔧 Layer 1: District dictionary...');
+    
+    // District abbreviation dictionary for TP.HCM
+    const districtAbbreviations = {
+        'b/thạnh': { full: 'Quận Bình Thạnh', province: 'TP.HCM', aliases: ['b.thạnh', 'bthạnh', 'b/thanh', 'b.thanh', 'bthanh'] },
+        'b/tân': { full: 'Quận Bình Tân', province: 'TP.HCM', aliases: ['b.tân', 'btân', 'b/tan', 'b.tan', 'btan'] },
+        'g/vấp': { full: 'Quận Gò Vấp', province: 'TP.HCM', aliases: ['g.vấp', 'gvấp', 'g/vap', 'g.vap', 'gvap'] },
+        't/đức': { full: 'Thành phố Thủ Đức', province: 'TP.HCM', aliases: ['t.đức', 'tđức', 't/duc', 't.duc', 'tduc'] },
+        'p/nhuận': { full: 'Quận Phú Nhuận', province: 'TP.HCM', aliases: ['p.nhuận', 'pnhuận', 'p/nhuan', 'p.nhuan', 'pnhuan'] },
+        't/bình': { full: 'Quận Tân Bình', province: 'TP.HCM', aliases: ['t.bình', 'tbình', 't/binh', 't.binh', 'tbinh'] },
+        't/phú': { full: 'Quận Tân Phú', province: 'TP.HCM', aliases: ['t.phú', 'tphú', 't/phu', 't.phu', 'tphu'] }
+    };
+    
+    // Check if we should apply dictionary (context-based)
+    const hasStreetNumber = /\d+\/\d+|\d+\s+đường|đường\s+\d+|số\s+\d+/i.test(processedAddress);
+    const hasConflictingProvince = /hà nội|hà nam|bắc ninh|bắc giang/i.test(processedAddress);
+    
+    let dictionaryApplied = false;
+    let provinceHint = null;
+    
+    if (hasStreetNumber && !hasConflictingProvince) {
+        // Safe to apply dictionary
+        const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
+        
+        for (const [abbr, info] of Object.entries(districtAbbreviations)) {
+            // Check main abbreviation and all aliases
+            const allPatterns = [abbr, ...info.aliases];
+            
+            for (const pattern of allPatterns) {
+                // Use word boundary to avoid false matches
+                const regex = new RegExp(`\\b${pattern.replace(/\//g, '\\/')}\\b`, 'gi');
+                
+                if (regex.test(normalizedForDict)) {
+                    // Found match - replace in original text (preserve Vietnamese tones)
+                    // Find the actual matched text in original (could be "B/Thạnh", "b/thanh", etc.)
+                    const originalMatch = processedAddress.match(new RegExp(`\\b[${pattern[0]}${pattern[0].toUpperCase()}][\\.\\/]?${pattern.slice(2)}\\b`, 'gi'));
+                    
+                    if (originalMatch) {
+                        processedAddress = processedAddress.replace(originalMatch[0], info.full);
+                        provinceHint = info.province;
+                        dictionaryApplied = true;
+                        console.log(`  ✓ Dictionary: "${originalMatch[0]}" → "${info.full}" (province hint: ${info.province})`);
+                        break;
+                    }
+                }
+            }
+            
+            if (dictionaryApplied) break;
+        }
+    } else {
+        if (!hasStreetNumber) {
+            console.log('  ⏭️ No street number, skipping dictionary');
+        }
+        if (hasConflictingProvince) {
+            console.log('  ⏭️ Conflicting province detected, skipping dictionary');
+        }
+    }
+    
+    if (!dictionaryApplied) {
+        console.log('  ⏭️ No dictionary match');
+    }
+    
+    // Update addressText for further processing
+    addressText = processedAddress;
+    
+    // ============================================
+    // PRE-PROCESSING: Expand common abbreviations (EXISTING)
+    // ============================================
     // F1-F30, P1-P30 → Phường 1-30
     // Q1-Q12 → Quận 1-12
     // X. → Xã, H. → Huyện, T. → Tỉnh
     // TP HN, TP.HN → Thành phố Hà Nội
-    let processedAddress = addressText;
     
     // Expand city abbreviations FIRST (highest priority)
     // TP HCM, TP.HCM, TPHCM, tp hcm, tphcm → Thành phố Hồ Chí Minh
@@ -1082,18 +1282,57 @@ async function parseAddress(addressText) {
             // Generate n-grams but will search for district first (see below)
         }
         
-        // OPTIMIZATION: Only use last 8 words (location info usually at end)
-        // This reduces n-grams from ~24 to ~12 for 10-word addresses (50% faster)
-        // Example: "26 duong so 6 thôn phú tây điện quang điện bàn quảng nam"
-        // → Only use: "phú tây điện quang điện bàn quảng nam" (last 8 words)
-        const wordsToUse = words.length > 8 ? words.slice(-8) : words;
+        // ============================================
+        // OPTIMIZATION: Smart N-gram Generation
+        // ============================================
+        let originalNGrams = null;
         
-        if (words.length > 8) {
-            console.log('📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
+        if (OPTIMIZATION_FLAGS.NGRAM_LIMIT) {
+            console.log('🚀 Optimization: N-gram limit enabled');
+            
+            // Strategy 1: Reduce maxN from 4 to 3 (giảm 50% n-grams)
+            // Safe: 3-word phrases vẫn đủ cho hầu hết địa danh
+            const maxN = 3; // Was 4
+            const minN = 2; // Keep same
+            
+            // Strategy 2: Only use last 6 words (was 8)
+            // Safe: Location info luôn ở cuối
+            const wordsToUse = words.length > 6 ? words.slice(-6) : words;
+            
+            if (words.length > 6) {
+                console.log('  📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
+            }
+            
+            // Generate optimized n-grams
+            const optimizedNGrams = generateNGrams(wordsToUse, minN, maxN);
+            
+            // Keep original for rollback
+            const originalWordsToUse = words.length > 8 ? words.slice(-8) : words;
+            originalNGrams = generateNGrams(originalWordsToUse, 2, 4);
+            
+            console.log(`  📊 N-grams: ${originalNGrams.length} → ${optimizedNGrams.length} (${Math.round((1 - optimizedNGrams.length/originalNGrams.length) * 100)}% reduction)`);
+            
+            OPTIMIZATION_METRICS.ngramReduction = originalNGrams.length - optimizedNGrams.length;
+            
+            // Validation: If optimization produces too few n-grams, rollback
+            if (optimizedNGrams.length < 5 && originalNGrams.length >= 10) {
+                console.warn('  ⚠️ Too few n-grams, rolling back to original');
+                parts = originalNGrams;
+                OPTIMIZATION_METRICS.rollbackCount++;
+            } else {
+                parts = optimizedNGrams;
+            }
+        } else {
+            // Original logic (unchanged)
+            const wordsToUse = words.length > 8 ? words.slice(-8) : words;
+            
+            if (words.length > 8) {
+                console.log('📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
+            }
+            
+            parts = generateNGrams(wordsToUse, 2, 4); // 2-4 word combinations (skip single words for now)
+            console.log('📝 Generated', parts.length, 'n-grams (2-4 words)');
         }
-        
-        parts = generateNGrams(wordsToUse, 2, 4); // 2-4 word combinations (skip single words for now)
-        console.log('📝 Generated', parts.length, 'n-grams (2-4 words)');
     }
     
     // Step 1: Find Province - PRIORITIZE LONGER PHRASES and COMMON ABBREVIATIONS
@@ -1209,11 +1448,51 @@ async function parseAddress(addressText) {
                 const isGoodMatch = provinceMatch.score >= 0.7;
                 const isBestGood = bestProvinceScore >= 0.7;
                 
+                // ============================================
+                // LAYER 3: CONTEXT PENALTY (NEW - Safe)
+                // ============================================
+                // Apply penalties based on context to filter false matches
+                // Rule: Don't change fuzzy matching, only add penalty layer
+                
+                let adjustedScore = provinceMatch.score;
+                const penalties = [];
+                
+                // Penalty 1: Has slash (/) - likely district abbreviation, not province
+                // Example: "B/Thạnh" should not match "Hà Nội"
+                if (part.includes('/')) {
+                    adjustedScore -= 0.40;
+                    penalties.push('has_slash(-0.40)');
+                }
+                
+                // Penalty 2: Too short (<4 chars) without province keyword
+                // Example: "HCM" without "TP" prefix
+                if (part.length < 4 && !/\b(tinh|thanh pho|tp)\b/i.test(normalized)) {
+                    adjustedScore -= 0.30;
+                    penalties.push('too_short(-0.30)');
+                }
+                
+                // Penalty 3: No province keyword (tỉnh, thành phố)
+                // Example: "thanh long" matching "Long An" (no "tỉnh" keyword)
+                const hasProvinceKeyword = /\b(tinh|thanh pho|tp)\b/i.test(normalized);
+                if (!hasProvinceKeyword && provinceMatch.score < 0.9) {
+                    adjustedScore -= 0.20;
+                    penalties.push('no_keyword(-0.20)');
+                }
+                
+                // Penalty 4: Contains numbers (unlikely for province)
+                // Example: "22" should not match province
+                if (/\d/.test(part) && wordCount <= 2) {
+                    adjustedScore -= 0.25;
+                    penalties.push('has_numbers(-0.25)');
+                }
+                
+                if (penalties.length > 0) {
+                    console.log(`  🔧 Context penalties applied: ${penalties.join(', ')}`);
+                    console.log(`     Score: ${provinceMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                }
+                
                 // IMPROVED: Check if part contains province keyword (tỉnh, thành phố)
                 // If yes, verify the province name matches closely
-                const hasProvinceKeyword = /\b(tinh|thanh pho|tp)\b/i.test(normalized);
-                let adjustedScore = provinceMatch.score;
-                
                 if (hasProvinceKeyword) {
                     // Extract province name from BOTH part and match
                     const provinceNameInPart = removeVietnameseTones(part.replace(/^(tỉnh|thành phố|tp)\s+/i, '').trim()).toLowerCase();
@@ -1232,14 +1511,6 @@ async function parseAddress(addressText) {
                         // Poor match - penalize heavily
                         adjustedScore *= 0.3;
                         console.log(`  ⚠️ Province name mismatch: similarity=${nameSimilarity.toFixed(2)}, penalized to ${adjustedScore.toFixed(2)}`);
-                    }
-                } else {
-                    // No province keyword - this might be a false match
-                    // Example: "xa thanh long" matching "Long An" (no "tỉnh" keyword)
-                    // Penalize if score is not very high
-                    if (provinceMatch.score < 0.9) {
-                        adjustedScore *= 0.5;
-                        console.log(`  ⚠️ No province keyword, penalizing: ${provinceMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
                     }
                 }
                 
@@ -1273,9 +1544,33 @@ async function parseAddress(addressText) {
         result.confidence = bestProvinceMatch.confidence;
         console.log(`  ✅ Province matched: ${result.province.Name} (score: ${bestProvinceScore.toFixed(2)}, ${bestProvinceWordCount} words)`);
     } else {
-        if (bestProvinceMatch) {
+        // ============================================
+        // LAYER 1 FALLBACK: Use Province Hint from Dictionary
+        // ============================================
+        // If dictionary was applied but province not found via fuzzy matching
+        // Use the province hint from dictionary (safe because dictionary has context checks)
+        if (provinceHint && !result.province) {
+            console.log(`  🔧 Using province hint from dictionary: ${provinceHint}`);
+            
+            // Find province by name
+            const hintProvince = vietnamAddressData.find(p => {
+                const pName = removeVietnameseTones(p.Name).toLowerCase();
+                const hint = removeVietnameseTones(provinceHint).toLowerCase();
+                return pName.includes(hint) || hint.includes(pName);
+            });
+            
+            if (hintProvince) {
+                result.province = hintProvince;
+                result.confidence = 'medium'; // Medium confidence since inferred from dictionary
+                console.log(`  ✅ Province set from hint: ${result.province.Name}`);
+            } else {
+                console.log(`  ⚠️ Province hint not found in database: ${provinceHint}`);
+            }
+        }
+        
+        if (bestProvinceMatch && !result.province) {
             console.log(`  ⚠️ Province match score too low (${bestProvinceScore.toFixed(2)}), will try to infer from district...`);
-        } else {
+        } else if (!result.province) {
             console.log(`  ⚠️ No province found directly, will try to infer from district...`);
         }
         // Don't set province yet - try to find district first, then infer province
@@ -1685,8 +1980,8 @@ async function parseAddress(addressText) {
         // Province not found - Search ALL provinces for district match
         console.log(`    🔍 Province not found, searching ALL provinces for district...`);
         
-        // Initialize candidates array
-        const districtCandidates = [];
+        // Initialize candidates array (use let for reassignment in province validation)
+        let districtCandidates = [];
         
         // PRIORITY: Check parts with district keywords FIRST
         const partsWithKeywords = parts.filter(part => {
@@ -1902,6 +2197,84 @@ async function parseAddress(addressText) {
         // Sort candidates: prioritize province matches over district matches
         if (districtCandidates.length > 0) {
             console.log(`  📊 Sorting ${districtCandidates.length} candidates...`);
+            
+            // ============================================
+            // OPTIMIZATION: Province-First Validation
+            // ============================================
+            // If we have a strong province hint from the text, filter candidates
+            // to only those within that province. This fixes cases like:
+            // "xã Phước Hòa Phú Giáo Bình Dương" where "Phú" matches many districts
+            // but we should only consider districts in "Bình Dương"
+            
+            if (OPTIMIZATION_FLAGS.PROVINCE_FIRST_VALIDATION) {
+                // Try to find province from the ORIGINAL address text (not split parts)
+                let provinceHintFromText = null;
+                let provinceHintScore = 0;
+                
+                // Strategy 1: Check last 2 words from original address
+                const addressWords = addressText.trim().split(/\s+/);
+                if (addressWords.length >= 2) {
+                    const last2Words = addressWords.slice(-2).join(' ');
+                    const provinceMatch = fuzzyMatch(last2Words, vietnamAddressData, 0.6);
+                    if (provinceMatch && provinceMatch.score >= 0.7) {
+                        provinceHintFromText = provinceMatch.match;
+                        provinceHintScore = provinceMatch.score;
+                        console.log(`  🔍 Province hint from last 2 words: "${last2Words}" → ${provinceHintFromText.Name} (score: ${provinceHintScore.toFixed(2)})`);
+                    }
+                }
+                
+                // Strategy 2: Check last 3 words if no strong 2-word match
+                if (!provinceHintFromText && addressWords.length >= 3) {
+                    const last3Words = addressWords.slice(-3).join(' ');
+                    const provinceMatch = fuzzyMatch(last3Words, vietnamAddressData, 0.6);
+                    if (provinceMatch && provinceMatch.score >= 0.7) {
+                        provinceHintFromText = provinceMatch.match;
+                        provinceHintScore = provinceMatch.score;
+                        console.log(`  🔍 Province hint from last 3 words: "${last3Words}" → ${provinceHintFromText.Name} (score: ${provinceHintScore.toFixed(2)})`);
+                    }
+                }
+                
+                // Strategy 3: Try each part that might contain province
+                if (!provinceHintFromText) {
+                    for (const part of parts) {
+                        // Skip ward keyword parts
+                        if (/^(xa|phuong|thi tran)\s/i.test(removeVietnameseTones(part))) {
+                            continue;
+                        }
+                        
+                        // Try to match this part as province
+                        const provinceMatch = fuzzyMatch(part, vietnamAddressData, 0.6);
+                        if (provinceMatch && provinceMatch.score >= 0.7) {
+                            provinceHintFromText = provinceMatch.match;
+                            provinceHintScore = provinceMatch.score;
+                            console.log(`  🔍 Province hint from part: "${part}" → ${provinceHintFromText.Name} (score: ${provinceHintScore.toFixed(2)})`);
+                            break;
+                        }
+                    }
+                }
+                
+                // If we have a province hint (even with lower score), filter district candidates
+                if (provinceHintFromText && provinceHintScore >= 0.7) {
+                    const beforeFilter = districtCandidates.length;
+                    const provinceId = provinceHintFromText.Id;
+                    
+                    // Filter: Keep only districts in the hinted province
+                    districtCandidates = districtCandidates.filter(candidate => {
+                        if (candidate.strategy === 'last-2-words-province-match') {
+                            // Keep province matches
+                            return true;
+                        }
+                        // Keep only if district belongs to hinted province
+                        return candidate.province.Id === provinceId;
+                    });
+                    
+                    if (districtCandidates.length < beforeFilter) {
+                        console.log(`  ✅ Province validation: Filtered ${beforeFilter} → ${districtCandidates.length} candidates (kept only ${provinceHintFromText.Name})`);
+                        OPTIMIZATION_METRICS.provinceValidationUsed++;
+                    }
+                }
+            }
+            
             districtCandidates.sort((a, b) => {
                 // 1. Prioritize province matches (strategy: last-2-words-province-match)
                 const aIsProvince = a.strategy === 'last-2-words-province-match';
@@ -2247,11 +2620,30 @@ async function parseAddress(addressText) {
         console.log(`   Street: "${result.street}"`);
         
         try {
-            // IMPROVED: Extract keywords from FULL addressText (not just street)
-            // This helps find landmarks like "sau đình hậu dưỡng"
-            // Example: street="ngõ 2", but addressText="ngõ 2 sau đình hậu dưỡng..."
-            const keywords = extractAddressKeywords(addressText);
-            console.log(`   Keywords extracted: [${keywords.join(', ')}]`);
+            // ============================================
+            // OPTIMIZATION: Expanded keyword extraction
+            // ============================================
+            let keywords = [];
+            
+            // Original: Locality markers only
+            const localityKeywords = extractAddressKeywords(addressText);
+            keywords.push(...localityKeywords);
+            
+            // NEW: Street names and numbers (if enabled)
+            if (OPTIMIZATION_FLAGS.LEARNING_EXPANDED) {
+                const streetNames = extractStreetNames(addressText);
+                keywords.push(...streetNames);
+                
+                const streetNumbers = extractStreetNumbers(addressText);
+                keywords.push(...streetNumbers);
+                
+                console.log(`   📊 Keywords: locality=${localityKeywords.length}, streets=${streetNames.length}, numbers=${streetNumbers.length}`);
+            }
+            
+            // Remove duplicates
+            keywords = [...new Set(keywords)];
+            
+            console.log(`   📝 Total keywords: ${keywords.length} - [${keywords.join(', ')}]`);
             
             if (keywords.length > 0) {
                 // Search in learning database
@@ -2772,6 +3164,37 @@ async function parseAddress(addressText) {
     
     console.log('  🏠 Street address:', result.street || '(none)');
     
+    // ============================================
+    // OPTIMIZATION METRICS: Log performance gains
+    // ============================================
+    if (OPTIMIZATION_FLAGS.NGRAM_LIMIT || OPTIMIZATION_FLAGS.FUZZY_EARLY_EXIT || 
+        OPTIMIZATION_FLAGS.LEVENSHTEIN_LENGTH_CHECK || OPTIMIZATION_FLAGS.LEARNING_EXPANDED ||
+        OPTIMIZATION_FLAGS.PROVINCE_FIRST_VALIDATION) {
+        console.log('📊 Optimization Metrics:');
+        if (OPTIMIZATION_METRICS.ngramReduction > 0) {
+            console.log(`  ⚡ N-grams reduced: ${OPTIMIZATION_METRICS.ngramReduction}`);
+        }
+        if (OPTIMIZATION_METRICS.fuzzySkipped > 0) {
+            console.log(`  ⚡ Fuzzy candidates skipped: ${OPTIMIZATION_METRICS.fuzzySkipped}`);
+        }
+        if (OPTIMIZATION_METRICS.levenshteinSkipped > 0) {
+            console.log(`  ⚡ Levenshtein calculations skipped: ${OPTIMIZATION_METRICS.levenshteinSkipped}`);
+        }
+        if (OPTIMIZATION_METRICS.provinceValidationUsed > 0) {
+            console.log(`  ✅ Province validation applied: ${OPTIMIZATION_METRICS.provinceValidationUsed} times`);
+        }
+        if (OPTIMIZATION_METRICS.rollbackCount > 0) {
+            console.log(`  ⚠️ Rollbacks: ${OPTIMIZATION_METRICS.rollbackCount}`);
+        }
+        
+        // Reset metrics for next parse
+        OPTIMIZATION_METRICS.ngramReduction = 0;
+        OPTIMIZATION_METRICS.fuzzySkipped = 0;
+        OPTIMIZATION_METRICS.levenshteinSkipped = 0;
+        OPTIMIZATION_METRICS.rollbackCount = 0;
+        OPTIMIZATION_METRICS.provinceValidationUsed = 0;
+    }
+    
     return result;
 }
 
@@ -3015,7 +3438,8 @@ async function applyParsedDataToForm(parsedData) {
     
     if (confidence === 'high') {
         // High confidence - everything perfect
-        toastMessage = '✅ Phân tích chính xác - Đã điền thông tin tự động';
+        // NO TOAST - User doesn't need notification for successful auto-fill
+        toastMessage = null;
         toastType = 'success';
     } else if (confidence === 'medium') {
         // Medium confidence - check what was found
@@ -3046,7 +3470,10 @@ async function applyParsedDataToForm(parsedData) {
         toastType = 'info';
     }
     
-    showToast(toastMessage, toastType, 3000);
+    // Only show toast if there's a message
+    if (toastMessage) {
+        showToast(toastMessage, toastType, 3000);
+    }
 }
 
 // Initialize on page load - NO LONGER NEEDED, use addressSelector data
