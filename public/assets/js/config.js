@@ -2,7 +2,8 @@
 const CONFIG = {
     // Google Apps Script Web App URL
     // ⚠️ SAU KHI DEPLOY GOOGLE APPS SCRIPT, CẬP NHẬT URL Ở ĐÂY
-    API_URL: 'https://ctv-api.yendev96.workers.dev',
+    API_URL: 'https://ctv-api.yendev96.workers.dev', // Production
+    // API_URL: 'http://127.0.0.1:8787', // Local development
     
     // Google Sheets ID
     CTV_SPREADSHEET_ID: '1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI',

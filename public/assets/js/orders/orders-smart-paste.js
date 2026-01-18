@@ -3141,11 +3141,11 @@ async function parseAddress(addressText) {
                     console.log(`   ✅ Found in learning DB!`);
                     console.log(`      Ward ID: ${learningResult.ward_id}`);
                     console.log(`      Ward Name: ${learningResult.ward_name}`);
-                    console.log(`      Confidence: ${learningResult.confidence} (need ≥1 to auto-fill)`);
+                    console.log(`      Confidence: ${learningResult.confidence} (need ≥2 to auto-fill)`);
                     
-                    // Only auto-fill if confidence >= 1 (TEMPORARY: Allow confidence=1 for testing)
-                    // TODO: Change back to >=2 for production
-                    if (learningResult.confidence >= 1) {
+                    // Only auto-fill if confidence >= 2 (confirmed at least twice)
+                    // This prevents false positives from single incorrect entries
+                    if (learningResult.confidence >= 2) {
                         // Find ward object from ID
                         // IMPORTANT: Compare both as strings and numbers (API may return different formats)
                         console.log(`   🔍 Searching for ward ID: ${learningResult.ward_id} (type: ${typeof learningResult.ward_id})`);
@@ -3938,6 +3938,40 @@ async function parseAddress(addressText) {
             result.street = landmarkInfo.street;
             console.log('  📍 Using street from landmark extraction:', result.street);
         }
+    }
+    
+    // ============================================
+    // MONITORING: Log parsing results for analysis
+    // ============================================
+    const monitoringData = {
+        timestamp: new Date().toISOString(),
+        input: addressText,
+        success: result.success,
+        confidence: result.confidence,
+        hasProvince: !!result.province,
+        hasDistrict: !!result.district,
+        hasWard: !!result.ward,
+        provinceName: result.province?.Name,
+        districtName: result.district?.Name,
+        wardName: result.ward?.Name,
+        optimizationMetrics: {
+            ngramReduction: OPTIMIZATION_METRICS.ngramReduction,
+            fuzzySkipped: OPTIMIZATION_METRICS.fuzzySkipped,
+            levenshteinSkipped: OPTIMIZATION_METRICS.levenshteinSkipped
+        }
+    };
+    
+    // Store in sessionStorage for later analysis
+    try {
+        const existingLogs = JSON.parse(sessionStorage.getItem('addressParsingLogs') || '[]');
+        existingLogs.push(monitoringData);
+        // Keep only last 50 entries
+        if (existingLogs.length > 50) {
+            existingLogs.shift();
+        }
+        sessionStorage.setItem('addressParsingLogs', JSON.stringify(existingLogs));
+    } catch (e) {
+        console.warn('Failed to store monitoring data:', e);
     }
     
     // ============================================

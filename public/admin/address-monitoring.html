@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Parsing Monitoring</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .success { color: #27ae60; }
+        .warning { color: #f39c12; }
+        .error { color: #e74c3c; }
+        .info { color: #3498db; }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button.danger {
+            background: #e74c3c;
+        }
+        button.danger:hover {
+            background: #c0392b;
+        }
+        
+        .logs-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log-item {
+            border-bottom: 1px solid #ecf0f1;
+            padding: 15px 0;
+        }
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-input {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .log-time {
+            color: #95a5a6;
+            font-size: 12px;
+        }
+        .log-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .log-detail {
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge.high { background: #d4edda; color: #155724; }
+        .badge.medium { background: #fff3cd; color: #856404; }
+        .badge.low { background: #f8d7da; color: #721c24; }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            padding: 20px 0;
+        }
+        .bar {
+            flex: 1;
+            background: #3498db;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .bar:hover {
+            background: #2980b9;
+        }
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Address Parsing Monitoring</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Parses</div>
+                <div class="stat-value info" id="totalParses">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value success" id="successRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">High Confidence</div>
+                <div class="stat-value success" id="highConfidence">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Medium Confidence</div>
+                <div class="stat-value warning" id="mediumConfidence">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Low Confidence</div>
+                <div class="stat-value error" id="lowConfidence">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg N-gram Reduction</div>
+                <div class="stat-value info" id="avgNgramReduction">0%</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>Confidence Distribution</h3>
+            <div class="chart" id="confidenceChart"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="refreshData()">🔄 Refresh</button>
+            <button onclick="exportLogs()">📥 Export CSV</button>
+            <button onclick="clearLogs()" class="danger">🗑️ Clear Logs</button>
+        </div>
+
+        <div class="logs-container">
+            <h3>Recent Parsing Logs</h3>
+            <div id="logsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        function loadLogs() {
+            try {
+                return JSON.parse(sessionStorage.getItem('addressParsingLogs') || '[]');
+            } catch (e) {
+                console.error('Failed to load logs:', e);
+                return [];
+            }
+        }
+
+        function calculateStats(logs) {
+            const total = logs.length;
+            const successful = logs.filter(l => l.success).length;
+            const highConf = logs.filter(l => l.confidence === 'high').length;
+            const mediumConf = logs.filter(l => l.confidence === 'medium').length;
+            const lowConf = logs.filter(l => l.confidence === 'low').length;
+            
+            const avgNgramReduction = logs.length > 0 
+                ? logs.reduce((sum, l) => sum + (l.optimizationMetrics?.ngramReduction || 0), 0) / logs.length 
+                : 0;
+
+            return {
+                total,
+                successRate: total > 0 ? ((successful / total) * 100).toFixed(1) : 0,
+                highConf,
+                mediumConf,
+                lowConf,
+                avgNgramReduction: avgNgramReduction.toFixed(1)
+            };
+        }
+
+        function displayStats(stats) {
+            document.getElementById('totalParses').textContent = stats.total;
+            document.getElementById('successRate').textContent = stats.successRate + '%';
+            document.getElementById('highConfidence').textContent = stats.highConf;
+            document.getElementById('mediumConfidence').textContent = stats.mediumConf;
+            document.getElementById('lowConfidence').textContent = stats.lowConf;
+            document.getElementById('avgNgramReduction').textContent = stats.avgNgramReduction + '%';
+        }
+
+        function displayChart(stats) {
+            const chart = document.getElementById('confidenceChart');
+            const maxValue = Math.max(stats.highConf, stats.mediumConf, stats.lowConf, 1);
+            
+            chart.innerHTML = `
+                <div class="bar" style="height: ${(stats.highConf / maxValue) * 100}%">
+                    <div class="bar-value">${stats.highConf}</div>
+                    <div class="bar-label">High</div>
+                </div>
+                <div class="bar" style="height: ${(stats.mediumConf / maxValue) * 100}%; background: #f39c12;">
+                    <div class="bar-value">${stats.mediumConf}</div>
+                    <div class="bar-label">Medium</div>
+                </div>
+                <div class="bar" style="height: ${(stats.lowConf / maxValue) * 100}%; background: #e74c3c;">
+                    <div class="bar-value">${stats.lowConf}</div>
+                    <div class="bar-label">Low</div>
+                </div>
+            `;
+        }
+
+        function displayLogs(logs) {
+            const container = document.getElementById('logsContainer');
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #95a5a6;">No logs available. Start parsing addresses to see data here.</p>';
+                return;
+            }
+
+            container.innerHTML = logs.reverse().map(log => {
+                const time = new Date(log.timestamp).toLocaleString('vi-VN');
+                const confidenceBadge = `<span class="badge ${log.confidence}">${log.confidence || 'N/A'}</span>`;
+                
+                return `
+                    <div class="log-item">
+                        <div class="log-header">
+                            <div class="log-input">${log.input}</div>
+                            <div class="log-time">${time}</div>
+                        </div>
+                        <div>
+                            Status: ${log.success ? '✅ Success' : '❌ Failed'} | 
+                            Confidence: ${confidenceBadge}
+                        </div>
+                        <div class="log-details">
+                            <div class="log-detail">
+                                <strong>Province:</strong><br>
+                                ${log.provinceName || '❌ Not found'}
+                            </div>
+                            <div class="log-detail">
+                                <strong>District:</strong><br>
+                                ${log.districtName || '❌ Not found'}
+                            </div>
+                            <div class="log-detail">
+                                <strong>Ward:</strong><br>
+                                ${log.wardName || '❌ Not found'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function refreshData() {
+            const logs = loadLogs();
+            const stats = calculateStats(logs);
+            displayStats(stats);
+            displayChart(stats);
+            displayLogs(logs);
+        }
+
+        function exportLogs() {
+            const logs = loadLogs();
+            if (logs.length === 0) {
+                alert('No logs to export');
+                return;
+            }
+
+            const csv = logs.map(log => 
+                `"${log.timestamp}","${log.input}","${log.success}","${log.confidence}","${log.provinceName || ''}","${log.districtName || ''}","${log.wardName || ''}"`
+            ).join('\n');
+            
+            const blob = new Blob(['Timestamp,Input,Success,Confidence,Province,District,Ward\n' + csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `address-logs-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                sessionStorage.removeItem('addressParsingLogs');
+                refreshData();
+            }
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(refreshData, 5000);
+
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>
