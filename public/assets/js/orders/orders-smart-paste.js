@@ -660,7 +660,8 @@ async function parseAddress(addressText) {
         district: null,
         province: null,
         confidence: 'low',
-        suggestions: []
+        suggestions: [],
+        warnings: []  // For validation warnings
     };
     
     const vietnamAddressData = getVietnamAddressData();
@@ -732,12 +733,12 @@ async function parseAddress(addressText) {
     }
     
     // ============================================
-    // LAYER 1: DISTRICT DICTIONARY (NEW - Safe)
+    // LAYER 1: DISTRICT DICTIONARY (ENHANCED)
     // ============================================
-    // Expand special district abbreviations (TP.HCM only)
+    // Expand special district abbreviations and common patterns
     // Rule: Only apply when context is clear (has street number, not conflicting province)
     
-    console.log('🔧 Layer 1: District dictionary...');
+    console.log('🔧 Layer 1: District dictionary & common patterns...');
     
     // District abbreviation dictionary for TP.HCM
     const districtAbbreviations = {
@@ -750,9 +751,18 @@ async function parseAddress(addressText) {
         't/phú': { full: 'Quận Tân Phú', province: 'TP.HCM', aliases: ['t.phú', 'tphú', 't/phu', 't.phu', 'tphu'] }
     };
     
+    // ENHANCEMENT: Common district patterns (Q1-Q12 for TP.HCM)
+    // Pattern: "Q1", "Q.1", "q1", "q.1" → "Quận 1"
+    const commonDistrictPatterns = [
+        // TP.HCM districts (Quận 1-12)
+        { pattern: /\bq\.?([1-9]|1[0-2])\b/gi, template: 'Quận $1', province: 'TP.HCM' },
+        // TP.HCM wards (P1-P30, F1-F30)
+        { pattern: /\b[pf]\.?([1-9]|[12][0-9]|30)\b/gi, template: 'Phường $1', province: 'TP.HCM' }
+    ];
+    
     // Check if we should apply dictionary (context-based)
     const hasStreetNumber = /\d+\/\d+|\d+\s+đường|đường\s+\d+|số\s+\d+/i.test(processedAddress);
-    const hasConflictingProvince = /hà nội|hà nam|bắc ninh|bắc giang/i.test(processedAddress);
+    const hasConflictingProvince = /hà nội|hà nam|bắc ninh|bắc giang|đà nẵng|huế|cần thơ/i.test(processedAddress);
     
     let dictionaryApplied = false;
     let provinceHint = null;
@@ -761,6 +771,7 @@ async function parseAddress(addressText) {
         // Safe to apply dictionary
         const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
         
+        // Step 1: Check district abbreviations (B/Thạnh, G/Vấp, etc.)
         for (const [abbr, info] of Object.entries(districtAbbreviations)) {
             // Check main abbreviation and all aliases
             const allPatterns = [abbr, ...info.aliases];
@@ -785,6 +796,26 @@ async function parseAddress(addressText) {
             }
             
             if (dictionaryApplied) break;
+        }
+        
+        // Step 2: Check common patterns (Q1-Q12, P1-P30, F1-F30)
+        if (!dictionaryApplied) {
+            for (const { pattern, template, province } of commonDistrictPatterns) {
+                const matches = processedAddress.match(pattern);
+                
+                if (matches) {
+                    // Replace all matches
+                    processedAddress = processedAddress.replace(pattern, (match, number) => {
+                        const expanded = template.replace('$1', number);
+                        console.log(`  ✓ Pattern: "${match}" → "${expanded}" (province hint: ${province})`);
+                        return expanded;
+                    });
+                    
+                    provinceHint = province;
+                    dictionaryApplied = true;
+                    break;
+                }
+            }
         }
     } else {
         if (!hasStreetNumber) {
@@ -2936,6 +2967,7 @@ async function parseAddress(addressText) {
         let bestWardMatch = null;
         let bestWardScore = 0;
         let bestWardWordCount = 0;
+        let bestWardInputText = null;  // Track input text for validation
         
         // Priority keywords for wards
         const wardKeywords = ['phuong', 'xa', 'thi tran', 'tt'];
@@ -3196,6 +3228,7 @@ async function parseAddress(addressText) {
                         bestWardMatch = { match: bestWardForPart, score: bestScoreForPart, confidence: 'high' };
                         bestWardScore = bestScoreForPart;
                         bestWardWordCount = wordCount;
+                        bestWardInputText = wardPart;  // Save input text for validation
                         console.log(`    ✓ Ward candidate (keyword): "${wardPart}" (${wordCount} words) → ${bestWardForPart.Name} (score: ${bestScoreForPart.toFixed(2)})`);
                     }
                 }
@@ -3245,6 +3278,7 @@ async function parseAddress(addressText) {
                         bestWardMatch = wardMatchResult;
                         bestWardScore = wardMatchResult.score;
                         bestWardWordCount = wordCount;
+                        bestWardInputText = part;  // Save input text for validation
                         console.log(`    ✓ Ward candidate: "${part}" (${wordCount} words) → ${wardMatchResult.match.Name} (score: ${wardMatchResult.score.toFixed(2)})`);
                     }
                 }
@@ -3255,15 +3289,77 @@ async function parseAddress(addressText) {
             result.ward = bestWardMatch.match;
             console.log(`  ✅ Ward matched: ${result.ward.Name} (score: ${bestWardScore.toFixed(2)}, ${bestWardWordCount} words)`);
             
-            // Upgrade confidence based on ward match quality
-            // IMPROVED: Upgrade regardless of current confidence level
-            if (bestWardScore >= 0.85) {
-                // Excellent ward match → high confidence
-                result.confidence = 'high';
-            } else if (bestWardScore >= 0.7) {
-                // Good ward match → upgrade to medium if currently low
-                if (result.confidence === 'low') {
-                    result.confidence = 'medium';
+            // ============================================
+            // WARD NAME VALIDATION (Soft - Option 1)
+            // ============================================
+            // Check if ward name makes sense compared to input
+            // If validation fails: add warning + reduce confidence (don't reject)
+            
+            let validationPassed = true;
+            let validationReason = '';
+            
+            if (bestWardScore >= 0.85 && bestWardInputText) {
+                // High score match - validate to catch false positives
+                
+                // Remove prefix (Xã, Phường, Thị trấn) to compare main names
+                const removePrefix = (text) => {
+                    return text.replace(/^(xã|phường|phuong|thị trấn|thi tran|thị xã|thi xa|tt)\s+/i, '').trim();
+                };
+                
+                const inputMain = removeVietnameseTones(removePrefix(bestWardInputText)).toLowerCase();
+                const matchMain = removeVietnameseTones(removePrefix(result.ward.Name)).toLowerCase();
+                
+                // Split into words
+                const inputWords = inputMain.split(/\s+/).filter(w => w.length >= 2);
+                const matchWords = matchMain.split(/\s+/).filter(w => w.length >= 2);
+                
+                // Check 1: Word overlap - at least one common word
+                const hasCommonWord = inputWords.some(iw => 
+                    matchWords.some(mw => 
+                        iw === mw || 
+                        iw.includes(mw) || 
+                        mw.includes(iw) ||
+                        levenshteinDistance(iw, mw) <= 1  // Allow 1 typo
+                    )
+                );
+                
+                if (!hasCommonWord && inputWords.length > 0 && matchWords.length > 0) {
+                    validationPassed = false;
+                    validationReason = `Không có từ chung: "${inputMain}" vs "${matchMain}"`;
+                }
+                
+                // Check 2: First word similarity (most important word)
+                if (validationPassed && inputWords.length > 0 && matchWords.length > 0) {
+                    const firstWordSimilarity = 1 - (levenshteinDistance(inputWords[0], matchWords[0]) / Math.max(inputWords[0].length, matchWords[0].length));
+                    
+                    if (firstWordSimilarity < 0.4) {
+                        validationPassed = false;
+                        validationReason = `Từ đầu khác biệt: "${inputWords[0]}" vs "${matchWords[0]}" (similarity: ${firstWordSimilarity.toFixed(2)})`;
+                    }
+                }
+            }
+            
+            // Apply validation result
+            if (!validationPassed) {
+                console.log(`  ⚠️ Ward validation failed: ${validationReason}`);
+                
+                // Soft validation: Add warning + reduce confidence (don't reject)
+                result.confidence = 'low';
+                result.warnings.push(`⚠️ Tên xã/phường không khớp với input - ${validationReason}`);
+                
+                // Reduce score for logging
+                console.log(`  📉 Confidence downgraded: high → low (validation failed)`);
+            } else {
+                // Validation passed - upgrade confidence based on ward match quality
+                // IMPROVED: Upgrade regardless of current confidence level
+                if (bestWardScore >= 0.85) {
+                    // Excellent ward match → high confidence
+                    result.confidence = 'high';
+                } else if (bestWardScore >= 0.7) {
+                    // Good ward match → upgrade to medium if currently low
+                    if (result.confidence === 'low') {
+                        result.confidence = 'medium';
+                    }
                 }
             }
         } else {
