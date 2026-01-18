@@ -2976,6 +2976,40 @@ async function parseAddress(addressText) {
                 if (aIsProvince && !bIsProvince) return -1;
                 if (!aIsProvince && bIsProvince) return 1;
                 
+                // ============================================
+                // IMPROVEMENT 3: Prioritize common provinces when district name is ambiguous
+                // ============================================
+                // If both candidates are district matches (not province matches)
+                // AND scores are similar (within 0.1)
+                // → Prioritize major provinces (TP.HCM, Hà Nội, Đà Nẵng...)
+                if (!aIsProvince && !bIsProvince && Math.abs(a.score - b.score) <= 0.1) {
+                    // List of major provinces (by population/commerce)
+                    const majorProvinces = [
+                        'Thành phố Hồ Chí Minh',
+                        'Thành phố Hà Nội',
+                        'Thành phố Đà Nẵng',
+                        'Tỉnh Bình Dương',
+                        'Tỉnh Đồng Nai',
+                        'Thành phố Hải Phòng',
+                        'Thành phố Cần Thơ',
+                        'Tỉnh Bà Rịa - Vũng Tàu',
+                        'Tỉnh Khánh Hòa',
+                        'Tỉnh Long An'
+                    ];
+                    
+                    const aIsMajor = majorProvinces.includes(a.province.Name);
+                    const bIsMajor = majorProvinces.includes(b.province.Name);
+                    
+                    if (aIsMajor && !bIsMajor) {
+                        console.log(`  🎯 Prioritizing major province: ${a.province.Name} over ${b.province.Name}`);
+                        return -1;
+                    }
+                    if (!aIsMajor && bIsMajor) {
+                        console.log(`  🎯 Prioritizing major province: ${b.province.Name} over ${a.province.Name}`);
+                        return 1;
+                    }
+                }
+                
                 // 3. Prioritize multi-word matches over single-word (more specific)
                 if (a.wordCount >= 2 && b.wordCount === 1) return -1;
                 if (b.wordCount >= 2 && a.wordCount === 1) return 1;
@@ -3045,6 +3079,44 @@ async function parseAddress(addressText) {
                 result.province = bestCandidate.province;
                 console.log(`  ✅ Province inferred from district: ${result.province.Name}`);
                 console.log(`  ✅ District matched: ${result.district.Name} (score: ${bestCandidate.score.toFixed(2)}, ${bestCandidate.wordCount} words)`);
+                
+                // ============================================
+                // IMPROVEMENT 2: District Name Validation
+                // ============================================
+                // Check if district name actually appears in original address
+                const districtNameNormalized = removeVietnameseTones(result.district.Name)
+                    .toLowerCase()
+                    .replace(/^(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i, '');
+                const addressNormalized = removeVietnameseTones(addressText).toLowerCase();
+                
+                // Check if district name (or significant part) appears in address
+                const districtWords = districtNameNormalized.split(/\s+/).filter(w => w.length >= 3);
+                let districtWordsFound = 0;
+                
+                for (const word of districtWords) {
+                    if (addressNormalized.includes(word)) {
+                        districtWordsFound++;
+                    }
+                }
+                
+                const districtMatchRatio = districtWords.length > 0 ? districtWordsFound / districtWords.length : 0;
+                
+                if (districtMatchRatio < 0.5 && bestCandidate.score < 0.95) {
+                    // District name not clearly in address AND score not perfect
+                    console.log(`  ⚠️ District validation warning: Only ${districtWordsFound}/${districtWords.length} words found in address`);
+                    result.warnings.push(`⚠️ Tên quận/huyện không rõ ràng trong địa chỉ - Vui lòng kiểm tra lại`);
+                    
+                    // Downgrade confidence
+                    if (result.confidence === 'high') {
+                        result.confidence = 'medium';
+                    } else if (result.confidence === 'medium') {
+                        result.confidence = 'low';
+                    }
+                    console.log(`  📉 Confidence downgraded due to district validation`);
+                } else {
+                    console.log(`  ✅ District validation passed: ${districtWordsFound}/${districtWords.length} words found`);
+                }
+                
                 // Set bestDistrictMatch for legacy code compatibility
                 bestDistrictMatch = { match: bestCandidate.district, score: bestCandidate.score };
                 bestDistrictScore = bestCandidate.score;
@@ -4249,6 +4321,51 @@ async function parseAddress(addressText) {
                         if (firstWordSimilarity < 0.4) {
                             validationPassed = false;
                             validationReason = `Từ đầu khác biệt: "${inputWords[0]}" vs "${matchWords[0]}" (similarity: ${firstWordSimilarity.toFixed(2)})`;
+                        }
+                    }
+                    
+                    // ============================================
+                    // IMPROVEMENT 1: Check word order (Tân Vĩnh vs Vĩnh Tân)
+                    // ============================================
+                    if (validationPassed && inputWords.length >= 2 && matchWords.length >= 2) {
+                        // Check if words appear in same order
+                        let inputIndex = 0;
+                        let matchIndex = 0;
+                        let orderMatches = 0;
+                        
+                        while (inputIndex < inputWords.length && matchIndex < matchWords.length) {
+                            const iw = inputWords[inputIndex];
+                            const mw = matchWords[matchIndex];
+                            
+                            // Check if words match (exact or similar)
+                            if (iw === mw || iw.includes(mw) || mw.includes(iw) || levenshteinDistance(iw, mw) <= 1) {
+                                orderMatches++;
+                                inputIndex++;
+                                matchIndex++;
+                            } else {
+                                // Try to find this input word in remaining match words
+                                let found = false;
+                                for (let j = matchIndex + 1; j < matchWords.length; j++) {
+                                    if (iw === matchWords[j] || iw.includes(matchWords[j]) || matchWords[j].includes(iw)) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (found) {
+                                    matchIndex++; // Skip this match word
+                                } else {
+                                    inputIndex++; // Skip this input word
+                                }
+                            }
+                        }
+                        
+                        // If less than 50% words in correct order, likely wrong match
+                        const orderRatio = orderMatches / Math.min(inputWords.length, matchWords.length);
+                        if (orderRatio < 0.5) {
+                            validationPassed = false;
+                            validationReason = `Thứ tự từ không khớp: "${inputMain}" vs "${matchMain}" (order ratio: ${orderRatio.toFixed(2)})`;
+                            console.log(`    ⚠️ Word order mismatch: ${orderMatches}/${Math.min(inputWords.length, matchWords.length)} words in order`);
                         }
                     }
                 }
