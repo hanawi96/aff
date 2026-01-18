@@ -32,9 +32,11 @@ function extractAddressKeywords(streetAddress) {
     // Step 1: Check for landmarks (sau, gần, đối diện, cạnh...)
     const landmarkPatterns = [
         // Pattern 1: "sau đình hậu dưỡng" → extract "hậu dưỡng"
-        { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+(dinh|chua|cho|truong|benh vien|cong ty)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|duong|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 3 },
+        // FIXED: Use greedy match to capture full name (2-4 words after landmark type)
+        // Stop at: ngõ, phố, xã, phường, huyện, quận, tỉnh, thành phố
+        { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+(dinh|chua|cho|truong|benh vien|cong ty)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 3 },
         // Pattern 2: "sau hậu dưỡng" → extract "hậu dưỡng"
-        { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|duong|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 2 }
+        { pattern: /\b(sau|gan|doi dien|canh|truoc|ben)\s+([a-z0-9\s]+?)(?=\s+(?:ngo|pho|xa|phuong|huyen|quan|tinh|thanh pho|$))/i, nameIndex: 2 }
     ];
     
     for (const { pattern, nameIndex } of landmarkPatterns) {

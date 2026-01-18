@@ -11,7 +11,8 @@ const OPTIMIZATION_FLAGS = {
     FUZZY_EARLY_EXIT: true,         // Skip weak candidates in fuzzy match (Priority 2)
     LEVENSHTEIN_LENGTH_CHECK: true, // Skip Levenshtein for very different lengths (Priority 2)
     LEARNING_EXPANDED: true,        // Expand keyword extraction for learning DB (Priority 5)
-    PROVINCE_FIRST_VALIDATION: true // Validate district/ward within found province (Priority 3)
+    PROVINCE_FIRST_VALIDATION: true,// Validate district/ward within found province (Priority 3)
+    LANDMARK_EXTRACTION: true       // Extract landmarks before parsing (Priority 2)
 };
 
 // Metrics tracking
@@ -20,7 +21,8 @@ const OPTIMIZATION_METRICS = {
     fuzzySkipped: 0,
     levenshteinSkipped: 0,
     rollbackCount: 0,
-    provinceValidationUsed: 0
+    provinceValidationUsed: 0,
+    landmarkExtracted: 0
 };
 
 /**
@@ -390,6 +392,176 @@ function extractStreetNumbers(text) {
 }
 
 /**
+ * Extract landmark from address
+ * Separates landmark phrases (sau chợ, gần ngã tư, etc.) from main address
+ * Returns: { street, landmark, cleanAddress }
+ */
+function extractLandmark(addressText) {
+    if (!OPTIMIZATION_FLAGS.LANDMARK_EXTRACTION) {
+        return {
+            street: addressText,
+            landmark: null,
+            cleanAddress: addressText
+        };
+    }
+    
+    // Landmark keywords (position + place types)
+    const LANDMARK_KEYWORDS = [
+        // Position keywords
+        'sau', 'trước', 'truoc', 'trên', 'tren', 'dưới', 'duoi',
+        'gần', 'gan', 'cạnh', 'canh', 'kế', 'ke', 'bên', 'ben',
+        'đối diện', 'doi dien', 'đôi diện', 'doi dien',
+        
+        // Extension keywords
+        'nối dài', 'noi dai', 'kéo dài', 'keo dai',
+        'hướng', 'huong', 'về phía', 've phia',
+        
+        // Place types (common landmarks)
+        'chợ', 'cho', 'ngã tư', 'nga tu', 'ngã ba', 'nga ba',
+        'cầu', 'cau', 'cống', 'cong', 'đình', 'dinh',
+        'trường', 'truong', 'bệnh viện', 'benh vien',
+        'công viên', 'cong vien', 'siêu thị', 'sieu thi',
+        'chung cư', 'chung cu', 'khu dân cư', 'khu dan cu', 'kdc'
+    ];
+    
+    // Normalize for searching
+    const normalized = removeVietnameseTones(addressText).toLowerCase();
+    
+    // Find first landmark keyword
+    let landmarkStart = -1;
+    let landmarkKeyword = null;
+    
+    for (const keyword of LANDMARK_KEYWORDS) {
+        // CRITICAL FIX: Use word boundary to avoid false matches
+        // "truong" should NOT match "phuong", "cho" should NOT match "chon"
+        // Use regex with \b for word boundaries
+        const regex = new RegExp(`\\b${keyword.replace(/\s+/g, '\\s+')}\\b`, 'i');
+        const match = normalized.match(regex);
+        
+        if (match) {
+            const matchIndex = match.index;
+            
+            // CRITICAL FIX 2: Check if landmark keyword comes BEFORE location keywords
+            // If landmark is AFTER location keywords (xã, phường, quận, tỉnh), it's likely a false positive
+            // Example: "xã Nhơn an thị xã An Nhơn tỉnh Bình Định" → "dinh" is part of province name, NOT landmark!
+            const beforeLandmark = normalized.substring(0, matchIndex);
+            const hasLocationKeywordBefore = /\b(xa|phuong|quan|huyen|thi xa|thanh pho|tinh)\b/i.test(beforeLandmark);
+            
+            if (hasLocationKeywordBefore) {
+                // Skip this match - it's likely part of a location name, not a landmark
+                continue;
+            }
+            
+            if (landmarkStart === -1 || matchIndex < landmarkStart) {
+                landmarkStart = matchIndex;
+                landmarkKeyword = keyword;
+            }
+        }
+    }
+    
+    if (landmarkStart === -1) {
+        // No landmark found
+        return {
+            street: addressText,
+            landmark: null,
+            cleanAddress: addressText
+        };
+    }// Find where landmark ends
+    let landmarkEnd = addressText.length;
+    
+    // Strategy 1: Look for comma after landmark
+    const afterLandmark = addressText.substring(landmarkStart);
+    const commaMatch = afterLandmark.match(/[,，]/);
+    if (commaMatch) {
+        landmarkEnd = landmarkStart + commaMatch.index;
+    } else {
+        // Strategy 2: Landmark is typically 2-4 words
+        // Extract 2-4 words after landmark keyword, then check if remaining looks like location
+        const afterLandmarkNormalized = normalized.substring(landmarkStart);
+        const words = afterLandmarkNormalized.split(/\s+/);
+        
+        // Try 2, 3, 4 words for landmark
+        for (const wordCount of [2, 3, 4]) {
+            if (words.length > wordCount) {
+                // Get potential landmark (e.g., "sau dinh hau duong")
+                const potentialLandmark = words.slice(0, wordCount).join(' ');
+                
+                // Get remaining text after potential landmark
+                const remainingText = words.slice(wordCount).join(' ');
+                
+                // Check if remaining text looks like a location (contains common district/province names)
+                // Common patterns: "dong anh", "ha noi", "quan 1", "phuong 14"
+                const hasLocationPattern = 
+                    /\b(quan|huyen|phuong|xa|tinh|thanh pho|tp)\b/.test(remainingText) || // Has location keyword
+                    /\b(ha noi|ho chi minh|hcm|da nang|hai phong|can tho)\b/.test(remainingText) || // Major cities
+                    /\b[a-z]+\s+(anh|binh|dong|tay|nam|bac|trung)\b/.test(remainingText); // Common district patterns
+                
+                if (hasLocationPattern) {
+                    // This looks like a location - landmark ends here
+                    landmarkEnd = landmarkStart + potentialLandmark.length;
+                    break;
+                }
+            }
+        }
+        
+        // If still no match, default to 3 words
+        if (landmarkEnd === addressText.length && words.length > 3) {
+            const defaultLandmark = words.slice(0, 3).join(' ');
+            landmarkEnd = landmarkStart + defaultLandmark.length;
+        }
+    }
+    
+    // Extract parts
+    const street = addressText.substring(0, landmarkStart).trim();
+    const landmark = addressText.substring(landmarkStart, landmarkEnd).trim();
+    let remaining = addressText.substring(landmarkEnd).trim();
+    
+    // Remove leading comma from remaining
+    remaining = remaining.replace(/^[,，]\s*/, '');
+    
+    // SMART: Add commas to remaining if it doesn't have any
+    // This helps parsing when address has no commas: "đông anh hà nội" → "đông anh, hà nội"
+    if (remaining && !remaining.includes(',')) {
+        const remainingNormalized = removeVietnameseTones(remaining).toLowerCase();
+        
+        // Try to detect location names (district/province) and add commas between them
+        // Common patterns:
+        // - "dong anh ha noi" → "dong anh, ha nội" (2 words + 2 words)
+        // - "quan 10 ho chi minh" → "quan 10, ho chi minh" (keyword + name)
+        
+        // Strategy 1: Look for major city names
+        const majorCities = ['ha noi', 'ho chi minh', 'hcm', 'da nang', 'hai phong', 'can tho', 'bien hoa', 'vung tau', 'nha trang', 'hue'];
+        
+        for (const city of majorCities) {
+            const cityIndex = remainingNormalized.indexOf(city);
+            if (cityIndex > 0) {
+                // Found city name - add comma before it
+                const beforeCity = remaining.substring(0, cityIndex).trim();
+                const cityPart = remaining.substring(cityIndex).trim();
+                remaining = beforeCity + ', ' + cityPart;
+                break;
+            }
+        }
+        
+        // Strategy 2: If still no comma and has 4+ words, split at midpoint
+        if (!remaining.includes(',') && remaining.split(/\s+/).length >= 4) {
+            const words = remaining.split(/\s+/);
+            const midPoint = Math.floor(words.length / 2);
+            remaining = words.slice(0, midPoint).join(' ') + ', ' + words.slice(midPoint).join(' ');
+        }
+    }
+    
+    // Reconstruct without landmark
+    const cleanAddress = street + (remaining ? ', ' + remaining : '');
+    
+    return {
+        street,
+        landmark,
+        cleanAddress
+    };
+}
+
+/**
  * Extract phone number from text
  */
 function extractPhoneNumber(text) {
@@ -532,6 +704,33 @@ async function parseAddress(addressText) {
         console.log('  ⏭️ No normalization needed');
     }
     
+    addressText = processedAddress;
+    
+    // ============================================
+    // LAYER 0.5: LANDMARK EXTRACTION (NEW - Safe)
+    // ============================================
+    // Extract landmarks BEFORE parsing to avoid interference
+    // Example: "123 Nguyễn Văn Linh nối dài, Q8" → street="123 Nguyễn Văn Linh", landmark="nối dài"
+    
+    let landmarkInfo = null;
+    
+    if (OPTIMIZATION_FLAGS.LANDMARK_EXTRACTION) {
+        console.log('🔧 Layer 0.5: Landmark extraction...');
+        landmarkInfo = extractLandmark(addressText);
+        
+        if (landmarkInfo.landmark) {
+            console.log('  🏷️ Landmark detected:', landmarkInfo.landmark);
+            console.log('  📍 Street portion:', landmarkInfo.street);
+            console.log('  🧹 Clean address:', landmarkInfo.cleanAddress);
+            
+            // Use clean address for parsing
+            addressText = landmarkInfo.cleanAddress;
+            OPTIMIZATION_METRICS.landmarkExtracted++;
+        } else {
+            console.log('  ⏭️ No landmark detected');
+        }
+    }
+    
     // ============================================
     // LAYER 1: DISTRICT DICTIONARY (NEW - Safe)
     // ============================================
@@ -598,10 +797,14 @@ async function parseAddress(addressText) {
     
     if (!dictionaryApplied) {
         console.log('  ⏭️ No dictionary match');
+    } else {
+        // Dictionary was applied - update addressText with the expanded district name
+        addressText = processedAddress;
     }
     
-    // Update addressText for further processing
-    addressText = processedAddress;
+    // CRITICAL: Sync processedAddress with addressText (after landmark extraction)
+    // This ensures expand abbreviations works on CLEAN address
+    processedAddress = addressText;
     
     // ============================================
     // PRE-PROCESSING: Expand common abbreviations (EXISTING)
@@ -2625,7 +2828,21 @@ async function parseAddress(addressText) {
             // ============================================
             let keywords = [];
             
-            // Original: Locality markers only
+            // CRITICAL: If landmark exists, extract keywords from ORIGINAL address (before landmark extraction)
+            // This ensures we capture locality names like "Hậu Dưỡng" that come after landmark
+            // Example: "sau đình hậu dưỡng đông anh" → extract from full text, not just "sau đình"
+            const originalAddress = landmarkInfo && landmarkInfo.landmark 
+                ? (landmarkInfo.street + ' ' + landmarkInfo.landmark + ' ' + addressText).trim()
+                : addressText;
+            
+            const landmarkKeywords = extractAddressKeywords(originalAddress);
+            keywords.push(...landmarkKeywords);
+            
+            if (landmarkInfo && landmarkInfo.landmark) {
+                console.log(`   🏷️ Landmark keywords from full address: ${landmarkKeywords.length} - [${landmarkKeywords.join(', ')}]`);
+            }
+            
+            // Original: Locality markers from clean address
             const localityKeywords = extractAddressKeywords(addressText);
             keywords.push(...localityKeywords);
             
@@ -3165,11 +3382,25 @@ async function parseAddress(addressText) {
     console.log('  🏠 Street address:', result.street || '(none)');
     
     // ============================================
+    // ADD LANDMARK TO RESULT (if extracted)
+    // ============================================
+    if (landmarkInfo && landmarkInfo.landmark) {
+        result.landmark = landmarkInfo.landmark;
+        console.log('  🏷️ Landmark:', result.landmark);
+        
+        // If street is empty or too short, use the street portion from landmark extraction
+        if (!result.street || result.street.length < 5) {
+            result.street = landmarkInfo.street;
+            console.log('  📍 Using street from landmark extraction:', result.street);
+        }
+    }
+    
+    // ============================================
     // OPTIMIZATION METRICS: Log performance gains
     // ============================================
     if (OPTIMIZATION_FLAGS.NGRAM_LIMIT || OPTIMIZATION_FLAGS.FUZZY_EARLY_EXIT || 
         OPTIMIZATION_FLAGS.LEVENSHTEIN_LENGTH_CHECK || OPTIMIZATION_FLAGS.LEARNING_EXPANDED ||
-        OPTIMIZATION_FLAGS.PROVINCE_FIRST_VALIDATION) {
+        OPTIMIZATION_FLAGS.PROVINCE_FIRST_VALIDATION || OPTIMIZATION_FLAGS.LANDMARK_EXTRACTION) {
         console.log('📊 Optimization Metrics:');
         if (OPTIMIZATION_METRICS.ngramReduction > 0) {
             console.log(`  ⚡ N-grams reduced: ${OPTIMIZATION_METRICS.ngramReduction}`);
@@ -3183,6 +3414,9 @@ async function parseAddress(addressText) {
         if (OPTIMIZATION_METRICS.provinceValidationUsed > 0) {
             console.log(`  ✅ Province validation applied: ${OPTIMIZATION_METRICS.provinceValidationUsed} times`);
         }
+        if (OPTIMIZATION_METRICS.landmarkExtracted > 0) {
+            console.log(`  🏷️ Landmark extracted: ${OPTIMIZATION_METRICS.landmarkExtracted} times`);
+        }
         if (OPTIMIZATION_METRICS.rollbackCount > 0) {
             console.log(`  ⚠️ Rollbacks: ${OPTIMIZATION_METRICS.rollbackCount}`);
         }
@@ -3193,6 +3427,7 @@ async function parseAddress(addressText) {
         OPTIMIZATION_METRICS.levenshteinSkipped = 0;
         OPTIMIZATION_METRICS.rollbackCount = 0;
         OPTIMIZATION_METRICS.provinceValidationUsed = 0;
+        OPTIMIZATION_METRICS.landmarkExtracted = 0;
     }
     
     return result;
