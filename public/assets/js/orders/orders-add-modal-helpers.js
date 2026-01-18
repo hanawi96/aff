@@ -149,12 +149,18 @@ function updateOrderSummary() {
     document.getElementById('profitShipping').textContent = formatCurrency(shippingCost);
     
     // Update commission display
+    const commissionRow = document.getElementById('profitCommissionRow');
     const commissionLabel = document.getElementById('profitCommissionLabel');
     const commissionValue = document.getElementById('profitCommission');
-    if (commission > 0) {
+    
+    if (referralCode && commission > 0) {
+        // Show commission row
+        if (commissionRow) commissionRow.classList.remove('hidden');
         commissionLabel.textContent = `- Hoa hồng (${(commissionRate * 100).toFixed(1)}%)`;
         commissionValue.textContent = formatCurrency(commission);
     } else {
+        // Hide commission row when no referral code
+        if (commissionRow) commissionRow.classList.add('hidden');
         commissionLabel.textContent = '- Hoa hồng';
         commissionValue.textContent = '0đ';
     }

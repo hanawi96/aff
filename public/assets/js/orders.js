@@ -817,7 +817,8 @@ async function showAddOrderModal(duplicateData = null) {
                                             <span id="profitTax" class="text-gray-500">0đ</span>
                                         </div>
                                     </div>
-                                    <div class="flex justify-between items-center text-sm py-1">
+                                    <!-- Commission row - hidden if no referral code -->
+                                    <div id="profitCommissionRow" class="flex justify-between items-center text-sm py-1 hidden">
                                         <span id="profitCommissionLabel" class="text-gray-500">- Hoa hồng</span>
                                         <span id="profitCommission" class="text-gray-600">0đ</span>
                                     </div>
