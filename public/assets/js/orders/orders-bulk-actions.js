@@ -94,15 +94,14 @@ async function bulkExport() {
     }
 
     try {
-        // Check if XLSX library is loaded
+        // Check if XLSX library is loaded (silently load if needed)
         if (typeof XLSX === 'undefined') {
-            showToast('Đang tải thư viện Excel...', 'info');
             await loadXLSXLibrary();
         }
 
         const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
         
-        showToast('Đang tạo và lưu file Excel...', 'info');
+        showToast('Đang tạo file Excel...', 'info');
         
         // Export to SPX format and save to R2
         const result = await exportToSPXExcelAndSave(selectedOrders);
