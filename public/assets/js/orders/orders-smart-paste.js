@@ -761,8 +761,13 @@ async function parseAddress(addressText) {
     ];
     
     // Check if we should apply dictionary (context-based)
-    const hasStreetNumber = /\d+\/\d+|\d+\s+đường|đường\s+\d+|số\s+\d+/i.test(processedAddress);
+    // IMPROVED: Expand street number pattern to include "789 Street Name"
+    // Simplified: Use \w instead of full character class
+    const hasStreetNumber = /\d+\/\d+|\d+\s+đường|đường\s+\d+|số\s+\d+|^\d+\s+\w/i.test(processedAddress);
     const hasConflictingProvince = /hà nội|hà nam|bắc ninh|bắc giang|đà nẵng|huế|cần thơ/i.test(processedAddress);
+    
+    console.log(`  🔍 Dictionary check: hasStreetNumber=${hasStreetNumber}, hasConflictingProvince=${hasConflictingProvince}`);
+    console.log(`  📝 processedAddress: "${processedAddress}"`);
     
     let dictionaryApplied = false;
     let provinceHint = null;
@@ -770,6 +775,7 @@ async function parseAddress(addressText) {
     if (hasStreetNumber && !hasConflictingProvince) {
         // Safe to apply dictionary
         const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
+        console.log(`  📝 Normalized for dict: "${normalizedForDict}"`);
         
         // Step 1: Check district abbreviations (B/Thạnh, G/Vấp, etc.)
         for (const [abbr, info] of Object.entries(districtAbbreviations)) {
@@ -777,13 +783,56 @@ async function parseAddress(addressText) {
             const allPatterns = [abbr, ...info.aliases];
             
             for (const pattern of allPatterns) {
+                // CRITICAL FIX: Normalize pattern to match normalizedForDict (no tones)
+                const normalizedPattern = removeVietnameseTones(pattern).toLowerCase();
+                
                 // Use word boundary to avoid false matches
-                const regex = new RegExp(`\\b${pattern.replace(/\//g, '\\/')}\\b`, 'gi');
+                const regex = new RegExp(`\\b${normalizedPattern.replace(/\//g, '\\/')}\\b`, 'gi');
                 
                 if (regex.test(normalizedForDict)) {
+                    console.log(`  ✓ Pattern "${pattern}" matched in normalized text`);
+                    
                     // Found match - replace in original text (preserve Vietnamese tones)
-                    // Find the actual matched text in original (could be "B/Thạnh", "b/thanh", etc.)
-                    const originalMatch = processedAddress.match(new RegExp(`\\b[${pattern[0]}${pattern[0].toUpperCase()}][\\.\\/]?${pattern.slice(2)}\\b`, 'gi'));
+                    // CRITICAL FIX: Match both with and without tones in original text
+                    // Example: "G/Vấp" or "G/Vap" or "g/vấp" or "g/vap"
+                    
+                    const firstChar = pattern[0];
+                    const restPattern = pattern.slice(2); // Skip first char and separator (e.g., "vấp" from "g/vấp")
+                    
+                    // Build flexible regex that matches both toned and non-toned versions
+                    // For "vấp", we need to match: vấp, Vấp, vap, Vap
+                    // Strategy: Use character classes for Vietnamese characters
+                    const buildFlexiblePattern = (text) => {
+                        // Map of Vietnamese characters to their variants (with/without tones)
+                        const charMap = {
+                            'a': '[aàáảãạăắằẳẵặâấầẩẫậ]',
+                            'e': '[eèéẻẽẹêếềểễệ]',
+                            'i': '[iìíỉĩị]',
+                            'o': '[oòóỏõọôốồổỗộơớờởỡợ]',
+                            'u': '[uùúủũụưứừửữự]',
+                            'y': '[yỳýỷỹỵ]',
+                            'd': '[dđ]'
+                        };
+                        
+                        const normalized = removeVietnameseTones(text).toLowerCase();
+                        let flexPattern = '';
+                        
+                        for (const char of normalized) {
+                            if (charMap[char]) {
+                                flexPattern += charMap[char];
+                            } else {
+                                flexPattern += char;
+                            }
+                        }
+                        
+                        return flexPattern;
+                    };
+                    
+                    const flexibleRest = buildFlexiblePattern(restPattern);
+                    
+                    // Match: [Gg][\.\\/]?[vấpap] (flexible matching with tones)
+                    const originalRegex = new RegExp(`\\b[${firstChar}${firstChar.toUpperCase()}][\\.\\/]?${flexibleRest}\\b`, 'gi');
+                    const originalMatch = processedAddress.match(originalRegex);
                     
                     if (originalMatch) {
                         processedAddress = processedAddress.replace(originalMatch[0], info.full);
@@ -791,6 +840,10 @@ async function parseAddress(addressText) {
                         dictionaryApplied = true;
                         console.log(`  ✓ Dictionary: "${originalMatch[0]}" → "${info.full}" (province hint: ${info.province})`);
                         break;
+                    } else {
+                        console.log(`  ⚠️ Pattern matched but originalMatch failed for "${pattern}"`);
+                        console.log(`     originalRegex: ${originalRegex}`);
+                        console.log(`     processedAddress: "${processedAddress}"`);
                     }
                 }
             }
@@ -1529,12 +1582,47 @@ async function parseAddress(addressText) {
             const maxN = 3; // Was 4
             const minN = 2; // Keep same
             
-            // Strategy 2: Only use last 6 words (was 8)
-            // Safe: Location info luôn ở cuối
-            const wordsToUse = words.length > 6 ? words.slice(-6) : words;
+            // Strategy 2: Smart word selection - prioritize location keywords
+            // IMPROVED: Don't blindly take last 6 words, keep important keywords
+            let wordsToUse = words;
             
             if (words.length > 6) {
-                console.log('  📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
+                // Check if any word is a location keyword (Quận, Huyện, Phường, Xã...)
+                const locationKeywordIndices = [];
+                const locationKeywords = ['quan', 'huyen', 'phuong', 'xa', 'thi', 'thanh', 'tinh'];
+                
+                for (let i = 0; i < words.length; i++) {
+                    const wordNormalized = removeVietnameseTones(words[i]).toLowerCase();
+                    if (locationKeywords.some(kw => wordNormalized.includes(kw))) {
+                        locationKeywordIndices.push(i);
+                    }
+                }
+                
+                // If we have location keywords, include them + surrounding words
+                if (locationKeywordIndices.length > 0) {
+                    const importantIndices = new Set();
+                    
+                    // Add location keyword indices + 1 word after each
+                    for (const idx of locationKeywordIndices) {
+                        importantIndices.add(idx);
+                        if (idx + 1 < words.length) importantIndices.add(idx + 1);
+                    }
+                    
+                    // Always include last 4 words (province info)
+                    for (let i = Math.max(0, words.length - 4); i < words.length; i++) {
+                        importantIndices.add(i);
+                    }
+                    
+                    // Build wordsToUse from important indices
+                    const sortedIndices = Array.from(importantIndices).sort((a, b) => a - b);
+                    wordsToUse = sortedIndices.map(i => words[i]);
+                    
+                    console.log('  📝 Smart selection: keeping', wordsToUse.length, 'important words (from', words.length, 'words)');
+                } else {
+                    // No location keywords - use last 6 words (original strategy)
+                    wordsToUse = words.slice(-6);
+                    console.log('  📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
+                }
             }
             
             // Generate optimized n-grams
@@ -2099,6 +2187,48 @@ async function parseAddress(addressText) {
                             console.log(`    ✨✨ Extra bonus for explicit district name: "${part}" → ${district.Name} (score: ${adjustedScore.toFixed(2)})`);
                         }
                         
+                        // SUPER BONUS: If part has explicit district keyword (Quận, Huyện, Thành phố)
+                        // This indicates user explicitly mentioned district type
+                        // Example: "Quận 5" should be heavily preferred over fuzzy matches
+                        const hasExplicitDistrictKeyword = /\b(quan|huyen|thanh pho|tp|thi xa|tx)\s+/i.test(part);
+                        if (hasExplicitDistrictKeyword && match.score >= 0.9) {
+                            adjustedScore += 0.5; // Heavy boost for explicit keyword
+                            console.log(`    🌟 SUPER bonus for explicit district keyword: "${part}" → ${district.Name} (score: ${adjustedScore.toFixed(2)})`);
+                        }
+                        
+                        // ============================================
+                        // DISTRICT AMBIGUITY RESOLUTION (NEW)
+                        // ============================================
+                        // Boost score if surrounding context mentions province
+                        // Example: "Đông Anh Hà Nội" → boost "Đông Anh (Hà Nội)" over "Đông Anh (Thái Nguyên)"
+                        
+                        // Get surrounding text (previous + current + next parts)
+                        const surroundingParts = [];
+                        if (i > 0) surroundingParts.push(parts[i - 1]);
+                        surroundingParts.push(part);
+                        if (i < parts.length - 1) surroundingParts.push(parts[i + 1]);
+                        
+                        const surroundingText = removeVietnameseTones(surroundingParts.join(' ')).toLowerCase();
+                        
+                        // Check if surrounding text mentions province name
+                        // Use result.province (already found) to check context
+                        if (result.province) {
+                            const provinceNameNormalized = removeVietnameseTones(result.province.Name)
+                                .toLowerCase()
+                                .replace(/^(tinh|thanh pho|tp)\s+/i, '');
+                            
+                            if (surroundingText.includes(provinceNameNormalized) && provinceNameNormalized.length >= 4) {
+                                adjustedScore += 0.25; // Context boost
+                                console.log(`    🎯 Context boost: Surrounding text mentions province "${result.province.Name}" (score: ${adjustedScore.toFixed(2)})`);
+                            }
+                        }
+                        
+                        // PROVINCE HINT BOOST: If provinceHint exists (from Layer 1 dictionary)
+                        if (provinceHint && district.Name.includes(provinceHint)) {
+                            adjustedScore += 0.2; // Province hint boost
+                            console.log(`    🎯 Province hint boost: District belongs to "${provinceHint}" (score: ${adjustedScore.toFixed(2)})`);
+                        }
+                        
                         districtCandidates.push({
                             part,
                             index: i,
@@ -2140,6 +2270,41 @@ async function parseAddress(addressText) {
                 districtCandidates.sort((a, b) => {
                     const districtScoreDiff = Math.abs(a.score - b.score);
                     const wardScoreDiff = Math.abs(a.wardScore - b.wardScore);
+                    
+                    // CRITICAL: Check if candidate part is from province name
+                    // Example: "Thành phố Hồ" is substring of "Thành phố Hồ Chí Minh" (province)
+                    const provinceNameNormalized = removeVietnameseTones(result.province.Name).toLowerCase();
+                    const aPartNormalized = removeVietnameseTones(a.part).toLowerCase();
+                    const bPartNormalized = removeVietnameseTones(b.part).toLowerCase();
+                    
+                    const aIsFromProvince = provinceNameNormalized.includes(aPartNormalized) && aPartNormalized.length >= 6;
+                    const bIsFromProvince = provinceNameNormalized.includes(bPartNormalized) && bPartNormalized.length >= 6;
+                    
+                    // Check if candidate has explicit district keyword (Quận, Huyện, etc.)
+                    const aHasDistrictKeyword = /\b(quan|huyen|thi xa|tx)\b/.test(aPartNormalized); // Exclude "thanh pho", "tp"
+                    const bHasDistrictKeyword = /\b(quan|huyen|thi xa|tx)\b/.test(bPartNormalized);
+                    
+                    // PRIORITY 0: If one is from province name and other is NOT, prefer the one NOT from province
+                    // Example: "Thành phố Hồ" (from province) vs "Quận Gò" (not from province)
+                    if (aIsFromProvince && !bIsFromProvince && b.score >= 0.8) {
+                        console.log(`    🎯 Prioritizing "${b.part}" (not from province) over "${a.part}" (from province name)`);
+                        return 1; // b wins
+                    }
+                    if (bIsFromProvince && !aIsFromProvince && a.score >= 0.8) {
+                        console.log(`    🎯 Prioritizing "${a.part}" (not from province) over "${b.part}" (from province name)`);
+                        return -1; // a wins
+                    }
+                    
+                    // PRIORITY 1: If one has district keyword (Quận, Huyện) and other doesn't, prefer the one with keyword
+                    // Example: "Quận Gò" (has keyword) vs "Hồ Chí" (no keyword)
+                    if (aHasDistrictKeyword && !bHasDistrictKeyword && a.score >= 0.8) {
+                        console.log(`    🎯 Prioritizing "${a.part}" (has district keyword) over "${b.part}"`);
+                        return -1;
+                    }
+                    if (bHasDistrictKeyword && !aHasDistrictKeyword && b.score >= 0.8) {
+                        console.log(`    🎯 Prioritizing "${b.part}" (has district keyword) over "${a.part}"`);
+                        return 1;
+                    }
                     
                     // Case 1: One has EXACT district match (1.0), other doesn't → Choose exact match
                     if (a.score === 1.0 && b.score < 1.0) return -1;
@@ -3301,40 +3466,60 @@ async function parseAddress(addressText) {
             if (bestWardScore >= 0.85 && bestWardInputText) {
                 // High score match - validate to catch false positives
                 
-                // Remove prefix (Xã, Phường, Thị trấn) to compare main names
-                const removePrefix = (text) => {
-                    return text.replace(/^(xã|phường|phuong|thị trấn|thi tran|thị xã|thi xa|tt)\s+/i, '').trim();
-                };
+                // CRITICAL FIX: Skip validation if input is district name, not ward name
+                // Example: "Quận 5" is district name, should not be validated against ward "Phường 15"
+                // Also catch abbreviations: Q5, Q.5, F5, F.5, etc.
+                // BUT: P14, P.14 are WARD abbreviations (Phường), so don't skip validation for those
+                const normalizedInput = removeVietnameseTones(bestWardInputText).toLowerCase();
+                const hasDistrictKeyword = /\b(quan|huyen|thanh pho|thi xa|tx|tp)\b/i.test(normalizedInput);
+                const isDistrictAbbreviation = /^[qf]\.?\d+/i.test(normalizedInput); // Q5, Q.5, F5, F.5 (district)
+                const isWardAbbreviation = /^p\.?\d+/i.test(normalizedInput); // P14, P.14 (ward - Phường)
+                const isJustNumber = /^\d+$/.test(normalizedInput.trim()); // Just "5", "14", etc.
                 
-                const inputMain = removeVietnameseTones(removePrefix(bestWardInputText)).toLowerCase();
-                const matchMain = removeVietnameseTones(removePrefix(result.ward.Name)).toLowerCase();
+                const inputHasDistrictKeyword = (hasDistrictKeyword || isDistrictAbbreviation || isJustNumber) && !isWardAbbreviation;
                 
-                // Split into words
-                const inputWords = inputMain.split(/\s+/).filter(w => w.length >= 2);
-                const matchWords = matchMain.split(/\s+/).filter(w => w.length >= 2);
-                
-                // Check 1: Word overlap - at least one common word
-                const hasCommonWord = inputWords.some(iw => 
-                    matchWords.some(mw => 
-                        iw === mw || 
-                        iw.includes(mw) || 
-                        mw.includes(iw) ||
-                        levenshteinDistance(iw, mw) <= 1  // Allow 1 typo
-                    )
-                );
-                
-                if (!hasCommonWord && inputWords.length > 0 && matchWords.length > 0) {
-                    validationPassed = false;
-                    validationReason = `Không có từ chung: "${inputMain}" vs "${matchMain}"`;
-                }
-                
-                // Check 2: First word similarity (most important word)
-                if (validationPassed && inputWords.length > 0 && matchWords.length > 0) {
-                    const firstWordSimilarity = 1 - (levenshteinDistance(inputWords[0], matchWords[0]) / Math.max(inputWords[0].length, matchWords[0].length));
+                if (inputHasDistrictKeyword) {
+                    // Input is district name - skip validation
+                    console.log(`  ✓ Ward validation skipped: Input "${bestWardInputText}" is district name, not ward name`);
+                    validationPassed = true;
+                } else {
+                    // Input is ward name - proceed with validation
                     
-                    if (firstWordSimilarity < 0.4) {
+                    // Remove prefix (Xã, Phường, Thị trấn) to compare main names
+                    const removePrefix = (text) => {
+                        return text.replace(/^(xã|phường|phuong|thị trấn|thi tran|thị xã|thi xa|tt)\s+/i, '').trim();
+                    };
+                    
+                    const inputMain = removeVietnameseTones(removePrefix(bestWardInputText)).toLowerCase();
+                    const matchMain = removeVietnameseTones(removePrefix(result.ward.Name)).toLowerCase();
+                    
+                    // Split into words
+                    const inputWords = inputMain.split(/\s+/).filter(w => w.length >= 2);
+                    const matchWords = matchMain.split(/\s+/).filter(w => w.length >= 2);
+                    
+                    // Check 1: Word overlap - at least one common word
+                    const hasCommonWord = inputWords.some(iw => 
+                        matchWords.some(mw => 
+                            iw === mw || 
+                            iw.includes(mw) || 
+                            mw.includes(iw) ||
+                            levenshteinDistance(iw, mw) <= 1  // Allow 1 typo
+                        )
+                    );
+                    
+                    if (!hasCommonWord && inputWords.length > 0 && matchWords.length > 0) {
                         validationPassed = false;
-                        validationReason = `Từ đầu khác biệt: "${inputWords[0]}" vs "${matchWords[0]}" (similarity: ${firstWordSimilarity.toFixed(2)})`;
+                        validationReason = `Không có từ chung: "${inputMain}" vs "${matchMain}"`;
+                    }
+                    
+                    // Check 2: First word similarity (most important word)
+                    if (validationPassed && inputWords.length > 0 && matchWords.length > 0) {
+                        const firstWordSimilarity = 1 - (levenshteinDistance(inputWords[0], matchWords[0]) / Math.max(inputWords[0].length, matchWords[0].length));
+                        
+                        if (firstWordSimilarity < 0.4) {
+                            validationPassed = false;
+                            validationReason = `Từ đầu khác biệt: "${inputWords[0]}" vs "${matchWords[0]}" (similarity: ${firstWordSimilarity.toFixed(2)})`;
+                        }
                     }
                 }
             }
@@ -3756,7 +3941,8 @@ async function applyParsedDataToForm(parsedData) {
         console.warn('⚠️ No province found in parsed data');
     }
     
-    // Show result toast - SMART LOGIC
+    // Show result toast - SIMPLIFIED LOGIC
+    // Only show ONE toast when auto-parse is triggered
     const confidenceEmoji = {
         'high': '✅',
         'medium': '⚠️',
@@ -3767,24 +3953,38 @@ async function applyParsedDataToForm(parsedData) {
     let toastMessage = '';
     let toastType = 'success';
     
+    // Check what was actually filled
+    const hasProvince = provinceSelect && provinceSelect.value;
+    const hasDistrict = districtSelect && districtSelect.value;
+    const hasWard = wardSelect && wardSelect.value;
+    
     if (confidence === 'high') {
-        // High confidence - everything perfect
-        // NO TOAST - User doesn't need notification for successful auto-fill
-        toastMessage = null;
-        toastType = 'success';
+        // High confidence - show success toast ONLY if all fields filled
+        if (hasProvince && hasDistrict && hasWard) {
+            toastMessage = '✅ Đã phân tích địa chỉ thành công';
+            toastType = 'success';
+        } else if (hasProvince && hasDistrict) {
+            // Province + District found, ward missing - this is OK, no toast needed
+            // User can manually select ward from dropdown
+            toastMessage = null;
+        } else if (hasProvince) {
+            // Only province found
+            toastMessage = '⚠️ Chỉ tìm thấy Tỉnh - Vui lòng chọn Huyện và Xã';
+            toastType = 'warning';
+        } else {
+            // Nothing found
+            toastMessage = '❓ Không tìm thấy địa chỉ - Vui lòng nhập thủ công';
+            toastType = 'warning';
+        }
     } else if (confidence === 'medium') {
         // Medium confidence - check what was found
-        const hasProvince = provinceSelect && provinceSelect.value;
-        const hasDistrict = districtSelect && districtSelect.value;
-        const hasWard = wardSelect && wardSelect.value;
-        
         if (hasProvince && hasDistrict && hasWard) {
             // All fields filled - good!
             toastMessage = '✅ Đã tìm thấy đầy đủ địa chỉ - Vui lòng kiểm tra lại';
             toastType = 'success';
         } else if (hasProvince && hasDistrict) {
-            // Missing ward only
-            toastMessage = '⚠️ Đã tìm thấy Tỉnh/Huyện - Vui lòng chọn Xã/Phường';
+            // Missing ward only - no toast, user can select manually
+            toastMessage = null;
             toastType = 'warning';
         } else if (hasProvince) {
             // Missing district and ward
