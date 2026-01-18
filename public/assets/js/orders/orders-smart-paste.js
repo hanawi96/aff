@@ -4132,7 +4132,6 @@ async function smartParseCustomerInfo(text) {
  */
 async function applyParsedDataToForm(parsedData) {
     if (!parsedData.success) {
-        showToast(parsedData.error, 'error');
         return;
     }
     
@@ -4175,7 +4174,6 @@ async function applyParsedDataToForm(parsedData) {
             
             if (!window.addressSelector || !window.addressSelector.loaded) {
                 console.error('❌ AddressSelector failed to load');
-                showToast('Lỗi: Không thể tải dữ liệu địa chỉ', 'error');
                 return;
             }
         }
@@ -4237,71 +4235,6 @@ async function applyParsedDataToForm(parsedData) {
         console.log('✅ Full address:', fullAddress);
     } else {
         console.warn('⚠️ No province found in parsed data');
-    }
-    
-    // Show result toast - SIMPLIFIED LOGIC
-    // Only show ONE toast when auto-parse is triggered
-    const confidenceEmoji = {
-        'high': '✅',
-        'medium': '⚠️',
-        'low': '❓'
-    };
-    
-    // Determine toast message based on what was found
-    let toastMessage = '';
-    let toastType = 'success';
-    
-    // Check what was actually filled
-    const hasProvince = provinceSelect && provinceSelect.value;
-    const hasDistrict = districtSelect && districtSelect.value;
-    const hasWard = wardSelect && wardSelect.value;
-    
-    if (confidence === 'high') {
-        // High confidence - show success toast ONLY if all fields filled
-        if (hasProvince && hasDistrict && hasWard) {
-            toastMessage = '✅ Đã phân tích địa chỉ thành công';
-            toastType = 'success';
-        } else if (hasProvince && hasDistrict) {
-            // Province + District found, ward missing - this is OK, no toast needed
-            // User can manually select ward from dropdown
-            toastMessage = null;
-        } else if (hasProvince) {
-            // Only province found
-            toastMessage = '⚠️ Chỉ tìm thấy Tỉnh - Vui lòng chọn Huyện và Xã';
-            toastType = 'warning';
-        } else {
-            // Nothing found
-            toastMessage = '❓ Không tìm thấy địa chỉ - Vui lòng nhập thủ công';
-            toastType = 'warning';
-        }
-    } else if (confidence === 'medium') {
-        // Medium confidence - check what was found
-        if (hasProvince && hasDistrict && hasWard) {
-            // All fields filled - good!
-            toastMessage = '✅ Đã tìm thấy đầy đủ địa chỉ - Vui lòng kiểm tra lại';
-            toastType = 'success';
-        } else if (hasProvince && hasDistrict) {
-            // Missing ward only - no toast, user can select manually
-            toastMessage = null;
-            toastType = 'warning';
-        } else if (hasProvince) {
-            // Missing district and ward
-            toastMessage = '⚠️ Chỉ tìm thấy Tỉnh - Vui lòng chọn Huyện và Xã';
-            toastType = 'warning';
-        } else {
-            // Nothing found
-            toastMessage = '❓ Không tìm thấy địa chỉ - Vui lòng nhập thủ công';
-            toastType = 'info';
-        }
-    } else {
-        // Low confidence
-        toastMessage = '❓ Cần kiểm tra kỹ - Thông tin có thể chưa chính xác';
-        toastType = 'info';
-    }
-    
-    // Only show toast if there's a message
-    if (toastMessage) {
-        showToast(toastMessage, toastType, 3000);
     }
 }
 

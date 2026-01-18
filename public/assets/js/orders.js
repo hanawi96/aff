@@ -336,15 +336,18 @@ async function showAddOrderModal(duplicateData = null) {
                                 class="w-full px-3 py-2 text-sm border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                                 rows="3"
                             ></textarea>
+                            <!-- Error message container -->
+                            <p id="smartPasteError" class="text-xs text-red-500 mt-1 hidden">Vui lòng dán thông tin khách hàng vào ô trên</p>
                             <button 
                                 type="button"
+                                id="smartPasteBtn"
                                 onclick="handleSmartPaste()"
                                 class="mt-2 w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm flex items-center justify-center gap-2"
                             >
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg id="smartPasteIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                Phân tích tự động
+                                <span id="smartPasteBtnText">Phân tích tự động</span>
                             </button>
                         </div>
 
@@ -967,20 +970,48 @@ function closeAddOrderModal() {
 async function handleSmartPaste() {
     const textarea = document.getElementById('smartPasteInput');
     const text = textarea.value.trim();
+    const errorMsg = document.getElementById('smartPasteError');
+    const btn = document.getElementById('smartPasteBtn');
+    const btnText = document.getElementById('smartPasteBtnText');
+    const btnIcon = document.getElementById('smartPasteIcon');
+    
+    // Hide error message first
+    if (errorMsg) errorMsg.classList.add('hidden');
     
     if (!text) {
-        showToast('Vui lòng dán thông tin khách hàng vào ô trên', 'warning');
+        // Show error message above button
+        if (errorMsg) errorMsg.classList.remove('hidden');
         return;
     }
     
-    // Show loading
-    showToast('Đang phân tích thông tin...', 'info', 1000);
+    // Change button to loading state
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = 'Đang phân tích...';
+    if (btnIcon) {
+        btnIcon.innerHTML = `
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        `;
+        btnIcon.classList.add('animate-spin');
+    }
     
-    // Parse the text (now async)
-    const parsedData = await smartParseCustomerInfo(text);
-    
-    // Apply to form
-    await applyParsedDataToForm(parsedData);
+    try {
+        // Parse the text (now async)
+        const parsedData = await smartParseCustomerInfo(text);
+        
+        // Apply to form
+        await applyParsedDataToForm(parsedData);
+    } finally {
+        // Reset button to original state
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Phân tích tự động';
+        if (btnIcon) {
+            btnIcon.classList.remove('animate-spin');
+            btnIcon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            `;
+        }
+    }
     
     // Keep textarea content for user reference (don't clear)
 }
