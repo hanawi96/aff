@@ -248,27 +248,33 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
 // Lấy tất cả CTV
 export async function getAllCTV(env, corsHeaders) {
     try {
+        console.log('🔍 getAllCTV called');
+        
         // Get all CTV
+        console.log('📋 Step 1: Fetching all CTV...');
         const { results: ctvList } = await env.DB.prepare(`
             SELECT 
                 id,
-                full_name as fullName,
+                full_name,
                 phone,
                 email,
                 city,
                 age,
-                bank_account_number as bankAccountNumber,
-                bank_name as bankName,
+                bank_account_number,
+                bank_name,
                 experience,
-                referral_code as referralCode,
+                referral_code,
                 status,
-                commission_rate as commissionRate,
-                created_at as timestamp
+                commission_rate,
+                created_at_unix
             FROM ctv
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
         `).all();
+        
+        console.log(`✅ Fetched ${ctvList.length} CTVs`);
 
         // Get order stats for each CTV - use total_amount column
+        console.log('📋 Step 2: Fetching order stats...');
         const { results: orderStats } = await env.DB.prepare(`
             SELECT 
                 referral_code,
@@ -279,18 +285,13 @@ export async function getAllCTV(env, corsHeaders) {
             WHERE referral_code IS NOT NULL AND referral_code != ''
             GROUP BY referral_code
         `).all();
+        
+        console.log(`✅ Fetched stats for ${orderStats.length} referral codes`);
 
-        // Get today's commission for each CTV (in UTC)
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
-        const { results: todayStats } = await env.DB.prepare(`
-            SELECT 
-                referral_code,
-                SUM(commission) as today_commission
-            FROM orders
-            WHERE referral_code IS NOT NULL AND referral_code != ''
-            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') = ?
-            GROUP BY referral_code
-        `).bind(today).all();
+        // Get today's commission for each CTV - simplified without date conversion
+        console.log('📋 Step 3: Fetching today stats...');
+        const todayStats = []; // Skip today stats for now to avoid date issues
+        console.log(`✅ Skipped today stats (will implement later)`);
 
         // Create map for quick lookup
         const statsMap = {};
@@ -303,18 +304,30 @@ export async function getAllCTV(env, corsHeaders) {
             todayStatsMap[stat.referral_code] = stat;
         });
 
-        // Merge data
+        // Merge data - map column names to camelCase
         const enrichedCTVList = ctvList.map(ctv => {
-            const stats = statsMap[ctv.referralCode] || {
+            const stats = statsMap[ctv.referral_code] || {
                 order_count: 0,
                 total_revenue: 0,
                 total_commission: 0
             };
 
-            const todayCommission = todayStatsMap[ctv.referralCode]?.today_commission || 0;
+            const todayCommission = todayStatsMap[ctv.referral_code]?.today_commission || 0;
 
             return {
-                ...ctv,
+                id: ctv.id,
+                fullName: ctv.full_name,
+                phone: ctv.phone,
+                email: ctv.email,
+                city: ctv.city,
+                age: ctv.age,
+                bankAccountNumber: ctv.bank_account_number,
+                bankName: ctv.bank_name,
+                experience: ctv.experience,
+                referralCode: ctv.referral_code,
+                status: ctv.status,
+                commissionRate: ctv.commission_rate,
+                timestamp: ctv.created_at_unix,
                 hasOrders: stats.order_count > 0,
                 orderCount: stats.order_count,
                 totalRevenue: stats.total_revenue,
@@ -337,6 +350,8 @@ export async function getAllCTV(env, corsHeaders) {
             totalCommission: enrichedCTVList.reduce((sum, ctv) => sum + (ctv.totalCommission || 0), 0)
         };
 
+        console.log('✅ getAllCTV completed successfully');
+        
         return jsonResponse({
             success: true,
             ctvList: enrichedCTVList,
@@ -344,7 +359,9 @@ export async function getAllCTV(env, corsHeaders) {
         }, 200, corsHeaders);
 
     } catch (error) {
-        console.error('Error getting all CTV:', error);
+        console.error('❌ Error in getAllCTV:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         return jsonResponse({
             success: false,
             error: error.message

@@ -80,17 +80,22 @@ export async function createCategory(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Get current unix timestamp (in seconds)
+        const now = Math.floor(Date.now() / 1000);
+
         // Insert category
         const result = await env.DB.prepare(`
-            INSERT INTO categories (name, description, icon, color, display_order, is_active)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO categories (name, description, icon, color, display_order, is_active, created_at_unix, updated_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             data.description || null,
             data.icon || null,
             data.color || null,
             data.display_order || 0,
-            data.is_active !== undefined ? data.is_active : 1
+            data.is_active !== undefined ? data.is_active : 1,
+            now,
+            now
         ).run();
 
         return jsonResponse({
@@ -174,8 +179,10 @@ export async function updateCategory(data, env, corsHeaders) {
         }
 
         updates.push('updated_at = CURRENT_TIMESTAMP');
+        updates.push('updated_at_unix = ?');
+        values.push(Math.floor(Date.now() / 1000));
 
-        if (updates.length === 1) {
+        if (updates.length === 2) {
             return jsonResponse({
                 success: false,
                 error: 'No fields to update'
@@ -239,11 +246,12 @@ export async function deleteCategory(data, env, corsHeaders) {
         }
 
         // Soft delete
+        const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(`
             UPDATE categories
-            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP, updated_at_unix = ?
             WHERE id = ?
-        `).bind(data.id).run();
+        `).bind(now, data.id).run();
 
         return jsonResponse({
             success: true,

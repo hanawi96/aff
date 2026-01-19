@@ -180,7 +180,10 @@ function renderCTVList() {
 // Create order row
 function createOrderRow(order, referralCode) {
     const isSelected = selectedOrders.has(order.order_id);
-    const timestamp = order.created_at_unix || order.created_at;
+    // created_at_unix is already in milliseconds, no need to multiply by 1000
+    const timestamp = order.created_at_unix 
+        ? new Date(typeof order.created_at_unix === 'string' ? parseInt(order.created_at_unix) : order.created_at_unix)
+        : new Date(order.created_at);
     const date = toVNShortDate(timestamp);
     
     return `
@@ -754,6 +757,7 @@ function createHistoryCard(payment) {
             : payment.payment_date_unix;
         
         if (timestamp && timestamp > 0) {
+            // payment_date_unix is already in milliseconds, no need to multiply by 1000
             paymentDateDisplay = toVNShortDate(new Date(timestamp));
         }
     }
@@ -1020,7 +1024,7 @@ function applyFilters() {
                     // Otherwise fallback to created_at (ISO string)
                     let orderDate;
                     if (order.created_at_unix) {
-                        // Convert unix timestamp (milliseconds) to Date
+                        // created_at_unix is already in milliseconds, no need to multiply by 1000
                         const timestamp = typeof order.created_at_unix === 'string' 
                             ? parseInt(order.created_at_unix) 
                             : order.created_at_unix;
