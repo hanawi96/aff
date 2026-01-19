@@ -1018,8 +1018,9 @@ async function parseAddress(addressText) {
     processedAddress = processedAddress.replace(/\bqt\b/gi, 'Quảng Trị');
     processedAddress = processedAddress.replace(/\bqng\b/gi, 'Quảng Ngãi');
     processedAddress = processedAddress.replace(/\bpy\b/gi, 'Phú Yên');
-    // FIXED: Don't match "kh" in "khóm" or "khom"
-    processedAddress = processedAddress.replace(/\bkh\b(?!óm|om)/gi, 'Khánh Hòa');
+    // FIXED: Only match "kh" as standalone abbreviation, not as part of other words
+    // Use lookahead/lookbehind to ensure it's surrounded by spaces or punctuation
+    processedAddress = processedAddress.replace(/(?<=^|\s|,)kh(?=\s|,|$)/gi, 'Khánh Hòa');
     processedAddress = processedAddress.replace(/\bnt\b/gi, 'Ninh Thuận');
     processedAddress = processedAddress.replace(/\bgl\b/gi, 'Gia Lai');
     processedAddress = processedAddress.replace(/\bkt\b/gi, 'Kon Tum');
@@ -1310,7 +1311,7 @@ async function parseAddress(addressText) {
                 ];
                 
                 // Find all keyword positions
-                const positions = [];
+                let positions = [];
                 for (const kw of keywords) {
                     const matches = [...remainingText.matchAll(kw.pattern)];
                     for (const match of matches) {
@@ -1318,13 +1319,36 @@ async function parseAddress(addressText) {
                             index: match.index,
                             keyword: match[0],
                             type: kw.type,
-                            words: kw.words
+                            words: kw.words,
+                            length: match[0].length
                         });
                     }
                 }
                 
-                // Sort by position
-                positions.sort((a, b) => a.index - b.index);
+                // CRITICAL FIX: Remove overlapping keywords (keep longer ones)
+                // Example: "thị xã" at index 33 should remove "xã" at index 37
+                positions.sort((a, b) => {
+                    if (a.index !== b.index) return a.index - b.index;
+                    return b.words - a.words; // Prefer longer keywords
+                });
+                
+                const filteredPositions = [];
+                for (let i = 0; i < positions.length; i++) {
+                    const current = positions[i];
+                    const isOverlapping = filteredPositions.some(p => {
+                        // Check if current overlaps with any already added position
+                        const pEnd = p.index + p.length;
+                        const currentEnd = current.index + current.length;
+                        return (current.index >= p.index && current.index < pEnd) ||
+                               (p.index >= current.index && p.index < currentEnd);
+                    });
+                    
+                    if (!isOverlapping) {
+                        filteredPositions.push(current);
+                    }
+                }
+                
+                positions = filteredPositions;
                 
                 console.log(`    🔍 Found ${positions.length} keywords:`, positions.map(p => `"${p.keyword}" at ${p.index}`).join(', '));
                 
@@ -1582,9 +1606,55 @@ async function parseAddress(addressText) {
             if (hasDistrict && remainingText) {
                 const districtMatch = remainingText.match(/(quận|huyện|thành phố|tp|thị xã|tx)\s+([^,]+?)(?=\s*(?:tỉnh|tinh|thành phố|tp)|$)/i);
                 if (districtMatch) {
-                    const districtPart = districtMatch[0].trim();
-                    subParts.push(districtPart);
-                    console.log(`    → Split district: "${districtPart}"`);
+                    let districtPart = districtMatch[0].trim();
+                    
+                    // SMART FIX: Check if district part contains a province name at the end
+                    // Example: "huyện Vĩnh Hưng Long An" → split into "huyện Vĩnh Hưng" + "Long An"
+                    const districtNormalized = removeVietnameseTones(districtPart).toLowerCase();
+                    
+                    let foundProvinceSplit = false;
+                    
+                    for (const province of vietnamAddressData) {
+                        const provinceName = removeVietnameseTones(province.Name.replace(/^(Tỉnh|Thành phố)\s+/i, '')).toLowerCase();
+                        
+                        // Check if district part ends with province name
+                        if (districtNormalized.endsWith(provinceName) && provinceName.length >= 4) {
+                            // Found province name at end - split it
+                            const provinceStartIndex = districtPart.length - provinceName.length;
+                            
+                            // Look backwards for space before province name
+                            let splitIndex = provinceStartIndex;
+                            while (splitIndex > 0 && districtPart[splitIndex - 1] !== ' ') {
+                                splitIndex--;
+                            }
+                            
+                            if (splitIndex > 0) {
+                                const actualDistrict = districtPart.substring(0, splitIndex).trim();
+                                const actualProvince = districtPart.substring(splitIndex).trim();
+                                
+                                // Verify the split makes sense
+                                const districtWords = actualDistrict.split(/\s+/);
+                                if (districtWords.length >= 2) {
+                                    districtPart = actualDistrict;
+                                    subParts.push(districtPart);
+                                    console.log(`    → Split district: "${districtPart}"`);
+                                    
+                                    // Add province part
+                                    subParts.push(actualProvince);
+                                    console.log(`    → Split province (inferred): "${actualProvince}"`);
+                                    
+                                    foundProvinceSplit = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!foundProvinceSplit) {
+                        subParts.push(districtPart);
+                        console.log(`    → Split district: "${districtPart}"`);
+                    }
+                    
                     // Remove district from remaining text
                     remainingText = remainingText.substring(districtMatch.index + districtMatch[0].length).trim();
                 }
@@ -1905,14 +1975,15 @@ async function parseAddress(addressText) {
                 
                 if (penalties.length > 0) {
                     console.log(`  🔧 Context penalties applied: ${penalties.join(', ')}`);
-                    console.log(`     Score: ${provinceMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
                 }
                 
                 // IMPROVED: Check if part contains province keyword (tỉnh, thành phố)
                 // If yes, verify the province name matches closely
                 if (hasProvinceKeyword) {
                     // Extract province name from BOTH part and match
-                    const provinceNameInPart = removeVietnameseTones(part.replace(/^(tỉnh|thành phố|tp)\s+/i, '').trim()).toLowerCase();
+                    // IMPORTANT: Normalize first, then remove prefix
+                    const normalizedPart = removeVietnameseTones(part).toLowerCase();
+                    const provinceNameInPart = normalizedPart.replace(/^(tinh|thanh pho|tp)\s+/, '').trim();
                     const provinceNameInMatch = removeVietnameseTones(provinceMatch.match.Name.replace(/^(Tỉnh|Thành phố)\s+/i, '').trim()).toLowerCase();
                     
                     console.log(`  🔍 Checking province keyword: part="${provinceNameInPart}" vs match="${provinceNameInMatch}"`);
@@ -1966,7 +2037,7 @@ async function parseAddress(addressText) {
         // But if it's at the END of address, it's likely the province name
         result.province = bestProvinceMatch.match;
         result.confidence = 'medium';
-        console.log(`  ✅ Province matched (high original score): ${result.province.Name} (original: ${bestProvinceMatch.score.toFixed(2)}, adjusted: ${bestProvinceScore.toFixed(2)})`);
+        console.log(`  ✅ Province matched: ${result.province.Name}`);
     } else {
         // ============================================
         // LAYER 1 FALLBACK: Use Province Hint from Dictionary
@@ -2291,7 +2362,6 @@ async function parseAddress(addressText) {
                                 bestDistrictWordCount = wordCount;
                                 result.district = districtMatch.match;
                                 foundDistrictInProvincePart = true;
-                                console.log(`    ✓ District found in province part: "${part}" → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)}, adjusted: ${adjustedScore.toFixed(2)})`);
                                 break;
                             }
                         }
@@ -2337,8 +2407,7 @@ async function parseAddress(addressText) {
                         bestDistrictMatch = districtMatch;
                         bestDistrictScore = adjustedScore;
                         bestDistrictWordCount = wordCount;
-                        result.district = districtMatch.match; // SET result.district!
-                        console.log(`    ✓ District candidate (keyword): "${part}" (${wordCount} words) → ${districtMatch.match.Name} (score: ${districtMatch.score.toFixed(2)}, adjusted: ${adjustedScore.toFixed(2)})`);
+                        result.district = districtMatch.match;
                     }
                 }
             }
@@ -2434,14 +2503,12 @@ async function parseAddress(addressText) {
                             
                             if (surroundingText.includes(provinceNameNormalized) && provinceNameNormalized.length >= 4) {
                                 adjustedScore += 0.25; // Context boost
-                                console.log(`    🎯 Context boost: Surrounding text mentions province "${result.province.Name}" (score: ${adjustedScore.toFixed(2)})`);
                             }
                         }
                         
-                        // PROVINCE HINT BOOST: If provinceHint exists (from Layer 1 dictionary)
+                        // PROVINCE HINT BOOST
                         if (provinceHint && district.Name.includes(provinceHint)) {
-                            adjustedScore += 0.2; // Province hint boost
-                            console.log(`    🎯 Province hint boost: District belongs to "${provinceHint}" (score: ${adjustedScore.toFixed(2)})`);
+                            adjustedScore += 0.2;
                         }
                         
                         districtCandidates.push({
@@ -2805,8 +2872,7 @@ async function parseAddress(addressText) {
                             const provinceScore = fuzzyMatch(searchPart, [province]); // Pass as array!
                             if (provinceScore && provinceScore.score >= 0.7) {
                                 // STRONG match for province - add with BOOST
-                                const boostedScore = provinceScore.score * 1.3; // BOOST for province match
-                                console.log(`    ✨✨ Last 2 words PROVINCE match: "${searchPart}" → ${province.Name} (score: ${provinceScore.score.toFixed(2)} → ${boostedScore.toFixed(2)})`);
+                                const boostedScore = provinceScore.score * 1.3;
                                 districtCandidates.push({
                                     part: searchPart,
                                     district: null,
@@ -2840,24 +2906,18 @@ async function parseAddress(addressText) {
                             // CRITICAL: BOOST for Strategy 3 (extracted from ward keyword)
                             // These are HIGHLY LIKELY to be correct district names
                             if (strategy.startsWith('strategy-3-ward')) {
-                                // Ward name matching district name (e.g., "Năm Căn" ward → "Huyện Năm Căn")
-                                adjustedScore += 0.50; // EXTRA STRONG BOOST
-                                console.log(`    ✨✨✨✨ Strategy 3-ward BOOST: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                // Ward name matching district name
+                                adjustedScore += 0.50;
                             } else if (strategy.startsWith('strategy-3')) {
-                                adjustedScore += 0.40; // STRONG BOOST for Strategy 3
-                                console.log(`    ✨✨✨ Strategy 3 BOOST: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                adjustedScore += 0.40;
                             } else if (isLast2Words) {
-                                adjustedScore -= 0.30; // EXTRA strong penalty for last 2 words (likely province)
-                                console.log(`    ⚠️ Last 2 words DISTRICT penalty: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                adjustedScore -= 0.30;
                             } else if (isAtEnd) {
-                                adjustedScore -= 0.20; // Strong penalty for end position
-                                console.log(`    ⚠️ End position penalty: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                adjustedScore -= 0.20;
                             } else if (isNearEnd) {
-                                adjustedScore -= 0.10; // Mild penalty for near-end
-                                console.log(`    ⚠️ Near-end penalty: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                adjustedScore -= 0.10;
                             } else if (searchPartIndex > 0 && searchPartIndex < originalPart.length * 0.5) {
-                                adjustedScore += 0.10; // Bonus for middle position
-                                console.log(`    ✓ Middle position bonus: "${searchPart}" score ${districtMatch.score.toFixed(2)} → ${adjustedScore.toFixed(2)}`);
+                                adjustedScore += 0.10;
                             }
                             
                             const shouldReplace = 
@@ -2874,7 +2934,6 @@ async function parseAddress(addressText) {
                                     strategy: 'district-match',
                                     extractionStrategy: strategy
                                 });
-                                console.log(`    ✓ District found: "${searchPart}" → ${districtMatch.match.Name} in ${province.Name} (score: ${districtMatch.score.toFixed(2)}, adjusted: ${adjustedScore.toFixed(2)})`);
                             }
                         }
                     }
@@ -3644,11 +3703,17 @@ async function parseAddress(addressText) {
         // SELECT BEST CANDIDATE
         // ============================================
         if (wardCandidates.length > 0) {
-            // Sort by score (highest first), then by word count (longer first)
+            // Sort by score (highest first), then by position (earlier first), then by word count
             wardCandidates.sort((a, b) => {
+                // 1. Score difference > 0.05 → prefer higher score
                 if (Math.abs(a.score - b.score) > 0.05) {
                     return b.score - a.score;
                 }
+                // 2. Same score → prefer earlier position (first ward in text)
+                if (Math.abs(a.matchIndex - b.matchIndex) > 5) {
+                    return a.matchIndex - b.matchIndex;
+                }
+                // 3. Same position → prefer longer word count
                 return b.wordCount - a.wordCount;
             });
             
