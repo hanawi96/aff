@@ -1797,11 +1797,52 @@ async function parseAddress(addressText) {
         }
     }
     
-    // Step 1: Find Province - PRIORITIZE LONGER PHRASES and COMMON ABBREVIATIONS
+    // Step 1: Find Province - PRIORITIZE PROVINCE HINT from Dictionary
     console.log('🔍 Step 1: Finding Province...');
+    
+    // CRITICAL: If provinceHint exists from dictionary, use it IMMEDIATELY
+    if (provinceHint) {
+        console.log(`  🎯 Province hint from dictionary: "${provinceHint}"`);
+        
+        // Map common abbreviations to full names
+        const provinceHintMap = {
+            'TP.HCM': 'Thành phố Hồ Chí Minh',
+            'TPHCM': 'Thành phố Hồ Chí Minh',
+            'HCM': 'Thành phố Hồ Chí Minh',
+            'Sài Gòn': 'Thành phố Hồ Chí Minh',
+            'TP.HN': 'Thành phố Hà Nội',
+            'TPHN': 'Thành phố Hà Nội',
+            'HN': 'Thành phố Hà Nội',
+            'TP.ĐN': 'Thành phố Đà Nẵng',
+            'ĐN': 'Thành phố Đà Nẵng'
+        };
+        
+        const mappedHint = provinceHintMap[provinceHint] || provinceHint;
+        
+        // Find exact province match
+        for (const province of vietnamAddressData) {
+            if (province.Name === mappedHint || 
+                province.Name.includes(mappedHint) ||
+                mappedHint.includes(province.Name)) {
+                result.province = province;
+                result.confidence = 'high';
+                console.log(`  ✅ Province matched (from hint): ${result.province.Name}`);
+                break;
+            }
+        }
+        
+        // If found, skip normal province search
+        if (result.province) {
+            console.log(`  ⏭️ Skipping normal province search (using hint)`);
+        }
+    }
+    
     let bestProvinceMatch = null;
     let bestProvinceScore = 0;
     let bestProvinceWordCount = 0;
+    
+    // Only search if no province hint or hint not found
+    if (!result.province) {
     
     // Common province abbreviations (highest priority)
     const provinceAbbreviations = {
@@ -1919,6 +1960,26 @@ async function parseAddress(addressText) {
                 let adjustedScore = provinceMatch.score;
                 const penalties = [];
                 
+                // Penalty 0: BLACKLIST - Known street names that look like provinces
+                // Example: "Nghệ Tĩnh" (street) should NOT match "Nghệ An" or "Hà Tĩnh"
+                const streetNameBlacklist = [
+                    /nghe\s+tinh/i,  // "Nghệ Tĩnh" street
+                    /xo\s+viet/i,    // "Xô Viết" street prefix
+                    /cach\s+mang/i,  // "Cách Mạng" street prefix
+                    /hai\s+ba\s+trung/i, // "Hai Bà Trưng" street
+                    /le\s+loi/i,     // "Lê Lợi" street
+                    /tran\s+hung\s+dao/i // "Trần Hưng Đạo" street
+                ];
+                
+                const partNormalized = removeVietnameseTones(part).toLowerCase();
+                for (const pattern of streetNameBlacklist) {
+                    if (pattern.test(partNormalized)) {
+                        adjustedScore = 0; // Complete rejection
+                        penalties.push('street_name_blacklist(-100%)');
+                        break;
+                    }
+                }
+                
                 // Penalty 1: Has slash (/) - likely district abbreviation, not province
                 // Example: "B/Thạnh" should not match "Hà Nội"
                 if (part.includes('/')) {
@@ -2026,19 +2087,17 @@ async function parseAddress(addressText) {
             }
         }
     }
+    } // End of if (!result.province) block
     
-    if (bestProvinceMatch && bestProvinceScore >= 0.7) {
+    if (!result.province && bestProvinceMatch && bestProvinceScore >= 0.7) {
         result.province = bestProvinceMatch.match;
         result.confidence = bestProvinceMatch.confidence;
         console.log(`  ✅ Province matched: ${result.province.Name} (score: ${bestProvinceScore.toFixed(2)}, ${bestProvinceWordCount} words)`);
-    } else if (bestProvinceMatch && bestProvinceScore >= 0.5 && bestProvinceMatch.score >= 0.9) {
-        // IMPROVED: Accept province if original score is high (≥0.9) even if adjusted score is low
-        // Example: "Nghệ An" has original score 0.52 but gets penalized to 0.32
-        // But if it's at the END of address, it's likely the province name
+    } else if (!result.province && bestProvinceMatch && bestProvinceScore >= 0.5 && bestProvinceMatch.score >= 0.9) {
         result.province = bestProvinceMatch.match;
         result.confidence = 'medium';
         console.log(`  ✅ Province matched: ${result.province.Name}`);
-    } else {
+    } else if (!result.province) {
         // ============================================
         // LAYER 1 FALLBACK: Use Province Hint from Dictionary
         // ============================================
