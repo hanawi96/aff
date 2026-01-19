@@ -29,7 +29,7 @@
   },
   {
     "name": "commission_payment_details",
-    "sql": "CREATE TABLE commission_payment_details (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    payment_id INTEGER NOT NULL,\r\n    order_id INTEGER NOT NULL,\r\n    commission_amount REAL NOT NULL,\r\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at_unix INTEGER,\r\n    FOREIGN KEY (payment_id) REFERENCES commission_payments(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE\r\n)"
+    "sql": "CREATE TABLE commission_payment_details (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    payment_id INTEGER NOT NULL,\r\n    order_id INTEGER NOT NULL,\r\n    commission_amount REAL NOT NULL,\r\n    created_at_unix INTEGER,\r\n    FOREIGN KEY (payment_id) REFERENCES commission_payments(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE\r\n)"
   },
   {
     "name": "discounts",

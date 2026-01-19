@@ -18,18 +18,18 @@ function normalizeText(text) {
 
 /**
  * Extract keywords from street address
- * OPTIMIZED: Only extract locality-related keywords (thôn, xóm, ấp...)
+ * OPTIMIZED: Extract locality-related keywords, or fallback to any meaningful words
  * Returns 2-3 most important keywords
  */
 function extractKeywords(streetAddress) {
     if (!streetAddress) return [];
     
-    // Step 1: Find locality markers (thôn, xóm, ấp, khóm...)
+    const normalized = normalizeText(streetAddress);
+    
+    // Step 1: Try to find locality markers (thôn, xóm, ấp, khóm...)
     const localityMarkers = [
         'thon', 'xom', 'ap', 'khom', 'khu', 'to', 'cum', 'bon', 'lang'
     ];
-    
-    const normalized = normalizeText(streetAddress);
     
     // Find first occurrence of locality marker
     let localityStart = -1;
@@ -41,41 +41,44 @@ function extractKeywords(streetAddress) {
         }
     }
     
-    // If no locality marker found → SKIP (don't save)
-    if (localityStart === -1) {
-        console.log('⚠️ No locality marker found, skipping learning');
-        return [];
+    let words = [];
+    
+    // If locality marker found, extract from there
+    if (localityStart !== -1) {
+        const localityPortion = normalized.substring(localityStart);
+        words = localityPortion.split(/\s+/).filter(w => w.length >= 1);
+    } else {
+        // Fallback: Extract meaningful words from entire address
+        // Split and filter out common words and short words
+        const commonWords = ['va', 'o', 'tai', 'tren', 'duoi', 'ben', 'canh', 'gan', 'sau', 'truoc', 'doi', 'dien'];
+        words = normalized
+            .split(/\s+/)
+            .filter(w => w.length >= 2 && !commonWords.includes(w));
     }
     
-    // Step 2: Extract locality portion
-    const localityPortion = normalized.substring(localityStart);
-    
-    // Step 3: Split into words, keep numbers (for "xóm 4", "thôn 5")
-    // Filter: length >= 1 (to keep single digit numbers like "4", "5")
-    const words = localityPortion.split(/\s+/).filter(w => w.length >= 1);
     const limitedWords = words.slice(0, 5);
     
     if (limitedWords.length === 0) return [];
     
-    // Step 4: Create only 2-3 MOST IMPORTANT keywords
+    // Step 2: Create keywords
     const keywords = [];
     
-    // 4.1. Full phrase (if ≤ 4 words)
+    // 2.1. Full phrase (if ≤ 4 words)
     if (limitedWords.length <= 4) {
         keywords.push(limitedWords.join(' '));
     }
     
-    // 4.2. First 2 words (locality type + number/name)
+    // 2.2. First 2 words
     if (limitedWords.length >= 2) {
         keywords.push(limitedWords.slice(0, 2).join(' '));
     }
     
-    // 4.3. Last 2 words (main locality name)
+    // 2.3. Last 2 words (most important)
     if (limitedWords.length >= 2) {
         keywords.push(limitedWords.slice(-2).join(' '));
     }
     
-    // 4.4. If has number, create version without number
+    // 2.4. If has number, create version without number
     const hasNumber = limitedWords.some(w => /\d/.test(w));
     if (hasNumber && limitedWords.length >= 3) {
         const wordsNoNum = limitedWords.filter(w => !/^\d+$/.test(w));
@@ -84,8 +87,8 @@ function extractKeywords(streetAddress) {
         }
     }
     
-    // Remove duplicates
-    return [...new Set(keywords)];
+    // Remove duplicates and empty strings
+    return [...new Set(keywords)].filter(k => k.trim().length > 0);
 }
 
 /**
