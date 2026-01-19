@@ -646,6 +646,39 @@ function extractCustomerName(lines, phoneInfo) {
         'tầng', 'tang', 'tòa', 'toa', 'lầu', 'lau' // Building/floor keywords
     ];
     
+    // IMPROVED: Common Vietnamese place names (cities, districts, provinces)
+    // These indicate the line is an address, not a name
+    const placeNames = [
+        // Major cities
+        'ha noi', 'ho chi minh', 'hcm', 'sai gon', 'da nang', 'hai phong', 'can tho',
+        'bien hoa', 'vung tau', 'nha trang', 'hue', 'phan thiet', 'da lat', 'quy nhon',
+        'vinh', 'hai duong', 'nam dinh', 'thai nguyen', 'bac ninh', 'long xuyen',
+        
+        // Common districts/areas
+        'tan binh', 'tan phu', 'binh thanh', 'go vap', 'thu duc', 'binh tan',
+        'phu nhuan', 'quan 1', 'quan 2', 'quan 3', 'quan 4', 'quan 5',
+        'dong anh', 'gia lam', 'long bien', 'cau giay', 'ha dong', 'thanh xuan',
+        'me linh', 'soc son', 'ba dinh', 'hoan kiem', 'tay ho',
+        
+        // Common wards/communes
+        'phu hoa', 'phu hoai', 'tan thanh', 'binh hung', 'binh tri',
+        'an phu', 'an khanh', 'thao dien', 'cat lai', 'thu thiem',
+        'phuoc long', 'phuoc hoa', 'tan phuoc', 'tan quy', 'tan son',
+        
+        // Provinces
+        'binh duong', 'dong nai', 'ba ria', 'vung tau', 'long an', 'tien giang',
+        'ben tre', 'tra vinh', 'vinh long', 'an giang', 'kien giang', 'ca mau',
+        'bac lieu', 'soc trang', 'hau giang', 'can tho', 'dong thap',
+        'lam dong', 'binh phuoc', 'tay ninh', 'binh thuan', 'ninh thuan',
+        'khanh hoa', 'phu yen', 'binh dinh', 'quang ngai', 'quang nam',
+        'quang tri', 'quang binh', 'ha tinh', 'nghe an', 'thanh hoa',
+        'ninh binh', 'nam dinh', 'thai binh', 'hai duong', 'hung yen',
+        'bac giang', 'bac kan', 'cao bang', 'ha giang', 'lang son',
+        'lao cai', 'yen bai', 'tuyen quang', 'phu tho', 'vinh phuc',
+        'thai nguyen', 'son la', 'dien bien', 'lai chau', 'hoa binh',
+        'dak lak', 'dak nong', 'gia lai', 'kon tum'
+    ];
+    
     console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
     const candidateLines = lines.filter(line => {
@@ -670,15 +703,32 @@ function extractCustomerName(lines, phoneInfo) {
             return false;
         }
         
+        // IMPROVED: Skip if contains place names
+        if (placeNames.some(place => normalized.includes(place))) {
+            console.log(`  ✗ Skip (has place name): "${line}"`);
+            return false;
+        }
+        
+        // IMPROVED: Skip if starts with house number pattern
+        // Pattern: "123 Street Name" or "123/45 Street Name"
+        if (/^\d+[\/\-]?\d*\s+[a-zA-ZÀ-ỹ]/.test(line)) {
+            console.log(`  ✗ Skip (starts with house number): "${line}"`);
+            return false;
+        }
+        
         // Skip if too long (likely address)
         if (line.length > 50) {
             console.log(`  ✗ Skip (too long): "${line}"`);
             return false;
         }
         
-        // Skip if contains too many numbers (reduce threshold to 2)
-        if ((line.match(/\d/g) || []).length > 2) {
-            console.log(`  ✗ Skip (too many numbers): "${line}"`);
+        // IMPROVED: Skip if contains too many numbers OR has slash/dash in numbers
+        // "59 phan huy ich" has 2 digits but "59/1" would have slash
+        const numberCount = (line.match(/\d/g) || []).length;
+        const hasNumberSlash = /\d+[\/\-]\d+/.test(line);
+        
+        if (numberCount > 2 || hasNumberSlash) {
+            console.log(`  ✗ Skip (too many numbers or has number slash): "${line}"`);
             return false;
         }
         
@@ -1739,11 +1789,39 @@ async function parseAddress(addressText) {
             const maxN = 3; // Was 4
             const minN = 2; // Keep same
             
-            // Strategy 2: Smart word selection - prioritize location keywords
-            // IMPROVED: Don't blindly take last 6 words, keep important keywords
+            // Strategy 2: Smart word selection - prioritize location keywords AND known place names
+            // IMPROVED: Detect common 2-word place names and keep them together
             let wordsToUse = words;
             
             if (words.length > 6) {
+                // IMPROVED: Check for common 2-word place names first
+                const commonPlaceNames = [
+                    'phan thiet', 'nha trang', 'vung tau', 'da lat', 'quy nhon',
+                    'bien hoa', 'long xuyen', 'rach gia', 'ca mau', 'bac lieu',
+                    'ha noi', 'da nang', 'hai phong', 'can tho', 'vinh long',
+                    'tan binh', 'tan phu', 'binh thanh', 'go vap', 'thu duc',
+                    'phu nhuan', 'binh tan', 'dong anh', 'gia lam', 'long bien',
+                    'cau giay', 'ha dong', 'thanh xuan', 'me linh', 'soc son',
+                    'phu hoa', 'phu hoai', 'tan thanh', 'binh hung', 'an phu'
+                ];
+                
+                // Find if any 2-word place name exists in the address
+                const addressNormalized = removeVietnameseTones(addressText).toLowerCase();
+                let foundPlaceName = null;
+                let placeNameIndex = -1;
+                
+                for (const placeName of commonPlaceNames) {
+                    const index = addressNormalized.indexOf(placeName);
+                    if (index !== -1) {
+                        foundPlaceName = placeName;
+                        // Find word index in words array
+                        const beforePlace = addressNormalized.substring(0, index).trim();
+                        placeNameIndex = beforePlace.split(/\s+/).filter(w => w.length > 0).length;
+                        console.log(`  🎯 Found place name: "${placeName}" at word index ${placeNameIndex}`);
+                        break;
+                    }
+                }
+                
                 // Check if any word is a location keyword (Quận, Huyện, Phường, Xã...)
                 const locationKeywordIndices = [];
                 const locationKeywords = ['quan', 'huyen', 'phuong', 'xa', 'thi', 'thanh', 'tinh'];
@@ -1755,9 +1833,16 @@ async function parseAddress(addressText) {
                     }
                 }
                 
-                // If we have location keywords, include them + surrounding words
-                if (locationKeywordIndices.length > 0) {
+                // If we have place name or location keywords, include them + surrounding words
+                if (foundPlaceName || locationKeywordIndices.length > 0) {
                     const importantIndices = new Set();
+                    
+                    // Add place name indices (2 consecutive words)
+                    if (foundPlaceName && placeNameIndex >= 0 && placeNameIndex + 1 < words.length) {
+                        importantIndices.add(placeNameIndex);
+                        importantIndices.add(placeNameIndex + 1);
+                        console.log(`  📍 Keeping place name: "${words[placeNameIndex]} ${words[placeNameIndex + 1]}"`);
+                    }
                     
                     // Add location keyword indices + 1 word after each
                     for (const idx of locationKeywordIndices) {
@@ -1765,7 +1850,7 @@ async function parseAddress(addressText) {
                         if (idx + 1 < words.length) importantIndices.add(idx + 1);
                     }
                     
-                    // Always include last 4 words (province info)
+                    // Always include last 4 words (province info) - but avoid duplicates
                     for (let i = Math.max(0, words.length - 4); i < words.length; i++) {
                         importantIndices.add(i);
                     }
@@ -1775,8 +1860,9 @@ async function parseAddress(addressText) {
                     wordsToUse = sortedIndices.map(i => words[i]);
                     
                     console.log('  📝 Smart selection: keeping', wordsToUse.length, 'important words (from', words.length, 'words)');
+                    console.log('  📝 Selected words:', wordsToUse.join(' '));
                 } else {
-                    // No location keywords - use last 6 words (original strategy)
+                    // No location keywords or place names - use last 6 words (original strategy)
                     wordsToUse = words.slice(-6);
                     console.log('  📝 Using last', wordsToUse.length, 'words (optimized from', words.length, 'words)');
                 }
@@ -1851,6 +1937,48 @@ async function parseAddress(addressText) {
         // If found, skip normal province search
         if (result.province) {
             console.log(`  ⏭️ Skipping normal province search (using hint)`);
+        }
+    }
+    
+    // IMPROVED: Check for known place names in ORIGINAL address FIRST
+    // This prevents n-gram from breaking up place names like "phan thiết"
+    if (!result.province) {
+        const commonCities = [
+            { name: 'phan thiet', full: 'Thành phố Phan Thiết', province: 'Tỉnh Bình Thuận' },
+            { name: 'nha trang', full: 'Thành phố Nha Trang', province: 'Tỉnh Khánh Hòa' },
+            { name: 'vung tau', full: 'Thành phố Vũng Tàu', province: 'Tỉnh Bà Rịa - Vũng Tàu' },
+            { name: 'da lat', full: 'Thành phố Đà Lạt', province: 'Tỉnh Lâm Đồng' },
+            { name: 'quy nhon', full: 'Thành phố Quy Nhơn', province: 'Tỉnh Bình Định' },
+            { name: 'bien hoa', full: 'Thành phố Biên Hòa', province: 'Tỉnh Đồng Nai' },
+            { name: 'long xuyen', full: 'Thành phố Long Xuyên', province: 'Tỉnh An Giang' },
+            { name: 'rach gia', full: 'Thành phố Rạch Giá', province: 'Tỉnh Kiên Giang' },
+            { name: 'ca mau', full: 'Thành phố Cà Mau', province: 'Tỉnh Cà Mau' },
+            { name: 'bac lieu', full: 'Thành phố Bạc Liêu', province: 'Tỉnh Bạc Liêu' }
+        ];
+        
+        const addressNormalized = removeVietnameseTones(addressText).toLowerCase();
+        
+        for (const city of commonCities) {
+            if (addressNormalized.includes(city.name)) {
+                console.log(`  🎯 Detected city: "${city.name}" → ${city.full}`);
+                
+                // Find province
+                const province = vietnamAddressData.find(p => p.Name === city.province);
+                if (province) {
+                    result.province = province;
+                    result.confidence = 'high';
+                    console.log(`  ✅ Province matched (from city): ${result.province.Name}`);
+                    
+                    // Also try to find district
+                    const district = province.Districts.find(d => d.Name === city.full);
+                    if (district) {
+                        result.district = district;
+                        console.log(`  ✅ District matched (from city): ${result.district.Name}`);
+                    }
+                    
+                    break;
+                }
+            }
         }
     }
     
