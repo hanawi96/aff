@@ -117,11 +117,39 @@ function updateAmountSortIcon() {
 
 /**
  * Apply current sorting to filteredOrdersData
- * Priority orders always appear first, then apply other sorting
+ * Sorting priority:
+ * 1. Status: "pending" luôn lên trên, "shipped" xuống dưới (để tránh in thiếu đơn)
+ * 2. Priority flag (is_priority = 1)
+ * 3. User-selected sorting (amount or date)
  */
 function applySorting() {
-    // Sort by priority first (priority = 1 comes first)
     filteredOrdersData.sort((a, b) => {
+        // LEVEL 1: Sort by status - Pending orders always on top
+        const statusA = (a.status || 'pending').toLowerCase().trim();
+        const statusB = (b.status || 'pending').toLowerCase().trim();
+        
+        // Define status priority (lower number = higher priority)
+        // pending (chờ xử lý) = 1 - LUÔN LÊN TRÊN
+        // shipped (đã gửi hàng) = 2 - XUỐNG DƯỚI
+        // Other statuses = 3
+        const getStatusPriority = (status) => {
+            if (status === 'pending') return 1;      // Chờ xử lý - ưu tiên cao nhất
+            if (status === 'shipped') return 2;      // Đã gửi hàng - xuống dưới
+            if (status === 'in_transit') return 3;   // Đang vận chuyển
+            if (status === 'delivered') return 4;    // Đã giao hàng
+            if (status === 'failed') return 5;       // Thất bại
+            return 6; // Unknown status
+        };
+        
+        const statusPriorityA = getStatusPriority(statusA);
+        const statusPriorityB = getStatusPriority(statusB);
+        
+        // If status priorities are different, sort by status
+        if (statusPriorityA !== statusPriorityB) {
+            return statusPriorityA - statusPriorityB;
+        }
+        
+        // LEVEL 2: Within same status, sort by priority flag
         const priorityA = a.is_priority || 0;
         const priorityB = b.is_priority || 0;
         
@@ -130,8 +158,7 @@ function applySorting() {
             return priorityB - priorityA;
         }
         
-        // If same priority, apply secondary sorting
-        // Ưu tiên sắp xếp theo amount nếu đang active
+        // LEVEL 3: Within same status and priority, apply user-selected sorting
         if (amountSortOrder !== 'none') {
             const amountA = a.total_amount || 0;
             const amountB = b.total_amount || 0;

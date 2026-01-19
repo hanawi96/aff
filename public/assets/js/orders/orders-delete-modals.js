@@ -140,6 +140,9 @@ async function deleteOrder(orderId, orderCode) {
                 filteredOrdersData.splice(filteredIndex, 1);
             }
 
+            // Invalidate search cache since data changed
+            invalidateSearchCache();
+
             // Update stats
             updateStats();
 

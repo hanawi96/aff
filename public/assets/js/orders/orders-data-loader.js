@@ -87,6 +87,9 @@ async function loadOrdersData() {
             allOrdersData = data.orders || [];
             filteredOrdersData = [...allOrdersData];
 
+            // Build search index for fast searching
+            buildSearchIndex();
+
             // Apply default sorting (newest first)
             applySorting();
             updateDateSortIcon();
@@ -376,8 +379,8 @@ async function saveOrderNotes(orderId, orderCode) {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Create debounced search function
-    const debouncedSearch = debounce(filterOrdersData, 300);
+    // Create debounced search function (150ms for faster response)
+    const debouncedSearch = debounce(filterOrdersData, 150);
 
     // Use event delegation on document to ensure events work even if elements are re-rendered
     document.addEventListener('input', function (e) {
