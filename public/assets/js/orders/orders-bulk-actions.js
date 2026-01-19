@@ -101,27 +101,122 @@ async function bulkExport() {
 
         const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
         
-        showToast('Đang tạo file Excel...', 'info');
+        // ============================================
+        // IMPROVEMENT: Check for shipped orders
+        // ============================================
+        const shippedOrders = selectedOrders.filter(o => o.status === 'shipped');
         
-        // Export to SPX format and save to R2
-        const result = await exportToSPXExcelAndSave(selectedOrders);
+        console.log('🔍 Bulk Export Debug:');
+        console.log('  Total selected:', selectedOrders.length);
+        console.log('  Shipped orders:', shippedOrders.length);
+        console.log('  Selected orders statuses:', selectedOrders.map(o => ({ id: o.id, status: o.status })));
         
-        if (result.success) {
-            showToast(`✅ Đã tạo file export - ${result.filename}`, 'success');
-            
-            // Clear selection
-            clearSelection();
-            
-            // Invalidate cache and update badge
-            exportHistoryCache = null;
-            await updateExportHistoryBadge();
-            
-            // Show export history modal
-            showExportHistoryModal();
+        if (shippedOrders.length > 0) {
+            console.log('  ✅ Showing confirmation modal');
+            // Show confirmation modal
+            showShippedOrdersConfirmModal(shippedOrders.length, selectedOrders);
+            return; // Wait for user decision
         }
+        
+        console.log('  ⏭️ No shipped orders, proceeding with export');
+        // No shipped orders, proceed with export
+        await performExport(selectedOrders);
+        
     } catch (error) {
         console.error('Error exporting:', error);
         showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Show confirmation modal for shipped orders
+ */
+function showShippedOrdersConfirmModal(shippedCount, allSelectedOrders) {
+    console.log('📢 showShippedOrdersConfirmModal called');
+    console.log('  Shipped count:', shippedCount);
+    console.log('  All selected orders:', allSelectedOrders.length);
+    
+    const modal = document.getElementById('shippedOrdersConfirmModal');
+    const countElement = document.getElementById('shippedOrdersCount');
+    
+    console.log('  Modal element:', modal);
+    console.log('  Count element:', countElement);
+    
+    if (!modal) {
+        console.error('❌ Modal element not found!');
+        return;
+    }
+    
+    if (!countElement) {
+        console.error('❌ Count element not found!');
+        return;
+    }
+    
+    countElement.textContent = shippedCount;
+    modal.classList.remove('hidden');
+    
+    console.log('  ✅ Modal shown, classes:', modal.className);
+    
+    // Store orders for later use
+    window.pendingExportOrders = allSelectedOrders;
+}
+
+/**
+ * Continue export all orders (including shipped)
+ */
+async function continueExportAll() {
+    const modal = document.getElementById('shippedOrdersConfirmModal');
+    modal.classList.add('hidden');
+    
+    if (window.pendingExportOrders) {
+        await performExport(window.pendingExportOrders);
+        window.pendingExportOrders = null;
+    }
+}
+
+/**
+ * Skip shipped orders and export only non-shipped
+ */
+async function skipShippedOrders() {
+    const modal = document.getElementById('shippedOrdersConfirmModal');
+    modal.classList.add('hidden');
+    
+    if (window.pendingExportOrders) {
+        const nonShippedOrders = window.pendingExportOrders.filter(o => o.status !== 'shipped');
+        
+        if (nonShippedOrders.length === 0) {
+            showToast('Không có đơn hàng nào để export (tất cả đã gửi hàng)', 'warning');
+            window.pendingExportOrders = null;
+            return;
+        }
+        
+        showToast(`Đang export ${nonShippedOrders.length} đơn hàng (bỏ qua ${window.pendingExportOrders.length - nonShippedOrders.length} đơn đã gửi)`, 'info');
+        await performExport(nonShippedOrders);
+        window.pendingExportOrders = null;
+    }
+}
+
+/**
+ * Perform the actual export
+ */
+async function performExport(orders) {
+    showToast('Đang tạo file Excel...', 'info');
+    
+    // Export to SPX format and save to R2
+    const result = await exportToSPXExcelAndSave(orders);
+    
+    if (result.success) {
+        showToast(`✅ Đã tạo file export - ${result.filename}`, 'success');
+        
+        // Clear selection
+        clearSelection();
+        
+        // Invalidate cache and update badge
+        exportHistoryCache = null;
+        await updateExportHistoryBadge();
+        
+        // Show export history modal
+        showExportHistoryModal();
     }
 }
 

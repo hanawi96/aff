@@ -696,6 +696,49 @@
         </main>
     </div>
 
+    <!-- Modal xác nhận export đơn đã gửi hàng -->
+    <div id="shippedOrdersConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slideUp">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Xác nhận Export</h3>
+                        <p class="text-sm text-gray-500">Có đơn hàng đã gửi</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 py-5">
+                <p class="text-gray-700 mb-4 text-base">
+                    <span class="font-semibold text-yellow-600" id="shippedOrdersCount">0</span> đơn hàng đã ở trạng thái 
+                    <span class="font-semibold text-green-600">"Đã gửi hàng"</span>.
+                </p>
+                <p class="text-gray-600">
+                    Bạn có muốn tiếp tục export tất cả các đơn đã chọn không?
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3">
+                <button onclick="skipShippedOrders()" 
+                    class="flex-[2] px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap">
+                    Bỏ qua các đơn đã gửi
+                </button>
+                <button onclick="continueExportAll()" 
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-xl font-medium hover:shadow-lg transition-all whitespace-nowrap">
+                    Tiếp tục
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
     <script src="../assets/js/timezone-utils.js"></script>
