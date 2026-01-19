@@ -3,6 +3,8 @@ import { jsonResponse } from '../../utils/response.js';
 // Get discount usage history
 export async function getDiscountUsageHistory(env, corsHeaders) {
     try {
+        console.log('🔍 Getting discount usage history...');
+        
         const { results: usageHistory } = await env.DB.prepare(`
             SELECT 
                 du.id,
@@ -14,16 +16,18 @@ export async function getDiscountUsageHistory(env, corsHeaders) {
                 du.order_amount,
                 du.discount_amount,
                 du.gift_received,
-                du.used_at,
+                du.used_at_unix,
                 d.title as discount_title,
                 d.type as discount_type,
                 o.total_amount as order_total_amount
             FROM discount_usage du
             LEFT JOIN discounts d ON du.discount_id = d.id
             LEFT JOIN orders o ON du.order_id = o.order_id
-            ORDER BY du.used_at DESC
+            ORDER BY du.used_at_unix DESC NULLS LAST
             LIMIT 1000
         `).all();
+
+        console.log(`✅ Retrieved ${usageHistory.length} discount usage records`);
 
         // Fix order_amount for old records: use total_amount from orders table if available
         const fixedUsageHistory = usageHistory.map(usage => {
@@ -41,10 +45,15 @@ export async function getDiscountUsageHistory(env, corsHeaders) {
             usageHistory: fixedUsageHistory
         }, 200, corsHeaders);
     } catch (error) {
-        console.error('Error getting discount usage history:', error);
+        console.error('❌ Error getting discount usage history:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         return jsonResponse({
             success: false,
-            error: error.message
+            error: error.message || 'Failed to get discount usage history'
         }, 500, corsHeaders);
     }
 }

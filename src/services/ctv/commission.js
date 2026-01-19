@@ -22,9 +22,9 @@ export async function updateCTVCommission(data, env, corsHeaders) {
         // 1. Update trong Turso Database
         const result = await env.DB.prepare(`
             UPDATE ctv 
-            SET commission_rate = ?, updated_at = CURRENT_TIMESTAMP
+            SET commission_rate = ?, updated_at_unix = ?
             WHERE referral_code = ?
-        `).bind(rate, data.referralCode).run();
+        `).bind(rate, Date.now(), data.referralCode).run();
 
         if (result.meta.changes === 0) {
             return jsonResponse({
@@ -107,12 +107,12 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
         const placeholders = referralCodes.map(() => '?').join(',');
         const updateQuery = `
             UPDATE ctv 
-            SET commission_rate = ?, updated_at = CURRENT_TIMESTAMP
+            SET commission_rate = ?, updated_at_unix = ?
             WHERE referral_code IN (${placeholders})
         `;
         
         const result = await env.DB.prepare(updateQuery)
-            .bind(rate, ...referralCodes)
+            .bind(rate, Date.now(), ...referralCodes)
             .run();
 
         const updatedCount = result.meta.changes;

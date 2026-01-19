@@ -526,10 +526,13 @@ function showAddDiscountModal() {
     document.getElementById('minOrderAmount').value = 0;
     document.getElementById('minItems').value = 0;
     
-    // Set default expiry date (1 year from now)
-    const nextYear = new Date();
-    nextYear.setFullYear(nextYear.getFullYear() + 1);
-    document.getElementById('expiryDate').value = nextYear.toISOString().split('T')[0];
+    // Set default dates: today for start, 1 week later for expiry
+    const today = new Date();
+    const oneWeekLater = new Date(today);
+    oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+    
+    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+    document.getElementById('expiryDate').value = oneWeekLater.toISOString().split('T')[0];
     
     handleTypeChange();
     document.getElementById('discountModal').classList.remove('hidden');
@@ -563,12 +566,17 @@ function editDiscount(id) {
     document.getElementById('maxTotalUses').value = discount.max_total_uses || '';
     document.getElementById('maxUsesPerCustomer').value = discount.max_uses_per_customer || 1;
     
-    // Dates
+    // Dates - show exact dates from the discount
     if (discount.start_date) {
         document.getElementById('startDate').value = discount.start_date.split('T')[0];
+    } else {
+        document.getElementById('startDate').value = '';
     }
+    
     if (discount.expiry_date) {
         document.getElementById('expiryDate').value = discount.expiry_date.split('T')[0];
+    } else {
+        document.getElementById('expiryDate').value = '';
     }
     
     // Status
@@ -973,10 +981,11 @@ function viewDiscountDetails(id) {
 
 // Handle individual discount checkbox
 function handleDiscountCheckbox(discountId, isChecked) {
+    const id = parseInt(discountId);
     if (isChecked) {
-        selectedDiscountIds.add(discountId);
+        selectedDiscountIds.add(id);
     } else {
-        selectedDiscountIds.delete(discountId);
+        selectedDiscountIds.delete(id);
     }
     updateBulkActionsUI();
 }
@@ -1198,58 +1207,6 @@ async function bulkDelete() {
     }
 }
 
-// Bulk Export - Export selected discounts to CSV
-async function bulkExport() {
-    if (selectedDiscountIds.size === 0) {
-        showToast('Vui lòng chọn ít nhất 1 mã để export', 'warning');
-        return;
-    }
-
-    try {
-        const selectedDiscounts = allDiscounts.filter(d => selectedDiscountIds.has(d.id));
-
-        // Create CSV content
-        let csv = 'Mã,Tiêu đề,Loại,Giá trị,Giá trị tối thiểu,Số lần dùng,Đã dùng,Trạng thái,Ngày hết hạn\n';
-
-        selectedDiscounts.forEach(discount => {
-            const type = {
-                'fixed': 'Giảm cố định',
-                'percentage': 'Giảm %',
-                'gift': 'Tặng quà',
-                'freeship': 'Freeship'
-            }[discount.type] || discount.type;
-            
-            const value = discount.type === 'fixed' ? discount.discount_value :
-                         discount.type === 'percentage' ? `${discount.discount_value}%` :
-                         discount.gift_product_name || '-';
-            
-            const status = discount.active ? 'Hoạt động' : 'Tạm dừng';
-            
-            csv += `"${discount.code}","${discount.title}","${type}","${value}",`;
-            csv += `"${discount.min_order_amount || 0}","${discount.max_total_uses || 'Không giới hạn'}",`;
-            csv += `"${discount.usage_count || 0}","${status}","${discount.expiry_date}"\n`;
-        });
-
-        // Create and download file
-        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `discounts_${new Date().getTime()}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showToast(`Đã export ${selectedDiscountIds.size} mã thành công`, 'success');
-    } catch (error) {
-        console.error('Error exporting:', error);
-        showToast('Lỗi khi export dữ liệu: ' + error.message, 'error');
-    }
-}
-
 // ============================================
 // TAB MANAGEMENT
 // ============================================
@@ -1331,8 +1288,8 @@ function renderUsageHistory() {
             <tr class="hover:bg-gray-50 transition-colors fade-in">
                 <td class="px-6 py-4">
                     <div class="text-sm">
-                        <div class="font-medium text-gray-900">${formatDateTime(usage.used_at)}</div>
-                        <div class="text-xs text-gray-500">${formatTimeAgo(usage.used_at)}</div>
+                        <div class="font-medium text-gray-900">${formatDateTime(usage.used_at_unix)}</div>
+                        <div class="text-xs text-gray-500">${formatTimeAgo(usage.used_at_unix)}</div>
                     </div>
                 </td>
                 <td class="px-6 py-4">
@@ -1344,8 +1301,10 @@ function renderUsageHistory() {
                             `<div class="text-xs text-gray-500 mt-1">${usage.discount_title}</div>` : 
                             ''
                         }
-                        ${usage.discount_type ? getTypeBadge(usage.discount_type) : ''}
                     </div>
+                </td>
+                <td class="px-6 py-4">
+                    ${usage.discount_type ? getTypeBadge(usage.discount_type) : '<span class="text-gray-400">-</span>'}
                 </td>
                 <td class="px-6 py-4">
                     <a href="orders.html?search=${usage.order_id}" 
@@ -1412,7 +1371,7 @@ function filterUsageHistory() {
         // Date filter
         let matchesDate = true;
         if (dateFilter) {
-            const usageDate = new Date(usage.used_at).toISOString().split('T')[0];
+            const usageDate = new Date(usage.used_at_unix * 1000).toISOString().split('T')[0];
             matchesDate = usageDate === dateFilter;
         }
         
@@ -1516,11 +1475,11 @@ function viewUsageDetail(id) {
                         <div class="space-y-3">
                             <div class="flex justify-between py-2 border-b border-gray-100">
                                 <span class="text-gray-600">Sử dụng lúc:</span>
-                                <span class="font-semibold text-gray-900">${formatDateTime(usage.used_at)}</span>
+                                <span class="font-semibold text-gray-900">${formatDateTime(usage.used_at_unix)}</span>
                             </div>
                             <div class="flex justify-between py-2">
                                 <span class="text-gray-600">Cách đây:</span>
-                                <span class="text-gray-900">${formatTimeAgo(usage.used_at)}</span>
+                                <span class="text-gray-900">${formatTimeAgo(usage.used_at_unix)}</span>
                             </div>
                         </div>
                     </div>
@@ -1562,7 +1521,15 @@ function showUsageLoading() {
 
 function formatDateTime(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    
+    // Handle Unix timestamp (milliseconds)
+    let date;
+    if (typeof dateString === 'number') {
+        date = new Date(dateString);
+    } else {
+        date = new Date(dateString);
+    }
+    
     return date.toLocaleString('vi-VN', { 
         timeZone: 'Asia/Ho_Chi_Minh',
         day: '2-digit', 
@@ -1575,7 +1542,15 @@ function formatDateTime(dateString) {
 
 function formatTimeAgo(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    
+    // Handle Unix timestamp (milliseconds)
+    let date;
+    if (typeof dateString === 'number') {
+        date = new Date(dateString);
+    } else {
+        date = new Date(dateString);
+    }
+    
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -1825,5 +1800,171 @@ function formatDiscountValue(type, value) {
         return `${value}%`;
     } else {
         return formatCurrency(value);
+    }
+}
+
+// ============================================
+// BULK EXTEND FUNCTIONS
+// ============================================
+
+let selectedExtendDays = null;
+
+function showBulkExtendModal() {
+    if (selectedDiscountIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất 1 mã để gia hạn', 'warning');
+        return;
+    }
+    
+    const modal = document.getElementById('bulkExtendModal');
+    const countSpan = document.getElementById('bulkExtendCount');
+    
+    if (modal && countSpan) {
+        countSpan.textContent = selectedDiscountIds.size;
+        modal.classList.remove('hidden');
+        
+        // Reset form
+        selectedExtendDays = null;
+        document.getElementById('bulkExtendDate').value = '';
+        document.getElementById('extendPreview').classList.add('hidden');
+        
+        // Remove active state from quick buttons
+        document.querySelectorAll('.extend-quick-btn').forEach(btn => {
+            btn.classList.remove('border-blue-500', 'bg-blue-50');
+            btn.classList.add('border-gray-300');
+        });
+    }
+}
+
+function closeBulkExtendModal() {
+    const modal = document.getElementById('bulkExtendModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        selectedExtendDays = null;
+    }
+}
+
+function selectExtendDays(days) {
+    selectedExtendDays = days;
+    
+    // Clear custom date
+    document.getElementById('bulkExtendDate').value = '';
+    
+    // Update button states
+    document.querySelectorAll('.extend-quick-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'bg-blue-50');
+        btn.classList.add('border-gray-300');
+    });
+    
+    // Highlight selected button
+    event.currentTarget.classList.remove('border-gray-300');
+    event.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+    
+    // Calculate and show preview
+    const newDate = new Date();
+    newDate.setDate(newDate.getDate() + days);
+    showExtendPreview(newDate);
+}
+
+function clearQuickSelection() {
+    selectedExtendDays = null;
+    
+    // Remove active state from quick buttons
+    document.querySelectorAll('.extend-quick-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'bg-blue-50');
+        btn.classList.add('border-gray-300');
+    });
+    
+    // Show preview for custom date
+    const customDate = document.getElementById('bulkExtendDate').value;
+    if (customDate) {
+        showExtendPreview(new Date(customDate));
+    } else {
+        document.getElementById('extendPreview').classList.add('hidden');
+    }
+}
+
+function showExtendPreview(date) {
+    const preview = document.getElementById('extendPreview');
+    const previewDate = document.getElementById('extendPreviewDate');
+    
+    if (preview && previewDate) {
+        const formattedDate = date.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        previewDate.textContent = formattedDate;
+        preview.classList.remove('hidden');
+    }
+}
+
+async function executeBulkExtend() {
+    // Validate selection
+    let newExpiryDate;
+    
+    if (selectedExtendDays) {
+        // Quick option selected
+        const date = new Date();
+        date.setDate(date.getDate() + selectedExtendDays);
+        newExpiryDate = date.toISOString().split('T')[0];
+    } else {
+        // Custom date selected
+        newExpiryDate = document.getElementById('bulkExtendDate').value;
+    }
+    
+    if (!newExpiryDate) {
+        showToast('Vui lòng chọn số ngày gia hạn hoặc ngày hết hạn mới', 'warning');
+        return;
+    }
+    
+    // Validate date is in future
+    const selectedDate = new Date(newExpiryDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate <= today) {
+        showToast('Ngày hết hạn mới phải sau ngày hôm nay', 'warning');
+        return;
+    }
+    
+    const count = selectedDiscountIds.size;
+    const discountIds = Array.from(selectedDiscountIds).map(id => parseInt(id));
+    // Close modal
+    closeBulkExtendModal();
+    
+    // Show loading toast
+    showToast(`Đang gia hạn ${count} mã...`, 'info', 0, 'bulk-extend');
+    
+    try {
+        const response = await fetch(`${API_URL}?action=bulkExtendDiscounts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discountIds: discountIds,
+                newExpiryDate: newExpiryDate
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showToast(`Lỗi: ${data.error || response.statusText}`, 'error', null, 'bulk-extend');
+            return;
+        }
+        
+        if (data.success) {
+            // Reload data
+            await loadDiscounts();
+            clearSelection();
+            
+            // Show success
+            showToast(`Đã gia hạn thành công ${data.updatedCount} mã đến ${formatDate(newExpiryDate)}`, 'success', null, 'bulk-extend');
+        } else {
+            showToast(data.error || 'Không thể gia hạn mã giảm giá', 'error', null, 'bulk-extend');
+        }
+    } catch (error) {
+        showToast('Lỗi: ' + error.message, 'error', null, 'bulk-extend');
     }
 }

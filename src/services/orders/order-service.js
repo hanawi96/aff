@@ -166,9 +166,10 @@ export async function createOrder(data, env, corsHeaders) {
         const revenue = totalAmountNumber;
         const taxAmount = Math.round(revenue * currentTaxRate);
 
-        // Get discount data
-        const discountCode = data.discountCode || null;
-        const discountAmount = data.discountAmount || 0;
+        // Get discount data (support both camelCase and snake_case)
+        const discountCode = data.discountCode || data.discount_code || null;
+        const discountAmount = data.discountAmount || data.discount_amount || 0;
+        const discountId = data.discountId || data.discount_id || null;
         const isPriority = data.is_priority || 0;
 
         const orderTimestamp = new Date(orderDate).getTime();
@@ -291,7 +292,7 @@ export async function createOrder(data, env, corsHeaders) {
         }
 
         // 1.6. Insert into discount_usage if discount was applied
-        if (discountCode && discountAmount > 0 && data.discountId) {
+        if (discountCode && discountId) {
             try {
                 // totalAmountNumber = productTotal + shippingFee - discountAmount (what customer pays)
                 // We save totalAmountNumber as order_amount (final amount customer pays)
@@ -300,16 +301,17 @@ export async function createOrder(data, env, corsHeaders) {
                     INSERT INTO discount_usage (
                         discount_id, discount_code, order_id, 
                         customer_name, customer_phone,
-                        order_amount, discount_amount
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        order_amount, discount_amount, used_at_unix
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 `).bind(
-                    data.discountId,
+                    discountId,
                     discountCode,
                     data.orderId,
                     data.customer.name,
                     data.customer.phone,
                     totalAmountNumber, // Total amount AFTER discount (what customer actually pays)
-                    discountAmount
+                    discountAmount || 0,
+                    orderDate // Unix timestamp (milliseconds) - same as order date
                 ).run();
                 console.log(`✅ Inserted discount usage: ${discountCode} - Order Amount: ${totalAmountNumber}, Discount: ${discountAmount}`);
             } catch (discountError) {

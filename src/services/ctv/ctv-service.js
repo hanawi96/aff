@@ -41,8 +41,8 @@ export async function registerCTV(data, env, corsHeaders) {
         const now = Date.now();
         
         const result = await env.DB.prepare(`
-            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate, created_at_unix, updated_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.fullName,
             data.phone,
@@ -53,7 +53,9 @@ export async function registerCTV(data, env, corsHeaders) {
             data.bankName || null,
             referralCode,
             data.status || 'Mới',
-            commissionRate
+            commissionRate,
+            now,
+            now
         ).run();
 
         console.log('📊 Insert result:', result);
@@ -364,7 +366,7 @@ export async function updateCTV(data, env, corsHeaders) {
         const result = await env.DB.prepare(`
             UPDATE ctv 
             SET full_name = ?, phone = ?, email = ?, city = ?, age = ?, 
-                bank_account_number = ?, bank_name = ?, status = ?, commission_rate = ?, updated_at = CURRENT_TIMESTAMP
+                bank_account_number = ?, bank_name = ?, status = ?, commission_rate = ?, updated_at_unix = ?
             WHERE referral_code = ?
         `).bind(
             data.fullName,
@@ -376,6 +378,7 @@ export async function updateCTV(data, env, corsHeaders) {
             data.bankName || null,
             data.status || 'Mới',
             data.commissionRate || 0.1,
+            Date.now(),
             data.referralCode
         ).run();
 

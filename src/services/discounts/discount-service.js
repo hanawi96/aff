@@ -385,3 +385,80 @@ export async function createQuickDiscount(data, env, corsHeaders) {
         }, 500, corsHeaders);
     }
 }
+
+// Bulk extend expiry date for multiple discounts
+export async function bulkExtendDiscounts(data, env, corsHeaders) {
+    try {
+        if (!data.discountIds || !Array.isArray(data.discountIds) || data.discountIds.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu danh sách mã giảm giá'
+            }, 400, corsHeaders);
+        }
+
+        if (!data.newExpiryDate) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu ngày hết hạn mới'
+            }, 400, corsHeaders);
+        }
+
+        // Validate date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(data.newExpiryDate)) {
+            return jsonResponse({
+                success: false,
+                error: 'Định dạng ngày không hợp lệ (phải là YYYY-MM-DD)'
+            }, 400, corsHeaders);
+        }
+
+        // Validate date is in future
+        const newDate = new Date(data.newExpiryDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (newDate <= today) {
+            return jsonResponse({
+                success: false,
+                error: 'Ngày hết hạn mới phải sau ngày hôm nay'
+            }, 400, corsHeaders);
+        }
+
+        const discountIds = data.discountIds;
+        let updatedCount = 0;
+        let failedIds = [];
+        
+        for (const id of discountIds) {
+            try {
+                const result = await env.DB.prepare(
+                    `UPDATE discounts SET expiry_date = ? WHERE id = ?`
+                ).bind(data.newExpiryDate, id).run();
+                
+                if (result.success && result.meta.changes > 0) {
+                    updatedCount++;
+                } else {
+                    failedIds.push(id);
+                }
+            } catch (err) {
+                console.error(`Error updating discount ${id}:`, err);
+                failedIds.push(id);
+            }
+        }
+
+        return jsonResponse({
+            success: updatedCount > 0,
+            message: `Đã gia hạn ${updatedCount} mã giảm giá`,
+            updatedCount: updatedCount,
+            newExpiryDate: data.newExpiryDate,
+            failedIds: failedIds,
+            totalRequested: discountIds.length
+        }, updatedCount > 0 ? 200 : 400, corsHeaders);
+
+    } catch (error) {
+        console.error('Error bulk extending discounts:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}

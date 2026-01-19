@@ -58,7 +58,8 @@ import {
     updateDiscount, 
     deleteDiscount, 
     toggleDiscountStatus,
-    createQuickDiscount
+    createQuickDiscount,
+    bulkExtendDiscounts
 } from '../services/discounts/discount-service.js';
 
 import { getDiscountUsageHistory } from '../services/discounts/discount-usage.js';
@@ -158,6 +159,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await deleteDiscount(data, env, corsHeaders);
         case 'toggleDiscountStatus':
             return await toggleDiscountStatus(data, env, corsHeaders);
+        case 'bulkExtendDiscounts':
+            return await bulkExtendDiscounts(data, env, corsHeaders);
         case 'getDiscountUsageHistory':
             return await getDiscountUsageHistory(env, corsHeaders);
         case 'saveExport':
@@ -221,10 +224,10 @@ export async function handlePost(path, request, env, corsHeaders) {
                     notes: data.notes,
                     shippingFee: data.shippingFee || 0,
                     shippingCost: data.shippingCost || 0,
-                    // Discount data
-                    discountCode: data.discountCode || null,
-                    discountAmount: data.discountAmount || 0,
-                    discountId: data.discountId || null,
+                    // Discount data (support both camelCase and snake_case)
+                    discountCode: data.discountCode || data.discount_code || null,
+                    discountAmount: data.discountAmount || data.discount_amount || 0,
+                    discountId: data.discountId || data.discount_id || null,
                     // Address 4 levels
                     province_id: data.province_id,
                     province_name: data.province_name,
@@ -283,6 +286,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await deleteDiscount(data, env, corsHeaders);
             case 'toggleDiscountStatus':
                 return await toggleDiscountStatus(data, env, corsHeaders);
+            case 'bulkExtendDiscounts':
+                return await bulkExtendDiscounts(data, env, corsHeaders);
             case 'getDiscountUsageHistory':
                 return await getDiscountUsageHistory(env, corsHeaders);
             case 'updatePackagingConfig':
