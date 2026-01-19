@@ -92,9 +92,13 @@ async function submitNewOrder() {
 
     const totalAmount = productTotal + shippingFee - discountAmount;
 
+    // Get current Vietnam time (browser timezone)
+    const orderDate = Date.now(); // Milliseconds since epoch in user's timezone
+
     // Prepare order data
     const orderData = {
         orderId: 'DH' + Date.now(), // Generate order ID
+        orderDate: orderDate, // Send Vietnam time from browser
         customer: {
             name: customerName,
             phone: customerPhone
@@ -190,6 +194,14 @@ async function submitNewOrder() {
         } else {
             throw new Error(result.message || 'Không thể tạo đơn hàng');
         }
+
+        // Verify timestamp for debugging
+        console.log('✅ Order created successfully');
+        console.log('🕐 Timestamp verification:', {
+            saved_timestamp: orderData.orderDate,
+            saved_as_date: new Date(orderData.orderDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+            note: 'This timestamp should match Vietnam time when displayed'
+        });
     } catch (error) {
         console.error('❌ Error creating order:', error);
         showToast(`Lỗi: ${error.message}`, 'error');

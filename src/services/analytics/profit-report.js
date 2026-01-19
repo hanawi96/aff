@@ -42,7 +42,7 @@ export async function getProfitReport(data, env, corsHeaders) {
                 orders.customer_phone,
                 orders.commission,
                 orders.referral_code,
-                orders.created_at,
+                orders.created_at_unix,
                 orders.shipping_fee,
                 orders.shipping_cost,
                 orders.packaging_cost,
@@ -62,7 +62,7 @@ export async function getProfitReport(data, env, corsHeaders) {
                 ) as product_cost
             FROM orders
             WHERE orders.created_at_unix >= ?
-            ORDER BY orders.created_at DESC
+            ORDER BY orders.created_at_unix DESC
         `).bind(startDate.getTime()).all();
 
         // Calculate totals

@@ -20,7 +20,7 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
             FROM orders o
             LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
             WHERE UPPER(TRIM(o.referral_code)) = ?
-            ORDER BY o.created_at DESC
+            ORDER BY o.created_at_unix DESC
         `).bind(normalizedCode).all();
 
         if (!orders.length) {
@@ -64,7 +64,7 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
             FROM orders o
             LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
             WHERE TRIM(c.phone) = ? OR TRIM(c.phone) = ? OR TRIM(c.phone) = ?
-            ORDER BY o.created_at DESC
+            ORDER BY o.created_at_unix DESC
         `).bind(normalizedPhone, phoneWithout0, cleanPhone).all();
 
         if (!orders.length) {

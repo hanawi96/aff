@@ -154,7 +154,7 @@ function displayOrders() {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">${formatCurrency(order.total_amount || 0)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">${formatCurrency(order.commission || 0)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(order.created_at || order.order_date)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(order.created_at_unix || order.created_at || order.order_date)}</td>
             </tr>
         `;
     });

@@ -180,7 +180,8 @@ function renderCTVList() {
 // Create order row
 function createOrderRow(order, referralCode) {
     const isSelected = selectedOrders.has(order.order_id);
-    const date = toVNShortDate(order.created_at);
+    const timestamp = order.created_at_unix || order.created_at;
+    const date = toVNShortDate(timestamp);
     
     return `
         <label class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer ${isSelected ? 'bg-indigo-50 border-indigo-300' : ''}">
@@ -345,7 +346,7 @@ function showPaymentModal(ctv, orders, totalCommission) {
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div>
                                     <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_code)}</p>
-                                    <p class="text-xs text-gray-500">${toVNShortDate(order.created_at)}</p>
+                                    <p class="text-xs text-gray-500">${toVNShortDate(order.created_at_unix || order.created_at)}</p>
                                 </div>
                                 <p class="text-sm font-bold text-orange-600">${formatCurrency(order.commission)}</p>
                             </div>

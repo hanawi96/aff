@@ -1,13 +1,13 @@
-// Script để đồng bộ dữ liệu từ D1 sang Google Sheets
+// Script để đồng bộ dữ liệu từ Turso Database sang Google Sheets
 // Chạy: node sync-to-sheets.js
 
 const API_URL = 'https://ctv-api.yendev96.workers.dev';
 
 async function syncAllCTV() {
-    console.log('🔄 Bắt đầu đồng bộ dữ liệu từ D1 sang Google Sheets...\n');
+    console.log('🔄 Bắt đầu đồng bộ dữ liệu từ Turso sang Google Sheets...\n');
 
     try {
-        // 1. Lấy tất cả CTV từ D1
+        // 1. Lấy tất cả CTV từ Turso Database
         const response = await fetch(`${API_URL}?action=getAllCTV`);
         const data = await response.json();
 
@@ -16,7 +16,7 @@ async function syncAllCTV() {
         }
 
         const ctvList = data.ctvList || [];
-        console.log(`📊 Tìm thấy ${ctvList.length} CTV trong D1\n`);
+        console.log(`📊 Tìm thấy ${ctvList.length} CTV trong Turso Database\n`);
 
         // 2. Đồng bộ từng CTV
         let successCount = 0;

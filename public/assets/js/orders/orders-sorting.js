@@ -169,8 +169,11 @@ function applySorting() {
                 return amountA - amountB;
             }
         } else if (dateSortOrder !== 'none') {
-            const dateA = new Date(a.created_at || a.order_date || 0);
-            const dateB = new Date(b.created_at || b.order_date || 0);
+            // Prefer created_at_unix (Vietnam time) over created_at (UTC time)
+            const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
+            const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
+            const dateA = new Date(timestampA);
+            const dateB = new Date(timestampB);
 
             if (dateSortOrder === 'desc') {
                 return dateB - dateA;
@@ -180,8 +183,10 @@ function applySorting() {
         }
         
         // Default: newest first
-        const dateA = new Date(a.created_at || a.order_date || 0);
-        const dateB = new Date(b.created_at || b.order_date || 0);
+        const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
+        const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
+        const dateA = new Date(timestampA);
+        const dateB = new Date(timestampB);
         return dateB - dateA;
     });
 }

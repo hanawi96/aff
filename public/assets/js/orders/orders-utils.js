@@ -131,15 +131,23 @@ function formatDateTime(dateString) {
 }
 
 /**
- * Format date string to separate time and date parts
- * @param {string} dateString - ISO date string
+ * Format date string or Unix timestamp to separate time and date parts
+ * @param {string|number} dateInput - ISO date string or Unix timestamp (milliseconds)
  * @returns {{time: string, date: string}} Object with time (HH:mm:ss) and date (DD/MM/YYYY)
  */
-function formatDateTimeSplit(dateString) {
-    if (!dateString) return { time: 'N/A', date: '' };
+function formatDateTimeSplit(dateInput) {
+    if (!dateInput) return { time: 'N/A', date: '' };
     try {
-        // Convert to VN timezone
-        const vnDate = toVNDate(dateString);
+        // If it's a Unix timestamp (number), create Date directly
+        // Unix timestamps are already in the correct timezone (Vietnam time when created)
+        let vnDate;
+        if (typeof dateInput === 'number' || /^\d+$/.test(dateInput)) {
+            // Unix timestamp - already in Vietnam time
+            vnDate = new Date(Number(dateInput));
+        } else {
+            // ISO string - needs timezone conversion
+            vnDate = toVNDate(dateInput);
+        }
 
         // Format time (HH:mm:ss)
         const hours = vnDate.getHours().toString().padStart(2, '0');
@@ -155,6 +163,6 @@ function formatDateTimeSplit(dateString) {
 
         return { time, date };
     } catch (e) {
-        return { time: dateString, date: '' };
+        return { time: String(dateInput), date: '' };
     }
 }

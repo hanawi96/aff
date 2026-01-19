@@ -38,8 +38,8 @@ export async function getCommissionsByMonth(month, env, corsHeaders) {
                 SUM(o.commission) as total_commission
             FROM orders o
             WHERE o.status NOT IN ('Đã hủy', 'Hủy')
-            AND DATE(o.created_at) >= DATE(?)
-            AND DATE(o.created_at) <= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
             AND o.referral_code IS NOT NULL
             AND o.referral_code != ''
             GROUP BY o.referral_code
@@ -197,8 +197,8 @@ export async function calculateCommissions(data, env, corsHeaders) {
                 SUM(commission) as total_commission
             FROM orders
             WHERE status NOT IN ('Đã hủy', 'Hủy')
-            AND DATE(created_at) >= DATE(?)
-            AND DATE(created_at) <= DATE(?)
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
             AND referral_code IS NOT NULL
             AND referral_code != ''
             GROUP BY referral_code
@@ -398,14 +398,14 @@ export async function getUnpaidOrders(referralCode, env, corsHeaders) {
                 o.payment_method,
                 o.status,
                 o.commission,
-                o.created_at,
+                o.created_at_unix,
                 o.shipping_fee
             FROM orders o
             LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
             WHERE o.referral_code = ?
             AND o.status NOT IN ('Đã hủy', 'Hủy')
             AND cpd.id IS NULL
-            ORDER BY o.created_at DESC
+            ORDER BY o.created_at_unix DESC
         `).bind(referralCode).all();
 
         // Calculate summary
@@ -468,16 +468,16 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
                 o.customer_name,
                 o.commission,
                 o.status,
-                o.created_at
+                o.created_at_unix
             FROM orders o
             LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
             WHERE o.status NOT IN ('Đã hủy', 'Hủy')
-            AND DATE(o.created_at) >= DATE(?)
-            AND DATE(o.created_at) <= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
             AND o.referral_code IS NOT NULL
             AND o.referral_code != ''
             AND cpd.id IS NULL
-            ORDER BY o.created_at DESC
+            ORDER BY o.created_at_unix DESC
         `).bind(startDate, endDateStr).all();
 
         // Group orders by CTV

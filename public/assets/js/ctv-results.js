@@ -135,7 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const amount = parseAmount(order.total_amount || order.totalAmount);
         const commission = order.commission || (amount * CONFIG.COMMISSION_RATE);
-        const date = formatDate(order.created_at || order.order_date || order.orderDate);
+        const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
+        const date = formatDate(timestamp);
         const orderId = order.id || order.orderId;
         
         // Customer info with masked phone
@@ -400,7 +401,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Apply filter
         if (startDate) {
             filteredOrders = allOrders.filter(order => {
-                const orderDate = new Date(order.created_at || order.order_date || order.orderDate);
+                const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
+                const orderDate = new Date(timestamp);
                 return orderDate >= startDate;
             });
         } else {
@@ -424,9 +426,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const amount = parseAmount(order.total_amount || order.totalAmount);
             const commission = order.commission || (amount * CONFIG.COMMISSION_RATE);
+            const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
 
             document.getElementById('modalOrderId').textContent = order.order_id || '#' + orderId;
-            document.getElementById('modalOrderDate').textContent = formatDate(order.created_at || order.order_date || order.orderDate);
+            document.getElementById('modalOrderDate').textContent = formatDate(timestamp);
             document.getElementById('modalOrderStatus').textContent = order.status || 'Hoàn thành';
             document.getElementById('modalCustomerName').textContent = order.customer_name || 'N/A';
             document.getElementById('modalCustomerPhone').textContent = order.customer_phone || 'N/A';

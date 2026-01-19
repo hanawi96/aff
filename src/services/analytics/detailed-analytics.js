@@ -119,7 +119,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
 
         // Debug: Check if any orders have commission
         const ordersWithCommission = await env.DB.prepare(`
-            SELECT order_id, commission, referral_code, created_at 
+            SELECT order_id, commission, referral_code, created_at_unix 
             FROM orders 
             WHERE commission > 0 AND created_at_unix >= ?
             LIMIT 5

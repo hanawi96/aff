@@ -1,4 +1,4 @@
-// Cloudflare Worker API for CTV Management System
+// CTV Management System API - Powered by Turso Database
 // Main Entry Point - Refactored Version
 
 import { initTurso } from '../database/turso-client.js';

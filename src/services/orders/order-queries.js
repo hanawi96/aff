@@ -15,7 +15,7 @@ export async function getOrdersByReferralCode(referralCode, env, corsHeaders) {
         const { results: orders } = await env.DB.prepare(`
             SELECT * FROM orders
             WHERE referral_code = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
         `).bind(referralCode).all();
 
         // Get CTV info
@@ -57,7 +57,7 @@ export async function getOrdersByPhone(phone, env, corsHeaders) {
         const { results: orders } = await env.DB.prepare(`
             SELECT * FROM orders
             WHERE ctv_phone = ? OR ctv_phone = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
         `).bind(normalizedPhone, '0' + normalizedPhone).all();
 
         // Get CTV info
@@ -103,7 +103,7 @@ export async function getRecentOrders(limit, env, corsHeaders) {
                 ) as product_cost
             FROM orders
             LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
-            ORDER BY orders.created_at DESC
+            ORDER BY orders.created_at_unix DESC
             LIMIT ?
         `).bind(limit).all();
 

@@ -19,7 +19,7 @@ export async function updateCTVCommission(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // 1. Update trong D1
+        // 1. Update trong Turso Database
         const result = await env.DB.prepare(`
             UPDATE ctv 
             SET commission_rate = ?, updated_at = CURRENT_TIMESTAMP
@@ -33,7 +33,7 @@ export async function updateCTVCommission(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated commission in D1:', data.referralCode);
+        console.log('✅ Updated commission in database:', data.referralCode);
 
         // 2. Đồng bộ sang Google Sheets
         try {
@@ -52,11 +52,11 @@ export async function updateCTVCommission(data, env, corsHeaders) {
             if (syncResponse.ok) {
                 console.log('✅ Synced commission to Google Sheets');
             } else {
-                console.warn('⚠️ Failed to sync to Google Sheets, but D1 updated successfully');
+                console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
             }
         } catch (syncError) {
             console.error('⚠️ Google Sheets sync error:', syncError);
-            // Không throw error, vì D1 đã update thành công
+            // Không throw error, vì database đã update thành công
         }
 
         return jsonResponse({
@@ -103,7 +103,7 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
         const referralCodes = data.referralCodes;
         console.log(`🔄 Bulk updating commission for ${referralCodes.length} CTVs to ${rate * 100}%`);
 
-        // 1. Bulk update trong D1 với single query (FAST!)
+        // 1. Bulk update trong Turso Database với single query (FAST!)
         const placeholders = referralCodes.map(() => '?').join(',');
         const updateQuery = `
             UPDATE ctv 
@@ -116,7 +116,7 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
             .run();
 
         const updatedCount = result.meta.changes;
-        console.log(`✅ Updated ${updatedCount} CTVs in D1`);
+        console.log(`✅ Updated ${updatedCount} CTVs in database`);
 
         // 2. Đồng bộ sang Google Sheets (async, không chờ)
         // Gửi batch request thay vì từng request riêng lẻ
@@ -137,7 +137,7 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
                 if (response.ok) {
                     console.log('✅ Synced bulk commission to Google Sheets');
                 } else {
-                    console.warn('⚠️ Failed to sync to Google Sheets, but D1 updated successfully');
+                    console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
                 }
             }).catch(syncError => {
                 console.error('⚠️ Google Sheets sync error:', syncError);

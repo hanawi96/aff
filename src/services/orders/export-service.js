@@ -232,7 +232,7 @@ export async function mergeExports(exportIds, env) {
             products, notes, total_amount, payment_method
         FROM orders
         WHERE id IN (${orderPlaceholders})
-        ORDER BY created_at DESC
+        ORDER BY created_at_unix DESC
     `).bind(...orderIdsArray).all();
 
     if (!orders || orders.length === 0) {

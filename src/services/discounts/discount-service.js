@@ -13,10 +13,10 @@ export async function getAllDiscounts(env, corsHeaders) {
                 customer_type, allowed_customer_phones, combinable_with_other_discounts,
                 active, visible,
                 start_date, expiry_date,
-                created_at, updated_at,
+                created_at_unix, updated_at_unix,
                 usage_count, total_discount_amount
             FROM discounts
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
         `).all();
 
         return jsonResponse({
@@ -74,6 +74,9 @@ export async function createDiscount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Get current timestamp
+        const now = Date.now();
+
         const result = await env.DB.prepare(`
             INSERT INTO discounts (
                 code, title, description, type,
@@ -83,8 +86,9 @@ export async function createDiscount(data, env, corsHeaders) {
                 max_total_uses, max_uses_per_customer,
                 customer_type, combinable_with_other_discounts,
                 active, visible,
-                start_date, expiry_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                start_date, expiry_date,
+                created_at_unix, updated_at_unix
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.code,
             data.title,
@@ -104,7 +108,9 @@ export async function createDiscount(data, env, corsHeaders) {
             data.active || 1,
             data.visible || 1,
             data.start_date || null,
-            data.expiry_date
+            data.expiry_date,
+            now,
+            now
         ).run();
 
         if (!result.success) {
@@ -152,6 +158,9 @@ export async function updateDiscount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Get current timestamp
+        const now = Date.now();
+
         const result = await env.DB.prepare(`
             UPDATE discounts SET
                 code = ?,
@@ -172,7 +181,8 @@ export async function updateDiscount(data, env, corsHeaders) {
                 active = ?,
                 visible = ?,
                 start_date = ?,
-                expiry_date = ?
+                expiry_date = ?,
+                updated_at_unix = ?
             WHERE id = ?
         `).bind(
             data.code,
@@ -194,6 +204,7 @@ export async function updateDiscount(data, env, corsHeaders) {
             data.visible || 1,
             data.start_date || null,
             data.expiry_date,
+            now,
             data.id
         ).run();
 
@@ -313,6 +324,9 @@ export async function createQuickDiscount(data, env, corsHeaders) {
         // Create title
         const title = `Mã cá nhân - ${data.customerPhone}`;
 
+        // Get current timestamp
+        const now = Date.now();
+
         // Insert discount
         const result = await env.DB.prepare(`
             INSERT INTO discounts (
@@ -322,8 +336,9 @@ export async function createQuickDiscount(data, env, corsHeaders) {
                 max_total_uses, max_uses_per_customer,
                 customer_type, allowed_customer_phones,
                 active, visible,
-                expiry_date, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                expiry_date, notes,
+                created_at_unix, updated_at_unix
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             code,
             title,
@@ -339,7 +354,9 @@ export async function createQuickDiscount(data, env, corsHeaders) {
             1, // active
             0, // visible = 0 (ẩn khỏi danh sách công khai)
             expiryDateStr,
-            data.notes || null
+            data.notes || null,
+            now,
+            now
         ).run();
 
         if (!result.success) {

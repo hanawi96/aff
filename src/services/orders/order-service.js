@@ -101,7 +101,7 @@ export async function createOrder(data, env, corsHeaders) {
         // Format products thành JSON string
         const productsJson = JSON.stringify(data.cart);
 
-        // 1. Lưu vào D1 Database (store in UTC)
+        // Get order timestamp (from frontend or fallback to server time)
         const orderDate = data.orderDate || new Date().getTime();
 
         // Get shipping info
@@ -218,11 +218,11 @@ export async function createOrder(data, env, corsHeaders) {
         ).run();
 
         if (!result.success) {
-            throw new Error('Failed to insert order into D1');
+            throw new Error('Failed to insert order into database');
         }
 
         const insertedOrderId = result.meta.last_row_id;
-        console.log('✅ Saved order to D1:', data.orderId, 'ID:', insertedOrderId);
+        console.log('✅ Saved order to database:', data.orderId, 'ID:', insertedOrderId);
 
         // 1.5. Insert order items into order_items table
         try {
@@ -338,7 +338,7 @@ export async function createOrder(data, env, corsHeaders) {
                     paymentMethod: data.paymentMethod || 'cod',
                     // Gửi referralCode từ frontend (không validate) để Google Sheets luôn nhận được
                     referralCode: data.referralCode || '',
-                    // Commission đã validate từ D1
+                    // Commission đã validate từ database
                     referralCommission: finalCommission || 0,
                     referralPartner: data.referralPartner || '',
                     telegramNotification: env.SECRET_KEY || 'VDT_SECRET_2025_ANHIEN'
@@ -369,7 +369,7 @@ export async function createOrder(data, env, corsHeaders) {
             }
         } catch (sheetsError) {
             console.error('⚠️ Google Sheets error:', sheetsError);
-            // Không throw error, vì D1 đã lưu thành công
+            // Không throw error, vì database đã lưu thành công
         }
 
         return jsonResponse({
@@ -441,7 +441,7 @@ export async function updateCustomerInfo(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in D1
+        // Update in database
         const result = await env.DB.prepare(`
             UPDATE orders 
             SET customer_name = ?, customer_phone = ?
@@ -455,7 +455,7 @@ export async function updateCustomerInfo(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated customer info in D1:', data.orderId);
+        console.log('✅ Updated customer info in database:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -489,7 +489,7 @@ export async function updateAddress(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in D1
+        // Update in database
         const result = await env.DB.prepare(`
             UPDATE orders 
             SET address = ?
@@ -503,7 +503,7 @@ export async function updateAddress(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated address in D1:', data.orderId);
+        console.log('✅ Updated address in database:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -560,7 +560,7 @@ export async function updateAmount(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated commission in D1:', data.orderId);
+        console.log('✅ Updated commission in database:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -586,7 +586,7 @@ export async function deleteOrder(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Delete from D1
+        // Delete from database
         const result = await env.DB.prepare(`
             DELETE FROM orders 
             WHERE id = ?
@@ -599,7 +599,7 @@ export async function deleteOrder(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Deleted order from D1:', data.orderId);
+        console.log('✅ Deleted order from database:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -634,7 +634,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in D1
+        // Update in database
         const result = await env.DB.prepare(`
             UPDATE orders 
             SET status = ?
@@ -648,7 +648,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated order status in D1:', data.orderId, '->', data.status);
+        console.log('✅ Updated order status in database:', data.orderId, '->', data.status);
 
         return jsonResponse({
             success: true,

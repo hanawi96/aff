@@ -23,9 +23,6 @@ let searchIndexVersion = 0; // Track data version to invalidate cache
  * Called once when data loads or changes
  */
 function buildSearchIndex() {
-    console.log('🔍 Building search index...');
-    const startTime = performance.now();
-    
     searchIndexCache = allOrdersData.map(order => {
         // Parse products once and cache
         let productNames = [];
@@ -54,8 +51,6 @@ function buildSearchIndex() {
         };
     });
     
-    const endTime = performance.now();
-    console.log(`✅ Search index built in ${(endTime - startTime).toFixed(2)}ms for ${searchIndexCache.length} orders`);
     searchIndexVersion++;
 }
 
@@ -75,8 +70,6 @@ function invalidateSearchCache() {
  * OPTIMIZED: Uses pre-built search index for 10x faster search
  */
 function filterOrdersData() {
-    const perfStart = performance.now(); // Start performance timer
-    
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || 'all';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
@@ -87,8 +80,6 @@ function filterOrdersData() {
     if (!searchIndexCache || searchIndexCache.length !== allOrdersData.length) {
         buildSearchIndex();
     }
-
-    const filterStart = performance.now(); // Start filter timer
 
     filteredOrdersData = allOrdersData.filter(order => {
         // ============================================
@@ -155,7 +146,9 @@ function filterOrdersData() {
         // Date filter
         let matchesDate = true;
         if (dateFilter !== 'all') {
-            const orderDate = new Date(order.created_at || order.order_date);
+            // Prefer created_at_unix (Vietnam time) over created_at (UTC time)
+            const timestamp = order.created_at_unix || order.created_at || order.order_date;
+            const orderDate = new Date(typeof timestamp === 'number' ? timestamp : timestamp);
 
             if (dateFilter === 'today') {
                 const todayStart = getVNStartOfToday();
@@ -189,8 +182,6 @@ function filterOrdersData() {
         return matchesSearch && matchesPriority && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
-    const filterEnd = performance.now();
-
     // Apply sorting
     applySorting();
 
@@ -200,22 +191,6 @@ function filterOrdersData() {
     updateStats();
 
     renderOrdersTable();
-    
-    const perfEnd = performance.now();
-    
-    // Performance logging
-    const filterTime = (filterEnd - filterStart).toFixed(2);
-    const totalTime = (perfEnd - perfStart).toFixed(2);
-    
-    console.log(`⚡ Filter Performance:`, {
-        totalOrders: allOrdersData.length,
-        filteredOrders: filteredOrdersData.length,
-        searchTerm: searchTerm || '(none)',
-        filterTime: `${filterTime}ms`,
-        totalTime: `${totalTime}ms`,
-        cacheUsed: !!searchIndexCache,
-        cacheSize: searchIndexCache?.length || 0
-    });
 }
 
 // ============================================

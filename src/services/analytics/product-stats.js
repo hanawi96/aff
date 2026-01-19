@@ -91,11 +91,11 @@ export async function getProductStats(productId, period, env, corsHeaders, custo
                 oi.*,
                 o.order_id,
                 o.customer_name,
-                o.created_at as order_date
+                o.created_at_unix as order_date
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
             WHERE oi.product_id = ? AND oi.created_at_unix >= ?
-            ORDER BY oi.created_at DESC
+            ORDER BY oi.created_at_unix DESC
             LIMIT 10
         `).bind(productId, startDate.getTime()).all();
 

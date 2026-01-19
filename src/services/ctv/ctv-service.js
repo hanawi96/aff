@@ -1,7 +1,7 @@
 import { jsonResponse } from '../../utils/response.js';
 import { generateReferralCode } from '../../utils/referral-code.js';
 
-// Đăng ký CTV mới - Lưu vào cả D1 và Google Sheets
+// Đăng ký CTV mới - Lưu vào cả Turso Database và Google Sheets
 export async function registerCTV(data, env, corsHeaders) {
     try {
         // Debug: Log received data
@@ -23,7 +23,7 @@ export async function registerCTV(data, env, corsHeaders) {
         // Commission rate mặc định 10%, có thể custom khi đăng ký
         const commissionRate = data.commissionRate || 0.1;
 
-        // 1. Lưu vào D1 Database
+        // 1. Lưu vào Turso Database
         console.log('💾 Preparing to insert with values:', {
             fullName: data.fullName,
             phone: data.phone,
@@ -41,8 +41,8 @@ export async function registerCTV(data, env, corsHeaders) {
         const now = Date.now();
         
         const result = await env.DB.prepare(`
-            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate, created_at_unix)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.fullName,
             data.phone,
@@ -53,17 +53,16 @@ export async function registerCTV(data, env, corsHeaders) {
             data.bankName || null,
             referralCode,
             data.status || 'Mới',
-            commissionRate,
-            now
+            commissionRate
         ).run();
 
         console.log('📊 Insert result:', result);
 
         if (!result.success) {
-            throw new Error('Failed to insert CTV into D1');
+            throw new Error('Failed to insert CTV into database');
         }
 
-        console.log('✅ Saved to D1:', referralCode);
+        console.log('✅ Saved to database:', referralCode);
         
         // Verify data was saved
         const verify = await env.DB.prepare(`
@@ -93,11 +92,11 @@ export async function registerCTV(data, env, corsHeaders) {
             if (sheetsResponse.ok) {
                 console.log('✅ Saved to Google Sheets');
             } else {
-                console.warn('⚠️ Failed to save to Google Sheets, but D1 saved successfully');
+                console.warn('⚠️ Failed to save to Google Sheets, but database saved successfully');
             }
         } catch (sheetsError) {
             console.error('⚠️ Google Sheets error:', sheetsError);
-            // Không throw error, vì D1 đã lưu thành công
+            // Không throw error, vì database đã lưu thành công
         }
 
         return jsonResponse({
@@ -214,10 +213,10 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
                 customer_name,
                 total_amount,
                 commission,
-                created_at
+                created_at_unix
             FROM orders
             WHERE referral_code = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
             LIMIT 5
         `).bind(referralCode).all();
 
@@ -248,7 +247,6 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
 export async function getAllCTV(env, corsHeaders) {
     try {
         // Get all CTV
-        // Use created_at_unix (milliseconds) for consistent timezone handling
         const { results: ctvList } = await env.DB.prepare(`
             SELECT 
                 id,
@@ -263,9 +261,9 @@ export async function getAllCTV(env, corsHeaders) {
                 referral_code as referralCode,
                 status,
                 commission_rate as commissionRate,
-                created_at_unix as timestamp
+                created_at as timestamp
             FROM ctv
-            ORDER BY created_at_unix DESC
+            ORDER BY created_at DESC
         `).all();
 
         // Get order stats for each CTV - use total_amount column
@@ -288,7 +286,7 @@ export async function getAllCTV(env, corsHeaders) {
                 SUM(commission) as today_commission
             FROM orders
             WHERE referral_code IS NOT NULL AND referral_code != ''
-            AND DATE(created_at) = ?
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') = ?
             GROUP BY referral_code
         `).bind(today).all();
 
@@ -362,7 +360,7 @@ export async function updateCTV(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // 1. Update trong D1
+        // 1. Update trong Turso Database
         const result = await env.DB.prepare(`
             UPDATE ctv 
             SET full_name = ?, phone = ?, email = ?, city = ?, age = ?, 
@@ -388,7 +386,7 @@ export async function updateCTV(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated CTV in D1:', data.referralCode);
+        console.log('✅ Updated CTV in database:', data.referralCode);
 
         // 2. Đồng bộ sang Google Sheets
         try {
@@ -404,7 +402,7 @@ export async function updateCTV(data, env, corsHeaders) {
             if (syncResponse.ok) {
                 console.log('✅ Synced CTV to Google Sheets');
             } else {
-                console.warn('⚠️ Failed to sync to Google Sheets, but D1 updated successfully');
+                console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
             }
         } catch (syncError) {
             console.error('⚠️ Google Sheets sync error:', syncError);
@@ -437,7 +435,7 @@ export async function bulkDeleteCTV(data, env, corsHeaders) {
         const referralCodes = data.referralCodes;
         console.log(`🗑️ Bulk deleting ${referralCodes.length} CTVs`);
 
-        // 1. Delete from D1 with single query
+        // 1. Delete from database with single query
         const placeholders = referralCodes.map(() => '?').join(',');
         const deleteQuery = `
             DELETE FROM ctv 
@@ -449,7 +447,7 @@ export async function bulkDeleteCTV(data, env, corsHeaders) {
             .run();
 
         const deletedCount = result.meta.changes;
-        console.log(`✅ Deleted ${deletedCount} CTVs from D1`);
+        console.log(`✅ Deleted ${deletedCount} CTVs from database`);
 
         // 2. Sync to Google Sheets (async, fire-and-forget)
         try {
@@ -467,7 +465,7 @@ export async function bulkDeleteCTV(data, env, corsHeaders) {
                 if (response.ok) {
                     console.log('✅ Synced bulk delete to Google Sheets');
                 } else {
-                    console.warn('⚠️ Failed to sync to Google Sheets, but D1 deleted successfully');
+                    console.warn('⚠️ Failed to sync to Google Sheets, but database deleted successfully');
                 }
             }).catch(syncError => {
                 console.error('⚠️ Google Sheets sync error:', syncError);
