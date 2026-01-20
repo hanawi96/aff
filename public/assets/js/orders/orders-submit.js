@@ -140,6 +140,9 @@ async function submitNewOrder() {
     }
 
     try {
+        // Measure order creation time
+        const startTime = performance.now();
+        
         const response = await fetch(`${CONFIG.API_URL}/api/order/create`, {
             method: 'POST',
             headers: {
@@ -150,6 +153,20 @@ async function submitNewOrder() {
         });
 
         const result = await response.json();
+        
+        // Log performance
+        const endTime = performance.now();
+        const duration = (endTime - startTime).toFixed(2);
+        console.log(`⏱️ Order created in ${duration}ms (${currentOrderProducts.length} products)`);
+        
+        // Show performance indicator
+        if (duration < 150) {
+            console.log('🚀 Performance: Excellent!');
+        } else if (duration < 300) {
+            console.log('✅ Performance: Good');
+        } else {
+            console.log('⚠️ Performance: Slow');
+        }
 
         if (response.ok && result.success) {
             showToast('✅ Tạo đơn hàng thành công!', 'success');

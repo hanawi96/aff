@@ -69,28 +69,57 @@ export async function createOrder(data, env, corsHeaders) {
         }
 
         // Calculate product cost from cart
+        // Batch query all products at once to avoid N+1 query problem
+        const itemsNeedingLookup = data.cart.filter(item => !item.cost_price && item.name);
+        let productLookupMap = {};
+        
+        if (itemsNeedingLookup.length > 0) {
+            try {
+                // Collect all product names and IDs for batch query
+                const productNames = itemsNeedingLookup.map(item => item.name);
+                const productIds = itemsNeedingLookup.map(item => item.id || item.product_id).filter(Boolean);
+                
+                // Build dynamic query with placeholders
+                const namePlaceholders = productNames.map(() => '?').join(',');
+                const idPlaceholders = productIds.length > 0 ? productIds.map(() => '?').join(',') : '';
+                
+                let query = `SELECT id, name, cost_price FROM products WHERE name IN (${namePlaceholders})`;
+                let bindings = [...productNames];
+                
+                if (productIds.length > 0) {
+                    query += ` OR id IN (${idPlaceholders})`;
+                    bindings.push(...productIds);
+                }
+                
+                const { results: products } = await env.DB.prepare(query).bind(...bindings).all();
+                
+                // Create lookup map by both name and id
+                products.forEach(product => {
+                    productLookupMap[product.name] = product;
+                    if (product.id) {
+                        productLookupMap[product.id] = product;
+                    }
+                });
+                
+                console.log(`✅ Batch fetched ${products.length} products for cost_price lookup`);
+            } catch (error) {
+                console.error('❌ Error batch fetching products:', error);
+            }
+        }
+        
+        // Calculate total product cost
         let productCost = 0;
         for (const item of data.cart) {
             let costPrice = item.cost_price || 0;
             
-            // Nếu không có cost_price, tự động tra cứu từ database
+            // Look up from batch query results if not provided
             if (!costPrice && item.name) {
-                try {
-                    // Tìm sản phẩm theo tên (hoặc ID nếu có)
-                    const productQuery = await env.DB.prepare(`
-                        SELECT cost_price FROM products 
-                        WHERE name = ? OR id = ?
-                        LIMIT 1
-                    `).bind(item.name, item.id || item.name).first();
-                    
-                    if (productQuery && productQuery.cost_price) {
-                        costPrice = productQuery.cost_price;
-                        console.log(`✅ Auto-fetched cost_price for "${item.name}": ${costPrice}`);
-                    } else {
-                        console.warn(`⚠️ No cost_price found for product: "${item.name}"`);
-                    }
-                } catch (error) {
-                    console.error(`❌ Error fetching cost_price for "${item.name}":`, error);
+                const product = productLookupMap[item.name] || productLookupMap[item.id];
+                if (product && product.cost_price) {
+                    costPrice = product.cost_price;
+                    console.log(`✅ Found cost_price for "${item.name}": ${costPrice}`);
+                } else {
+                    console.warn(`⚠️ No cost_price found for product: "${item.name}"`);
                 }
             }
             
@@ -110,12 +139,44 @@ export async function createOrder(data, env, corsHeaders) {
 
         // Calculate packaging cost (snapshot current prices with display names)
         // Get all packaging items from category_id = 5 (Đóng gói)
-        const { results: packagingConfig } = await env.DB.prepare(`
-            SELECT item_name, item_cost, display_name 
-            FROM cost_config 
-            WHERE category_id = 5 AND is_default = 1
-            ORDER BY item_name ASC
-        `).all();
+        // Cache this query as packaging config rarely changes
+        const packagingCacheKey = 'packaging_config_v1';
+        let packagingConfig;
+        
+        try {
+            // Try to get from cache first (if KV is available)
+            if (env.KV) {
+                const cached = await env.KV.get(packagingCacheKey, 'json');
+                if (cached) {
+                    packagingConfig = cached;
+                    console.log('✅ Using cached packaging config');
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ KV not available, querying DB');
+        }
+        
+        // If not cached, query from database
+        if (!packagingConfig) {
+            const { results } = await env.DB.prepare(`
+                SELECT item_name, item_cost, display_name 
+                FROM cost_config 
+                WHERE category_id = 5 AND is_default = 1
+                ORDER BY item_name ASC
+            `).all();
+            packagingConfig = results;
+            
+            // Cache for 1 hour (if KV is available)
+            if (env.KV) {
+                try {
+                    await env.KV.put(packagingCacheKey, JSON.stringify(packagingConfig), {
+                        expirationTtl: 3600
+                    });
+                } catch (e) {
+                    console.warn('⚠️ Could not cache packaging config');
+                }
+            }
+        }
         
         const packagingPrices = {};
         const packagingDisplayNames = {};
@@ -146,10 +207,41 @@ export async function createOrder(data, env, corsHeaders) {
         };
 
         // Get current tax rate from cost_config (stored in item_cost)
-        const taxRateConfig = await env.DB.prepare(`
-            SELECT item_cost as tax_rate FROM cost_config WHERE item_name = 'tax_rate' LIMIT 1
-        `).first();
-        const currentTaxRate = taxRateConfig?.tax_rate || 0.015;
+        // Cache this as tax rate rarely changes
+        const taxCacheKey = 'tax_rate_v1';
+        let currentTaxRate = 0.015; // Default fallback
+        
+        try {
+            // Try to get from cache first (if KV is available)
+            if (env.KV) {
+                const cached = await env.KV.get(taxCacheKey);
+                if (cached) {
+                    currentTaxRate = parseFloat(cached);
+                    console.log('✅ Using cached tax rate:', currentTaxRate);
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ KV not available for tax rate');
+        }
+        
+        // If not cached, query from database
+        if (!currentTaxRate || currentTaxRate === 0.015) {
+            const taxRateConfig = await env.DB.prepare(`
+                SELECT item_cost as tax_rate FROM cost_config WHERE item_name = 'tax_rate' LIMIT 1
+            `).first();
+            currentTaxRate = taxRateConfig?.tax_rate || 0.015;
+            
+            // Cache for 1 hour (if KV is available)
+            if (env.KV) {
+                try {
+                    await env.KV.put(taxCacheKey, currentTaxRate.toString(), {
+                        expirationTtl: 3600
+                    });
+                } catch (e) {
+                    console.warn('⚠️ Could not cache tax rate');
+                }
+            }
+        }
         
         // Calculate tax amount (revenue * tax_rate)
         // IMPORTANT: totalAmountNumber already includes productTotal + shippingFee - discountAmount
@@ -217,7 +309,12 @@ export async function createOrder(data, env, corsHeaders) {
         console.log('✅ Saved order to database:', data.orderId, 'ID:', insertedOrderId);
 
         // 1.5. Insert order items into order_items table
+        // Use batch insert for better performance
         try {
+            const orderTimestamp = new Date(orderDate).getTime();
+            
+            // Prepare all items data first
+            const itemsData = [];
             for (const item of data.cart) {
                 const productName = item.name || 'Unknown';
                 const quantity = item.quantity || 1;
@@ -230,53 +327,60 @@ export async function createOrder(data, env, corsHeaders) {
                 let productId = item.id || item.product_id || null;
                 let costPrice = item.cost_price || 0;
 
-                // Try to find product in database if not provided
+                // Look up from batch query results (already fetched earlier)
                 if (!productId || !costPrice) {
-                    try {
-                        const productQuery = await env.DB.prepare(`
-                            SELECT id, cost_price FROM products 
-                            WHERE name = ? OR id = ?
-                            LIMIT 1
-                        `).bind(productName, productId).first();
-
-                        if (productQuery) {
-                            productId = productId || productQuery.id;
-                            costPrice = costPrice || productQuery.cost_price || 0;
-                        }
-                    } catch (e) {
-                        console.warn(`Could not find product: ${productName}`);
+                    const product = productLookupMap[productName] || productLookupMap[productId];
+                    if (product) {
+                        productId = productId || product.id;
+                        costPrice = costPrice || product.cost_price || 0;
+                    } else {
+                        console.warn(`⚠️ Could not find product: ${productName}`);
                     }
                 }
-
-                // Calculate totals
-                const subtotal = productPrice * quantity;
-                const costTotal = costPrice * quantity;
-                const itemProfit = subtotal - costTotal;
 
                 // Merge weight and size into single size column
                 const sizeValue = size || weight || null;
 
-                // Insert into order_items with unix timestamp
-                const orderTimestamp = new Date(orderDate).getTime();
-                await env.DB.prepare(`
-                    INSERT INTO order_items (
-                        order_id, product_id, product_name, product_price, product_cost,
-                        quantity, size, notes, created_at, created_at_unix
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `).bind(
-                    insertedOrderId,
+                itemsData.push({
                     productId,
                     productName,
                     productPrice,
                     costPrice,
                     quantity,
                     sizeValue,
-                    notes,
-                    orderDate,
-                    orderTimestamp
-                ).run();
+                    notes
+                });
             }
-            console.log(`✅ Inserted ${data.cart.length} items into order_items`);
+
+            // Batch insert all items in one query
+            if (itemsData.length > 0) {
+                const placeholders = itemsData.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+                const bindings = [];
+                
+                itemsData.forEach(item => {
+                    bindings.push(
+                        insertedOrderId,
+                        item.productId,
+                        item.productName,
+                        item.productPrice,
+                        item.costPrice,
+                        item.quantity,
+                        item.sizeValue,
+                        item.notes,
+                        orderDate,
+                        orderTimestamp
+                    );
+                });
+
+                await env.DB.prepare(`
+                    INSERT INTO order_items (
+                        order_id, product_id, product_name, product_price, product_cost,
+                        quantity, size, notes, created_at, created_at_unix
+                    ) VALUES ${placeholders}
+                `).bind(...bindings).run();
+                
+                console.log(`✅ Batch inserted ${itemsData.length} items into order_items`);
+            }
         } catch (itemsError) {
             console.error('⚠️ Error inserting order items:', itemsError);
             // Don't fail the order creation, just log the error
