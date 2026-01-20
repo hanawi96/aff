@@ -44,6 +44,9 @@ import { getProductCategories } from '../services/products/product-categories.js
 // Address Learning
 import { searchLearning, getLearningStats } from '../services/address-learning/address-learning-service.js';
 
+// Materials
+import { getAllMaterials, getProductMaterials, getAllMaterialCategories } from '../services/materials/material-service.js';
+
 // Customers
 import { 
     getAllCustomers, 
@@ -333,6 +336,16 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getAddressLearningStats':
             return await getLearningStats(env).then(data => jsonResponse(data, 200, corsHeaders));
+
+        case 'getAllMaterials':
+            return await getAllMaterials(env, corsHeaders);
+
+        case 'getAllMaterialCategories':
+            return await getAllMaterialCategories(env, corsHeaders);
+
+        case 'getProductMaterials':
+            const materialProductId = url.searchParams.get('product_id');
+            return await getProductMaterials(materialProductId, env, corsHeaders);
 
         default:
             return jsonResponse({

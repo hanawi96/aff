@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Nguyên liệu - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                        'admin-success': '#10b981',
+                        'admin-warning': '#f59e0b',
+                        'admin-danger': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        <div class="flex flex-col h-full">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
+                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <a href="ctv.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Danh sách CTV</span>
+                </a>
+                <a href="index.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a href="payments.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Thanh toán CTV</span>
+                </a>
+                <a href="products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <span>Sản phẩm</span>
+                </a>
+                <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    <span>Nguyên liệu</span>
+                </a>
+                <a href="categories.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                    <span>Danh mục</span>
+                </a>
+                <a href="discounts.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    <span>Mã giảm giá</span>
+                </a>
+                <a href="profit-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <span>Thống kê</span>
+                </a>
+                <a href="location-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Địa lý</span>
+                </a>
+                <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Cài đặt</span>
+                </a>
+                <a href="customers.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <span>Khách hàng</span>
+                </a>
+            </nav>
+            <div class="mt-auto border-t border-gray-200 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">AD</div>
+                    <div class="flex-1 min-w-0">
+                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
+                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div class="px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Quản Lý Nguyên Liệu</h2>
+                        <p class="text-sm text-gray-500">Quản lý giá nguyên liệu và tính giá vốn tự động</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="loadMaterials()" class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors" title="Tải lại">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="px-6 lg:px-8 py-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Tổng nguyên liệu</p>
+                            <p id="totalMaterials" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Giá TB</p>
+                            <p id="avgPrice" class="text-3xl font-bold text-gray-900 mt-2">0đ</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Đắt nhất</p>
+                            <p id="maxPrice" class="text-3xl font-bold text-gray-900 mt-2">0đ</p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Rẻ nhất</p>
+                            <p id="minPrice" class="text-3xl font-bold text-gray-900 mt-2">0đ</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <!-- Tab Headers -->
+                <div class="border-b border-gray-200">
+                    <nav class="flex -mb-px">
+                        <button onclick="switchTab('materials')" id="tab-materials" class="tab-button active px-6 py-4 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                <span>Danh sách nguyên liệu</span>
+                            </div>
+                        </button>
+                        <button onclick="switchTab('categories')" id="tab-categories" class="tab-button px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                                <span>Danh mục</span>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content: Materials List -->
+                <div id="content-materials" class="tab-content">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Danh sách nguyên liệu</h3>
+                            <div class="flex items-center gap-3">
+                                <div class="relative">
+                                    <input type="text" id="searchInput" placeholder="Tìm kiếm nguyên liệu..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" oninput="searchMaterials()">
+                                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                </div>
+                                <button onclick="showAddMaterialModal()" class="px-4 py-2 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                                    Thêm nguyên liệu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="loadingState" class="flex items-center justify-center py-12">
+                        <div class="flex flex-col items-center gap-4">
+                            <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                            <p class="text-sm text-gray-600 font-medium">Đang tải...</p>
+                        </div>
+                    </div>
+                    <div id="materialsTable" class="hidden overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên nguyên liệu</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Giá</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sản phẩm sử dụng</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Cập nhật</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materialsTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyState" class="hidden p-12 text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có nguyên liệu</h3>
+                    <p class="text-gray-500 mb-4">Thêm nguyên liệu đầu tiên để bắt đầu</p>
+                    <button onclick="showAddMaterialModal()" class="px-6 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">Thêm nguyên liệu</button>
+                </div>
+                </div>
+
+                <!-- Tab Content: Categories -->
+                <div id="content-categories" class="tab-content hidden">
+                    <!-- Header with gradient background -->
+                    <div class="relative p-8 border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900 mb-1">Danh mục nguyên liệu</h3>
+                                <p class="text-sm text-gray-600">Quản lý và sắp xếp các danh mục nguyên liệu</p>
+                            </div>
+                            <button onclick="showAddCategoryModal()" class="group px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 font-medium flex items-center gap-2.5 shadow-lg shadow-indigo-200">
+                                <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                                <span>Thêm danh mục</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="categoriesLoadingState" class="flex items-center justify-center py-20">
+                        <div class="flex flex-col items-center gap-4">
+                            <div class="relative">
+                                <div class="w-16 h-16 border-4 border-indigo-100 rounded-full"></div>
+                                <div class="absolute inset-0 w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                            <p class="text-sm text-gray-600 font-medium">Đang tải danh mục...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories List with better spacing -->
+                    <div id="categoriesList" class="hidden p-8 space-y-4 bg-gray-50">
+                        <!-- Categories will be rendered here -->
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="categoriesEmptyState" class="hidden py-20 text-center bg-gray-50">
+                        <div class="max-w-md mx-auto">
+                            <div class="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                <svg class="w-10 h-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">Chưa có danh mục nào</h3>
+                            <p class="text-gray-600 mb-6">Tạo danh mục đầu tiên để bắt đầu phân loại nguyên liệu của bạn</p>
+                            <button onclick="showAddCategoryModal()" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 font-medium shadow-lg shadow-indigo-200">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                                <span>Thêm danh mục đầu tiên</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        .tab-button.active {
+            border-color: #6366f1;
+            color: #6366f1;
+        }
+        .tab-content {
+            display: block;
+        }
+        .tab-content.hidden {
+            display: none;
+        }
+    </style>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/toast-manager.js"></script>
+    <script src="../assets/js/materials.js"></script>
+    <script src="../assets/js/auth-check.js"></script>
+</body>
+</html>

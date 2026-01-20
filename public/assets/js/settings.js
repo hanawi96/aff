@@ -32,15 +32,26 @@ function setupEventListeners() {
 // Update preview calculation
 function updatePreview() {
     // Per-product costs (multiply by quantity)
-    const redString = parseFloat(document.getElementById('red_string').value) || 0;
-    const laborCost = parseFloat(document.getElementById('labor_cost').value) || 0;
+    const redStringEl = document.getElementById('red_string');
+    const laborCostEl = document.getElementById('labor_cost');
+    const bagZipEl = document.getElementById('bag_zip');
+    const bagRedEl = document.getElementById('bag_red');
+    const thankCardEl = document.getElementById('thank_card');
+    const paperPrintEl = document.getElementById('paper_print');
+    const boxEl = document.getElementById('box_shipping');
     
-    // Per-order costs (fixed)
-    const bagZip = parseFloat(document.getElementById('bag_zip').value) || 0;
-    const bagRed = parseFloat(document.getElementById('bag_red').value) || 0;
-    const thankCard = parseFloat(document.getElementById('thank_card').value) || 0;
-    const paperPrint = parseFloat(document.getElementById('paper_print').value) || 0;
-    const box = parseFloat(document.getElementById('box_shipping').value) || 0;
+    // Check if elements exist
+    if (!redStringEl || !laborCostEl || !bagZipEl || !bagRedEl || !thankCardEl || !paperPrintEl || !boxEl) {
+        return;
+    }
+    
+    const redString = parseFloat(redStringEl.value) || 0;
+    const laborCost = parseFloat(laborCostEl.value) || 0;
+    const bagZip = parseFloat(bagZipEl.value) || 0;
+    const bagRed = parseFloat(bagRedEl.value) || 0;
+    const thankCard = parseFloat(thankCardEl.value) || 0;
+    const paperPrint = parseFloat(paperPrintEl.value) || 0;
+    const box = parseFloat(boxEl.value) || 0;
 
     const perOrder = bagZip + bagRed + box + thankCard + paperPrint;
     
@@ -52,10 +63,18 @@ function updatePreview() {
     const perProduct3 = redString + laborCost;
     const total3 = perProduct3 * 3 + perOrder;
 
-    document.getElementById('preview1').innerHTML = 
-        `<span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span><span>Đơn 1 sản phẩm: ${formatCurrency(perProduct1)} + ${formatCurrency(perOrder)} = ${formatCurrency(total1)}</span>`;
-    document.getElementById('preview3').innerHTML = 
-        `<span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span><span>Đơn 3 sản phẩm: ${formatCurrency(perProduct3 * 3)} + ${formatCurrency(perOrder)} = ${formatCurrency(total3)}</span>`;
+    const preview1El = document.getElementById('preview1');
+    const preview3El = document.getElementById('preview3');
+    
+    if (preview1El) {
+        preview1El.innerHTML = 
+            `<span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span><span>Đơn 1 sản phẩm: ${formatCurrency(perProduct1)} + ${formatCurrency(perOrder)} = ${formatCurrency(total1)}</span>`;
+    }
+    
+    if (preview3El) {
+        preview3El.innerHTML = 
+            `<span class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span><span>Đơn 3 sản phẩm: ${formatCurrency(perProduct3 * 3)} + ${formatCurrency(perOrder)} = ${formatCurrency(total3)}</span>`;
+    }
     
     // Update quick stats (show for 1 product as example)
     const totalPackagingEl = document.getElementById('totalPackagingCost');
@@ -267,8 +286,10 @@ async function loadCurrentTaxRate() {
             const skeleton = document.getElementById('currentTaxRateSkeleton');
             const currentTaxRateEl = document.getElementById('currentTaxRate');
             if (skeleton) skeleton.classList.add('hidden');
-            currentTaxRateEl.textContent = `${taxPercent}%`;
-            currentTaxRateEl.classList.remove('hidden');
+            if (currentTaxRateEl) {
+                currentTaxRateEl.textContent = `${taxPercent}%`;
+                currentTaxRateEl.classList.remove('hidden');
+            }
             
             // Update summary in sidebar
             const summarySkeleton = document.getElementById('currentTaxRateSummarySkeleton');
@@ -283,7 +304,6 @@ async function loadCurrentTaxRate() {
         }
     } catch (error) {
         console.error('Error loading tax rate:', error);
-        showToast('❌ Không thể tải tỷ lệ thuế', 'error');
     }
 }
 
@@ -297,9 +317,11 @@ function updateTaxExample(taxRate) {
     const skeleton = document.getElementById('taxExampleSkeleton');
     const taxExampleEl = document.getElementById('taxExample');
     if (skeleton) skeleton.classList.add('hidden');
-    taxExampleEl.innerHTML = 
-        `<span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span><span>Thuế ${taxPercent}%: ${formatCurrency(revenue)} × ${taxPercent}% = ${formatCurrency(tax)}</span>`;
-    taxExampleEl.classList.remove('hidden');
+    if (taxExampleEl) {
+        taxExampleEl.innerHTML = 
+            `<span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span><span>Thuế ${taxPercent}%: ${formatCurrency(revenue)} × ${taxPercent}% = ${formatCurrency(tax)}</span>`;
+        taxExampleEl.classList.remove('hidden');
+    }
 }
 
 // Update tax rate

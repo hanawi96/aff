@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Vietnamese to Slug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Vietnamese to Slug</h1>
+    <input type="text" id="input" placeholder="Nhập text tiếng Việt..." oninput="convert()">
+    <div class="result">
+        <strong>Kết quả:</strong> <span id="output">-</span>
+    </div>
+
+    <h3>Test cases:</h3>
+    <ul id="testCases"></ul>
+
+    <script>
+        function vietnameseToSlug(str) {
+            if (!str) return '';
+            
+            // Convert to lowercase
+            str = str.toLowerCase();
+            
+            // Remove Vietnamese diacritics
+            str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            // Replace đ with d
+            str = str.replace(/đ/g, 'd');
+            
+            // Remove special characters, keep only letters, numbers, and spaces
+            str = str.replace(/[^a-z0-9\s]/g, '');
+            
+            // Replace multiple spaces with single space
+            str = str.replace(/\s+/g, ' ');
+            
+            // Trim spaces
+            str = str.trim();
+            
+            // Replace spaces with underscores
+            str = str.replace(/\s/g, '_');
+            
+            return str;
+        }
+
+        function convert() {
+            const input = document.getElementById('input').value;
+            const output = vietnameseToSlug(input);
+            document.getElementById('output').textContent = output || '-';
+        }
+
+        // Test cases
+        const tests = [
+            { input: 'Đá tự nhiên', expected: 'da_tu_nhien' },
+            { input: 'Bi bạc S999', expected: 'bi_bac_s999' },
+            { input: 'Hổ phách vàng', expected: 'ho_phach_vang' },
+            { input: 'Charm rồng', expected: 'charm_rong' },
+            { input: 'Dây ngũ sắc', expected: 'day_ngu_sac' },
+            { input: 'Thẻ tên tròn', expected: 'the_ten_tron' },
+            { input: 'Đá   đỏ   (loại 1)', expected: 'da_do_loai_1' },
+            { input: 'ABC-123 XYZ', expected: 'abc123_xyz' }
+        ];
+
+        const testCasesList = document.getElementById('testCases');
+        tests.forEach(test => {
+            const result = vietnameseToSlug(test.input);
+            const passed = result === test.expected;
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <strong>"${test.input}"</strong> → <code>${result}</code> 
+                ${passed ? '✅' : `❌ (expected: ${test.expected})`}
+            `;
+            li.style.color = passed ? 'green' : 'red';
+            testCasesList.appendChild(li);
+        });
+    </script>
+</body>
+</html>

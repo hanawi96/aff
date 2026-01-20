@@ -92,6 +92,18 @@ import { uploadImage } from '../services/upload/image-upload.js';
 // Address Learning
 import { learnAddress } from '../services/address-learning/address-learning-service.js';
 
+// Materials
+import {
+    createMaterial,
+    updateMaterial,
+    deleteMaterial,
+    saveProductMaterials,
+    createMaterialCategory,
+    updateMaterialCategory,
+    deleteMaterialCategory,
+    reorderMaterialCategories
+} from '../services/materials/material-service.js';
+
 // ============================================
 // POST WITH ACTION (Query String)
 // ============================================
@@ -299,6 +311,22 @@ export async function handlePost(path, request, env, corsHeaders) {
             case 'learnAddress':
                 return await learnAddress(env, data.street_address, data.district_id, data.ward_id, data.ward_name)
                     .then(result => jsonResponse(result, 200, corsHeaders));
+            case 'createMaterial':
+                return await createMaterial(data, env, corsHeaders);
+            case 'updateMaterial':
+                return await updateMaterial(data, env, corsHeaders);
+            case 'deleteMaterial':
+                return await deleteMaterial(data, env, corsHeaders);
+            case 'saveProductMaterials':
+                return await saveProductMaterials(data, env, corsHeaders);
+            case 'createMaterialCategory':
+                return await createMaterialCategory(data, env, corsHeaders);
+            case 'updateMaterialCategory':
+                return await updateMaterialCategory(data, env, corsHeaders);
+            case 'deleteMaterialCategory':
+                return await deleteMaterialCategory(data, env, corsHeaders);
+            case 'reorderMaterialCategories':
+                return await reorderMaterialCategories(data, env, corsHeaders);
             default:
                 return jsonResponse({
                     success: false,
