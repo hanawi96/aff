@@ -1,9 +1,16 @@
 // Products Management JavaScript
 let allProducts = [];
 let filteredProducts = [];
+let allCategories = [];
 let viewMode = 'grid'; // 'grid' or 'list'
 let currentPage = 1;
 const itemsPerPage = 10;
+
+// Filter state
+let currentFilters = {
+    categoryId: null,
+    searchTerm: ''
+};
 
 // Sort state
 let currentSort = {
@@ -13,11 +20,14 @@ let currentSort = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Products Management initialized');
-    loadProducts();
-    setupEventListeners();
-    setupKeyboardShortcuts();
-    checkOutdatedProducts();
+    Promise.all([
+        loadCategories(),
+        loadProducts()
+    ]).then(() => {
+        setupEventListeners();
+        setupKeyboardShortcuts();
+        checkOutdatedProducts();
+    });
 });
 
 // Setup event listeners
@@ -25,6 +35,11 @@ function setupEventListeners() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', debounce(searchAndSort, 300));
+    }
+    
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', searchAndSort);
     }
 }
 
@@ -62,6 +77,33 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Load categories for filter
+async function loadCategories() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            allCategories = data.categories || [];
+            populateCategoryFilter();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Populate category filter dropdown
+function populateCategoryFilter() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (!categoryFilter) return;
+
+    const options = allCategories
+        .map(cat => `<option value="${cat.id}">${cat.name} (${cat.product_count || 0})</option>`)
+        .join('');
+    
+    categoryFilter.innerHTML = `<option value="">Tất cả danh mục</option>${options}`;
 }
 
 // Load all products
@@ -150,19 +192,28 @@ function updateSortBadge() {
 // Search and sort (combined)
 function searchAndSort() {
     const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
     const searchTerm = searchInput?.value || '';
-    currentPage = 1; // Reset to first page
+    const categoryId = categoryFilter?.value || '';
+    
+    currentPage = 1;
 
-    // Start with all products
+    currentFilters.searchTerm = searchTerm.trim();
+    currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+
     let results = [...allProducts];
 
+    // Apply category filter
+    if (currentFilters.categoryId) {
+        results = results.filter(product => product.category_id === currentFilters.categoryId);
+    }
+
     // Apply search filter
-    if (searchTerm.trim()) {
-        const normalizedSearch = searchTerm.toLowerCase().trim();
+    if (currentFilters.searchTerm) {
+        const normalizedSearch = currentFilters.searchTerm.toLowerCase();
         results = results.filter(product => {
             if (product.name && product.name.toLowerCase().includes(normalizedSearch)) return true;
             if (product.sku && product.sku.toLowerCase().includes(normalizedSearch)) return true;
-            if (product.category_name && product.category_name.toLowerCase().includes(normalizedSearch)) return true;
             if (!isNaN(normalizedSearch)) {
                 const searchPrice = parseFloat(normalizedSearch);
                 if (product.price === searchPrice || product.cost_price === searchPrice) return true;
@@ -198,7 +249,6 @@ function searchAndSort() {
     }
 
     filteredProducts = results;
-    console.log('✅ Filtered & sorted products:', filteredProducts.length);
     renderProducts();
 }
 
@@ -212,7 +262,7 @@ function renderProducts() {
     const grid = document.getElementById('productsGrid');
 
     if (!grid) {
-        console.error('❌ Products grid element not found');
+        console.error('Products grid element not found');
         return;
     }
 
@@ -2157,34 +2207,6 @@ function applySorting(products) {
 }
 
 // Search and Sort (combined function)
-function searchAndSort() {
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-
-    // Filter by search term
-    if (searchTerm) {
-        filteredProducts = allProducts.filter(product => {
-            return (
-                (product.name && product.name.toLowerCase().includes(searchTerm)) ||
-                (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
-                (product.category && product.category.toLowerCase().includes(searchTerm)) ||
-                (product.description && product.description.toLowerCase().includes(searchTerm))
-            );
-        });
-    } else {
-        filteredProducts = [...allProducts];
-    }
-
-    // Apply sorting
-    filteredProducts = applySorting(filteredProducts);
-
-    // Reset to first page
-    currentPage = 1;
-
-    // Render
-    renderProducts();
-}
-
-
 // ============================================
 // BULK ACTIONS
 // ============================================

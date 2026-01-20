@@ -131,28 +131,26 @@ function renderCategories() {
     
     tbody.innerHTML = filteredCategories.map(category => {
         const isActive = category.is_active;
+        const productCount = category.product_count || 0;
         
         return `
             <tr class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">${category.icon || '📁'}</span>
-                        <span class="font-medium text-gray-900">${category.name}</span>
-                    </div>
+                    <span class="font-medium text-gray-900">${category.name}</span>
                 </td>
                 <td class="px-6 py-4">
                     <span class="text-sm text-gray-600">${category.description || '-'}</span>
                 </td>
-                <td class="px-6 py-4">
-                    <span class="text-2xl">${category.icon || '-'}</span>
+                <td class="px-6 py-4 text-center">
+                    ${productCount > 0 ? `
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            ${productCount}
+                        </span>
+                    ` : `
+                        <span class="text-sm text-gray-400">0</span>
+                    `}
                 </td>
-                <td class="px-6 py-4">
-                    <div class="flex items-center gap-2">
-                        <div class="w-6 h-6 rounded border border-gray-300" style="background-color: ${category.color || '#ccc'}"></div>
-                        <span class="text-sm text-gray-600">${category.color || '-'}</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4 text-center">
                     <span class="text-sm text-gray-600">${category.display_order || 0}</span>
                 </td>
                 <td class="px-6 py-4">
@@ -161,7 +159,7 @@ function renderCategories() {
                         <div class="text-xs text-gray-500">${formatTimeAgo(category.created_at_unix)}</div>
                     </div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4 text-center">
                     ${getStatusBadge(isActive)}
                 </td>
                 <td class="px-6 py-4 text-right">
@@ -239,8 +237,6 @@ function showAddCategoryModal() {
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryActive').checked = true;
     document.getElementById('categoryOrder').value = 0;
-    document.getElementById('categoryColor').value = '#3b82f6';
-    document.getElementById('categoryIcon').value = '📁';
     document.getElementById('categoryModal').classList.remove('hidden');
 }
 
@@ -254,8 +250,6 @@ function editCategory(id) {
     document.getElementById('categoryId').value = category.id;
     document.getElementById('categoryName').value = category.name;
     document.getElementById('categoryDescription').value = category.description || '';
-    document.getElementById('categoryIcon').value = category.icon || '📁';
-    document.getElementById('categoryColor').value = category.color || '#3b82f6';
     document.getElementById('categoryOrder').value = category.display_order || 0;
     document.getElementById('categoryActive').checked = category.is_active;
     
@@ -274,8 +268,6 @@ function handleFormSubmit(event) {
         id: document.getElementById('categoryId').value || undefined,
         name: document.getElementById('categoryName').value,
         description: document.getElementById('categoryDescription').value || null,
-        icon: document.getElementById('categoryIcon').value || null,
-        color: document.getElementById('categoryColor').value || null,
         display_order: parseInt(document.getElementById('categoryOrder').value) || 0,
         is_active: document.getElementById('categoryActive').checked ? 1 : 0
     };

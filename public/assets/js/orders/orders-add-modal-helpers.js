@@ -49,18 +49,17 @@ function updateOrderSummary() {
     let packagingPerProductCost = 0;
     let packagingPerOrderCost = 0;
     
-    // Per-product items
-    const redString = packagingConfig.find(item => item.item_name === 'red_string')?.item_cost || 0;
-    const laborCost = packagingConfig.find(item => item.item_name === 'labor_cost')?.item_cost || 0;
-    packagingPerProductCost = (redString + laborCost) * productCount;
+    // Per-product items removed (already in product cost)
+    packagingPerProductCost = 0;
     
     // Per-order items
     const bagZip = packagingConfig.find(item => item.item_name === 'bag_zip')?.item_cost || 0;
     const bagRed = packagingConfig.find(item => item.item_name === 'bag_red')?.item_cost || 0;
-    const boxShipping = packagingConfig.find(item => item.item_name === 'box_shipping')?.item_cost || 0;
+    const hopCarton = packagingConfig.find(item => item.item_name === 'hop_carton')?.item_cost || 0;
     const thankCard = packagingConfig.find(item => item.item_name === 'thank_card')?.item_cost || 0;
     const paperPrint = packagingConfig.find(item => item.item_name === 'paper_print')?.item_cost || 0;
-    packagingPerOrderCost = bagZip + bagRed + boxShipping + thankCard + paperPrint;
+    const bangDinh = packagingConfig.find(item => item.item_name === 'bang_dinh')?.item_cost || 0;
+    packagingPerOrderCost = bagZip + bagRed + hopCarton + thankCard + paperPrint + bangDinh;
     
     const totalPackaging = packagingPerProductCost + packagingPerOrderCost;
 
@@ -144,9 +143,43 @@ function updateOrderSummary() {
     
     // Update individual cost items (shown when expanded)
     document.getElementById('profitPackaging').textContent = formatCurrency(totalPackaging);
-    document.getElementById('profitPackagingPerProduct').textContent = formatCurrency(packagingPerProductCost);
-    document.getElementById('profitPackagingPerOrder').textContent = formatCurrency(packagingPerOrderCost);
+    // Update individual packaging items
+    document.getElementById('profitBagZip').textContent = formatCurrency(bagZip);
+    document.getElementById('profitBagRed').textContent = formatCurrency(bagRed);
+    document.getElementById('profitBoxShipping').textContent = formatCurrency(hopCarton);
+    document.getElementById('profitThankCard').textContent = formatCurrency(thankCard);
+    document.getElementById('profitPaperPrint').textContent = formatCurrency(paperPrint);
+    document.getElementById('profitBangDinh').textContent = formatCurrency(bangDinh);
+    
+    // Update labels with display names from database
+    if (window.packagingDisplayNames) {
+        document.getElementById('profitBagZipLabel').textContent = `- ${window.packagingDisplayNames.bag_zip}`;
+        document.getElementById('profitBagRedLabel').textContent = `- ${window.packagingDisplayNames.bag_red}`;
+        document.getElementById('profitBoxShippingLabel').textContent = `- ${window.packagingDisplayNames.hop_carton}`;
+        document.getElementById('profitThankCardLabel').textContent = `- ${window.packagingDisplayNames.thank_card}`;
+        document.getElementById('profitPaperPrintLabel').textContent = `- ${window.packagingDisplayNames.paper_print}`;
+        document.getElementById('profitBangDinhLabel').textContent = `- ${window.packagingDisplayNames.bang_dinh}`;
+    }
+    
     document.getElementById('profitShipping').textContent = formatCurrency(shippingCost);
+    
+    // Get display names from packagingConfig for labels
+    const bagZipName = packagingConfig.find(item => item.item_name === 'bag_zip')?.display_name || 'Túi zip';
+    const bagRedName = packagingConfig.find(item => item.item_name === 'bag_red')?.display_name || 'Túi đỏ';
+    const hopCartonName = packagingConfig.find(item => item.item_name === 'hop_carton')?.display_name || 'Hộp carton';
+    const thankCardName = packagingConfig.find(item => item.item_name === 'thank_card')?.display_name || 'Thiệp cảm ơn';
+    const paperPrintName = packagingConfig.find(item => item.item_name === 'paper_print')?.display_name || 'Giấy in';
+    const bangDinhName = packagingConfig.find(item => item.item_name === 'bang_dinh')?.display_name || 'Băng dính';
+    
+    // Store display names globally for use in modal rendering
+    window.packagingDisplayNames = {
+        bag_zip: bagZipName,
+        bag_red: bagRedName,
+        hop_carton: hopCartonName,
+        thank_card: thankCardName,
+        paper_print: paperPrintName,
+        bang_dinh: bangDinhName
+    };
     
     // Update commission display
     const commissionRow = document.getElementById('profitCommissionRow');

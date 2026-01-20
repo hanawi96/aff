@@ -12,8 +12,40 @@ function showProfitBreakdown(orderId) {
     // Get actual costs from order
     const shippingFee = order.shipping_fee || 0;
     const shippingCost = order.shipping_cost || 0;
-    const packagingCost = order.packaging_cost || 0;
     const commission = order.commission || 0;
+    
+    // Parse packaging details first to recalculate packaging cost
+    let packagingDetails = null;
+    let packagingCost = 0;
+    try {
+        packagingDetails = order.packaging_details ? JSON.parse(order.packaging_details) : null;
+        
+        // Recalculate packaging cost from details (only per_order items)
+        if (packagingDetails && packagingDetails.per_order) {
+            // Handle both old format (direct numbers) and new format (objects with cost/name)
+            const perOrder = packagingDetails.per_order;
+            
+            // Support both old field names (box_shipping) and new field names (hop_carton)
+            const hopCartonCost = perOrder.hop_carton 
+                ? (typeof perOrder.hop_carton === 'object' ? perOrder.hop_carton.cost : perOrder.hop_carton)
+                : (typeof perOrder.box_shipping === 'object' ? perOrder.box_shipping.cost : perOrder.box_shipping || 0);
+            
+            packagingCost = 
+                (typeof perOrder.bag_zip === 'object' ? perOrder.bag_zip.cost : perOrder.bag_zip || 0) +
+                (typeof perOrder.bag_red === 'object' ? perOrder.bag_red.cost : perOrder.bag_red || 0) +
+                hopCartonCost +
+                (typeof perOrder.thank_card === 'object' ? perOrder.thank_card.cost : perOrder.thank_card || 0) +
+                (typeof perOrder.paper_print === 'object' ? perOrder.paper_print.cost : perOrder.paper_print || 0) +
+                (typeof perOrder.bang_dinh === 'object' ? perOrder.bang_dinh.cost : perOrder.bang_dinh || 0);
+        } else {
+            // Fallback to saved value for old orders without details
+            packagingCost = order.packaging_cost || 0;
+        }
+    } catch (e) {
+        console.error('Error parsing packaging_details:', e);
+        // Fallback to saved value
+        packagingCost = order.packaging_cost || 0;
+    }
 
     // Debug log
     console.log('🔍 Profit Analysis Debug:', {
@@ -60,14 +92,8 @@ function showProfitBreakdown(orderId) {
     const profit = revenue - totalCost;
     const profitMargin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : 0;
 
-    // Parse packaging details
-    let packagingDetails = null;
-    try {
-        packagingDetails = order.packaging_details ? JSON.parse(order.packaging_details) : null;
-    } catch (e) {
-        console.error('Error parsing packaging_details:', e);
-    }
-
+    // packagingDetails already parsed above
+    
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
@@ -177,38 +203,39 @@ function showProfitBreakdown(orderId) {
                             <!-- Packaging Details (Hidden by default) -->
                             ${packagingDetails ? `
                             <div class="packaging-details-toggle hidden ml-6 pl-3 border-l-2 border-purple-300 space-y-1.5">
-                                ${packagingDetails.per_product ? `
-                                <div class="text-xs font-semibold text-purple-700 mb-1.5">Chi phí theo sản phẩm (×${packagingDetails.total_products || 0}):</div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Dây đỏ</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency((packagingDetails.per_product.red_string || 0) * (packagingDetails.total_products || 0))}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Tiền công</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency((packagingDetails.per_product.labor_cost || 0) * (packagingDetails.total_products || 0))}</span>
-                                </div>
-                                ` : ''}
                                 ${packagingDetails.per_order ? `
-                                <div class="text-xs font-semibold text-purple-700 mb-1.5 ${packagingDetails.per_product ? 'mt-2' : ''}">Chi phí theo đơn hàng (1 lần):</div>
+                                <div class="text-xs font-semibold text-purple-700 mb-1.5">Chi phí theo đơn hàng (1 lần):</div>
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Túi zip</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(packagingDetails.per_order.bag_zip || 0)}</span>
+                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bag_zip === 'object' ? packagingDetails.per_order.bag_zip.name : 'Túi zip'}</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bag_zip === 'object' ? packagingDetails.per_order.bag_zip.cost : packagingDetails.per_order.bag_zip || 0)}</span>
                                 </div>
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Túi đỏ</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(packagingDetails.per_order.bag_red || 0)}</span>
+                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bag_red === 'object' ? packagingDetails.per_order.bag_red.name : 'Túi đỏ'}</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bag_red === 'object' ? packagingDetails.per_order.bag_red.cost : packagingDetails.per_order.bag_red || 0)}</span>
                                 </div>
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Hộp đựng</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(packagingDetails.per_order.box_shipping || 0)}</span>
+                                    <span class="text-gray-600">• ${
+                                        packagingDetails.per_order.hop_carton 
+                                            ? (typeof packagingDetails.per_order.hop_carton === 'object' ? packagingDetails.per_order.hop_carton.name : 'Hộp carton')
+                                            : (typeof packagingDetails.per_order.box_shipping === 'object' ? packagingDetails.per_order.box_shipping.name : 'Hộp carton')
+                                    }</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(
+                                        packagingDetails.per_order.hop_carton 
+                                            ? (typeof packagingDetails.per_order.hop_carton === 'object' ? packagingDetails.per_order.hop_carton.cost : packagingDetails.per_order.hop_carton)
+                                            : (typeof packagingDetails.per_order.box_shipping === 'object' ? packagingDetails.per_order.box_shipping.cost : packagingDetails.per_order.box_shipping || 0)
+                                    )}</span>
                                 </div>
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Thiệp cảm ơn</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(packagingDetails.per_order.thank_card || 0)}</span>
+                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.thank_card === 'object' ? packagingDetails.per_order.thank_card.name : 'Thiệp cảm ơn'}</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.thank_card === 'object' ? packagingDetails.per_order.thank_card.cost : packagingDetails.per_order.thank_card || 0)}</span>
                                 </div>
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• Giấy in</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(packagingDetails.per_order.paper_print || 0)}</span>
+                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.paper_print === 'object' ? packagingDetails.per_order.paper_print.name : 'Giấy in'}</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.paper_print === 'object' ? packagingDetails.per_order.paper_print.cost : packagingDetails.per_order.paper_print || 0)}</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bang_dinh === 'object' ? packagingDetails.per_order.bang_dinh.name : 'Băng dính'}</span>
+                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bang_dinh === 'object' ? packagingDetails.per_order.bang_dinh.cost : packagingDetails.per_order.bang_dinh || 0)}</span>
                                 </div>
                                 ` : ''}
                             </div>

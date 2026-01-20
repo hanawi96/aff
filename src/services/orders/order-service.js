@@ -108,48 +108,63 @@ export async function createOrder(data, env, corsHeaders) {
         const shippingFee = data.shippingFee || 0;
         const shippingCost = data.shippingCost || 0;
 
-        // Calculate packaging cost (snapshot current prices)
+        // Calculate packaging cost (snapshot current prices with display names)
         const { results: packagingConfig } = await env.DB.prepare(`
-            SELECT item_name, item_cost FROM cost_config WHERE is_default = 1
+            SELECT item_name, item_cost, display_name FROM cost_config WHERE is_default = 1
         `).all();
         
         const packagingPrices = {};
+        const packagingDisplayNames = {};
         packagingConfig.forEach(item => {
             packagingPrices[item.item_name] = item.item_cost;
+            packagingDisplayNames[item.item_name] = item.display_name || item.item_name;
         });
         
         const totalProducts = data.cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
         
         // Calculate packaging cost
-        // Per-product items (multiply by total products): red_string, labor_cost
-        // Per-order items (fixed per order): bag_zip, bag_red, box_shipping, thank_card, paper_print
-        const perProductCost = 
-            ((packagingPrices.red_string || 0) * totalProducts) +
-            ((packagingPrices.labor_cost || 0) * totalProducts);
+        // Per-product items removed: red_string, labor_cost (already in product cost_price)
+        // Per-order items (fixed per order): bag_zip, bag_red, hop_carton, thank_card, paper_print, bang_dinh
+        const perProductCost = 0; // No longer calculated here
         
         const perOrderCost = 
             (packagingPrices.bag_zip || 0) + 
             (packagingPrices.bag_red || 0) +
-            (packagingPrices.box_shipping || 0) + 
+            (packagingPrices.hop_carton || 0) + 
             (packagingPrices.thank_card || 0) + 
-            (packagingPrices.paper_print || 0);
+            (packagingPrices.paper_print || 0) +
+            (packagingPrices.bang_dinh || 0);
         
-        const totalPackagingCost = perProductCost + perOrderCost;
+        const totalPackagingCost = perOrderCost; // Only per-order cost
         
         const packagingDetails = {
-            per_product: {
-                red_string: packagingPrices.red_string || 0,
-                labor_cost: packagingPrices.labor_cost || 0
-            },
             per_order: {
-                bag_zip: packagingPrices.bag_zip || 0,
-                bag_red: packagingPrices.bag_red || 0,
-                box_shipping: packagingPrices.box_shipping || 0,
-                thank_card: packagingPrices.thank_card || 0,
-                paper_print: packagingPrices.paper_print || 0
+                bag_zip: {
+                    cost: packagingPrices.bag_zip || 0,
+                    name: packagingDisplayNames.bag_zip || 'Túi zip'
+                },
+                bag_red: {
+                    cost: packagingPrices.bag_red || 0,
+                    name: packagingDisplayNames.bag_red || 'Túi đỏ'
+                },
+                hop_carton: {
+                    cost: packagingPrices.hop_carton || 0,
+                    name: packagingDisplayNames.hop_carton || 'Hộp carton'
+                },
+                thank_card: {
+                    cost: packagingPrices.thank_card || 0,
+                    name: packagingDisplayNames.thank_card || 'Thiệp cảm ơn'
+                },
+                paper_print: {
+                    cost: packagingPrices.paper_print || 0,
+                    name: packagingDisplayNames.paper_print || 'Giấy in'
+                },
+                bang_dinh: {
+                    cost: packagingPrices.bang_dinh || 0,
+                    name: packagingDisplayNames.bang_dinh || 'Băng dính'
+                }
             },
             total_products: totalProducts,
-            per_product_cost: perProductCost,
             per_order_cost: perOrderCost,
             total_cost: totalPackagingCost
         };

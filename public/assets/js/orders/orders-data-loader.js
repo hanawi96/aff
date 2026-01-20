@@ -52,20 +52,19 @@ function calculatePackagingCost() {
     // Calculate total products in cart (use currentOrderProducts, not window.cart)
     const totalProducts = currentOrderProducts.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-    // Per-product items (multiply by total products): red_string, labor_cost
-    const perProductCost =
-        ((packagingPrices.red_string || 0) * totalProducts) +
-        ((packagingPrices.labor_cost || 0) * totalProducts);
+    // Per-product items removed: red_string, labor_cost (already in product cost_price)
+    // No per-product packaging cost anymore
 
-    // Per-order items (fixed per order): bag_zip, bag_red, box_shipping, thank_card, paper_print
+    // Per-order items (fixed per order): bag_zip, bag_red, box_shipping, thank_card, paper_print, bang_dinh
     const perOrderCost =
         (packagingPrices.bag_zip || 0) +
         (packagingPrices.bag_red || 0) +
         (packagingPrices.box_shipping || 0) +
         (packagingPrices.thank_card || 0) +
-        (packagingPrices.paper_print || 0);
+        (packagingPrices.paper_print || 0) +
+        (packagingPrices.bang_dinh || 0);
 
-    const total = perProductCost + perOrderCost;
+    const total = perOrderCost;
 
     return total;
 }

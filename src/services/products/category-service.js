@@ -4,9 +4,14 @@ import { jsonResponse } from '../../utils/response.js';
 export async function getAllCategories(env, corsHeaders) {
     try {
         const { results: categories } = await env.DB.prepare(`
-            SELECT * FROM categories
-            WHERE is_active = 1
-            ORDER BY display_order ASC, name ASC
+            SELECT 
+                c.*,
+                COUNT(DISTINCT p.id) as product_count
+            FROM categories c
+            LEFT JOIN products p ON c.id = p.category_id AND p.is_active = 1
+            WHERE c.is_active = 1
+            GROUP BY c.id
+            ORDER BY c.display_order ASC, c.name ASC
         `).all();
 
         return jsonResponse({

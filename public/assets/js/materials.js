@@ -154,7 +154,7 @@ function createMaterialRow(material) {
     const displayName = material.display_name || formatMaterialName(material.item_name);
 
     return `
-        <tr class="hover:bg-gray-50 transition-colors">
+        <tr class="hover:bg-gray-50 transition-colors group">
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                     <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center mr-3">
@@ -172,7 +172,16 @@ function createMaterialRow(material) {
                 <code class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">${escapeHtml(material.item_name)}</code>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right">
-                <span class="text-lg font-bold text-green-600">${price}</span>
+                <div class="flex items-center justify-end gap-2">
+                    <span id="price-${escapeHtml(material.item_name)}" class="text-lg font-bold text-green-600">${price}</span>
+                    <button onclick="quickEditPrice('${escapeHtml(material.item_name)}')" 
+                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
+                        title="Sửa giá nhanh">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
+                </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
                 ${productCount > 0 ? `
@@ -608,6 +617,211 @@ function vietnameseToSlug(str) {
     str = str.replace(/\s/g, '_');
     
     return str;
+}
+
+// Quick edit price with optimistic UI
+async function quickEditPrice(itemName) {
+    // Get current price from allMaterials (always up-to-date)
+    const material = allMaterials.find(m => m.item_name === itemName);
+    if (!material) return;
+    
+    const currentPrice = material.item_cost;
+    const priceElement = document.getElementById(`price-${itemName}`);
+    if (!priceElement) return;
+    
+    // Create inline input with action buttons
+    const inputValue = formatNumber(currentPrice);
+    
+    const escapedItemName = escapeHtml(itemName);
+    
+    priceElement.parentElement.innerHTML = `
+        <div class="flex items-center justify-end gap-2">
+            <input type="text" 
+                id="quick-edit-${itemName}" 
+                value="${inputValue}"
+                class="w-32 px-2 py-1 text-right border-2 border-blue-500 rounded text-lg font-bold text-green-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onkeydown="handleQuickEditKeydown(event, '${escapedItemName}')"
+                oninput="autoFormatNumberInput(this)"
+                onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
+            <button onclick="saveQuickEdit('${escapedItemName}')" 
+                class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" 
+                title="Lưu (Enter)">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </button>
+            <button onclick="cancelQuickEdit('${escapedItemName}')" 
+                class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                title="Hủy (Esc)">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    // Focus and select
+    const input = document.getElementById(`quick-edit-${itemName}`);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
+// Handle keyboard events for quick edit
+function handleQuickEditKeydown(event, itemName) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        saveQuickEdit(itemName);
+    } else if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelQuickEdit(itemName);
+    }
+}
+
+// Save quick edit with optimistic UI
+async function saveQuickEdit(itemName) {
+    const input = document.getElementById(`quick-edit-${itemName}`);
+    if (!input) return;
+    
+    const material = allMaterials.find(m => m.item_name === itemName);
+    if (!material) return;
+    
+    const oldPrice = material.item_cost;
+    const newPrice = parseFormattedNumber(input.value);
+    
+    if (!newPrice || newPrice <= 0) {
+        showToast('Giá phải lớn hơn 0', 'warning');
+        input.focus();
+        return;
+    }
+    
+    if (newPrice === oldPrice) {
+        cancelQuickEdit(itemName);
+        return;
+    }
+    
+    // Optimistic UI: Update immediately with spinner
+    const cell = input.closest('td');
+    if (cell) {
+        cell.innerHTML = `
+            <div class="flex items-center justify-end gap-2">
+                <span class="text-lg font-bold text-green-600">${formatCurrency(newPrice)}</span>
+                <svg class="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        `;
+    }
+    
+    // Update local data immediately (optimistic)
+    material.item_cost = newPrice;
+    
+    try {
+        // Send to server
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateMaterial',
+                old_item_name: itemName,
+                item_name: itemName,
+                display_name: material.display_name || formatMaterialName(itemName),
+                item_cost: newPrice,
+                category_id: material.category_id || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Success: Restore normal view
+            if (cell) {
+                cell.innerHTML = `
+                    <div class="flex items-center justify-end gap-2">
+                        <span id="price-${itemName}" class="text-lg font-bold text-green-600">${formatCurrency(newPrice)}</span>
+                        <button onclick="quickEditPrice('${escapeHtml(itemName)}')" 
+                            class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
+                            title="Sửa giá nhanh">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Show success with affected products count
+            if (data.affected_products > 0) {
+                showToast(`✅ Đã cập nhật giá. ${data.affected_products} sản phẩm bị ảnh hưởng`, 'success');
+            } else {
+                showToast('✅ Đã cập nhật giá', 'success');
+            }
+            
+            // Update stats
+            updateStats();
+        } else {
+            throw new Error(data.error || 'Không thể cập nhật giá');
+        }
+    } catch (error) {
+        console.error('Error updating price:', error);
+        
+        // Rollback on error
+        material.item_cost = oldPrice;
+        if (cell) {
+            cell.innerHTML = `
+                <div class="flex items-center justify-end gap-2">
+                    <span id="price-${itemName}" class="text-lg font-bold text-green-600">${formatCurrency(oldPrice)}</span>
+                    <button onclick="quickEditPrice('${escapeHtml(itemName)}')" 
+                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
+                        title="Sửa giá nhanh">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+        }
+        
+        showToast('❌ Lỗi: ' + error.message, 'error');
+    }
+}
+
+// Cancel quick edit
+function cancelQuickEdit(itemName) {
+    const material = allMaterials.find(m => m.item_name === itemName);
+    if (!material) {
+        console.error('Material not found:', itemName);
+        return;
+    }
+    
+    // Find the input element and get its parent cell
+    const input = document.getElementById(`quick-edit-${itemName}`);
+    if (!input) {
+        console.error('Input not found:', itemName);
+        return;
+    }
+    
+    const cell = input.closest('td');
+    if (!cell) {
+        console.error('Cell not found for input:', itemName);
+        return;
+    }
+    
+    // Restore original content
+    cell.innerHTML = `
+        <div class="flex items-center justify-end gap-2">
+            <span id="price-${itemName}" class="text-lg font-bold text-green-600">${formatCurrency(material.item_cost)}</span>
+            <button onclick="quickEditPrice('${escapeHtml(itemName)}')" 
+                class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
+                title="Sửa giá nhanh">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            </button>
+        </div>
+    `;
 }
 
 function logout() {
