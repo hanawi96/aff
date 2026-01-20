@@ -34,7 +34,8 @@ import { updateOrderProducts } from '../services/orders/order-items.js';
 import { 
     createProduct, 
     updateProduct, 
-    deleteProduct 
+    deleteProduct,
+    recalculateAllProductPrices
 } from '../services/products/product-service.js';
 
 // Product Categories
@@ -274,6 +275,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateProduct(data, env, corsHeaders);
             case 'deleteProduct':
                 return await deleteProduct(data, env, corsHeaders);
+            case 'recalculateAllPrices':
+                return await recalculateAllProductPrices(env, corsHeaders);
             case 'addProductCategory':
                 return await addProductCategory(data, env, corsHeaders);
             case 'removeProductCategory':

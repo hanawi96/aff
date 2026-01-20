@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         loadMaterials()
     ]);
     
+    // Check for outdated products
+    await checkOutdatedProducts();
+    
     // Then initialize tab from URL
     initializeTabFromURL();
     
@@ -606,6 +609,164 @@ function logout() {
     window.location.href = '../login.html';
 }
 
+// ============================================
+// PRICE RECALCULATION
+// ============================================
+
+async function recalculateAllPrices() {
+    // Show confirmation dialog
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="p-6">
+                <div class="w-12 h-12 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật giá sản phẩm?</h3>
+                <p class="text-sm text-gray-600 text-center mb-4">
+                    Hệ thống sẽ tính lại giá bán cho tất cả sản phẩm dựa trên:
+                </p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+                    <ul class="text-sm text-blue-800 space-y-2">
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Giá nguyên liệu hiện tại</strong> (đã cập nhật)</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Hệ số markup</strong> đã lưu của từng sản phẩm</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Công thức nguyên liệu</strong> của từng sản phẩm</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-yellow-800">Lưu ý</p>
+                            <p class="text-xs text-yellow-700 mt-1">
+                                • Chỉ cập nhật sản phẩm có <strong>hệ số markup</strong> đã lưu<br>
+                                • Sản phẩm không có công thức nguyên liệu sẽ bị bỏ qua<br>
+                                • Giá bán sẽ được làm tròn thông minh
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Hủy</button>
+                    <button onclick="executeRecalculateAllPrices()" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">Cập nhật ngay</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+async function executeRecalculateAllPrices() {
+    closeConfirmModal();
+    
+    // Show loading toast with unique ID
+    const loadingId = 'recalculate-loading-' + Date.now();
+    showToast('Đang tính toán và cập nhật giá...', 'info', 0, loadingId); // 0 = no auto-hide
+    
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'recalculateAllPrices' })
+        });
+
+        const data = await response.json();
+
+        // Hide loading toast using toastManager
+        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
+        if (loadingToast) {
+            toastManager.remove(loadingToast);
+        }
+
+        if (data.success) {
+            const { updated, skipped, total } = data;
+            
+            // Hide badge after successful update
+            const badge = document.getElementById('outdatedProductsBadge');
+            if (badge) {
+                badge.classList.add('hidden');
+            }
+            
+            // Show detailed success message
+            const successModal = document.createElement('div');
+            successModal.id = 'resultModal';
+            successModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+            successModal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                    <div class="p-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật thành công!</h3>
+                        <div class="space-y-3 mb-6">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-green-800">Đã cập nhật</span>
+                                    <span class="text-2xl font-bold text-green-600">${updated}</span>
+                                </div>
+                                <p class="text-xs text-green-700 mt-1">sản phẩm có giá bán mới</p>
+                            </div>
+                            ${skipped > 0 ? `
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-gray-800">Bỏ qua</span>
+                                        <span class="text-2xl font-bold text-gray-600">${skipped}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-700 mt-1">sản phẩm không có markup hoặc công thức</p>
+                                </div>
+                            ` : ''}
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-blue-800">Tổng số</span>
+                                    <span class="text-2xl font-bold text-blue-600">${total}</span>
+                                </div>
+                                <p class="text-xs text-blue-700 mt-1">sản phẩm trong hệ thống</p>
+                            </div>
+                        </div>
+                        <button onclick="closeResultModal()" class="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Đóng</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(successModal);
+            
+            // Also show a toast
+            showToast(`✅ Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
+            
+        } else {
+            throw new Error(data.error || 'Không thể cập nhật giá');
+        }
+    } catch (error) {
+        // Hide loading toast using toastManager
+        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
+        if (loadingToast) {
+            toastManager.remove(loadingToast);
+        }
+        
+        console.error('❌ Error recalculating prices:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+function closeResultModal() {
+    const modal = document.getElementById('resultModal');
+    if (modal) modal.remove();
+}
+
 
 // ============================================
 // TAB MANAGEMENT
@@ -1100,5 +1261,27 @@ async function reorderCategory(categoryId, direction) {
         renderCategoriesTab();
         
         showToast('Không thể thay đổi vị trí. Đã hoàn tác.', 'error');
+    }
+}
+
+
+// ============================================
+// CHECK OUTDATED PRODUCTS
+// ============================================
+
+async function checkOutdatedProducts() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=checkOutdatedProducts&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success && data.outdated_count > 0) {
+            const badge = document.getElementById('outdatedProductsBadge');
+            if (badge) {
+                badge.textContent = data.outdated_count;
+                badge.classList.remove('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking outdated products:', error);
     }
 }

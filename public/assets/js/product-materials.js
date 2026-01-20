@@ -654,6 +654,11 @@ function calculateTotalCost() {
         costPriceInput.readOnly = true;
         costPriceInput.classList.add('bg-purple-50', 'border-purple-300');
         
+        // NOTE: Do NOT auto-calculate selling price here!
+        // This function is called when loading existing product data.
+        // Auto-pricing should only happen when user manually changes materials.
+        // The checkbox is just for enabling/disabling the feature, not for auto-triggering.
+        
         // Trigger profit calculation
         if (typeof calculateExpectedProfit === 'function') {
             calculateExpectedProfit();

@@ -180,13 +180,14 @@ export async function createProduct(data, env, corsHeaders) {
 
         // Insert product
         const result = await env.DB.prepare(`
-            INSERT INTO products (name, price, original_price, cost_price, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO products (name, price, original_price, cost_price, markup_multiplier, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             price,
             data.original_price ? parseFloat(data.original_price) : null,
             data.cost_price !== undefined ? parseFloat(data.cost_price) : 0,
+            data.markup_multiplier !== undefined ? (data.markup_multiplier !== null ? parseFloat(data.markup_multiplier) : null) : null,
             data.category_id ? parseInt(data.category_id) : null,
             data.stock_quantity !== undefined ? parseInt(data.stock_quantity) : 0,
             data.rating !== undefined ? parseFloat(data.rating) : 0,
@@ -306,6 +307,10 @@ export async function updateProduct(data, env, corsHeaders) {
             updates.push('cost_price = ?');
             values.push(data.cost_price !== null ? parseFloat(data.cost_price) : 0);
         }
+        if (data.markup_multiplier !== undefined) {
+            updates.push('markup_multiplier = ?');
+            values.push(data.markup_multiplier !== null ? parseFloat(data.markup_multiplier) : null);
+        }
         if (data.category_id !== undefined) {
             updates.push('category_id = ?');
             values.push(data.category_id ? parseInt(data.category_id) : null);
@@ -339,10 +344,7 @@ export async function updateProduct(data, env, corsHeaders) {
             values.push(data.is_active ? 1 : 0);
         }
 
-        // Always update updated_at
-        updates.push('updated_at = CURRENT_TIMESTAMP');
-
-        if (updates.length === 1) { // Only updated_at
+        if (updates.length === 0) {
             return jsonResponse({
                 success: false,
                 error: 'No fields to update'
@@ -437,6 +439,212 @@ export async function deleteProduct(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error deleting product:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Recalculate all product prices based on current material costs
+export async function recalculateAllProductPrices(env, corsHeaders) {
+    try {
+        // Get all products that have materials
+        const { results: productsWithMaterials } = await env.DB.prepare(`
+            SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price
+            FROM products p
+            INNER JOIN product_materials pm ON p.id = pm.product_id
+            WHERE p.is_active = 1
+        `).all();
+
+        if (productsWithMaterials.length === 0) {
+            return jsonResponse({
+                success: true,
+                message: 'No products with materials found',
+                updated: 0
+            }, 200, corsHeaders);
+        }
+
+        let updatedCount = 0;
+        let skippedCount = 0;
+        const updates = [];
+
+        // Process each product
+        for (const product of productsWithMaterials) {
+            try {
+                // Get materials for this product
+                const { results: materials } = await env.DB.prepare(`
+                    SELECT pm.material_name, pm.quantity, m.item_cost
+                    FROM product_materials pm
+                    JOIN cost_config m ON pm.material_name = m.item_name
+                    WHERE pm.product_id = ?
+                `).bind(product.id).all();
+
+                // Calculate new cost price
+                let newCostPrice = 0;
+                for (const material of materials) {
+                    newCostPrice += (material.quantity || 0) * (material.item_cost || 0);
+                }
+
+                // Round to 2 decimal places
+                newCostPrice = Math.round(newCostPrice * 100) / 100;
+
+                // Calculate new selling price based on markup
+                let newPrice;
+                const materialCount = materials.length;
+
+                if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
+                    // Use saved markup multiplier
+                    newPrice = newCostPrice * product.markup_multiplier;
+                } else {
+                    // Use auto markup based on material count
+                    let autoMarkup;
+                    if (materialCount <= 3) {
+                        autoMarkup = 2.5;
+                    } else if (materialCount <= 6) {
+                        autoMarkup = 3.0;
+                    } else {
+                        autoMarkup = 3.5;
+                    }
+                    newPrice = newCostPrice * autoMarkup;
+                }
+
+                // Smart rounding
+                if (newPrice < 10000) {
+                    newPrice = Math.round(newPrice / 1000) * 1000;
+                } else if (newPrice < 100000) {
+                    newPrice = Math.round(newPrice / 1000) * 1000;
+                } else if (newPrice < 500000) {
+                    newPrice = Math.round(newPrice / 5000) * 5000;
+                } else {
+                    newPrice = Math.round(newPrice / 10000) * 10000;
+                }
+
+                // Only update if prices changed
+                if (newCostPrice !== product.old_cost_price || newPrice !== product.old_price) {
+                    await env.DB.prepare(`
+                        UPDATE products
+                        SET cost_price = ?, price = ?
+                        WHERE id = ?
+                    `).bind(newCostPrice, newPrice, product.id).run();
+
+                    updatedCount++;
+                    updates.push({
+                        id: product.id,
+                        name: product.name,
+                        old_cost_price: product.old_cost_price,
+                        new_cost_price: newCostPrice,
+                        old_price: product.old_price,
+                        new_price: newPrice,
+                        markup: product.markup_multiplier || 'auto'
+                    });
+                } else {
+                    skippedCount++;
+                }
+
+            } catch (error) {
+                console.error(`Error processing product ${product.id}:`, error);
+                // Continue with next product
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Successfully recalculated prices for ${updatedCount} products`,
+            updated: updatedCount,
+            skipped: skippedCount,
+            total: productsWithMaterials.length,
+            updates: updates
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('❌ Error recalculating prices:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+
+// Check how many products have outdated prices (need recalculation)
+export async function checkOutdatedProducts(env, corsHeaders) {
+    try {
+        // Get all products that have materials
+        const { results: productsWithMaterials } = await env.DB.prepare(`
+            SELECT DISTINCT p.id, p.markup_multiplier, p.price as current_price, p.cost_price as current_cost_price
+            FROM products p
+            INNER JOIN product_materials pm ON p.id = pm.product_id
+            WHERE p.is_active = 1
+        `).all();
+
+        let outdatedCount = 0;
+
+        // Check each product
+        for (const product of productsWithMaterials) {
+            try {
+                // Get materials for this product
+                const { results: materials } = await env.DB.prepare(`
+                    SELECT pm.material_name, pm.quantity, m.item_cost
+                    FROM product_materials pm
+                    JOIN cost_config m ON pm.material_name = m.item_name
+                    WHERE pm.product_id = ?
+                `).bind(product.id).all();
+
+                // Calculate expected cost price
+                let expectedCostPrice = 0;
+                for (const material of materials) {
+                    expectedCostPrice += (material.quantity || 0) * (material.item_cost || 0);
+                }
+                expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
+
+                // Calculate expected selling price
+                let expectedPrice;
+                const materialCount = materials.length;
+
+                if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
+                    expectedPrice = expectedCostPrice * product.markup_multiplier;
+                } else {
+                    let autoMarkup;
+                    if (materialCount <= 3) {
+                        autoMarkup = 2.5;
+                    } else if (materialCount <= 6) {
+                        autoMarkup = 3.0;
+                    } else {
+                        autoMarkup = 3.5;
+                    }
+                    expectedPrice = expectedCostPrice * autoMarkup;
+                }
+
+                // Smart rounding
+                if (expectedPrice < 10000) {
+                    expectedPrice = Math.round(expectedPrice / 1000) * 1000;
+                } else if (expectedPrice < 100000) {
+                    expectedPrice = Math.round(expectedPrice / 1000) * 1000;
+                } else if (expectedPrice < 500000) {
+                    expectedPrice = Math.round(expectedPrice / 5000) * 5000;
+                } else {
+                    expectedPrice = Math.round(expectedPrice / 10000) * 10000;
+                }
+
+                // Check if prices are different
+                if (expectedCostPrice !== product.current_cost_price || expectedPrice !== product.current_price) {
+                    outdatedCount++;
+                }
+
+            } catch (error) {
+                console.error(`Error checking product ${product.id}:`, error);
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            outdated_count: outdatedCount,
+            total_products: productsWithMaterials.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error checking outdated products:', error);
         return jsonResponse({
             success: false,
             error: error.message

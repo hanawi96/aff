@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadProducts();
     setupEventListeners();
     setupKeyboardShortcuts();
+    checkOutdatedProducts();
 });
 
 // Setup event listeners
@@ -76,16 +77,6 @@ async function loadProducts() {
             filteredProducts = [...allProducts];
 
             console.log('📦 Loaded products:', allProducts.length);
-            console.log('📝 Sample product:', allProducts[0]);
-            console.log('🔍 Products with "trơn":', allProducts.filter(p => p.name && p.name.toLowerCase().includes('trơn')).length);
-
-            // Debug image_url structure
-            console.log('🖼️ Image URL Debug:');
-            allProducts.slice(0, 5).forEach((p, i) => {
-                console.log(`  ${i + 1}. ${p.name}`);
-                console.log(`     - image_url: "${p.image_url}"`);
-                console.log(`     - Generated URL: "../assets/images/${p.image_url || p.name + '.jpg'}"`);
-            });
 
             renderProducts();
             hideLoading();
@@ -568,7 +559,67 @@ function showAddProductModal() {
                     
                     <!-- Giá cả -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                            <h4 class="text-base font-semibold text-gray-900">Giá cả</h4>
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" id="autoPricingEnabled" checked
+                                    class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                    onchange="toggleMarkupSelector()">
+                                <span class="text-xs text-gray-600 group-hover:text-purple-600 transition-colors">
+                                    🤖 Tự động tính giá bán
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <!-- Markup Selector (shown when auto-pricing is enabled) -->
+                        <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                ⚙️ Hệ số markup (Giá bán = Giá vốn × Hệ số)
+                            </label>
+                            
+                            <!-- Custom Input -->
+                            <div class="relative mb-3">
+                                <input type="number" 
+                                    id="markupMultiplier" 
+                                    step="0.1" 
+                                    min="1.0" 
+                                    max="10.0"
+                                    value="2.5"
+                                    oninput="updateSellingPriceFromMarkup()"
+                                    class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg font-semibold text-center">
+                                <span class="absolute right-3 top-2.5 text-gray-500 font-medium">×</span>
+                            </div>
+                            
+                            <!-- Preset Buttons -->
+                            <div class="space-y-2">
+                                <p class="text-xs text-gray-600 font-medium">Preset nhanh:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
+                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        ×2.0
+                                    </button>
+                                    <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
+                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        ×2.5
+                                    </button>
+                                    <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
+                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        ×3.0
+                                    </button>
+                                    <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
+                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        ×3.5
+                                    </button>
+                                    <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
+                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        ×4.0
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-purple-600 mt-2">💡 Nhập số tùy ý hoặc chọn preset nhanh</p>
+                        </div>
+                        
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
@@ -583,6 +634,7 @@ function showAddProductModal() {
                                             onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
+                                    <p class="text-xs text-purple-600 mt-1" id="priceHint">💡 Tự động theo độ phức tạp (×2.5-3.5)</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
@@ -753,6 +805,143 @@ function showAddProductModal() {
     
     // Initialize materials formula (empty for new product)
     loadProductFormula(null);
+}
+
+// Set markup preset from button
+function setMarkupPreset(value) {
+    const markupInput = document.getElementById('markupMultiplier');
+    if (!markupInput) return;
+    
+    // Set value directly (no auto logic)
+    markupInput.value = value;
+    
+    // Highlight active button
+    highlightActivePresetButton(value);
+    
+    // Trigger update
+    updateSellingPriceFromMarkup();
+    
+    // Visual feedback on input
+    markupInput.classList.add('bg-green-50', 'border-green-300');
+    setTimeout(() => {
+        markupInput.classList.remove('bg-green-50', 'border-green-300');
+    }, 300);
+}
+
+// Highlight active preset button
+function highlightActivePresetButton(value) {
+    // Remove highlight from all buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'ring-2', 'ring-indigo-300');
+        btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+    });
+    
+    // Add highlight to active button
+    const markupInput = document.getElementById('markupMultiplier');
+    const currentValue = markupInput ? parseFloat(markupInput.value) : null;
+    
+    if (currentValue) {
+        // Find matching button using data-markup attribute
+        document.querySelectorAll('.preset-btn[data-markup]').forEach(btn => {
+            const btnValue = parseFloat(btn.dataset.markup);
+            if (Math.abs(currentValue - btnValue) < 0.01) {
+                btn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+                btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'ring-2', 'ring-indigo-300');
+            }
+        });
+    }
+}
+
+// Toggle markup selector visibility
+function toggleMarkupSelector() {
+    const checkbox = document.getElementById('autoPricingEnabled');
+    const container = document.getElementById('markupSelectorContainer');
+    
+    if (container) {
+        if (checkbox && checkbox.checked) {
+            container.classList.remove('hidden');
+            // Tự động cập nhật giá khi bật
+            updateSellingPriceFromMarkup();
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+}
+
+// Update selling price when markup selector changes
+function updateSellingPriceFromMarkup() {
+    const checkbox = document.getElementById('autoPricingEnabled');
+    
+    // Chỉ cập nhật nếu auto-pricing được bật
+    if (!checkbox || !checkbox.checked) return;
+    
+    // Lấy giá vốn hiện tại
+    const costPriceInput = document.getElementById('productCostPrice');
+    if (!costPriceInput) return;
+    
+    const costPrice = parseFormattedNumber(costPriceInput.value);
+    if (!costPrice || costPrice <= 0) return;
+    
+    // Lấy số lượng nguyên liệu từ selectedMaterials
+    const selectedMaterials = typeof window.getSelectedMaterials === 'function' 
+        ? window.getSelectedMaterials() 
+        : [];
+    const materialCount = selectedMaterials.length;
+    
+    // Tính giá bán mới
+    const newSellingPrice = autoCalculateSellingPrice(costPrice, materialCount);
+    
+    // Cập nhật giá bán
+    const sellingPriceInput = document.getElementById('productPrice');
+    if (sellingPriceInput) {
+        sellingPriceInput.value = formatNumber(newSellingPrice);
+        
+        // Cập nhật hint text
+        updatePriceHint(materialCount);
+        
+        // Tính lại profit
+        if (typeof calculateExpectedProfit === 'function') {
+            calculateExpectedProfit();
+        }
+        
+        // Add visual feedback
+        sellingPriceInput.classList.add('bg-green-50', 'border-green-300');
+        setTimeout(() => {
+            sellingPriceInput.classList.remove('bg-green-50', 'border-green-300');
+        }, 500);
+    }
+    
+    // Tự động cập nhật giá gốc = giá bán - 20,000đ
+    const originalPriceInput = document.getElementById('productOriginalPrice');
+    if (originalPriceInput && newSellingPrice > 20000) {
+        const newOriginalPrice = newSellingPrice - 20000;
+        originalPriceInput.value = formatNumber(newOriginalPrice);
+        
+        // Add visual feedback
+        originalPriceInput.classList.add('bg-blue-50', 'border-blue-300');
+        setTimeout(() => {
+            originalPriceInput.classList.remove('bg-blue-50', 'border-blue-300');
+        }, 500);
+    }
+    
+    // Highlight matching preset button
+    highlightActivePresetButton();
+}
+
+// Update price hint text based on markup
+function updatePriceHint(materialCount = 0) {
+    const priceHint = document.getElementById('priceHint');
+    if (!priceHint) return;
+    
+    const markupInput = document.getElementById('markupMultiplier');
+    const markupValue = markupInput ? parseFloat(markupInput.value) : 2.5;
+    
+    if (markupValue && markupValue > 0) {
+        const profit = ((markupValue - 1) * 100).toFixed(0);
+        priceHint.textContent = `💡 Hệ số ×${markupValue.toFixed(1)} (Lãi ${profit}%)`;
+    } else {
+        priceHint.textContent = `💡 Nhập hệ số markup`;
+    }
 }
 
 // Close product modal
@@ -941,9 +1130,12 @@ function setSelectedCategoryIds(ids) {
 // Save product (create or update)
 async function saveProduct(productId = null) {
     const name = document.getElementById('productName')?.value.trim();
-    const price = parseFormattedNumber(document.getElementById('productPrice')?.value);
-    const originalPrice = parseFormattedNumber(document.getElementById('productOriginalPrice')?.value);
-    const costPrice = parseFormattedNumber(document.getElementById('productCostPrice')?.value);
+    const priceInput = document.getElementById('productPrice');
+    const price = parseFormattedNumber(priceInput?.value);
+    const originalPriceInput = document.getElementById('productOriginalPrice');
+    const originalPrice = parseFormattedNumber(originalPriceInput?.value);
+    const costPriceInput = document.getElementById('productCostPrice');
+    const costPrice = parseFormattedNumber(costPriceInput?.value);
     const categoryIds = getSelectedCategoryIds();
     const stockQuantity = parseFormattedNumber(document.getElementById('productStockQuantity')?.value);
     const rating = document.getElementById('productRating')?.value;
@@ -951,6 +1143,24 @@ async function saveProduct(productId = null) {
     const sku = document.getElementById('productSKU')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
     const image_url = document.getElementById('productImageURL')?.value.trim();
+    
+    // Get markup_multiplier from input (number)
+    const markupInput = document.getElementById('markupMultiplier');
+    const markupValue = markupInput ? parseFloat(markupInput.value) : null;
+    const markup_multiplier = (markupValue && markupValue > 0) ? markupValue : null;
+
+    // Debug: Log collected values
+    console.log('💾 Saving product with values:', {
+        name,
+        price,
+        'priceInput.value': priceInput?.value,
+        originalPrice,
+        'originalPriceInput.value': originalPriceInput?.value,
+        costPrice,
+        'costPriceInput.value': costPriceInput?.value,
+        markup_multiplier,
+        productId
+    });
 
     // Validation
     if (!name) {
@@ -984,6 +1194,7 @@ async function saveProduct(productId = null) {
         price: price,
         original_price: originalPrice || null,
         cost_price: costPrice,
+        markup_multiplier: markup_multiplier,
         category_ids: categoryIds,
         stock_quantity: stockQuantity || 0,
         rating: rating ? parseFloat(rating) : 0,
@@ -996,6 +1207,9 @@ async function saveProduct(productId = null) {
     if (productId) {
         productData.id = productId;
     }
+    
+    // Debug: Log data being sent to server
+    console.log('📤 Sending to server:', JSON.stringify(productData, null, 2));
 
     try {
         // Disable save button to prevent double submission
@@ -1119,6 +1333,83 @@ function formatCurrency(amount) {
     }).format(amount).replace('₫', 'đ');
 }
 
+// Smart rounding for prices (làm tròn thông minh)
+function smartRound(price) {
+    if (price < 10000) {
+        // Dưới 10k: làm tròn đến 1.000đ
+        return Math.round(price / 1000) * 1000;
+    } else if (price < 100000) {
+        // 10k-100k: làm tròn đến 1.000đ
+        return Math.round(price / 1000) * 1000;
+    } else if (price < 500000) {
+        // 100k-500k: làm tròn đến 5.000đ
+        return Math.round(price / 5000) * 5000;
+    } else {
+        // Trên 500k: làm tròn đến 10.000đ
+        return Math.round(price / 10000) * 10000;
+    }
+}
+
+// Get smart markup based on product complexity
+function getSmartMarkup(materialCount = 0) {
+    // Phương án B: Hệ số tổng hợp theo độ phức tạp
+    if (materialCount === 0) {
+        // Không có nguyên liệu → Dùng mặc định trung bình
+        return 250; // 2.5x
+    } else if (materialCount <= 3) {
+        // Sản phẩm đơn giản (1-3 nguyên liệu)
+        return 250; // 2.5x - VD: Vòng trơn, vòng đơn giản
+    } else if (materialCount <= 6) {
+        // Sản phẩm trung bình (4-6 nguyên liệu)
+        return 300; // 3.0x - VD: Vòng có charm, bi bạc
+    } else {
+        // Sản phẩm phức tạp (7+ nguyên liệu)
+        return 350; // 3.5x - VD: Vòng nhiều chi tiết, mix phức tạp
+    }
+}
+
+// Auto-calculate selling price from cost price (Phương án B)
+function autoCalculateSellingPrice(costPrice, materialCount = 0) {
+    if (!costPrice || costPrice <= 0) return 0;
+    
+    // Lấy giá trị markup từ input (number)
+    const markupInput = document.getElementById('markupMultiplier');
+    const markupValue = markupInput ? parseFloat(markupInput.value) : null;
+    
+    let multiplier;
+    
+    if (!markupValue || markupValue <= 0) {
+        // Fallback to auto if invalid
+        if (materialCount <= 3) {
+            multiplier = 2.5;
+        } else if (materialCount <= 6) {
+            multiplier = 3.0;
+        } else {
+            multiplier = 3.5;
+        }
+    } else {
+        // Dùng giá trị từ input
+        multiplier = markupValue;
+    }
+    
+    // Tính giá bán = giá vốn × multiplier
+    const calculatedPrice = costPrice * multiplier;
+    
+    // Làm tròn thông minh
+    return smartRound(calculatedPrice);
+}
+
+// Get markup description for UI
+function getMarkupDescription(materialCount = 0) {
+    const markup = getSmartMarkup(materialCount);
+    const multiplier = (1 + markup / 100).toFixed(1);
+    
+    if (materialCount === 0) return `Giá vốn × ${multiplier}`;
+    if (materialCount <= 3) return `Giá vốn × ${multiplier} (Đơn giản)`;
+    if (materialCount <= 6) return `Giá vốn × ${multiplier} (Trung bình)`;
+    return `Giá vốn × ${multiplier} (Phức tạp)`;
+}
+
 // Format number with thousand separators
 function formatNumber(num) {
     if (!num) return '';
@@ -1192,6 +1483,23 @@ async function editProduct(productId) {
                     </button>
                 </div>
                 
+                <!-- Outdated Price Warning Banner (compact) -->
+                <div id="outdatedPriceWarning" class="hidden bg-yellow-50 border-b border-yellow-200 px-6 py-2.5">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-yellow-800">
+                            ⚠️ Giá chưa cập nhật theo nguyên liệu mới. Giá đề xuất: <span id="expectedSellingPrice" class="font-semibold"></span>
+                            <button type="button" onclick="applyNewPrices()" class="ml-2 text-yellow-700 hover:text-yellow-900 underline font-semibold">
+                                Áp dụng ngay
+                            </button>
+                        </p>
+                        <button type="button" onclick="document.getElementById('outdatedPriceWarning').classList.add('hidden')" class="text-yellow-600 hover:text-yellow-800">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
                 <form id="productForm" class="flex-1 overflow-y-auto bg-gray-50" onsubmit="event.preventDefault(); saveProduct(${productId});">
                     <div class="p-6 space-y-5">
                         <!-- Thông tin cơ bản -->
@@ -1260,7 +1568,67 @@ async function editProduct(productId) {
                         
                         <!-- Giá cả -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                                <h4 class="text-base font-semibold text-gray-900">Giá cả</h4>
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" id="autoPricingEnabled" checked
+                                        class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        onchange="toggleMarkupSelector()">
+                                    <span class="text-xs text-gray-600 group-hover:text-purple-600 transition-colors">
+                                        🤖 Tự động tính giá bán
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <!-- Markup Selector (shown when auto-pricing is enabled) -->
+                            <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    ⚙️ Hệ số markup (Giá bán = Giá vốn × Hệ số)
+                                </label>
+                                
+                                <!-- Custom Input -->
+                                <div class="relative mb-3">
+                                    <input type="number" 
+                                        id="markupMultiplier" 
+                                        step="0.1" 
+                                        min="1.0" 
+                                        max="10.0"
+                                        value="${product.markup_multiplier || 2.5}"
+                                        oninput="updateSellingPriceFromMarkup()"
+                                        class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg font-semibold text-center">
+                                    <span class="absolute right-3 top-2.5 text-gray-500 font-medium">×</span>
+                                </div>
+                                
+                                <!-- Preset Buttons -->
+                                <div class="space-y-2">
+                                    <p class="text-xs text-gray-600 font-medium">Preset nhanh:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
+                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×2.0
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
+                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×2.5
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
+                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×3.0
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
+                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×3.5
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
+                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×4.0
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-xs text-purple-600 mt-2">💡 Nhập số tùy ý hoặc chọn preset nhanh</p>
+                            </div>
+                            
                             <div class="space-y-4">
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
@@ -1275,6 +1643,7 @@ async function editProduct(productId) {
                                                 onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
+                                        <p class="text-xs text-purple-600 mt-1" id="priceHint">💡 Tự động theo độ phức tạp (×2.5-3.5)</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
@@ -1416,6 +1785,19 @@ async function editProduct(productId) {
 
         document.body.appendChild(modal);
 
+        // Highlight current markup preset button
+        const currentMarkup = product.markup_multiplier;
+        if (currentMarkup) {
+            const presetButtons = modal.querySelectorAll('.preset-btn[data-markup]');
+            presetButtons.forEach(btn => {
+                const btnMarkup = parseFloat(btn.dataset.markup);
+                if (btnMarkup === currentMarkup) {
+                    btn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+                    btn.classList.add('bg-indigo-600', 'text-white', 'ring-2', 'ring-indigo-300');
+                }
+            });
+        }
+
         // Load categories inline
         await loadCategoriesInline();
         
@@ -1429,6 +1811,9 @@ async function editProduct(productId) {
 
         // Load materials formula for this product
         await loadProductFormula(productId);
+
+        // Check if product price is outdated
+        await checkProductPriceOutdated(product);
 
         // Calculate profit on load
         setTimeout(() => calculateExpectedProfit(), 100);
@@ -2292,5 +2677,256 @@ async function applyBulkStockUpdate() {
     } catch (error) {
         console.error('Error bulk updating stock:', error);
         showToast('Không thể cập nhật tồn kho: ' + error.message, 'error');
+    }
+}
+
+
+// ============================================
+// OUTDATED PRODUCTS NOTIFICATION
+// ============================================
+
+async function checkOutdatedProducts() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=checkOutdatedProducts&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success && data.outdated_count > 0) {
+            showOutdatedNotification(data.outdated_count);
+        }
+    } catch (error) {
+        console.error('Error checking outdated products:', error);
+    }
+}
+
+function showOutdatedNotification(count) {
+    const notification = document.getElementById('outdatedProductsNotification');
+    const countElement = document.getElementById('outdatedProductsCount');
+    
+    if (notification && countElement) {
+        countElement.textContent = count;
+        notification.classList.remove('hidden');
+    }
+}
+
+function hideOutdatedNotification() {
+    const notification = document.getElementById('outdatedProductsNotification');
+    if (notification) {
+        notification.classList.add('hidden');
+    }
+}
+
+async function quickRecalculatePrices() {
+    // Show confirmation modal
+    const modal = document.createElement('div');
+    modal.id = 'confirmRecalculateModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="p-6">
+                <div class="w-12 h-12 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật giá sản phẩm?</h3>
+                <p class="text-sm text-gray-600 text-center mb-6">
+                    Hệ thống sẽ tự động tính lại giá bán cho tất cả sản phẩm dựa trên giá nguyên liệu hiện tại và hệ số markup đã lưu.
+                </p>
+                <div class="flex gap-3">
+                    <button onclick="closeRecalculateModal()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Hủy
+                    </button>
+                    <button onclick="executeQuickRecalculate()" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                        Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function closeRecalculateModal() {
+    const modal = document.getElementById('confirmRecalculateModal');
+    if (modal) modal.remove();
+}
+
+async function executeQuickRecalculate() {
+    closeRecalculateModal();
+    
+    // Show loading toast
+    const loadingId = 'recalculate-loading-' + Date.now();
+    showToast('Đang tính toán và cập nhật giá...', 'info', 0, loadingId);
+    
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'recalculateAllPrices' })
+        });
+
+        const data = await response.json();
+
+        // Hide loading toast
+        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
+        if (loadingToast) {
+            toastManager.remove(loadingToast);
+        }
+
+        if (data.success) {
+            const { updated, skipped } = data;
+            
+            // Hide notification banner
+            hideOutdatedNotification();
+            
+            // Show success message
+            showToast(`Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
+            
+            // Reload products to show new prices
+            await loadProducts();
+            
+        } else {
+            throw new Error(data.error || 'Không thể cập nhật giá');
+        }
+    } catch (error) {
+        // Hide loading toast
+        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
+        if (loadingToast) {
+            toastManager.remove(loadingToast);
+        }
+        
+        console.error('Error recalculating prices:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+
+// Check if product price is outdated compared to current material costs
+async function checkProductPriceOutdated(product) {
+    // Only check if product has materials
+    if (!selectedMaterials || selectedMaterials.length === 0) {
+        return;
+    }
+
+    try {
+        // Calculate expected cost from current materials
+        let expectedCostPrice = 0;
+        for (const material of selectedMaterials) {
+            const materialInfo = allMaterialsForProduct.find(m => m.item_name === material.material_name);
+            if (materialInfo) {
+                expectedCostPrice += (material.quantity || 0) * materialInfo.item_cost;
+            }
+        }
+        expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
+
+        // Calculate expected selling price
+        let expectedSellingPrice;
+        const materialCount = selectedMaterials.length;
+
+        if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
+            expectedSellingPrice = expectedCostPrice * product.markup_multiplier;
+        } else {
+            let autoMarkup;
+            if (materialCount <= 3) {
+                autoMarkup = 2.5;
+            } else if (materialCount <= 6) {
+                autoMarkup = 3.0;
+            } else {
+                autoMarkup = 3.5;
+            }
+            expectedSellingPrice = expectedCostPrice * autoMarkup;
+        }
+
+        // Smart rounding
+        if (expectedSellingPrice < 10000) {
+            expectedSellingPrice = Math.round(expectedSellingPrice / 1000) * 1000;
+        } else if (expectedSellingPrice < 100000) {
+            expectedSellingPrice = Math.round(expectedSellingPrice / 1000) * 1000;
+        } else if (expectedSellingPrice < 500000) {
+            expectedSellingPrice = Math.round(expectedSellingPrice / 5000) * 5000;
+        } else {
+            expectedSellingPrice = Math.round(expectedSellingPrice / 10000) * 10000;
+        }
+
+        // Check if prices are different
+        const currentCostPrice = product.cost_price || 0;
+        const currentSellingPrice = product.price || 0;
+
+        if (Math.abs(expectedCostPrice - currentCostPrice) > 0.01 || 
+            Math.abs(expectedSellingPrice - currentSellingPrice) > 0.01) {
+            
+            // Show warning banner
+            const warningBanner = document.getElementById('outdatedPriceWarning');
+            if (warningBanner) {
+                warningBanner.classList.remove('hidden');
+                
+                // Update expected selling price only
+                document.getElementById('expectedSellingPrice').textContent = formatCurrency(expectedSellingPrice);
+                
+                // Store expected values for later use
+                warningBanner.dataset.expectedCostPrice = expectedCostPrice;
+                warningBanner.dataset.expectedSellingPrice = expectedSellingPrice;
+            }
+        }
+    } catch (error) {
+        console.error('Error checking product price:', error);
+    }
+}
+
+// Apply new prices from warning banner
+function applyNewPrices() {
+    const warningBanner = document.getElementById('outdatedPriceWarning');
+    if (!warningBanner) return;
+
+    const expectedCostPrice = parseFloat(warningBanner.dataset.expectedCostPrice);
+    const expectedSellingPrice = parseFloat(warningBanner.dataset.expectedSellingPrice);
+
+    if (expectedCostPrice && expectedSellingPrice) {
+        // Update cost price input
+        const costPriceInput = document.getElementById('productCostPrice');
+        if (costPriceInput) {
+            costPriceInput.value = formatNumber(expectedCostPrice);
+            // Flash animation
+            costPriceInput.classList.add('bg-green-50', 'border-green-300');
+            setTimeout(() => {
+                costPriceInput.classList.remove('bg-green-50', 'border-green-300');
+            }, 500);
+        }
+
+        // Update selling price input
+        const sellingPriceInput = document.getElementById('productPrice');
+        if (sellingPriceInput) {
+            sellingPriceInput.value = formatNumber(expectedSellingPrice);
+            // Flash animation
+            sellingPriceInput.classList.add('bg-green-50', 'border-green-300');
+            setTimeout(() => {
+                sellingPriceInput.classList.remove('bg-green-50', 'border-green-300');
+            }, 500);
+        }
+
+        // Update original price (selling price - 20,000)
+        const originalPriceInput = document.getElementById('productOriginalPrice');
+        if (originalPriceInput) {
+            const originalPrice = Math.max(0, expectedSellingPrice - 20000);
+            originalPriceInput.value = formatNumber(originalPrice);
+            // Flash animation
+            originalPriceInput.classList.add('bg-blue-50', 'border-blue-300');
+            setTimeout(() => {
+                originalPriceInput.classList.remove('bg-blue-50', 'border-blue-300');
+            }, 500);
+        }
+
+        // Hide warning banner
+        warningBanner.classList.add('hidden');
+
+        // Show success toast
+        showToast('Đã áp dụng giá mới', 'success');
+
+        // Recalculate profit
+        if (typeof calculateExpectedProfit === 'function') {
+            setTimeout(() => calculateExpectedProfit(), 100);
+        }
     }
 }
