@@ -574,50 +574,48 @@ function showAddProductModal() {
                         <!-- Markup Selector (shown when auto-pricing is enabled) -->
                         <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                ⚙️ Hệ số markup (Giá bán = Giá vốn × Hệ số)
+                                ⚙️ Hệ số markup
                             </label>
                             
-                            <!-- Custom Input -->
-                            <div class="relative mb-3">
-                                <input type="number" 
-                                    id="markupMultiplier" 
-                                    step="0.1" 
-                                    min="1.0" 
-                                    max="10.0"
-                                    value="2.5"
-                                    oninput="updateSellingPriceFromMarkup()"
-                                    class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg font-semibold text-center">
-                                <span class="absolute right-3 top-2.5 text-gray-500 font-medium">×</span>
-                            </div>
-                            
-                            <!-- Preset Buttons -->
-                            <div class="space-y-2">
-                                <p class="text-xs text-gray-600 font-medium">Preset nhanh:</p>
-                                <div class="flex flex-wrap gap-2">
+                            <!-- Input + Preset Buttons on same line -->
+                            <div class="flex items-center gap-2">
+                                <!-- Custom Input -->
+                                <div class="relative w-24 flex-shrink-0">
+                                    <input type="number" 
+                                        id="markupMultiplier" 
+                                        step="0.1" 
+                                        min="1.0" 
+                                        max="10.0"
+                                        value="2.5"
+                                        oninput="updateSellingPriceFromMarkup()"
+                                        class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
+                                    <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                                </div>
+                                
+                                <!-- Preset Buttons -->
+                                <div class="flex flex-wrap gap-2 flex-1">
                                     <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
-                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                         ×2.0
                                     </button>
                                     <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
-                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                         ×2.5
                                     </button>
                                     <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
-                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                         ×3.0
                                     </button>
                                     <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
-                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                         ×3.5
                                     </button>
                                     <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
-                                        class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                         ×4.0
                                     </button>
                                 </div>
                             </div>
-                            
-                            <p class="text-xs text-purple-600 mt-2">💡 Nhập số tùy ý hoặc chọn preset nhanh</p>
                         </div>
                         
                         <div class="space-y-4">
@@ -634,7 +632,6 @@ function showAddProductModal() {
                                             onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
-                                    <p class="text-xs text-purple-600 mt-1" id="priceHint">💡 Tự động theo độ phức tạp (×2.5-3.5)</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
@@ -659,7 +656,6 @@ function showAddProductModal() {
                                             onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
                                 </div>
                             </div>
                         </div>
@@ -718,6 +714,16 @@ function showAddProductModal() {
                         </div>
                     </div>
                     
+                    <!-- Danh mục -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                        <div id="categoryCheckboxList" class="space-y-2">
+                            <div class="flex items-center justify-center py-8 text-gray-400">
+                                <div class="animate-spin rounded-full h-8 h-8 border-b-2 border-purple-600"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Thông tin bổ sung -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
@@ -743,16 +749,6 @@ function showAddProductModal() {
                                     placeholder="0"
                                     oninput="autoFormatNumberInput(this)"
                                     onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Danh mục -->
-                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                        <div id="categoryCheckboxList" class="space-y-2">
-                            <div class="flex items-center justify-center py-8 text-gray-400">
-                                <div class="animate-spin rounded-full h-8 h-8 border-b-2 border-purple-600"></div>
                             </div>
                         </div>
                     </div>
@@ -1483,23 +1479,6 @@ async function editProduct(productId) {
                     </button>
                 </div>
                 
-                <!-- Outdated Price Warning Banner (compact) -->
-                <div id="outdatedPriceWarning" class="hidden bg-yellow-50 border-b border-yellow-200 px-6 py-2.5">
-                    <div class="flex items-center justify-between">
-                        <p class="text-xs text-yellow-800">
-                            ⚠️ Giá chưa cập nhật theo nguyên liệu mới. Giá đề xuất: <span id="expectedSellingPrice" class="font-semibold"></span>
-                            <button type="button" onclick="applyNewPrices()" class="ml-2 text-yellow-700 hover:text-yellow-900 underline font-semibold">
-                                Áp dụng ngay
-                            </button>
-                        </p>
-                        <button type="button" onclick="document.getElementById('outdatedPriceWarning').classList.add('hidden')" class="text-yellow-600 hover:text-yellow-800">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                
                 <form id="productForm" class="flex-1 overflow-y-auto bg-gray-50" onsubmit="event.preventDefault(); saveProduct(${productId});">
                     <div class="p-6 space-y-5">
                         <!-- Thông tin cơ bản -->
@@ -1583,50 +1562,48 @@ async function editProduct(productId) {
                             <!-- Markup Selector (shown when auto-pricing is enabled) -->
                             <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    ⚙️ Hệ số markup (Giá bán = Giá vốn × Hệ số)
+                                    ⚙️ Hệ số markup
                                 </label>
                                 
-                                <!-- Custom Input -->
-                                <div class="relative mb-3">
-                                    <input type="number" 
-                                        id="markupMultiplier" 
-                                        step="0.1" 
-                                        min="1.0" 
-                                        max="10.0"
-                                        value="${product.markup_multiplier || 2.5}"
-                                        oninput="updateSellingPriceFromMarkup()"
-                                        class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg font-semibold text-center">
-                                    <span class="absolute right-3 top-2.5 text-gray-500 font-medium">×</span>
-                                </div>
-                                
-                                <!-- Preset Buttons -->
-                                <div class="space-y-2">
-                                    <p class="text-xs text-gray-600 font-medium">Preset nhanh:</p>
-                                    <div class="flex flex-wrap gap-2">
+                                <!-- Input + Preset Buttons on same line -->
+                                <div class="flex items-center gap-2">
+                                    <!-- Custom Input -->
+                                    <div class="relative w-24 flex-shrink-0">
+                                        <input type="number" 
+                                            id="markupMultiplier" 
+                                            step="0.1" 
+                                            min="1.0" 
+                                            max="10.0"
+                                            value="${product.markup_multiplier || 2.5}"
+                                            oninput="updateSellingPriceFromMarkup()"
+                                            class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
+                                        <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                                    </div>
+                                    
+                                    <!-- Preset Buttons -->
+                                    <div class="flex flex-wrap gap-2 flex-1">
                                         <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
-                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                             ×2.0
                                         </button>
                                         <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
-                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                             ×2.5
                                         </button>
                                         <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
-                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                             ×3.0
                                         </button>
                                         <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
-                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                             ×3.5
                                         </button>
                                         <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
-                                            class="preset-btn px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
                                             ×4.0
                                         </button>
                                     </div>
                                 </div>
-                                
-                                <p class="text-xs text-purple-600 mt-2">💡 Nhập số tùy ý hoặc chọn preset nhanh</p>
                             </div>
                             
                             <div class="space-y-4">
@@ -1643,7 +1620,6 @@ async function editProduct(productId) {
                                                 onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
-                                        <p class="text-xs text-purple-600 mt-1" id="priceHint">💡 Tự động theo độ phức tạp (×2.5-3.5)</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá gốc</label>
@@ -1668,8 +1644,24 @@ async function editProduct(productId) {
                                                 onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
-                                        <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
                                     </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Outdated Price Warning Banner (moved here) -->
+                            <div id="outdatedPriceWarning" class="hidden mt-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-yellow-800">
+                                        ⚠️ Giá chưa cập nhật theo nguyên liệu mới. Giá đề xuất: <span id="expectedSellingPrice" class="font-semibold"></span>
+                                        <button type="button" onclick="applyNewPrices()" class="ml-2 text-yellow-700 hover:text-yellow-900 underline font-semibold">
+                                            Áp dụng ngay
+                                        </button>
+                                    </p>
+                                    <button type="button" onclick="document.getElementById('outdatedPriceWarning').classList.add('hidden')" class="text-yellow-600 hover:text-yellow-800">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1694,6 +1686,19 @@ async function editProduct(productId) {
                             
                             <!-- Materials Formula Container -->
                             <div id="materialsFormulaContainer" class="space-y-3">
+                                <div class="flex items-center justify-center py-8 text-gray-400">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Danh mục -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">
+                                Danh mục
+                                <span id="selectedCategoryCount" class="ml-2 text-sm font-normal text-gray-500">(0 đã chọn)</span>
+                            </h4>
+                            <div id="categoryCheckboxList" class="space-y-2">
                                 <div class="flex items-center justify-center py-8 text-gray-400">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                                 </div>
@@ -1725,19 +1730,6 @@ async function editProduct(productId) {
                                         placeholder="0"
                                         oninput="autoFormatNumberInput(this)"
                                         onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Danh mục -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">
-                                Danh mục
-                                <span id="selectedCategoryCount" class="ml-2 text-sm font-normal text-gray-500">(0 đã chọn)</span>
-                            </h4>
-                            <div id="categoryCheckboxList" class="space-y-2">
-                                <div class="flex items-center justify-center py-8 text-gray-400">
-                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                                 </div>
                             </div>
                         </div>
