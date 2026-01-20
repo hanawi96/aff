@@ -301,7 +301,8 @@ function setViewMode(mode) {
 function createProductCard(product) {
     const price = formatCurrency(product.price || 0);
     const originalPrice = product.original_price ? formatCurrency(product.original_price) : null;
-    const hasDiscount = originalPrice && product.original_price > product.price;
+    const hasOriginalPrice = originalPrice && product.original_price > 0;
+    const hasDiscount = hasOriginalPrice && product.original_price > product.price;
     const safeName = escapeHtml(product.name).replace(/'/g, '&#39;');
 
     // Get categories array (from new multi-category system)
@@ -395,7 +396,7 @@ function createProductCard(product) {
                         <span class="text-sm text-gray-600">Giá bán:</span>
                         <div class="flex flex-col items-end">
                             <span class="text-lg font-bold text-green-600">${price}</span>
-                            ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">${originalPrice}</span>` : ''}
+                            ${hasOriginalPrice ? `<span class="text-xs ${hasDiscount ? 'text-gray-400 line-through' : 'text-gray-500'}">${originalPrice}</span>` : ''}
                         </div>
                     </div>
                     ${product.cost_price !== undefined && product.cost_price !== null ? `
@@ -868,9 +869,6 @@ function toggleMarkupSelector() {
 function updateSellingPriceFromMarkup() {
     const checkbox = document.getElementById('autoPricingEnabled');
     
-    // Chỉ cập nhật nếu auto-pricing được bật
-    if (!checkbox || !checkbox.checked) return;
-    
     // Lấy giá vốn hiện tại
     const costPriceInput = document.getElementById('productCostPrice');
     if (!costPriceInput) return;
@@ -887,30 +885,33 @@ function updateSellingPriceFromMarkup() {
     // Tính giá bán mới
     const newSellingPrice = autoCalculateSellingPrice(costPrice, materialCount);
     
-    // Cập nhật giá bán
-    const sellingPriceInput = document.getElementById('productPrice');
-    if (sellingPriceInput) {
-        sellingPriceInput.value = formatNumber(newSellingPrice);
-        
-        // Cập nhật hint text
-        updatePriceHint(materialCount);
-        
-        // Tính lại profit
-        if (typeof calculateExpectedProfit === 'function') {
-            calculateExpectedProfit();
+    // Chỉ cập nhật giá bán nếu auto-pricing được bật
+    if (checkbox && checkbox.checked) {
+        const sellingPriceInput = document.getElementById('productPrice');
+        if (sellingPriceInput) {
+            sellingPriceInput.value = formatNumber(newSellingPrice);
+            
+            // Cập nhật hint text
+            updatePriceHint(materialCount);
+            
+            // Tính lại profit
+            if (typeof calculateExpectedProfit === 'function') {
+                calculateExpectedProfit();
+            }
+            
+            // Add visual feedback
+            sellingPriceInput.classList.add('bg-green-50', 'border-green-300');
+            setTimeout(() => {
+                sellingPriceInput.classList.remove('bg-green-50', 'border-green-300');
+            }, 500);
         }
-        
-        // Add visual feedback
-        sellingPriceInput.classList.add('bg-green-50', 'border-green-300');
-        setTimeout(() => {
-            sellingPriceInput.classList.remove('bg-green-50', 'border-green-300');
-        }, 500);
     }
     
-    // Tự động cập nhật giá gốc = giá bán - 20,000đ
+    // LUÔN cập nhật giá gốc = giá bán + 20,000đ (dù checkbox có bật hay không)
+    // Giá gốc phải lớn hơn giá bán để hiển thị discount badge
     const originalPriceInput = document.getElementById('productOriginalPrice');
-    if (originalPriceInput && newSellingPrice > 20000) {
-        const newOriginalPrice = newSellingPrice - 20000;
+    if (originalPriceInput) {
+        const newOriginalPrice = newSellingPrice + 20000;
         originalPriceInput.value = formatNumber(newOriginalPrice);
         
         // Add visual feedback
