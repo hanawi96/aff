@@ -44,7 +44,6 @@ async function loadMaterialsForProduct() {
         
         if (data.success) {
             allMaterialsForProduct = data.materials || [];
-            console.log('📦 Loaded materials for product:', allMaterialsForProduct.length);
         }
     } catch (error) {
         console.error('Error loading materials:', error);
@@ -65,7 +64,6 @@ async function loadProductFormula(productId) {
         
         if (data.success) {
             selectedMaterials = data.materials || [];
-            console.log('📝 Loaded formula:', selectedMaterials.length, 'materials');
             renderMaterialsFormula();
             calculateTotalCost();
         }
@@ -82,7 +80,6 @@ function renderMaterialsFormula() {
     if (!container) return;
 
     const formatCurrency = getFormatCurrency();
-    const formatNumber = getFormatNumber();
     const escapeHtml = getEscapeHtml();
 
     if (selectedMaterials.length === 0) {
@@ -98,7 +95,10 @@ function renderMaterialsFormula() {
         return;
     }
 
-    container.innerHTML = selectedMaterials.map((material, index) => {
+    // Render in 2 columns grid
+    container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${selectedMaterials.map((material, index) => {
         const materialInfo = allMaterialsForProduct.find(m => m.item_name === material.material_name);
         const unitPrice = materialInfo?.item_cost || 0;
         const subtotal = (material.quantity || 0) * unitPrice;
@@ -106,16 +106,14 @@ function renderMaterialsFormula() {
 
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-indigo-300 hover:shadow-sm transition-all">
-                <!-- Header: Name + Delete -->
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                            ${index + 1}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-semibold text-sm text-gray-900 truncate">${escapeHtml(displayName)}</h4>
-                            <code class="text-[10px] text-gray-400 font-mono">${escapeHtml(material.material_name)}</code>
-                        </div>
+                <!-- Header: Number + Name + Delete -->
+                <div class="flex items-start gap-2.5 mb-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-sm text-gray-900 truncate leading-tight">${escapeHtml(displayName)}</h4>
+                        <code class="text-[10px] text-gray-400 font-mono leading-tight">${escapeHtml(material.material_name)}</code>
                     </div>
                     <button type="button" onclick="removeMaterial(${index})" 
                         class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0" title="Xóa">
@@ -125,63 +123,69 @@ function renderMaterialsFormula() {
                     </button>
                 </div>
                 
-                <!-- Controls: Quantity + Total -->
-                <div class="grid grid-cols-2 gap-2">
-                    <!-- Quantity Controls -->
-                    <div>
-                        <label class="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wide">Số lượng</label>
-                        <div class="flex items-center gap-1">
-                            <button type="button" 
-                                onclick="decrementMaterialQuantity(${index})"
-                                class="w-8 h-8 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-500 transition-all flex items-center justify-center group flex-shrink-0">
-                                <svg class="w-4 h-4 text-gray-600 group-hover:text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                                </svg>
-                            </button>
-                            
-                            <input type="number" 
-                                id="material-qty-${index}"
-                                value="${material.quantity || 0}" 
-                                min="0" 
-                                step="0.1"
-                                onchange="updateMaterialQuantity(${index}, this.value)"
-                                class="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs text-center font-semibold">
-                            
-                            <button type="button" 
-                                onclick="incrementMaterialQuantity(${index})"
-                                class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-center group flex-shrink-0">
-                                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                            </button>
-                            
-                            <input type="text" 
-                                value="${escapeHtml(material.unit || 'viên')}" 
-                                onchange="updateMaterialUnit(${index}, this.value)"
-                                placeholder="viên"
-                                class="w-12 px-1.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-[10px] text-center flex-shrink-0">
-                        </div>
+                <!-- Quantity Controls -->
+                <div class="mb-2.5">
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Số lượng</label>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" 
+                            onclick="decrementMaterialQuantity(${index})"
+                            class="w-9 h-9 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-400 transition-all flex items-center justify-center group flex-shrink-0">
+                            <svg class="w-4 h-4 text-gray-600 group-hover:text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                        </button>
+                        
+                        <input type="number" 
+                            id="material-qty-${index}"
+                            value="${material.quantity || 0}" 
+                            min="0" 
+                            step="0.1"
+                            onchange="updateMaterialQuantity(${index}, this.value)"
+                            class="w-20 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-center font-bold">
+                        
+                        <button type="button" 
+                            onclick="incrementMaterialQuantity(${index})"
+                            class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg hover:from-indigo-600 hover:to-purple-700 shadow-sm hover:shadow transition-all flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                        
+                        <input type="text" 
+                            value="${escapeHtml(material.unit || 'viên')}" 
+                            onchange="updateMaterialUnit(${index}, this.value)"
+                            placeholder="viên"
+                            class="flex-1 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs text-center font-medium">
                     </div>
-                    
-                    <!-- Total -->
-                    <div>
-                        <label class="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wide">Thành tiền</label>
-                        <div class="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5 h-8 flex items-center justify-between">
+                </div>
+                
+                <!-- Total Price -->
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Thành tiền</label>
                             <span class="text-xs text-gray-600">${formatCurrency(unitPrice)} × ${material.quantity || 0}</span>
-                            <span class="font-bold text-sm text-indigo-600">${formatCurrency(subtotal)}</span>
                         </div>
+                        <span class="font-bold text-base text-indigo-600">${formatCurrency(subtotal)}</span>
                     </div>
                 </div>
             </div>
         `;
-    }).join('');
+            }).join('')}
+        </div>
+    `;
 }
 
 // Temporary selection in modal (before saving)
 let tempSelectedMaterials = [];
 
 // Show add material modal
-function showAddMaterialModal() {
+async function showAddMaterialModal() {
+    // Ensure materials are loaded before showing modal
+    if (!allMaterialsForProduct || allMaterialsForProduct.length === 0) {
+        await loadMaterialsForProduct();
+    }
+    
     const modal = document.createElement('div');
     modal.id = 'addMaterialModal';
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4';
@@ -191,6 +195,19 @@ function showAddMaterialModal() {
 
     // Initialize temp selection with current materials
     tempSelectedMaterials = JSON.parse(JSON.stringify(selectedMaterials));
+    
+    // Auto-select required materials (category_id = 8) ONLY if this is a new product (no existing materials)
+    if (selectedMaterials.length === 0) {
+        const requiredMaterials = allMaterialsForProduct.filter(m => m.category_id === 8);
+        requiredMaterials.forEach(material => {
+            tempSelectedMaterials.push({
+                material_name: material.item_name,
+                quantity: 1,
+                unit: 'viên',
+                notes: ''
+            });
+        });
+    }
 
     // Filter out already selected materials AND packaging costs (category "Khác")
     // Note: Packaging costs (túi zip, hộp carton, etc.) are managed in Materials page
@@ -208,16 +225,9 @@ function showAddMaterialModal() {
                 icon: material.category_icon || '📦',
                 materials: []
             };
-        } else {
-            // Update icon if current material has one and group doesn't
-            if (material.category_icon && !groupedMaterials[categoryName].icon) {
-                groupedMaterials[categoryName].icon = material.category_icon;
-            }
         }
         groupedMaterials[categoryName].materials.push(material);
     });
-
-    console.log('🔍 Grouped materials:', groupedMaterials);
 
     // Generate HTML for grouped materials
     let materialsHTML = '';
@@ -560,67 +570,25 @@ function removeMaterial(index) {
     showToast(`Đã xóa ${displayName}`, 'info');
 }
 
-// Update material quantity (optimized - no full re-render)
+// Update material quantity
 function updateMaterialQuantity(index, quantity) {
-    const formatCurrency = getFormatCurrency();
     selectedMaterials[index].quantity = parseFloat(quantity) || 0;
-    
-    // Only update the subtotal for this specific material (no full re-render)
-    const materialInfo = allMaterialsForProduct.find(m => m.item_name === selectedMaterials[index].material_name);
-    if (materialInfo) {
-        const subtotal = selectedMaterials[index].quantity * materialInfo.item_cost;
-        
-        // Update only the subtotal display for this material
-        const container = document.getElementById('materialsFormulaContainer');
-        if (container) {
-            const materialCard = container.children[index];
-            if (materialCard) {
-                const subtotalElement = materialCard.querySelector('.font-bold.text-purple-600');
-                const formulaElement = materialCard.querySelector('.text-xs.text-gray-600');
-                if (subtotalElement) {
-                    subtotalElement.textContent = formatCurrency(subtotal);
-                }
-                if (formulaElement) {
-                    formulaElement.textContent = `${formatCurrency(materialInfo.item_cost)} × ${selectedMaterials[index].quantity}`;
-                }
-            }
-        }
-    }
-    
-    // Update total cost
+    renderMaterialsFormula();
     calculateTotalCost();
 }
 
 // Increment material quantity
 function incrementMaterialQuantity(index) {
-    const currentQty = parseFloat(selectedMaterials[index].quantity) || 0;
-    const newQty = currentQty + 1;
-    selectedMaterials[index].quantity = newQty;
-    
-    // Update input field
-    const input = document.getElementById(`material-qty-${index}`);
-    if (input) {
-        input.value = newQty;
-    }
-    
-    // Update display and total
-    updateMaterialQuantity(index, newQty);
+    selectedMaterials[index].quantity = (parseFloat(selectedMaterials[index].quantity) || 0) + 1;
+    renderMaterialsFormula();
+    calculateTotalCost();
 }
 
 // Decrement material quantity
 function decrementMaterialQuantity(index) {
-    const currentQty = parseFloat(selectedMaterials[index].quantity) || 0;
-    const newQty = Math.max(0, currentQty - 1); // Don't go below 0
-    selectedMaterials[index].quantity = newQty;
-    
-    // Update input field
-    const input = document.getElementById(`material-qty-${index}`);
-    if (input) {
-        input.value = newQty;
-    }
-    
-    // Update display and total
-    updateMaterialQuantity(index, newQty);
+    selectedMaterials[index].quantity = Math.max(0, (parseFloat(selectedMaterials[index].quantity) || 0) - 1);
+    renderMaterialsFormula();
+    calculateTotalCost();
 }
 
 // Update material unit
@@ -654,10 +622,10 @@ function calculateTotalCost() {
         costPriceInput.readOnly = true;
         costPriceInput.classList.add('bg-purple-50', 'border-purple-300');
         
-        // NOTE: Do NOT auto-calculate selling price here!
-        // This function is called when loading existing product data.
-        // Auto-pricing should only happen when user manually changes materials.
-        // The checkbox is just for enabling/disabling the feature, not for auto-triggering.
+        // Trigger selling price update based on markup (if auto-pricing is enabled)
+        if (typeof updateSellingPriceFromMarkup === 'function') {
+            updateSellingPriceFromMarkup();
+        }
         
         // Trigger profit calculation
         if (typeof calculateExpectedProfit === 'function') {
@@ -675,7 +643,6 @@ function calculateTotalCost() {
 async function saveProductMaterialsFormula(productId) {
     const showToast = getShowToast();
     
-    // Validate productId
     if (!productId || productId === 'undefined' || productId === 'null') {
         console.error('Invalid productId:', productId);
         showToast('Lỗi: ID sản phẩm không hợp lệ', 'error');
@@ -683,13 +650,10 @@ async function saveProductMaterialsFormula(productId) {
     }
     
     if (selectedMaterials.length === 0) {
-        return true; // No formula to save
+        return true;
     }
 
     try {
-        console.log('💾 Saving materials for product:', productId, 'Materials:', selectedMaterials.length);
-        console.log('📋 Materials data:', JSON.stringify(selectedMaterials, null, 2));
-        
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -703,7 +667,6 @@ async function saveProductMaterialsFormula(productId) {
         const data = await response.json();
         
         if (data.success) {
-            console.log('✅ Formula saved, cost_price:', data.cost_price);
             return true;
         } else {
             throw new Error(data.error || 'Failed to save formula');
