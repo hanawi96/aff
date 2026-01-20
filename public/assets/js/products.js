@@ -517,55 +517,52 @@ function showAddProductModal() {
                     
                     <!-- Ảnh sản phẩm -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Ảnh sản phẩm</h4>
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Ảnh sản phẩm
+                        </h4>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-stretch gap-4">
                             <!-- Image Preview -->
-                            <div id="imagePreviewContainer" class="hidden">
-                                <div class="relative w-full h-40 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden group">
-                                    <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-contain">
-                                    <button type="button" onclick="clearImagePreview()" 
-                                        class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                            <div id="imagePreviewContainer" class="hidden flex-shrink-0">
+                                <div class="relative w-28 h-28 bg-white rounded-xl border-2 border-purple-200 overflow-hidden shadow-sm group">
+                                    <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                                        <button type="button" onclick="clearImagePreview()" 
+                                            class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Upload Area -->
-                            <div class="flex flex-col gap-3">
-                                <div class="flex-1 flex flex-col justify-center">
-                                    <label class="relative cursor-pointer group">
-                                        <div class="w-full h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 transition-all flex flex-col items-center justify-center gap-2">
-                                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                            <div class="text-center px-4">
-                                                <p class="text-sm font-semibold text-gray-700">Chọn ảnh để upload</p>
-                                                <p class="text-xs text-gray-500 mt-1">hoặc kéo thả file vào đây</p>
-                                            </div>
+                            <div class="flex-1">
+                                <label class="relative cursor-pointer group block h-28">
+                                    <div class="h-full w-full bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-500 hover:shadow-md transition-all px-6 flex items-center gap-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
                                         </div>
-                                        <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                                    </label>
-                                </div>
-                                
-                                <div class="text-xs text-gray-500 text-center">
-                                    <p>✓ Hỗ trợ: JPG, PNG, WEBP</p>
-                                    <p>✓ Tự động upload lên R2 Storage</p>
-                                </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-semibold text-gray-900 mb-0.5">Tải ảnh lên</p>
+                                            <p class="text-xs text-gray-500">JPG, PNG, WEBP • Tối đa 5MB</p>
+                                        </div>
+                                        <div class="text-purple-600 group-hover:translate-x-1 transition-transform">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                </label>
+                                <input type="hidden" id="productImageURL">
                             </div>
-                        </div>
-                        
-                        <!-- URL Input (hidden by default, shown after upload) -->
-                        <div class="mt-4 hidden" id="imageUrlSection">
-                            <label class="block text-xs font-medium text-gray-600 mb-2">URL ảnh</label>
-                            <input type="url" id="productImageURL"
-                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                                placeholder="URL ảnh"
-                                readonly>
                         </div>
                     </div>
                     
@@ -664,26 +661,8 @@ function showAddProductModal() {
                             </button>
                         </div>
                         
-                        <div id="materialsFormulaContainer" class="space-y-3 mb-4">
+                        <div id="materialsFormulaContainer" class="space-y-3">
                             <!-- Materials will be rendered here -->
-                        </div>
-                        
-                        <div class="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-xl p-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span class="font-semibold text-gray-900">Tổng giá vốn tự động:</span>
-                                </div>
-                                <span id="materialsTotalCost" class="text-2xl font-bold text-purple-600">0đ</span>
-                            </div>
-                            <p class="text-xs text-purple-700 mt-2 flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Giá vốn sẽ tự động sync vào trường "Giá vốn" ở trên
-                            </p>
                         </div>
                     </div>
                     
@@ -1230,50 +1209,52 @@ async function editProduct(productId) {
                         
                         <!-- Ảnh sản phẩm -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Ảnh sản phẩm</h4>
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Ảnh sản phẩm
+                            </h4>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-stretch gap-4">
                                 <!-- Image Preview -->
-                                <div id="imagePreviewContainer" class="${product.image_url ? '' : 'hidden'}">
-                                    <div class="relative w-full h-40 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden group">
-                                        <img id="imagePreview" src="${escapeHtml(product.image_url || '')}" alt="Preview" class="w-full h-full object-contain">
-                                        <button type="button" onclick="clearImagePreview()" 
-                                            class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
+                                <div id="imagePreviewContainer" class="${product.image_url ? '' : 'hidden'} flex-shrink-0">
+                                    <div class="relative w-28 h-28 bg-white rounded-xl border-2 border-purple-200 overflow-hidden shadow-sm group">
+                                        <img id="imagePreview" src="${escapeHtml(product.image_url || '')}" alt="Preview" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                                            <button type="button" onclick="clearImagePreview()" 
+                                                class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 
                                 <!-- Upload Area -->
-                                <div class="flex flex-col gap-3">
-                                    <div class="flex-1 flex flex-col justify-center">
-                                        <label class="relative cursor-pointer group">
-                                            <div class="w-full h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 transition-all flex flex-col items-center justify-center gap-2">
-                                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                    <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                </div>
-                                                <div class="text-center px-4">
-                                                    <p class="text-sm font-semibold text-gray-700">Chọn ảnh để upload</p>
-                                                    <p class="text-xs text-gray-500 mt-1">hoặc kéo thả file vào đây</p>
-                                                </div>
+                                <div class="flex-1">
+                                    <label class="relative cursor-pointer group block h-28">
+                                        <div class="h-full w-full bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-500 hover:shadow-md transition-all px-6 flex items-center gap-4">
+                                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                                                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                </svg>
                                             </div>
-                                            <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                                        </label>
-                                    </div>
+                                            <div class="flex-1">
+                                                <p class="text-sm font-semibold text-gray-900 mb-0.5">Tải ảnh lên</p>
+                                                <p class="text-xs text-gray-500">JPG, PNG, WEBP • Tối đa 5MB</p>
+                                            </div>
+                                            <div class="text-purple-600 group-hover:translate-x-1 transition-transform">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                    </label>
+                                    <input type="hidden" id="productImageURL" value="${escapeHtml(product.image_url || '')}">
                                 </div>
-                            </div>
-                            
-                            <!-- URL Input (shown if image exists) -->
-                            <div class="mt-4 ${product.image_url ? '' : 'hidden'}" id="imageUrlSection">
-                                <label class="block text-xs font-medium text-gray-600 mb-2">URL ảnh</label>
-                                <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
-                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                                    placeholder="URL ảnh"
-                                    readonly>
                             </div>
                         </div>
                         
@@ -1343,29 +1324,9 @@ async function editProduct(productId) {
                             </div>
                             
                             <!-- Materials Formula Container -->
-                            <div id="materialsFormulaContainer" class="space-y-3 mb-4">
+                            <div id="materialsFormulaContainer" class="space-y-3">
                                 <div class="flex items-center justify-center py-8 text-gray-400">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Total Cost Summary -->
-                            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-semibold text-gray-900">Tổng giá vốn từ nguyên liệu</p>
-                                            <p class="text-[10px] text-gray-500">Tự động cập nhật giá vốn sản phẩm</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p id="totalMaterialsCost" class="text-xl font-bold text-indigo-600">0đ</p>
-                                    </div>
                                 </div>
                             </div>
                         </div>
