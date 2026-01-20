@@ -22,11 +22,14 @@
 // Load packaging config from database
 async function loadPackagingConfig() {
     try {
+        // Get all packaging items from category_id = 5 (Đóng gói)
         const response = await fetch(`${CONFIG.API_URL}?action=getPackagingConfig&timestamp=${Date.now()}`);
         const data = await response.json();
 
         if (data.success && data.config) {
-            packagingConfig = data.config;
+            // Filter only packaging items (category_id = 5)
+            packagingConfig = data.config.filter(item => item.category_id === 5);
+            console.log('📦 Loaded packaging config:', packagingConfig.length, 'items');
         }
     } catch (error) {
         console.error('❌ Error loading packaging config:', error);
@@ -40,33 +43,12 @@ function calculatePackagingCost() {
         return 0;
     }
 
-    // Get default items (is_default = 1)
-    const defaultItems = packagingConfig.filter(item => item.is_default === 1);
+    // Sum all packaging items (category_id = 5)
+    const totalPackagingCost = packagingConfig.reduce((sum, item) => {
+        return sum + (item.item_cost || 0);
+    }, 0);
 
-    // Create a map of item costs
-    const packagingPrices = {};
-    defaultItems.forEach(item => {
-        packagingPrices[item.item_name] = item.item_cost || 0;
-    });
-
-    // Calculate total products in cart (use currentOrderProducts, not window.cart)
-    const totalProducts = currentOrderProducts.reduce((sum, item) => sum + (item.quantity || 1), 0);
-
-    // Per-product items removed: red_string, labor_cost (already in product cost_price)
-    // No per-product packaging cost anymore
-
-    // Per-order items (fixed per order): bag_zip, bag_red, box_shipping, thank_card, paper_print, bang_dinh
-    const perOrderCost =
-        (packagingPrices.bag_zip || 0) +
-        (packagingPrices.bag_red || 0) +
-        (packagingPrices.box_shipping || 0) +
-        (packagingPrices.thank_card || 0) +
-        (packagingPrices.paper_print || 0) +
-        (packagingPrices.bang_dinh || 0);
-
-    const total = perOrderCost;
-
-    return total;
+    return totalPackagingCost;
 }
 
 // Load orders data from API

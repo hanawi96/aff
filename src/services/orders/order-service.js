@@ -109,8 +109,12 @@ export async function createOrder(data, env, corsHeaders) {
         const shippingCost = data.shippingCost || 0;
 
         // Calculate packaging cost (snapshot current prices with display names)
+        // Get all packaging items from category_id = 5 (Đóng gói)
         const { results: packagingConfig } = await env.DB.prepare(`
-            SELECT item_name, item_cost, display_name FROM cost_config WHERE is_default = 1
+            SELECT item_name, item_cost, display_name 
+            FROM cost_config 
+            WHERE category_id = 5 AND is_default = 1
+            ORDER BY item_name ASC
         `).all();
         
         const packagingPrices = {};
@@ -122,50 +126,22 @@ export async function createOrder(data, env, corsHeaders) {
         
         const totalProducts = data.cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
         
-        // Calculate packaging cost
-        // Per-product items removed: red_string, labor_cost (already in product cost_price)
-        // Per-order items (fixed per order): bag_zip, bag_red, hop_carton, thank_card, paper_print, bang_dinh
-        const perProductCost = 0; // No longer calculated here
+        // Calculate total packaging cost (sum all items in category)
+        const totalPackagingCost = Object.values(packagingPrices).reduce((sum, cost) => sum + cost, 0);
         
-        const perOrderCost = 
-            (packagingPrices.bag_zip || 0) + 
-            (packagingPrices.bag_red || 0) +
-            (packagingPrices.hop_carton || 0) + 
-            (packagingPrices.thank_card || 0) + 
-            (packagingPrices.paper_print || 0) +
-            (packagingPrices.bang_dinh || 0);
-        
-        const totalPackagingCost = perOrderCost; // Only per-order cost
+        // Build per_order object dynamically from all packaging items
+        const perOrderItems = {};
+        packagingConfig.forEach(item => {
+            perOrderItems[item.item_name] = {
+                cost: item.item_cost || 0,
+                name: item.display_name || item.item_name
+            };
+        });
         
         const packagingDetails = {
-            per_order: {
-                bag_zip: {
-                    cost: packagingPrices.bag_zip || 0,
-                    name: packagingDisplayNames.bag_zip || 'Túi zip'
-                },
-                bag_red: {
-                    cost: packagingPrices.bag_red || 0,
-                    name: packagingDisplayNames.bag_red || 'Túi đỏ'
-                },
-                hop_carton: {
-                    cost: packagingPrices.hop_carton || 0,
-                    name: packagingDisplayNames.hop_carton || 'Hộp carton'
-                },
-                thank_card: {
-                    cost: packagingPrices.thank_card || 0,
-                    name: packagingDisplayNames.thank_card || 'Thiệp cảm ơn'
-                },
-                paper_print: {
-                    cost: packagingPrices.paper_print || 0,
-                    name: packagingDisplayNames.paper_print || 'Giấy in'
-                },
-                bang_dinh: {
-                    cost: packagingPrices.bang_dinh || 0,
-                    name: packagingDisplayNames.bang_dinh || 'Băng dính'
-                }
-            },
+            per_order: perOrderItems,
             total_products: totalProducts,
-            per_order_cost: perOrderCost,
+            per_order_cost: totalPackagingCost,
             total_cost: totalPackagingCost
         };
 

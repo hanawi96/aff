@@ -229,6 +229,10 @@ async function showAddOrderModal(duplicateData = null) {
     if (!duplicateData) {
         window.history.pushState(null, '', '#add-order');
     }
+    
+    // CRITICAL: Load packaging config first before showing modal
+    await loadPackagingConfig();
+    
     // PERFORMANCE: Don't block on products load
     // Load in background if needed
     const productsPromise = (allProductsList.length === 0 || allCategoriesList.length === 0)
@@ -798,31 +802,8 @@ async function showAddOrderModal(duplicateData = null) {
                                             <span class="text-gray-400">• Đóng gói</span>
                                             <span id="profitPackaging" class="text-gray-500">0đ</span>
                                         </div>
-                                        <div class="pl-3 space-y-1 mt-1">
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitBagZipLabel">- Túi zip</span>
-                                                <span id="profitBagZip" class="text-gray-400">0đ</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitBagRedLabel">- Túi đỏ</span>
-                                                <span id="profitBagRed" class="text-gray-400">0đ</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitBoxShippingLabel">- Hộp đựng</span>
-                                                <span id="profitBoxShipping" class="text-gray-400">0đ</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitThankCardLabel">- Thiệp cảm ơn</span>
-                                                <span id="profitThankCard" class="text-gray-400">0đ</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitPaperPrintLabel">- Giấy in</span>
-                                                <span id="profitPaperPrint" class="text-gray-400">0đ</span>
-                                            </div>
-                                            <div class="flex justify-between items-center text-xs py-0.5">
-                                                <span class="text-gray-400" id="profitBangDinhLabel">- Băng dính</span>
-                                                <span id="profitBangDinh" class="text-gray-400">0đ</span>
-                                            </div>
+                                        <div class="pl-3 space-y-1 mt-1" id="packagingItemsContainer">
+                                            <!-- Packaging items will be dynamically rendered here -->
                                         </div>
                                         <div class="flex justify-between items-center text-xs py-0.5">
                                             <span class="text-gray-400">• Phí ship thực tế</span>

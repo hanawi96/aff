@@ -1,8 +1,25 @@
-// ============================================
+﻿// ============================================
 // ADD ORDER MODAL HELPER FUNCTIONS
 // ============================================
 // Helper functions for the add order modal
 // Handles order summary calculations, profit preview, and product rendering
+
+/**
+ * Update packaging items display dynamically
+ * Renders all packaging items from category_id = 5
+ */
+function updatePackagingItemsDisplay() {
+    const container = document.getElementById('packagingItemsContainer');
+    if (!container || !window.packagingItems) return;
+    
+    // Clear and rebuild
+    container.innerHTML = window.packagingItems.map(item => `
+        <div class="flex justify-between items-center text-xs py-0.5">
+            <span class="text-gray-400">- ${escapeHtml(item.display_name || item.item_name)}</span>
+            <span class="text-gray-400">${formatCurrency(item.item_cost || 0)}</span>
+        </div>
+    `).join('');
+}
 
 /**
  * Update order summary and profit preview
@@ -45,23 +62,19 @@ function updateOrderSummary() {
     // Revenue = product total + shipping fee - discount
     const totalRevenue = productTotal + shippingFee - discountAmount;
 
-    // Calculate packaging costs - use actual config values
-    let packagingPerProductCost = 0;
-    let packagingPerOrderCost = 0;
+    // Calculate packaging costs dynamically from category_id = 5
+    const packagingPerOrderCost = packagingConfig.reduce((sum, item) => sum + (item.item_cost || 0), 0);
+    const totalPackaging = packagingPerOrderCost;
+
+    // Build display names map
+    const packagingDisplayNames = {};
+    packagingConfig.forEach(item => {
+        packagingDisplayNames[item.item_name] = item.display_name || item.item_name;
+    });
     
-    // Per-product items removed (already in product cost)
-    packagingPerProductCost = 0;
-    
-    // Per-order items
-    const bagZip = packagingConfig.find(item => item.item_name === 'bag_zip')?.item_cost || 0;
-    const bagRed = packagingConfig.find(item => item.item_name === 'bag_red')?.item_cost || 0;
-    const hopCarton = packagingConfig.find(item => item.item_name === 'hop_carton')?.item_cost || 0;
-    const thankCard = packagingConfig.find(item => item.item_name === 'thank_card')?.item_cost || 0;
-    const paperPrint = packagingConfig.find(item => item.item_name === 'paper_print')?.item_cost || 0;
-    const bangDinh = packagingConfig.find(item => item.item_name === 'bang_dinh')?.item_cost || 0;
-    packagingPerOrderCost = bagZip + bagRed + hopCarton + thankCard + paperPrint + bangDinh;
-    
-    const totalPackaging = packagingPerProductCost + packagingPerOrderCost;
+    // Store globally for use in modal rendering
+    window.packagingDisplayNames = packagingDisplayNames;
+    window.packagingItems = packagingConfig; // Store full config for rendering
 
     // Calculate commission (only if referral code exists)
     let commission = 0;
@@ -143,43 +156,11 @@ function updateOrderSummary() {
     
     // Update individual cost items (shown when expanded)
     document.getElementById('profitPackaging').textContent = formatCurrency(totalPackaging);
-    // Update individual packaging items
-    document.getElementById('profitBagZip').textContent = formatCurrency(bagZip);
-    document.getElementById('profitBagRed').textContent = formatCurrency(bagRed);
-    document.getElementById('profitBoxShipping').textContent = formatCurrency(hopCarton);
-    document.getElementById('profitThankCard').textContent = formatCurrency(thankCard);
-    document.getElementById('profitPaperPrint').textContent = formatCurrency(paperPrint);
-    document.getElementById('profitBangDinh').textContent = formatCurrency(bangDinh);
     
-    // Update labels with display names from database
-    if (window.packagingDisplayNames) {
-        document.getElementById('profitBagZipLabel').textContent = `- ${window.packagingDisplayNames.bag_zip}`;
-        document.getElementById('profitBagRedLabel').textContent = `- ${window.packagingDisplayNames.bag_red}`;
-        document.getElementById('profitBoxShippingLabel').textContent = `- ${window.packagingDisplayNames.hop_carton}`;
-        document.getElementById('profitThankCardLabel').textContent = `- ${window.packagingDisplayNames.thank_card}`;
-        document.getElementById('profitPaperPrintLabel').textContent = `- ${window.packagingDisplayNames.paper_print}`;
-        document.getElementById('profitBangDinhLabel').textContent = `- ${window.packagingDisplayNames.bang_dinh}`;
-    }
+    // Dynamically update packaging items
+    updatePackagingItemsDisplay();
     
     document.getElementById('profitShipping').textContent = formatCurrency(shippingCost);
-    
-    // Get display names from packagingConfig for labels
-    const bagZipName = packagingConfig.find(item => item.item_name === 'bag_zip')?.display_name || 'Túi zip';
-    const bagRedName = packagingConfig.find(item => item.item_name === 'bag_red')?.display_name || 'Túi đỏ';
-    const hopCartonName = packagingConfig.find(item => item.item_name === 'hop_carton')?.display_name || 'Hộp carton';
-    const thankCardName = packagingConfig.find(item => item.item_name === 'thank_card')?.display_name || 'Thiệp cảm ơn';
-    const paperPrintName = packagingConfig.find(item => item.item_name === 'paper_print')?.display_name || 'Giấy in';
-    const bangDinhName = packagingConfig.find(item => item.item_name === 'bang_dinh')?.display_name || 'Băng dính';
-    
-    // Store display names globally for use in modal rendering
-    window.packagingDisplayNames = {
-        bag_zip: bagZipName,
-        bag_red: bagRedName,
-        hop_carton: hopCartonName,
-        thank_card: thankCardName,
-        paper_print: paperPrintName,
-        bang_dinh: bangDinhName
-    };
     
     // Update commission display
     const commissionRow = document.getElementById('profitCommissionRow');

@@ -22,21 +22,11 @@ function showProfitBreakdown(orderId) {
         
         // Recalculate packaging cost from details (only per_order items)
         if (packagingDetails && packagingDetails.per_order) {
-            // Handle both old format (direct numbers) and new format (objects with cost/name)
-            const perOrder = packagingDetails.per_order;
-            
-            // Support both old field names (box_shipping) and new field names (hop_carton)
-            const hopCartonCost = perOrder.hop_carton 
-                ? (typeof perOrder.hop_carton === 'object' ? perOrder.hop_carton.cost : perOrder.hop_carton)
-                : (typeof perOrder.box_shipping === 'object' ? perOrder.box_shipping.cost : perOrder.box_shipping || 0);
-            
-            packagingCost = 
-                (typeof perOrder.bag_zip === 'object' ? perOrder.bag_zip.cost : perOrder.bag_zip || 0) +
-                (typeof perOrder.bag_red === 'object' ? perOrder.bag_red.cost : perOrder.bag_red || 0) +
-                hopCartonCost +
-                (typeof perOrder.thank_card === 'object' ? perOrder.thank_card.cost : perOrder.thank_card || 0) +
-                (typeof perOrder.paper_print === 'object' ? perOrder.paper_print.cost : perOrder.paper_print || 0) +
-                (typeof perOrder.bang_dinh === 'object' ? perOrder.bang_dinh.cost : perOrder.bang_dinh || 0);
+            // Sum all items in per_order dynamically
+            packagingCost = Object.values(packagingDetails.per_order).reduce((sum, item) => {
+                const cost = typeof item === 'object' ? item.cost : item || 0;
+                return sum + cost;
+            }, 0);
         } else {
             // Fallback to saved value for old orders without details
             packagingCost = order.packaging_cost || 0;
@@ -205,38 +195,17 @@ function showProfitBreakdown(orderId) {
                             <div class="packaging-details-toggle hidden ml-6 pl-3 border-l-2 border-purple-300 space-y-1.5">
                                 ${packagingDetails.per_order ? `
                                 <div class="text-xs font-semibold text-purple-700 mb-1.5">Chi phí theo đơn hàng (1 lần):</div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bag_zip === 'object' ? packagingDetails.per_order.bag_zip.name : 'Túi zip'}</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bag_zip === 'object' ? packagingDetails.per_order.bag_zip.cost : packagingDetails.per_order.bag_zip || 0)}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bag_red === 'object' ? packagingDetails.per_order.bag_red.name : 'Túi đỏ'}</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bag_red === 'object' ? packagingDetails.per_order.bag_red.cost : packagingDetails.per_order.bag_red || 0)}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${
-                                        packagingDetails.per_order.hop_carton 
-                                            ? (typeof packagingDetails.per_order.hop_carton === 'object' ? packagingDetails.per_order.hop_carton.name : 'Hộp carton')
-                                            : (typeof packagingDetails.per_order.box_shipping === 'object' ? packagingDetails.per_order.box_shipping.name : 'Hộp carton')
-                                    }</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(
-                                        packagingDetails.per_order.hop_carton 
-                                            ? (typeof packagingDetails.per_order.hop_carton === 'object' ? packagingDetails.per_order.hop_carton.cost : packagingDetails.per_order.hop_carton)
-                                            : (typeof packagingDetails.per_order.box_shipping === 'object' ? packagingDetails.per_order.box_shipping.cost : packagingDetails.per_order.box_shipping || 0)
-                                    )}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.thank_card === 'object' ? packagingDetails.per_order.thank_card.name : 'Thiệp cảm ơn'}</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.thank_card === 'object' ? packagingDetails.per_order.thank_card.cost : packagingDetails.per_order.thank_card || 0)}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.paper_print === 'object' ? packagingDetails.per_order.paper_print.name : 'Giấy in'}</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.paper_print === 'object' ? packagingDetails.per_order.paper_print.cost : packagingDetails.per_order.paper_print || 0)}</span>
-                                </div>
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="text-gray-600">• ${typeof packagingDetails.per_order.bang_dinh === 'object' ? packagingDetails.per_order.bang_dinh.name : 'Băng dính'}</span>
-                                    <span class="font-medium text-gray-700">${formatCurrency(typeof packagingDetails.per_order.bang_dinh === 'object' ? packagingDetails.per_order.bang_dinh.cost : packagingDetails.per_order.bang_dinh || 0)}</span>
-                                </div>
+                                ${Object.keys(packagingDetails.per_order).map(key => {
+                                    const item = packagingDetails.per_order[key];
+                                    const name = typeof item === 'object' ? item.name : key;
+                                    const cost = typeof item === 'object' ? item.cost : item || 0;
+                                    return `
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-gray-600">• ${escapeHtml(name)}</span>
+                                        <span class="font-medium text-gray-700">${formatCurrency(cost)}</span>
+                                    </div>
+                                    `;
+                                }).join('')}
                                 ` : ''}
                             </div>
                             ` : ''}
