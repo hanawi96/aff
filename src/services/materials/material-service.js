@@ -599,7 +599,15 @@ export async function getProductMaterials(productId, env, corsHeaders) {
 // Save product materials (bulk upsert)
 export async function saveProductMaterials(data, env, corsHeaders) {
     try {
+        console.log('📦 saveProductMaterials called with data:', JSON.stringify(data));
+        
         const { product_id, materials } = data;
+
+        console.log('🔍 Extracted values:', {
+            product_id,
+            'typeof product_id': typeof product_id,
+            'materials length': materials?.length
+        });
 
         if (!product_id) {
             return jsonResponse({
@@ -619,40 +627,61 @@ export async function saveProductMaterials(data, env, corsHeaders) {
         const statements = [];
         
         // Delete existing materials for this product
-        statements.push(
-            env.DB.prepare('DELETE FROM product_materials WHERE product_id = ?')
-                .bind(product_id)
-        );
+        console.log('🗑️ Deleting existing materials for product:', product_id);
+        await env.DB.prepare('DELETE FROM product_materials WHERE product_id = ?')
+            .bind(product_id)
+            .run();
 
         // Insert new materials
         if (materials.length > 0) {
+            console.log('➕ Inserting', materials.length, 'materials');
             for (const material of materials) {
+                console.log('  - Material:', material.material_name, 'Qty:', material.quantity);
+                
                 if (!material.material_name || material.quantity === undefined || material.quantity === null) {
+                    console.warn('  ⚠️ Skipping invalid material:', material);
                     continue; // Skip invalid entries
                 }
 
-                statements.push(
-                    env.DB.prepare(`
-                        INSERT INTO product_materials (product_id, material_name, quantity, unit, notes)
-                        VALUES (?, ?, ?, ?, ?)
-                    `).bind(
-                        product_id,
-                        material.material_name,
-                        parseFloat(material.quantity),
-                        material.unit || '',
-                        material.notes || ''
-                    )
-                );
+                await env.DB.prepare(`
+                    INSERT INTO product_materials (product_id, material_name, quantity, unit, notes)
+                    VALUES (?, ?, ?, ?, ?)
+                `).bind(
+                    product_id,
+                    material.material_name,
+                    parseFloat(material.quantity),
+                    material.unit || '',
+                    material.notes || ''
+                ).run();
             }
         }
 
-        // Execute all statements in batch (atomic)
-        await env.DB.batch(statements);
+        console.log('✅ Materials inserted successfully');
 
-        // Get updated cost_price (trigger will calculate it)
+        // Calculate cost_price manually (in case triggers don't work)
+        console.log('💰 Calculating cost_price manually for product:', product_id);
+        const { results: costCalc } = await env.DB.prepare(`
+            SELECT COALESCE(SUM(pm.quantity * cc.item_cost), 0) as total_cost
+            FROM product_materials pm
+            JOIN cost_config cc ON pm.material_name = cc.item_name
+            WHERE pm.product_id = ?
+        `).bind(product_id).all();
+
+        const calculatedCost = costCalc[0]?.total_cost || 0;
+        console.log('📊 Calculated cost:', calculatedCost);
+
+        // Update product cost_price manually
+        await env.DB.prepare(`
+            UPDATE products SET cost_price = ? WHERE id = ?
+        `).bind(calculatedCost, product_id).run();
+
+        // Get updated cost_price
+        console.log('💰 Getting updated cost_price for product:', product_id);
         const { results: product } = await env.DB.prepare(`
             SELECT cost_price FROM products WHERE id = ?
         `).bind(product_id).all();
+
+        console.log('✅ Materials saved successfully, cost_price:', product[0]?.cost_price);
 
         return jsonResponse({
             success: true,
@@ -661,7 +690,8 @@ export async function saveProductMaterials(data, env, corsHeaders) {
         }, 200, corsHeaders);
 
     } catch (error) {
-        console.error('Error saving product materials:', error);
+        console.error('❌ Error saving product materials:', error);
+        console.error('Error stack:', error.stack);
         return jsonResponse({
             success: false,
             error: error.message

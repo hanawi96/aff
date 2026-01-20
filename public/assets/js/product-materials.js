@@ -167,8 +167,8 @@ function renderMaterialsFormula() {
                     <div>
                         <label class="block text-[10px] font-medium text-gray-500 mb-1 uppercase tracking-wide">Thành tiền</label>
                         <div class="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5 h-8 flex items-center justify-between">
-                            <span class="text-[10px] text-gray-600">${formatCurrency(unitPrice)} × ${material.quantity || 0}</span>
-                            <span class="font-bold text-xs text-indigo-600">${formatCurrency(subtotal)}</span>
+                            <span class="text-xs text-gray-600">${formatCurrency(unitPrice)} × ${material.quantity || 0}</span>
+                            <span class="font-bold text-sm text-indigo-600">${formatCurrency(subtotal)}</span>
                         </div>
                     </div>
                 </div>
@@ -244,6 +244,7 @@ function showAddMaterialModal() {
                             const isSelected = tempSelectedMaterials.some(m => m.material_name === material.item_name);
                             const selectedMaterial = tempSelectedMaterials.find(m => m.material_name === material.item_name);
                             const quantity = selectedMaterial?.quantity || 1;
+                            const subtotal = quantity * material.item_cost;
                             
                             return `
                                 <div class="border border-gray-200 rounded-xl overflow-hidden transition-all ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:border-indigo-300'}">
@@ -251,26 +252,17 @@ function showAddMaterialModal() {
                                     <button type="button" 
                                         onclick="toggleMaterialInModal('${escapeHtml(material.item_name)}')" 
                                         class="w-full text-left p-3 transition-all group">
-                                        <div class="flex items-center gap-2 mb-2">
+                                        <div class="flex items-center gap-2">
                                             <!-- Checkbox -->
                                             <div class="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 group-hover:border-indigo-400'}">
                                                 ${isSelected ? '<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>' : ''}
                                             </div>
                                             
-                                            <!-- Icon -->
-                                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected ? 'from-indigo-500 to-purple-500' : ''}">
-                                                <svg class="w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-600'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                                                </svg>
-                                            </div>
-                                            
                                             <div class="flex-1 min-w-0">
-                                                <h4 class="font-semibold text-xs text-gray-900 truncate ${isSelected ? 'text-indigo-700' : ''}">${escapeHtml(displayName)}</h4>
-                                                <div class="flex items-center gap-1 mt-0.5">
-                                                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    <p class="text-[10px] text-gray-600 font-medium">${formatCurrency(material.item_cost)}</p>
+                                                <h4 class="font-semibold text-sm text-gray-900 truncate ${isSelected ? 'text-indigo-700' : ''}">${escapeHtml(displayName)}</h4>
+                                                <div class="flex items-center justify-between gap-2 mt-0.5">
+                                                    <p class="text-xs text-gray-500">${formatCurrency(material.item_cost)}</p>
+                                                    ${isSelected ? `<p class="text-xs font-bold text-indigo-600" id="subtotal-${escapeHtml(material.item_name)}">${formatCurrency(subtotal)}</p>` : ''}
                                                 </div>
                                             </div>
                                         </div>
@@ -401,18 +393,74 @@ function toggleMaterialInModal(materialName) {
 
 // Update modal UI when selection changes
 function updateModalSelectionUI(materialName) {
+    const formatCurrency = getFormatCurrency();
     const isSelected = tempSelectedMaterials.some(m => m.material_name === materialName);
     const qtyControls = document.getElementById(`qty-controls-${materialName}`);
     const card = qtyControls?.closest('.border');
     
     if (card) {
+        const checkbox = card.querySelector('.w-5.h-5.rounded');
+        const title = card.querySelector('h4');
+        const priceContainer = card.querySelector('.flex.items-center.justify-between.gap-2');
+        
         if (isSelected) {
+            // Update card styling
             card.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50');
             card.classList.remove('hover:border-indigo-300');
+            
+            // Update checkbox
+            if (checkbox) {
+                checkbox.classList.add('bg-indigo-600', 'border-indigo-600');
+                checkbox.classList.remove('border-gray-300');
+                checkbox.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>';
+            }
+            
+            // Update title color
+            if (title) {
+                title.classList.add('text-indigo-700');
+            }
+            
+            // Add subtotal display
+            if (priceContainer) {
+                const material = tempSelectedMaterials.find(m => m.material_name === materialName);
+                const materialInfo = allMaterialsForProduct.find(m => m.item_name === materialName);
+                if (material && materialInfo) {
+                    const subtotal = material.quantity * materialInfo.item_cost;
+                    const subtotalHTML = `<p class="text-xs font-bold text-indigo-600" id="subtotal-${materialName}">${formatCurrency(subtotal)}</p>`;
+                    if (!priceContainer.querySelector(`#subtotal-${materialName}`)) {
+                        priceContainer.insertAdjacentHTML('beforeend', subtotalHTML);
+                    }
+                }
+            }
+            
+            // Show quantity controls
             if (qtyControls) qtyControls.classList.remove('hidden');
         } else {
+            // Update card styling
             card.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50');
             card.classList.add('hover:border-indigo-300');
+            
+            // Update checkbox
+            if (checkbox) {
+                checkbox.classList.remove('bg-indigo-600', 'border-indigo-600');
+                checkbox.classList.add('border-gray-300');
+                checkbox.innerHTML = '';
+            }
+            
+            // Update title color
+            if (title) {
+                title.classList.remove('text-indigo-700');
+            }
+            
+            // Remove subtotal display
+            if (priceContainer) {
+                const subtotalElement = priceContainer.querySelector(`#subtotal-${materialName}`);
+                if (subtotalElement) {
+                    subtotalElement.remove();
+                }
+            }
+            
+            // Hide quantity controls
             if (qtyControls) qtyControls.classList.add('hidden');
         }
     }
@@ -436,6 +484,7 @@ function updateTempQuantity(materialName, quantity) {
     const material = tempSelectedMaterials.find(m => m.material_name === materialName);
     if (material) {
         material.quantity = parseFloat(quantity) || 0.1;
+        updateTempSubtotal(materialName);
     }
 }
 
@@ -446,6 +495,7 @@ function incrementTempQuantity(materialName) {
         material.quantity = (parseFloat(material.quantity) || 0) + 1;
         const input = document.getElementById(`temp-qty-${materialName}`);
         if (input) input.value = material.quantity;
+        updateTempSubtotal(materialName);
     }
 }
 
@@ -456,6 +506,22 @@ function decrementTempQuantity(materialName) {
         material.quantity = Math.max(0.1, (parseFloat(material.quantity) || 1) - 1);
         const input = document.getElementById(`temp-qty-${materialName}`);
         if (input) input.value = material.quantity;
+        updateTempSubtotal(materialName);
+    }
+}
+
+// Update subtotal display in modal
+function updateTempSubtotal(materialName) {
+    const formatCurrency = getFormatCurrency();
+    const material = tempSelectedMaterials.find(m => m.material_name === materialName);
+    const materialInfo = allMaterialsForProduct.find(m => m.item_name === materialName);
+    
+    if (material && materialInfo) {
+        const subtotal = material.quantity * materialInfo.item_cost;
+        const subtotalElement = document.getElementById(`subtotal-${materialName}`);
+        if (subtotalElement) {
+            subtotalElement.textContent = formatCurrency(subtotal);
+        }
     }
 }
 
@@ -604,17 +670,27 @@ function calculateTotalCost() {
 async function saveProductMaterialsFormula(productId) {
     const showToast = getShowToast();
     
-    if (!productId || selectedMaterials.length === 0) {
+    // Validate productId
+    if (!productId || productId === 'undefined' || productId === 'null') {
+        console.error('Invalid productId:', productId);
+        showToast('Lỗi: ID sản phẩm không hợp lệ', 'error');
+        return false;
+    }
+    
+    if (selectedMaterials.length === 0) {
         return true; // No formula to save
     }
 
     try {
+        console.log('💾 Saving materials for product:', productId, 'Materials:', selectedMaterials.length);
+        console.log('📋 Materials data:', JSON.stringify(selectedMaterials, null, 2));
+        
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'saveProductMaterials',
-                product_id: productId,
+                product_id: parseInt(productId),
                 materials: selectedMaterials
             })
         });
@@ -670,6 +746,7 @@ window.updateTempQuantity = updateTempQuantity;
 window.incrementTempQuantity = incrementTempQuantity;
 window.decrementTempQuantity = decrementTempQuantity;
 window.updateTempUnit = updateTempUnit;
+window.updateTempSubtotal = updateTempSubtotal;
 window.saveTempMaterials = saveTempMaterials;
 window.removeMaterial = removeMaterial;
 window.updateMaterialQuantity = updateMaterialQuantity;
@@ -679,6 +756,11 @@ window.updateMaterialUnit = updateMaterialUnit;
 window.calculateTotalCost = calculateTotalCost;
 window.saveProductMaterialsFormula = saveProductMaterialsFormula;
 window.formatMaterialName = formatMaterialName;
+
+// Export selectedMaterials getter
+window.getSelectedMaterials = function() {
+    return selectedMaterials;
+};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {

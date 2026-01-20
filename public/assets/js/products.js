@@ -515,6 +515,60 @@ function showAddProductModal() {
                         </div>
                     </div>
                     
+                    <!-- Ảnh sản phẩm -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Ảnh sản phẩm</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Image Preview -->
+                            <div id="imagePreviewContainer" class="hidden">
+                                <div class="relative w-full h-40 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden group">
+                                    <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-contain">
+                                    <button type="button" onclick="clearImagePreview()" 
+                                        class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Upload Area -->
+                            <div class="flex flex-col gap-3">
+                                <div class="flex-1 flex flex-col justify-center">
+                                    <label class="relative cursor-pointer group">
+                                        <div class="w-full h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 transition-all flex flex-col items-center justify-center gap-2">
+                                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div class="text-center px-4">
+                                                <p class="text-sm font-semibold text-gray-700">Chọn ảnh để upload</p>
+                                                <p class="text-xs text-gray-500 mt-1">hoặc kéo thả file vào đây</p>
+                                            </div>
+                                        </div>
+                                        <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                    </label>
+                                </div>
+                                
+                                <div class="text-xs text-gray-500 text-center">
+                                    <p>✓ Hỗ trợ: JPG, PNG, WEBP</p>
+                                    <p>✓ Tự động upload lên R2 Storage</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- URL Input (hidden by default, shown after upload) -->
+                        <div class="mt-4 hidden" id="imageUrlSection">
+                            <label class="block text-xs font-medium text-gray-600 mb-2">URL ảnh</label>
+                            <input type="url" id="productImageURL"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                placeholder="URL ảnh"
+                                readonly>
+                        </div>
+                    </div>
+                    
                     <!-- Giá cả -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
@@ -633,16 +687,6 @@ function showAddProductModal() {
                         </div>
                     </div>
                     
-                    <!-- Danh mục -->
-                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
-                        <div id="categoryCheckboxList" class="space-y-2">
-                            <div class="flex items-center justify-center py-8 text-gray-400">
-                                <div class="animate-spin rounded-full h-8 h-8 border-b-2 border-purple-600"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Thông tin bổ sung -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
@@ -672,6 +716,16 @@ function showAddProductModal() {
                         </div>
                     </div>
                     
+                    <!-- Danh mục -->
+                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Danh mục</h4>
+                        <div id="categoryCheckboxList" class="space-y-2">
+                            <div class="flex items-center justify-center py-8 text-gray-400">
+                                <div class="animate-spin rounded-full h-8 h-8 border-b-2 border-purple-600"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Chi tiết sản phẩm -->
                     <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Chi tiết sản phẩm</h4>
@@ -688,40 +742,6 @@ function showAddProductModal() {
                                 <textarea id="productDescription" rows="2"
                                     class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
                                     placeholder="Mô tả chi tiết về sản phẩm..."></textarea>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Ảnh sản phẩm</label>
-                                
-                                <!-- Image Preview -->
-                                <div id="imagePreviewContainer" class="mb-3 hidden">
-                                    <div class="relative w-full h-48 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
-                                        <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-contain">
-                                        <div class="absolute top-2 right-2">
-                                            <button type="button" onclick="clearImagePreview()" class="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex gap-2">
-                                    <input type="url" id="productImageURL"
-                                        class="flex-1 px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="URL ảnh hoặc upload file"
-                                        readonly
-                                        onchange="updateImagePreview(this.value)">
-                                    <label class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium cursor-pointer flex items-center gap-2">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        Upload
-                                        <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                                    </label>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Chọn file ảnh để upload lên R2 Storage</p>
                             </div>
                         </div>
                     </div>
@@ -824,6 +844,7 @@ async function handleImageUpload(input) {
 function updateImagePreview(url) {
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
+    const urlSection = document.getElementById('imageUrlSection');
     
     if (!container || !preview) return;
     
@@ -832,8 +853,14 @@ function updateImagePreview(url) {
         const encodedUrl = encodeURI(url);
         preview.src = encodedUrl;
         container.classList.remove('hidden');
+        if (urlSection) {
+            urlSection.classList.remove('hidden');
+        }
     } else {
         container.classList.add('hidden');
+        if (urlSection) {
+            urlSection.classList.add('hidden');
+        }
         preview.src = '';
     }
 }
@@ -843,10 +870,12 @@ function clearImagePreview() {
     const urlInput = document.getElementById('productImageURL');
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
+    const urlSection = document.getElementById('imageUrlSection');
     
     if (urlInput) urlInput.value = '';
     if (container) container.classList.add('hidden');
     if (preview) preview.src = '';
+    if (urlSection) urlSection.classList.add('hidden');
 }
 
 // Load categories inline (checkbox list)
@@ -1006,7 +1035,17 @@ async function saveProduct(productId = null) {
         const data = await response.json();
 
         if (data.success) {
-            const savedProductId = productId || data.product_id || data.id;
+            const savedProductId = productId || data.productId || data.product_id || data.id;
+            const selectedMaterials = window.getSelectedMaterials ? window.getSelectedMaterials() : [];
+            
+            console.log('🔍 Debug productId:', {
+                productId,
+                'data.productId': data.productId,
+                'data.product_id': data.product_id,
+                'data.id': data.id,
+                savedProductId,
+                'selectedMaterials.length': selectedMaterials?.length
+            });
             
             // Save materials formula if any
             if (savedProductId && selectedMaterials.length > 0) {
@@ -1189,6 +1228,55 @@ async function editProduct(productId) {
                             </div>
                         </div>
                         
+                        <!-- Ảnh sản phẩm -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Ảnh sản phẩm</h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Image Preview -->
+                                <div id="imagePreviewContainer" class="${product.image_url ? '' : 'hidden'}">
+                                    <div class="relative w-full h-40 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden group">
+                                        <img id="imagePreview" src="${escapeHtml(product.image_url || '')}" alt="Preview" class="w-full h-full object-contain">
+                                        <button type="button" onclick="clearImagePreview()" 
+                                            class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Upload Area -->
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex-1 flex flex-col justify-center">
+                                        <label class="relative cursor-pointer group">
+                                            <div class="w-full h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 transition-all flex flex-col items-center justify-center gap-2">
+                                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div class="text-center px-4">
+                                                    <p class="text-sm font-semibold text-gray-700">Chọn ảnh để upload</p>
+                                                    <p class="text-xs text-gray-500 mt-1">hoặc kéo thả file vào đây</p>
+                                                </div>
+                                            </div>
+                                            <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- URL Input (shown if image exists) -->
+                            <div class="mt-4 ${product.image_url ? '' : 'hidden'}" id="imageUrlSection">
+                                <label class="block text-xs font-medium text-gray-600 mb-2">URL ảnh</label>
+                                <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                    placeholder="URL ảnh"
+                                    readonly>
+                            </div>
+                        </div>
+                        
                         <!-- Giá cả -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                             <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giá cả</h4>
@@ -1232,48 +1320,6 @@ async function editProduct(productId) {
                                         </div>
                                         <p class="text-xs text-gray-500 mt-1">Chi phí làm vòng (dây, bi bạc, charm...)</p>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Danh mục -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">
-                                Danh mục
-                                <span id="selectedCategoryCount" class="ml-2 text-sm font-normal text-gray-500">(0 đã chọn)</span>
-                            </h4>
-                            <div id="categoryCheckboxList" class="space-y-2">
-                                <div class="flex items-center justify-center py-8 text-gray-400">
-                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Thông tin bổ sung -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
-                                    <input type="text" id="productStockQuantity" value="${formatNumber(product.stock_quantity || 0)}"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="15"
-                                        oninput="autoFormatNumberInput(this)"
-                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
-                                    <input type="number" id="productRating" min="0" max="5" step="0.1" value="${product.rating || 0}"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="4.9">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
-                                    <input type="text" id="productPurchases" value="${formatNumber(product.purchases || 0)}"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        placeholder="0"
-                                        oninput="autoFormatNumberInput(this)"
-                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
                                 </div>
                             </div>
                         </div>
@@ -1324,6 +1370,48 @@ async function editProduct(productId) {
                             </div>
                         </div>
                         
+                        <!-- Thông tin bổ sung -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin bổ sung</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tồn kho</label>
+                                    <input type="text" id="productStockQuantity" value="${formatNumber(product.stock_quantity || 0)}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="15"
+                                        oninput="autoFormatNumberInput(this)"
+                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Đánh giá</label>
+                                    <input type="number" id="productRating" min="0" max="5" step="0.1" value="${product.rating || 0}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="4.9">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Lượt mua</label>
+                                    <input type="text" id="productPurchases" value="${formatNumber(product.purchases || 0)}"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        placeholder="0"
+                                        oninput="autoFormatNumberInput(this)"
+                                        onpaste="setTimeout(() => autoFormatNumberInput(this), 0)">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Danh mục -->
+                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">
+                                Danh mục
+                                <span id="selectedCategoryCount" class="ml-2 text-sm font-normal text-gray-500">(0 đã chọn)</span>
+                            </h4>
+                            <div id="categoryCheckboxList" class="space-y-2">
+                                <div class="flex items-center justify-center py-8 text-gray-400">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Chi tiết sản phẩm -->
                         <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                             <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Chi tiết sản phẩm</h4>
@@ -1340,40 +1428,6 @@ async function editProduct(productId) {
                                     <textarea id="productDescription" rows="2"
                                         class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
                                         placeholder="Mô tả chi tiết về sản phẩm...">${escapeHtml(product.description || '')}</textarea>
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Ảnh sản phẩm</label>
-                                    
-                                    <!-- Image Preview -->
-                                    <div id="imagePreviewContainer" class="mb-3 ${product.image_url ? '' : 'hidden'}">
-                                        <div class="relative w-full h-48 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
-                                            <img id="imagePreview" src="${encodeURI(product.image_url || '')}" alt="Preview" class="w-full h-full object-contain">
-                                            <div class="absolute top-2 right-2">
-                                                <button type="button" onclick="clearImagePreview()" class="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg">
-                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex gap-2">
-                                        <input type="url" id="productImageURL" value="${escapeHtml(product.image_url || '')}"
-                                            class="flex-1 px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                            placeholder="URL ảnh hoặc upload file"
-                                            readonly
-                                            onchange="updateImagePreview(this.value)">
-                                        <label class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium cursor-pointer flex items-center gap-2">
-                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            Upload
-                                            <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                                        </label>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Chọn file ảnh để upload lên R2 Storage</p>
                                 </div>
                             </div>
                         </div>
