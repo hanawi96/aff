@@ -37,7 +37,7 @@ export async function getProfitReport(data, env, corsHeaders) {
             SELECT 
                 orders.id,
                 orders.order_id,
-                orders.order_date,
+                orders.created_at_unix,
                 orders.customer_name,
                 orders.customer_phone,
                 orders.commission,
@@ -126,7 +126,7 @@ export async function getProfitReport(data, env, corsHeaders) {
             orders: orders.map(order => ({
                 id: order.id,
                 order_id: order.order_id,
-                order_date: order.order_date,
+                created_at_unix: order.created_at_unix,
                 customer_name: order.customer_name,
                 total_amount: order.total_amount,
                 product_cost: order.product_cost,

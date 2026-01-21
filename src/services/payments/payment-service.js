@@ -390,7 +390,7 @@ export async function getUnpaidOrders(referralCode, env, corsHeaders) {
             SELECT 
                 o.id,
                 o.order_id,
-                o.order_date,
+                o.created_at_unix,
                 o.customer_name,
                 o.customer_phone,
                 o.address,
@@ -464,7 +464,7 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
                 o.referral_code,
                 o.id as order_id,
                 o.order_id as order_code,
-                o.order_date,
+                o.created_at_unix,
                 o.customer_name,
                 o.commission,
                 o.status,

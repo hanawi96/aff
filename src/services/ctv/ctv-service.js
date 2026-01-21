@@ -211,7 +211,7 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
         const { results: recentOrders } = await env.DB.prepare(`
             SELECT 
                 order_id,
-                order_date,
+                created_at_unix,
                 customer_name,
                 total_amount,
                 commission,
@@ -399,7 +399,7 @@ export async function updateCTV(data, env, corsHeaders) {
             data.referralCode
         ).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy CTV với mã này'
@@ -466,7 +466,7 @@ export async function bulkDeleteCTV(data, env, corsHeaders) {
             .bind(...referralCodes)
             .run();
 
-        const deletedCount = result.meta.changes;
+        const deletedCount = result.meta?.changes || 0;
         console.log(`✅ Deleted ${deletedCount} CTVs from database`);
 
         // 2. Sync to Google Sheets (async, fire-and-forget)

@@ -693,7 +693,7 @@ async function showProductDetail(productId) {
                 <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
                     <div class="flex-1">
                         <div class="text-sm font-medium text-gray-900">${escapeHtml(order.order_id)}</div>
-                        <div class="text-xs text-gray-500">${escapeHtml(order.customer_name || 'N/A')} • ${formatDate(order.order_date)}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(order.customer_name || 'N/A')} • ${formatDate(order.created_at_unix)}</div>
                     </div>
                     <div class="text-right">
                         <div class="text-sm font-bold text-gray-900">${order.quantity}x</div>

@@ -85,10 +85,9 @@ function calculateOrderTotals(order) {
 
                     return sum + subtotal;
                 }, 0);
-                console.warn(`⚠️ Using fallback cost calculation for order ${order.order_id}: ${productCost}`);
             }
         } catch (e) {
-            console.warn('Could not parse products JSON for cost calculation:', e);
+            // Silently handle parse errors for old orders
         }
     }
 

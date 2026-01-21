@@ -12,13 +12,8 @@
 
 async function initAddressSelector(duplicateData = null) {
     // Init address selector module
-    console.log('🔧 Initializing address selector...');
     if (!window.addressSelector.loaded) {
-        console.log('  - Loading address data...');
         await window.addressSelector.init();
-        console.log('  - Address data loaded:', window.addressSelector.loaded);
-    } else {
-        console.log('  - Address data already loaded');
     }
 
     const provinceSelect = document.getElementById('newOrderProvince');
@@ -29,30 +24,27 @@ async function initAddressSelector(duplicateData = null) {
     const hiddenAddress = document.getElementById('newOrderAddress');
 
     // Render provinces
-    console.log('  - Rendering provinces...');
     window.addressSelector.renderProvinces(provinceSelect);
-    console.log('  - Provinces in data:', window.addressSelector.data.provinces?.length || 0);
 
     // If duplicating order with address IDs, set them
     if (duplicateData?.province_id) {
-        console.log('✅ Setting address from duplicate data:');
-        console.log('  - Province ID:', duplicateData.province_id);
-        console.log('  - District ID:', duplicateData.district_id);
-        console.log('  - Ward ID:', duplicateData.ward_id);
-        console.log('  - Street:', duplicateData.street_address);
+        // Convert IDs to strings (select values are always strings)
+        const provinceId = String(duplicateData.province_id);
+        const districtId = duplicateData.district_id ? String(duplicateData.district_id) : null;
+        const wardId = duplicateData.ward_id ? String(duplicateData.ward_id) : null;
 
         // Set province
-        provinceSelect.value = duplicateData.province_id;
+        provinceSelect.value = provinceId;
 
         // Render and set district
-        if (duplicateData.district_id) {
-            window.addressSelector.renderDistricts(districtSelect, duplicateData.province_id);
-            districtSelect.value = duplicateData.district_id;
+        if (districtId) {
+            window.addressSelector.renderDistricts(districtSelect, provinceId);
+            districtSelect.value = districtId;
 
             // Render and set ward
-            if (duplicateData.ward_id) {
-                window.addressSelector.renderWards(wardSelect, duplicateData.province_id, duplicateData.district_id);
-                wardSelect.value = duplicateData.ward_id;
+            if (wardId) {
+                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
+                wardSelect.value = wardId;
             }
         }
 
@@ -60,8 +52,6 @@ async function initAddressSelector(duplicateData = null) {
         if (duplicateData.street_address) {
             streetInput.value = duplicateData.street_address;
         }
-
-        console.log('✅ Address set successfully from IDs!');
     }
 
     // Update preview function

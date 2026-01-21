@@ -345,7 +345,7 @@ function showCustomerModal(customer) {
                                     <span class="text-lg font-bold text-green-600">${formatCurrency(order.total_amount)}</span>
                                 </div>
                                 <div class="flex items-center justify-between text-xs text-gray-500">
-                                    <span>${formatDate(order.order_date)}</span>
+                                    <span>${formatDate(order.created_at_unix)}</span>
                                     ${order.referral_code ? `<span class="text-purple-600">CTV: ${escapeHtml(order.referral_code)}</span>` : ''}
                                 </div>
                             </div>

@@ -12,8 +12,8 @@ export async function getAllCustomers(env, corsHeaders) {
                 MAX(province_name) as province_name,
                 COUNT(*) as total_orders,
                 SUM(total_amount) as total_spent,
-                MAX(order_date) as last_order_date,
-                MIN(order_date) as first_order_date,
+                MAX(created_at_unix) as last_order_date,
+                MIN(created_at_unix) as first_order_date,
                 GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
             FROM orders
             WHERE customer_phone IS NOT NULL AND customer_phone != ''
@@ -129,8 +129,8 @@ export async function getCustomerDetail(phone, env, corsHeaders) {
                 MAX(address) as address,
                 COUNT(*) as total_orders,
                 SUM(total_amount) as total_spent,
-                MAX(order_date) as last_order_date,
-                MIN(order_date) as first_order_date,
+                MAX(created_at_unix) as last_order_date,
+                MIN(created_at_unix) as first_order_date,
                 GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
             FROM orders
             WHERE customer_phone = ?
@@ -149,7 +149,7 @@ export async function getCustomerDetail(phone, env, corsHeaders) {
             SELECT 
                 id,
                 order_id,
-                order_date,
+                created_at_unix,
                 total_amount,
                 status,
                 referral_code,
@@ -163,7 +163,7 @@ export async function getCustomerDetail(phone, env, corsHeaders) {
                 street_address
             FROM orders 
             WHERE customer_phone = ? 
-            ORDER BY order_date DESC
+            ORDER BY created_at_unix DESC
         `).bind(phone).all();
 
         // Calculate metrics
@@ -228,8 +228,8 @@ export async function searchCustomers(query, env, corsHeaders) {
                 MAX(address) as address,
                 COUNT(*) as total_orders,
                 SUM(total_amount) as total_spent,
-                MAX(order_date) as last_order_date,
-                MIN(order_date) as first_order_date,
+                MAX(created_at_unix) as last_order_date,
+                MIN(created_at_unix) as first_order_date,
                 GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
             FROM orders
             WHERE (customer_name LIKE ? OR customer_phone LIKE ?)

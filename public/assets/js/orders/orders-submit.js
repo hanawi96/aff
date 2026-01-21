@@ -57,26 +57,16 @@ async function submitNewOrder() {
     const districtSelect = document.getElementById('newOrderDistrict');
     const wardSelect = document.getElementById('newOrderWard');
     
-    const provinceId = provinceSelect?.value || null;
-    const districtId = districtSelect?.value || null;
-    const wardId = wardSelect?.value || null;
+    // Get values and convert empty strings to null
+    const provinceId = provinceSelect?.value?.trim() || null;
+    const districtId = districtSelect?.value?.trim() || null;
+    const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
     
-    // Get names from selected options
-    const provinceName = provinceSelect?.selectedOptions[0]?.text || null;
-    const districtName = districtSelect?.selectedOptions[0]?.text || null;
-    const wardName = wardSelect?.selectedOptions[0]?.text || null;
-
-    console.log('📍 Address data:', {
-        address,
-        provinceId,
-        provinceName,
-        districtId,
-        districtName,
-        wardId,
-        wardName,
-        streetAddress
-    });
+    // Get names from selected options (only if value is not empty)
+    const provinceName = (provinceId && provinceSelect?.selectedOptions[0]?.text) || null;
+    const districtName = (districtId && districtSelect?.selectedOptions[0]?.text) || null;
+    const wardName = (wardId && wardSelect?.selectedOptions[0]?.text) || null;
 
     // Get discount data
     const discountId = document.getElementById('appliedDiscountId')?.value || null;

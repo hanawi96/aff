@@ -807,7 +807,7 @@ async function saveCustomerInfo(orderId, orderCode) {
 // ============================================
 
 // Edit address
-function editAddress(orderId, orderCode) {
+async function editAddress(orderId, orderCode) {
     // Find the order
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) {
@@ -815,7 +815,10 @@ function editAddress(orderId, orderCode) {
         return;
     }
 
-    const address = order.address || '';
+    // Load address data if not loaded
+    if (!window.addressSelector.loaded) {
+        await window.addressSelector.init();
+    }
 
     // Create modal
     const modal = document.createElement('div');
@@ -844,31 +847,38 @@ function editAddress(orderId, orderCode) {
             </div>
 
             <!-- Form -->
-            <div class="p-6">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <div class="p-6 space-y-4">
+                <!-- Address 4 levels -->
+                <div class="bg-blue-50 rounded-lg p-4 space-y-3">
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">
                         Địa chỉ giao hàng <span class="text-red-500">*</span>
                     </label>
-                    <div class="relative">
-                        <div class="absolute top-3 left-3 pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <select id="editOrderProvince" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <option value="">-- Chọn Tỉnh/TP --</option>
+                            </select>
                         </div>
-                        <textarea 
-                            id="editAddressInput" 
-                            rows="4"
-                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
-                            placeholder="Nhập địa chỉ đầy đủ: Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
-                        >${escapeHtml(address)}</textarea>
+                        <div>
+                            <select id="editOrderDistrict" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <option value="">-- Chọn Quận/Huyện --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="editOrderWard" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <option value="">-- Chọn Phường/Xã --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" id="editOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
+                        </div>
                     </div>
-                    <p class="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Nhập địa chỉ chi tiết để giao hàng chính xác
-                    </p>
+                    
+                    <div class="mt-2 p-2 bg-white rounded border border-blue-200">
+                        <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
+                        <p id="editOrderAddressPreview" class="text-sm text-gray-800 font-medium">Vui lòng chọn địa chỉ</p>
+                    </div>
                 </div>
             </div>
 
@@ -890,13 +900,68 @@ function editAddress(orderId, orderCode) {
 
     document.body.appendChild(modal);
 
-    // Focus textarea immediately
-    const textarea = document.getElementById('editAddressInput');
-    if (textarea) {
-        textarea.focus();
-        // Move cursor to end
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    // Setup address selector
+    const provinceSelect = document.getElementById('editOrderProvince');
+    const districtSelect = document.getElementById('editOrderDistrict');
+    const wardSelect = document.getElementById('editOrderWard');
+    const streetInput = document.getElementById('editOrderStreetAddress');
+    const addressPreview = document.getElementById('editOrderAddressPreview');
+
+    // Render provinces
+    window.addressSelector.renderProvinces(provinceSelect);
+
+    // Set current address if available
+    if (order.province_id) {
+        const provinceId = String(order.province_id);
+        const districtId = order.district_id ? String(order.district_id) : null;
+        const wardId = order.ward_id ? String(order.ward_id) : null;
+
+        provinceSelect.value = provinceId;
+        
+        if (districtId) {
+            window.addressSelector.renderDistricts(districtSelect, provinceId);
+            districtSelect.value = districtId;
+            
+            if (wardId) {
+                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
+                wardSelect.value = wardId;
+            }
+        }
+        
+        if (order.street_address) {
+            streetInput.value = order.street_address;
+        }
     }
+
+    // Update preview function
+    function updateAddressPreview() {
+        const provinceId = provinceSelect.value;
+        const districtId = districtSelect.value;
+        const wardId = wardSelect.value;
+        const street = streetInput.value;
+
+        const fullAddress = window.addressSelector.generateFullAddress(
+            street,
+            provinceId,
+            districtId,
+            wardId
+        );
+
+        addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
+    }
+
+    // Setup cascade
+    window.addressSelector.setupCascade(
+        provinceSelect,
+        districtSelect,
+        wardSelect,
+        updateAddressPreview
+    );
+
+    streetInput.addEventListener('input', updateAddressPreview);
+
+    // Initial preview update
+    updateAddressPreview();
 
     // Close on Escape
     const escapeHandler = (e) => {
@@ -906,7 +971,6 @@ function editAddress(orderId, orderCode) {
         }
     };
     document.addEventListener('keydown', escapeHandler);
-
 }
 
 // Close edit address modal
@@ -919,21 +983,43 @@ function closeEditAddressModal() {
 
 // Save address
 async function saveAddress(orderId, orderCode) {
-    // Get value from form
-    const address = document.getElementById('editAddressInput')?.value.trim();
+    // Get values from form
+    const provinceSelect = document.getElementById('editOrderProvince');
+    const districtSelect = document.getElementById('editOrderDistrict');
+    const wardSelect = document.getElementById('editOrderWard');
+    const streetInput = document.getElementById('editOrderStreetAddress');
+
+    // Get IDs and convert empty strings to null
+    const provinceId = provinceSelect?.value?.trim() || null;
+    const districtId = districtSelect?.value?.trim() || null;
+    const wardId = wardSelect?.value?.trim() || null;
+    const streetAddress = streetInput?.value?.trim() || null;
+
+    // Get names from selected options
+    const provinceName = (provinceId && provinceSelect?.selectedOptions[0]?.text) || null;
+    const districtName = (districtId && districtSelect?.selectedOptions[0]?.text) || null;
+    const wardName = (wardId && wardSelect?.selectedOptions[0]?.text) || null;
+
+    // Generate full address
+    const fullAddress = window.addressSelector.generateFullAddress(
+        streetAddress,
+        provinceId,
+        districtId,
+        wardId
+    );
 
     // Validate
-    if (!address) {
-        showToast('Địa chỉ không được để trống', 'error');
+    if (!fullAddress || fullAddress === 'Vui lòng chọn địa chỉ') {
+        showToast('Vui lòng chọn địa chỉ đầy đủ', 'error');
         return;
     }
 
-    if (address.length < 10) {
-        showToast('Địa chỉ quá ngắn. Vui lòng nhập địa chỉ đầy đủ', 'error');
+    if (!provinceId || !districtId || !wardId) {
+        showToast('Vui lòng chọn đầy đủ Tỉnh/Quận/Xã', 'error');
         return;
     }
 
-    // Close modal and show loading toast với ID
+    // Close modal and show loading toast
     closeEditAddressModal();
     const saveId = `save-address-${orderId}`;
     showToast('Đang lưu thay đổi...', 'info', 0, saveId);
@@ -954,20 +1040,41 @@ async function saveAddress(orderId, orderCode) {
             body: JSON.stringify({
                 action: 'updateAddress',
                 orderId: orderId,
-                address: address
+                address: fullAddress,
+                province_id: provinceId,
+                province_name: provinceName,
+                district_id: districtId,
+                district_name: districtName,
+                ward_id: wardId,
+                ward_name: wardName,
+                street_address: streetAddress
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].address = address;
+            // Update local data with all address fields
+            allOrdersData[orderIndex].address = fullAddress;
+            allOrdersData[orderIndex].province_id = provinceId;
+            allOrdersData[orderIndex].province_name = provinceName;
+            allOrdersData[orderIndex].district_id = districtId;
+            allOrdersData[orderIndex].district_name = districtName;
+            allOrdersData[orderIndex].ward_id = wardId;
+            allOrdersData[orderIndex].ward_name = wardName;
+            allOrdersData[orderIndex].street_address = streetAddress;
 
             // Update filtered data if exists
             const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
             if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].address = address;
+                filteredOrdersData[filteredIndex].address = fullAddress;
+                filteredOrdersData[filteredIndex].province_id = provinceId;
+                filteredOrdersData[filteredIndex].province_name = provinceName;
+                filteredOrdersData[filteredIndex].district_id = districtId;
+                filteredOrdersData[filteredIndex].district_name = districtName;
+                filteredOrdersData[filteredIndex].ward_id = wardId;
+                filteredOrdersData[filteredIndex].ward_name = wardName;
+                filteredOrdersData[filteredIndex].street_address = streetAddress;
             }
 
             // Re-render the table to show updated info

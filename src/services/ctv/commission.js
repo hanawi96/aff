@@ -26,7 +26,7 @@ export async function updateCTVCommission(data, env, corsHeaders) {
             WHERE referral_code = ?
         `).bind(rate, Date.now(), data.referralCode).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy CTV với mã này'
@@ -115,7 +115,7 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
             .bind(rate, Date.now(), ...referralCodes)
             .run();
 
-        const updatedCount = result.meta.changes;
+        const updatedCount = result.meta?.changes || 0;
         console.log(`✅ Updated ${updatedCount} CTVs in database`);
 
         // 2. Đồng bộ sang Google Sheets (async, không chờ)

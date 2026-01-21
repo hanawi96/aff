@@ -258,7 +258,7 @@ export async function createOrder(data, env, corsHeaders) {
         const orderTimestamp = new Date(orderDate).getTime();
         const result = await env.DB.prepare(`
             INSERT INTO orders (
-                order_id, order_date, customer_name, customer_phone, 
+                order_id, customer_name, customer_phone, 
                 address, products, total_amount, payment_method, 
                 status, referral_code, commission, commission_rate, ctv_phone, notes,
                 shipping_fee, shipping_cost, packaging_cost, packaging_details,
@@ -266,10 +266,9 @@ export async function createOrder(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
-            orderDate,
             data.customer.name,
             data.customer.phone,
             data.customer.address || data.address || '',
@@ -548,7 +547,7 @@ export async function updateCustomerInfo(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.customerName, data.customerPhone, data.orderId).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -589,14 +588,31 @@ export async function updateAddress(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in database
+        // Update in database with all address fields
         const result = await env.DB.prepare(`
             UPDATE orders 
-            SET address = ?
+            SET address = ?,
+                province_id = ?,
+                province_name = ?,
+                district_id = ?,
+                district_name = ?,
+                ward_id = ?,
+                ward_name = ?,
+                street_address = ?
             WHERE id = ?
-        `).bind(data.address, data.orderId).run();
+        `).bind(
+            data.address,
+            data.province_id || null,
+            data.province_name || null,
+            data.district_id || null,
+            data.district_name || null,
+            data.ward_id || null,
+            data.ward_name || null,
+            data.street_address || null,
+            data.orderId
+        ).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -653,7 +669,7 @@ export async function updateAmount(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.totalAmount, data.commission || 0, data.orderId).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -692,7 +708,9 @@ export async function deleteOrder(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.orderId).run();
 
-        if (result.meta.changes === 0) {
+        // Check if deletion was successful
+        // Note: Turso may not always return meta.changes, so we check if it exists
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -741,7 +759,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.status, data.orderId).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -803,7 +821,7 @@ export async function toggleOrderPriority(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(newPriority, data.orderId).run();
 
-        if (result.meta.changes === 0) {
+        if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
                 success: false,
                 error: 'Không thể cập nhật'

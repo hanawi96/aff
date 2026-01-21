@@ -434,7 +434,7 @@ export async function bulkExtendDiscounts(data, env, corsHeaders) {
                     `UPDATE discounts SET expiry_date = ? WHERE id = ?`
                 ).bind(data.newExpiryDate, id).run();
                 
-                if (result.success && result.meta.changes > 0) {
+                if (result.success && result.meta?.changes > 0) {
                     updatedCount++;
                 } else {
                     failedIds.push(id);
