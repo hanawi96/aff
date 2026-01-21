@@ -27,8 +27,8 @@ async function loadPackagingConfig() {
         const data = await response.json();
 
         if (data.success && data.config) {
-            // Filter only packaging items (category_id = 5)
-            packagingConfig = data.config.filter(item => item.category_id === 5);
+            // Load all config items (including shipping fees)
+            packagingConfig = data.config;
             console.log('📦 Loaded packaging config:', packagingConfig.length, 'items');
         }
     } catch (error) {
@@ -43,10 +43,12 @@ function calculatePackagingCost() {
         return 0;
     }
 
-    // Sum all packaging items (category_id = 5)
-    const totalPackagingCost = packagingConfig.reduce((sum, item) => {
-        return sum + (item.item_cost || 0);
-    }, 0);
+    // Sum only packaging items (category_id = 5), exclude shipping fees
+    const totalPackagingCost = packagingConfig
+        .filter(item => item.category_id === 5)
+        .reduce((sum, item) => {
+            return sum + (item.item_cost || 0);
+        }, 0);
 
     return totalPackagingCost;
 }

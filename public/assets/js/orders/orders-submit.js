@@ -52,18 +52,18 @@ async function submitNewOrder() {
     const priorityCheckbox = document.getElementById('newOrderPriority');
     const isPriority = priorityCheckbox?.checked ? 1 : 0;
 
-    // Get address data (both text and structured)
+    // Get address data (IDs are now strings in database - no conversion needed)
     const provinceSelect = document.getElementById('newOrderProvince');
     const districtSelect = document.getElementById('newOrderDistrict');
     const wardSelect = document.getElementById('newOrderWard');
     
-    // Get values and convert empty strings to null
+    // Get string values directly (already in correct format)
     const provinceId = provinceSelect?.value?.trim() || null;
     const districtId = districtSelect?.value?.trim() || null;
     const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
     
-    // Get names from selected options (only if value is not empty)
+    // Get names from selected options
     const provinceName = (provinceId && provinceSelect?.selectedOptions[0]?.text) || null;
     const districtName = (districtId && districtSelect?.selectedOptions[0]?.text) || null;
     const wardName = (wardId && wardSelect?.selectedOptions[0]?.text) || null;

@@ -912,20 +912,32 @@ async function editAddress(orderId, orderCode) {
 
     // Set current address if available
     if (order.province_id) {
+        // IDs are now stored as strings in database (already padded)
         const provinceId = String(order.province_id);
         const districtId = order.district_id ? String(order.district_id) : null;
         const wardId = order.ward_id ? String(order.ward_id) : null;
 
+        // Set province first
         provinceSelect.value = provinceId;
         
+        // Render districts and set value
         if (districtId) {
             window.addressSelector.renderDistricts(districtSelect, provinceId);
-            districtSelect.value = districtId;
-            
-            if (wardId) {
-                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
-                wardSelect.value = wardId;
-            }
+            // Use setTimeout to ensure options are rendered before setting value
+            setTimeout(() => {
+                districtSelect.value = districtId;
+                
+                // Render wards and set value
+                if (wardId) {
+                    window.addressSelector.renderWards(wardSelect, provinceId, districtId);
+                    // Use setTimeout again for ward
+                    setTimeout(() => {
+                        wardSelect.value = wardId;
+                        // Update preview after all values are set
+                        updateAddressPreview();
+                    }, 50);
+                }
+            }, 50);
         }
         
         if (order.street_address) {
@@ -960,8 +972,7 @@ async function editAddress(orderId, orderCode) {
 
     streetInput.addEventListener('input', updateAddressPreview);
 
-    // Initial preview update
-    updateAddressPreview();
+    // Note: Don't call updateAddressPreview() here - it will be called after ward is set in setTimeout
 
     // Close on Escape
     const escapeHandler = (e) => {
@@ -989,7 +1000,7 @@ async function saveAddress(orderId, orderCode) {
     const wardSelect = document.getElementById('editOrderWard');
     const streetInput = document.getElementById('editOrderStreetAddress');
 
-    // Get IDs and convert empty strings to null
+    // Get IDs - now stored as strings in database (no conversion needed)
     const provinceId = provinceSelect?.value?.trim() || null;
     const districtId = districtSelect?.value?.trim() || null;
     const wardId = wardSelect?.value?.trim() || null;

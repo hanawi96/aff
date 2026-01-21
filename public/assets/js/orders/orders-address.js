@@ -28,7 +28,7 @@ async function initAddressSelector(duplicateData = null) {
 
     // If duplicating order with address IDs, set them
     if (duplicateData?.province_id) {
-        // Convert IDs to strings (select values are always strings)
+        // IDs are now stored as strings in database (already padded)
         const provinceId = String(duplicateData.province_id);
         const districtId = duplicateData.district_id ? String(duplicateData.district_id) : null;
         const wardId = duplicateData.ward_id ? String(duplicateData.ward_id) : null;
@@ -36,16 +36,24 @@ async function initAddressSelector(duplicateData = null) {
         // Set province
         provinceSelect.value = provinceId;
 
-        // Render and set district
+        // Render and set district with setTimeout to ensure options are rendered
         if (districtId) {
             window.addressSelector.renderDistricts(districtSelect, provinceId);
-            districtSelect.value = districtId;
+            setTimeout(() => {
+                districtSelect.value = districtId;
 
-            // Render and set ward
-            if (wardId) {
-                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
-                wardSelect.value = wardId;
-            }
+                // Render and set ward with setTimeout
+                if (wardId) {
+                    window.addressSelector.renderWards(wardSelect, provinceId, districtId);
+                    setTimeout(() => {
+                        wardSelect.value = wardId;
+                        // Update preview after all values are set
+                        if (duplicateData?.province_id) {
+                            updateAddressPreview();
+                        }
+                    }, 50);
+                }
+            }, 50);
         }
 
         // Set street address
@@ -83,8 +91,5 @@ async function initAddressSelector(duplicateData = null) {
     // Street address input
     streetInput.addEventListener('input', updateAddressPreview);
 
-    // Update preview after setting address from duplicate
-    if (duplicateData?.province_id) {
-        updateAddressPreview();
-    }
+    // Note: updateAddressPreview() is called inside setTimeout after ward is set
 }

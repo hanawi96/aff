@@ -63,8 +63,10 @@ function updateOrderSummary() {
     // Revenue = product total + shipping fee - discount
     const totalRevenue = productTotal + shippingFee - discountAmount;
 
-    // Calculate packaging costs dynamically from category_id = 5
-    const packagingPerOrderCost = packagingConfig.reduce((sum, item) => sum + (item.item_cost || 0), 0);
+    // Calculate packaging costs dynamically from category_id = 5 only
+    const packagingPerOrderCost = packagingConfig
+        .filter(item => item.category_id === 5)
+        .reduce((sum, item) => sum + (item.item_cost || 0), 0);
     const totalPackaging = packagingPerOrderCost;
 
     // Build display names map
@@ -73,9 +75,9 @@ function updateOrderSummary() {
         packagingDisplayNames[item.item_name] = item.display_name || item.item_name;
     });
     
-    // Store globally for use in modal rendering
+    // Store globally for use in modal rendering (only packaging items, not shipping fees)
     window.packagingDisplayNames = packagingDisplayNames;
-    window.packagingItems = packagingConfig; // Store full config for rendering
+    window.packagingItems = packagingConfig.filter(item => item.category_id === 5); // Only packaging items
 
     // Calculate commission (only if referral code exists)
     let commission = 0;
