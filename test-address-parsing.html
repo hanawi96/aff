@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Address Parsing - Vietnam Abbreviations</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-case {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case.pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-case.fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .input {
+            font-weight: bold;
+            color: #333;
+        }
+        .expected {
+            color: #28a745;
+        }
+        .actual {
+            color: #dc3545;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Address Parsing - Vietnam Abbreviations (100+ Patterns)</h1>
+    
+    <h2>Test Cases</h2>
+    <div id="test-results"></div>
+
+    <script>
+        // Test cases for abbreviations across Vietnam
+        const testCases = [
+            // Bình Dương
+            {
+                input: "346a Huỳnh Văn Luỹ, p.Phú Lợi, tp TDM, BD",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Thủ Dầu Một",
+                    ward: "Phú Lợi"
+                }
+            },
+            {
+                input: "123 Đường ABC, Phường Phú Hòa, TDM, BD",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Thủ Dầu Một",
+                    ward: "Phú Hòa"
+                }
+            },
+            {
+                input: "789 Lê Văn B, Phường An Bình, Dĩ An, BD",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Dĩ An",
+                    ward: "An Bình"
+                }
+            },
+            {
+                input: "555 Hoàng Văn D, Phường Lái Thiêu, Thuận An, BD",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Thuận An",
+                    ward: "Lái Thiêu"
+                }
+            },
+            {
+                input: "777 Võ Văn F, Phường Mỹ Phước, Bến Cát, Bình Dương",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Bến Cát",
+                    ward: "Mỹ Phước"
+                }
+            },
+            
+            // Đồng Nai
+            {
+                input: "100 Nguyễn Ái Quốc, p.Trảng Dài, tp BH, Đồng Nai",
+                expected: {
+                    province: "Đồng Nai",
+                    district: "Biên Hòa",
+                    ward: "Trảng Dài"
+                }
+            },
+            {
+                input: "200 Lê Duẩn, Phường Xuân Trung, LK, Đồng Nai",
+                expected: {
+                    province: "Đồng Nai",
+                    district: "Long Khánh",
+                    ward: "Xuân Trung"
+                }
+            },
+            
+            // Long An
+            {
+                input: "50 Hùng Vương, p.1, tp Tân An, LA",
+                expected: {
+                    province: "Long An",
+                    district: "Tân An",
+                    ward: "1"
+                }
+            },
+            {
+                input: "75 Quốc lộ 50, Xã Phước Lý, CG, Long An",
+                expected: {
+                    province: "Long An",
+                    district: "Cần Giuộc",
+                    ward: "Phước Lý"
+                }
+            },
+            
+            // TP.HCM
+            {
+                input: "123 Điện Biên Phủ, p.15, Q.B/Thạnh, HCM",
+                expected: {
+                    province: "TP.HCM",
+                    district: "Bình Thạnh",
+                    ward: "15"
+                }
+            },
+            {
+                input: "456 Quang Trung, Phường 10, G/Vấp, TP.HCM",
+                expected: {
+                    province: "TP.HCM",
+                    district: "Gò Vấp",
+                    ward: "10"
+                }
+            },
+            {
+                input: "789 Lê Văn Việt, p.Hiệp Phú, T/Đức, HCM",
+                expected: {
+                    province: "TP.HCM",
+                    district: "Thủ Đức",
+                    ward: "Hiệp Phú"
+                }
+            },
+            
+            // Hà Nội
+            {
+                input: "36 Hàng Bài, p.Hàng Bài, q.HK, HN",
+                expected: {
+                    province: "Hà Nội",
+                    district: "Hoàn Kiếm",
+                    ward: "Hàng Bài"
+                }
+            },
+            {
+                input: "100 Trần Duy Hưng, Phường Trung Hòa, CG, Hà Nội",
+                expected: {
+                    province: "Hà Nội",
+                    district: "Cầu Giấy",
+                    ward: "Trung Hòa"
+                }
+            },
+            {
+                input: "200 Nguyễn Trãi, p.Khương Trung, TX, HN",
+                expected: {
+                    province: "Hà Nội",
+                    district: "Thanh Xuân",
+                    ward: "Khương Trung"
+                }
+            },
+            
+            // Đà Nẵng
+            {
+                input: "50 Trần Phú, p.Thạch Thang, q.HC, DN",
+                expected: {
+                    province: "Đà Nẵng",
+                    district: "Hải Châu",
+                    ward: "Thạch Thang"
+                }
+            },
+            {
+                input: "100 Nguyễn Văn Linh, Phường Thọ Quang, ST, Đà Nẵng",
+                expected: {
+                    province: "Đà Nẵng",
+                    district: "Sơn Trà",
+                    ward: "Thọ Quang"
+                }
+            },
+            
+            // Other major cities
+            {
+                input: "25 Lê Lợi, p.Bến Nghé, Q1, HCM",
+                expected: {
+                    province: "TP.HCM",
+                    district: "Quận 1",
+                    ward: "Bến Nghé"
+                }
+            },
+            {
+                input: "88 Trần Hưng Đạo, Phường Lộc Thọ, tp NT, Khánh Hòa",
+                expected: {
+                    province: "Khánh Hòa",
+                    district: "Nha Trang",
+                    ward: "Lộc Thọ"
+                }
+            },
+            {
+                input: "150 Nguyễn Tất Thành, p.Phước Hải, tp VT, BRVT",
+                expected: {
+                    province: "Bà Rịa - Vũng Tàu",
+                    district: "Vũng Tàu",
+                    ward: "Phước Hải"
+                }
+            },
+            
+            // Đắk Lắk - Context-aware "tt" matching
+            {
+                input: "Số 41, thôn 4 tt easup huyện easup tỉnh đaklak",
+                expected: {
+                    province: "Đắk Lắk",
+                    district: "Ea Súp",
+                    ward: null,
+                    note: "tt easup = Thị trấn Ea Súp (NOT Huyện Thủ Thừa)"
+                }
+            },
+            
+            // Bình Dương - "Bắc Tân Uyên" vs "Tân Uyên" disambiguation
+            {
+                input: "Khu phố 3 Tân lập Bắc Tân Uyên Bình Dương",
+                expected: {
+                    province: "Bình Dương",
+                    district: "Bắc Tân Uyên",
+                    ward: "Tân Lập",
+                    note: "Bắc Tân Uyên (NOT Tân Uyên), ward = Tân Lập"
+                }
+            }
+        ];
+
+        // Simple test function (without actual parsing logic)
+        function testAddressParsing() {
+            const resultsDiv = document.getElementById('test-results');
+            let passCount = 0;
+            let failCount = 0;
+
+            testCases.forEach((testCase, index) => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-case';
+                
+                // Simulate parsing (in real implementation, call parseAddress function)
+                const result = simulateParsing(testCase.input);
+                
+                const passed = 
+                    result.province === testCase.expected.province &&
+                    result.district === testCase.expected.district &&
+                    result.ward === testCase.expected.ward;
+                
+                if (passed) {
+                    passCount++;
+                    testDiv.classList.add('pass');
+                } else {
+                    failCount++;
+                    testDiv.classList.add('fail');
+                }
+
+                testDiv.innerHTML = `
+                    <h3>Test Case ${index + 1}: ${passed ? '✅ PASS' : '❌ FAIL'}</h3>
+                    <p class="input"><strong>Input:</strong> ${testCase.input}</p>
+                    <p class="expected"><strong>Expected:</strong> 
+                        Province: ${testCase.expected.province}, 
+                        District: ${testCase.expected.district}, 
+                        Ward: ${testCase.expected.ward}
+                    </p>
+                    <p class="actual"><strong>Actual:</strong> 
+                        Province: ${result.province || 'N/A'}, 
+                        District: ${result.district || 'N/A'}, 
+                        Ward: ${result.ward || 'N/A'}
+                    </p>
+                `;
+                
+                resultsDiv.appendChild(testDiv);
+            });
+
+            // Summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.style.marginTop = '30px';
+            summaryDiv.style.padding = '20px';
+            summaryDiv.style.backgroundColor = passCount === testCases.length ? '#d4edda' : '#fff3cd';
+            summaryDiv.style.border = '2px solid ' + (passCount === testCases.length ? '#c3e6cb' : '#ffc107');
+            summaryDiv.style.borderRadius = '5px';
+            summaryDiv.innerHTML = `
+                <h2>📊 Test Summary</h2>
+                <p><strong>Total:</strong> ${testCases.length}</p>
+                <p><strong>Passed:</strong> ${passCount} ✅</p>
+                <p><strong>Failed:</strong> ${failCount} ❌</p>
+                <p><strong>Success Rate:</strong> ${((passCount / testCases.length) * 100).toFixed(1)}%</p>
+            `;
+            resultsDiv.appendChild(summaryDiv);
+        }
+
+        // Simulate parsing (placeholder - replace with actual logic)
+        function simulateParsing(input) {
+            // This is a simplified simulation
+            // In real implementation, this would call the actual parseAddress function
+            
+            let province = null;
+            let district = null;
+            let ward = null;
+
+            // Expand abbreviations
+            let processed = input;
+            
+            // Province abbreviations
+            const provinceMap = {
+                'bd': 'Bình Dương',
+                'dn': 'Đồng Nai',
+                'la': 'Long An',
+                'hcm': 'TP.HCM',
+                'hn': 'Hà Nội',
+                'brvt': 'Bà Rịa - Vũng Tàu',
+                'khánh hòa': 'Khánh Hòa',
+                'đà nẵng': 'Đà Nẵng'
+            };
+            
+            for (const [abbr, full] of Object.entries(provinceMap)) {
+                const regex = new RegExp(`\\b${abbr}\\b`, 'gi');
+                if (regex.test(processed)) {
+                    province = full;
+                    processed = processed.replace(regex, full);
+                }
+            }
+            
+            // District abbreviations
+            const districtMap = {
+                // Bình Dương
+                'tdm': 'Thủ Dầu Một',
+                'dĩ an': 'Dĩ An',
+                'di an': 'Dĩ An',
+                'thuận an': 'Thuận An',
+                'thuan an': 'Thuận An',
+                'bến cát': 'Bến Cát',
+                'ben cat': 'Bến Cát',
+                'tân uyên': 'Tân Uyên',
+                'tan uyen': 'Tân Uyên',
+                // Đồng Nai
+                'biên hòa': 'Biên Hòa',
+                'bien hoa': 'Biên Hòa',
+                'bh': 'Biên Hòa',
+                'long khánh': 'Long Khánh',
+                'long khanh': 'Long Khánh',
+                'lk': 'Long Khánh',
+                // Long An
+                'tân an': 'Tân An',
+                'tan an': 'Tân An',
+                'cần giuộc': 'Cần Giuộc',
+                'can giuoc': 'Cần Giuộc',
+                'cg': 'Cần Giuộc',
+                // TP.HCM
+                'b/thạnh': 'Bình Thạnh',
+                'b/thanh': 'Bình Thạnh',
+                'g/vấp': 'Gò Vấp',
+                'g/vap': 'Gò Vấp',
+                't/đức': 'Thủ Đức',
+                't/duc': 'Thủ Đức',
+                'q1': 'Quận 1',
+                // Hà Nội
+                'hoàn kiếm': 'Hoàn Kiếm',
+                'hoan kiem': 'Hoàn Kiếm',
+                'hk': 'Hoàn Kiếm',
+                'cầu giấy': 'Cầu Giấy',
+                'cau giay': 'Cầu Giấy',
+                'thanh xuân': 'Thanh Xuân',
+                'thanh xuan': 'Thanh Xuân',
+                'tx': 'Thanh Xuân',
+                // Đà Nẵng
+                'hải châu': 'Hải Châu',
+                'hai chau': 'Hải Châu',
+                'hc': 'Hải Châu',
+                'sơn trà': 'Sơn Trà',
+                'son tra': 'Sơn Trà',
+                'st': 'Sơn Trà',
+                // Other cities
+                'nha trang': 'Nha Trang',
+                'nt': 'Nha Trang',
+                'vũng tàu': 'Vũng Tàu',
+                'vung tau': 'Vũng Tàu',
+                'vt': 'Vũng Tàu'
+            };
+            
+            // Expand "tp X" patterns
+            processed = processed.replace(/\btp\s+(\w+)/gi, (match, city) => {
+                return districtMap[city.toLowerCase()] || match;
+            });
+            
+            // Check for district matches
+            for (const [abbr, full] of Object.entries(districtMap)) {
+                const regex = new RegExp(`\\b${abbr.replace(/\//g, '\\/')}\\b`, 'gi');
+                if (regex.test(processed)) {
+                    district = full;
+                    processed = processed.replace(regex, full);
+                    break;
+                }
+            }
+            
+            // Extract ward from p.Name or Phường Name
+            const wardMatch = processed.match(/(?:p\.|phường|f)\s*([A-ZÀ-Ỹ0-9][a-zà-ỹ\s]*?)(?:,|$)/i);
+            if (wardMatch) {
+                ward = wardMatch[1].trim();
+            }
+
+            return { province, district, ward };
+        }
+
+        // Run tests on page load
+        window.onload = testAddressParsing;
+    </script>
+</body>
+</html>

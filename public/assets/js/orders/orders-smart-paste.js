@@ -811,6 +811,16 @@ async function parseAddress(addressText) {
     // Safe: Only affects patterns with Q./q. followed by space and word
     processedAddress = processedAddress.replace(/\b([Qq])\.(\s+)(\w+)/g, '$1.$3');
     
+    // Step 3: CRITICAL FIX - Normalize "p.Name" → "Phường Name" (expand immediately)
+    // This prevents "p." from being split as separate part
+    // Pattern: "p.Phú Lợi" → "Phường Phú Lợi"
+    // IMPORTANT: Match both "p." and "P." with optional space
+    processedAddress = processedAddress.replace(/\b([Pp])\.(\s*)([A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+)/g, 'Phường $3');
+    
+    // Step 4: Normalize "q.Name" → "Quận Name" (expand immediately)
+    // Pattern: "q.Tân Bình" → "Quận Tân Bình"
+    processedAddress = processedAddress.replace(/\b([Qq])\.(\s*)([A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+)/g, 'Quận $3');
+    
     if (processedAddress !== addressText) {
         console.log('  ✓ Normalized:', addressText, '→', processedAddress);
     } else {
@@ -852,24 +862,87 @@ async function parseAddress(addressText) {
     
     console.log('🔧 Layer 1: District dictionary & common patterns...');
     
-    // District abbreviation dictionary for TP.HCM
+    // District abbreviation dictionary for major cities
     const districtAbbreviations = {
-        'b/thạnh': { full: 'Quận Bình Thạnh', province: 'TP.HCM', aliases: ['b.thạnh', 'bthạnh', 'b/thanh', 'b.thanh', 'bthanh'] },
-        'b/tân': { full: 'Quận Bình Tân', province: 'TP.HCM', aliases: ['b.tân', 'btân', 'b/tan', 'b.tan', 'btan'] },
-        'g/vấp': { full: 'Quận Gò Vấp', province: 'TP.HCM', aliases: ['g.vấp', 'gvấp', 'g/vap', 'g.vap', 'gvap'] },
-        't/đức': { full: 'Thành phố Thủ Đức', province: 'TP.HCM', aliases: ['t.đức', 'tđức', 't/duc', 't.duc', 'tduc'] },
-        'p/nhuận': { full: 'Quận Phú Nhuận', province: 'TP.HCM', aliases: ['p.nhuận', 'pnhuận', 'p/nhuan', 'p.nhuan', 'pnhuan'] },
-        't/bình': { full: 'Quận Tân Bình', province: 'TP.HCM', aliases: ['t.bình', 'tbình', 't/binh', 't.binh', 'tbinh'] },
-        't/phú': { full: 'Quận Tân Phú', province: 'TP.HCM', aliases: ['t.phú', 'tphú', 't/phu', 't.phu', 'tphu'] }
+        // TP.HCM districts
+        'b/thạnh': { full: 'Quận Bình Thạnh', province: 'TP.HCM', aliases: ['b.thạnh', 'bthạnh', 'b/thanh', 'b.thanh', 'bthanh', 'bình thạnh', 'binh thanh'] },
+        'b/tân': { full: 'Quận Bình Tân', province: 'TP.HCM', aliases: ['b.tân', 'btân', 'b/tan', 'b.tan', 'btan', 'bình tân', 'binh tan'] },
+        'g/vấp': { full: 'Quận Gò Vấp', province: 'TP.HCM', aliases: ['g.vấp', 'gvấp', 'g/vap', 'g.vap', 'gvap', 'gò vấp', 'go vap'] },
+        't/đức': { full: 'Thành phố Thủ Đức', province: 'TP.HCM', aliases: ['t.đức', 'tđức', 't/duc', 't.duc', 'tduc', 'thủ đức', 'thu duc'] },
+        'p/nhuận': { full: 'Quận Phú Nhuận', province: 'TP.HCM', aliases: ['p.nhuận', 'pnhuận', 'p/nhuan', 'p.nhuan', 'pnhuan', 'phú nhuận', 'phu nhuan'] },
+        't/bình': { full: 'Quận Tân Bình', province: 'TP.HCM', aliases: ['t.bình', 'tbình', 't/binh', 't.binh', 'tbinh', 'tân bình', 'tan binh'] },
+        't/phú': { full: 'Quận Tân Phú', province: 'TP.HCM', aliases: ['t.phú', 'tphú', 't/phu', 't.phu', 'tphu', 'tân phú', 'tan phu'] },
+        'b/chánh': { full: 'Huyện Bình Chánh', province: 'TP.HCM', aliases: ['b.chánh', 'bchánh', 'b/chanh', 'b.chanh', 'bchanh', 'bình chánh', 'binh chanh'] },
+        'h/môn': { full: 'Huyện Hóc Môn', province: 'TP.HCM', aliases: ['h.môn', 'hmôn', 'h/mon', 'h.mon', 'hmon', 'hóc môn', 'hoc mon'] },
+        'n/bè': { full: 'Huyện Nhà Bè', province: 'TP.HCM', aliases: ['n.bè', 'nbè', 'n/be', 'n.be', 'nbe', 'nhà bè', 'nha be'] },
+        'c/giờ': { full: 'Huyện Cần Giờ', province: 'TP.HCM', aliases: ['c.giờ', 'cgiờ', 'c/gio', 'c.gio', 'cgio', 'cần giờ', 'can gio'] },
+        'c/chi': { full: 'Huyện Củ Chi', province: 'TP.HCM', aliases: ['c.chi', 'cchi', 'củ chi', 'cu chi'] },
+        
+        // CRITICAL: Add full name entries for better matching
+        'bình chánh': { full: 'Huyện Bình Chánh', province: 'TP.HCM', aliases: ['binh chanh', 'h.bình chánh', 'h binh chanh'] },
+        'bình thạnh': { full: 'Quận Bình Thạnh', province: 'TP.HCM', aliases: ['binh thanh', 'q.bình thạnh', 'q binh thanh'] },
+        'bình tân': { full: 'Quận Bình Tân', province: 'TP.HCM', aliases: ['binh tan', 'q.bình tân', 'q binh tan'] },
+        
+        // Bình Dương districts
+        'tdm': { full: 'Thành phố Thủ Dầu Một', province: 'Bình Dương', aliases: ['tp tdm', 'tp.tdm', 'tptdm', 'thủ dầu một', 'thu dau mot'] },
+        'dĩ an': { full: 'Thành phố Dĩ An', province: 'Bình Dương', aliases: ['di an', 'tp dĩ an', 'tp di an', 'tp.da', 'da'] },
+        'thuận an': { full: 'Thành phố Thuận An', province: 'Bình Dương', aliases: ['thuan an', 'tp thuận an', 'tp thuan an', 'tp.ta', 'ta'] },
+        'bắc tân uyên': { full: 'Huyện Bắc Tân Uyên', province: 'Bình Dương', aliases: ['bac tan uyen', 'h.bắc tân uyên', 'h bac tan uyen', 'btu'] },
+        'bến cát': { full: 'Thị xã Bến Cát', province: 'Bình Dương', aliases: ['ben cat', 'tx bến cát', 'tx ben cat', 'bc'] },
+        'tân uyên': { full: 'Thị xã Tân Uyên', province: 'Bình Dương', aliases: ['tan uyen', 'tx tân uyên', 'tx tan uyen', 'tu'] },
+        'phú giáo': { full: 'Huyện Phú Giáo', province: 'Bình Dương', aliases: ['phu giao', 'h.phú giáo', 'h phu giao'] },
+        'dầu tiếng': { full: 'Huyện Dầu Tiếng', province: 'Bình Dương', aliases: ['dau tieng', 'h.dầu tiếng', 'h dau tieng'] },
+        'bàu bàng': { full: 'Huyện Bàu Bàng', province: 'Bình Dương', aliases: ['bau bang', 'h.bàu bàng', 'h bau bang'] },
+        
+        // Đồng Nai districts
+        'biên hòa': { full: 'Thành phố Biên Hòa', province: 'Đồng Nai', aliases: ['bien hoa', 'tp biên hòa', 'tp bien hoa', 'bh'] },
+        'long khánh': { full: 'Thành phố Long Khánh', province: 'Đồng Nai', aliases: ['long khanh', 'tp long khánh', 'tp long khanh', 'lk'] },
+        'nhơn trạch': { full: 'Huyện Nhơn Trạch', province: 'Đồng Nai', aliases: ['nhon trach', 'h.nhơn trạch', 'h nhon trach', 'nt'] },
+        'trảng bom': { full: 'Huyện Trảng Bom', province: 'Đồng Nai', aliases: ['trang bom', 'h.trảng bom', 'h trang bom', 'tb'] },
+        'long thành': { full: 'Huyện Long Thành', province: 'Đồng Nai', aliases: ['long thanh', 'h.long thành', 'h long thanh', 'lt'] },
+        
+        // Long An districts
+        'tân an': { full: 'Thành phố Tân An', province: 'Long An', aliases: ['tan an', 'tp tân an', 'tp tan an', 'ta'] },
+        'cần giuộc': { full: 'Huyện Cần Giuộc', province: 'Long An', aliases: ['can giuoc', 'h.cần giuộc', 'h can giuoc', 'cg'] },
+        'bến lức': { full: 'Huyện Bến Lức', province: 'Long An', aliases: ['ben luc', 'h.bến lức', 'h ben luc', 'bl'] },
+        'đức hòa': { full: 'Huyện Đức Hòa', province: 'Long An', aliases: ['duc hoa', 'h.đức hòa', 'h duc hoa', 'dh'] },
+        'thủ thừa': { full: 'Huyện Thủ Thừa', province: 'Long An', aliases: ['thu thua', 'h.thủ thừa', 'h thu thua', 'tt'] },
+        
+        // Hà Nội districts
+        'hoàn kiếm': { full: 'Quận Hoàn Kiếm', province: 'Hà Nội', aliases: ['hoan kiem', 'q.hoàn kiếm', 'q hoan kiem', 'hk'] },
+        'cầu giấy': { full: 'Quận Cầu Giấy', province: 'Hà Nội', aliases: ['cau giay', 'q.cầu giấy', 'q cau giay', 'cg'] },
+        'thanh xuân': { full: 'Quận Thanh Xuân', province: 'Hà Nội', aliases: ['thanh xuan', 'q.thanh xuân', 'q thanh xuan', 'tx'] },
+        'hà đông': { full: 'Quận Hà Đông', province: 'Hà Nội', aliases: ['ha dong', 'q.hà đông', 'q ha dong', 'hd'] },
+        'long biên': { full: 'Quận Long Biên', province: 'Hà Nội', aliases: ['long bien', 'q.long biên', 'q long bien', 'lb'] },
+        'đống đa': { full: 'Quận Đống Đa', province: 'Hà Nội', aliases: ['dong da', 'q.đống đa', 'q dong da', 'dd'] },
+        'hai bà trưng': { full: 'Quận Hai Bà Trưng', province: 'Hà Nội', aliases: ['hai ba trung', 'q.hai bà trưng', 'q hai ba trung', 'hbt'] },
+        'ba đình': { full: 'Quận Ba Đình', province: 'Hà Nội', aliases: ['ba dinh', 'q.ba đình', 'q ba dinh', 'bd'] },
+        'tây hồ': { full: 'Quận Tây Hồ', province: 'Hà Nội', aliases: ['tay ho', 'q.tây hồ', 'q tay ho', 'th'] },
+        'gia lâm': { full: 'Huyện Gia Lâm', province: 'Hà Nội', aliases: ['gia lam', 'h.gia lâm', 'h gia lam', 'gl'] },
+        'đông anh': { full: 'Huyện Đông Anh', province: 'Hà Nội', aliases: ['dong anh', 'h.đông anh', 'h dong anh', 'da'] },
+        'mê linh': { full: 'Huyện Mê Linh', province: 'Hà Nội', aliases: ['me linh', 'h.mê linh', 'h me linh', 'ml'] },
+        'sóc sơn': { full: 'Huyện Sóc Sơn', province: 'Hà Nội', aliases: ['soc son', 'h.sóc sơn', 'h soc son', 'ss'] },
+        
+        // Đà Nẵng districts
+        'hải châu': { full: 'Quận Hải Châu', province: 'Đà Nẵng', aliases: ['hai chau', 'q.hải châu', 'q hai chau', 'hc'] },
+        'thanh khê': { full: 'Quận Thanh Khê', province: 'Đà Nẵng', aliases: ['thanh khe', 'q.thanh khê', 'q thanh khe', 'tk'] },
+        'sơn trà': { full: 'Quận Sơn Trà', province: 'Đà Nẵng', aliases: ['son tra', 'q.sơn trà', 'q son tra', 'st'] },
+        'ngũ hành sơn': { full: 'Quận Ngũ Hành Sơn', province: 'Đà Nẵng', aliases: ['ngu hanh son', 'q.ngũ hành sơn', 'q ngu hanh son', 'nhs'] },
+        'liên chiểu': { full: 'Quận Liên Chiểu', province: 'Đà Nẵng', aliases: ['lien chieu', 'q.liên chiểu', 'q lien chieu', 'lc'] },
+        'cẩm lệ': { full: 'Quận Cẩm Lệ', province: 'Đà Nẵng', aliases: ['cam le', 'q.cẩm lệ', 'q cam le', 'cl'] },
+        'hòa vang': { full: 'Huyện Hòa Vang', province: 'Đà Nẵng', aliases: ['hoa vang', 'h.hòa vang', 'h hoa vang', 'hv'] }
     };
     
     // ENHANCEMENT: Common district patterns (Q1-Q12 for TP.HCM)
     // Pattern: "Q1", "Q.1", "q1", "q.1" → "Quận 1"
+    // CRITICAL: Use negative lookbehind to avoid matching "Ấp3" as "P3"
     const commonDistrictPatterns = [
         // TP.HCM districts (Quận 1-12)
         { pattern: /\bq\.?([1-9]|1[0-2])\b/gi, template: 'Quận $1', province: 'TP.HCM' },
         // TP.HCM wards (P1-P30, F1-F30)
-        { pattern: /\b[pf]\.?([1-9]|[12][0-9]|30)\b/gi, template: 'Phường $1', province: 'TP.HCM' }
+        // CRITICAL: Negative lookbehind (?<!Ấ) to avoid "Ấp3" → "ẤPhường 3"
+        // Match: "P3", "p.3", "F17" but NOT "Ấp3"
+        { pattern: /(?<!Ấ)(?<!ấ)\b[pf]\.?([1-9]|[12][0-9]|30)\b/gi, template: 'Phường $1', province: 'TP.HCM' }
     ];
     
     // Check if we should apply dictionary (context-based)
@@ -884,65 +957,118 @@ async function parseAddress(addressText) {
     let dictionaryApplied = false;
     let provinceHint = null;
     
-    if (hasStreetNumber && !hasConflictingProvince) {
-        // Safe to apply dictionary
-        const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
-        console.log(`  📝 Normalized for dict: "${normalizedForDict}"`);
+    // CRITICAL: Check dictionary FIRST (before checking hasStreetNumber)
+    // This allows us to recognize "Bình Chánh" even without street number
+    const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
+    console.log(`  📝 Normalized for dict: "${normalizedForDict}"`);
+    
+    // CRITICAL: Sort dictionary entries by pattern length (longest first)
+    // This ensures "Bắc Tân Uyên" is checked BEFORE "Tân Uyên"
+    const sortedDistrictEntries = Object.entries(districtAbbreviations).sort((a, b) => {
+        // Get longest pattern from each entry (main abbr + aliases)
+        const aPatterns = [a[0], ...a[1].aliases];
+        const bPatterns = [b[0], ...b[1].aliases];
+        const aMaxLen = Math.max(...aPatterns.map(p => p.length));
+        const bMaxLen = Math.max(...bPatterns.map(p => p.length));
+        return bMaxLen - aMaxLen; // Descending order (longest first)
+    });
+    
+    // Step 1: Check district abbreviations (B/Thạnh, G/Vấp, etc.) AND full names
+    for (const [abbr, info] of sortedDistrictEntries) {
+        // Check main abbreviation and all aliases
+        const allPatterns = [abbr, ...info.aliases];
         
-        // Step 1: Check district abbreviations (B/Thạnh, G/Vấp, etc.)
-        for (const [abbr, info] of Object.entries(districtAbbreviations)) {
-            // Check main abbreviation and all aliases
-            const allPatterns = [abbr, ...info.aliases];
+        // CRITICAL: Sort patterns by length (longest first) within each entry
+        // This ensures "bắc tân uyên" is checked BEFORE "tân uyên" in aliases
+        allPatterns.sort((a, b) => b.length - a.length);
+        
+        for (const pattern of allPatterns) {
+            // CRITICAL FIX: Normalize pattern to match normalizedForDict (no tones)
+            const normalizedPattern = removeVietnameseTones(pattern).toLowerCase();
             
-            for (const pattern of allPatterns) {
-                // CRITICAL FIX: Normalize pattern to match normalizedForDict (no tones)
-                const normalizedPattern = removeVietnameseTones(pattern).toLowerCase();
-                
-                // Use word boundary to avoid false matches
-                const regex = new RegExp(`\\b${normalizedPattern.replace(/\//g, '\\/')}\\b`, 'gi');
-                
-                if (regex.test(normalizedForDict)) {
-                    console.log(`  ✓ Pattern "${pattern}" matched in normalized text`);
+            // SMART CONTEXT CHECK: If pattern is ambiguous (like "tt"), check what comes after
+            // "tt easup" → "thị trấn Ea Súp" (NOT "Huyện Thủ Thừa")
+            // "tt" alone or "tt," → "Huyện Thủ Thừa" (OK to expand)
+            const isAmbiguousPattern = ['tt', 'tx', 'tp', 'tn', 'hue'].includes(normalizedPattern);
+            
+            // Use word boundary to avoid false matches
+            const regex = new RegExp(`\\b${normalizedPattern.replace(/\//g, '\\/')}\\b`, 'gi');
+            
+            if (regex.test(normalizedForDict)) {
+                // CONTEXT-AWARE MATCHING: Check if pattern is followed by another word
+                if (isAmbiguousPattern) {
+                    // Check if "tt" is followed by a word (not comma, not end of string)
+                    const contextRegex = new RegExp(`\\b${normalizedPattern}\\s+([a-z]+)`, 'i');
+                    const contextMatch = normalizedForDict.match(contextRegex);
                     
-                    // Found match - replace in original text (preserve Vietnamese tones)
-                    // CRITICAL FIX: Match both with and without tones in original text
-                    // Example: "G/Vấp" or "G/Vap" or "g/vấp" or "g/vap"
-                    
-                    const firstChar = pattern[0];
-                    const restPattern = pattern.slice(2); // Skip first char and separator (e.g., "vấp" from "g/vấp")
-                    
-                    // Build flexible regex that matches both toned and non-toned versions
-                    // For "vấp", we need to match: vấp, Vấp, vap, Vap
-                    // Strategy: Use character classes for Vietnamese characters
-                    const buildFlexiblePattern = (text) => {
-                        // Map of Vietnamese characters to their variants (with/without tones)
-                        const charMap = {
-                            'a': '[aàáảãạăắằẳẵặâấầẩẫậ]',
-                            'e': '[eèéẻẽẹêếềểễệ]',
-                            'i': '[iìíỉĩị]',
-                            'o': '[oòóỏõọôốồổỗộơớờởỡợ]',
-                            'u': '[uùúủũụưứừửữự]',
-                            'y': '[yỳýỷỹỵ]',
-                            'd': '[dđ]'
-                        };
+                    if (contextMatch) {
+                        const nextWord = contextMatch[1];
+                        // If next word is NOT part of the district name, skip this pattern
+                        // Example: "tt easup" → nextWord="easup", not part of "Thủ Thừa"
+                        const districtWords = removeVietnameseTones(info.full).toLowerCase().split(/\s+/);
+                        const isPartOfDistrict = districtWords.some(w => w.includes(nextWord) || nextWord.includes(w));
                         
-                        const normalized = removeVietnameseTones(text).toLowerCase();
-                        let flexPattern = '';
-                        
-                        for (const char of normalized) {
-                            if (charMap[char]) {
-                                flexPattern += charMap[char];
-                            } else {
-                                flexPattern += char;
-                            }
+                        if (!isPartOfDistrict) {
+                            console.log(`  ⏭️ Skip ambiguous pattern "${pattern}": followed by "${nextWord}" (not part of "${info.full}")`);
+                            continue; // Skip this pattern, it's likely "thị trấn" not district name
                         }
-                        
-                        return flexPattern;
+                    }
+                }
+                
+                console.log(`  ✓ Pattern "${pattern}" matched in normalized text`);
+                
+                // Found match - replace in original text (preserve Vietnamese tones)
+                // CRITICAL FIX: Match both with and without tones in original text
+                // Example: "Bình Chánh" or "Binh Chanh" or "bình chánh"
+                
+                const firstChar = pattern[0];
+                const restPattern = pattern.slice(2); // Skip first char and separator (e.g., "chánh" from "b/chánh")
+                
+                // Build flexible regex that matches both toned and non-toned versions
+                const buildFlexiblePattern = (text) => {
+                    // Map of Vietnamese characters to their variants (with/without tones)
+                    const charMap = {
+                        'a': '[aàáảãạăắằẳẵặâấầẩẫậ]',
+                        'e': '[eèéẻẽẹêếềểễệ]',
+                        'i': '[iìíỉĩị]',
+                        'o': '[oòóỏõọôốồổỗộơớờởỡợ]',
+                        'u': '[uùúủũụưứừửữự]',
+                        'y': '[yỳýỷỹỵ]',
+                        'd': '[dđ]'
                     };
                     
+                    const normalized = removeVietnameseTones(text).toLowerCase();
+                    let flexPattern = '';
+                    
+                    for (const char of normalized) {
+                        if (charMap[char]) {
+                            flexPattern += charMap[char];
+                        } else {
+                            flexPattern += char;
+                        }
+                    }
+                    
+                    return flexPattern;
+                };
+                
+                // For full name patterns (e.g., "bình chánh"), match the whole phrase
+                if (pattern.includes(' ')) {
+                    const flexiblePattern = buildFlexiblePattern(pattern);
+                    const originalRegex = new RegExp(`\\b${flexiblePattern}\\b`, 'gi');
+                    const originalMatch = processedAddress.match(originalRegex);
+                    
+                    if (originalMatch) {
+                        processedAddress = processedAddress.replace(originalMatch[0], info.full);
+                        provinceHint = info.province;
+                        dictionaryApplied = true;
+                        console.log(`  ✓ Dictionary: "${originalMatch[0]}" → "${info.full}" (province hint: ${info.province})`);
+                        break;
+                    }
+                } else if (pattern.includes('/') || pattern.includes('.')) {
+                    // For abbreviations with separator (e.g., "b/chánh")
                     const flexibleRest = buildFlexiblePattern(restPattern);
                     
-                    // Match: [Gg][\.\\/]?[vấpap] (flexible matching with tones)
+                    // Match: [Bb][\.\\/]?[chánh] (flexible matching with tones)
                     const originalRegex = new RegExp(`\\b[${firstChar}${firstChar.toUpperCase()}][\\.\\/]?${flexibleRest}\\b`, 'gi');
                     const originalMatch = processedAddress.match(originalRegex);
                     
@@ -952,42 +1078,46 @@ async function parseAddress(addressText) {
                         dictionaryApplied = true;
                         console.log(`  ✓ Dictionary: "${originalMatch[0]}" → "${info.full}" (province hint: ${info.province})`);
                         break;
+                    }
+                } else {
+                    // For simple patterns without space or separator (e.g., "tt", "tdm")
+                    const flexiblePattern = buildFlexiblePattern(pattern);
+                    const originalRegex = new RegExp(`\\b${flexiblePattern}\\b`, 'gi');
+                    const originalMatch = processedAddress.match(originalRegex);
+                    
+                    if (originalMatch) {
+                        processedAddress = processedAddress.replace(originalMatch[0], info.full);
+                        provinceHint = info.province;
+                        dictionaryApplied = true;
+                        console.log(`  ✓ Dictionary: "${originalMatch[0]}" → "${info.full}" (province hint: ${info.province})`);
+                        break;
                     } else {
-                        console.log(`  ⚠️ Pattern matched but originalMatch failed for "${pattern}"`);
-                        console.log(`     originalRegex: ${originalRegex}`);
-                        console.log(`     processedAddress: "${processedAddress}"`);
+                        console.log(`  ⚠️ Pattern "${pattern}" matched in normalized text but not found in original address`);
                     }
                 }
             }
-            
-            if (dictionaryApplied) break;
         }
         
-        // Step 2: Check common patterns (Q1-Q12, P1-P30, F1-F30)
-        if (!dictionaryApplied) {
-            for (const { pattern, template, province } of commonDistrictPatterns) {
-                const matches = processedAddress.match(pattern);
+        if (dictionaryApplied) break;
+    }
+    
+    // Step 2: Check common patterns (Q1-Q12, P1-P30, F1-F30)
+    if (!dictionaryApplied) {
+        for (const { pattern, template, province } of commonDistrictPatterns) {
+            const matches = processedAddress.match(pattern);
+            
+            if (matches) {
+                // Replace all matches
+                processedAddress = processedAddress.replace(pattern, (match, number) => {
+                    const expanded = template.replace('$1', number);
+                    console.log(`  ✓ Pattern: "${match}" → "${expanded}" (province hint: ${province})`);
+                    return expanded;
+                });
                 
-                if (matches) {
-                    // Replace all matches
-                    processedAddress = processedAddress.replace(pattern, (match, number) => {
-                        const expanded = template.replace('$1', number);
-                        console.log(`  ✓ Pattern: "${match}" → "${expanded}" (province hint: ${province})`);
-                        return expanded;
-                    });
-                    
-                    provinceHint = province;
-                    dictionaryApplied = true;
-                    break;
-                }
+                provinceHint = province;
+                dictionaryApplied = true;
+                break;
             }
-        }
-    } else {
-        if (!hasStreetNumber) {
-            console.log('  ⏭️ No street number, skipping dictionary');
-        }
-        if (hasConflictingProvince) {
-            console.log('  ⏭️ Conflicting province detected, skipping dictionary');
         }
     }
     
@@ -1005,6 +1135,69 @@ async function parseAddress(addressText) {
     // ============================================
     // PRE-PROCESSING: Expand common abbreviations (EXISTING)
     // ============================================
+    // CRITICAL: Expand FULL NAMES FIRST before expanding abbreviations
+    // This prevents false matches like "Bình" → "BìNhơn Trạch"
+    
+    // PRIORITY 1: Protect common place names from being corrupted
+    // Mark them with special tokens that won't be expanded
+    const PROTECTED_PATTERNS = [
+        // TP.HCM districts/wards with "nh" in name
+        { pattern: /\bbinh chanh\b/gi, token: '___BINH_CHANH___' },
+        { pattern: /\bbinh thanh\b/gi, token: '___BINH_THANH___' },
+        { pattern: /\bbinh tan\b/gi, token: '___BINH_TAN___' },
+        { pattern: /\bbinh loi\b/gi, token: '___BINH_LOI___' },
+        { pattern: /\bbinh tri\b/gi, token: '___BINH_TRI___' },
+        { pattern: /\bbinh hung\b/gi, token: '___BINH_HUNG___' },
+        { pattern: /\bbinh hoa\b/gi, token: '___BINH_HOA___' },
+        { pattern: /\bbinh phu\b/gi, token: '___BINH_PHU___' },
+        { pattern: /\bbinh an\b/gi, token: '___BINH_AN___' },
+        { pattern: /\bbinh khanh\b/gi, token: '___BINH_KHANH___' },
+        { pattern: /\bbinh nhut\b/gi, token: '___BINH_NHUT___' },
+        { pattern: /\bbinh chieu\b/gi, token: '___BINH_CHIEU___' },
+        { pattern: /\bbinh tho\b/gi, token: '___BINH_THO___' },
+        { pattern: /\bbinh trung\b/gi, token: '___BINH_TRUNG___' },
+        
+        // Other common names with "nh"
+        { pattern: /\bthanh xuan\b/gi, token: '___THANH_XUAN___' },
+        { pattern: /\bthanh khe\b/gi, token: '___THANH_KHE___' },
+        { pattern: /\bthanh chuong\b/gi, token: '___THANH_CHUONG___' },
+        { pattern: /\bthanh hoa\b/gi, token: '___THANH_HOA___' },
+        { pattern: /\bthanh pho\b/gi, token: '___THANH_PHO___' },
+        { pattern: /\bvinh long\b/gi, token: '___VINH_LONG___' },
+        { pattern: /\bvinh phuc\b/gi, token: '___VINH_PHUC___' },
+        { pattern: /\bvinh cuu\b/gi, token: '___VINH_CUU___' },
+        { pattern: /\bvinh loc\b/gi, token: '___VINH_LOC___' },
+        { pattern: /\bphu nhuan\b/gi, token: '___PHU_NHUAN___' },
+        { pattern: /\bphu hoa\b/gi, token: '___PHU_HOA___' },
+        { pattern: /\bphu loi\b/gi, token: '___PHU_LOI___' },
+        { pattern: /\bphu tho\b/gi, token: '___PHU_THO___' },
+        { pattern: /\btan nhut\b/gi, token: '___TAN_NHUT___' },
+        { pattern: /\btan phu\b/gi, token: '___TAN_PHU___' },
+        { pattern: /\btan binh\b/gi, token: '___TAN_BINH___' },
+        { pattern: /\btan thanh\b/gi, token: '___TAN_THANH___' },
+        { pattern: /\blong thanh\b/gi, token: '___LONG_THANH___' },
+        { pattern: /\blong khanh\b/gi, token: '___LONG_KHANH___' },
+        { pattern: /\blong an\b/gi, token: '___LONG_AN___' },
+        { pattern: /\blong xuyen\b/gi, token: '___LONG_XUYEN___' },
+        { pattern: /\bminh long\b/gi, token: '___MINH_LONG___' },
+        { pattern: /\bquynh phu\b/gi, token: '___QUYNH_PHU___' },
+        { pattern: /\bquynh luu\b/gi, token: '___QUYNH_LUU___' }
+    ];
+    
+    // Step 1: Protect common place names
+    const protectedMap = new Map();
+    for (const { pattern, token } of PROTECTED_PATTERNS) {
+        const matches = [...processedAddress.matchAll(pattern)];
+        for (const match of matches) {
+            protectedMap.set(token, match[0]); // Store original text
+            processedAddress = processedAddress.replace(pattern, token);
+        }
+    }
+    
+    if (protectedMap.size > 0) {
+        console.log(`  🛡️ Protected ${protectedMap.size} place names from corruption:`, Array.from(protectedMap.values()));
+    }
+    
     // F1-F30, P1-P30 → Phường 1-30
     // Q1-Q12 → Quận 1-12
     // X. → Xã, H. → Huyện, T. → Tỉnh
@@ -1016,25 +1209,59 @@ async function parseAddress(addressText) {
     // Sài Gòn, SG → Thành phố Hồ Chí Minh
     
     // Pattern 1: TP HCM, TP.HCM, tp hcm, tp.hcm (with space/dot)
-    processedAddress = processedAddress.replace(/\b(tp|thanh pho)\.?\s*(hn|hcm|dn|hp|ct)\b/gi, (match, prefix, city) => {
+    // ENHANCED: Add major cities and districts across Vietnam
+    processedAddress = processedAddress.replace(/\b(tp|thanh pho)\.?\s*(hn|hcm|dn|hp|ct|tdm|da|ta|bh|lk|vt|pt|nt|qn|hue|vl|dl|bmt)\b/gi, (match, prefix, city) => {
         const cityMap = {
+            // Major cities
             'hn': 'Thành phố Hà Nội',
             'hcm': 'Thành phố Hồ Chí Minh',
             'dn': 'Thành phố Đà Nẵng',
             'hp': 'Thành phố Hải Phòng',
-            'ct': 'Thành phố Cần Thơ'
+            'ct': 'Thành phố Cần Thơ',
+            'hue': 'Thành phố Huế',
+            'vt': 'Thành phố Vũng Tàu',
+            'pt': 'Thành phố Phan Thiết',
+            'nt': 'Thành phố Nha Trang',
+            'qn': 'Thành phố Quy Nhơn',
+            'vl': 'Thành phố Vinh',
+            'dl': 'Thành phố Đà Lạt',
+            'bmt': 'Thành phố Buôn Ma Thuột',
+            // Bình Dương districts
+            'tdm': 'Thành phố Thủ Dầu Một',
+            'da': 'Thành phố Dĩ An',
+            'ta': 'Thành phố Thuận An',
+            // Đồng Nai districts
+            'bh': 'Thành phố Biên Hòa',
+            'lk': 'Thành phố Long Khánh'
         };
         return cityMap[city.toLowerCase()] || match;
     });
     
     // Pattern 2: TPHCM, tphcm, TPHN, tphn (no space/dot)
-    processedAddress = processedAddress.replace(/\btp(hn|hcm|dn|hp|ct)\b/gi, (match, city) => {
+    // ENHANCED: Add all major cities
+    processedAddress = processedAddress.replace(/\btp(hn|hcm|dn|hp|ct|tdm|da|ta|bh|lk|vt|pt|nt|qn|hue|vl|dl|bmt)\b/gi, (match, city) => {
         const cityMap = {
+            // Major cities
             'hn': 'Thành phố Hà Nội',
             'hcm': 'Thành phố Hồ Chí Minh',
             'dn': 'Thành phố Đà Nẵng',
             'hp': 'Thành phố Hải Phòng',
-            'ct': 'Thành phố Cần Thơ'
+            'ct': 'Thành phố Cần Thơ',
+            'hue': 'Thành phố Huế',
+            'vt': 'Thành phố Vũng Tàu',
+            'pt': 'Thành phố Phan Thiết',
+            'nt': 'Thành phố Nha Trang',
+            'qn': 'Thành phố Quy Nhơn',
+            'vl': 'Thành phố Vinh',
+            'dl': 'Thành phố Đà Lạt',
+            'bmt': 'Thành phố Buôn Ma Thuột',
+            // Bình Dương districts
+            'tdm': 'Thành phố Thủ Dầu Một',
+            'da': 'Thành phố Dĩ An',
+            'ta': 'Thành phố Thuận An',
+            // Đồng Nai districts
+            'bh': 'Thành phố Biên Hòa',
+            'lk': 'Thành phố Long Khánh'
         };
         return cityMap[city.toLowerCase()] || match;
     });
@@ -1045,11 +1272,30 @@ async function parseAddress(addressText) {
     // Pattern 3.2: Standalone city codes at END of address (without "tp" prefix)
     // "quận tân phú hcm" → "quận tân phú Thành phố Hồ Chí Minh"
     // IMPORTANT: Only match at end or before comma/space
-    processedAddress = processedAddress.replace(/\s+(hcm|hn|dn)(?:\s|,|$)/gi, (match, city) => {
+    // ENHANCED: Add major cities across Vietnam
+    processedAddress = processedAddress.replace(/\s+(hcm|hn|dn|hp|ct|tdm|da|ta|bh|lk|vt|pt|nt|qn|hue|vl|dl|bmt)(?:\s|,|$)/gi, (match, city) => {
         const cityMap = {
+            // Major cities
             'hn': ' Thành phố Hà Nội',
             'hcm': ' Thành phố Hồ Chí Minh',
-            'dn': ' Thành phố Đà Nẵng'
+            'dn': ' Thành phố Đà Nẵng',
+            'hp': ' Thành phố Hải Phòng',
+            'ct': ' Thành phố Cần Thơ',
+            'hue': ' Thành phố Huế',
+            'vt': ' Thành phố Vũng Tàu',
+            'pt': ' Thành phố Phan Thiết',
+            'nt': ' Thành phố Nha Trang',
+            'qn': ' Thành phố Quy Nhơn',
+            'vl': ' Thành phố Vinh',
+            'dl': ' Thành phố Đà Lạt',
+            'bmt': ' Thành phố Buôn Ma Thuột',
+            // Bình Dương districts
+            'tdm': ' Thành phố Thủ Dầu Một',
+            'da': ' Thành phố Dĩ An',
+            'ta': ' Thành phố Thuận An',
+            // Đồng Nai districts
+            'bh': ' Thành phố Biên Hòa',
+            'lk': ' Thành phố Long Khánh'
         };
         const trailing = match.match(/[\s,]$/)?.[0] || '';
         return cityMap[city.toLowerCase()] + trailing;
@@ -1121,6 +1367,36 @@ async function parseAddress(addressText) {
     processedAddress = processedAddress.replace(/\bqn\b/gi, 'Quảng Ninh');
     // HN: Hà Nam (province) - but be careful with Hà Nội (city, already handled)
     processedAddress = processedAddress.replace(/\bhn\b/gi, 'Hà Nam');
+    
+    // ENHANCED: Add more common district/city abbreviations across Vietnam
+    // CRITICAL: Only use SAFE abbreviations (3+ letters or very specific 2-letter codes)
+    // Avoid short codes that appear in common words (nh, th, ph, etc.)
+    
+    // Bình Dương districts (SAFE - specific to region)
+    processedAddress = processedAddress.replace(/\btdm\b/gi, 'Thủ Dầu Một');
+    // DA, TA removed - too ambiguous (conflicts with "đa", "ta" in common words)
+    processedAddress = processedAddress.replace(/\bbc\b/gi, 'Bến Cát');
+    processedAddress = processedAddress.replace(/\btu\b/gi, 'Tân Uyên');
+    
+    // Đồng Nai districts (SAFE - specific)
+    processedAddress = processedAddress.replace(/\bbh\b/gi, 'Biên Hòa');
+    processedAddress = processedAddress.replace(/\blk\b/gi, 'Long Khánh');
+    // NH removed - conflicts with "nh" in "Bình", "Thanh", "Vinh", etc.
+    
+    // Long An districts (SAFE - specific)
+    processedAddress = processedAddress.replace(/\bcg\b/gi, 'Cần Giuộc');
+    processedAddress = processedAddress.replace(/\bbl\b/gi, 'Bến Lức');
+    processedAddress = processedAddress.replace(/\bdh\b/gi, 'Đức Hòa');
+    // TT removed - conflicts with "thị trấn" abbreviation
+    
+    // Hà Nội districts (REMOVED - too many conflicts)
+    // HK, CG, TX, HD, LB, GL, DA, ML all conflict with common words
+    // Users should type full names or use "q." prefix
+    
+    // Major cities (SAFE - 3+ letters or very specific)
+    processedAddress = processedAddress.replace(/\bhue\b/gi, 'Huế');
+    // VT, PT, NT, QN, VL, DL, BMT removed - too ambiguous
+    // Users should use "tp" prefix: "tp VT", "tp NT", etc.
     
     // Pattern 4: "hồ chí minh" (without "thành phố") → add prefix
     // IMPORTANT: Check if "Thành phố" already exists before it
@@ -1283,6 +1559,12 @@ async function parseAddress(addressText) {
     // Expand province abbreviations for "T." → "Tỉnh"
     // Example: "T.Hà Nam" → "Tỉnh Hà Nam"
     processedAddress = processedAddress.replace(/\bT\./gi, 'Tỉnh ');
+    
+    // CRITICAL: Restore protected place names BEFORE logging
+    // This ensures the final address has correct Vietnamese names
+    for (const [token, original] of protectedMap.entries()) {
+        processedAddress = processedAddress.replace(new RegExp(token, 'g'), original);
+    }
     
     if (processedAddress !== addressText) {
         console.log('📝 Expanded abbreviations:', addressText, '→', processedAddress);
@@ -4488,19 +4770,27 @@ async function parseAddress(addressText) {
                 
                 console.log(`    🔍 Checking all ${result.district.Wards.length} wards for "${wardPart}"...`);
                 
-                // IMPROVED: If wardPart doesn't have ward keyword, try extracting potential ward name
+                // CRITICAL: Strip ward keyword from wardPart BEFORE matching
+                // Example: "phường phú hữu" → "phú hữu"
+                let cleanWardPart = wardPart.replace(/^(phường|xã|thị trấn|tt|khóm)\s+/i, '').trim();
+                
+                if (cleanWardPart !== wardPart) {
+                    console.log(`    🧹 Stripped ward keyword: "${wardPart}" → "${cleanWardPart}"`);
+                }
+                
+                // IMPROVED: If cleanWardPart doesn't have ward keyword, try extracting potential ward name
                 // Example: "Khu phố 3 Tân lập" → extract "Tân lập" for matching
-                const hasWardKeyword = /^(phường|xã|thị trấn|tt|khóm)\s+/i.test(wardPart);
-                let extractedWardName = wardPart;
+                const hasWardKeyword = /^(phường|xã|thị trấn|tt|khóm)\s+/i.test(cleanWardPart);
+                let extractedWardName = cleanWardPart;
                 
                 if (!hasWardKeyword) {
                     // Try to extract last 1-3 words as potential ward name
                     // Example: "Khu phố 3 Tân lập" → "Tân lập"
-                    const words = wardPart.trim().split(/\s+/);
+                    const words = cleanWardPart.trim().split(/\s+/);
                     if (words.length >= 2) {
                         // Try last 2 words first (most common)
                         extractedWardName = words.slice(-2).join(' ');
-                        console.log(`    💡 Extracted potential ward name: "${extractedWardName}" from "${wardPart}"`);
+                        console.log(`    💡 Extracted potential ward name: "${extractedWardName}" from "${cleanWardPart}"`);
                     }
                 }
                 
@@ -4508,9 +4798,9 @@ async function parseAddress(addressText) {
                 const wardCandidates = [];
                 
                 for (const ward of result.district.Wards) {
-                    // Try matching with both original wardPart AND extracted name
-                    const match1 = fuzzyMatch(wardPart, [ward], 0.4);
-                    const match2 = extractedWardName !== wardPart ? fuzzyMatch(extractedWardName, [ward], 0.4) : null;
+                    // Try matching with both cleanWardPart AND extracted name
+                    const match1 = fuzzyMatch(cleanWardPart, [ward], 0.4);
+                    const match2 = extractedWardName !== cleanWardPart ? fuzzyMatch(extractedWardName, [ward], 0.4) : null;
                     
                     // Use better match
                     const match = (match2 && match2.score > (match1?.score || 0)) ? match2 : match1;
@@ -4523,7 +4813,7 @@ async function parseAddress(addressText) {
                         const wardNameNormalized = removeVietnameseTones(ward.Name)
                             .toLowerCase()
                             .replace(/^(phường|xã|thị trấn|tt|khóm)\s+/i, '');
-                        const inputNormalized = removeVietnameseTones(usedExtracted ? extractedWardName : wardPart)
+                        const inputNormalized = removeVietnameseTones(usedExtracted ? extractedWardName : cleanWardPart)
                             .toLowerCase()
                             .replace(/^(phường|xã|thị trấn|tt|khóm)\s+/i, '');
                         
@@ -4980,14 +5270,57 @@ async function parseAddress(addressText) {
                     console.log(`     District: ${bestGlobalDistrict.Name}`);
                     console.log(`     Province: ${bestGlobalProvince.Name}`);
                     
-                    // Update result with correct location
-                    result.ward = bestGlobalMatch.match;
-                    result.district = bestGlobalDistrict;
-                    result.province = bestGlobalProvince;
-                    result.confidence = bestGlobalScore >= 0.85 ? 'high' : 'medium';
-                    
-                    // Add warning about province/district correction
-                    result.warnings.push(`⚠️ Đã tự động sửa địa chỉ: ${bestGlobalProvince.Name} - ${bestGlobalDistrict.Name}`);
+                    // CRITICAL: Check if we have a provinceHint from dictionary
+                    // If yes, DON'T override it - the hint is more reliable
+                    // UNLESS the fallback has VERY HIGH confidence (score >= 2.0 with hints)
+                    if (provinceHint) {
+                        console.log(`  ⚠️ CONFLICT: Fallback found different province, but we have provinceHint: "${provinceHint}"`);
+                        console.log(`     Fallback province: ${bestGlobalProvince.Name}`);
+                        console.log(`     Dictionary hint: ${provinceHint}`);
+                        console.log(`     Fallback score: ${bestGlobalScore.toFixed(2)}`);
+                        
+                        // Check if fallback province matches hint
+                        const hintNormalized = removeVietnameseTones(provinceHint).toLowerCase();
+                        const fallbackNormalized = removeVietnameseTones(bestGlobalProvince.Name).toLowerCase();
+                        
+                        if (fallbackNormalized.includes(hintNormalized) || hintNormalized.includes(fallbackNormalized)) {
+                            // Match! Use fallback
+                            console.log(`  ✅ Province hint matches fallback, using fallback data`);
+                            result.ward = bestGlobalMatch.match;
+                            result.district = bestGlobalDistrict;
+                            result.province = bestGlobalProvince;
+                            result.confidence = bestGlobalScore >= 0.85 ? 'high' : 'medium';
+                        } else if (bestGlobalScore >= 2.0) {
+                            // VERY HIGH confidence from fallback (has district + province hints)
+                            // This means the address explicitly mentions province/district
+                            // Trust it over dictionary pattern match
+                            console.log(`  ✅ Fallback has VERY HIGH confidence (${bestGlobalScore.toFixed(2)} >= 2.0), OVERRIDING hint`);
+                            console.log(`     Reason: Address explicitly mentions province/district, more reliable than pattern match`);
+                            result.ward = bestGlobalMatch.match;
+                            result.district = bestGlobalDistrict;
+                            result.province = bestGlobalProvince;
+                            result.confidence = 'high';
+                            
+                            // Add warning about override
+                            result.warnings.push(`⚠️ Đã sửa tỉnh từ "${provinceHint}" → "${bestGlobalProvince.Name}" (độ tin cậy cao)`);
+                        } else {
+                            // Conflict! Trust dictionary hint over fallback
+                            console.log(`  ⚠️ Province hint CONFLICTS with fallback, KEEPING hint and REJECTING fallback ward`);
+                            console.log(`     Reason: Dictionary hint is more reliable than fuzzy ward matching (score ${bestGlobalScore.toFixed(2)} < 2.0)`);
+                            // Don't update result - keep existing province from hint
+                            // Ward will remain null (user can select manually)
+                        }
+                    } else {
+                        // No hint, safe to use fallback
+                        console.log(`  ✅ No province hint, using fallback data`);
+                        result.ward = bestGlobalMatch.match;
+                        result.district = bestGlobalDistrict;
+                        result.province = bestGlobalProvince;
+                        result.confidence = bestGlobalScore >= 0.85 ? 'high' : 'medium';
+                        
+                        // Add warning about province/district correction
+                        result.warnings.push(`⚠️ Đã tự động sửa địa chỉ: ${bestGlobalProvince.Name} - ${bestGlobalDistrict.Name}`);
+                    }
                 } else {
                     console.log(`  ❌ FALLBACK: No good match found in any province (best score: ${bestGlobalScore.toFixed(2)})`);
                 }

@@ -2,11 +2,14 @@
  * Address Selector Module
  * Quản lý cascade dropdown cho địa chỉ Việt Nam (Tỉnh > Quận > Phường)
  * Tối ưu với Map lookup O(1)
+ * 
+ * UPDATED: Now uses tree.json (post-2021 data) instead of vietnamAddress.json
  */
 
 class AddressSelector {
     constructor() {
-        this.data = [];
+        this.data = []; // Array format for compatibility
+        this.treeData = {}; // Original tree format
         this.provinceMap = new Map();
         this.districtMap = new Map();
         this.wardMap = new Map();
@@ -14,38 +17,81 @@ class AddressSelector {
     }
 
     /**
-     * Load và index dữ liệu địa chỉ
+     * Load và index dữ liệu địa chỉ từ tree.json
      */
     async init() {
         if (this.loaded) return;
 
         try {
-            // Detect correct path based on current location
+            // Load tree.json (post-2021 data)
             const basePath = window.location.pathname.includes('/admin/') 
-                ? '../assets/data/vietnamAddress.json' 
-                : '/assets/data/vietnamAddress.json';
+                ? '../assets/data/tree.json' 
+                : '/assets/data/tree.json';
             
             const response = await fetch(basePath);
-            this.data = await response.json();
+            this.treeData = await response.json();
             
-            // Index data để lookup nhanh O(1)
-            this.data.forEach(province => {
-                this.provinceMap.set(province.Id, province);
+            // Convert tree.json to array format for compatibility
+            this.data = [];
+            
+            Object.entries(this.treeData).forEach(([provinceCode, province]) => {
+                const provinceObj = {
+                    Id: provinceCode,
+                    Name: province.name_with_type,
+                    Districts: []
+                };
                 
-                province.Districts.forEach(district => {
-                    const districtKey = `${province.Id}-${district.Id}`;
-                    this.districtMap.set(districtKey, district);
-                    
-                    district.Wards.forEach(ward => {
-                        const wardKey = `${province.Id}-${district.Id}-${ward.Id}`;
-                        this.wardMap.set(wardKey, ward);
+                // Index province
+                this.provinceMap.set(provinceCode, provinceObj);
+                
+                // Convert districts
+                if (province['quan-huyen']) {
+                    Object.entries(province['quan-huyen']).forEach(([districtCode, district]) => {
+                        const districtObj = {
+                            Id: districtCode,
+                            Name: district.name_with_type,
+                            Wards: []
+                        };
+                        
+                        // Index district
+                        const districtKey = `${provinceCode}-${districtCode}`;
+                        this.districtMap.set(districtKey, districtObj);
+                        
+                        // Convert wards
+                        if (district['xa-phuong']) {
+                            Object.entries(district['xa-phuong']).forEach(([wardCode, ward]) => {
+                                const wardObj = {
+                                    Id: wardCode,
+                                    Name: ward.name_with_type,
+                                    Level: ward.type
+                                };
+                                
+                                districtObj.Wards.push(wardObj);
+                                
+                                // Index ward
+                                const wardKey = `${provinceCode}-${districtCode}-${wardCode}`;
+                                this.wardMap.set(wardKey, wardObj);
+                            });
+                        }
+                        
+                        provinceObj.Districts.push(districtObj);
                     });
-                });
+                }
+                
+                this.data.push(provinceObj);
             });
             
+            // Sort provinces by code
+            this.data.sort((a, b) => a.Id.localeCompare(b.Id));
+            
             this.loaded = true;
+            console.log('✅ Loaded tree.json:', {
+                provinces: this.data.length,
+                districts: this.districtMap.size,
+                wards: this.wardMap.size
+            });
         } catch (error) {
-            console.error('Lỗi load địa chỉ:', error);
+            console.error('❌ Lỗi load địa chỉ từ tree.json:', error);
             throw error;
         }
     }

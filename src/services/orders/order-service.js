@@ -416,57 +416,60 @@ export async function createOrder(data, env, corsHeaders) {
         }
 
         // 2. Lưu vào Google Sheets (gọi Google Apps Script)
-        try {
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
+        // Fire-and-forget: Không chờ response để tăng tốc độ tạo đơn
+        const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
+        if (googleScriptUrl) {
+            // Chuẩn bị dữ liệu cho Google Sheets (format giống như order-handler.js)
+            const sheetsData = {
+                orderId: data.orderId,
+                orderDate: data.orderDate || new Date().getTime(),
+                customer: {
+                    name: data.customer.name,
+                    phone: data.customer.phone,
+                    address: data.customer.address || '',
+                    notes: data.customer.notes || ''
+                },
+                cart: data.cart,
+                total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
+                paymentMethod: data.paymentMethod || 'cod',
+                // Gửi referralCode từ frontend (không validate) để Google Sheets luôn nhận được
+                referralCode: data.referralCode || '',
+                // Commission đã validate từ database
+                referralCommission: finalCommission || 0,
+                referralPartner: data.referralPartner || '',
+                telegramNotification: env.SECRET_KEY || 'VDT_SECRET_2025_ANHIEN'
+            };
 
-            if (googleScriptUrl) {
-                // Chuẩn bị dữ liệu cho Google Sheets (format giống như order-handler.js)
-                const sheetsData = {
-                    orderId: data.orderId,
-                    orderDate: data.orderDate || new Date().getTime(),
-                    customer: {
-                        name: data.customer.name,
-                        phone: data.customer.phone,
-                        address: data.customer.address || '',
-                        notes: data.customer.notes || ''
-                    },
-                    cart: data.cart,
-                    total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
-                    paymentMethod: data.paymentMethod || 'cod',
-                    // Gửi referralCode từ frontend (không validate) để Google Sheets luôn nhận được
-                    referralCode: data.referralCode || '',
-                    // Commission đã validate từ database
-                    referralCommission: finalCommission || 0,
-                    referralPartner: data.referralPartner || '',
-                    telegramNotification: env.SECRET_KEY || 'VDT_SECRET_2025_ANHIEN'
-                };
+            console.log('📤 Sending to Google Sheets (async):', {
+                orderId: sheetsData.orderId,
+                referralCode: sheetsData.referralCode,
+                referralCommission: sheetsData.referralCommission
+            });
 
-                console.log('📤 Sending to Google Sheets:', {
-                    orderId: sheetsData.orderId,
-                    referralCode: sheetsData.referralCode,
-                    referralCommission: sheetsData.referralCommission
-                });
-
-                const sheetsResponse = await fetch(googleScriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(sheetsData)
-                });
-
+            // Fire-and-forget: Gửi request nhưng không await
+            // Sử dụng ctx.waitUntil() để đảm bảo request hoàn thành sau khi response đã gửi
+            const sheetsPromise = fetch(googleScriptUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sheetsData)
+            }).then(async (sheetsResponse) => {
                 const responseText = await sheetsResponse.text();
-                console.log('📥 Google Sheets response:', responseText);
-
                 if (sheetsResponse.ok) {
-                    console.log('✅ Saved order to Google Sheets');
+                    console.log('✅ Saved order to Google Sheets:', data.orderId);
                 } else {
                     console.warn('⚠️ Failed to save to Google Sheets:', sheetsResponse.status, responseText);
                 }
+            }).catch((sheetsError) => {
+                console.error('⚠️ Google Sheets error:', sheetsError);
+            });
+
+            // If context is available, use waitUntil to ensure the request completes
+            // This allows the response to be sent immediately while the background task continues
+            if (env.ctx && env.ctx.waitUntil) {
+                env.ctx.waitUntil(sheetsPromise);
             }
-        } catch (sheetsError) {
-            console.error('⚠️ Google Sheets error:', sheetsError);
-            // Không throw error, vì database đã lưu thành công
         }
 
         return jsonResponse({

@@ -12,6 +12,7 @@ export default {
         // Initialize Turso database connection
         const DB = initTurso(env);
         env.DB = DB;
+        env.ctx = ctx; // Pass context for waitUntil support
 
         // Handle CORS preflight
         if (request.method === 'OPTIONS') {
