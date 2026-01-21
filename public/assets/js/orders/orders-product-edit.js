@@ -137,8 +137,8 @@ function editProductInOrder(index) {
 
     // Initialize unit prices correctly
     // product.price and product.cost_price are ALWAYS unit prices (per item)
-    editOrderUnitPrice = parseFloat(product.price) || 0;
-    editOrderUnitCost = parseFloat(product.cost_price) || 0;
+    editOrderUnitPrice = parsePrice(product.price);
+    editOrderUnitCost = parsePrice(product.cost_price);
 
     console.log('💰 Initialized unit prices:', {
         editOrderUnitPrice,
@@ -309,11 +309,20 @@ function saveEditedProduct(index) {
         return;
     }
 
-    // Update product
+    // Update product - preserve product_id if it exists
+    const oldProduct = currentOrderProducts[index];
     currentOrderProducts[index] = {
         name: name,
         quantity: quantity
     };
+
+    // Preserve product_id if it exists
+    if (oldProduct && oldProduct.product_id) {
+        currentOrderProducts[index].product_id = oldProduct.product_id;
+    }
+    if (oldProduct && oldProduct.id) {
+        currentOrderProducts[index].id = oldProduct.id;
+    }
 
     if (price > 0) currentOrderProducts[index].price = price;
     if (costPrice > 0) currentOrderProducts[index].cost_price = costPrice;

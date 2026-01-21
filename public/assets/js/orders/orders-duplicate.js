@@ -7,7 +7,7 @@
  * Creates a new order with the same information but resets CTV code and status
  * @param {number} orderId - ID of the order to duplicate
  */
-function duplicateOrder(orderId) {
+async function duplicateOrder(orderId) {
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
@@ -18,6 +18,47 @@ function duplicateOrder(orderId) {
     let products = [];
     try {
         products = JSON.parse(order.products);
+        
+        // CRITICAL FIX: Ensure all prices are parsed correctly as numbers
+        // AND lookup product_id from database if missing
+        const productNames = products.map(p => p.name).filter(Boolean);
+        
+        // Batch lookup product_id from database
+        let productIdMap = {};
+        if (productNames.length > 0) {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getProductsByNames&names=${encodeURIComponent(JSON.stringify(productNames))}`);
+                const data = await response.json();
+                if (data.success && data.products) {
+                    data.products.forEach(p => {
+                        productIdMap[p.name] = p.id;
+                    });
+                }
+            } catch (e) {
+                console.warn('⚠️ Could not lookup product IDs:', e);
+            }
+        }
+        
+        products = products.map(product => {
+            const cleanProduct = { ...product };
+            
+            // Parse price to ensure it's a number
+            if (cleanProduct.price !== undefined && cleanProduct.price !== null) {
+                cleanProduct.price = parsePrice(cleanProduct.price);
+            }
+            
+            // Parse cost_price to ensure it's a number
+            if (cleanProduct.cost_price !== undefined && cleanProduct.cost_price !== null) {
+                cleanProduct.cost_price = parsePrice(cleanProduct.cost_price);
+            }
+            
+            // Add product_id if missing
+            if (!cleanProduct.product_id && cleanProduct.name && productIdMap[cleanProduct.name]) {
+                cleanProduct.product_id = productIdMap[cleanProduct.name];
+            }
+            
+            return cleanProduct;
+        });
     } catch (e) {
         const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
         products = lines.map(line => {

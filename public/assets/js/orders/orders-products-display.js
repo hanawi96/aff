@@ -143,6 +143,9 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     // Parse quantity nếu là string
     const parsedQuantity = typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity;
 
+    // Parse price using helper function
+    const priceNum = parsePrice(price);
+
     // Tạo text chi tiết
     const details = [];
     if (weight) details.push(`⚖️ ${formatWeightSize(weight)}`);
@@ -153,11 +156,8 @@ function createProductItemHtml(product, orderId, orderCode, index) {
         const icon = isSizeMeasurement ? '📏' : '⚖️';
         details.push(`${icon} ${formatWeightSize(size)}`);
     }
-    if (price) {
-        const priceNum = typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d]/g, ''));
-        if (!isNaN(priceNum) && priceNum > 0) {
-            details.push(`💰 ${formatCurrency(priceNum * parsedQuantity)}`);
-        }
+    if (priceNum > 0) {
+        details.push(`💰 ${formatCurrency(priceNum * parsedQuantity)}`);
     }
     const detailsText = details.length > 0 ? details.join(' • ') : '';
 

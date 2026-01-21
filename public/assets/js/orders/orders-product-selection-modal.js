@@ -331,7 +331,11 @@ function addProductFromModal() {
                 if (existingProduct) {
                     existingProduct.quantity += productQty;
                 } else {
-                    const newProduct = { name: product.name, quantity: productQty };
+                    const newProduct = { 
+                        product_id: product.id,  // CRITICAL: Add product_id for order_items table
+                        name: product.name, 
+                        quantity: productQty 
+                    };
                     if (product.price > 0) newProduct.price = product.price;
                     if (product.cost_price) newProduct.cost_price = product.cost_price;
                     if (productWeight) {

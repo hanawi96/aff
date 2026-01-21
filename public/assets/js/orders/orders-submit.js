@@ -83,9 +83,26 @@ async function submitNewOrder() {
     const discountCode = document.getElementById('appliedDiscountCode')?.value || null;
     const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value) || 0;
 
-    // Calculate totals
-    const productTotal = currentOrderProducts.reduce((sum, p) => {
-        const price = parseFloat(p.price) || 0;
+    // CRITICAL: Sanitize products to ensure prices are numbers before saving
+    const sanitizedProducts = currentOrderProducts.map(product => {
+        const cleanProduct = { ...product };
+        
+        // Ensure price is a number
+        if (cleanProduct.price !== undefined && cleanProduct.price !== null) {
+            cleanProduct.price = parsePrice(cleanProduct.price);
+        }
+        
+        // Ensure cost_price is a number
+        if (cleanProduct.cost_price !== undefined && cleanProduct.cost_price !== null) {
+            cleanProduct.cost_price = parsePrice(cleanProduct.cost_price);
+        }
+        
+        return cleanProduct;
+    });
+
+    // Calculate totals using sanitized products
+    const productTotal = sanitizedProducts.reduce((sum, p) => {
+        const price = p.price || 0; // Already parsed as number
         const qty = parseInt(p.quantity) || 1;
         return sum + (price * qty);
     }, 0);
@@ -121,7 +138,7 @@ async function submitNewOrder() {
         shipping_cost: shippingCost,
         total: totalAmount,
         totalAmount: totalAmount,
-        cart: currentOrderProducts, // Products array
+        cart: sanitizedProducts, // Use sanitized products with numeric prices
         notes: orderNotes || null,
         discount_id: discountId,
         discountCode: discountCode,

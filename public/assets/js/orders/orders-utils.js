@@ -61,6 +61,26 @@ function escapeHtml(text) {
 // ============================================
 
 /**
+ * Parse price from various formats to number
+ * Handles: number, "75000", "75.000", "75.000đ", "75 đ", etc.
+ * @param {number|string} price - Price in any format
+ * @returns {number} Parsed price as number
+ */
+function parsePrice(price) {
+    if (price === null || price === undefined) return 0;
+    
+    // If already a number, return it
+    if (typeof price === 'number') return price;
+    
+    // If string, clean it up
+    // Remove all non-digit characters (including dots, spaces, currency symbols)
+    const cleanPrice = String(price).replace(/[^\d]/g, '');
+    const parsed = parseFloat(cleanPrice) || 0;
+    
+    return parsed;
+}
+
+/**
  * Format number as Vietnamese currency
  * @param {number|string} amount - Amount to format
  * @returns {string} Formatted currency string (e.g., "100.000đ")

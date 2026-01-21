@@ -16,7 +16,8 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
                 full_name,
                 phone,
                 city,
-                referral_code
+                referral_code,
+                custom_slug
             FROM ctv
             WHERE UPPER(TRIM(referral_code)) = ?
         `).bind(normalizedCode).first();
@@ -44,7 +45,8 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
             success: true, 
             orders: orders || [], 
             ctvInfo,
-            referralCode: ctv.referral_code 
+            referralCode: ctv.referral_code,
+            customSlug: ctv.custom_slug || null
         }, 200, corsHeaders);
     } catch (error) {
         console.error('Error:', error);
@@ -70,7 +72,8 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
                 full_name,
                 phone,
                 city,
-                referral_code
+                referral_code,
+                custom_slug
             FROM ctv
             WHERE TRIM(phone) = ? OR TRIM(phone) = ? OR TRIM(phone) = ?
         `).bind(normalizedPhone, phoneWithout0, cleanPhone).first();
@@ -97,6 +100,7 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
             success: true,
             orders: orders || [],
             referralCode: ctv.referral_code,
+            customSlug: ctv.custom_slug || null,
             ctvInfo
         }, 200, corsHeaders);
     } catch (error) {

@@ -237,8 +237,8 @@ function editProductName(productId, orderId, orderCode) {
     document.body.appendChild(modal);
 
     // Initialize unit prices - productData.price and productData.cost_price are ALREADY unit prices
-    editModalUnitPrice = parseFloat(String(productData.price).replace(/[^\d]/g, '')) || 0;
-    editModalUnitCost = parseFloat(String(productData.cost_price).replace(/[^\d]/g, '')) || 0;
+    editModalUnitPrice = parsePrice(productData.price);
+    editModalUnitCost = parsePrice(productData.cost_price);
 
     // Set input values to TOTAL prices (unit price × quantity)
     setTimeout(() => {
@@ -320,16 +320,35 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
             });
         }
 
+        // CRITICAL: Get existing order_items to preserve product_id
+        let existingItems = [];
+        try {
+            const response = await fetch(`${CONFIG.API_URL}?action=getOrderItems&orderId=${orderId}`);
+            const data = await response.json();
+            if (data.success && data.items) {
+                existingItems = data.items;
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not fetch existing order_items:', e);
+        }
+
         // Find and update the product
         let updated = false;
         for (let i = 0; i < products.length; i++) {
             const productName = typeof products[i] === 'string' ? products[i] : products[i].name;
             if (productName === oldName) {
                 if (typeof products[i] === 'string') {
-                    products[i] = newName;
+                    products[i] = { name: newName, quantity: 1 };
                 } else {
                     products[i].name = newName;
                 }
+                
+                // CRITICAL: Preserve product_id from existing order_items
+                const existingItem = existingItems.find(item => item.product_name === oldName);
+                if (existingItem && existingItem.product_id) {
+                    products[i].product_id = existingItem.product_id;
+                }
+                
                 updated = true;
                 break;
             }
@@ -483,11 +502,32 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
             });
         }
 
+        // CRITICAL: Get existing order_items to preserve product_id
+        let existingItems = [];
+        try {
+            const itemsResponse = await fetch(`${CONFIG.API_URL}?action=getOrderItems&orderId=${orderId}`);
+            const itemsData = await itemsResponse.json();
+            if (itemsData.success && itemsData.items) {
+                existingItems = itemsData.items;
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not fetch existing order_items:', e);
+        }
+
         // Update the product with all fields
+        const oldProduct = products[productIndex];
         const updatedProduct = {
             name: name,
             quantity: quantity
         };
+
+        // CRITICAL: Preserve product_id from existing order_items
+        if (existingItems[productIndex] && existingItems[productIndex].product_id) {
+            updatedProduct.product_id = existingItems[productIndex].product_id;
+        } else if (oldProduct && oldProduct.product_id) {
+            // Fallback to old product data
+            updatedProduct.product_id = oldProduct.product_id;
+        }
 
         // Add optional fields if provided
         if (weight) updatedProduct.weight = weight;

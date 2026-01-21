@@ -258,6 +258,7 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
 
     // Add product to current order
     const product = {
+        product_id: productId,  // CRITICAL: Add product_id for order_items table
         id: productId,
         name: productName,
         price: price,
@@ -305,6 +306,7 @@ function quickAddProductWithQty(productName, price, qtyInputId) {
 
     // Add to current order
     const orderProduct = {
+        product_id: product.id,  // CRITICAL: Add product_id for order_items table
         id: product.id,
         name: product.name,
         price: product.price,

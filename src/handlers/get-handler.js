@@ -145,6 +145,49 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getAllProducts':
             return await getAllProducts(env, corsHeaders);
 
+        case 'getProductsByNames':
+            // Get products by names for duplicate order
+            const names = url.searchParams.get('names');
+            if (!names) {
+                return jsonResponse({ success: false, error: 'Missing names parameter' }, 400, corsHeaders);
+            }
+            try {
+                const namesList = JSON.parse(names);
+                if (!Array.isArray(namesList) || namesList.length === 0) {
+                    return jsonResponse({ success: false, error: 'Invalid names array' }, 400, corsHeaders);
+                }
+                
+                const placeholders = namesList.map(() => '?').join(',');
+                const { results: products } = await env.DB.prepare(`
+                    SELECT id, name, price, cost_price 
+                    FROM products 
+                    WHERE name IN (${placeholders})
+                `).bind(...namesList).all();
+                
+                return jsonResponse({ success: true, products }, 200, corsHeaders);
+            } catch (e) {
+                return jsonResponse({ success: false, error: 'Invalid JSON' }, 400, corsHeaders);
+            }
+
+        case 'getOrderItems':
+            // Get order items to preserve product_id when editing
+            const orderIdParam = url.searchParams.get('orderId');
+            if (!orderIdParam) {
+                return jsonResponse({ success: false, error: 'Missing orderId parameter' }, 400, corsHeaders);
+            }
+            try {
+                const { results: items } = await env.DB.prepare(`
+                    SELECT product_id, product_name, product_price, product_cost, quantity, size, notes
+                    FROM order_items
+                    WHERE order_id = ?
+                    ORDER BY id ASC
+                `).bind(parseInt(orderIdParam)).all();
+                
+                return jsonResponse({ success: true, items }, 200, corsHeaders);
+            } catch (e) {
+                return jsonResponse({ success: false, error: e.message }, 500, corsHeaders);
+            }
+
         case 'checkOutdatedProducts':
             return await checkOutdatedProducts(env, corsHeaders);
 

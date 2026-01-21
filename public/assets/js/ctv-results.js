@@ -48,6 +48,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
                 displayCTVInfo(ctvInfo);
 
+                // Initialize custom slug modal
+                if (window.initCustomSlugModal) {
+                    window.initCustomSlugModal(currentReferralCode, result.customSlug || null);
+                }
+
                 // Display orders (will show empty state if no orders)
                 displayOrders();
 

@@ -17,6 +17,11 @@ import {
     bulkUpdateCTVCommission 
 } from '../services/ctv/commission.js';
 
+import {
+    checkSlugAvailability,
+    updateCustomSlug
+} from '../services/ctv/custom-slug.js';
+
 // Orders
 import { 
     createOrder,
@@ -162,6 +167,10 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await paySelectedOrders(data, env, corsHeaders);
         case 'bulkDeleteCTV':
             return await bulkDeleteCTV(data, env, corsHeaders);
+        case 'checkSlugAvailability':
+            return await checkSlugAvailability(data, env, corsHeaders);
+        case 'updateCustomSlug':
+            return await updateCustomSlug(data, env, corsHeaders);
         case 'createDiscount':
             return await createDiscount(data, env, corsHeaders);
         case 'createQuickDiscount':

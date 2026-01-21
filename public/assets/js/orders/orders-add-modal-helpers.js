@@ -46,8 +46,9 @@ function updateOrderSummary() {
     let productCount = 0;
 
     currentOrderProducts.forEach(product => {
-        const price = parseFloat(product.price) || 0;
-        const cost = parseFloat(product.cost_price) || 0;  // FIX: đổi từ product.cost → product.cost_price
+        // Parse price and cost using helper function
+        const price = parsePrice(product.price);
+        const cost = parsePrice(product.cost_price);
         const quantity = parseInt(product.quantity) || 1;
         
         productTotal += price * quantity;
@@ -233,7 +234,8 @@ function renderOrderProducts() {
     }
 
     container.innerHTML = currentOrderProducts.map((product, index) => {
-        const price = parseFloat(product.price) || 0;
+        // Parse price correctly using helper function
+        const price = parsePrice(product.price);
         const quantity = parseInt(product.quantity) || 1;
         const subtotal = price * quantity;
         
