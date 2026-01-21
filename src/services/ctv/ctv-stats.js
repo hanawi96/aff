@@ -10,31 +10,42 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
         // Normalize referral code: trim và uppercase
         const normalizedCode = referralCode.trim().toUpperCase();
 
-        // Single optimized query with JOIN - Case insensitive search
-        const { results: orders } = await env.DB.prepare(`
+        // First, check if CTV exists
+        const ctv = await env.DB.prepare(`
             SELECT 
-                o.*,
-                c.full_name as ctv_name,
-                c.phone as ctv_phone,
-                c.city as ctv_address
+                full_name,
+                phone,
+                city,
+                referral_code
+            FROM ctv
+            WHERE UPPER(TRIM(referral_code)) = ?
+        `).bind(normalizedCode).first();
+
+        if (!ctv) {
+            return jsonResponse({ success: false, error: 'Mã CTV không tồn tại' }, 404, corsHeaders);
+        }
+
+        // Get orders for this CTV
+        const { results: orders } = await env.DB.prepare(`
+            SELECT o.*
             FROM orders o
-            LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
             WHERE UPPER(TRIM(o.referral_code)) = ?
             ORDER BY o.created_at_unix DESC
         `).bind(normalizedCode).all();
 
-        if (!orders.length) {
-            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
-        }
-
-        // Extract CTV info from first order
+        // CTV info from database
         const ctvInfo = {
-            name: orders[0].ctv_name || 'CTV ' + referralCode,
-            phone: orders[0].ctv_phone || '****',
-            address: orders[0].ctv_address || 'Xem trong đơn hàng'
+            name: ctv.full_name || 'CTV ' + referralCode,
+            phone: ctv.phone || '****',
+            address: ctv.city || 'Chưa cập nhật'
         };
 
-        return jsonResponse({ success: true, orders, ctvInfo }, 200, corsHeaders);
+        return jsonResponse({ 
+            success: true, 
+            orders: orders || [], 
+            ctvInfo,
+            referralCode: ctv.referral_code 
+        }, 200, corsHeaders);
     } catch (error) {
         console.error('Error:', error);
         return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
@@ -53,34 +64,39 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
         const normalizedPhone = cleanPhone.startsWith('0') ? cleanPhone : '0' + cleanPhone;
         const phoneWithout0 = cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
 
-        // Single optimized query - Case insensitive và trim
-        const { results: orders } = await env.DB.prepare(`
+        // First, check if CTV exists with this phone
+        const ctv = await env.DB.prepare(`
             SELECT 
-                o.*,
-                c.full_name as ctv_name,
-                c.phone as ctv_phone,
-                c.city as ctv_address,
-                c.referral_code
-            FROM orders o
-            LEFT JOIN ctv c ON UPPER(TRIM(o.referral_code)) = UPPER(TRIM(c.referral_code))
-            WHERE TRIM(c.phone) = ? OR TRIM(c.phone) = ? OR TRIM(c.phone) = ?
-            ORDER BY o.created_at_unix DESC
-        `).bind(normalizedPhone, phoneWithout0, cleanPhone).all();
+                full_name,
+                phone,
+                city,
+                referral_code
+            FROM ctv
+            WHERE TRIM(phone) = ? OR TRIM(phone) = ? OR TRIM(phone) = ?
+        `).bind(normalizedPhone, phoneWithout0, cleanPhone).first();
 
-        if (!orders.length) {
-            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        if (!ctv) {
+            return jsonResponse({ success: false, error: 'Số điện thoại chưa đăng ký CTV' }, 404, corsHeaders);
         }
 
+        // Get orders for this CTV
+        const { results: orders } = await env.DB.prepare(`
+            SELECT o.*
+            FROM orders o
+            WHERE UPPER(TRIM(o.referral_code)) = UPPER(TRIM(?))
+            ORDER BY o.created_at_unix DESC
+        `).bind(ctv.referral_code).all();
+
         const ctvInfo = {
-            name: orders[0].ctv_name || 'Cộng tác viên',
-            phone: orders[0].ctv_phone || phone,
-            address: orders[0].ctv_address || 'Xem trong đơn hàng'
+            name: ctv.full_name || 'Cộng tác viên',
+            phone: ctv.phone || phone,
+            address: ctv.city || 'Chưa cập nhật'
         };
 
         return jsonResponse({
             success: true,
-            orders,
-            referralCode: orders[0].referral_code,
+            orders: orders || [],
+            referralCode: ctv.referral_code,
             ctvInfo
         }, 200, corsHeaders);
     } catch (error) {

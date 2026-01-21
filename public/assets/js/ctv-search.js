@@ -24,19 +24,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const isPhone = /^0?\d{9,10}$/.test(input);
             const code = isPhone ? input : input.toUpperCase();
             
-            // Validate data exists before redirecting
-            const isValid = await validateCode(code, isPhone);
-            
-            if (isValid) {
-                // Redirect to results page with code
-                window.location.href = `results.html?code=${encodeURIComponent(code)}`;
-            } else {
-                setButtonLoading(false);
-                showError(isPhone 
-                    ? `Số điện thoại ${code} chưa có đơn hàng nào. Hãy bắt đầu chia sẻ link! 💪`
-                    : `Mã CTV ${code} chưa có đơn hàng nào. Hãy bắt đầu chia sẻ link! 💪`
-                );
-            }
+            // Always redirect to results page - let it handle empty state
+            window.location.href = `results.html?code=${encodeURIComponent(code)}`;
         } catch (error) {
             setButtonLoading(false);
             showError('Có lỗi xảy ra khi kiểm tra dữ liệu. Vui lòng thử lại.');
@@ -44,20 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Validate if code has orders
-    async function validateCode(code, isPhone) {
-        const action = isPhone ? 'getCTVOrdersByPhone' : 'getCTVOrders';
-        const param = isPhone ? 'phone' : 'referralCode';
-        
-        try {
-            const response = await fetch(`${CONFIG.API_URL}?action=${action}&${param}=${encodeURIComponent(code)}&t=${Date.now()}`);
-            const result = await response.json();
-            return result.success && result.orders && result.orders.length > 0;
-        } catch (error) {
-            console.error('Validation error:', error);
-            return false;
-        }
-    }
+
 
     // UI helpers
     function setButtonLoading(isLoading) {

@@ -33,10 +33,34 @@ document.addEventListener('DOMContentLoaded', function () {
             const response = await fetch(`${API_URL}?action=${action}&${param}=${encodeURIComponent(code)}&t=${Date.now()}`);
             const result = await response.json();
 
-            if (!result.success || !result.orders || result.orders.length === 0) {
-                // No data, redirect back to search
-                alert('Không tìm thấy đơn hàng. Vui lòng thử lại.');
-                window.location.href = 'search.html';
+            // Check if CTV exists but has no orders
+            if (result.success && result.ctvInfo) {
+                // CTV exists - show info even if no orders
+                allOrders = result.orders || [];
+                filteredOrders = allOrders;
+                currentReferralCode = result.referralCode || code;
+
+                // Display CTV info
+                const ctvInfo = result.ctvInfo || {
+                    name: currentReferralCode ? ('CTV ' + currentReferralCode) : 'Cộng tác viên',
+                    phone: isPhone ? code : '****',
+                    address: 'Xem trong đơn hàng'
+                };
+                displayCTVInfo(ctvInfo);
+
+                // Display orders (will show empty state if no orders)
+                displayOrders();
+
+                // Hide loading
+                document.getElementById('loadingState').classList.add('hidden');
+                return;
+            }
+
+            // CTV doesn't exist at all
+            if (!result.success) {
+                // Show error state
+                showCTVNotFoundError(code, isPhone);
+                document.getElementById('loadingState').classList.add('hidden');
                 return;
             }
 
@@ -60,9 +84,61 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('loadingState').classList.add('hidden');
         } catch (error) {
             console.error('Load error:', error);
-            alert('Có lỗi xảy ra khi tải dữ liệu');
-            window.location.href = 'search.html';
+            showCTVNotFoundError(code, isPhone);
+            document.getElementById('loadingState').classList.add('hidden');
         }
+    }
+
+    function showCTVNotFoundError(code, isPhone) {
+        const contentState = document.getElementById('contentState');
+        contentState.classList.remove('hidden');
+        contentState.innerHTML = `
+            <div class="max-w-2xl mx-auto text-center py-16">
+                <!-- Error Icon -->
+                <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+
+                <!-- Error Message -->
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">
+                    ${isPhone ? 'Số điện thoại chưa đăng ký' : 'Mã CTV không tồn tại'}
+                </h2>
+                <p class="text-gray-600 mb-2">
+                    ${isPhone 
+                        ? `Số điện thoại <span class="font-semibold text-gray-900">${code}</span> chưa được đăng ký làm CTV`
+                        : `Mã CTV <span class="font-semibold text-gray-900">${code}</span> không tồn tại trong hệ thống`
+                    }
+                </p>
+                <p class="text-gray-500 text-sm mb-8">Vui lòng kiểm tra lại hoặc đăng ký mới</p>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="index.html" 
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Tìm kiếm lại
+                    </a>
+                    <a href="register.html" 
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        Đăng ký CTV ngay
+                    </a>
+                </div>
+
+                <!-- Help Text -->
+                <div class="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200 inline-block">
+                    <p class="text-sm text-blue-800">
+                        <span class="font-semibold">💡 Gợi ý:</span> Nếu bạn vừa đăng ký, vui lòng đợi vài phút để hệ thống cập nhật
+                    </p>
+                </div>
+            </div>
+        `;
     }
 
     function displayCTVInfo(ctvInfo) {
