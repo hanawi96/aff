@@ -385,6 +385,9 @@ function createProductCard(product) {
         imageUrl = `../assets/images/${product.name}.jpg`;
     }
 
+    // Check if this product is selected
+    const isSelected = selectedProductIds.has(product.id);
+
     return `
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow card-hover relative">
             <!-- Checkbox -->
@@ -392,6 +395,7 @@ function createProductCard(product) {
                 <input type="checkbox" 
                     class="product-checkbox w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer bg-white shadow-sm" 
                     data-product-id="${product.id}"
+                    ${isSelected ? 'checked' : ''}
                     onchange="handleProductCheckbox(${product.id}, this.checked)">
             </div>
             
@@ -453,6 +457,14 @@ function createProductCard(product) {
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">Giá vốn:</span>
                             <span class="text-sm font-medium text-gray-700">${formatCurrency(product.cost_price)}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Hệ số lãi:</span>
+                            ${product.markup_multiplier !== undefined && product.markup_multiplier !== null ? `
+                                <span class="text-sm font-bold text-purple-600">×${parseFloat(product.markup_multiplier).toFixed(1)}</span>
+                            ` : `
+                                <span class="text-sm text-gray-400 italic">Chưa có</span>
+                            `}
                         </div>
                         <div class="flex items-center justify-between pt-1 border-t border-gray-100">
                             <span class="text-sm font-semibold text-gray-700">Lãi ròng:</span>
@@ -2226,11 +2238,14 @@ function handleProductCheckbox(productId, isChecked) {
 // Update bulk actions UI
 function updateBulkActionsUI() {
     const count = selectedProductIds.size;
+    const total = filteredProducts.length;
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCount = document.getElementById('selectedCount');
+    const totalCount = document.getElementById('totalCount');
 
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
+        if (totalCount) totalCount.textContent = total;
         if (bulkActionsBar) {
             bulkActionsBar.classList.remove('hidden');
             bulkActionsBar.style.opacity = '0';
@@ -2251,6 +2266,90 @@ function updateBulkActionsUI() {
             }, 300);
         }
     }
+}
+
+// Select all products (on current page or all filtered products)
+function selectAllProducts() {
+    // Check if all are already selected
+    const allSelected = filteredProducts.every(p => selectedProductIds.has(p.id));
+    
+    if (allSelected) {
+        // Deselect all
+        filteredProducts.forEach(p => selectedProductIds.delete(p.id));
+        document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+        showToast('Đã bỏ chọn tất cả sản phẩm', 'info');
+    } else {
+        // Select all filtered products
+        filteredProducts.forEach(p => selectedProductIds.add(p.id));
+        document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = true);
+        showToast(`Đã chọn tất cả ${filteredProducts.length} sản phẩm`, 'success');
+    }
+    
+    updateBulkActionsUI();
+}
+
+// Select products on current page only
+function selectCurrentPage() {
+    // Get products on current page
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageProducts = filteredProducts.slice(startIndex, endIndex);
+    
+    // Check if all on current page are selected
+    const allPageSelected = pageProducts.every(p => selectedProductIds.has(p.id));
+    
+    if (allPageSelected) {
+        // Deselect current page
+        pageProducts.forEach(p => selectedProductIds.delete(p.id));
+        document.querySelectorAll('.product-checkbox').forEach(cb => {
+            const productId = parseInt(cb.dataset.productId);
+            if (pageProducts.find(p => p.id === productId)) {
+                cb.checked = false;
+            }
+        });
+        showToast(`Đã bỏ chọn ${pageProducts.length} sản phẩm trên trang này`, 'info');
+    } else {
+        // Select current page
+        pageProducts.forEach(p => selectedProductIds.add(p.id));
+        document.querySelectorAll('.product-checkbox').forEach(cb => {
+            const productId = parseInt(cb.dataset.productId);
+            if (pageProducts.find(p => p.id === productId)) {
+                cb.checked = true;
+            }
+        });
+        showToast(`Đã chọn ${pageProducts.length} sản phẩm trên trang này`, 'success');
+    }
+    
+    updateBulkActionsUI();
+}
+
+// Select all filtered products (across all pages)
+function selectAllFiltered() {
+    // Check if all filtered products are selected
+    const allSelected = filteredProducts.every(p => selectedProductIds.has(p.id));
+    
+    if (allSelected) {
+        // Deselect all filtered products
+        filteredProducts.forEach(p => selectedProductIds.delete(p.id));
+        document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+        showToast(`Đã bỏ chọn tất cả ${filteredProducts.length} sản phẩm`, 'info');
+    } else {
+        // Select all filtered products
+        filteredProducts.forEach(p => selectedProductIds.add(p.id));
+        
+        // Only check checkboxes for products on current page
+        document.querySelectorAll('.product-checkbox').forEach(cb => {
+            const productId = parseInt(cb.dataset.productId);
+            if (filteredProducts.find(p => p.id === productId)) {
+                cb.checked = true;
+            }
+        });
+        
+        const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+        showToast(`Đã chọn tất cả ${filteredProducts.length} sản phẩm (${totalPages} trang)`, 'success');
+    }
+    
+    updateBulkActionsUI();
 }
 
 // Clear all selections

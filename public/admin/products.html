@@ -499,12 +499,30 @@
                 </div>
                 <div class="text-white">
                     <p class="text-xs opacity-90">Đã chọn</p>
-                    <p class="text-lg font-bold leading-tight"><span id="selectedCount">0</span> SP</p>
+                    <p class="text-lg font-bold leading-tight"><span id="selectedCount">0</span> / <span id="totalCount">0</span> SP</p>
                 </div>
             </div>
 
             <!-- Actions -->
             <div class="flex items-center gap-2">
+                <!-- Select Current Page -->
+                <button onclick="selectCurrentPage()" 
+                    class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Chọn trang này</span>
+                </button>
+
+                <!-- Select All Filtered -->
+                <button onclick="selectAllFiltered()" 
+                    class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <span>Chọn tất cả</span>
+                </button>
+
                 <!-- Bulk Update Stock -->
                 <button onclick="showBulkStockModal()" 
                     class="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm">
@@ -534,10 +552,11 @@
 
                 <!-- Clear Selection -->
                 <button onclick="clearSelection()" 
-                    class="ml-1 w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all flex items-center justify-center backdrop-blur-sm">
+                    class="ml-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-1.5 backdrop-blur-sm border border-white/30">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
+                    <span>Bỏ chọn</span>
                 </button>
             </div>
         </div>

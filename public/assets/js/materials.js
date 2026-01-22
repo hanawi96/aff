@@ -148,7 +148,21 @@ function renderMaterials() {
 
 // Create material row HTML
 function createMaterialRow(material) {
-    const price = formatCurrency(material.item_cost || 0);
+    // Check if this is a tax/percentage item
+    const isTaxItem = material.item_name === 'tax' || 
+                      material.item_name === 'tax_rate' ||
+                      material.item_name.toLowerCase().includes('thue') ||
+                      material.item_name.toLowerCase().includes('thuế') ||
+                      (material.display_name && (
+                          material.display_name.toLowerCase().includes('thuế') ||
+                          material.display_name.toLowerCase().includes('tax')
+                      ));
+    
+    // Format price based on item type
+    const price = isTaxItem 
+        ? `${material.item_cost}%` 
+        : formatCurrency(material.item_cost || 0);
+    
     const productCount = material.product_count || 0;
     const updatedAt = material.updated_at ? new Date(material.updated_at).toLocaleDateString('vi-VN') : '-';
     const displayName = material.display_name || formatMaterialName(material.item_name);
@@ -173,7 +187,7 @@ function createMaterialRow(material) {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right">
                 <div class="flex items-center justify-end gap-2">
-                    <span id="price-${escapeHtml(material.item_name)}" class="text-lg font-bold text-green-600">${price}</span>
+                    <span id="price-${escapeHtml(material.item_name)}" class="text-lg font-bold ${isTaxItem ? 'text-amber-600' : 'text-green-600'}">${price}</span>
                     <button onclick="quickEditPrice('${escapeHtml(material.item_name)}')" 
                         class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
                         title="Sửa giá nhanh">
