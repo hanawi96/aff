@@ -607,6 +607,11 @@ function editDiscount(id) {
     document.getElementById('active').checked = discount.active;
     document.getElementById('visible').checked = discount.visible;
     
+    // Event fields
+    document.getElementById('specialEvent').value = discount.special_event || '';
+    document.getElementById('eventIcon').value = discount.event_icon || '';
+    document.getElementById('eventDate').value = discount.event_date || '';
+    
     handleTypeChange();
     document.getElementById('discountModal').classList.remove('hidden');
 }
@@ -774,7 +779,11 @@ async function handleFormSubmit(e) {
         active: document.getElementById('active').checked ? 1 : 0,
         visible: document.getElementById('visible').checked ? 1 : 0,
         customer_type: 'all',
-        combinable_with_other_discounts: 0
+        combinable_with_other_discounts: 0,
+        // Event fields (optional)
+        special_event: document.getElementById('specialEvent').value.trim() || null,
+        event_icon: document.getElementById('eventIcon').value.trim() || null,
+        event_date: document.getElementById('eventDate').value || null
     };
     
     // Validation
@@ -1273,7 +1282,7 @@ function switchTab(tabName) {
     currentTab = tabName;
     
     // Update tab buttons
-    const tabs = ['discounts', 'usage'];
+    const tabs = ['discounts', 'campaigns', 'usage'];
     tabs.forEach(tab => {
         const button = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const content = document.getElementById(`content${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
@@ -1292,6 +1301,8 @@ function switchTab(tabName) {
     // Load data if needed
     if (tabName === 'usage' && allUsageHistory.length === 0) {
         loadUsageHistory();
+    } else if (tabName === 'campaigns') {
+        loadEventDiscounts(); // Load event discounts
     }
 }
 
@@ -1648,10 +1659,56 @@ function debounce(func, wait) {
 // QUICK DISCOUNT FUNCTIONS
 // ============================================
 
-function showQuickDiscountModal() {
+async function generateQuickDiscountCode() {
+    // Generate format: KM + 4 random digits (0000-9999)
+    // Check for uniqueness against existing codes
+    let code;
+    let attempts = 0;
+    const maxAttempts = 50; // Safety limit
+    
+    while (attempts < maxAttempts) {
+        // Generate 4 random digits
+        const randomNum = Math.floor(Math.random() * 10000); // 0-9999
+        code = `KM${randomNum.toString().padStart(4, '0')}`; // KM0001, KM1234, KM9999
+        
+        // Check if code exists in current loaded discounts
+        if (!allDiscounts.some(d => d.code === code)) {
+            return code;
+        }
+        
+        attempts++;
+    }
+    
+    // Fallback: use timestamp if all attempts failed (very rare)
+    const timestamp = Date.now().toString().slice(-4);
+    return `KM${timestamp}`;
+}
+
+async function regenerateQuickCode() {
+    const codeInput = document.getElementById('quickCode');
+    if (codeInput) {
+        const newCode = await generateQuickDiscountCode();
+        codeInput.value = newCode;
+        // Add a little animation
+        codeInput.classList.add('ring-2', 'ring-green-400');
+        setTimeout(() => {
+            codeInput.classList.remove('ring-2', 'ring-green-400');
+        }, 500);
+    }
+}
+
+async function showQuickDiscountModal() {
     const modal = document.getElementById('quickDiscountModal');
     if (modal) {
         modal.classList.remove('hidden');
+        
+        // Auto-generate code when opening modal
+        const codeInput = document.getElementById('quickCode');
+        if (codeInput) {
+            codeInput.value = await generateQuickDiscountCode();
+        }
+        
+        // Focus on phone input (code is already filled)
         document.getElementById('quickPhone').focus();
         
         // Setup form submit
@@ -1705,12 +1762,19 @@ function updateQuickValueUnit() {
 async function handleQuickDiscountSubmit(e) {
     e.preventDefault();
     
+    const code = document.getElementById('quickCode').value.trim().toUpperCase();
     const phone = document.getElementById('quickPhone').value.trim();
     const type = document.querySelector('input[name="quickType"]:checked').value;
     const value = parseInt(document.getElementById('quickValue').value);
     const minOrder = parseInt(document.getElementById('quickMinOrder').value) || 0;
     const expiryDays = parseInt(document.getElementById('quickExpiry').value);
     const notes = document.getElementById('quickNotes').value.trim();
+    
+    // Basic validation (detailed validation in backend)
+    if (!code || code.length < 3) {
+        showError('Mã giảm giá phải có ít nhất 3 ký tự');
+        return;
+    }
     
     // Validate phone
     if (!/^0\d{9}$/.test(phone)) {
@@ -1744,6 +1808,7 @@ async function handleQuickDiscountSubmit(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'createQuickDiscount',
+                code: code,
                 customerPhone: phone,
                 type: type,
                 discountValue: value,
@@ -2025,4 +2090,441 @@ async function executeBulkExtend() {
     } catch (error) {
         showToast('Lỗi: ' + error.message, 'error', null, 'bulk-extend');
     }
+}
+
+
+// ============================================
+// CAMPAIGNS MANAGEMENT
+// ============================================
+
+let allCampaigns = [];
+let currentCampaign = null;
+
+async function loadCampaigns() {
+    try {
+        showCampaignsLoading();
+        
+        const response = await fetch(`${API_URL}?action=getAllCampaigns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getAllCampaigns' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            allCampaigns = data.campaigns || [];
+            renderCampaigns();
+            updateCampaignCount();
+        } else {
+            showError('Không thể tải danh sách sự kiện');
+        }
+    } catch (error) {
+        console.error('Error loading campaigns:', error);
+        showError('Lỗi kết nối đến server');
+    }
+}
+
+function renderCampaigns() {
+    const loadingState = document.getElementById('campaignsLoadingState');
+    const campaignsList = document.getElementById('campaignsList');
+    const emptyState = document.getElementById('campaignsEmptyState');
+    
+    loadingState.classList.add('hidden');
+    
+    if (allCampaigns.length === 0) {
+        campaignsList.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    campaignsList.classList.remove('hidden');
+    
+    const now = new Date();
+    
+    // Categorize campaigns
+    const active = allCampaigns.filter(c => {
+        const start = new Date(c.start_date);
+        const end = new Date(c.end_date);
+        return c.is_active && start <= now && end >= now;
+    });
+    
+    const upcoming = allCampaigns.filter(c => {
+        const start = new Date(c.start_date);
+        return c.is_active && start > now;
+    });
+    
+    const past = allCampaigns.filter(c => {
+        const end = new Date(c.end_date);
+        return end < now;
+    });
+    
+    // Render active campaigns
+    const activeContainer = document.getElementById('activeCampaignsContainer');
+    const activeSection = document.getElementById('activeCampaignsSection');
+    if (active.length > 0) {
+        activeSection.classList.remove('hidden');
+        activeContainer.innerHTML = active.map(campaign => renderCampaignCard(campaign, 'active')).join('');
+    } else {
+        activeSection.classList.add('hidden');
+    }
+    
+    // Render upcoming campaigns
+    const upcomingContainer = document.getElementById('upcomingCampaignsContainer');
+    const upcomingSection = document.getElementById('upcomingCampaignsSection');
+    if (upcoming.length > 0) {
+        upcomingSection.classList.remove('hidden');
+        upcomingContainer.innerHTML = upcoming.map(campaign => renderCampaignCard(campaign, 'upcoming')).join('');
+    } else {
+        upcomingSection.classList.add('hidden');
+    }
+    
+    // Render past campaigns
+    const pastContainer = document.getElementById('pastCampaignsContainer');
+    const pastSection = document.getElementById('pastCampaignsSection');
+    if (past.length > 0) {
+        pastSection.classList.remove('hidden');
+        pastContainer.innerHTML = past.map(campaign => renderCampaignCard(campaign, 'past')).join('');
+    } else {
+        pastSection.classList.add('hidden');
+    }
+}
+
+function renderCampaignCard(campaign, status) {
+    const now = new Date();
+    const startDate = new Date(campaign.start_date);
+    const endDate = new Date(campaign.end_date);
+    
+    // Calculate days remaining/passed
+    let daysText = '';
+    if (status === 'active') {
+        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+        daysText = `Còn ${daysLeft} ngày`;
+    } else if (status === 'upcoming') {
+        const daysUntil = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
+        daysText = `Còn ${daysUntil} ngày nữa`;
+    } else {
+        const daysPassed = Math.ceil((now - endDate) / (1000 * 60 * 60 * 24));
+        daysText = `${daysPassed} ngày trước`;
+    }
+    
+    // Progress calculation
+    let progressPercent = 0;
+    let progressText = '';
+    if (campaign.target_orders && campaign.target_orders > 0) {
+        const actualOrders = campaign.discount_count || 0;
+        progressPercent = Math.min((actualOrders / campaign.target_orders) * 100, 100);
+        progressText = `${actualOrders}/${campaign.target_orders} đơn`;
+    }
+    
+    const isLarge = status === 'active';
+    
+    if (isLarge) {
+        // Large card for active campaigns
+        return `
+            <div class="bg-white rounded-xl shadow-sm border-2 border-purple-200 p-6 hover:shadow-lg transition-all">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="text-4xl">${campaign.icon || '🎉'}</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">${campaign.name}</h3>
+                            <p class="text-sm text-gray-600">${formatDate(campaign.start_date)} - ${formatDate(campaign.end_date)}</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">${daysText}</span>
+                </div>
+                
+                ${campaign.description ? `<p class="text-gray-600 text-sm mb-4">${campaign.description}</p>` : ''}
+                
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">${campaign.discount_count || 0}</div>
+                        <div class="text-xs text-gray-600">Mã giảm giá</div>
+                    </div>
+                    <div class="text-center p-3 bg-purple-50 rounded-lg">
+                        <div class="text-2xl font-bold text-purple-600">${campaign.total_usage || 0}</div>
+                        <div class="text-xs text-gray-600">Lượt sử dụng</div>
+                    </div>
+                    <div class="text-center p-3 bg-orange-50 rounded-lg">
+                        <div class="text-lg font-bold text-orange-600">${formatMoney(campaign.total_discount_amount || 0)}</div>
+                        <div class="text-xs text-gray-600">Đã giảm</div>
+                    </div>
+                </div>
+                
+                ${campaign.target_orders ? `
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">Tiến độ mục tiêu</span>
+                            <span class="font-semibold text-purple-600">${progressText} (${progressPercent.toFixed(0)}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all" style="width: ${progressPercent}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div class="flex gap-2">
+                    <button onclick="viewCampaignDetails(${campaign.id})" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                        Xem chi tiết
+                    </button>
+                    <button onclick="editCampaign(${campaign.id})" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                        Sửa
+                    </button>
+                    <button onclick="deleteCampaign(${campaign.id}, '${campaign.name}')" class="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium">
+                        Xóa
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        // Small card for upcoming/past campaigns
+        const borderColor = status === 'upcoming' ? 'border-blue-200' : 'border-gray-200';
+        const badgeColor = status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
+        
+        return `
+            <div class="bg-white rounded-lg shadow-sm border ${borderColor} p-4 hover:shadow-md transition-all">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="text-2xl">${campaign.icon || '🎉'}</div>
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-sm">${campaign.name}</h4>
+                            <p class="text-xs text-gray-500">${formatDate(campaign.start_date)} - ${formatDate(campaign.end_date)}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between text-xs mb-3">
+                    <span class="text-gray-600">${campaign.discount_count || 0} mã | ${campaign.total_usage || 0} lượt</span>
+                    <span class="px-2 py-1 ${badgeColor} rounded-full font-semibold">${daysText}</span>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="viewCampaignDetails(${campaign.id})" class="flex-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-xs font-medium">
+                        Xem
+                    </button>
+                    <button onclick="editCampaign(${campaign.id})" class="px-3 py-1.5 text-gray-600 hover:text-gray-900 transition-colors text-xs">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                    <button onclick="deleteCampaign(${campaign.id}, '${campaign.name}')" class="px-3 py-1.5 text-red-600 hover:text-red-700 transition-colors text-xs">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function showCampaignsLoading() {
+    document.getElementById('campaignsLoadingState').classList.remove('hidden');
+    document.getElementById('campaignsList').classList.add('hidden');
+    document.getElementById('campaignsEmptyState').classList.add('hidden');
+}
+
+function updateCampaignCount() {
+    document.getElementById('campaignCount').textContent = allCampaigns.length;
+}
+
+// Modal functions
+function showCreateCampaignModal() {
+    currentCampaign = null;
+    document.getElementById('campaignModalTitle').textContent = 'Tạo sự kiện mới';
+    document.getElementById('campaignForm').reset();
+    document.getElementById('campaignId').value = '';
+    document.getElementById('campaignActive').checked = true;
+    
+    // Set default dates
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    document.getElementById('campaignStartDate').value = today.toISOString().split('T')[0];
+    document.getElementById('campaignEndDate').value = nextWeek.toISOString().split('T')[0];
+    
+    document.getElementById('campaignModal').classList.remove('hidden');
+    
+    // Auto-generate slug from name
+    document.getElementById('campaignName').addEventListener('input', function() {
+        const slug = this.value
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+            .replace(/đ/g, 'd')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        document.getElementById('campaignSlug').value = slug;
+    });
+}
+
+function editCampaign(id) {
+    const campaign = allCampaigns.find(c => c.id === id);
+    if (!campaign) return;
+    
+    currentCampaign = campaign;
+    document.getElementById('campaignModalTitle').textContent = 'Chỉnh sửa sự kiện';
+    
+    document.getElementById('campaignId').value = campaign.id;
+    document.getElementById('campaignName').value = campaign.name;
+    document.getElementById('campaignSlug').value = campaign.slug;
+    document.getElementById('campaignIcon').value = campaign.icon || '';
+    document.getElementById('campaignDescription').value = campaign.description || '';
+    document.getElementById('campaignStartDate').value = campaign.start_date;
+    document.getElementById('campaignEndDate').value = campaign.end_date;
+    document.getElementById('campaignTargetOrders').value = campaign.target_orders || '';
+    document.getElementById('campaignTargetRevenue').value = campaign.target_revenue || '';
+    document.getElementById('campaignActive').checked = campaign.is_active;
+    
+    document.getElementById('campaignModal').classList.remove('hidden');
+}
+
+function closeCampaignModal() {
+    document.getElementById('campaignModal').classList.add('hidden');
+    currentCampaign = null;
+}
+
+async function deleteCampaign(id, name) {
+    if (!confirm(`Bạn có chắc muốn xóa sự kiện "${name}"?\n\nLưu ý: Chỉ xóa được nếu chưa có mã giảm giá nào trong sự kiện này.`)) return;
+    
+    try {
+        const response = await fetch(`${API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'deleteCampaign',
+                id: id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('Xóa sự kiện thành công!');
+            loadCampaigns();
+        } else {
+            showError(data.error || 'Không thể xóa sự kiện');
+        }
+    } catch (error) {
+        console.error('Error deleting campaign:', error);
+        showError('Lỗi khi xóa sự kiện');
+    }
+}
+
+function viewCampaignDetails(id) {
+    // TODO: Implement campaign details view
+    showInfo('Tính năng xem chi tiết sự kiện đang được phát triển');
+}
+
+// Form submit
+document.addEventListener('DOMContentLoaded', () => {
+    const campaignForm = document.getElementById('campaignForm');
+    if (campaignForm) {
+        campaignForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                id: document.getElementById('campaignId').value || null,
+                name: document.getElementById('campaignName').value.trim(),
+                slug: document.getElementById('campaignSlug').value.trim(),
+                icon: document.getElementById('campaignIcon').value.trim() || '🎉',
+                description: document.getElementById('campaignDescription').value.trim(),
+                start_date: document.getElementById('campaignStartDate').value,
+                end_date: document.getElementById('campaignEndDate').value,
+                target_orders: parseInt(document.getElementById('campaignTargetOrders').value) || null,
+                target_revenue: parseFloat(document.getElementById('campaignTargetRevenue').value) || null,
+                is_active: document.getElementById('campaignActive').checked ? 1 : 0
+            };
+            
+            // Validation
+            if (!formData.name || !formData.slug || !formData.start_date || !formData.end_date) {
+                showError('Vui lòng điền đầy đủ thông tin bắt buộc');
+                return;
+            }
+            
+            if (new Date(formData.end_date) < new Date(formData.start_date)) {
+                showError('Ngày kết thúc phải sau ngày bắt đầu');
+                return;
+            }
+            
+            try {
+                const action = formData.id ? 'updateCampaign' : 'createCampaign';
+                
+                const response = await fetch(`${API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: action,
+                        ...formData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(formData.id ? 'Cập nhật sự kiện thành công!' : 'Tạo sự kiện mới thành công!');
+                    closeCampaignModal();
+                    loadCampaigns();
+                } else {
+                    showError(data.error || 'Không thể lưu sự kiện');
+                }
+            } catch (error) {
+                console.error('Error saving campaign:', error);
+                showError('Lỗi khi lưu sự kiện');
+            }
+        });
+    }
+});
+
+
+// ============================================
+// EVENT PRESET HELPER
+// ============================================
+
+function setEventPreset(eventName, icon, date) {
+    // Cập nhật thông tin sự kiện
+    document.getElementById('specialEvent').value = eventName;
+    document.getElementById('eventIcon').value = icon;
+    document.getElementById('eventDate').value = date;
+    
+    // Tự động cập nhật ngày bắt đầu và ngày hết hạn dựa trên ngày sự kiện
+    if (date) {
+        const eventDate = new Date(date);
+        
+        // Set ngày bắt đầu = 7 ngày trước sự kiện (để có thời gian quảng bá)
+        const startDate = new Date(eventDate);
+        startDate.setDate(startDate.getDate() - 7);
+        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+        
+        // Set ngày hết hạn = 3 ngày sau sự kiện (để khách còn dùng được sau sự kiện)
+        const expiryDate = new Date(eventDate);
+        expiryDate.setDate(expiryDate.getDate() + 3);
+        document.getElementById('expiryDate').value = expiryDate.toISOString().split('T')[0];
+    }
+}
+
+
+// ============================================
+// DURATION PRESET HELPER
+// ============================================
+
+function setDurationPreset(days) {
+    // Lấy ngày bắt đầu (nếu có) hoặc dùng ngày hôm nay
+    const startDateInput = document.getElementById('startDate');
+    let startDate;
+    
+    if (startDateInput.value) {
+        startDate = new Date(startDateInput.value);
+    } else {
+        startDate = new Date();
+        startDateInput.value = startDate.toISOString().split('T')[0];
+    }
+    
+    // Tính ngày hết hạn = ngày bắt đầu + số ngày
+    const expiryDate = new Date(startDate);
+    expiryDate.setDate(expiryDate.getDate() + days);
+    
+    // Cập nhật input ngày hết hạn
+    document.getElementById('expiryDate').value = expiryDate.toISOString().split('T')[0];
 }

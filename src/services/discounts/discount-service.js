@@ -14,7 +14,8 @@ export async function getAllDiscounts(env, corsHeaders) {
                 active, visible,
                 start_date, expiry_date,
                 created_at_unix, updated_at_unix,
-                usage_count, total_discount_amount
+                usage_count, total_discount_amount,
+                special_event, event_icon, event_date
             FROM discounts
             ORDER BY created_at_unix DESC
         `).all();
@@ -87,8 +88,9 @@ export async function createDiscount(data, env, corsHeaders) {
                 customer_type, combinable_with_other_discounts,
                 active, visible,
                 start_date, expiry_date,
+                special_event, event_icon, event_date,
                 created_at_unix, updated_at_unix
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.code,
             data.title,
@@ -109,6 +111,9 @@ export async function createDiscount(data, env, corsHeaders) {
             data.visible || 1,
             data.start_date || null,
             data.expiry_date,
+            data.special_event || null,
+            data.event_icon || null,
+            data.event_date || null,
             now,
             now
         ).run();
@@ -182,6 +187,9 @@ export async function updateDiscount(data, env, corsHeaders) {
                 visible = ?,
                 start_date = ?,
                 expiry_date = ?,
+                special_event = ?,
+                event_icon = ?,
+                event_date = ?,
                 updated_at_unix = ?
             WHERE id = ?
         `).bind(
@@ -204,6 +212,9 @@ export async function updateDiscount(data, env, corsHeaders) {
             data.visible || 1,
             data.start_date || null,
             data.expiry_date,
+            data.special_event || null,
+            data.event_icon || null,
+            data.event_date || null,
             now,
             data.id
         ).run();
@@ -305,15 +316,44 @@ export async function createQuickDiscount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Generate unique code with better format
-        // Format: VIP{LAST4}{RANDOM2DIGITS} 
-        // Example: VIP4567-89, VIP1234-56
-        const last4 = data.customerPhone.slice(-4);
-        const random2 = Math.floor(Math.random() * 90 + 10); // 10-99
-        const code = `VIP${last4}-${random2}`;
-
-        // Alternative: If you want even shorter
-        // const code = `VIP${last4}${random2}`; // VIP456789
+        // Use provided code or generate one
+        let code;
+        if (data.code && data.code.trim()) {
+            // Use custom code from frontend
+            code = data.code.trim().toUpperCase();
+            
+            // Validate code format
+            if (!/^[A-Z0-9_-]+$/.test(code)) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Mã chỉ được chứa chữ in hoa, số, dấu gạch ngang và gạch dưới'
+                }, 400, corsHeaders);
+            }
+            
+            if (code.length < 3 || code.length > 20) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Mã phải có độ dài từ 3-20 ký tự'
+                }, 400, corsHeaders);
+            }
+            
+            // Check if code already exists
+            const existingCode = await env.DB.prepare(
+                'SELECT id FROM discounts WHERE code = ?'
+            ).bind(code).first();
+            
+            if (existingCode) {
+                return jsonResponse({
+                    success: false,
+                    error: `Mã "${code}" đã tồn tại. Vui lòng chọn mã khác`
+                }, 400, corsHeaders);
+            }
+        } else {
+            // Generate unique code with format: VIP{LAST4}-{RANDOM2}
+            const last4 = data.customerPhone.slice(-4);
+            const random2 = Math.floor(Math.random() * 90 + 10); // 10-99
+            code = `VIP${last4}-${random2}`;
+        }
 
         // Calculate expiry date (default 7 days)
         const expiryDays = data.expiryDays || 7;

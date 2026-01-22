@@ -70,6 +70,16 @@ import {
 
 import { getDiscountUsageHistory } from '../services/discounts/discount-usage.js';
 
+// Campaigns
+import {
+    getAllCampaigns,
+    getCampaign,
+    createCampaign,
+    updateCampaign,
+    deleteCampaign,
+    toggleCampaignStatus
+} from '../services/campaigns/campaign-service.js';
+
 // Export History
 import { 
     saveExport, 
@@ -185,6 +195,21 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await bulkExtendDiscounts(data, env, corsHeaders);
         case 'getDiscountUsageHistory':
             return await getDiscountUsageHistory(env, corsHeaders);
+        
+        // Campaigns
+        case 'getAllCampaigns':
+            return await getAllCampaigns(env, corsHeaders);
+        case 'getCampaign':
+            return await getCampaign(data.id, env, corsHeaders);
+        case 'createCampaign':
+            return await createCampaign(data, env, corsHeaders);
+        case 'updateCampaign':
+            return await updateCampaign(data, env, corsHeaders);
+        case 'deleteCampaign':
+            return await deleteCampaign(data, env, corsHeaders);
+        case 'toggleCampaignStatus':
+            return await toggleCampaignStatus(data, env, corsHeaders);
+        
         case 'saveExport':
             return await saveExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'markExportDownloaded':

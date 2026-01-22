@@ -237,6 +237,16 @@
                             <span id="discountCount" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">0</span>
                         </div>
                     </button>
+                    <button onclick="switchTab('campaigns')" id="tabCampaigns" 
+                        class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Sự kiện & Ngày lễ</span>
+                            <span id="campaignCount" class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-bold">0</span>
+                        </div>
+                    </button>
                     <button onclick="switchTab('usage')" id="tabUsage" 
                         class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all">
                         <div class="flex items-center gap-2">
@@ -424,6 +434,58 @@
             </div>
             </div>
             <!-- End Tab Content: Discounts Management -->
+
+            <!-- Tab Content: Events -->
+            <div id="contentCampaigns" class="tab-content hidden">
+                <!-- Header -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900">Mã giảm giá theo Sự kiện & Ngày lễ</h3>
+                    <p class="text-sm text-gray-500 mt-1">Danh sách các mã giảm giá đặc biệt cho từng sự kiện trong năm</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="eventsLoadingState" class="flex items-center justify-center py-20">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                        <p class="text-sm text-gray-600 font-medium">Đang tải danh sách...</p>
+                    </div>
+                </div>
+
+                <!-- Events List -->
+                <div id="eventsList" class="hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Sự kiện</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Mã</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Loại & Giá trị</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Thời gian</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Sử dụng</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Trạng thái</th>
+                                    <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventsTableBody" class="divide-y divide-gray-200">
+                                <!-- Rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="eventsEmptyState" class="hidden p-12 text-center bg-white rounded-xl shadow-sm border border-gray-200">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có mã sự kiện nào</h3>
+                    <p class="text-gray-500 mb-4">Tạo mã giảm giá và gắn tag sự kiện để quản lý dễ dàng</p>
+                    <button onclick="showAddDiscountModal()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                        Tạo mã giảm giá
+                    </button>
+                </div>
+            </div>
+            <!-- End Tab Content: Events -->
 
             <!-- Tab Content: Usage History -->
             <div id="contentUsage" class="tab-content hidden">
@@ -643,6 +705,30 @@
 
             <!-- Modal Body -->
             <form id="quickDiscountForm" class="p-6 space-y-4">
+                <!-- Discount Code -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Mã giảm giá <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="quickCode" required
+                            placeholder="DISCOUNT123"
+                            class="w-full px-4 py-3 pr-24 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all uppercase font-mono font-semibold"
+                            pattern="[A-Z0-9_-]+"
+                            minlength="3"
+                            maxlength="20">
+                        <button type="button" onclick="regenerateQuickCode()" 
+                            class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs font-medium text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-all flex items-center gap-1"
+                            title="Tạo mã mới">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Tạo mới
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Chữ in hoa, số, dấu gạch ngang và gạch dưới</p>
+                </div>
+
                 <!-- Phone Number -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -903,6 +989,41 @@
                                 </div>
                             </div>
 
+                            <!-- Duration Presets -->
+                            <div class="pt-2">
+                                <p class="text-xs font-medium text-gray-700 mb-2">⏱️ Chọn nhanh thời hạn:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="setDurationPreset(1)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        1 ngày
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(7)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        1 tuần
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(30)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        1 tháng
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(90)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        3 tháng
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(180)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        6 tháng
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(270)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        9 tháng
+                                    </button>
+                                    <button type="button" onclick="setDurationPreset(365)" 
+                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        1 năm
+                                    </button>
+                                </div>
+                            </div>
+
                             <div class="flex flex-wrap gap-6 pt-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="active" checked 
@@ -914,6 +1035,68 @@
                                         class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
                                     <span class="text-sm font-medium text-gray-700">Hiển thị công khai</span>
                                 </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sự kiện & Ngày lễ (Optional) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-5 border border-purple-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-purple-200">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <h4 class="text-base font-semibold text-purple-900">Gắn thẻ Sự kiện (Tùy chọn)</h4>
+                        </div>
+                        <p class="text-sm text-purple-700 mb-4">Gắn mã này với một sự kiện đặc biệt để dễ quản lý và gia hạn</p>
+                        
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-purple-900 mb-1.5">Tên sự kiện</label>
+                                    <input type="text" id="specialEvent"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                        placeholder="VD: Tết 2025, 8/3, Black Friday">
+                                    <p class="text-xs text-purple-600 mt-1">Để trống nếu không phải mã sự kiện</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-purple-900 mb-1.5">Icon</label>
+                                    <input type="text" id="eventIcon" maxlength="2"
+                                        class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-center text-2xl"
+                                        placeholder="🎉">
+                                    <p class="text-xs text-purple-600 mt-1 text-center">Emoji</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-purple-900 mb-1.5">Ngày sự kiện (để sắp xếp)</label>
+                                <input type="date" id="eventDate"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
+                            </div>
+                            
+                            <!-- Quick presets -->
+                            <div class="pt-2">
+                                <p class="text-xs font-medium text-purple-900 mb-2">Sự kiện phổ biến:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="setEventPreset('Tết 2025', '🧧', '2025-01-28')" 
+                                        class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
+                                        🧧 Tết 2025
+                                    </button>
+                                    <button type="button" onclick="setEventPreset('8/3', '💐', '2025-03-08')" 
+                                        class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
+                                        💐 8/3
+                                    </button>
+                                    <button type="button" onclick="setEventPreset('20/10', '🌹', '2025-10-20')" 
+                                        class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
+                                        🌹 20/10
+                                    </button>
+                                    <button type="button" onclick="setEventPreset('Black Friday', '🛍️', '2025-11-28')" 
+                                        class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
+                                        🛍️ Black Friday
+                                    </button>
+                                    <button type="button" onclick="setEventPreset('Giáng sinh', '🎄', '2025-12-25')" 
+                                        class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
+                                        🎄 Giáng sinh
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1027,6 +1210,7 @@
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
     <script src="../assets/js/discounts.js"></script>
+    <script src="../assets/js/discount-events.js"></script>
     <script src="../assets/js/auth-check.js"></script>
 </body>
 </html>
