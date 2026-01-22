@@ -5,12 +5,23 @@ let packagingConfig = {};
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 Settings page initialized');
     loadPackagingConfig();
+    loadShippingConfig(); // Load shipping fees
     loadCurrentTaxRate();
     setupEventListeners();
 });
 
 // Setup event listeners
 function setupEventListeners() {
+    // Shipping form
+    const shippingForm = document.getElementById('shippingForm');
+    if (shippingForm) {
+        shippingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveShippingConfig();
+        });
+    }
+
+    // Old settings form (if exists)
     const form = document.getElementById('settingsForm');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -128,6 +139,28 @@ async function loadPackagingConfig() {
     }
 }
 
+// Load shipping config (separate function for shipping form)
+async function loadShippingConfig() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getPackagingConfig&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success && data.config) {
+            data.config.forEach(item => {
+                if (item.item_name === 'customer_shipping_fee' || item.item_name === 'default_shipping_cost') {
+                    const input = document.getElementById(item.item_name);
+                    if (input) {
+                        input.value = item.item_cost;
+                        console.log(`✅ Loaded ${item.item_name}: ${item.item_cost}`);
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error('❌ Error loading shipping config:', error);
+    }
+}
+
 // Save packaging config
 async function savePackagingConfig() {
     try {
@@ -227,6 +260,79 @@ async function savePackagingConfig() {
         const saveBtn = document.getElementById('saveBtn');
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Lưu cài đặt</span>';
+    }
+}
+
+// Save shipping config (for shippingForm)
+async function saveShippingConfig() {
+    try {
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalHTML = submitBtn.innerHTML;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang lưu...</span>';
+
+        // Get values from shipping form
+        const customerShippingFee = parseFloat(document.getElementById('customer_shipping_fee').value) || 0;
+        const defaultShippingCost = parseFloat(document.getElementById('default_shipping_cost').value) || 0;
+
+        // Validate
+        if (customerShippingFee < 0 || defaultShippingCost < 0) {
+            showToast('❌ Giá không được âm', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHTML;
+            return;
+        }
+
+        // Prepare config array
+        const config = [
+            {
+                item_name: 'customer_shipping_fee',
+                item_cost: customerShippingFee,
+                is_default: 1
+            },
+            {
+                item_name: 'default_shipping_cost',
+                item_cost: defaultShippingCost,
+                is_default: 1
+            }
+        ];
+
+        console.log('💾 Saving shipping config:', config);
+
+        // Send to API
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'updatePackagingConfig',
+                config: config
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('✅ Đã lưu cài đặt phí ship thành công', 'success');
+            console.log('✅ Shipping config saved successfully');
+        } else {
+            throw new Error(data.error || 'Failed to save shipping config');
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHTML;
+
+    } catch (error) {
+        console.error('❌ Error saving shipping config:', error);
+        showToast('❌ Không thể lưu cài đặt: ' + error.message, 'error');
+        
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Lưu cài đặt</span>';
+        }
     }
 }
 
