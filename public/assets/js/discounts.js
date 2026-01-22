@@ -32,9 +32,7 @@ function setupEventListeners() {
 
     // Filters - Discounts
     const filterType = document.getElementById('filterType');
-    const filterStatus = document.getElementById('filterStatus');
     if (filterType) filterType.addEventListener('change', filterDiscounts);
-    if (filterStatus) filterStatus.addEventListener('change', filterDiscounts);
 
     // Search - Usage
     const searchUsage = document.getElementById('searchUsage');
@@ -68,6 +66,32 @@ async function loadDiscounts() {
         
         if (data.success) {
             allDiscounts = data.discounts || [];
+            
+            // Sort discounts: Active first, then expired
+            allDiscounts.sort((a, b) => {
+                const now = new Date();
+                const aExpired = new Date(a.expiry_date) < now;
+                const bExpired = new Date(b.expiry_date) < now;
+                const aActive = a.active && !aExpired;
+                const bActive = b.active && !bExpired;
+                
+                // Priority 1: Active discounts first
+                if (aActive && !bActive) return -1;
+                if (!aActive && bActive) return 1;
+                
+                // Priority 2: Among active, sort by expiry date (soonest first)
+                if (aActive && bActive) {
+                    return new Date(a.expiry_date) - new Date(b.expiry_date);
+                }
+                
+                // Priority 3: Among expired, sort by expiry date (most recent first)
+                if (aExpired && bExpired) {
+                    return new Date(b.expiry_date) - new Date(a.expiry_date);
+                }
+                
+                return 0;
+            });
+            
             filteredDiscounts = [...allDiscounts];
             
             // Clear selections that no longer exist
@@ -789,10 +813,44 @@ async function handleFormSubmit(e) {
 // FILTER & SEARCH
 // ============================================
 
+// Current status filter state
+let currentStatusFilter = '';
+
+function filterByStatus(status) {
+    currentStatusFilter = status;
+    
+    // Update button active states
+    const buttons = document.querySelectorAll('.status-filter-btn');
+    buttons.forEach(btn => {
+        const btnStatus = btn.id.replace('status-', '');
+        if (btnStatus === status || (status === '' && btnStatus === 'all')) {
+            // Active state
+            btn.classList.remove('border-gray-300', 'text-gray-700', 'hover:border-green-500', 'hover:text-green-600', 'hover:bg-green-50', 'hover:border-gray-500', 'hover:text-gray-600', 'hover:bg-gray-50', 'hover:border-red-500', 'hover:text-red-600', 'hover:bg-red-50');
+            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+        } else {
+            // Inactive state
+            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+            btn.classList.add('border-gray-300', 'text-gray-700');
+            
+            // Add specific hover colors based on button type
+            if (btnStatus === 'active') {
+                btn.classList.add('hover:border-green-500', 'hover:text-green-600', 'hover:bg-green-50');
+            } else if (btnStatus === 'inactive') {
+                btn.classList.add('hover:border-gray-500', 'hover:text-gray-600', 'hover:bg-gray-50');
+            } else if (btnStatus === 'expired') {
+                btn.classList.add('hover:border-red-500', 'hover:text-red-600', 'hover:bg-red-50');
+            }
+        }
+    });
+    
+    // Apply filter
+    filterDiscounts();
+}
+
 function filterDiscounts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('filterType').value;
-    const statusFilter = document.getElementById('filterStatus').value;
+    const statusFilter = currentStatusFilter;
     const now = new Date();
     
     filteredDiscounts = allDiscounts.filter(discount => {

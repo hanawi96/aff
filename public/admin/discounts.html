@@ -313,27 +313,60 @@
 
             <!-- Filter & Search -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <!-- Search Bar -->
+                    <div class="relative flex-1 min-w-[280px]">
                         <input type="text" id="searchInput" placeholder="Tìm kiếm mã, tiêu đề..." 
-                            class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
+                            class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
                         <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <select id="filterType" class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary">
-                        <option value="">Tất cả loại</option>
-                        <option value="fixed">Giảm cố định</option>
-                        <option value="percentage">Giảm %</option>
-                        <option value="gift">Tặng quà</option>
-                        <option value="freeship">Miễn phí ship</option>
-                    </select>
-                    <select id="filterStatus" class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="active">Đang hoạt động</option>
-                        <option value="inactive">Tạm dừng</option>
-                        <option value="expired">Hết hạn</option>
-                    </select>
+                    
+                    <!-- Status Filter Buttons -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="filterByStatus('')" 
+                            id="status-all"
+                            class="status-filter-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 bg-indigo-600 text-white border-indigo-600">
+                            Tất cả
+                        </button>
+                        <button onclick="filterByStatus('active')" 
+                            id="status-active"
+                            class="status-filter-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-green-500 hover:text-green-600 hover:bg-green-50">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                Hoạt động
+                            </span>
+                        </button>
+                        <button onclick="filterByStatus('inactive')" 
+                            id="status-inactive"
+                            class="status-filter-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-gray-500 hover:text-gray-600 hover:bg-gray-50">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                Tạm dừng
+                            </span>
+                        </button>
+                        <button onclick="filterByStatus('expired')" 
+                            id="status-expired"
+                            class="status-filter-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-600 hover:bg-red-50">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                                Hết hạn
+                            </span>
+                        </button>
+                    </div>
+                    
+                    <!-- Type Filter Dropdown -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700">Loại:</span>
+                        <select id="filterType" class="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary text-sm font-medium">
+                            <option value="">Tất cả loại</option>
+                            <option value="fixed">Giảm cố định</option>
+                            <option value="percentage">Giảm %</option>
+                            <option value="gift">Tặng quà</option>
+                            <option value="freeship">Miễn phí ship</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
