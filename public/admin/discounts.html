@@ -834,7 +834,7 @@
     <div id="discountModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-admin-primary to-admin-secondary px-6 py-4 flex items-center justify-between">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -846,8 +846,8 @@
                         <p id="modalSubtitle" class="text-sm text-white/80 mt-0.5 hidden"></p>
                     </div>
                 </div>
-                <button onclick="closeDiscountModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
-                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button onclick="closeDiscountModal()" class="text-white/80 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -859,22 +859,22 @@
                     <input type="hidden" id="discountId">
 
                     <!-- Thông tin cơ bản -->
-                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thông tin cơ bản</h4>
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h4 class="text-base font-bold text-gray-900 mb-4">Thông tin cơ bản</h4>
                         
                         <div class="space-y-4">
                             <!-- Hàng 1: Mã, Loại, Giá trị -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã giảm giá *</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mã giảm giá <span class="text-red-500">*</span></label>
                                     <input type="text" id="code" required 
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase font-mono font-semibold transition-all"
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase font-mono font-semibold transition-all"
                                         placeholder="VD: GIAM50K">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Loại giảm giá *</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Loại giảm giá <span class="text-red-500">*</span></label>
                                     <select id="type" required onchange="handleTypeChange()"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                         <option value="fixed">Giảm cố định (VD: 50.000đ)</option>
                                         <option value="percentage">Giảm theo % (VD: 10%)</option>
                                         <option value="gift">Tặng quà</option>
@@ -882,50 +882,50 @@
                                     </select>
                                 </div>
                                 <div id="discountValueField">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá trị giảm *</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Giá trị giảm <span class="text-red-500">*</span></label>
                                     <input type="number" id="discountValue" min="0"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                         placeholder="VD: 50000">
                                 </div>
                             </div>
 
                             <!-- Hàng 2: Max discount (cho percentage) -->
                             <div id="maxDiscountField" class="hidden">
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Giảm tối đa (đ)</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Giảm tối đa (đ)</label>
                                 <input type="number" id="maxDiscountAmount" min="0"
-                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="VD: 100000">
                             </div>
 
                             <!-- Gift Info (cho gift type) -->
                             <div id="giftSection" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ID Sản phẩm quà</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">ID Sản phẩm quà</label>
                                     <input type="text" id="giftProductId"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-sm"
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono text-sm"
                                         placeholder="VD: addon_bo_dau_tam_7_canh">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tên sản phẩm quà</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tên sản phẩm quà</label>
                                     <input type="text" id="giftProductName"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                         placeholder="VD: Bó dâu 7 cành">
                                 </div>
                             </div>
 
                             <!-- Tiêu đề -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề *</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
                                 <input type="text" id="title" required 
-                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                    class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="VD: Giảm 50.000đ cho đơn từ 500K">
                             </div>
 
                             <!-- Mô tả -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
                                 <textarea id="description" rows="2"
-                                    class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+                                    class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
                                     placeholder="Mô tả chi tiết về mã giảm giá"></textarea>
                             </div>
                         </div>
@@ -934,91 +934,96 @@
                     <!-- Điều kiện & Giới hạn -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Điều kiện áp dụng -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Điều kiện áp dụng</h4>
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h4 class="text-base font-bold text-gray-900 mb-4">Điều kiện áp dụng</h4>
                             
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Giá trị đơn tối thiểu (đ)</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Giá trị đơn tối thiểu (đ)</label>
                                     <input type="number" id="minOrderAmount" min="0" value="0"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng SP tối thiểu</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Số lượng SP tối thiểu</label>
                                     <input type="number" id="minItems" min="0" value="0"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Giới hạn sử dụng -->
-                        <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                            <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Giới hạn sử dụng</h4>
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h4 class="text-base font-bold text-gray-900 mb-4">Giới hạn sử dụng</h4>
                             
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tổng số lần dùng tối đa</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tổng số lần dùng tối đa</label>
                                     <input type="number" id="maxTotalUses" min="0"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                         placeholder="Để trống = không giới hạn">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Mỗi khách dùng tối đa</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mỗi khách dùng tối đa</label>
                                     <input type="number" id="maxUsesPerCustomer" min="1" value="1"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Thời gian & Trạng thái -->
-                    <div class="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
-                        <h4 class="text-base font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100">Thời gian & Trạng thái</h4>
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h4 class="text-base font-bold text-gray-900 mb-4">Thời gian & Trạng thái</h4>
                         
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Ngày bắt đầu</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Ngày bắt đầu</label>
                                     <input type="date" id="startDate"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Ngày hết hạn *</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Ngày hết hạn <span class="text-red-500">*</span></label>
                                     <input type="date" id="expiryDate" required
-                                        class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                        class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                                 </div>
                             </div>
 
                             <!-- Duration Presets -->
                             <div class="pt-2">
-                                <p class="text-xs font-medium text-gray-700 mb-2">⏱️ Chọn nhanh thời hạn:</p>
+                                <p class="text-xs font-semibold text-gray-700 mb-2.5 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Chọn nhanh thời hạn:
+                                </p>
                                 <div class="flex flex-wrap gap-2">
                                     <button type="button" onclick="setDurationPreset(1)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         1 ngày
                                     </button>
                                     <button type="button" onclick="setDurationPreset(7)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         1 tuần
                                     </button>
                                     <button type="button" onclick="setDurationPreset(30)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         1 tháng
                                     </button>
                                     <button type="button" onclick="setDurationPreset(90)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         3 tháng
                                     </button>
                                     <button type="button" onclick="setDurationPreset(180)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         6 tháng
                                     </button>
                                     <button type="button" onclick="setDurationPreset(270)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         9 tháng
                                     </button>
                                     <button type="button" onclick="setDurationPreset(365)" 
-                                        class="px-3 py-1.5 bg-gray-100 border border-gray-300 text-gray-700 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors text-xs font-medium">
+                                        class="px-3.5 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all text-xs font-semibold shadow-sm hover:shadow">
                                         1 năm
                                     </button>
                                 </div>
@@ -1028,53 +1033,53 @@
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="active" checked 
                                         class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
-                                    <span class="text-sm font-medium text-gray-700">Kích hoạt</span>
+                                    <span class="text-sm font-semibold text-gray-700">Kích hoạt</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="visible" checked 
                                         class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
-                                    <span class="text-sm font-medium text-gray-700">Hiển thị công khai</span>
+                                    <span class="text-sm font-semibold text-gray-700">Hiển thị công khai</span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
                     <!-- Sự kiện & Ngày lễ (Optional) -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-5 border border-purple-200 shadow-sm">
-                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-purple-200">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
                             <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <h4 class="text-base font-semibold text-purple-900">Gắn thẻ Sự kiện (Tùy chọn)</h4>
+                            <h4 class="text-base font-bold text-purple-900">Gắn thẻ Sự kiện (Tùy chọn)</h4>
                         </div>
                         <p class="text-sm text-purple-700 mb-4">Gắn mã này với một sự kiện đặc biệt để dễ quản lý và gia hạn</p>
                         
                         <div class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="md:col-span-2">
-                                    <label class="block text-sm font-medium text-purple-900 mb-1.5">Tên sự kiện</label>
+                                    <label class="block text-sm font-semibold text-purple-900 mb-2">Tên sự kiện</label>
                                     <input type="text" id="specialEvent"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                        class="w-full px-4 py-3 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                                         placeholder="VD: Tết 2025, 8/3, Black Friday">
                                     <p class="text-xs text-purple-600 mt-1">Để trống nếu không phải mã sự kiện</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-purple-900 mb-1.5">Icon</label>
+                                    <label class="block text-sm font-semibold text-purple-900 mb-2">Icon</label>
                                     <input type="text" id="eventIcon" maxlength="2"
-                                        class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-center text-2xl"
+                                        class="w-full px-4 py-3 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-center text-2xl"
                                         placeholder="🎉">
                                     <p class="text-xs text-purple-600 mt-1 text-center">Emoji</p>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-purple-900 mb-1.5">Ngày sự kiện (để sắp xếp)</label>
+                                <label class="block text-sm font-semibold text-purple-900 mb-2">Ngày sự kiện (để sắp xếp)</label>
                                 <input type="date" id="eventDate"
-                                    class="w-full px-3.5 py-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all">
+                                    class="w-full px-4 py-3 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
                             </div>
                             
                             <!-- Quick presets -->
                             <div class="pt-2">
-                                <p class="text-xs font-medium text-purple-900 mb-2">Sự kiện phổ biến:</p>
+                                <p class="text-xs font-semibold text-purple-900 mb-2">Sự kiện phổ biến:</p>
                                 <div class="flex flex-wrap gap-2">
                                     <button type="button" onclick="setEventPreset('Tết 2025', '🧧', '2025-01-28')" 
                                         class="px-3 py-1.5 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium">
@@ -1104,17 +1109,18 @@
             </form>
 
             <!-- Modal Footer -->
+            <!-- Modal Footer -->
             <div class="border-t border-gray-200 px-6 py-4 bg-white flex justify-between items-center">
-                <div class="text-sm text-gray-500">
-                    <span class="text-red-500">*</span> Trường bắt buộc
+                <div class="text-sm text-gray-600">
+                    <span class="text-red-500 font-bold">*</span> Trường bắt buộc
                 </div>
                 <div class="flex gap-3">
                     <button type="button" onclick="closeDiscountModal()"
-                        class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium">
                         Hủy
                     </button>
                     <button type="submit" form="discountForm"
-                        class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
                         Lưu mã giảm giá
                     </button>
                 </div>
