@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Flash Sale - Admin</title>
+    <link rel="stylesheet" href="../assets/css/flash-sales.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                        'admin-success': '#10b981',
+                        'admin-warning': '#f59e0b',
+                        'admin-danger': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .hover-scale { transition: transform 0.2s ease; }
+        .hover-scale:hover { transform: scale(1.02); }
+        
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-draft { background: #f3f4f6; color: #6b7280; }
+        .status-scheduled { background: #dbeafe; color: #1e40af; }
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-ended { background: #fee2e2; color: #991b1b; }
+        .status-cancelled { background: #f3f4f6; color: #374151; }
+        
+        /* Countdown timer */
+        .countdown-timer {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: #92400e;
+        }
+        
+        /* Product selector */
+        .product-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .product-item:hover {
+            background: #f9fafb;
+            transform: translateY(-2px);
+        }
+        .product-item.selected {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+        
+        /* Modal animations */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-slideUp {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
+        <div class="flex flex-col h-full">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
+                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <a href="ctv.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Danh sách CTV</span>
+                </a>
+                <a href="index.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a href="payments.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Thanh toán CTV</span>
+                </a>
+                <a href="products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <span>Sản phẩm</span>
+                </a>
+                <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    <span>Nguyên liệu</span>
+                </a>
+                <a href="categories.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                    <span>Danh mục</span>
+                </a>
+                <a href="discounts.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    <span>Mã giảm giá</span>
+                </a>
+                <a href="flash-sales.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <span>Flash Sale</span>
+                </a>
+                <a href="profit-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <span>Thống kê</span>
+                </a>
+                <a href="location-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Địa lý</span>
+                </a>
+                <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Cài đặt</span>
+                </a>
+                <a href="customers.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <span>Khách hàng</span>
+                </a>
+            </nav>
+            <!-- User Profile -->
+            <div class="mt-auto border-t border-gray-200 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                        AD
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
+                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <div class="px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Quản Lý Flash Sale</h2>
+                        <p class="text-sm text-gray-500">Tạo và quản lý chương trình giảm giá có thời hạn</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="loadFlashSales()" class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                        <button onclick="showCreateFlashSaleModal()" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Tạo Flash Sale
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="px-6 lg:px-8 py-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Tổng Flash Sale</p>
+                            <p id="totalFlashSales" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Đang hoạt động</p>
+                            <p id="activeFlashSales" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Sản phẩm</p>
+                            <p id="totalProducts" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Đã bán</p>
+                            <p id="totalSold" class="text-3xl font-bold text-purple-600 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <!-- Search Bar -->
+                    <div class="relative flex-1 min-w-[280px]">
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm flash sale..." 
+                            class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="filterByStatus('all')" id="filter-all" class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 bg-indigo-600 text-white border-indigo-600">
+                            Tất cả
+                        </button>
+                        <button onclick="filterByStatus('active')" id="filter-active" class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-green-500 hover:text-green-600">
+                            Đang chạy
+                        </button>
+                        <button onclick="filterByStatus('scheduled')" id="filter-scheduled" class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600">
+                            Đã lên lịch
+                        </button>
+                        <button onclick="filterByStatus('ended')" id="filter-ended" class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all border-2 border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-600">
+                            Đã kết thúc
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Sales Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div id="loadingState" class="flex items-center justify-center py-20">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+                        <p class="text-sm text-gray-600 font-medium">Đang tải dữ liệu...</p>
+                    </div>
+                </div>
+
+                <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20">
+                    <svg class="w-20 h-20 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có Flash Sale nào</h3>
+                    <p class="text-gray-500 mb-4">Tạo Flash Sale đầu tiên để bắt đầu</p>
+                    <button onclick="showCreateFlashSaleModal()" class="px-4 py-2 bg-admin-primary text-white rounded-lg hover:bg-admin-secondary transition-colors">
+                        Tạo Flash Sale
+                    </button>
+                </div>
+
+                <div id="flashSalesTable" class="hidden overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên Flash Sale</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Thời gian</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Sản phẩm</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Đã bán</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flashSalesTableBody" class="divide-y divide-gray-200">
+                            <!-- Rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    </div>
+
+    <!-- Create Flash Sale Modal -->
+    <div id="createFlashSaleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden animate-slideUp">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Tạo Flash Sale Mới</h3>
+                        <p class="text-orange-100 text-sm">Tạo chương trình giảm giá có thời hạn</p>
+                    </div>
+                </div>
+                <button onclick="closeCreateFlashSaleModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-center gap-4">
+                    <div id="step1Indicator" class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+                        <span class="font-semibold text-gray-900">Thông tin</span>
+                    </div>
+                    <div class="w-16 h-1 bg-gray-300" id="progress1to2"></div>
+                    <div id="step2Indicator" class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-sm">2</div>
+                        <span class="font-medium text-gray-500">Chọn sản phẩm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="overflow-y-auto" style="max-height: calc(90vh - 200px);">
+                <!-- Step 1: Basic Information -->
+                <div id="step1Content" class="p-6">
+                    <div class="max-w-3xl mx-auto space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Tên Flash Sale <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="flashSaleName" placeholder="VD: Flash Sale Cuối Tuần, Giảm Giá Sốc 12/12" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            <p class="text-xs text-gray-500 mt-1">Tên hiển thị của chương trình flash sale</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mô tả</label>
+                            <textarea id="flashSaleDescription" rows="3" placeholder="Mô tả ngắn về chương trình (tùy chọn)"
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Thời gian bắt đầu <span class="text-red-500">*</span>
+                                </label>
+                                <input type="datetime-local" id="flashSaleStartTime" 
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    Thời gian kết thúc <span class="text-red-500">*</span>
+                                </label>
+                                <input type="datetime-local" id="flashSaleEndTime" 
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            </div>
+                        </div>
+
+                        <!-- Time Presets -->
+                        <div class="mt-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                ⚡ Chọn nhanh thời gian
+                            </label>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="setTimePreset(6)" class="px-4 py-2 text-sm font-medium bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                    6 giờ
+                                </button>
+                                <button type="button" onclick="setTimePreset(12)" class="px-4 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 border-2 border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+                                    12 giờ
+                                </button>
+                                <button type="button" onclick="setTimePreset(24)" class="px-4 py-2 text-sm font-medium bg-purple-50 text-purple-700 border-2 border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+                                    1 ngày
+                                </button>
+                                <button type="button" onclick="setTimePreset(48)" class="px-4 py-2 text-sm font-medium bg-pink-50 text-pink-700 border-2 border-pink-200 rounded-lg hover:bg-pink-100 transition-colors">
+                                    2 ngày
+                                </button>
+                                <button type="button" onclick="setTimePreset(168)" class="px-4 py-2 text-sm font-medium bg-orange-50 text-orange-700 border-2 border-orange-200 rounded-lg hover:bg-orange-100 transition-colors">
+                                    1 tuần
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">💡 Click để tự động điền thời gian bắt đầu (bây giờ) và kết thúc</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Trạng thái <span class="text-red-500">*</span>
+                            </label>
+                            <select id="flashSaleStatus" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                <option value="draft">Nháp - Lưu để chỉnh sửa sau</option>
+                                <option value="scheduled">Đã lên lịch - Tự động kích hoạt khi đến giờ</option>
+                                <option value="active">Kích hoạt ngay - Bắt đầu ngay lập tức</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Products -->
+                <div id="step2Content" class="hidden p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Left: All Products -->
+                        <div class="border-2 border-gray-200 rounded-xl p-4">
+                            <div class="mb-4">
+                                <h4 class="font-bold text-gray-900 mb-3">Danh sách sản phẩm</h4>
+                                <div class="space-y-3">
+                                    <input type="text" id="productSearch" placeholder="Tìm kiếm sản phẩm..." 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    <select id="categoryFilter" 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                        <option value="">Tất cả danh mục</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="allProductsList" class="space-y-2 max-h-96 overflow-y-auto">
+                                <!-- Products will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Selected Products -->
+                        <div class="border-2 border-orange-200 rounded-xl p-4 bg-orange-50">
+                            <h4 class="font-bold text-gray-900 mb-3">
+                                Sản phẩm đã chọn (<span id="selectedProductCount">0</span>)
+                            </h4>
+                            <div id="selectedProductsList" class="space-y-3 max-h-96 overflow-y-auto">
+                                <div class="text-center text-gray-500 py-8">
+                                    <svg class="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                    </svg>
+                                    <p class="text-sm">Chưa có sản phẩm nào được chọn</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <button id="prevStepBtn" onclick="previousStep()" class="hidden px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    ← Quay lại
+                </button>
+                <div class="flex-1"></div>
+                <div class="flex items-center gap-3">
+                    <button onclick="closeCreateFlashSaleModal()" class="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                        Hủy
+                    </button>
+                    <button id="nextStepBtn" onclick="nextStep()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                        Tiếp theo →
+                    </button>
+                    <button id="submitBtn" onclick="submitFlashSale()" class="hidden px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                        ✓ Tạo Flash Sale
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Add Products Modal (NEW DESIGN) -->
+    <div id="bulkAddProductsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col animate-slideUp">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Thêm sản phẩm vào Flash Sale</h3>
+                        <p class="text-orange-100 text-sm">Chọn sản phẩm và cấu hình giá, giới hạn</p>
+                    </div>
+                </div>
+                <button onclick="closeBulkAddModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="flex-1 overflow-hidden flex">
+                <!-- Left: Product List -->
+                <div class="w-1/2 border-r border-gray-200 flex flex-col">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                        <div class="flex items-center gap-3 mb-3">
+                            <input type="text" id="bulkProductSearch" placeholder="Tìm sản phẩm..." 
+                                class="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            <select id="bulkCategoryFilter" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option value="">Tất cả danh mục</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-600">
+                                <span id="bulkSelectedCount" class="font-bold text-orange-600">0</span> / <span id="bulkTotalVisible">0</span> sản phẩm
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <button onclick="selectAllVisibleProducts()" class="text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium">
+                                    ✓ Chọn tất cả
+                                </button>
+                                <button onclick="deselectAllProducts()" class="text-xs px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                                    ✕ Bỏ chọn
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="bulkProductsList" class="flex-1 overflow-y-auto p-4 space-y-2">
+                        <!-- Products will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Right: Configuration Panel -->
+                <div class="w-1/2 flex flex-col">
+                    <div class="p-4 border-b border-gray-200 bg-orange-50 flex-shrink-0">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h4 class="font-bold text-gray-900 mb-1">Cấu hình sản phẩm đã chọn</h4>
+                                <p class="text-sm text-gray-600">Nhập thông tin cho các sản phẩm bên dưới</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Apply All - Hybrid Design -->
+                        <div class="mt-3 p-4 bg-white rounded-lg border-2 border-orange-200">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <p class="text-sm font-bold text-gray-900">Áp dụng nhanh cho tất cả</p>
+                            </div>
+                            
+                            <!-- Input Fields -->
+                            <div class="grid grid-cols-3 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">% Giảm giá</label>
+                                    <div class="relative">
+                                        <input type="number" id="bulkDiscountPercent" placeholder="30" min="1" max="99" 
+                                            class="w-full px-3 py-2 pr-8 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                        <span class="absolute right-3 top-2 text-sm text-gray-500 font-medium">%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Tổng số lượng</label>
+                                    <input type="number" id="bulkStockLimit" placeholder="∞" min="1" 
+                                        class="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    <p class="text-xs text-gray-500 mt-0.5">Trống = ∞</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Mỗi khách hàng</label>
+                                    <input type="number" id="bulkMaxPerCustomer" placeholder="∞" min="1" 
+                                        class="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                                    <p class="text-xs text-gray-500 mt-0.5">Trống = ∞</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Buttons + Apply Button -->
+                            <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1.5 flex-1">
+                                    <span class="text-xs font-semibold text-gray-600">Nhanh:</span>
+                                    <button onclick="fillBulkInputs(20, 30, 2)" class="flex-1 text-xs px-2 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 transition-colors font-medium">
+                                        -20%
+                                    </button>
+                                    <button onclick="fillBulkInputs(30, 30, 2)" class="flex-1 text-xs px-2 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 transition-colors font-medium">
+                                        -30%
+                                    </button>
+                                    <button onclick="fillBulkInputs(40, 30, 2)" class="flex-1 text-xs px-2 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded hover:bg-orange-100 transition-colors font-medium">
+                                        -40%
+                                    </button>
+                                    <button onclick="fillBulkInputs(50, 30, 2)" class="flex-1 text-xs px-2 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded hover:bg-red-100 transition-colors font-medium">
+                                        -50%
+                                    </button>
+                                    <button onclick="fillBulkInputs(30, null, null)" class="flex-1 text-xs px-2 py-1.5 bg-gray-50 text-gray-700 border border-gray-200 rounded hover:bg-gray-100 transition-colors font-medium">
+                                        ∞
+                                    </button>
+                                </div>
+                                <button onclick="applyBulkConfig()" id="bulkApplyBtn" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    ✓ Áp dụng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="bulkConfigList" class="flex-1 overflow-y-auto p-4">
+                        <div id="bulkConfigEmpty" class="flex flex-col items-center justify-center h-full text-gray-400">
+                            <svg class="w-20 h-20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            </svg>
+                            <p class="text-sm">Chọn sản phẩm bên trái để cấu hình</p>
+                        </div>
+                        <div id="bulkConfigItems" class="space-y-4 hidden">
+                            <!-- Config items will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex items-center justify-between flex-shrink-0">
+                <div class="text-sm text-gray-600">
+                    <span id="bulkTotalSelected" class="font-bold text-gray-900">0</span> sản phẩm sẽ được thêm
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="closeBulkAddModal()" class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                        Hủy
+                    </button>
+                    <button onclick="confirmBulkAdd()" id="bulkAddBtn" class="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        ✓ Thêm sản phẩm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price Input Modal (KEEP FOR EDITING) -->
+    <div id="priceInputModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-slideUp">
+            <div class="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 rounded-t-xl">
+                <h4 class="text-lg font-bold text-white">Cấu hình sản phẩm Flash Sale</h4>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-1">Sản phẩm:</p>
+                    <p id="priceModalProductName" class="font-semibold text-gray-900"></p>
+                </div>
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-1">Giá gốc:</p>
+                    <p id="priceModalOriginalPrice" class="text-lg font-bold text-gray-900"></p>
+                </div>
+                
+                <!-- Flash Price -->
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Giá Flash Sale <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="flashSalePriceInput" placeholder="Nhập giá flash sale" 
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                    <p id="discountPercentage" class="text-sm text-orange-600 font-semibold mt-2"></p>
+                </div>
+                
+                <!-- Stock Limit -->
+                <div class="mb-4">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        Giới hạn tổng số lượng
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="stockLimitInput" placeholder="VD: 100" min="1"
+                            class="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                            <input type="checkbox" id="unlimitedStockCheckbox" class="w-4 h-4 text-orange-600 rounded">
+                            Không giới hạn
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Tổng số sản phẩm có sẵn trong flash sale</p>
+                </div>
+                
+                <!-- Max Per Customer -->
+                <div class="mb-4">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Giới hạn mỗi khách hàng
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="maxPerCustomerInput" placeholder="VD: 2" min="1"
+                            class="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                            <input type="checkbox" id="unlimitedPerCustomerCheckbox" class="w-4 h-4 text-orange-600 rounded">
+                            Không giới hạn
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Số lượng tối đa mỗi khách hàng được mua</p>
+                </div>
+                
+                <p id="priceError" class="text-sm text-red-600 mb-4 hidden"></p>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 rounded-b-xl flex items-center justify-end gap-3">
+                <button onclick="closePriceModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                    Hủy
+                </button>
+                <button onclick="confirmPrice()" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all">
+                    ✓ Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Flash Sale Modal -->
+    <div id="viewFlashSaleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-slideUp">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Chi tiết Flash Sale</h3>
+                        <p class="text-blue-100 text-sm">Xem thông tin chi tiết chương trình</p>
+                    </div>
+                </div>
+                <button onclick="closeViewModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="overflow-y-auto p-6" style="max-height: calc(90vh - 140px);">
+                <div class="space-y-6">
+                    <!-- Info Card -->
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Tên Flash Sale</p>
+                                <p id="viewName" class="font-bold text-gray-900 text-lg"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Trạng thái</p>
+                                <div id="viewStatus"></div>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Thời gian bắt đầu</p>
+                                <p id="viewStartTime" class="font-semibold text-gray-900"></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Thời gian kết thúc</p>
+                                <p id="viewEndTime" class="font-semibold text-gray-900"></p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-gray-600 mb-1">Mô tả</p>
+                                <p id="viewDescription" class="text-gray-900"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
+                            <p class="text-sm text-gray-600 mb-1">Sản phẩm</p>
+                            <p id="viewProductCount" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
+                            <p class="text-sm text-gray-600 mb-1">Đã bán</p>
+                            <p id="viewSoldCount" class="text-2xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
+                            <p class="text-sm text-gray-600 mb-1">Giảm TB</p>
+                            <p id="viewAvgDiscount" class="text-2xl font-bold text-orange-600">0%</p>
+                        </div>
+                    </div>
+
+                    <!-- Products List -->
+                    <div class="bg-white border-2 border-gray-200 rounded-xl p-6">
+                        <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Danh sách sản phẩm
+                        </h4>
+                        <div id="viewProductsList" class="space-y-3">
+                            <!-- Products will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button onclick="closeViewModal()" class="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-slideUp">
+            <div class="p-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 text-center mb-2">Xác nhận xóa</h3>
+                <p class="text-gray-600 text-center mb-6">
+                    Bạn có chắc muốn xóa Flash Sale "<span id="deleteFlashSaleName" class="font-semibold"></span>"?
+                    <br><span class="text-red-600 font-semibold">Hành động này không thể hoàn tác!</span>
+                </p>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 rounded-b-xl flex items-center justify-end gap-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                    Hủy
+                </button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    Xóa Flash Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include JavaScript -->
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/flash-sales.js"></script>
+    <script src="../assets/js/auth-check.js"></script>
+</body>
+</html>

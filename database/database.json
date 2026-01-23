@@ -1,15 +1,59 @@
 [
   {
-    "name": "ctv",
-    "sql": "CREATE TABLE ctv (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  full_name TEXT NOT NULL,\r\n  phone TEXT NOT NULL,\r\n  email TEXT,\r\n  city TEXT,\r\n  age TEXT,\r\n  experience TEXT,\r\n  motivation TEXT,\r\n  referral_code TEXT UNIQUE NOT NULL,\r\n  status TEXT DEFAULT 'Mới',\r\n  commission_rate REAL DEFAULT 0.1, bank_account_number TEXT, bank_name TEXT, created_at_unix INTEGER, updated_at_unix INTEGER)"
+    "name": "address_learning",
+    "sql": "CREATE TABLE address_learning (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    \r\n    keywords TEXT NOT NULL,           -- Space-separated keywords: \"hau duong sau dinh\"\r\n    district_id INTEGER NOT NULL,     -- District ID for scoping\r\n    \r\n    ward_id INTEGER NOT NULL,         -- Ward ID that was selected\r\n    ward_name TEXT NOT NULL,          -- Ward name for quick display\r\n    \r\n    match_count INTEGER DEFAULT 1,    -- Number of times this mapping was used\r\n    last_used_at INTEGER NOT NULL,    -- Unix timestamp of last use\r\n    created_at INTEGER NOT NULL,      -- Unix timestamp of creation\r\n    \r\n    UNIQUE(keywords, district_id)     -- One mapping per keyword+district combo\r\n)"
   },
   {
     "name": "categories",
-    "sql": "CREATE TABLE categories (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL UNIQUE,\r\n    description TEXT,\r\n    icon TEXT,\r\n    color TEXT,\r\n    display_order INTEGER DEFAULT 0,\r\n    is_active INTEGER DEFAULT 1,\r\n    created_at TEXT DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,\r\n    created_at_unix INTEGER,\r\n    updated_at_unix INTEGER\r\n)"
+    "sql": "CREATE TABLE categories (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL UNIQUE,\r\n    description TEXT,\r\n    icon TEXT,\r\n    color TEXT,\r\n    display_order INTEGER DEFAULT 0,\r\n    is_active INTEGER DEFAULT 1,\r\n    created_at TEXT DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at TEXT DEFAULT CURRENT_TIMESTAMP\r\n, created_at_unix INTEGER, updated_at_unix INTEGER)"
+  },
+  {
+    "name": "commission_payment_details",
+    "sql": "CREATE TABLE commission_payment_details (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    payment_id INTEGER NOT NULL,\r\n    order_id INTEGER NOT NULL,\r\n    commission_amount REAL NOT NULL,\r\n    created_at_unix INTEGER,\r\n    FOREIGN KEY (payment_id) REFERENCES commission_payments(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE\r\n)"
+  },
+  {
+    "name": "commission_payments",
+    "sql": "CREATE TABLE commission_payments (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    referral_code TEXT NOT NULL,\r\n    month TEXT NOT NULL,  -- Format: \"2025-11\"\r\n    commission_amount REAL NOT NULL,\r\n    order_count INTEGER NOT NULL,\r\n    payment_method TEXT,  -- \"bank_transfer\", \"cash\", \"momo\"\r\n    status TEXT DEFAULT 'pending',  -- \"pending\", \"paid\"\r\n    note TEXT,\r\n    created_at_unix INTEGER, updated_at_unix INTEGER, payment_date_unix INTEGER)"
   },
   {
     "name": "cost_config",
-    "sql": "CREATE TABLE \"cost_config\" (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  item_name TEXT NOT NULL UNIQUE,\r\n  item_cost REAL NOT NULL DEFAULT 0,\r\n  is_default INTEGER DEFAULT 1,\r\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\r\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP\r\n)"
+    "sql": "CREATE TABLE \"cost_config\" (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  item_name TEXT NOT NULL UNIQUE,\r\n  item_cost REAL NOT NULL DEFAULT 0,\r\n  is_default INTEGER DEFAULT 1,\r\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\r\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP\r\n, category_id INTEGER REFERENCES material_categories(id), display_name TEXT)"
+  },
+  {
+    "name": "ctv",
+    "sql": "CREATE TABLE ctv (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  full_name TEXT NOT NULL,\r\n  phone TEXT NOT NULL,\r\n  email TEXT,\r\n  city TEXT,\r\n  age TEXT,\r\n  experience TEXT,\r\n  motivation TEXT,\r\n  referral_code TEXT UNIQUE NOT NULL,\r\n  status TEXT DEFAULT 'Mới',\r\n  commission_rate REAL DEFAULT 0.1, bank_account_number TEXT, bank_name TEXT, created_at_unix INTEGER, updated_at_unix INTEGER, slug_change_count INTEGER DEFAULT 0, custom_slug TEXT, slug_updated_at_unix INTEGER)"
+  },
+  {
+    "name": "discount_auto_rules",
+    "sql": "CREATE TABLE discount_auto_rules (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  discount_id INTEGER NOT NULL,\r\n  \r\n  -- Điều kiện tự động áp dụng\r\n  rule_type TEXT CHECK(rule_type IN ('cart_value', 'product_quantity', 'first_order', 'birthday', 'special_day')),\r\n  rule_config TEXT,  -- JSON config cho rule\r\n  \r\n  active BOOLEAN DEFAULT 1,\r\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\r\n  \r\n  FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE CASCADE\r\n)"
+  },
+  {
+    "name": "discount_campaigns",
+    "sql": "CREATE TABLE discount_campaigns (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                name TEXT NOT NULL,\n                slug TEXT UNIQUE NOT NULL,\n                created_at_unix INTEGER NOT NULL,\n                updated_at_unix INTEGER NOT NULL\n            )"
+  },
+  {
+    "name": "discount_usage",
+    "sql": "CREATE TABLE \"discount_usage\" (\n      id INTEGER PRIMARY KEY AUTOINCREMENT,\n      discount_id INTEGER NOT NULL,\n      discount_code TEXT NOT NULL,\n      order_id TEXT NOT NULL,\n      customer_name TEXT,\n      customer_phone TEXT NOT NULL,\n      order_amount INTEGER,\n      discount_amount INTEGER,\n      gift_received TEXT,\n      ip_address TEXT,\n      user_agent TEXT,\n      used_at_unix INTEGER,\n      FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE CASCADE,\n      FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE\n    )"
+  },
+  {
+    "name": "discounts",
+    "sql": "CREATE TABLE discounts (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  code TEXT UNIQUE NOT NULL,\r\n  title TEXT NOT NULL,\r\n  description TEXT,\r\n  \r\n  -- Loại khuyến mãi\r\n  type TEXT NOT NULL CHECK(type IN ('fixed', 'percentage', 'gift', 'freeship')),\r\n  \r\n  -- Giá trị giảm (cho fixed/percentage)\r\n  discount_value INTEGER DEFAULT 0,\r\n  \r\n  -- Giá trị tối đa được giảm (cho percentage)\r\n  max_discount_amount INTEGER,\r\n  \r\n  -- Thông tin quà tặng (cho type = 'gift')\r\n  gift_product_id TEXT,\r\n  gift_product_name TEXT,\r\n  gift_quantity INTEGER DEFAULT 1,\r\n  \r\n  -- Điều kiện áp dụng\r\n  min_order_amount INTEGER DEFAULT 0,\r\n  min_items INTEGER DEFAULT 0,\r\n  \r\n  -- Giới hạn sử dụng\r\n  max_total_uses INTEGER,  -- Tổng số lần dùng tối đa (NULL = không giới hạn)\r\n  max_uses_per_customer INTEGER DEFAULT 1,  -- Mỗi khách dùng tối đa bao nhiêu lần\r\n  \r\n  -- Áp dụng cho đối tượng cụ thể\r\n  customer_type TEXT CHECK(customer_type IN ('all', 'new', 'existing', 'vip')),\r\n  allowed_customer_phones TEXT,  -- JSON array: [\"0901234567\", \"0912345678\"]\r\n  \r\n  -- Áp dụng cho sản phẩm/danh mục cụ thể\r\n  applicable_products TEXT,  -- JSON array: [\"product_id_1\", \"product_id_2\"]\r\n  applicable_categories TEXT,  -- JSON array: [\"category_id_1\", \"category_id_2\"]\r\n  excluded_products TEXT,  -- JSON array: sản phẩm loại trừ\r\n  \r\n  -- Kết hợp với mã khác\r\n  combinable_with_other_discounts BOOLEAN DEFAULT 0,\r\n  priority INTEGER DEFAULT 0,  -- Thứ tự ưu tiên khi áp dụng nhiều mã\r\n  \r\n  -- Trạng thái\r\n  active BOOLEAN DEFAULT 1,\r\n  visible BOOLEAN DEFAULT 1,  -- Hiển thị công khai hay không\r\n  \r\n  -- Thời gian\r\n  start_date DATETIME,\r\n  expiry_date DATETIME NOT NULL,\r\n  \r\n  -- Metadata\r\n  created_by TEXT,  -- Admin tạo mã\r\n  notes TEXT,  -- Ghi chú nội bộ\r\n  usage_count INTEGER DEFAULT 0,\r\n  total_discount_amount INTEGER DEFAULT 0  -- Tổng số tiền đã giảm\r\n, created_at_unix INTEGER, updated_at_unix INTEGER, campaign_id INTEGER REFERENCES discount_campaigns(id) ON DELETE SET NULL, special_event TEXT, event_icon TEXT, event_date TEXT)"
+  },
+  {
+    "name": "export_history",
+    "sql": "CREATE TABLE export_history (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    created_at INTEGER NOT NULL,\r\n    order_count INTEGER NOT NULL,\r\n    order_ids TEXT NOT NULL,\r\n    file_name TEXT NOT NULL,\r\n    file_path TEXT NOT NULL,\r\n    status TEXT DEFAULT 'pending',\r\n    downloaded_at INTEGER,\r\n    updated_at INTEGER\r\n)"
+  },
+  {
+    "name": "flash_sale_products",
+    "sql": "CREATE TABLE flash_sale_products (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  \r\n  -- Relations\r\n  flash_sale_id INTEGER NOT NULL,\r\n  product_id INTEGER NOT NULL,\r\n  \r\n  -- Pricing\r\n  original_price REAL NOT NULL,          -- Original product price\r\n  flash_price REAL NOT NULL,             -- Discounted price\r\n  discount_percentage REAL,              -- Calculated discount %\r\n  \r\n  -- Stock management\r\n  stock_limit INTEGER,                   -- Max quantity available (NULL = unlimited)\r\n  sold_count INTEGER DEFAULT 0,          -- Number sold\r\n  \r\n  -- Status\r\n  is_active INTEGER DEFAULT 1,\r\n  \r\n  -- Timestamps\r\n  created_at_unix INTEGER NOT NULL,\r\n  updated_at_unix INTEGER NOT NULL,\r\n  \r\n  -- Foreign keys\r\n  FOREIGN KEY (flash_sale_id) REFERENCES flash_sales(id) ON DELETE CASCADE,\r\n  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,\r\n  \r\n  -- Constraints\r\n  UNIQUE(flash_sale_id, product_id),\r\n  CHECK(flash_price < original_price),\r\n  CHECK(flash_price >= 0),\r\n  CHECK(sold_count >= 0),\r\n  CHECK(stock_limit IS NULL OR stock_limit > 0)\r\n)"
+  },
+  {
+    "name": "flash_sales",
+    "sql": "CREATE TABLE flash_sales (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  \r\n  -- Basic info\r\n  name TEXT NOT NULL,                    -- \"Flash Sale Cuối Tuần\"\r\n  description TEXT,\r\n  \r\n  -- Time range\r\n  start_time INTEGER NOT NULL,           -- Unix timestamp\r\n  end_time INTEGER NOT NULL,             -- Unix timestamp\r\n  \r\n  -- Status: draft, scheduled, active, ended, cancelled\r\n  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'scheduled', 'active', 'ended', 'cancelled')),\r\n  \r\n  -- Display settings\r\n  is_visible INTEGER DEFAULT 1,          -- Show on website\r\n  banner_image TEXT,                     -- Optional banner image URL\r\n  \r\n  -- Timestamps\r\n  created_at_unix INTEGER NOT NULL,\r\n  updated_at_unix INTEGER NOT NULL,\r\n  \r\n  -- Constraints\r\n  CHECK(end_time > start_time)\r\n)"
+  },
+  {
+    "name": "material_categories",
+    "sql": "CREATE TABLE material_categories (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    name TEXT UNIQUE NOT NULL,\n                    display_name TEXT NOT NULL,\n                    icon TEXT,\n                    description TEXT,\n                    sort_order INTEGER DEFAULT 0,\n                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP\n                )"
   },
   {
     "name": "order_items",
@@ -17,62 +61,26 @@
   },
   {
     "name": "orders",
-    "sql": "CREATE TABLE \"orders\" (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  order_id TEXT UNIQUE NOT NULL,\r\n  order_date TEXT,\r\n  customer_name TEXT,\r\n  customer_phone TEXT,\r\n  address TEXT,\r\n  products TEXT,\r\n  payment_method TEXT,\r\n  status TEXT,\r\n  referral_code TEXT,\r\n  commission REAL DEFAULT 0,\r\n  ctv_phone TEXT,\r\n  notes TEXT,\r\n  shipping_fee REAL DEFAULT 0, shipping_cost REAL DEFAULT 0, packaging_cost REAL DEFAULT 0, packaging_details TEXT, tax_amount REAL DEFAULT 0, tax_rate REAL DEFAULT 0.015, total_amount REAL DEFAULT 0, created_at_unix INTEGER, province_id TEXT, province_name TEXT, district_id TEXT, district_name TEXT, ward_id TEXT, ward_name TEXT, street_address TEXT, discount_code TEXT, discount_amount INTEGER DEFAULT 0, commission_rate REAL DEFAULT 0, is_priority INTEGER DEFAULT 0,\r\n  FOREIGN KEY (referral_code) REFERENCES ctv(referral_code)\r\n)"
-  },
-  {
-    "name": "products",
-    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0,\r\n    created_at_unix INTEGER,\r\n    updated_at_unix INTEGER\r\n)"
-  },
-  {
-    "name": "commission_payments",
-    "sql": "CREATE TABLE commission_payments (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    referral_code TEXT NOT NULL,\r\n    month TEXT NOT NULL,  -- Format: \"2025-11\"\r\n    commission_amount REAL NOT NULL,\r\n    order_count INTEGER NOT NULL,\r\n    payment_method TEXT,  -- \"bank_transfer\", \"cash\", \"momo\"\r\n    status TEXT DEFAULT 'pending',  -- \"pending\", \"paid\"\r\n    note TEXT,\r\n    created_at_unix INTEGER,\r\n    updated_at_unix INTEGER,\r\n    payment_date_unix INTEGER\r\n)"
-  },
-  {
-    "name": "commission_payment_details",
-    "sql": "CREATE TABLE commission_payment_details (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    payment_id INTEGER NOT NULL,\r\n    order_id INTEGER NOT NULL,\r\n    commission_amount REAL NOT NULL,\r\n    created_at_unix INTEGER,\r\n    FOREIGN KEY (payment_id) REFERENCES commission_payments(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE\r\n)"
-  },
-  {
-    "name": "discounts",
-    "sql": "CREATE TABLE discounts (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  code TEXT UNIQUE NOT NULL,\r\n  title TEXT NOT NULL,\r\n  description TEXT,\r\n  \r\n  -- Loại khuyến mãi\r\n  type TEXT NOT NULL CHECK(type IN ('fixed', 'percentage', 'gift', 'freeship')),\r\n  \r\n  -- Giá trị giảm (cho fixed/percentage)\r\n  discount_value INTEGER DEFAULT 0,\r\n  \r\n  -- Giá trị tối đa được giảm (cho percentage)\r\n  max_discount_amount INTEGER,\r\n  \r\n  -- Thông tin quà tặng (cho type = 'gift')\r\n  gift_product_id TEXT,\r\n  gift_product_name TEXT,\r\n  gift_quantity INTEGER DEFAULT 1,\r\n  \r\n  -- Điều kiện áp dụng\r\n  min_order_amount INTEGER DEFAULT 0,\r\n  min_items INTEGER DEFAULT 0,\r\n  \r\n  -- Giới hạn sử dụng\r\n  max_total_uses INTEGER,  -- Tổng số lần dùng tối đa (NULL = không giới hạn)\r\n  max_uses_per_customer INTEGER DEFAULT 1,  -- Mỗi khách dùng tối đa bao nhiêu lần\r\n  \r\n  -- Áp dụng cho đối tượng cụ thể\r\n  customer_type TEXT CHECK(customer_type IN ('all', 'new', 'existing', 'vip')),\r\n  allowed_customer_phones TEXT,  -- JSON array: [\"0901234567\", \"0912345678\"]\r\n  \r\n  -- Áp dụng cho sản phẩm/danh mục cụ thể\r\n  applicable_products TEXT,  -- JSON array: [\"product_id_1\", \"product_id_2\"]\r\n  applicable_categories TEXT,  -- JSON array: [\"category_id_1\", \"category_id_2\"]\r\n  excluded_products TEXT,  -- JSON array: sản phẩm loại trừ\r\n  \r\n  -- Kết hợp với mã khác\r\n  combinable_with_other_discounts BOOLEAN DEFAULT 0,\r\n  priority INTEGER DEFAULT 0,  -- Thứ tự ưu tiên khi áp dụng nhiều mã\r\n  \r\n  -- Trạng thái\r\n  active BOOLEAN DEFAULT 1,\r\n  visible BOOLEAN DEFAULT 1,  -- Hiển thị công khai hay không\r\n  \r\n  -- Thời gian\r\n  start_date DATETIME,\r\n  expiry_date DATETIME NOT NULL,\r\n  \r\n  -- Metadata\r\n  created_by TEXT,  -- Admin tạo mã\r\n  notes TEXT,  -- Ghi chú nội bộ\r\n  usage_count INTEGER DEFAULT 0,\r\n  total_discount_amount INTEGER DEFAULT 0  -- Tổng số tiền đã giảm\r\n, created_at_unix INTEGER, updated_at_unix INTEGER)"
-  },
-  {
-    "name": "discount_usage",
-    "sql": "CREATE TABLE discount_usage (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  discount_id INTEGER NOT NULL,\r\n  discount_code TEXT NOT NULL,\r\n  \r\n  -- Thông tin đơn hàng\r\n  order_id TEXT NOT NULL,\r\n  customer_name TEXT,\r\n  customer_phone TEXT NOT NULL,\r\n  \r\n  -- Giá trị giảm giá thực tế\r\n  order_amount INTEGER,  -- Giá trị đơn hàng\r\n  discount_amount INTEGER,  -- Số tiền được giảm\r\n  gift_received TEXT,  -- Quà tặng nhận được (nếu có)\r\n  \r\n  -- Metadata\r\n  ip_address TEXT,\r\n  user_agent TEXT,\r\n  used_at_unix INTEGER,\r\n  \r\n  FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE CASCADE,\r\n  FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE\r\n)"
-  },
-  {
-    "name": "discount_auto_rules",
-    "sql": "CREATE TABLE discount_auto_rules (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  discount_id INTEGER NOT NULL,\r\n  \r\n  -- Điều kiện tự động áp dụng\r\n  rule_type TEXT CHECK(rule_type IN ('cart_value', 'product_quantity', 'first_order', 'birthday', 'special_day')),\r\n  rule_config TEXT,  -- JSON config cho rule\r\n  \r\n  active BOOLEAN DEFAULT 1,\r\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\r\n  \r\n  FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE CASCADE\r\n)"
+    "sql": "CREATE TABLE \"orders\" (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                order_id TEXT NOT NULL UNIQUE,\n                customer_name TEXT NOT NULL,\n                customer_phone TEXT NOT NULL,\n                address TEXT,\n                products TEXT,\n                total_amount INTEGER DEFAULT 0,\n                payment_method TEXT DEFAULT 'cod',\n                status TEXT DEFAULT 'pending',\n                referral_code TEXT,\n                commission INTEGER DEFAULT 0,\n                commission_rate REAL DEFAULT 0,\n                ctv_phone TEXT,\n                notes TEXT,\n                shipping_fee INTEGER DEFAULT 0,\n                shipping_cost INTEGER DEFAULT 0,\n                packaging_cost INTEGER DEFAULT 0,\n                packaging_details TEXT,\n                tax_amount INTEGER DEFAULT 0,\n                tax_rate REAL DEFAULT 0,\n                created_at_unix INTEGER,\n                province_id TEXT,\n                province_name TEXT,\n                district_id TEXT,\n                district_name TEXT,\n                ward_id TEXT,\n                ward_name TEXT,\n                street_address TEXT,\n                discount_code TEXT,\n                discount_amount INTEGER DEFAULT 0,\n                is_priority INTEGER DEFAULT 0\n            )"
   },
   {
     "name": "product_categories",
     "sql": "CREATE TABLE product_categories (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  product_id INTEGER NOT NULL,\r\n  category_id INTEGER NOT NULL,\r\n  is_primary INTEGER DEFAULT 0,\r\n  display_order INTEGER DEFAULT 0,\r\n  created_at TEXT DEFAULT CURRENT_TIMESTAMP,\r\n  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,\r\n  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,\r\n  UNIQUE(product_id, category_id)\r\n)"
   },
   {
-    "name": "users",
-    "sql": "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, full_name TEXT, role TEXT DEFAULT 'admin', is_active INTEGER DEFAULT 1, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
+    "name": "product_materials",
+    "sql": "CREATE TABLE product_materials (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                product_id INTEGER NOT NULL,\n                material_name TEXT NOT NULL,\n                quantity REAL NOT NULL,\n                unit TEXT,\n                notes TEXT,\n                created_at_unix INTEGER DEFAULT (strftime('%s', 'now')),\n                updated_at_unix INTEGER DEFAULT (strftime('%s', 'now')),\n                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE\n            )"
+  },
+  {
+    "name": "products",
+    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0\r\n, markup_multiplier REAL DEFAULT NULL)"
   },
   {
     "name": "sessions",
     "sql": "CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)"
   },
   {
-    "name": "export_history",
-    "sql": "CREATE TABLE export_history (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    created_at INTEGER NOT NULL,\r\n    order_count INTEGER NOT NULL,\r\n    order_ids TEXT NOT NULL,\r\n    file_name TEXT NOT NULL,\r\n    file_path TEXT NOT NULL,\r\n    status TEXT DEFAULT 'pending',\r\n    downloaded_at INTEGER,\r\n    updated_at INTEGER\r\n)"
-  },
-  {
-    "name": "address_learning",
-    "sql": "CREATE TABLE address_learning (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    \r\n    keywords TEXT NOT NULL,           -- Space-separated keywords: \"hau duong sau dinh\"\r\n    district_id INTEGER NOT NULL,     -- District ID for scoping\r\n    \r\n    ward_id INTEGER NOT NULL,         -- Ward ID that was selected\r\n    ward_name TEXT NOT NULL,          -- Ward name for quick display\r\n    \r\n    match_count INTEGER DEFAULT 1,    -- Number of times this mapping was used\r\n    last_used_at INTEGER NOT NULL,    -- Unix timestamp of last use\r\n    created_at INTEGER NOT NULL,      -- Unix timestamp of creation\r\n    \r\n    UNIQUE(keywords, district_id)     -- One mapping per keyword+district combo\r\n)"
-  },
-  {
-    "name": "orders_backup_20260119",
-    "sql": "CREATE TABLE orders_backup_20260119(\n  id INT,\n  order_id TEXT,\n  order_date TEXT,\n  customer_name TEXT,\n  customer_phone TEXT,\n  address TEXT,\n  products TEXT,\n  payment_method TEXT,\n  status TEXT,\n  referral_code TEXT,\n  commission REAL,\n  ctv_phone TEXT,\n  notes TEXT,\n  created_at NUM,\n  shipping_fee REAL,\n  shipping_cost REAL,\n  packaging_cost REAL,\n  packaging_details TEXT,\n  tax_amount REAL,\n  tax_rate REAL,\n  total_amount REAL,\n  created_at_unix INT,\n  province_id TEXT,\n  province_name TEXT,\n  district_id TEXT,\n  district_name TEXT,\n  ward_id TEXT,\n  ward_name TEXT,\n  street_address TEXT,\n  discount_code TEXT,\n  discount_amount INT,\n  commission_rate REAL,\n  is_priority INT\n)"
-  },
-  {
-    "name": "discounts_backup_20260119T034640",
-    "sql": "CREATE TABLE discounts_backup_20260119T034640(\n  id INT,\n  code TEXT,\n  title TEXT,\n  description TEXT,\n  type TEXT,\n  discount_value INT,\n  max_discount_amount INT,\n  gift_product_id TEXT,\n  gift_product_name TEXT,\n  gift_quantity INT,\n  min_order_amount INT,\n  min_items INT,\n  max_total_uses INT,\n  max_uses_per_customer INT,\n  customer_type TEXT,\n  allowed_customer_phones TEXT,\n  applicable_products TEXT,\n  applicable_categories TEXT,\n  excluded_products TEXT,\n  combinable_with_other_discounts NUM,\n  priority INT,\n  active NUM,\n  visible NUM,\n  start_date NUM,\n  expiry_date NUM,\n  created_by TEXT,\n  notes TEXT,\n  created_at NUM,\n  updated_at NUM,\n  usage_count INT,\n  total_discount_amount INT,\n  created_at_unix INT,\n  updated_at_unix INT\n)"
-  },
-  {
-    "name": "ctv_backup_20260119T040756",
-    "sql": "CREATE TABLE ctv_backup_20260119T040756(\n  id INT,\n  full_name TEXT,\n  phone TEXT,\n  email TEXT,\n  city TEXT,\n  age TEXT,\n  experience TEXT,\n  motivation TEXT,\n  referral_code TEXT,\n  status TEXT,\n  created_at NUM,\n  updated_at NUM,\n  commission_rate REAL,\n  bank_account_number TEXT,\n  bank_name TEXT,\n  created_at_unix INT,\n  updated_at_unix INT\n)"
+    "name": "users",
+    "sql": "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, full_name TEXT, role TEXT DEFAULT 'admin', is_active INTEGER DEFAULT 1, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
   }
 ]

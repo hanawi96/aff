@@ -1,0 +1,444 @@
+/* Flash Sales - Custom Styles */
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-badge::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+
+.status-draft {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.status-draft::before {
+    background: #9ca3af;
+}
+
+.status-scheduled {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-scheduled::before {
+    background: #3b82f6;
+}
+
+.status-active {
+    background: #d1fae5;
+    color: #065f46;
+    animation: pulse-green 2s infinite;
+}
+
+.status-active::before {
+    background: #10b981;
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.status-ended {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-ended::before {
+    background: #ef4444;
+}
+
+.status-cancelled {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.status-cancelled::before {
+    background: #6b7280;
+}
+
+/* Animations */
+@keyframes pulse-green {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes ping {
+    75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* Countdown Timer */
+.countdown-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    color: #92400e;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.countdown-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 0.25rem 0.5rem;
+    background: white;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+/* Product Selector */
+.product-item {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.product-item:hover {
+    background: #f9fafb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.product-item.selected {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+.product-item.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Price Input */
+.price-input-group {
+    position: relative;
+}
+
+.price-input-group input {
+    padding-right: 2.5rem;
+}
+
+.price-input-group .currency {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Discount Badge */
+.discount-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    color: white;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 0.5rem;
+    background: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95%;
+        max-height: 95vh;
+    }
+    
+    .countdown-timer {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .countdown-number {
+        min-width: 1.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Create Flash Sale Modal Styles */
+.step-active .step-circle {
+    background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+    color: white;
+}
+
+.step-active .step-text {
+    color: #111827;
+    font-weight: 600;
+}
+
+/* Product card in selector */
+.product-card {
+    transition: all 0.2s ease;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    cursor: pointer;
+}
+
+.product-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+}
+
+.product-card.selected {
+    border-color: #f97316;
+    background: #fff7ed;
+}
+
+/* Selected product item */
+.selected-product-item {
+    background: white;
+    border: 2px solid #fed7aa;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.selected-product-item:hover {
+    border-color: #fb923c;
+    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.2);
+}
+
+/* Input focus states */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+}
+
+/* Error state */
+.input-error {
+    border-color: #ef4444 !important;
+}
+
+.input-error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Custom scrollbar for modal */
+#allProductsList::-webkit-scrollbar,
+#selectedProductsList::-webkit-scrollbar,
+#confirmProductsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#allProductsList::-webkit-scrollbar-track,
+#selectedProductsList::-webkit-scrollbar-track,
+#confirmProductsList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#allProductsList::-webkit-scrollbar-thumb,
+#selectedProductsList::-webkit-scrollbar-thumb,
+#confirmProductsList::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+#allProductsList::-webkit-scrollbar-thumb:hover,
+#selectedProductsList::-webkit-scrollbar-thumb:hover,
+#confirmProductsList::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+
+/* Bulk Add Products Modal */
+.bulk-product-item {
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.bulk-product-item:hover {
+    border-color: #fb923c;
+    background: #fff7ed;
+    transform: translateX(4px);
+}
+
+.bulk-product-item.selected {
+    border-color: #f97316;
+    background: #fff7ed;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.bulk-config-item {
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.bulk-config-item:hover {
+    border-color: #fb923c;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-config-item.has-error {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.bulk-config-item.is-valid {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.bulk-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bulk-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bulk-input-group input {
+    padding: 8px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.bulk-input-group input:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.bulk-input-group input.error {
+    border-color: #ef4444;
+}
+
+.bulk-input-group .error-message {
+    font-size: 11px;
+    color: #ef4444;
+    margin-top: -4px;
+}
+
+.bulk-quick-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.bulk-quick-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bulk-quick-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+}
+
+.bulk-quick-btn.active {
+    background: #f97316;
+    color: white;
+    border-color: #f97316;
+}

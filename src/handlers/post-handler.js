@@ -80,6 +80,33 @@ import {
     toggleCampaignStatus
 } from '../services/campaigns/campaign-service.js';
 
+// Flash Sales
+import {
+    createFlashSale,
+    updateFlashSale,
+    deleteFlashSale,
+    updateFlashSaleStatus
+} from '../services/flash-sales/flash-sale-service.js';
+
+import {
+    addProductToFlashSale,
+    addMultipleProductsToFlashSale,
+    updateFlashSaleProduct,
+    removeProductFromFlashSale,
+    removeAllProductsFromFlashSale
+} from '../services/flash-sales/flash-sale-products.js';
+
+// Flash Sale Bulk Update
+import {
+    updateFlashSaleProducts
+} from '../services/flash-sales/flash-sale-bulk-update.js';
+
+// Flash Sale Purchase Tracking
+import {
+    recordFlashSalePurchase,
+    cancelFlashSalePurchase
+} from '../services/flash-sales/flash-sale-purchase-tracking.js';
+
 // Export History
 import { 
     saveExport, 
@@ -209,6 +236,35 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await deleteCampaign(data, env, corsHeaders);
         case 'toggleCampaignStatus':
             return await toggleCampaignStatus(data, env, corsHeaders);
+        
+        // Flash Sales
+        case 'createFlashSale':
+            return await createFlashSale(data, env, corsHeaders);
+        case 'updateFlashSale':
+            return await updateFlashSale(data.id, data, env, corsHeaders);
+        case 'deleteFlashSale':
+            return await deleteFlashSale(data.id, env, corsHeaders);
+        case 'updateFlashSaleStatus':
+            return await updateFlashSaleStatus(data.id, data.status, env, corsHeaders);
+        case 'addProductToFlashSale':
+            return await addProductToFlashSale(data.flashSaleId, data, env, corsHeaders);
+        case 'addMultipleProductsToFlashSale':
+            return await addMultipleProductsToFlashSale(data.flashSaleId, data.products, env, corsHeaders);
+        case 'updateFlashSaleProduct':
+            return await updateFlashSaleProduct(data.id, data, env, corsHeaders);
+        case 'removeProductFromFlashSale':
+            return await removeProductFromFlashSale(data.id, env, corsHeaders);
+        case 'removeAllProductsFromFlashSale':
+            return await removeAllProductsFromFlashSale(data.flashSaleId, env, corsHeaders);
+        case 'updateFlashSaleProducts':
+            return await updateFlashSaleProducts(data.flashSaleId, data.products, env, corsHeaders);
+
+        // Flash Sale Purchase Tracking
+        case 'recordFlashSalePurchase':
+            return await recordFlashSalePurchase(data, env, corsHeaders);
+
+        case 'cancelFlashSalePurchase':
+            return await cancelFlashSalePurchase(data.orderId, env, corsHeaders);
         
         case 'saveExport':
             return await saveExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
