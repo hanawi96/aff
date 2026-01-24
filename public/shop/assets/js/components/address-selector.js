@@ -285,4 +285,58 @@ export class AddressSelector {
         
         this.updateFullAddress();
     }
+    
+    /**
+     * Fill demo data for testing
+     */
+    async fillDemoData() {
+        // Demo: TP Hồ Chí Minh > Quận 1 > Phường Bến Nghé
+        const provinceSelect = document.getElementById('provinceSelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const wardSelect = document.getElementById('wardSelect');
+        const streetInput = document.getElementById('streetInput');
+        
+        // Select TP Hồ Chí Minh (code: 79)
+        if (provinceSelect) {
+            provinceSelect.value = '79';
+            this.provinceCode = '79';
+            
+            // Trigger change event to load districts
+            const event = new Event('change', { bubbles: true });
+            provinceSelect.dispatchEvent(event);
+        }
+        
+        // Wait for districts to load
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Select Quận 1 (code: 760)
+        if (districtSelect && !districtSelect.disabled) {
+            districtSelect.value = '760';
+            this.districtCode = '760';
+            
+            // Trigger change event to load wards
+            const event = new Event('change', { bubbles: true });
+            districtSelect.dispatchEvent(event);
+        }
+        
+        // Wait for wards to load
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Select Phường Bến Nghé (code: 26734)
+        if (wardSelect && !wardSelect.disabled) {
+            wardSelect.value = '26734';
+            this.wardCode = '26734';
+            
+            // Trigger change event
+            const event = new Event('change', { bubbles: true });
+            wardSelect.dispatchEvent(event);
+        }
+        
+        // Fill street
+        if (streetInput && !streetInput.disabled) {
+            streetInput.value = '123 Nguyễn Huệ';
+            this.street = '123 Nguyễn Huệ';
+            this.updateFullAddress();
+        }
+    }
 }

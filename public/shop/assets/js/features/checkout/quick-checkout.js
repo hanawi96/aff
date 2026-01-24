@@ -19,11 +19,13 @@ export class QuickCheckout {
         this.product = null;
         this.quantity = 1;
         this.crossSellProducts = [];
-        this.selectedCrossSells = [];
+        this.selectedCrossSells = []; // Array of {id, quantity}
         this.addressSelector = null;
         this.appliedDiscount = null;
         this.discountAmount = 0;
         this.shippingFee = 21000; // Default 21,000đ, will be loaded from API
+        this.paymentMethod = 'cod'; // Default: COD
+        this.bankTransferConfirmed = false; // Bank transfer confirmation status
         
         // Initialize discount modal
         this.discountModal = new DiscountModal((discount, amount) => this.applyDiscount(discount, amount));
@@ -173,43 +175,285 @@ export class QuickCheckout {
         const container = document.getElementById('crossSellProducts');
         if (!container || this.crossSellProducts.length === 0) return;
         
-        let html = '<div class="cross-sell-header">';
+        let html = '<div class="cross-sell-header-legend">';
         html += '<i class="fas fa-gift"></i> ';
         html += '<span>Mua kèm - <strong style="color: #e74c3c;">MIỄN PHÍ SHIP</strong></span>';
         html += '</div>';
         
+        html += '<div class="cross-sell-items-wrapper">';
+        
         this.crossSellProducts.forEach(product => {
-            const isSelected = this.selectedCrossSells.includes(product.id);
-            html += '<div class="cross-sell-item ' + (isSelected ? 'selected' : '') + '" ';
-            html += 'onclick="quickCheckout.toggleCrossSell(' + product.id + ')">';
-            html += '<div class="cross-sell-checkbox">';
-            html += '<i class="fas fa-' + (isSelected ? 'check-square' : 'square') + '"></i>';
-            html += '</div>';
+            const selectedItem = this.selectedCrossSells.find(item => item.id === product.id);
+            const isSelected = !!selectedItem;
+            const quantity = selectedItem ? selectedItem.quantity : 1;
+            
+            html += '<div class="cross-sell-item ' + (isSelected ? 'selected' : '') + '">';
             html += '<img src="' + (product.image || CONFIG.DEFAULT_IMAGE) + '" ';
             html += 'alt="' + escapeHtml(product.name) + '" class="cross-sell-image" ';
             html += 'loading="lazy">';
+            
             html += '<div class="cross-sell-info">';
             html += '<div class="cross-sell-name">' + escapeHtml(product.name) + '</div>';
             html += '<div class="cross-sell-price">' + formatPrice(product.price) + '</div>';
             html += '</div>';
+            
+            html += '<div class="cross-sell-actions">';
+            
+            // Always show quantity selector
+            html += '<div class="cross-sell-qty-compact">';
+            html += '<button class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', -1)" data-product="' + product.id + '" data-action="minus">';
+            html += '<i class="fas fa-minus"></i>';
+            html += '</button>';
+            html += '<span class="cross-sell-qty-value-compact" data-product="' + product.id + '">' + quantity + '</span>';
+            html += '<button class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', 1)" data-product="' + product.id + '" data-action="plus">';
+            html += '<i class="fas fa-plus"></i>';
+            html += '</button>';
+            html += '</div>';
+            
+            // Add/Remove button
+            if (!isSelected) {
+                html += '<button class="cross-sell-add-btn-compact" onclick="quickCheckout.addCrossSell(' + product.id + ')">';
+                html += '<i class="fas fa-plus"></i> Thêm';
+                html += '</button>';
+            } else {
+                html += '<button class="cross-sell-remove-btn-compact" onclick="quickCheckout.removeCrossSell(' + product.id + ')">';
+                html += '<i class="fas fa-check"></i> Đã thêm';
+                html += '</button>';
+            }
+            
+            html += '</div>';
             html += '</div>';
         });
+        
+        html += '</div>'; // close items-wrapper
         
         container.innerHTML = html;
     }
     
     /**
-     * Toggle cross-sell product selection
+     * Update temporary quantity (before adding to cart)
      */
-    toggleCrossSell(productId) {
-        const index = this.selectedCrossSells.indexOf(productId);
+    updateTempQty(productId, change) {
+        const selectedItem = this.selectedCrossSells.find(item => item.id === productId);
+        
+        if (selectedItem) {
+            // Already in cart - update quantity directly
+            const newQty = selectedItem.quantity + change;
+            if (newQty < 1 || newQty > 10) return;
+            selectedItem.quantity = newQty;
+            
+            // Update display
+            const qtyElement = document.querySelector(`.cross-sell-qty-value-compact[data-product="${productId}"]`);
+            if (qtyElement) {
+                qtyElement.textContent = newQty;
+                // Add pulse animation
+                qtyElement.classList.add('qty-updated');
+                setTimeout(() => qtyElement.classList.remove('qty-updated'), 600);
+            }
+            
+            // Update button states
+            const minusBtn = document.querySelector(`.cross-sell-qty-btn-compact[data-product="${productId}"][data-action="minus"]`);
+            const plusBtn = document.querySelector(`.cross-sell-qty-btn-compact[data-product="${productId}"][data-action="plus"]`);
+            if (minusBtn) minusBtn.disabled = newQty <= 1;
+            if (plusBtn) plusBtn.disabled = newQty >= 10;
+            
+            // Update summary immediately
+            this.updateSummary();
+            this.updateOrderDetails();
+            
+            // Show mini feedback
+            this.showQuantityFeedback(productId, newQty);
+        } else {
+            // Not in cart yet - just update display
+            const qtyElement = document.querySelector(`.cross-sell-qty-value-compact[data-product="${productId}"]`);
+            const minusBtn = document.querySelector(`.cross-sell-qty-btn-compact[data-product="${productId}"][data-action="minus"]`);
+            const plusBtn = document.querySelector(`.cross-sell-qty-btn-compact[data-product="${productId}"][data-action="plus"]`);
+            
+            if (qtyElement) {
+                const currentQty = parseInt(qtyElement.textContent);
+                const newQty = currentQty + change;
+                
+                if (newQty >= 1 && newQty <= 10) {
+                    qtyElement.textContent = newQty;
+                    
+                    // Update button states
+                    if (minusBtn) minusBtn.disabled = newQty <= 1;
+                    if (plusBtn) plusBtn.disabled = newQty >= 10;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Show quantity update feedback
+     */
+    showQuantityFeedback(productId, newQty) {
+        // Highlight total price
+        const totalElement = document.getElementById('checkoutTotalInline');
+        if (totalElement) {
+            totalElement.classList.add('price-updated');
+            setTimeout(() => totalElement.classList.remove('price-updated'), 600);
+        }
+        
+        // Show mini toast (subtle, non-intrusive)
+        const product = this.crossSellProducts.find(p => p.id === productId);
+        if (product) {
+            const feedback = document.createElement('div');
+            feedback.className = 'qty-feedback';
+            feedback.innerHTML = '<i class="fas fa-check-circle"></i> Đã cập nhật: ' + newQty + ' sản phẩm';
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => feedback.classList.add('show'), 10);
+            setTimeout(() => {
+                feedback.classList.remove('show');
+                setTimeout(() => feedback.remove(), 300);
+            }, 1500);
+        }
+    }
+    
+    /**
+     * Add cross-sell product to cart
+     */
+    addCrossSell(productId) {
+        const qtyElement = document.querySelector(`.cross-sell-qty-value-compact[data-product="${productId}"]`);
+        const quantity = qtyElement ? parseInt(qtyElement.textContent) : 1;
+        
+        this.selectedCrossSells.push({ id: productId, quantity: quantity });
+        this.renderCrossSellProducts();
+        this.updateSummary();
+        this.updateOrderDetails();
+    }
+    
+    /**
+     * Remove cross-sell product from cart
+     */
+    removeCrossSell(productId) {
+        const index = this.selectedCrossSells.findIndex(item => item.id === productId);
         if (index > -1) {
             this.selectedCrossSells.splice(index, 1);
-        } else {
-            this.selectedCrossSells.push(productId);
         }
         this.renderCrossSellProducts();
         this.updateSummary();
+        this.updateOrderDetails();
+    }
+    
+    /**
+     * Update cross-sell product quantity
+     */
+    updateCrossSellQty(productId, change) {
+        const item = this.selectedCrossSells.find(item => item.id === productId);
+        if (!item) return;
+        
+        const newQty = item.quantity + change;
+        
+        // Validate quantity (min: 1, max: 10)
+        if (newQty < 1 || newQty > 10) return;
+        
+        item.quantity = newQty;
+        this.renderCrossSellProducts();
+        this.updateSummary();
+        this.updateOrderDetails();
+    }
+    
+    /**
+     * Fill demo data for testing
+     */
+    async fillDemoData() {
+        // Fill basic info
+        document.getElementById('checkoutPhone').value = '0987654321';
+        document.getElementById('checkoutName').value = 'Nguyễn Thị Hoa';
+        document.getElementById('checkoutBabyWeight').value = '5kg';
+        document.getElementById('checkoutNote').value = 'Giao hàng giờ hành chính';
+        
+        // Fill address
+        if (this.addressSelector) {
+            await this.addressSelector.fillDemoData();
+        }
+        
+        showToast('Đã điền dữ liệu demo!', 'success');
+    }
+    
+    /**
+     * Select payment method
+     */
+    selectPaymentMethod(method) {
+        this.paymentMethod = method;
+        
+        // Reset bank transfer confirmation when switching methods
+        if (method === 'cod') {
+            this.bankTransferConfirmed = false;
+        }
+        
+        // Update UI
+        document.querySelectorAll('.payment-method-item').forEach(item => {
+            if (item.dataset.method === method) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // Show/hide bank transfer info
+        const bankInfo = document.getElementById('bankTransferInfo');
+        if (method === 'bank') {
+            bankInfo.classList.remove('hidden');
+            // Update transfer amount
+            const total = this.calculateTotal();
+            document.getElementById('bankTransferAmount').textContent = formatPrice(total);
+            
+            // Reset confirm button if switching back
+            const btn = document.getElementById('bankConfirmBtn');
+            if (btn && !this.bankTransferConfirmed) {
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Xác nhận đã chuyển khoản';
+                btn.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+                btn.disabled = false;
+                btn.style.cursor = 'pointer';
+                btn.style.animation = 'pulse 2s infinite';
+            }
+        } else {
+            bankInfo.classList.add('hidden');
+        }
+        
+        // Update order details to reflect payment method
+        this.updateOrderDetails();
+    }
+    
+    /**
+     * Copy bank info to clipboard
+     */
+    copyBankInfo(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Đã sao chép: ' + text, 'success');
+        }).catch(() => {
+            showToast('Không thể sao chép', 'error');
+        });
+    }
+    
+    /**
+     * Confirm bank transfer
+     */
+    confirmBankTransfer() {
+        // Mark as confirmed
+        this.bankTransferConfirmed = true;
+        
+        // Hide error message
+        const errorEl = document.getElementById('bankConfirmError');
+        if (errorEl) {
+            errorEl.classList.add('hidden');
+        }
+        
+        // Update button
+        const btn = document.getElementById('bankConfirmBtn');
+        btn.innerHTML = '<i class="fas fa-check-double"></i> Đã xác nhận chuyển khoản';
+        btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+        btn.style.animation = 'none';
+        
+        // Update order details to show paid status
+        this.updateOrderDetails();
+        
+        showToast('Đã xác nhận! Vui lòng hoàn tất đơn hàng.', 'success');
     }
     
     /**
@@ -232,10 +476,7 @@ export class QuickCheckout {
      */
     calculateTotal() {
         const subtotal = this.product.price * this.quantity;
-        const crossSellTotal = this.selectedCrossSells.reduce((sum, id) => {
-            const product = this.crossSellProducts.find(p => p.id === id);
-            return sum + (product ? product.price : 0);
-        }, 0);
+        const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0);
         
         // Check if free shipping from cross-sell or discount
         const hasFreeShipping = this.selectedCrossSells.length > 0 || 
@@ -244,6 +485,13 @@ export class QuickCheckout {
         
         const beforeDiscount = subtotal + crossSellTotal + shippingFee;
         return beforeDiscount - this.discountAmount;
+    }
+    
+    /**
+     * Update summary (calls updateOrderDetails)
+     */
+    updateSummary() {
+        this.updateOrderDetails();
     }
     
     /**
@@ -276,61 +524,35 @@ export class QuickCheckout {
         const crossSellContainer = document.getElementById('orderCrossSellItems');
         if (this.selectedCrossSells.length > 0) {
             let html = '';
-            this.selectedCrossSells.forEach(productId => {
-                const product = this.crossSellProducts.find(p => p.id === productId);
+            this.selectedCrossSells.forEach(item => {
+                const product = this.crossSellProducts.find(p => p.id === item.id);
                 if (product) {
                     html += '<div class="order-item">';
                     html += '<div class="order-item-info">';
                     html += '<span class="order-item-name">' + escapeHtml(product.name) + '</span>';
-                    html += '<span class="order-item-qty">x1</span>';
+                    html += '<span class="order-item-qty">x' + item.quantity + '</span>';
                     html += '</div>';
-                    html += '<span class="order-item-price">' + formatPrice(product.price) + '</span>';
+                    html += '<div class="order-item-actions">';
+                    html += '<span class="order-item-price">' + formatPrice(product.price * item.quantity) + '</span>';
+                    html += '<button class="order-item-remove" onclick="quickCheckout.removeCrossSell(' + product.id + ')" title="Xóa sản phẩm">';
+                    html += '<i class="fas fa-trash-alt"></i>';
+                    html += '</button>';
+                    html += '</div>';
                     html += '</div>';
                 }
             });
             crossSellContainer.innerHTML = html;
+            crossSellContainer.classList.remove('hidden');
         } else {
-            crossSellContainer.innerHTML = '';
+            crossSellContainer.classList.add('hidden');
         }
         
-        // Update discount info
-        const discountInfo = document.getElementById('orderDiscountInfo');
-        const discountText = document.getElementById('orderDiscountText');
-        
-        if (this.appliedDiscount) {
-            let text = `Mã ${this.appliedDiscount.code}`;
-            if (this.appliedDiscount.type === 'freeship') {
-                text += ' - Miễn phí ship';
-            } else if (this.discountAmount > 0) {
-                text += ` - Giảm ${formatPrice(this.discountAmount)}`;
-            }
-            discountText.textContent = text;
-            discountInfo.classList.remove('hidden');
-        } else {
-            discountInfo.classList.add('hidden');
-        }
-    }
-    
-    /**
-     * Update summary
-     */
-    updateSummary() {
-        if (!this.product) return;
-        
-        // Update order details breakdown
-        this.updateOrderDetails();
-        
-        // Calculate main product subtotal
+        // Calculate totals
         const subtotal = this.product.price * this.quantity;
-        
-        // Calculate cross-sell total
-        let crossSellTotal = 0;
-        this.selectedCrossSells.forEach(productId => {
-            const product = this.crossSellProducts.find(p => p.id === productId);
-            if (product) {
-                crossSellTotal += product.price;
-            }
-        });
+        const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => {
+            const product = this.crossSellProducts.find(p => p.id === item.id);
+            return sum + (product ? product.price * item.quantity : 0);
+        }, 0);
         
         // Calculate shipping (free if any cross-sell selected or discount is freeship)
         const hasFreeShipping = this.selectedCrossSells.length > 0 || 
@@ -343,31 +565,146 @@ export class QuickCheckout {
         // Calculate total after discount
         const total = beforeDiscount - this.discountAmount;
         
-        // Update detailed summary
-        document.getElementById('checkoutSubtotal').textContent = formatPrice(subtotal + crossSellTotal);
+        // Update detailed summary (if exists - old design)
+        const subtotalEl = document.getElementById('checkoutSubtotal');
+        if (subtotalEl) {
+            subtotalEl.textContent = formatPrice(subtotal + crossSellTotal);
+        }
         
         const shippingElement = document.getElementById('checkoutShipping');
-        if (hasFreeShipping) {
-            shippingElement.innerHTML = '<span style="text-decoration: line-through; color: #999;">' + 
-                formatPrice(this.shippingFee) + '</span> ' +
-                '<span style="color: #27ae60; font-weight: bold;">MIỄN PHÍ</span>';
-        } else {
-            shippingElement.textContent = formatPrice(shippingFee);
+        if (shippingElement) {
+            if (hasFreeShipping) {
+                shippingElement.innerHTML = '<span style="text-decoration: line-through; color: #999;">' + 
+                    formatPrice(this.shippingFee) + '</span> ' +
+                    '<span style="color: #27ae60; font-weight: bold;">MIỄN PHÍ</span>';
+            } else {
+                shippingElement.textContent = formatPrice(shippingFee);
+            }
         }
         
-        // Update discount row
+        // Update order details summary section
+        const orderSubtotal = document.getElementById('orderSubtotal');
+        if (orderSubtotal) {
+            orderSubtotal.textContent = formatPrice(subtotal + crossSellTotal);
+        }
+        
+        const orderShipping = document.getElementById('orderShipping');
+        if (orderShipping) {
+            if (hasFreeShipping) {
+                orderShipping.innerHTML = '<span style="text-decoration: line-through; color: #999;">' + 
+                    formatPrice(this.shippingFee) + '</span> ' +
+                    '<span style="color: #27ae60; font-weight: bold; font-size: 0.85rem;">MIỄN PHÍ</span>';
+            } else {
+                orderShipping.textContent = formatPrice(shippingFee);
+            }
+        }
+        
+        const orderDiscountRow = document.getElementById('orderDiscountRow');
+        const orderDiscountAmount = document.getElementById('orderDiscountAmount');
+        if (orderDiscountRow && orderDiscountAmount) {
+            if (this.appliedDiscount && this.discountAmount > 0) {
+                orderDiscountRow.classList.remove('hidden');
+                orderDiscountAmount.textContent = '-' + formatPrice(this.discountAmount);
+            } else {
+                orderDiscountRow.classList.add('hidden');
+            }
+        }
+        
+        const orderTotalDetail = document.getElementById('orderTotalDetail');
+        if (orderTotalDetail) {
+            orderTotalDetail.textContent = formatPrice(total);
+        }
+        
+        // Update payment row based on payment method
+        const orderPaymentRow = document.getElementById('orderPaymentRow');
+        const orderPaymentLabel = document.getElementById('orderPaymentLabel');
+        const orderPaymentAmount = document.getElementById('orderPaymentAmount');
+        
+        if (orderPaymentRow && orderPaymentLabel && orderPaymentAmount) {
+            if (this.paymentMethod === 'bank' && this.bankTransferConfirmed) {
+                // Đã chuyển khoản
+                orderPaymentRow.classList.add('paid');
+                orderPaymentLabel.innerHTML = '<i class="fas fa-check-circle"></i> Đã thanh toán';
+                orderPaymentAmount.textContent = '0đ';
+            } else if (this.paymentMethod === 'bank' && !this.bankTransferConfirmed) {
+                // Chưa xác nhận chuyển khoản
+                orderPaymentRow.classList.remove('paid');
+                orderPaymentLabel.innerHTML = '<i class="fas fa-university"></i> Cần thanh toán trước';
+                orderPaymentAmount.textContent = formatPrice(total);
+            } else {
+                // COD
+                orderPaymentRow.classList.remove('paid');
+                orderPaymentLabel.innerHTML = '<i class="fas fa-money-bill-wave"></i> Thanh toán khi nhận hàng';
+                orderPaymentAmount.textContent = formatPrice(total);
+            }
+        }
+        
+        // Update discount row (if exists - old design)
         const discountRow = document.getElementById('checkoutDiscountRow');
-        if (this.appliedDiscount && this.discountAmount > 0) {
-            discountRow.classList.remove('hidden');
-            document.getElementById('checkoutDiscountAmount').textContent = '-' + formatPrice(this.discountAmount);
-        } else {
-            discountRow.classList.add('hidden');
+        if (discountRow) {
+            if (this.appliedDiscount && this.discountAmount > 0) {
+                discountRow.classList.remove('hidden');
+                const discountAmountEl = document.getElementById('checkoutDiscountAmount');
+                if (discountAmountEl) {
+                    discountAmountEl.textContent = '-' + formatPrice(this.discountAmount);
+                }
+            } else {
+                discountRow.classList.add('hidden');
+            }
         }
         
-        document.getElementById('checkoutTotal').textContent = formatPrice(total);
+        const totalEl = document.getElementById('checkoutTotal');
+        if (totalEl) {
+            totalEl.textContent = formatPrice(total);
+        }
         
-        // Update compact summary
-        document.getElementById('checkoutTotalCompact').textContent = formatPrice(total);
+        // Update inline total (new design)
+        const inlineTotal = document.getElementById('checkoutTotalInline');
+        const totalLabelMain = document.getElementById('checkoutTotalLabel');
+        const savingsLabel = document.getElementById('checkoutSavingsLabel');
+        const totalBox = document.querySelector('.checkout-total-box');
+        
+        if (inlineTotal && totalLabelMain && savingsLabel && totalBox) {
+            // Determine display based on payment method
+            if (this.paymentMethod === 'bank' && this.bankTransferConfirmed) {
+                // Đã chuyển khoản - hiển thị 0đ
+                totalLabelMain.textContent = 'Thanh toán khi nhận';
+                inlineTotal.textContent = '0đ';
+                totalBox.classList.add('paid');
+                
+                // Show total order value in savings label
+                savingsLabel.textContent = 'Đơn hàng: ' + formatPrice(total);
+                savingsLabel.style.color = '#666';
+            } else if (this.paymentMethod === 'bank' && !this.bankTransferConfirmed) {
+                // Chưa xác nhận chuyển khoản
+                totalLabelMain.textContent = 'Cần thanh toán';
+                inlineTotal.textContent = formatPrice(total);
+                totalBox.classList.remove('paid');
+                
+                // Show savings
+                const savings = this.discountAmount + (hasFreeShipping ? this.shippingFee : 0);
+                if (savings > 0) {
+                    savingsLabel.textContent = 'Tiết kiệm ' + formatPrice(savings);
+                    savingsLabel.style.color = '#27ae60';
+                } else {
+                    savingsLabel.textContent = '';
+                }
+            } else {
+                // COD
+                totalLabelMain.textContent = 'Tổng cộng';
+                inlineTotal.textContent = formatPrice(total);
+                totalBox.classList.remove('paid');
+                
+                // Show savings
+                const savings = this.discountAmount + (hasFreeShipping ? this.shippingFee : 0);
+                if (savings > 0) {
+                    savingsLabel.textContent = 'Tiết kiệm ' + formatPrice(savings);
+                    savingsLabel.style.color = '#27ae60';
+                } else {
+                    savingsLabel.textContent = '';
+                }
+            }
+        }
         
         // Update discount input display
         this.updateDiscountDisplay();
@@ -456,6 +793,34 @@ export class QuickCheckout {
             return;
         }
         
+        // Validate bank transfer confirmation
+        if (this.paymentMethod === 'bank' && !this.bankTransferConfirmed) {
+            // Show error message
+            const errorEl = document.getElementById('bankConfirmError');
+            if (errorEl) {
+                errorEl.classList.remove('hidden');
+                
+                // Scroll to bank confirm button smoothly
+                const bankInfo = document.getElementById('bankTransferInfo');
+                if (bankInfo) {
+                    bankInfo.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }
+                
+                // Shake the button
+                const btn = document.getElementById('bankConfirmBtn');
+                if (btn) {
+                    btn.style.animation = 'none';
+                    setTimeout(() => {
+                        btn.style.animation = 'shakeAndPulse 0.6s ease';
+                    }, 10);
+                }
+            }
+            return;
+        }
+        
         // Validate address
         const addressValidation = this.addressSelector.validate();
         if (!addressValidation.isValid) {
@@ -470,13 +835,13 @@ export class QuickCheckout {
         const orderData = {
             product: this.product,
             quantity: this.quantity,
-            crossSellProducts: this.selectedCrossSells.map(id => {
-                const product = this.crossSellProducts.find(p => p.id === id);
+            crossSellProducts: this.selectedCrossSells.map(item => {
+                const product = this.crossSellProducts.find(p => p.id === item.id);
                 return {
                     id: product.id,
                     name: product.name,
                     price: product.price,
-                    quantity: 1
+                    quantity: item.quantity
                 };
             }),
             customer: {
@@ -498,11 +863,9 @@ export class QuickCheckout {
                 type: this.appliedDiscount.type,
                 amount: this.discountAmount
             } : null,
+            paymentMethod: this.paymentMethod,
             subtotal: this.product.price * this.quantity,
-            crossSellTotal: this.selectedCrossSells.reduce((sum, id) => {
-                const product = this.crossSellProducts.find(p => p.id === id);
-                return sum + (product ? product.price : 0);
-            }, 0),
+            crossSellTotal: this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0),
             shippingFee: (this.selectedCrossSells.length > 0 || 
                          (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount))) 
                          ? 0 : this.shippingFee,
@@ -577,16 +940,6 @@ export class QuickCheckout {
             submitBtn.addEventListener('click', () => this.submit());
         }
         
-        // Summary expand button
-        const expandBtn = document.getElementById('summaryExpandBtn');
-        const summaryDetail = document.getElementById('checkoutSummaryDetail');
-        if (expandBtn && summaryDetail) {
-            expandBtn.addEventListener('click', () => {
-                summaryDetail.classList.toggle('hidden');
-                expandBtn.classList.toggle('expanded');
-            });
-        }
-        
         // Order details toggle
         const orderDetailsToggle = document.getElementById('orderDetailsToggle');
         const orderDetailsContent = document.getElementById('orderDetailsContent');
@@ -616,4 +969,6 @@ export class QuickCheckout {
         });
     }
 }
+
+
 

@@ -492,6 +492,9 @@
         <div class="quick-checkout-content">
             <div class="quick-checkout-header">
                 <h3><i class="fas fa-bolt"></i> Mua ngay</h3>
+                <button class="demo-data-btn" onclick="quickCheckout.fillDemoData()" title="Điền dữ liệu demo để test">
+                    <i class="fas fa-flask"></i> Demo
+                </button>
                 <button class="quick-checkout-close" id="quickCheckoutClose">
                     <i class="fas fa-times"></i>
                 </button>
@@ -571,15 +574,6 @@
                     <div id="addressSelectorContainer"></div>
                 </div>
                 
-                <!-- Note -->
-                <div class="checkout-form-group">
-                    <label class="checkout-form-label">
-                        <i class="fas fa-sticky-note"></i>
-                        Ghi chú (tùy chọn)
-                    </label>
-                    <textarea class="checkout-form-textarea" id="checkoutNote" placeholder="Ghi chú cho đơn hàng (nếu có)"></textarea>
-                </div>
-                
                 <!-- Discount Code -->
                 <div class="checkout-form-group">
                     <label class="checkout-form-label">
@@ -594,11 +588,100 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Sticky Footer -->
-            <div class="quick-checkout-footer">
-                <!-- Order Details Breakdown -->
+                
+                <!-- Payment Method -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-credit-card"></i>
+                        Phương thức thanh toán<span class="required">*</span>
+                    </label>
+                    <div class="payment-methods">
+                        <div class="payment-method-item active" data-method="cod" onclick="quickCheckout.selectPaymentMethod('cod')">
+                            <div class="payment-method-icon">💵</div>
+                            <div class="payment-method-info">
+                                <div class="payment-method-name">Thanh toán khi nhận hàng</div>
+                                <div class="payment-method-desc">Thanh toán bằng tiền mặt khi nhận hàng</div>
+                            </div>
+                            <div class="payment-method-check">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="payment-method-item" data-method="bank" onclick="quickCheckout.selectPaymentMethod('bank')">
+                            <div class="payment-method-icon">🏦</div>
+                            <div class="payment-method-info">
+                                <div class="payment-method-name">Chuyển khoản ngân hàng</div>
+                                <div class="payment-method-desc">Chuyển khoản trước, giao hàng sau</div>
+                            </div>
+                            <div class="payment-method-check">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bank Transfer Info (Hidden by default) -->
+                    <div class="bank-transfer-info hidden" id="bankTransferInfo">
+                        <div class="bank-info-header">
+                            <i class="fas fa-university"></i>
+                            Thông tin chuyển khoản
+                        </div>
+                        <div class="bank-info-content">
+                            <div class="bank-info-row">
+                                <span class="bank-info-label">Số tiền cần chuyển:</span>
+                                <span class="bank-info-value highlight" id="bankTransferAmount">0đ</span>
+                            </div>
+                            <div class="bank-info-divider"></div>
+                            <div class="bank-info-row">
+                                <span class="bank-info-label">Người nhận:</span>
+                                <span class="bank-info-value">LÊ THỊ ANH</span>
+                            </div>
+                            <div class="bank-info-row">
+                                <span class="bank-info-label">Ngân hàng:</span>
+                                <span class="bank-info-value bank-name">Techcombank</span>
+                            </div>
+                            <div class="bank-info-row">
+                                <span class="bank-info-label">Số tài khoản:</span>
+                                <span class="bank-info-value">
+                                    <span id="bankAccountNumber">6968969012</span>
+                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('6968969012')" title="Sao chép">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="bank-info-row">
+                                <span class="bank-info-label">Nội dung CK:</span>
+                                <span class="bank-info-value">
+                                    <span id="bankTransferNote">0386190596</span>
+                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('0386190596')" title="Sao chép">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bank-info-note">
+                            <i class="fas fa-info-circle"></i>
+                            Lưu ý: Vui lòng chuyển đúng số tiền và nội dung.
+                        </div>
+                        <button class="bank-confirm-btn" id="bankConfirmBtn" onclick="quickCheckout.confirmBankTransfer()">
+                            <i class="fas fa-check-circle"></i>
+                            Xác nhận đã chuyển khoản
+                        </button>
+                        <div class="bank-confirm-error hidden" id="bankConfirmError">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Vui lòng bấm xác nhận đã chuyển khoản
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Note -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-sticky-note"></i>
+                        Ghi chú (tùy chọn)
+                    </label>
+                    <textarea class="checkout-form-textarea" id="checkoutNote" placeholder="Ghi chú cho đơn hàng (nếu có)"></textarea>
+                </div>
+                
+                <!-- Order Details (moved from footer) -->
                 <div class="order-details-section">
                     <button class="order-details-toggle" id="orderDetailsToggle">
                         <span class="order-details-title">
@@ -621,51 +704,59 @@
                         <!-- Cross-sell Products -->
                         <div id="orderCrossSellItems"></div>
                         
-                        <!-- Discount Info -->
-                        <div class="order-discount-info hidden" id="orderDiscountInfo">
-                            <div class="order-discount-badge">
-                                <i class="fas fa-tag"></i>
-                                <span id="orderDiscountText">Giảm giá</span>
+                        <!-- Summary Section -->
+                        <div class="order-summary-section">
+                            <!-- Subtotal -->
+                            <div class="order-summary-row">
+                                <span class="order-summary-label">Tạm tính</span>
+                                <span class="order-summary-value" id="orderSubtotal">0đ</span>
+                            </div>
+                            
+                            <!-- Shipping -->
+                            <div class="order-summary-row">
+                                <span class="order-summary-label">Phí vận chuyển</span>
+                                <span class="order-summary-value" id="orderShipping">0đ</span>
+                            </div>
+                            
+                            <!-- Discount (if any) -->
+                            <div class="order-summary-row hidden" id="orderDiscountRow">
+                                <span class="order-summary-label">
+                                    <i class="fas fa-tag"></i>
+                                    Giảm giá
+                                </span>
+                                <span class="order-summary-value discount" id="orderDiscountAmount">-0đ</span>
+                            </div>
+                            
+                            <!-- Total -->
+                            <div class="order-summary-row total">
+                                <span class="order-summary-label">Tổng cộng</span>
+                                <span class="order-summary-value" id="orderTotalDetail">0đ</span>
+                            </div>
+                            
+                            <!-- Payment on Delivery (COD) -->
+                            <div class="order-summary-row payment-row" id="orderPaymentRow">
+                                <span class="order-summary-label payment-label">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    <span id="orderPaymentLabel">Thanh toán khi nhận hàng</span>
+                                </span>
+                                <span class="order-summary-value payment-value" id="orderPaymentAmount">0đ</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Compact Summary -->
-                <div class="checkout-summary-compact" id="checkoutSummaryCompact">
-                    <div class="summary-compact-row">
-                        <span class="summary-compact-label">Tổng cộng:</span>
-                        <span class="summary-compact-total" id="checkoutTotalCompact">0đ</span>
-                    </div>
-                    <button class="summary-expand-btn" id="summaryExpandBtn">
-                        <i class="fas fa-chevron-up"></i>
-                    </button>
-                </div>
-                
-                <!-- Detailed Summary (Hidden by default) -->
-                <div class="checkout-summary-detail hidden" id="checkoutSummaryDetail">
-                    <div class="checkout-summary-row">
-                        <span>Tạm tính:</span>
-                        <span class="checkout-summary-amount" id="checkoutSubtotal">0đ</span>
-                    </div>
-                    <div class="checkout-summary-row">
-                        <span>Phí vận chuyển:</span>
-                        <span class="checkout-summary-amount" id="checkoutShipping">30.000đ</span>
-                    </div>
-                    <div class="checkout-summary-row hidden" id="checkoutDiscountRow">
-                        <span style="color: #27ae60;">Giảm giá:</span>
-                        <span class="checkout-summary-amount" style="color: #27ae60;" id="checkoutDiscountAmount">0đ</span>
-                    </div>
-                    <div class="checkout-summary-row total">
-                        <span>Tổng cộng:</span>
-                        <span class="checkout-summary-amount total" id="checkoutTotal">0đ</span>
+            </div>
+            
+            <!-- Submit Section - Sticky Footer (outside body) -->
+            <div class="checkout-submit-section">
+                <div class="checkout-total-box">
+                    <div class="total-label-main" id="checkoutTotalLabel">Tổng cộng</div>
+                    <div class="total-amount-row">
+                        <div class="total-amount" id="checkoutTotalInline">0đ</div>
+                        <div class="total-label" id="checkoutSavingsLabel">Tiết kiệm 0đ</div>
                     </div>
                 </div>
-                
-                <!-- Submit Button -->
                 <button class="checkout-submit-btn" id="checkoutSubmit">
-                    <i class="fas fa-check-circle"></i>
-                    Đặt hàng ngay
+                    ĐẶT HÀNG
                 </button>
             </div>
         </div>
