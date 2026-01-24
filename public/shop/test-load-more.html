@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Load More Button</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-card h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .checklist li:before {
+            content: "☐ ";
+            margin-right: 8px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h2>🧪 Test Load More Button</h2>
+        <p>Trang này giúp bạn test xem button "Xem thêm sản phẩm" có hoạt động không.</p>
+        
+        <div class="status info">
+            <strong>📋 Checklist:</strong>
+            <ul class="checklist">
+                <li>Mở trang chủ: <a href="index.html" target="_blank">index.html</a></li>
+                <li>Mở DevTools Console (F12)</li>
+                <li>Hard refresh (Ctrl+Shift+R)</li>
+                <li>Đợi 1-2 giây</li>
+                <li>Scroll xuống phần "Sản Phẩm Nổi Bật"</li>
+                <li>Kiểm tra button "Xem thêm sản phẩm" có hiển thị không</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🔍 Console Logs cần check:</h2>
+        
+        <div class="status success">
+            <strong>✅ Nếu thấy logs này = SUCCESS:</strong>
+            <pre style="margin: 10px 0; overflow-x: auto;">
+📦 ProductGrid: All products set: 87 | Filtered: 87 | Displayed: 12
+🔘 Load More Button: { visible: true, displayed: 12, total: 87, remaining: 75 }
+            </pre>
+        </div>
+        
+        <div class="status error">
+            <strong>❌ Nếu thấy logs này = PROBLEM:</strong>
+            <pre style="margin: 10px 0; overflow-x: auto;">
+🔘 Load More Button: { visible: false, displayed: 12, total: 12, remaining: 0 }
+            </pre>
+            <p>→ Nghĩa là <code>setAllProducts()</code> chưa được gọi hoặc failed</p>
+        </div>
+    </div>
+
+    <div class="test-card">
+        <h2>🎯 Expected Behavior:</h2>
+        <ol>
+            <li><strong>Initial Load (0-500ms):</strong>
+                <ul>
+                    <li>Skeleton visible</li>
+                    <li>12 products load</li>
+                    <li>Button HIDDEN (vì chỉ có 12/12 products)</li>
+                </ul>
+            </li>
+            <li><strong>After 500ms:</strong>
+                <ul>
+                    <li>All products loaded in background</li>
+                    <li><code>setAllProducts()</code> called</li>
+                    <li>Button VISIBLE (vì có 12/87 products)</li>
+                </ul>
+            </li>
+            <li><strong>Click "Xem thêm":</strong>
+                <ul>
+                    <li>Show 24 products (12 + 12)</li>
+                    <li>Button still VISIBLE (24/87)</li>
+                </ul>
+            </li>
+            <li><strong>Keep clicking:</strong>
+                <ul>
+                    <li>36, 48, 60, 72, 84 products...</li>
+                    <li>Button HIDDEN when all 87 shown</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="test-card">
+        <h2>🐛 Troubleshooting:</h2>
+        
+        <h3>Problem: Button vẫn không hiện</h3>
+        <p><strong>Solution 1:</strong> Check console có error không</p>
+        <p><strong>Solution 2:</strong> Inspect button element:</p>
+        <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px;">
+document.getElementById('loadMoreBtn').style.display
+// Should return: "block" (visible) or "none" (hidden)
+        </pre>
+        
+        <p><strong>Solution 3:</strong> Manually check ProductGrid state:</p>
+        <button onclick="checkState()">Check ProductGrid State</button>
+        <pre id="stateOutput" style="background: #f4f4f4; padding: 10px; border-radius: 4px; margin-top: 10px; display: none;"></pre>
+    </div>
+
+    <script>
+        function checkState() {
+            const output = document.getElementById('stateOutput');
+            output.style.display = 'block';
+            
+            // Try to access window.homePage if it exists
+            if (window.homePage && window.homePage.productGrid) {
+                const grid = window.homePage.productGrid;
+                output.textContent = JSON.stringify({
+                    displayedCount: grid.displayedCount,
+                    filteredProductsLength: grid.filteredProducts.length,
+                    allProductsLength: grid.allProducts.length,
+                    hasMore: grid.hasMore(),
+                    currentFilter: grid.currentFilter
+                }, null, 2);
+            } else {
+                output.textContent = 'Error: Cannot access ProductGrid. Make sure you are on index.html';
+            }
+        }
+    </script>
+</body>
+</html>

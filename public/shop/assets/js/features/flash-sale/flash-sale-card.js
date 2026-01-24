@@ -28,6 +28,7 @@ export function createFlashSaleCard(product) {
     html += '<div class="product-image-wrapper">';
     html += '<img src="' + imageUrl + '" ';
     html += 'alt="' + escapeHtml(product.product_name) + '" class="product-image" ';
+    html += 'loading="lazy" ';
     html += 'onerror="this.src=\'' + CONFIG.DEFAULT_IMAGE + '\'">';
     html += '<span class="flash-sale-badge">-' + discount + '%</span>';
     html += '</div>';

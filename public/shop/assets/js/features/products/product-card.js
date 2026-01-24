@@ -30,6 +30,7 @@ export function createProductCard(product) {
                 <img src="${imageUrl}" 
                      alt="${escapeHtml(product.name)}" 
                      class="product-image"
+                     loading="lazy"
                      onerror="this.src='${CONFIG.DEFAULT_IMAGE}'">
                 ${discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
                 ${hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}

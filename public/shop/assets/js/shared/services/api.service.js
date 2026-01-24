@@ -7,6 +7,32 @@ import { CONFIG } from '../constants/config.js';
 class ApiService {
     constructor() {
         this.baseURL = CONFIG.API_BASE_URL;
+        // Cache for API responses
+        this.cache = {
+            products: null,
+            categories: null,
+            flashSales: null,
+            timestamp: {}
+        };
+        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    }
+    
+    /**
+     * Check if cache is valid
+     */
+    isCacheValid(key) {
+        if (!this.cache[key]) return false;
+        const timestamp = this.cache.timestamp[key];
+        if (!timestamp) return false;
+        return (Date.now() - timestamp) < this.cacheTimeout;
+    }
+    
+    /**
+     * Set cache
+     */
+    setCache(key, data) {
+        this.cache[key] = data;
+        this.cache.timestamp[key] = Date.now();
     }
     
     async get(endpoint, params = {}) {
@@ -45,11 +71,40 @@ class ApiService {
         }
     }
     
-    // Product APIs
+    // Product APIs with caching
     async getAllProducts() {
+        // Check cache first
+        if (this.isCacheValid('products')) {
+            console.log('📦 Using cached products');
+            return this.cache.products;
+        }
+        
+        console.log('🌐 Fetching products from API');
         const data = await this.get('/get', { action: 'getAllProducts' });
         const allProducts = data.products || data || [];
-        return allProducts.filter(p => p.is_active === 1);
+        const activeProducts = allProducts.filter(p => p.is_active === 1);
+        
+        // Cache the result
+        this.setCache('products', activeProducts);
+        
+        return activeProducts;
+    }
+    
+    /**
+     * Get products with pagination (client-side)
+     */
+    async getProductsPaginated(page = 1, limit = 12) {
+        const allProducts = await this.getAllProducts();
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        
+        return {
+            products: allProducts.slice(start, end),
+            total: allProducts.length,
+            page,
+            limit,
+            hasMore: end < allProducts.length
+        };
     }
     
     async getProductById(id) {
@@ -57,14 +112,33 @@ class ApiService {
         return data.product || null;
     }
     
-    // Category APIs
+    // Category APIs with caching
     async getAllCategories() {
+        // Check cache first
+        if (this.isCacheValid('categories')) {
+            console.log('📦 Using cached categories');
+            return this.cache.categories;
+        }
+        
+        console.log('🌐 Fetching categories from API');
         const data = await this.get('/get', { action: 'getAllCategories' });
-        return data.categories || data || [];
+        const categories = data.categories || data || [];
+        
+        // Cache the result
+        this.setCache('categories', categories);
+        
+        return categories;
     }
     
-    // Flash Sale APIs
+    // Flash Sale APIs with caching
     async getActiveFlashSales() {
+        // Check cache first
+        if (this.isCacheValid('flashSales')) {
+            console.log('📦 Using cached flash sales');
+            return this.cache.flashSales;
+        }
+        
+        console.log('🌐 Fetching flash sales from API');
         const data = await this.get('/get', { action: 'getActiveFlashSales' });
         const salesArray = data.flashSales || data || [];
         
@@ -77,6 +151,9 @@ class ApiService {
             flashSale.products = productsData.products || productsData || [];
         }
         
+        // Cache the result
+        this.setCache('flashSales', salesArray);
+        
         return salesArray;
     }
     
@@ -86,6 +163,19 @@ class ApiService {
             action: 'createOrder',
             ...orderData
         });
+    }
+    
+    /**
+     * Clear cache (useful for testing or after updates)
+     */
+    clearCache() {
+        this.cache = {
+            products: null,
+            categories: null,
+            flashSales: null,
+            timestamp: {}
+        };
+        console.log('🗑️ Cache cleared');
     }
 }
 

@@ -33,6 +33,50 @@ export async function getAllDiscounts(env, corsHeaders) {
     }
 }
 
+// Get active discounts for public display
+export async function getActiveDiscounts(env, corsHeaders) {
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        const nowDate = new Date().toISOString().split('T')[0];
+        
+        const { results: discounts } = await env.DB.prepare(`
+            SELECT 
+                id, code, title, description, type,
+                discount_value, max_discount_amount,
+                gift_product_id, gift_product_name, gift_quantity,
+                min_order_amount, min_items,
+                max_total_uses, max_uses_per_customer,
+                active, visible,
+                start_date, expiry_date,
+                usage_count,
+                special_event, event_icon, event_date
+            FROM discounts
+            WHERE active = 1 
+                AND visible = 1
+                AND (start_date IS NULL OR start_date <= ?)
+                AND expiry_date >= ?
+                AND (max_total_uses IS NULL OR usage_count < max_total_uses)
+            ORDER BY 
+                CASE 
+                    WHEN special_event IS NOT NULL THEN 0
+                    ELSE 1
+                END,
+                created_at_unix DESC
+        `).bind(nowDate, nowDate).all();
+
+        return jsonResponse({
+            success: true,
+            discounts: discounts
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error getting active discounts:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Get single discount by ID
 export async function getDiscount(id, env, corsHeaders) {
     try {

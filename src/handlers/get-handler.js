@@ -48,6 +48,9 @@ import { searchLearning, getLearningStats } from '../services/address-learning/a
 // Materials
 import { getAllMaterials, getProductMaterials, getAllMaterialCategories } from '../services/materials/material-service.js';
 
+// Settings
+import { getShippingFee } from '../services/settings/shipping.js';
+
 // Customers
 import { 
     getAllCustomers, 
@@ -65,7 +68,8 @@ import {
 // Discounts
 import { 
     getAllDiscounts, 
-    getDiscount 
+    getDiscount,
+    getActiveDiscounts
 } from '../services/discounts/discount-service.js';
 
 import { 
@@ -235,6 +239,12 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getAllDiscounts':
             return await getAllDiscounts(env, corsHeaders);
+
+        case 'getActiveDiscounts':
+            return await getActiveDiscounts(env, corsHeaders);
+
+        case 'getShippingFee':
+            return await getShippingFee(env, corsHeaders);
 
         case 'getDiscount':
             const discountId = url.searchParams.get('id');

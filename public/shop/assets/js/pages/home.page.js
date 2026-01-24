@@ -8,6 +8,7 @@ import { ProductGrid, ProductActions } from '../features/products/index.js';
 import { renderCategories, CategoryActions } from '../features/categories/index.js';
 import { FlashSaleCarousel, FlashSaleActions, FlashSaleTimer } from '../features/flash-sale/index.js';
 import { QuickCheckout } from '../features/checkout/index.js';
+import { throttle, rafThrottle } from '../shared/utils/performance.js';
 
 /**
  * Home Page Manager
@@ -15,8 +16,11 @@ import { QuickCheckout } from '../features/checkout/index.js';
 export class HomePage {
     constructor() {
         this.products = [];
+        this.allProducts = []; // All products for filtering
         this.categories = [];
         this.flashSales = [];
+        this.currentPage = 1;
+        this.hasMoreProducts = false;
         
         // Initialize components
         this.productGrid = null;
@@ -33,17 +37,14 @@ export class HomePage {
      */
     async init() {
         try {
-            // Show loading state
-            this.showLoading();
+            // Phase 1: Load critical above-the-fold content FIRST
+            await this.loadCriticalContent();
             
-            // Load data in parallel
-            await this.loadData();
+            // Hide skeleton and show critical content
+            this.showCriticalContent();
             
-            // Initialize components
-            this.initializeComponents();
-            
-            // Render content
-            this.render();
+            // Phase 2: Load remaining content in background
+            this.loadRemainingContent();
             
             // Setup event listeners
             this.setupEventListeners();
@@ -54,13 +55,71 @@ export class HomePage {
             // Setup cart update listener
             this.setupCartUpdateListener();
             
-            // Hide loading state
-            this.hideLoading();
-            
         } catch (error) {
             console.error('Home page initialization error:', error);
             this.showError('Có lỗi xảy ra khi tải trang. Vui lòng thử lại!');
         }
+    }
+    
+    /**
+     * Load critical above-the-fold content FIRST
+     * Priority: Flash Sales + First 12 Products
+     */
+    async loadCriticalContent() {
+        // Load flash sales and first page of products in parallel
+        const [flashSales, productsPage] = await Promise.all([
+            apiService.getActiveFlashSales(),
+            apiService.getProductsPaginated(1, 12) // Only first 12 products
+        ]);
+        
+        this.flashSales = flashSales;
+        this.products = productsPage.products;
+        this.hasMoreProducts = productsPage.hasMore;
+        this.currentPage = 1;
+    }
+    
+    /**
+     * Load remaining content in background (non-blocking)
+     */
+    async loadRemainingContent() {
+        // Load categories (not critical, can wait)
+        setTimeout(async () => {
+            this.categories = await apiService.getAllCategories();
+            this.renderCategories();
+            this.hideCategoriesSkeleton();
+        }, 100);
+        
+        // Load all products for filtering/sorting (in background)
+        setTimeout(async () => {
+            const allProducts = await apiService.getAllProducts();
+            this.allProducts = allProducts;
+            
+            // Update ProductGrid with all products
+            if (this.productGrid) {
+                this.productGrid.setAllProducts(allProducts);
+            }
+            
+            // Update ProductActions with all products
+            if (this.productActions) {
+                this.productActions.products = allProducts;
+            }
+        }, 500);
+    }
+    
+    /**
+     * Show critical content (Flash Sales + First Products)
+     */
+    showCriticalContent() {
+        // Initialize components for critical content
+        this.initializeCriticalComponents();
+        
+        // Render critical content
+        this.renderFlashSales();
+        this.renderProducts();
+        
+        // Hide skeleton for flash sales and products
+        this.hideFlashSaleSkeleton();
+        this.hideProductsSkeleton();
     }
     
     /**
@@ -85,9 +144,9 @@ export class HomePage {
     }
     
     /**
-     * Initialize components
+     * Initialize components (CRITICAL ONLY)
      */
-    initializeComponents() {
+    initializeCriticalComponents() {
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
             initialCount: 12,
@@ -96,13 +155,7 @@ export class HomePage {
         
         // Product Actions
         this.productActions = new ProductActions(this.products);
-        window.productActions = this.productActions; // For onclick handlers
-        
-        // Category Actions
-        this.categoryActions = new CategoryActions((categoryId) => {
-            this.filterByCategory(categoryId);
-        });
-        window.categoryActions = this.categoryActions; // For onclick handlers
+        window.productActions = this.productActions;
         
         // Flash Sale Components
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
@@ -111,12 +164,12 @@ export class HomePage {
             this.flashSaleActions = new FlashSaleActions(this.flashSales);
             this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
             
-            window.flashSaleActions = this.flashSaleActions; // For onclick handlers
+            window.flashSaleActions = this.flashSaleActions;
         }
         
         // Quick Checkout
         this.quickCheckout = new QuickCheckout();
-        window.quickCheckout = this.quickCheckout; // For onclick handlers
+        window.quickCheckout = this.quickCheckout;
     }
     
     /**
@@ -134,6 +187,43 @@ export class HomePage {
             const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
             this.flashSaleCarousel.setProducts(activeFlashSale.products);
             this.flashSaleTimer.start();
+        }
+    }
+    
+    /**
+     * Render flash sales
+     */
+    renderFlashSales() {
+        if (this.flashSaleCarousel) {
+            const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
+            if (activeFlashSale && activeFlashSale.products) {
+                this.flashSaleCarousel.setProducts(activeFlashSale.products);
+                this.flashSaleTimer.start();
+            }
+        }
+    }
+    
+    /**
+     * Render products
+     */
+    renderProducts() {
+        this.productGrid.setProducts(this.products);
+    }
+    
+    /**
+     * Render categories
+     */
+    renderCategories() {
+        if (this.categories.length > 0) {
+            // Initialize category actions if not already done
+            if (!this.categoryActions) {
+                this.categoryActions = new CategoryActions((categoryId) => {
+                    this.filterByCategory(categoryId);
+                });
+                window.categoryActions = this.categoryActions;
+            }
+            
+            renderCategories(this.categories, 'categoriesGrid');
         }
     }
     
@@ -159,13 +249,16 @@ export class HomePage {
             });
         }
         
-        // Load more button
+        // Load more button - SIMPLE
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         if (loadMoreBtn) {
             loadMoreBtn.addEventListener('click', () => {
                 this.productGrid.loadMore();
             });
         }
+        
+        // Infinite scroll detection (optional)
+        this.setupInfiniteScroll();
         
         // Cart button
         const cartBtn = document.getElementById('cartBtn');
@@ -198,8 +291,8 @@ export class HomePage {
             });
         });
         
-        // Header scroll effect
-        window.addEventListener('scroll', () => {
+        // Header scroll effect - Use RAF throttle for smooth performance
+        const handleHeaderScroll = rafThrottle(() => {
             const header = document.querySelector('.header');
             if (header) {
                 if (window.scrollY > 100) {
@@ -209,6 +302,53 @@ export class HomePage {
                 }
             }
         });
+        
+        window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+    }
+    
+    /**
+     * Setup infinite scroll (auto load more when near bottom)
+     */
+    setupInfiniteScroll() {
+        let isLoading = false;
+        
+        // Use throttle to limit scroll event frequency
+        const handleScroll = throttle(async () => {
+            if (isLoading) return;
+            
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.documentElement.scrollHeight - 800;
+            
+            if (scrollPosition >= threshold && this.productGrid.hasMore()) {
+                isLoading = true;
+                
+                // Just use productGrid.loadMore() - it handles everything
+                this.productGrid.loadMore();
+                
+                isLoading = false;
+            }
+        }, 200); // Throttle to max once per 200ms
+        
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
+    /**
+     * Load more products from API (DEPRECATED - not used anymore)
+     */
+    async loadMoreProducts() {
+        if (!this.hasMoreProducts) return;
+        
+        console.log('📦 Loading more products...');
+        this.currentPage++;
+        
+        const productsPage = await apiService.getProductsPaginated(this.currentPage, 12);
+        this.products = [...this.products, ...productsPage.products];
+        this.hasMoreProducts = productsPage.hasMore;
+        
+        // Update product grid
+        this.productGrid.setProducts(this.products);
+        
+        console.log(`✅ Loaded page ${this.currentPage}`);
     }
     
     /**
@@ -246,7 +386,7 @@ export class HomePage {
      * Show loading state
      */
     showLoading() {
-        // TODO: Implement loading spinner
+        // Skeleton is already visible in HTML
         console.log('Loading...');
     }
     
@@ -255,6 +395,54 @@ export class HomePage {
      */
     hideLoading() {
         console.log('Loading complete');
+    }
+    
+    /**
+     * Hide skeleton and show real content with fade-in animation
+     */
+    hideSkeletonAndShowContent() {
+        this.hideFlashSaleSkeleton();
+        this.hideCategoriesSkeleton();
+        this.hideProductsSkeleton();
+    }
+    
+    /**
+     * Hide flash sale skeleton
+     */
+    hideFlashSaleSkeleton() {
+        const flashSaleSkeleton = document.getElementById('flashSaleSkeleton');
+        const flashSaleProducts = document.getElementById('flashSaleProducts');
+        if (flashSaleSkeleton && flashSaleProducts) {
+            flashSaleSkeleton.style.display = 'none';
+            flashSaleProducts.classList.remove('hidden');
+            flashSaleProducts.classList.add('fade-in');
+        }
+    }
+    
+    /**
+     * Hide categories skeleton
+     */
+    hideCategoriesSkeleton() {
+        const categoriesSkeleton = document.getElementById('categoriesSkeleton');
+        const categoriesGrid = document.getElementById('categoriesGrid');
+        if (categoriesSkeleton && categoriesGrid) {
+            categoriesSkeleton.style.display = 'none';
+            categoriesGrid.classList.remove('hidden');
+            categoriesGrid.classList.add('fade-in');
+        }
+    }
+    
+    /**
+     * Hide products skeleton
+     */
+    hideProductsSkeleton() {
+        const productsSkeleton = document.getElementById('productsSkeleton');
+        const productsGrid = document.getElementById('productsGrid');
+        if (productsSkeleton && productsGrid) {
+            productsSkeleton.style.display = 'none';
+            productsGrid.classList.remove('hidden');
+            productsGrid.classList.add('fade-in');
+        }
     }
     
     /**

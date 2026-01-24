@@ -135,7 +135,48 @@
                 </button>
                 
                 <div class="flash-sale-carousel" id="flashSaleCarousel">
-                    <div class="flash-sale-products" id="flashSaleProducts">
+                    <!-- Skeleton Loading -->
+                    <div class="flash-sale-products" id="flashSaleSkeleton">
+                        <div class="skeleton-flash-card">
+                            <div class="skeleton-flash-image"></div>
+                            <div class="skeleton-flash-info">
+                                <div class="skeleton skeleton-flash-title"></div>
+                                <div class="skeleton skeleton-flash-price"></div>
+                                <div class="skeleton skeleton-flash-bar"></div>
+                                <div class="skeleton skeleton-flash-button"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-flash-card">
+                            <div class="skeleton-flash-image"></div>
+                            <div class="skeleton-flash-info">
+                                <div class="skeleton skeleton-flash-title"></div>
+                                <div class="skeleton skeleton-flash-price"></div>
+                                <div class="skeleton skeleton-flash-bar"></div>
+                                <div class="skeleton skeleton-flash-button"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-flash-card">
+                            <div class="skeleton-flash-image"></div>
+                            <div class="skeleton-flash-info">
+                                <div class="skeleton skeleton-flash-title"></div>
+                                <div class="skeleton skeleton-flash-price"></div>
+                                <div class="skeleton skeleton-flash-bar"></div>
+                                <div class="skeleton skeleton-flash-button"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-flash-card">
+                            <div class="skeleton-flash-image"></div>
+                            <div class="skeleton-flash-info">
+                                <div class="skeleton skeleton-flash-title"></div>
+                                <div class="skeleton skeleton-flash-price"></div>
+                                <div class="skeleton skeleton-flash-bar"></div>
+                                <div class="skeleton skeleton-flash-button"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Real Products (hidden initially) -->
+                    <div class="flash-sale-products hidden" id="flashSaleProducts">
                         <!-- Flash sale products will be loaded here -->
                     </div>
                 </div>
@@ -157,7 +198,55 @@
                 <h2 class="text-4xl font-display font-bold text-gray-800 mb-4">Danh Mục Sản Phẩm</h2>
                 <p class="text-gray-600 text-lg">Khám phá bộ sưu tập đa dạng của chúng tôi</p>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="categoriesGrid">
+            
+            <!-- Skeleton Loading -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="categoriesSkeleton">
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+                <div class="skeleton-category-card">
+                    <div class="skeleton-category-image"></div>
+                    <div class="skeleton-category-info">
+                        <div class="skeleton skeleton-category-name"></div>
+                        <div class="skeleton skeleton-category-count"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Real Categories (hidden initially) -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 hidden" id="categoriesGrid">
                 <!-- Categories will be loaded here -->
             </div>
         </div>
@@ -188,13 +277,82 @@
             </div>
 
             <!-- Products Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productsGrid">
+            <!-- Skeleton Loading -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productsSkeleton">
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+                <div class="skeleton-product-card">
+                    <div class="skeleton-product-image"></div>
+                    <div class="skeleton-product-info">
+                        <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-price"></div>
+                        <div class="skeleton skeleton-product-button"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Real Products (hidden initially) -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden" id="productsGrid">
                 <!-- Products will be loaded here -->
             </div>
 
             <!-- Load More -->
             <div class="text-center mt-12">
-                <button class="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-full font-semibold transition border-2 border-gray-300" id="loadMoreBtn">
+                <button class="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-full font-semibold transition border-2 border-gray-300" id="loadMoreBtn" style="display: none;">
                     Xem thêm sản phẩm
                 </button>
             </div>
@@ -364,6 +522,28 @@
                     </div>
                 </div>
                 
+                <!-- Baby Weight -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-baby"></i>
+                        Cân nặng của bé<span class="required">*</span>
+                    </label>
+                    <select class="checkout-form-select" id="checkoutBabyWeight" required>
+                        <option value="">Chọn cân nặng</option>
+                        <option value="unborn">Chưa sinh</option>
+                        <option value="3kg">3kg</option>
+                        <option value="4kg">4kg</option>
+                        <option value="5kg">5kg</option>
+                        <option value="6kg">6kg</option>
+                        <option value="7kg">7kg</option>
+                        <option value="8kg">8kg</option>
+                        <option value="9kg">9kg</option>
+                        <option value="10kg">10kg</option>
+                        <option value="11kg">11kg</option>
+                        <option value="12kg">12kg</option>
+                    </select>
+                </div>
+                
                 <!-- Phone -->
                 <div class="checkout-form-group">
                     <label class="checkout-form-label">
@@ -399,10 +579,58 @@
                     </label>
                     <textarea class="checkout-form-textarea" id="checkoutNote" placeholder="Ghi chú cho đơn hàng (nếu có)"></textarea>
                 </div>
+                
+                <!-- Discount Code -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-ticket-alt"></i>
+                        Mã giảm giá
+                    </label>
+                    <div class="discount-input-wrapper">
+                        <input type="text" class="checkout-form-input discount-code-display" id="discountCodeInput" placeholder="Chọn mã giảm giá" readonly>
+                        <button class="discount-action-btn" id="discountActionBtn">
+                            <i class="fas fa-gift"></i>
+                            <span id="discountBtnText">Chọn mã</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <!-- Sticky Footer -->
             <div class="quick-checkout-footer">
+                <!-- Order Details Breakdown -->
+                <div class="order-details-section">
+                    <button class="order-details-toggle" id="orderDetailsToggle">
+                        <span class="order-details-title">
+                            <i class="fas fa-receipt"></i>
+                            Chi tiết đơn hàng
+                        </span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </button>
+                    
+                    <div class="order-details-content hidden" id="orderDetailsContent">
+                        <!-- Main Product -->
+                        <div class="order-item">
+                            <div class="order-item-info">
+                                <span class="order-item-name" id="orderMainProductName">Sản phẩm</span>
+                                <span class="order-item-qty" id="orderMainProductQty">x1</span>
+                            </div>
+                            <span class="order-item-price" id="orderMainProductPrice">0đ</span>
+                        </div>
+                        
+                        <!-- Cross-sell Products -->
+                        <div id="orderCrossSellItems"></div>
+                        
+                        <!-- Discount Info -->
+                        <div class="order-discount-info hidden" id="orderDiscountInfo">
+                            <div class="order-discount-badge">
+                                <i class="fas fa-tag"></i>
+                                <span id="orderDiscountText">Giảm giá</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Compact Summary -->
                 <div class="checkout-summary-compact" id="checkoutSummaryCompact">
                     <div class="summary-compact-row">
@@ -424,6 +652,10 @@
                         <span>Phí vận chuyển:</span>
                         <span class="checkout-summary-amount" id="checkoutShipping">30.000đ</span>
                     </div>
+                    <div class="checkout-summary-row hidden" id="checkoutDiscountRow">
+                        <span style="color: #27ae60;">Giảm giá:</span>
+                        <span class="checkout-summary-amount" style="color: #27ae60;" id="checkoutDiscountAmount">0đ</span>
+                    </div>
                     <div class="checkout-summary-row total">
                         <span>Tổng cộng:</span>
                         <span class="checkout-summary-amount total" id="checkoutTotal">0đ</span>
@@ -435,6 +667,21 @@
                     <i class="fas fa-check-circle"></i>
                     Đặt hàng ngay
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discount Modal -->
+    <div class="discount-modal hidden" id="discountModal">
+        <div class="discount-modal-content">
+            <div class="discount-modal-header">
+                <h3><i class="fas fa-ticket-alt"></i> Mã giảm giá</h3>
+                <button class="discount-modal-close" id="discountModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="discount-modal-body" id="discountModalContent">
+                <!-- Discounts will be loaded here -->
             </div>
         </div>
     </div>

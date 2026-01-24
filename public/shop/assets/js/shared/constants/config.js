@@ -17,7 +17,7 @@ export const CONFIG = {
     DISCOUNT_KEY: 'discount',
     
     // Checkout Configuration
-    SHIPPING_FEE: 30000,
+    SHIPPING_FEE: 21000,
     FREE_SHIPPING_THRESHOLD: 500000,
     
     // Flash Sale Configuration

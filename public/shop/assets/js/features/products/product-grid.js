@@ -11,11 +11,33 @@ export class ProductGrid {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
         this.products = [];
+        this.allProducts = []; // Store all products for filtering
         this.filteredProducts = [];
         this.displayedCount = options.initialCount || 12;
         this.itemsPerPage = options.itemsPerPage || 12;
         this.currentFilter = 'all';
         this.currentSort = 'default';
+    }
+    
+    /**
+     * Set all products (for filtering/sorting)
+     */
+    setAllProducts(products) {
+        this.allProducts = products;
+        
+        // Update filteredProducts to use all products
+        if (this.currentFilter === 'all') {
+            this.filteredProducts = [...products];
+        } else {
+            // Re-apply current filter with all products
+            this.filter(this.currentFilter);
+            return; // filter() already calls render()
+        }
+        
+        // SIMPLE: Just update button, don't re-render everything
+        this.updateLoadMoreButton();
+        
+        console.log('📦 All products loaded:', products.length);
     }
     
     /**
@@ -33,22 +55,25 @@ export class ProductGrid {
     filter(filterType) {
         this.currentFilter = filterType;
         
+        // Use allProducts if available, otherwise use products
+        const sourceProducts = this.allProducts.length > 0 ? this.allProducts : this.products;
+        
         switch (filterType) {
             case 'popular':
-                this.filteredProducts = this.products.filter(p => (p.purchases || 0) > 10);
+                this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);
                 break;
             case 'new':
-                this.filteredProducts = [...this.products]
+                this.filteredProducts = [...sourceProducts]
                     .sort((a, b) => (b.id || 0) - (a.id || 0))
                     .slice(0, 20);
                 break;
             case 'sale':
-                this.filteredProducts = this.products.filter(p => 
+                this.filteredProducts = sourceProducts.filter(p => 
                     p.original_price && p.original_price > p.price
                 );
                 break;
             default:
-                this.filteredProducts = [...this.products];
+                this.filteredProducts = [...sourceProducts];
         }
         
         this.displayedCount = this.itemsPerPage;
@@ -101,8 +126,10 @@ export class ProductGrid {
         const productsToShow = this.filteredProducts.slice(0, this.displayedCount);
         renderProducts(productsToShow, this.containerId);
         
-        // Update load more button
-        this.updateLoadMoreButton();
+        // Only update button if we have all products loaded
+        if (this.allProducts.length > 0) {
+            this.updateLoadMoreButton();
+        }
     }
     
     /**
@@ -110,8 +137,15 @@ export class ProductGrid {
      */
     updateLoadMoreButton() {
         const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (loadMoreBtn) {
-            loadMoreBtn.style.display = this.hasMore() ? 'block' : 'none';
+        if (!loadMoreBtn) return;
+        
+        const hasMore = this.hasMore();
+        const newDisplay = hasMore ? 'block' : 'none';
+        
+        // Only update if changed (prevent flickering)
+        if (loadMoreBtn.style.display !== newDisplay) {
+            loadMoreBtn.style.display = newDisplay;
+            console.log('🔘 Button:', hasMore ? 'VISIBLE' : 'HIDDEN', `(${this.displayedCount}/${this.filteredProducts.length})`);
         }
     }
 }
