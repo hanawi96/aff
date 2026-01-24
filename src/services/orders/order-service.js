@@ -209,7 +209,7 @@ export async function createOrder(data, env, corsHeaders) {
         // Get current tax rate from cost_config (stored in item_cost)
         // Cache this as tax rate rarely changes
         const taxCacheKey = 'tax_rate_v1';
-        let currentTaxRate = 0.015; // Default fallback
+        let currentTaxRate = null; // Start with null to force query if no cache
         
         try {
             // Try to get from cache first (if KV is available)
@@ -225,11 +225,13 @@ export async function createOrder(data, env, corsHeaders) {
         }
         
         // If not cached, query from database
-        if (!currentTaxRate || currentTaxRate === 0.015) {
+        if (!currentTaxRate) {
             const taxRateConfig = await env.DB.prepare(`
                 SELECT item_cost as tax_rate FROM cost_config WHERE item_name = 'tax_rate' LIMIT 1
             `).first();
-            currentTaxRate = taxRateConfig?.tax_rate || 0.015;
+            // Convert percentage to decimal (5 -> 0.05, 1.5 -> 0.015)
+            const rawRate = taxRateConfig?.tax_rate || 1.5;
+            currentTaxRate = rawRate > 1 ? rawRate / 100 : rawRate;
             
             // Cache for 1 hour (if KV is available)
             if (env.KV) {
@@ -843,4 +845,6 @@ export async function toggleOrderPriority(data, env, corsHeaders) {
     }
 }
 
+// ============================================
+// END OF ORDER SERVICE
 // ============================================

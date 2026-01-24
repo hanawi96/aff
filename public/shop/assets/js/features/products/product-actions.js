@@ -72,7 +72,8 @@ export class ProductActions {
                 originalPrice: product.original_price,
                 image: product.image_url,
                 maxQuantity: 99,
-                isFlashSale: false
+                isFlashSale: false,
+                categories: product.categories || [] // Pass categories
             });
         }
     }

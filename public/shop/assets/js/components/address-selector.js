@@ -220,10 +220,23 @@ export class AddressSelector {
      * Get address data
      */
     getAddressData() {
+        // Get names from addressService
+        const provinceName = this.provinceCode ? 
+            addressService.addressData?.[this.provinceCode]?.name_with_type || null : null;
+        
+        const districtName = (this.provinceCode && this.districtCode) ?
+            addressService.addressData?.[this.provinceCode]?.['quan-huyen']?.[this.districtCode]?.name_with_type || null : null;
+        
+        const wardName = (this.provinceCode && this.districtCode && this.wardCode) ?
+            addressService.addressData?.[this.provinceCode]?.['quan-huyen']?.[this.districtCode]?.['xa-phuong']?.[this.wardCode]?.name_with_type || null : null;
+        
         return {
             provinceCode: this.provinceCode,
+            provinceName: provinceName,
             districtCode: this.districtCode,
+            districtName: districtName,
             wardCode: this.wardCode,
+            wardName: wardName,
             street: this.street,
             fullAddress: addressService.getFullAddress(
                 this.provinceCode,
@@ -337,6 +350,68 @@ export class AddressSelector {
             streetInput.value = '123 Nguyễn Huệ';
             this.street = '123 Nguyễn Huệ';
             this.updateFullAddress();
+        }
+    }
+    
+    /**
+     * Restore address from saved data
+     */
+    async restoreAddress(addressData) {
+        if (!addressData) return;
+        
+        try {
+            const provinceSelect = document.getElementById('provinceSelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const wardSelect = document.getElementById('wardSelect');
+            const streetInput = document.getElementById('streetInput');
+            
+            // Restore province
+            if (addressData.provinceCode && provinceSelect) {
+                provinceSelect.value = addressData.provinceCode;
+                this.provinceCode = addressData.provinceCode;
+                
+                // Trigger change event to load districts
+                const provinceEvent = new Event('change', { bubbles: true });
+                provinceSelect.dispatchEvent(provinceEvent);
+                
+                // Wait for districts to load
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Restore district
+            if (addressData.districtCode && districtSelect) {
+                districtSelect.value = addressData.districtCode;
+                this.districtCode = addressData.districtCode;
+                
+                // Trigger change event to load wards
+                const districtEvent = new Event('change', { bubbles: true });
+                districtSelect.dispatchEvent(districtEvent);
+                
+                // Wait for wards to load
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Restore ward
+            if (addressData.wardCode && wardSelect) {
+                wardSelect.value = addressData.wardCode;
+                this.wardCode = addressData.wardCode;
+                
+                // Trigger change event
+                const wardEvent = new Event('change', { bubbles: true });
+                wardSelect.dispatchEvent(wardEvent);
+            }
+            
+            // Restore street
+            if (addressData.street && streetInput) {
+                streetInput.value = addressData.street;
+                this.street = addressData.street;
+            }
+            
+            this.updateFullAddress();
+            
+            console.log('✅ Address restored:', addressData);
+        } catch (error) {
+            console.error('Error restoring address:', error);
         }
     }
 }

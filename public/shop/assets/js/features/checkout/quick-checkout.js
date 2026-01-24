@@ -26,6 +26,12 @@ export class QuickCheckout {
         this.shippingFee = 21000; // Default 21,000đ, will be loaded from API
         this.paymentMethod = 'cod'; // Default: COD
         this.bankTransferConfirmed = false; // Bank transfer confirmation status
+        this.countdownTimer = null; // Countdown timer instance
+        this.countdownEndTime = null; // Countdown end timestamp
+        this.needsBabyName = false; // Flag for products needing baby name
+        
+        // LocalStorage key for form data
+        this.STORAGE_KEY = 'quickCheckoutFormData';
         
         // Initialize discount modal
         this.discountModal = new DiscountModal((discount, amount) => this.applyDiscount(discount, amount));
@@ -38,6 +44,7 @@ export class QuickCheckout {
         this.loadShippingFee();
         
         this.setupEventListeners();
+        this.setupAutoSave();
     }
     
     /**
@@ -67,6 +74,9 @@ export class QuickCheckout {
         this.appliedDiscount = null;
         this.discountAmount = 0;
         
+        // Check if product needs baby name (belongs to "Mix thẻ tên bé" category)
+        this.needsBabyName = this.checkNeedsBabyName(product);
+        
         // Load cross-sell products
         await this.loadCrossSellProducts();
         
@@ -80,7 +90,24 @@ export class QuickCheckout {
             this.addressSelector.reset();
         }
         
+        // Try to restore saved form data
+        this.restoreFormData();
+        
         this.showModal();
+    }
+    
+    /**
+     * Check if product needs baby name input
+     */
+    checkNeedsBabyName(product) {
+        if (!product.categories || !Array.isArray(product.categories)) {
+            return false;
+        }
+        
+        // Check if any category name contains "Mix thẻ tên bé"
+        return product.categories.some(cat => 
+            cat.name && cat.name.toLowerCase().includes('mix thẻ tên bé')
+        );
     }
     
     /**
@@ -92,6 +119,10 @@ export class QuickCheckout {
             modal.classList.add('hidden');
             document.body.style.overflow = '';
         }
+        
+        // Stop countdown timer
+        this.stopCountdown();
+        
         this.product = null;
         this.quantity = 1;
         this.selectedCrossSells = [];
@@ -157,6 +188,27 @@ export class QuickCheckout {
         
         html += '</div>';
         productContainer.innerHTML = html;
+        
+        // Show/hide baby name input based on product category
+        const babyNameGroup = document.getElementById('babyNameGroup');
+        if (babyNameGroup) {
+            if (this.needsBabyName) {
+                babyNameGroup.style.display = 'block';
+                // Add required attribute
+                const babyNameInput = document.getElementById('checkoutBabyName');
+                if (babyNameInput) {
+                    babyNameInput.setAttribute('required', 'required');
+                }
+            } else {
+                babyNameGroup.style.display = 'none';
+                // Remove required attribute
+                const babyNameInput = document.getElementById('checkoutBabyName');
+                if (babyNameInput) {
+                    babyNameInput.removeAttribute('required');
+                    babyNameInput.value = ''; // Clear value
+                }
+            }
+        }
         
         // Render cross-sell products
         this.renderCrossSellProducts();
@@ -363,6 +415,15 @@ export class QuickCheckout {
         document.getElementById('checkoutPhone').value = '0987654321';
         document.getElementById('checkoutName').value = 'Nguyễn Thị Hoa';
         document.getElementById('checkoutBabyWeight').value = '5kg';
+        
+        // Fill baby name if needed
+        if (this.needsBabyName) {
+            const babyNameInput = document.getElementById('checkoutBabyName');
+            if (babyNameInput) {
+                babyNameInput.value = 'Minh An';
+            }
+        }
+        
         document.getElementById('checkoutNote').value = 'Giao hàng giờ hành chính';
         
         // Fill address
@@ -382,6 +443,7 @@ export class QuickCheckout {
         // Reset bank transfer confirmation when switching methods
         if (method === 'cod') {
             this.bankTransferConfirmed = false;
+            this.stopCountdown();
         }
         
         // Update UI
@@ -405,17 +467,100 @@ export class QuickCheckout {
             const btn = document.getElementById('bankConfirmBtn');
             if (btn && !this.bankTransferConfirmed) {
                 btn.innerHTML = '<i class="fas fa-check-circle"></i> Xác nhận đã chuyển khoản';
-                btn.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+                btn.style.background = 'linear-gradient(135deg, #4caf50, #66bb6a)';
                 btn.disabled = false;
                 btn.style.cursor = 'pointer';
                 btn.style.animation = 'pulse 2s infinite';
             }
+            
+            // Start countdown timer (10 minutes)
+            this.startCountdown(10 * 60);
         } else {
             bankInfo.classList.add('hidden');
+            this.stopCountdown();
         }
         
         // Update order details to reflect payment method
         this.updateOrderDetails();
+        
+        // Auto-save when payment method changes
+        this.saveFormData();
+    }
+    
+    /**
+     * Start countdown timer
+     */
+    startCountdown(seconds) {
+        // Stop existing timer
+        this.stopCountdown();
+        
+        // Set end time
+        this.countdownEndTime = Date.now() + (seconds * 1000);
+        
+        // Update display immediately
+        this.updateCountdownDisplay();
+        
+        // Start interval
+        this.countdownTimer = setInterval(() => {
+            this.updateCountdownDisplay();
+        }, 1000);
+    }
+    
+    /**
+     * Stop countdown timer
+     */
+    stopCountdown() {
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
+            this.countdownTimer = null;
+            this.countdownEndTime = null;
+        }
+    }
+    
+    /**
+     * Update countdown display
+     */
+    updateCountdownDisplay() {
+        if (!this.countdownEndTime) return;
+        
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((this.countdownEndTime - now) / 1000));
+        
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        
+        const timeEl = document.getElementById('countdownTime');
+        const countdownBox = document.getElementById('paymentCountdown');
+        
+        if (timeEl) {
+            timeEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        // Add warning class when less than 2 minutes
+        if (remaining <= 120 && remaining > 0) {
+            if (countdownBox) countdownBox.classList.add('warning');
+        } else {
+            if (countdownBox) countdownBox.classList.remove('warning');
+        }
+        
+        // Time expired
+        if (remaining === 0) {
+            this.stopCountdown();
+            if (countdownBox) {
+                countdownBox.classList.add('expired');
+                countdownBox.innerHTML = '<i class="fas fa-times-circle"></i> <span>Hết thời gian thanh toán!</span>';
+            }
+            
+            // Disable submit button
+            const submitBtn = document.getElementById('checkoutSubmit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+            
+            showToast('Hết thời gian thanh toán! Vui lòng đặt lại đơn hàng.', 'error');
+        }
     }
     
     /**
@@ -435,6 +580,15 @@ export class QuickCheckout {
     confirmBankTransfer() {
         // Mark as confirmed
         this.bankTransferConfirmed = true;
+        
+        // Stop countdown
+        this.stopCountdown();
+        
+        // Hide countdown box
+        const countdownBox = document.getElementById('paymentCountdown');
+        if (countdownBox) {
+            countdownBox.style.display = 'none';
+        }
         
         // Hide error message
         const errorEl = document.getElementById('bankConfirmError');
@@ -466,8 +620,23 @@ export class QuickCheckout {
         document.getElementById('checkoutBabyWeight').value = '';
         document.getElementById('checkoutNote').value = '';
         
+        // Reset baby name if exists
+        const babyNameInput = document.getElementById('checkoutBabyName');
+        if (babyNameInput) {
+            babyNameInput.value = '';
+        }
+        
         if (this.addressSelector) {
             this.addressSelector.reset();
+        }
+        
+        // Reset submit button state
+        const submitBtn = document.getElementById('checkoutSubmit');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'ĐẶT HÀNG';
+            submitBtn.style.opacity = '';
+            submitBtn.style.cursor = '';
         }
     }
     
@@ -771,6 +940,7 @@ export class QuickCheckout {
             phone: document.getElementById('checkoutPhone').value.trim(),
             name: document.getElementById('checkoutName').value.trim(),
             babyWeight: document.getElementById('checkoutBabyWeight').value,
+            babyName: document.getElementById('checkoutBabyName')?.value.trim() || '',
             note: document.getElementById('checkoutNote').value.trim()
         };
         
@@ -790,6 +960,13 @@ export class QuickCheckout {
         if (!formData.babyWeight) {
             showToast('Vui lòng chọn cân nặng của bé', 'error');
             document.getElementById('checkoutBabyWeight').focus();
+            return;
+        }
+        
+        // Validate baby name if needed
+        if (this.needsBabyName && !formData.babyName) {
+            showToast('Vui lòng nhập tên bé để khắc lên thẻ', 'error');
+            document.getElementById('checkoutBabyName').focus();
             return;
         }
         
@@ -831,49 +1008,85 @@ export class QuickCheckout {
         // Get address data
         const addressData = this.addressSelector.getAddressData();
         
-        // Prepare order data
-        const orderData = {
-            product: this.product,
-            quantity: this.quantity,
-            crossSellProducts: this.selectedCrossSells.map(item => {
-                const product = this.crossSellProducts.find(p => p.id === item.id);
-                return {
+        // Calculate totals
+        const productTotal = this.product.price * this.quantity;
+        const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { 
+            const product = this.crossSellProducts.find(p => p.id === item.id); 
+            return sum + (product ? product.price * item.quantity : 0); 
+        }, 0);
+        const hasFreeShipping = this.selectedCrossSells.length > 0 || 
+                               (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
+        const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
+        const totalAmount = productTotal + crossSellTotal + shippingFee - this.discountAmount;
+        
+        // Prepare cart items (products array)
+        const cart = [
+            {
+                id: this.product.id,
+                name: this.product.name,
+                price: this.product.price,
+                cost_price: this.product.cost_price || 0,
+                quantity: this.quantity,
+                image: this.product.image,
+                size: formData.babyWeight, // Add baby weight to size
+                notes: this.needsBabyName && formData.babyName ? `Tên bé: ${formData.babyName}` : '' // Add baby name to notes
+            }
+        ];
+        
+        // Add cross-sell products to cart
+        this.selectedCrossSells.forEach(item => {
+            const product = this.crossSellProducts.find(p => p.id === item.id);
+            if (product) {
+                cart.push({
                     id: product.id,
                     name: product.name,
                     price: product.price,
-                    quantity: item.quantity
-                };
-            }),
+                    cost_price: product.cost_price || 0,
+                    quantity: item.quantity,
+                    image: product.image,
+                    size: formData.babyWeight // Same baby weight for all items in order
+                });
+            }
+        });
+        
+        // Build notes: only custom note (baby weight is in order_items.size)
+        const orderNotes = formData.note || null;
+        
+        // Prepare order data matching backend format
+        const orderData = {
+            orderId: 'DH' + Date.now(),
+            orderDate: Date.now(),
             customer: {
-                phone: formData.phone,
                 name: formData.name,
-                babyWeight: formData.babyWeight,
-                note: formData.note
+                phone: formData.phone
             },
-            address: {
-                provinceCode: addressData.provinceCode,
-                districtCode: addressData.districtCode,
-                wardCode: addressData.wardCode,
-                street: addressData.street,
-                fullAddress: addressData.fullAddress
-            },
-            discount: this.appliedDiscount ? {
-                id: this.appliedDiscount.id,
-                code: this.appliedDiscount.code,
-                type: this.appliedDiscount.type,
-                amount: this.discountAmount
-            } : null,
+            address: addressData.fullAddress,
+            province_id: addressData.provinceCode,
+            province_name: addressData.provinceName,
+            district_id: addressData.districtCode,
+            district_name: addressData.districtName,
+            ward_id: addressData.wardCode,
+            ward_name: addressData.wardName,
+            street_address: addressData.street,
             paymentMethod: this.paymentMethod,
-            subtotal: this.product.price * this.quantity,
-            crossSellTotal: this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0),
-            shippingFee: (this.selectedCrossSells.length > 0 || 
-                         (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount))) 
-                         ? 0 : this.shippingFee,
+            payment_method: this.paymentMethod,
+            status: 'pending',
+            referralCode: null,
+            shippingFee: shippingFee,
+            shipping_fee: shippingFee,
+            shippingCost: 0,
+            shipping_cost: 0,
+            total: totalAmount,
+            totalAmount: totalAmount,
+            cart: cart,
+            notes: orderNotes,
+            discount_id: this.appliedDiscount ? this.appliedDiscount.id : null,
+            discountCode: this.appliedDiscount ? this.appliedDiscount.code : null,
+            discount_code: this.appliedDiscount ? this.appliedDiscount.code : null,
             discountAmount: this.discountAmount,
-            total: this.calculateTotal(),
-            isFlashSale: this.product.isFlashSale,
-            hasFreeShipping: this.selectedCrossSells.length > 0 || 
-                            (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount))
+            discount_amount: this.discountAmount,
+            is_priority: 0,
+            source: 'shop' // Mark as coming from shop
         };
         
         // Disable submit button
@@ -882,23 +1095,177 @@ export class QuickCheckout {
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
         
         try {
-            // TODO: Send to API
-            console.log('Order data:', orderData);
+            // Send to API
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/shop/order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
             
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const result = await response.json();
             
-            // Success
-            showToast('Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.', 'success');
-            this.close();
-            
-            // TODO: Redirect to success page
+            if (response.ok && result.success) {
+                // Success
+                showToast('Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.', 'success');
+                
+                // Clear saved form data after successful order
+                this.clearSavedData();
+                
+                // Stop countdown
+                this.stopCountdown();
+                
+                this.close();
+                
+                // TODO: Redirect to success page or show order confirmation
+                console.log('✅ Order created:', result.order);
+            } else {
+                throw new Error(result.error || 'Không thể tạo đơn hàng');
+            }
             
         } catch (error) {
             console.error('Checkout error:', error);
-            showToast('Có lỗi xảy ra. Vui lòng thử lại!', 'error');
+            showToast(`Lỗi: ${error.message}`, 'error');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Đặt hàng ngay';
+            submitBtn.innerHTML = 'ĐẶT HÀNG';
+        }
+    }
+    
+    /**
+     * Setup auto-save for form fields
+     */
+    setupAutoSave() {
+        // Debounce function to avoid too many saves
+        let saveTimeout;
+        const debouncedSave = () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => this.saveFormData(), 500);
+        };
+        
+        // Listen to form changes
+        document.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.id === 'checkoutPhone' || 
+                target.id === 'checkoutName' || 
+                target.id === 'checkoutBabyWeight' ||
+                target.id === 'checkoutBabyName' || 
+                target.id === 'checkoutNote') {
+                debouncedSave();
+            }
+        });
+        
+        // Listen to address changes
+        document.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.id === 'provinceSelect' || 
+                target.id === 'districtSelect' || 
+                target.id === 'wardSelect' || 
+                target.id === 'streetInput') {
+                debouncedSave();
+            }
+        });
+    }
+    
+    /**
+     * Save form data to localStorage
+     */
+    saveFormData() {
+        try {
+            const formData = {
+                phone: document.getElementById('checkoutPhone')?.value || '',
+                name: document.getElementById('checkoutName')?.value || '',
+                babyWeight: document.getElementById('checkoutBabyWeight')?.value || '',
+                babyName: document.getElementById('checkoutBabyName')?.value || '',
+                note: document.getElementById('checkoutNote')?.value || '',
+                paymentMethod: this.paymentMethod,
+                timestamp: Date.now()
+            };
+            
+            // Save address data if available
+            if (this.addressSelector) {
+                const addressData = this.addressSelector.getAddressData();
+                formData.address = addressData;
+            }
+            
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(formData));
+            console.log('💾 Form data auto-saved');
+        } catch (error) {
+            console.error('Error saving form data:', error);
+        }
+    }
+    
+    /**
+     * Restore form data from localStorage
+     */
+    async restoreFormData() {
+        try {
+            const savedData = localStorage.getItem(this.STORAGE_KEY);
+            if (!savedData) return;
+            
+            const formData = JSON.parse(savedData);
+            
+            // Check if data is not too old (7 days)
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            if (Date.now() - formData.timestamp > maxAge) {
+                this.clearSavedData();
+                return;
+            }
+            
+            // Wait a bit for modal to fully render
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Restore basic fields
+            if (formData.phone) {
+                const phoneInput = document.getElementById('checkoutPhone');
+                if (phoneInput) phoneInput.value = formData.phone;
+            }
+            if (formData.name) {
+                const nameInput = document.getElementById('checkoutName');
+                if (nameInput) nameInput.value = formData.name;
+            }
+            if (formData.babyWeight) {
+                const babyWeightSelect = document.getElementById('checkoutBabyWeight');
+                if (babyWeightSelect) babyWeightSelect.value = formData.babyWeight;
+            }
+            if (formData.babyName) {
+                const babyNameInput = document.getElementById('checkoutBabyName');
+                if (babyNameInput) babyNameInput.value = formData.babyName;
+            }
+            if (formData.note) {
+                const noteTextarea = document.getElementById('checkoutNote');
+                if (noteTextarea) noteTextarea.value = formData.note;
+            }
+            
+            // Restore payment method
+            if (formData.paymentMethod) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                this.selectPaymentMethod(formData.paymentMethod);
+            }
+            
+            // Restore address (needs more time for selects to be ready)
+            if (formData.address && this.addressSelector) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                await this.addressSelector.restoreAddress(formData.address);
+            }
+            
+            console.log('✅ Form data restored from auto-save');
+            showToast('Đã khôi phục thông tin đã lưu', 'info');
+        } catch (error) {
+            console.error('Error restoring form data:', error);
+            this.clearSavedData();
+        }
+    }
+    
+    /**
+     * Clear saved form data
+     */
+    clearSavedData() {
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+            console.log('🗑️ Saved form data cleared');
+        } catch (error) {
+            console.error('Error clearing saved data:', error);
         }
     }
     

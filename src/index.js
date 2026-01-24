@@ -6,6 +6,7 @@ import { corsHeaders } from './config/cors.js';
 import { jsonResponse } from './utils/response.js';
 import { handleGet } from './handlers/get-handler.js';
 import { handlePost, handlePostWithAction } from './handlers/post-handler.js';
+import { handleShopRoutes } from '../public/shop/api/routes.js';
 
 export default {
     async fetch(request, env, ctx) {
@@ -27,7 +28,12 @@ export default {
             const path = url.pathname;
             const action = url.searchParams.get('action');
 
-            // Route handling
+            // Route to Shop API (public - no auth)
+            if (path.startsWith('/api/shop/')) {
+                return await handleShopRoutes(request, env, corsHeaders);
+            }
+
+            // Route handling for admin/legacy
             if (request.method === 'GET') {
                 return await handleGet(action, url, request, env, corsHeaders);
             } else if (request.method === 'POST') {

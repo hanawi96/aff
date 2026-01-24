@@ -525,28 +525,6 @@
                     </div>
                 </div>
                 
-                <!-- Baby Weight -->
-                <div class="checkout-form-group">
-                    <label class="checkout-form-label">
-                        <i class="fas fa-baby"></i>
-                        Cân nặng của bé<span class="required">*</span>
-                    </label>
-                    <select class="checkout-form-select" id="checkoutBabyWeight" required>
-                        <option value="">Chọn cân nặng</option>
-                        <option value="unborn">Chưa sinh</option>
-                        <option value="3kg">3kg</option>
-                        <option value="4kg">4kg</option>
-                        <option value="5kg">5kg</option>
-                        <option value="6kg">6kg</option>
-                        <option value="7kg">7kg</option>
-                        <option value="8kg">8kg</option>
-                        <option value="9kg">9kg</option>
-                        <option value="10kg">10kg</option>
-                        <option value="11kg">11kg</option>
-                        <option value="12kg">12kg</option>
-                    </select>
-                </div>
-                
                 <!-- Phone -->
                 <div class="checkout-form-group">
                     <label class="checkout-form-label">
@@ -572,6 +550,40 @@
                         Địa chỉ giao hàng<span class="required">*</span>
                     </label>
                     <div id="addressSelectorContainer"></div>
+                </div>
+                
+                <!-- Baby Weight -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-baby"></i>
+                        Cân nặng của bé<span class="required">*</span>
+                    </label>
+                    <select class="checkout-form-select" id="checkoutBabyWeight" required>
+                        <option value="">Chọn cân nặng</option>
+                        <option value="unborn">Chưa sinh</option>
+                        <option value="3kg">3kg</option>
+                        <option value="4kg">4kg</option>
+                        <option value="5kg">5kg</option>
+                        <option value="6kg">6kg</option>
+                        <option value="7kg">7kg</option>
+                        <option value="8kg">8kg</option>
+                        <option value="9kg">9kg</option>
+                        <option value="10kg">10kg</option>
+                        <option value="11kg">11kg</option>
+                        <option value="12kg">12kg</option>
+                    </select>
+                </div>
+                
+                <!-- Baby Name (conditional - only for "Mix thẻ tên bé" products) -->
+                <div class="checkout-form-group" id="babyNameGroup" style="display: none;">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-signature"></i>
+                        Tên bé (sẽ được khắc lên thẻ)<span class="required">*</span>
+                    </label>
+                    <input type="text" class="checkout-form-input" id="checkoutBabyName" placeholder="Ví dụ: Minh An, Bảo Ngọc" maxlength="30">
+                    <small style="color: #666; font-size: 0.85rem; margin-top: 4px; display: block;">
+                        <i class="fas fa-info-circle"></i> Tên sẽ được khắc chính xác như bạn nhập
+                    </small>
                 </div>
                 
                 <!-- Discount Code -->
@@ -661,6 +673,14 @@
                             <i class="fas fa-info-circle"></i>
                             Lưu ý: Vui lòng chuyển đúng số tiền và nội dung.
                         </div>
+                        
+                        <!-- Compact Countdown Timer -->
+                        <div class="payment-countdown-compact" id="paymentCountdown">
+                            <i class="fas fa-clock"></i>
+                            <span>Vui lòng thanh toán trong</span>
+                            <strong id="countdownTime">10:00</strong>
+                        </div>
+                        
                         <button class="bank-confirm-btn" id="bankConfirmBtn" onclick="quickCheckout.confirmBankTransfer()">
                             <i class="fas fa-check-circle"></i>
                             Xác nhận đã chuyển khoản

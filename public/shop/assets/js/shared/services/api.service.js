@@ -72,9 +72,9 @@ class ApiService {
     }
     
     // Product APIs with caching
-    async getAllProducts() {
-        // Check cache first
-        if (this.isCacheValid('products')) {
+    async getAllProducts(forceRefresh = false) {
+        // Check cache first (skip if forceRefresh)
+        if (!forceRefresh && this.isCacheValid('products')) {
             console.log('📦 Using cached products');
             return this.cache.products;
         }
@@ -88,6 +88,25 @@ class ApiService {
         this.setCache('products', activeProducts);
         
         return activeProducts;
+    }
+    
+    /**
+     * Clear cache for specific key or all
+     */
+    clearCache(key = null) {
+        if (key) {
+            this.cache[key] = null;
+            delete this.cache.timestamp[key];
+            console.log(`🗑️ Cleared cache for: ${key}`);
+        } else {
+            this.cache = {
+                products: null,
+                categories: null,
+                flashSales: null,
+                timestamp: {}
+            };
+            console.log('🗑️ Cleared all cache');
+        }
     }
     
     /**
