@@ -1,0 +1,50 @@
+<!-- Header -->
+<header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between h-20">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-gem text-3xl text-primary"></i>
+                <span class="text-2xl font-display font-bold text-gray-800">Vòng Đầu Tam</span>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="hidden lg:flex items-center space-x-8">
+                <a href="/shop/index.html" class="text-gray-700 hover:text-primary transition font-medium">Trang chủ</a>
+                <a href="#products" class="text-gray-700 hover:text-primary transition font-medium">Sản phẩm</a>
+                <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium flex items-center">
+                    <i class="fas fa-bolt mr-1"></i> Flash Sale
+                </a>
+                <a href="#about" class="text-gray-700 hover:text-primary transition font-medium">Về chúng tôi</a>
+                <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium">Liên hệ</a>
+            </nav>
+            
+            <!-- Actions -->
+            <div class="flex items-center space-x-4">
+                <button class="hidden md:block text-gray-600 hover:text-primary transition">
+                    <i class="fas fa-search text-xl"></i>
+                </button>
+                <button class="relative text-gray-600 hover:text-primary transition" id="cartBtn">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" id="cartCount">0</span>
+                </button>
+                <button class="lg:hidden text-gray-600 hover:text-primary transition" id="menuBtn">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div class="lg:hidden hidden bg-white border-t" id="mobileMenu">
+        <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3">
+            <a href="/shop/index.html" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
+            <a href="#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
+            <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium py-2 flex items-center">
+                <i class="fas fa-bolt mr-1"></i> Flash Sale
+            </a>
+            <a href="#about" class="text-gray-700 hover:text-primary transition font-medium py-2">Về chúng tôi</a>
+            <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium py-2">Liên hệ</a>
+        </nav>
+    </div>
+</header>

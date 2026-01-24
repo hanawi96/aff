@@ -2,6 +2,7 @@
 // APP.JS - MAIN ENTRY POINT (MODULAR)
 // ============================================
 
+import { loadCommonPartials } from './shared/partials-loader.js';
 import { HomePage } from './pages/home.page.js';
 
 /**
@@ -22,6 +23,11 @@ class App {
             // Detect current page
             const page = this.detectPage();
             
+            // Load common partials (header, footer, modals) for all pages except cart
+            if (page !== 'cart') {
+                await loadCommonPartials();
+            }
+            
             // Initialize appropriate page
             switch (page) {
                 case 'home':
@@ -30,7 +36,7 @@ class App {
                     break;
                     
                 case 'cart':
-                    // Cart page uses its own cart.js
+                    // Cart page uses its own cart.js (no partials needed)
                     console.log('Cart page - using cart.js');
                     break;
                     

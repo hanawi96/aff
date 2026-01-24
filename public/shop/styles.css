@@ -1521,20 +1521,24 @@ body {
         margin-top: 0.5rem; /* Giảm margin top */
     }
     
-    /* Product Badges - Mobile */
+    /* Product Badges - Mobile: Giảm size và tách vị trí */
     .product-badge {
-        font-size: 0.7rem;
-        padding: 0.25rem 0.6rem;
+        font-size: 0.65rem; /* Giảm từ 0.7rem */
+        padding: 0.2rem 0.5rem; /* Giảm padding */
+        border-radius: 12px; /* Giảm border radius */
     }
     
     .product-badge.handmade {
-        bottom: 8px;
-        left: 8px;
+        bottom: auto; /* Reset bottom */
+        top: 6px; /* Đặt ở góc trên phải */
+        left: auto;
+        right: 6px;
     }
     
     .product-badge.chemical-free {
-        bottom: 8px;
-        right: 8px;
+        bottom: 6px; /* Góc dưới trái */
+        left: 6px;
+        right: auto;
     }
     
     .cart-sidebar {
