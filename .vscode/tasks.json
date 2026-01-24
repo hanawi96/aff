@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Backend (Wrangler Dev)",
+      "type": "shell",
+      "command": "wrangler dev --port 8787",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting.*$",
+          "endsPattern": "^.*Ready on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": false
+      }
+    }
+  ]
+}

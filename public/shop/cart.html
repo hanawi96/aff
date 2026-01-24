@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giỏ Hàng - Vòng Đầu Tam</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="cart.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="cart-header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="back-btn" aria-label="Quay lại">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="cart-title">
+                    Giỏ Hàng
+                    <span class="cart-count" id="cartCount">(0)</span>
+                </h1>
+                <a href="index.html" class="continue-shopping">
+                    <i class="fas fa-home"></i>
+                    <span>Tiếp tục mua</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="cart-main">
+        <div class="container">
+            <div class="cart-layout">
+                <!-- Left Column: Cart Items -->
+                <div class="cart-items-section">
+                    <!-- Empty State -->
+                    <div class="empty-cart hidden" id="emptyCart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h2>Giỏ hàng trống</h2>
+                        <p>Hãy thêm sản phẩm vào giỏ hàng để tiếp tục</p>
+                        <a href="index.html" class="btn-primary">
+                            <i class="fas fa-shopping-bag"></i>
+                            Xem sản phẩm
+                        </a>
+                    </div>
+
+                    <!-- Cart Items -->
+                    <div class="cart-items" id="cartItems">
+                        <!-- Items will be rendered here -->
+                    </div>
+
+                    <!-- Discount Code -->
+                    <div class="discount-section hidden" id="discountSection">
+                        <h3>
+                            <i class="fas fa-gift"></i>
+                            Mã giảm giá
+                        </h3>
+                        <div class="discount-input-group">
+                            <input 
+                                type="text" 
+                                id="discountCode" 
+                                placeholder="Nhập mã giảm giá"
+                                maxlength="20"
+                            >
+                            <button class="btn-apply" id="applyDiscountBtn">
+                                Áp dụng
+                            </button>
+                        </div>
+                        <div class="discount-result" id="discountResult"></div>
+                        <div class="available-codes">
+                            <p class="codes-title">💡 Mã khả dụng:</p>
+                            <div class="code-list" id="availableCodes"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Products -->
+                    <div class="recommended-section hidden" id="recommendedSection">
+                        <h3>
+                            <i class="fas fa-lightbulb"></i>
+                            Khách hàng cũng mua
+                        </h3>
+                        <div class="recommended-products" id="recommendedProducts"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Summary -->
+                <div class="cart-summary-section">
+                    <div class="cart-summary" id="cartSummary">
+                        <h3>
+                            <i class="fas fa-receipt"></i>
+                            Tóm tắt đơn hàng
+                        </h3>
+                        
+                        <div class="summary-row">
+                            <span>Tạm tính <span class="item-count" id="summaryItemCount">(0 sp)</span>:</span>
+                            <span class="amount" id="subtotal">0đ</span>
+                        </div>
+                        
+                        <div class="summary-row discount-row hidden" id="discountRow">
+                            <span>
+                                Giảm giá <span class="discount-code-label" id="discountCodeLabel"></span>:
+                            </span>
+                            <span class="amount discount-amount" id="discountAmount">-0đ</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>Phí vận chuyển:</span>
+                            <span class="amount" id="shippingFee">30.000đ</span>
+                        </div>
+                        
+                        <div class="summary-divider"></div>
+                        
+                        <div class="summary-row total-row">
+                            <span>Tổng cộng:</span>
+                            <span class="amount total-amount" id="totalAmount">0đ</span>
+                        </div>
+                        
+                        <button class="btn-checkout" id="checkoutBtn">
+                            <i class="fas fa-shopping-cart"></i>
+                            Tiến hành đặt hàng
+                        </button>
+                        
+                        <div class="trust-badges">
+                            <div class="badge">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Thanh toán khi nhận hàng</span>
+                            </div>
+                            <div class="badge">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Đổi trả trong 7 ngày</span>
+                            </div>
+                            <div class="badge">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Bảo hành 6 tháng</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Free Shipping Progress -->
+                    <div class="shipping-progress hidden" id="shippingProgress">
+                        <div class="progress-header">
+                            <i class="fas fa-truck"></i>
+                            <span id="shippingMessage">Thêm 230.000đ để FREE SHIP</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Confirm Dialog -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-exclamation-circle"></i>
+                <h3>Xác nhận</h3>
+            </div>
+            <div class="modal-body" id="confirmMessage"></div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="confirmCancel">Hủy</button>
+                <button class="btn-confirm" id="confirmOk">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="cart.js"></script>
+</body>
+</html>

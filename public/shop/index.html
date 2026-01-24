@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Đầu Tam - Trang Sức Handmade Cao Cấp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#d4af37',
+                        secondary: '#8b7355',
+                        accent: '#c9a961',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-gem text-3xl text-primary"></i>
+                    <span class="text-2xl font-display font-bold text-gray-800">Vòng Đầu Tam</span>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="hidden lg:flex items-center space-x-8">
+                    <a href="#home" class="text-gray-700 hover:text-primary transition font-medium">Trang chủ</a>
+                    <a href="#products" class="text-gray-700 hover:text-primary transition font-medium">Sản phẩm</a>
+                    <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium flex items-center">
+                        <i class="fas fa-bolt mr-1"></i> Flash Sale
+                    </a>
+                    <a href="#about" class="text-gray-700 hover:text-primary transition font-medium">Về chúng tôi</a>
+                    <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium">Liên hệ</a>
+                </nav>
+                
+                <!-- Actions -->
+                <div class="flex items-center space-x-4">
+                    <button class="hidden md:block text-gray-600 hover:text-primary transition">
+                        <i class="fas fa-search text-xl"></i>
+                    </button>
+                    <button class="relative text-gray-600 hover:text-primary transition" id="cartBtn">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" id="cartCount">0</span>
+                    </button>
+                    <button class="lg:hidden text-gray-600 hover:text-primary transition" id="menuBtn">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="lg:hidden hidden bg-white border-t" id="mobileMenu">
+            <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3">
+                <a href="#home" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
+                <a href="#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
+                <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium py-2 flex items-center">
+                    <i class="fas fa-bolt mr-1"></i> Flash Sale
+                </a>
+                <a href="#about" class="text-gray-700 hover:text-primary transition font-medium py-2">Về chúng tôi</a>
+                <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium py-2">Liên hệ</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative h-[600px] bg-gradient-to-r from-amber-50 to-orange-50" id="home">
+        <div class="absolute inset-0">
+            <img src="/assets/images/banner.webp" alt="Banner" class="w-full h-full object-cover opacity-30">
+            <div class="absolute inset-0 bg-gradient-to-r from-black/40 to-black/20"></div>
+        </div>
+        <div class="relative container mx-auto px-4 h-full flex items-center">
+            <div class="max-w-2xl">
+                <h1 class="text-5xl md:text-6xl font-display font-bold text-gray-800 mb-6 leading-tight">
+                    Vòng Đầu Tam<br>
+                    <span class="text-primary">Handmade</span>
+                </h1>
+                <p class="text-xl text-gray-700 mb-8 leading-relaxed">
+                    Trang sức thủ công cao cấp - Mang lại may mắn và bình an cho bạn và gia đình
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#products" class="bg-primary hover:bg-accent text-white px-8 py-4 rounded-full font-semibold transition transform hover:scale-105 shadow-lg">
+                        Khám phá ngay
+                    </a>
+                    <a href="#flash-sale" class="bg-white hover:bg-gray-50 text-gray-800 px-8 py-4 rounded-full font-semibold transition border-2 border-gray-300 flex items-center">
+                        <i class="fas fa-bolt text-red-500 mr-2"></i> Flash Sale
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Flash Sale Banner -->
+    <section class="flash-sale-banner" id="flash-sale">
+        <div class="container flash-sale-container">
+            <div class="flash-sale-header">
+                <div class="flash-sale-title-wrapper">
+                    <div class="flash-sale-title">
+                        <i class="fas fa-bolt"></i>
+                        <h2>Flash Sale Hôm Nay</h2>
+                    </div>
+                    <div class="flash-sale-timer" id="flashSaleTimer">
+                        <div class="timer-item">
+                            <span class="timer-value" id="hours">00</span>
+                            <span class="timer-label">Giờ</span>
+                        </div>
+                        <span class="timer-separator">:</span>
+                        <div class="timer-item">
+                            <span class="timer-value" id="minutes">00</span>
+                            <span class="timer-label">Phút</span>
+                        </div>
+                        <span class="timer-separator">:</span>
+                        <div class="timer-item">
+                            <span class="timer-value" id="seconds">00</span>
+                            <span class="timer-label">Giây</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Carousel Wrapper -->
+            <div class="flash-sale-carousel-wrapper">
+                <button class="carousel-btn carousel-btn-prev" id="flashSalePrev" aria-label="Previous">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="flash-sale-carousel" id="flashSaleCarousel">
+                    <div class="flash-sale-products" id="flashSaleProducts">
+                        <!-- Flash sale products will be loaded here -->
+                    </div>
+                </div>
+                
+                <button class="carousel-btn carousel-btn-next" id="flashSaleNext" aria-label="Next">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Dots Indicator -->
+            <div class="carousel-dots" id="flashSaleDots"></div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-display font-bold text-gray-800 mb-4">Danh Mục Sản Phẩm</h2>
+                <p class="text-gray-600 text-lg">Khám phá bộ sưu tập đa dạng của chúng tôi</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="categoriesGrid">
+                <!-- Categories will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Products -->
+    <section class="py-16 bg-gray-50" id="products">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-display font-bold text-gray-800 mb-4">Sản Phẩm Nổi Bật</h2>
+                <p class="text-gray-600 text-lg">Những sản phẩm được yêu thích nhất</p>
+            </div>
+            
+            <!-- Filter & Sort -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-tab active px-6 py-2 rounded-full bg-primary text-white font-medium transition hover:bg-accent" data-filter="all">Tất cả</button>
+                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="popular">Phổ biến</button>
+                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="new">Mới nhất</button>
+                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="sale">Giảm giá</button>
+                </div>
+                <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="default">Mặc định</option>
+                    <option value="price-asc">Giá: Thấp đến cao</option>
+                    <option value="price-desc">Giá: Cao đến thấp</option>
+                    <option value="name">Tên A-Z</option>
+                </select>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productsGrid">
+                <!-- Products will be loaded here -->
+            </div>
+
+            <!-- Load More -->
+            <div class="text-center mt-12">
+                <button class="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-full font-semibold transition border-2 border-gray-300" id="loadMoreBtn">
+                    Xem thêm sản phẩm
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-hand-sparkles text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Handmade 100%</h3>
+                    <p class="text-gray-600">Sản phẩm được làm thủ công tỉ mỉ bởi nghệ nhân</p>
+                </div>
+                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shield-alt text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Chất lượng đảm bảo</h3>
+                    <p class="text-gray-600">Cam kết chất lượng và nguồn gốc rõ ràng</p>
+                </div>
+                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shipping-fast text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Giao hàng nhanh</h3>
+                    <p class="text-gray-600">Giao hàng toàn quốc, thanh toán khi nhận</p>
+                </div>
+                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-headset text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Hỗ trợ 24/7</h3>
+                    <p class="text-gray-600">Tư vấn nhiệt tình, chăm sóc khách hàng tận tâm</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <i class="fas fa-gem text-3xl text-primary"></i>
+                        <span class="text-2xl font-display font-bold">Vòng Đầu Tam</span>
+                    </div>
+                    <p class="text-gray-400 mb-4">Trang sức handmade cao cấp, mang đến may mắn và bình an cho bạn và gia đình.</p>
+                    <div class="flex space-x-3">
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                            <i class="fab fa-tiktok"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Về chúng tôi</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Giới thiệu</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Quy trình sản xuất</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Chính sách bảo hành</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Điều khoản dịch vụ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Hỗ trợ</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Hướng dẫn đặt hàng</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Chính sách đổi trả</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Phương thức thanh toán</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Câu hỏi thường gặp</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Liên hệ</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-phone mr-3 text-primary"></i> 0123 456 789
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-envelope mr-3 text-primary"></i> contact@vongdautam.vn
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-map-marker-alt mr-3 text-primary"></i> Hà Nội, Việt Nam
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 Vòng Đầu Tam. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div class="fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50" id="cartSidebar">
+        <div class="flex items-center justify-between p-6 border-b">
+            <h3 class="text-xl font-semibold">Giỏ hàng</h3>
+            <button class="text-gray-500 hover:text-gray-700" id="cartClose">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto h-[calc(100%-200px)]" id="cartItems">
+            <div class="text-center text-gray-500 py-12">
+                <i class="fas fa-shopping-cart text-6xl mb-4 text-gray-300"></i>
+                <p>Giỏ hàng trống</p>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 p-6 bg-white border-t">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-lg font-semibold">Tổng cộng:</span>
+                <span class="text-2xl font-bold text-primary" id="totalAmount">0đ</span>
+            </div>
+            <button class="w-full bg-primary hover:bg-accent text-white py-3 rounded-lg font-semibold transition">
+                Thanh toán
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-black/50 hidden z-40" id="overlay"></div>
+
+    <!-- Quick Checkout Modal -->
+    <div class="quick-checkout-modal hidden" id="quickCheckoutModal">
+        <div class="quick-checkout-content">
+            <div class="quick-checkout-header">
+                <h3><i class="fas fa-bolt"></i> Mua ngay</h3>
+                <button class="quick-checkout-close" id="quickCheckoutClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="quick-checkout-body">
+                <!-- Product Info -->
+                <div class="checkout-product" id="checkoutProduct"></div>
+                
+                <!-- Cross-sell Products -->
+                <div class="cross-sell-container" id="crossSellProducts"></div>
+                
+                <!-- Quantity -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-box"></i>
+                        Số lượng
+                    </label>
+                    <div class="checkout-quantity">
+                        <div class="checkout-qty-selector">
+                            <button class="checkout-qty-btn" id="checkoutQtyMinus">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" class="checkout-qty-input" id="checkoutQty" value="1" min="1" readonly>
+                            <button class="checkout-qty-btn" id="checkoutQtyPlus">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Phone -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-phone"></i>
+                        Số điện thoại<span class="required">*</span>
+                    </label>
+                    <input type="tel" class="checkout-form-input" id="checkoutPhone" placeholder="Nhập số điện thoại" required>
+                </div>
+                
+                <!-- Name -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-user"></i>
+                        Họ và tên<span class="required">*</span>
+                    </label>
+                    <input type="text" class="checkout-form-input" id="checkoutName" placeholder="Nhập họ và tên" required>
+                </div>
+                
+                <!-- Address Selector -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Địa chỉ giao hàng<span class="required">*</span>
+                    </label>
+                    <div id="addressSelectorContainer"></div>
+                </div>
+                
+                <!-- Note -->
+                <div class="checkout-form-group">
+                    <label class="checkout-form-label">
+                        <i class="fas fa-sticky-note"></i>
+                        Ghi chú (tùy chọn)
+                    </label>
+                    <textarea class="checkout-form-textarea" id="checkoutNote" placeholder="Ghi chú cho đơn hàng (nếu có)"></textarea>
+                </div>
+            </div>
+            
+            <!-- Sticky Footer -->
+            <div class="quick-checkout-footer">
+                <!-- Compact Summary -->
+                <div class="checkout-summary-compact" id="checkoutSummaryCompact">
+                    <div class="summary-compact-row">
+                        <span class="summary-compact-label">Tổng cộng:</span>
+                        <span class="summary-compact-total" id="checkoutTotalCompact">0đ</span>
+                    </div>
+                    <button class="summary-expand-btn" id="summaryExpandBtn">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                
+                <!-- Detailed Summary (Hidden by default) -->
+                <div class="checkout-summary-detail hidden" id="checkoutSummaryDetail">
+                    <div class="checkout-summary-row">
+                        <span>Tạm tính:</span>
+                        <span class="checkout-summary-amount" id="checkoutSubtotal">0đ</span>
+                    </div>
+                    <div class="checkout-summary-row">
+                        <span>Phí vận chuyển:</span>
+                        <span class="checkout-summary-amount" id="checkoutShipping">30.000đ</span>
+                    </div>
+                    <div class="checkout-summary-row total">
+                        <span>Tổng cộng:</span>
+                        <span class="checkout-summary-amount total" id="checkoutTotal">0đ</span>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <button class="checkout-submit-btn" id="checkoutSubmit">
+                    <i class="fas fa-check-circle"></i>
+                    Đặt hàng ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

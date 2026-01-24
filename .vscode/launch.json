@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Shop with Live Server",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:5500/shop/index.html",
+      "webRoot": "${workspaceFolder}/public"
+    },
+    {
+      "name": "Launch Admin with Live Server",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:5500/admin/index.html",
+      "webRoot": "${workspaceFolder}/public"
+    }
+  ]
+}

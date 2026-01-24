@@ -4,8 +4,9 @@
   "description": "Hệ Thống Cộng Tác Viên - Mẹ & Bé (Turso Database)",
   "main": "worker.js",
   "scripts": {
-    "dev": "npx http-server public -p 8080 -o",
-    "dev:worker": "wrangler dev",
+    "dev": "wrangler dev --port 8787",
+    "dev:backend": "wrangler dev --port 8787",
+    "dev:frontend": "npx http-server public/shop -p 8080 -o",
     "build": "echo 'Static site - no build needed'",
     "deploy": "wrangler deploy",
     "deploy:pages": "wrangler pages publish public --project-name=ctv-system",
@@ -34,6 +35,7 @@
     "xlsx": "^0.18.5"
   },
   "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.4.2",
     "@libsql/client": "^0.17.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3"
