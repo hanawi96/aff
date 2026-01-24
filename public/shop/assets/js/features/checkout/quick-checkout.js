@@ -61,18 +61,28 @@ export class QuickCheckout {
     }
     
     /**
-     * Load cross-sell products (ID 133, 134)
+     * Load cross-sell products (Hardcoded: Bó đầu 7 cành và 9 cành)
      */
     async loadCrossSellProducts() {
-        try {
-            const allProducts = await apiService.getAllProducts();
-            this.crossSellProducts = allProducts.filter(p => 
-                (p.id === 133 || p.id === 134) && p.is_active === 1
-            );
-        } catch (error) {
-            console.error('Error loading cross-sell products:', error);
-            this.crossSellProducts = [];
-        }
+        // Hardcode 2 sản phẩm bán kèm
+        this.crossSellProducts = [
+            {
+                id: 133,
+                name: 'Bó đầu 7 CÀNH (bé gái)',
+                price: 42000,
+                originalPrice: null,
+                image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
+                is_active: 1
+            },
+            {
+                id: 134,
+                name: 'Bó đầu 9 CÀNH (bé gái)',
+                price: 47000,
+                originalPrice: null,
+                image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
+                is_active: 1
+            }
+        ];
     }
     
     /**

@@ -6,7 +6,7 @@ export const CONFIG = {
     // API Configuration
     API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://127.0.0.1:8787'
-        : window.location.origin,
+        : 'https://ctv-api.yendev96.workers.dev', // ← Thay bằng URL Workers của bạn
     
     // CDN Configuration
     R2_BASE_URL: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev',
