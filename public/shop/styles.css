@@ -778,6 +778,69 @@ body {
     font-size: 0.75rem;
 }
 
+/* Category Chips - Handmade Style */
+.category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: white;
+    border: 2px solid #f4a261;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #666;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.1);
+}
+
+.category-chip:hover {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: white;
+    border-color: #f4a261;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
+}
+
+.category-chip.active {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: white;
+    border-color: #f4a261;
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+}
+
+.category-chip-icon {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-chip-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Mobile adjustments for category chips */
+@media (max-width: 768px) {
+    .category-chip {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        gap: 0.4rem;
+    }
+    
+    .category-chip-icon {
+        font-size: 1rem;
+    }
+    
+    .category-chip-name {
+        font-size: 0.875rem;
+    }
+}
+
 /* Products Section */
 .products {
     padding: 4rem 0;

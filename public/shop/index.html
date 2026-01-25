@@ -3,27 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vòng Đầu Tam - Trang Sức Handmade Cao Cấp</title>
+    <title>Vòng Đầu Tam - Bảo Vệ Con Yêu Bằng Tình Yêu Thủ Công</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#d4af37',
-                        secondary: '#8b7355',
-                        accent: '#c9a961',
+                        primary: '#f4a261',
+                        secondary: '#e76f51',
+                        accent: '#e9c46a',
+                        warm: '#f8edeb',
+                        soft: '#fec89a',
+                    },
+                    fontFamily: {
+                        handwritten: ['Pacifico', 'cursive'],
+                        body: ['Quicksand', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     
-    <!-- CRITICAL FIX: Force button layout -->
     <style>
-        /* Force flex layout with highest specificity */
+        /* Handmade style overrides */
+        body {
+            font-family: 'Quicksand', sans-serif;
+        }
+        
+        /* Force button layout */
         .product-card .product-info .product-button-actions {
             display: flex !important;
             flex-direction: row !important;
@@ -41,38 +54,58 @@
             flex: 0 0 44px !important;
             display: flex !important;
         }
+        
+        /* Handmade decorative elements */
+        .handmade-divider {
+            background: linear-gradient(90deg, transparent, #f4a261, transparent);
+            height: 2px;
+            margin: 2rem auto;
+            max-width: 200px;
+        }
+        
+        .trust-badge {
+            background: linear-gradient(135deg, #fff5f0, #ffe8d6);
+            border: 2px dashed #f4a261;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+        }
     </style>
 </head>
-<body>
-    <!-- Header -->
-    <header class="bg-white shadow-md sticky top-0 z-50">
+<body class="bg-warm">
+    <!-- Header - Handmade Style -->
+    <header class="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b-2 border-primary/20">
         <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-20">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-gem text-3xl text-primary"></i>
-                    <span class="text-2xl font-display font-bold text-gray-800">Vòng Đầu Tam</span>
+            <div class="flex items-center justify-between h-16 md:h-20">
+                <!-- Logo - Handwritten Style -->
+                <div class="flex items-center space-x-2">
+                    <div class="relative">
+                        <i class="fas fa-heart text-2xl md:text-3xl text-primary"></i>
+                        <i class="fas fa-sparkles text-xs text-accent absolute -top-1 -right-1"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-handwritten text-xl md:text-2xl text-primary leading-none">Vòng Đầu Tam</span>
+                        <span class="text-xs text-gray-500 font-medium">Handmade với yêu thương</span>
+                    </div>
                 </div>
                 
-                <!-- Navigation -->
-                <nav class="hidden lg:flex items-center space-x-8">
-                    <a href="#home" class="text-gray-700 hover:text-primary transition font-medium">Trang chủ</a>
-                    <a href="#products" class="text-gray-700 hover:text-primary transition font-medium">Sản phẩm</a>
-                    <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium flex items-center">
-                        <i class="fas fa-bolt mr-1"></i> Flash Sale
-                    </a>
-                    <a href="#about" class="text-gray-700 hover:text-primary transition font-medium">Về chúng tôi</a>
-                    <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium">Liên hệ</a>
+                <!-- Navigation - Desktop -->
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="#home" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
+                    <a href="#products" class="text-gray-700 hover:text-primary transition font-medium text-sm">Sản phẩm</a>
+                    <a href="#process" class="text-gray-700 hover:text-primary transition font-medium text-sm">Quy trình</a>
+                    <a href="#reviews" class="text-gray-700 hover:text-primary transition font-medium text-sm">Lời mẹ chia sẻ</a>
                 </nav>
                 
                 <!-- Actions -->
-                <div class="flex items-center space-x-4">
-                    <button class="hidden md:block text-gray-600 hover:text-primary transition">
-                        <i class="fas fa-search text-xl"></i>
-                    </button>
-                    <button class="relative text-gray-600 hover:text-primary transition" id="cartBtn">
-                        <i class="fas fa-shopping-cart text-xl"></i>
-                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" id="cartCount">0</span>
+                <div class="flex items-center space-x-3">
+                    <button class="relative bg-primary hover:bg-secondary text-white px-4 py-2 rounded-full font-medium transition shadow-md hover:shadow-lg text-sm" id="cartBtn">
+                        <i class="fas fa-shopping-bag mr-1"></i>
+                        <span class="hidden md:inline">Giỏ hàng</span>
+                        <span class="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" id="cartCount">0</span>
                     </button>
                     <button class="lg:hidden text-gray-600 hover:text-primary transition" id="menuBtn">
                         <i class="fas fa-bars text-xl"></i>
@@ -82,76 +115,251 @@
         </div>
         
         <!-- Mobile Menu -->
-        <div class="lg:hidden hidden bg-white border-t" id="mobileMenu">
+        <div class="lg:hidden hidden bg-white border-t border-primary/20" id="mobileMenu">
             <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3">
                 <a href="#home" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
                 <a href="#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
-                <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium py-2 flex items-center">
-                    <i class="fas fa-bolt mr-1"></i> Flash Sale
-                </a>
-                <a href="#about" class="text-gray-700 hover:text-primary transition font-medium py-2">Về chúng tôi</a>
-                <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium py-2">Liên hệ</a>
+                <a href="#process" class="text-gray-700 hover:text-primary transition font-medium py-2">Quy trình</a>
+                <a href="#reviews" class="text-gray-700 hover:text-primary transition font-medium py-2">Lời mẹ chia sẻ</a>
             </nav>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="relative h-[600px] bg-gradient-to-r from-amber-50 to-orange-50" id="home">
-        <div class="absolute inset-0">
-            <img src="/assets/images/banner.webp" alt="Banner" class="w-full h-full object-cover opacity-30">
-            <div class="absolute inset-0 bg-gradient-to-r from-black/40 to-black/20"></div>
-        </div>
-        <div class="relative container mx-auto px-4 h-full flex items-center">
-            <div class="max-w-2xl">
-                <h1 class="text-5xl md:text-6xl font-display font-bold text-gray-800 mb-6 leading-tight">
-                    Vòng Đầu Tam<br>
-                    <span class="text-primary">Handmade</span>
-                </h1>
-                <p class="text-xl text-gray-700 mb-8 leading-relaxed">
-                    Trang sức thủ công cao cấp - Mang lại may mắn và bình an cho bạn và gia đình
-                </p>
-                <div class="flex flex-wrap gap-4">
-                    <a href="#products" class="bg-primary hover:bg-accent text-white px-8 py-4 rounded-full font-semibold transition transform hover:scale-105 shadow-lg">
-                        Khám phá ngay
-                    </a>
-                    <a href="#flash-sale" class="bg-white hover:bg-gray-50 text-gray-800 px-8 py-4 rounded-full font-semibold transition border-2 border-gray-300 flex items-center">
-                        <i class="fas fa-bolt text-red-500 mr-2"></i> Flash Sale
-                    </a>
+    <!-- Hero Section - Emotional & Trust -->
+    <section class="relative bg-gradient-to-br from-warm via-white to-accent/10 overflow-hidden" id="home">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl"></div>
+        
+        <div class="relative container mx-auto px-4 py-12 md:py-20">
+            <div class="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+                <!-- Left: Content -->
+                <div class="text-center md:text-left space-y-6">
+                    <!-- Trust badges -->
+                    <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                        <div class="trust-badge">
+                            <i class="fas fa-hand-sparkles text-primary text-lg"></i>
+                            <span class="text-sm font-semibold text-gray-700">100% Thủ công</span>
+                        </div>
+                        <div class="trust-badge">
+                            <i class="fas fa-leaf text-green-600 text-lg"></i>
+                            <span class="text-sm font-semibold text-gray-700">Không hóa chất</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Main headline -->
+                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
+                        Bảo vệ con yêu<br>
+                        <span class="font-handwritten text-primary text-4xl md:text-6xl lg:text-7xl">bằng tình yêu thủ công</span>
+                    </h1>
+                    
+                    <!-- Sub-headline -->
+                    <p class="text-base md:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto md:mx-0">
+                        Mỗi chiếc vòng đầu tam được làm thủ công tỉ mỉ, gửi gắm yêu thương và mong ước tốt đẹp nhất đến bé yêu của mẹ
+                    </p>
+                    
+                    <!-- Social proof -->
+                    <div class="flex items-center gap-4 justify-center md:justify-start">
+                        <div class="flex -space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-primary/20 border-2 border-white flex items-center justify-center">
+                                <i class="fas fa-user text-primary text-sm"></i>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-secondary/20 border-2 border-white flex items-center justify-center">
+                                <i class="fas fa-user text-secondary text-sm"></i>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-accent/20 border-2 border-white flex items-center justify-center">
+                                <i class="fas fa-user text-accent text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                <i class="fas fa-star text-yellow-400 text-xs"></i>
+                            </div>
+                            <p class="text-sm text-gray-600 font-medium">1000+ mẹ tin dùng</p>
+                        </div>
+                    </div>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                        <a href="#products" class="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition transform hover:scale-105 shadow-lg text-center">
+                            <i class="fas fa-shopping-bag mr-2"></i>
+                            Xem sản phẩm ngay
+                        </a>
+                        <a href="#process" class="bg-white hover:bg-gray-50 text-gray-800 px-8 py-4 rounded-full font-semibold transition border-2 border-primary/30 text-center">
+                            <i class="fas fa-play-circle mr-2"></i>
+                            Xem quy trình làm
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Right: Image -->
+                <div class="relative">
+                    <div class="relative rounded-3xl overflow-hidden shadow-2xl">
+                        <img src="/assets/images/banner.webp" alt="Vòng đầu tam handmade" class="w-full h-auto">
+                        <!-- Overlay badge -->
+                        <div class="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-shield-heart text-primary text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">An toàn tuyệt đối</p>
+                                    <p class="text-xs text-gray-600">Đã kiểm định chất lượng</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Decorative floating elements -->
+                    <div class="absolute -top-4 -right-4 w-20 h-20 bg-accent/20 rounded-full blur-xl animate-pulse"></div>
+                    <div class="absolute -bottom-4 -left-4 w-24 h-24 bg-primary/20 rounded-full blur-xl animate-pulse" style="animation-delay: 1s;"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Flash Sale Banner -->
-    <section class="flash-sale-banner" id="flash-sale">
-        <div class="container flash-sale-container">
-            <div class="flash-sale-header">
-                <div class="flash-sale-title-wrapper">
-                    <div class="flash-sale-title">
-                        <i class="fas fa-bolt"></i>
-                        <h2>Flash Sale Hôm Nay</h2>
+    <!-- Handmade Process Section -->
+    <section class="py-16 md:py-20 bg-white" id="process">
+        <div class="container mx-auto px-4">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
+                    <span class="text-primary font-semibold text-sm">✨ Quy trình làm vòng</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                    Từng đường kim mũi chỉ<br>
+                    <span class="font-handwritten text-primary">đều là tình yêu thương</span>
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Mỗi chiếc vòng đầu tam được làm thủ công hoàn toàn, qua bàn tay khéo léo của nghệ nhân với hơn 10 năm kinh nghiệm
+                </p>
+            </div>
+
+            <!-- Process Steps -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <!-- Step 1 -->
+                <div class="text-center group">
+                    <div class="relative mb-6">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
+                            <img src="/assets/images/quy-trinh-lam-vong/2.webp" alt="Chọn nguyên liệu" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                            1
+                        </div>
                     </div>
-                    <div class="flash-sale-timer" id="flashSaleTimer">
-                        <div class="timer-item">
+                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Chọn nguyên liệu</h3>
+                    <p class="text-sm text-gray-600">Tuyển chọn đá tự nhiên, bạc S925 chất lượng cao</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center group">
+                    <div class="relative mb-6">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
+                            <img src="/assets/images/quy-trinh-lam-vong/3.webp" alt="Xâu chuỗi" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                            2
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Xâu chuỗi tỉ mỉ</h3>
+                    <p class="text-sm text-gray-600">Từng viên đá được xâu cẩn thận, đều tay</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center group">
+                    <div class="relative mb-6">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
+                            <img src="/assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp" alt="Chạt cạnh" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                            3
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Chạt cạnh mịn</h3>
+                    <p class="text-sm text-gray-600">Đánh bóng, làm mịn để an toàn cho bé</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="text-center group">
+                    <div class="relative mb-6">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
+                            <img src="/assets/images/quy-trinh-lam-vong/5.webp" alt="Kiểm tra chất lượng" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                            4
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Kiểm tra kỹ</h3>
+                    <p class="text-sm text-gray-600">Đảm bảo chất lượng trước khi đến tay mẹ</p>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="text-center mt-12">
+                <a href="#products" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl">
+                    <i class="fas fa-heart"></i>
+                    <span>Đặt hàng ngay cho bé yêu</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Flash Sale - Handmade Style -->
+    <section class="py-16 md:py-20 bg-gradient-to-br from-secondary/5 via-warm to-accent/5 relative overflow-hidden" id="flash-sale">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
+        
+        <div class="container mx-auto px-4 relative">
+            <!-- Section Header -->
+            <div class="text-center mb-8 md:mb-12">
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-white px-6 py-3 rounded-full mb-4 shadow-lg animate-pulse">
+                    <i class="fas fa-gift text-xl"></i>
+                    <span class="font-bold text-sm md:text-base">Ưu đãi đặc biệt hôm nay</span>
+                </div>
+                
+                <!-- Title -->
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                    Giảm giá<br>
+                    <span class="font-handwritten text-secondary text-4xl md:text-5xl">chỉ hôm nay!</span>
+                </h2>
+                <p class="text-gray-600 max-w-xl mx-auto mb-6">
+                    Những sản phẩm được yêu thích nhất với giá ưu đãi đặc biệt dành riêng cho mẹ
+                </p>
+                
+                <!-- Timer - Soft Style -->
+                <div class="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-lg border-2 border-secondary/20" id="flashSaleTimer">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-clock text-secondary text-lg"></i>
+                        <span class="text-gray-700 font-medium text-sm">Kết thúc sau:</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="timer-box">
                             <span class="timer-value" id="hours">00</span>
-                            <span class="timer-label">Giờ</span>
+                            <span class="timer-label">giờ</span>
                         </div>
                         <span class="timer-separator">:</span>
-                        <div class="timer-item">
+                        <div class="timer-box">
                             <span class="timer-value" id="minutes">00</span>
-                            <span class="timer-label">Phút</span>
+                            <span class="timer-label">phút</span>
                         </div>
                         <span class="timer-separator">:</span>
-                        <div class="timer-item">
+                        <div class="timer-box">
                             <span class="timer-value" id="seconds">00</span>
-                            <span class="timer-label">Giây</span>
+                            <span class="timer-label">giây</span>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Carousel Wrapper -->
+            <!-- Carousel Wrapper - Keep original structure for JS compatibility -->
             <div class="flash-sale-carousel-wrapper">
+                <!-- Navigation Buttons - Soft Style -->
                 <button class="carousel-btn carousel-btn-prev" id="flashSalePrev" aria-label="Previous">
                     <i class="fas fa-chevron-left"></i>
                 </button>
@@ -211,67 +419,246 @@
             <!-- Dots Indicator -->
             <div class="carousel-dots" id="flashSaleDots"></div>
         </div>
+        
+        <!-- Custom Styles for Soft Flash Sale -->
+        <style>
+            /* Override flash sale section background */
+            #flash-sale {
+                background: linear-gradient(135deg, rgba(231, 111, 81, 0.05), rgba(248, 237, 235, 1), rgba(233, 196, 106, 0.05)) !important;
+            }
+            
+            /* Mobile section adjustments */
+            @media (max-width: 640px) {
+                #flash-sale {
+                    padding-top: 3rem !important;
+                    padding-bottom: 3rem !important;
+                }
+                
+                #flash-sale h2 {
+                    font-size: 1.75rem !important;
+                }
+                
+                #flash-sale .font-handwritten {
+                    font-size: 2rem !important;
+                }
+                
+                #flash-sale p {
+                    font-size: 0.875rem !important;
+                }
+                
+                #flash-sale .inline-flex.items-center.gap-2 {
+                    padding: 0.5rem 1rem !important;
+                    font-size: 0.75rem !important;
+                }
+            }
+            
+            /* Timer Box - Soft Style */
+            .timer-box {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-width: 50px;
+            }
+            
+            #flashSaleTimer .timer-value {
+                font-size: 1.5rem !important;
+                font-weight: 700 !important;
+                color: #e76f51 !important;
+                line-height: 1 !important;
+            }
+            
+            #flashSaleTimer .timer-label {
+                font-size: 0.7rem !important;
+                color: #666 !important;
+                margin-top: 2px !important;
+            }
+            
+            #flashSaleTimer .timer-separator {
+                font-size: 1.5rem !important;
+                font-weight: 700 !important;
+                color: #e76f51 !important;
+                margin: 0 0.25rem !important;
+            }
+            
+            /* Mobile timer adjustments */
+            @media (max-width: 640px) {
+                #flashSaleTimer {
+                    flex-direction: column !important;
+                    gap: 0.5rem !important;
+                    padding: 1rem !important;
+                }
+                
+                #flashSaleTimer > div:first-child {
+                    font-size: 0.75rem !important;
+                }
+                
+                #flashSaleTimer .timer-value {
+                    font-size: 1.25rem !important;
+                }
+                
+                #flashSaleTimer .timer-label {
+                    font-size: 0.6rem !important;
+                }
+                
+                .timer-box {
+                    min-width: 45px;
+                }
+            }
+            
+            /* Carousel Buttons - Soft Style */
+            .flash-sale-carousel-wrapper .carousel-btn {
+                width: 48px !important;
+                height: 48px !important;
+                background: white !important;
+                border: 2px solid #f4a261 !important;
+                border-radius: 50% !important;
+                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2) !important;
+                position: absolute !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                z-index: 10 !important;
+            }
+            
+            .flash-sale-carousel-wrapper .carousel-btn-prev {
+                left: -60px !important;
+            }
+            
+            .flash-sale-carousel-wrapper .carousel-btn-next {
+                right: -60px !important;
+            }
+            
+            .flash-sale-carousel-wrapper .carousel-btn:hover {
+                background: #f4a261 !important;
+                color: white !important;
+                transform: translateY(-50%) scale(1.1) !important;
+                box-shadow: 0 6px 16px rgba(244, 162, 97, 0.3) !important;
+            }
+            
+            /* Dots - Soft Style */
+            .carousel-dots .dot {
+                width: 10px !important;
+                height: 10px !important;
+                border-radius: 50% !important;
+                background: #f4a261 !important;
+                opacity: 0.3 !important;
+            }
+            
+            .carousel-dots .dot.active {
+                opacity: 1 !important;
+                width: 24px !important;
+                border-radius: 5px !important;
+            }
+            
+            /* Mobile Responsive */
+            @media (max-width: 768px) {
+                .timer-box {
+                    min-width: 40px;
+                }
+                
+                #flashSaleTimer .timer-value {
+                    font-size: 1.25rem !important;
+                }
+                
+                #flashSaleTimer .timer-label {
+                    font-size: 0.65rem !important;
+                }
+                
+                /* Hide carousel buttons on mobile - use swipe instead */
+                .flash-sale-carousel-wrapper .carousel-btn {
+                    display: none !important;
+                }
+                
+                /* Add padding to carousel for better mobile UX */
+                .flash-sale-carousel-wrapper {
+                    padding: 0 !important;
+                }
+            }
+            
+            /* Tablet - smaller buttons */
+            @media (min-width: 769px) and (max-width: 1024px) {
+                .flash-sale-carousel-wrapper .carousel-btn {
+                    width: 40px !important;
+                    height: 40px !important;
+                }
+                
+                .flash-sale-carousel-wrapper .carousel-btn-prev {
+                    left: -50px !important;
+                }
+                
+                .flash-sale-carousel-wrapper .carousel-btn-next {
+                    right: -50px !important;
+                }
+            }
+            
+            /* Large screens - move buttons further out */
+            @media (min-width: 1280px) {
+                .flash-sale-carousel-wrapper .carousel-btn-prev {
+                    left: -80px !important;
+                }
+                
+                .flash-sale-carousel-wrapper .carousel-btn-next {
+                    right: -80px !important;
+                }
+            }
+        </style>
     </section>
 
-    <!-- Categories -->
-    <section class="py-16 bg-white">
+    <!-- Categories - Handmade Style -->
+    <section class="py-12 md:py-16 bg-white">
         <div class="container mx-auto px-4">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-display font-bold text-gray-800 mb-4">Danh Mục Sản Phẩm</h2>
-                <p class="text-gray-600 text-lg">Khám phá bộ sưu tập đa dạng của chúng tôi</p>
+            <!-- Section Header - Compact -->
+            <div class="text-center mb-8">
+                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-3">
+                    <span class="text-primary font-semibold text-sm">🎨 Danh mục</span>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                    Chọn theo<br class="md:hidden">
+                    <span class="font-handwritten text-primary text-3xl md:text-4xl">sở thích của mẹ</span>
+                </h2>
             </div>
             
             <!-- Skeleton Loading -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="categoriesSkeleton">
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
-                <div class="skeleton-category-card">
-                    <div class="skeleton-category-image"></div>
-                    <div class="skeleton-category-info">
-                        <div class="skeleton skeleton-category-name"></div>
-                        <div class="skeleton skeleton-category-count"></div>
-                    </div>
-                </div>
+            <div class="flex overflow-x-auto gap-3 pb-4 scrollbar-hide" id="categoriesSkeleton">
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
             </div>
             
-            <!-- Real Categories (hidden initially) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 hidden" id="categoriesGrid">
-                <!-- Categories will be loaded here -->
+            <!-- Real Categories - Horizontal Scroll (hidden initially) -->
+            <div class="flex overflow-x-auto gap-3 pb-4 scrollbar-hide hidden" id="categoriesGrid">
+                <!-- Categories will be loaded here as chips -->
             </div>
         </div>
+        
+        <!-- Custom Styles for Categories -->
+        <style>
+            /* Hide scrollbar but keep functionality */
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            
+            /* Skeleton category chip */
+            .skeleton-category-chip {
+                min-width: 120px;
+                height: 44px;
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+                border-radius: 22px;
+            }
+            
+            @keyframes shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+        </style>
     </section>
 
     <!-- Products -->
@@ -371,40 +758,257 @@
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden" id="productsGrid">
                 <!-- Products will be loaded here -->
             </div>
+
+            <!-- Load More Button -->
+            <div class="text-center mt-12" id="loadMoreContainer">
+                <button class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl transform hover:scale-105" id="loadMoreBtn" style="display: none;">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Xem thêm sản phẩm</span>
+                </button>
+            </div>
         </div>
     </section>
 
-    <!-- Features -->
-    <section class="py-16 bg-white">
+    <!-- Testimonials Section - Lời mẹ chia sẻ -->
+    <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-accent/5" id="reviews">
         <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-hand-sparkles text-3xl text-primary"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Handmade 100%</h3>
-                    <p class="text-gray-600">Sản phẩm được làm thủ công tỉ mỉ bởi nghệ nhân</p>
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
+                    <span class="text-primary font-semibold text-sm">💝 Lời mẹ chia sẻ</span>
                 </div>
-                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-shield-alt text-3xl text-primary"></i>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                    Niềm tin từ<br>
+                    <span class="font-handwritten text-primary">hàng ngàn mẹ bỉm</span>
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Những chia sẻ chân thành từ các mẹ đã tin dùng sản phẩm của chúng tôi
+                </p>
+            </div>
+
+            <!-- Testimonials Grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                <!-- Testimonial 1 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <!-- Rating -->
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Chất lượng đảm bảo</h3>
-                    <p class="text-gray-600">Cam kết chất lượng và nguồn gốc rõ ràng</p>
+                    
+                    <!-- Content -->
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Mình rất hài lòng với chất lượng vòng. Làm thủ công rất tỉ mỉ, không có góc cạnh nào sắc nhọn. Con mình đeo rất vừa vặn và an toàn. Sẽ ủng hộ shop lâu dài!"
+                    </p>
+                    
+                    <!-- Author -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold">
+                            H
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Hương</p>
+                            <p class="text-sm text-gray-500">Mẹ bé Minh An, 6 tháng</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-shipping-fast text-3xl text-primary"></i>
+
+                <!-- Testimonial 2 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Giao hàng nhanh</h3>
-                    <p class="text-gray-600">Giao hàng toàn quốc, thanh toán khi nhận</p>
+                    
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Shop tư vấn rất nhiệt tình, giải đáp mọi thắc mắc của mình. Vòng đẹp, chất lượng tốt, đóng gói cẩn thận. Con mình đeo từ lúc chưa sinh đến giờ vẫn còn đẹp như mới!"
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center text-white font-bold">
+                            L
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Linh</p>
+                            <p class="text-sm text-gray-500">Mẹ bé Bảo Ngọc, 8 tháng</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-center p-6 rounded-xl hover:shadow-lg transition">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-headset text-3xl text-primary"></i>
+
+                <!-- Testimonial 3 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Hỗ trợ 24/7</h3>
-                    <p class="text-gray-600">Tư vấn nhiệt tình, chăm sóc khách hàng tận tâm</p>
+                    
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Lần đầu mua vòng đầu tam cho con, mình chọn shop này vì thấy review tốt. Nhận hàng thấy đúng như mô tả, thậm chí còn đẹp hơn ảnh. Giá cả hợp lý, chất lượng tuyệt vời!"
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center text-white font-bold">
+                            T
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Trang</p>
+                            <p class="text-sm text-gray-500">Mẹ bé Khánh An, 4 tháng</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 4 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                    </div>
+                    
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Mình đã mua 3 chiếc vòng cho 3 con rồi. Mỗi chiếc đều đẹp và chất lượng như nhau. Shop làm việc rất uy tín, giao hàng nhanh. Rất đáng tin cậy!"
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold">
+                            N
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Nga</p>
+                            <p class="text-sm text-gray-500">Mẹ 3 con</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 5 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                    </div>
+                    
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Vòng rất đẹp, làm thủ công tinh xảo. Con mình đeo từ lúc 3kg đến giờ 7kg vẫn vừa vặn vì có thể điều chỉnh được. Rất hài lòng với sản phẩm!"
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-accent to-secondary rounded-full flex items-center justify-center text-white font-bold">
+                            M
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Mai</p>
+                            <p class="text-sm text-gray-500">Mẹ bé Phương Anh, 10 tháng</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 6 -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="flex items-center gap-1 mb-4">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <i class="fas fa-star text-yellow-400"></i>
+                    </div>
+                    
+                    <p class="text-gray-700 mb-6 leading-relaxed italic">
+                        "Mình rất kỹ tính khi chọn đồ cho con. Vòng của shop làm mình yên tâm vì không hóa chất, an toàn tuyệt đối. Giá cả phải chăng, chất lượng vượt mong đợi!"
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-secondary to-primary rounded-full flex items-center justify-center text-white font-bold">
+                            P
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Chị Phương</p>
+                            <p class="text-sm text-gray-500">Mẹ bé Minh Khang, 5 tháng</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trust Stats -->
+            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">1000+</div>
+                    <p class="text-gray-600 font-medium">Mẹ tin dùng</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">5.0</div>
+                    <p class="text-gray-600 font-medium">Đánh giá trung bình</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">100%</div>
+                    <p class="text-gray-600 font-medium">Thủ công</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">10+</div>
+                    <p class="text-gray-600 font-medium">Năm kinh nghiệm</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us - Features -->
+    <section class="py-16 md:py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
+                    <span class="text-primary font-semibold text-sm">🌟 Tại sao chọn chúng tôi</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                    Cam kết của<br>
+                    <span class="font-handwritten text-primary">Vòng Đầu Tam</span>
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fas fa-hand-sparkles text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">100% Thủ công</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Từng sản phẩm được làm thủ công tỉ mỉ bởi nghệ nhân giàu kinh nghiệm</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fas fa-leaf text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">An toàn tuyệt đối</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Không hóa chất, nguyên liệu tự nhiên, đã kiểm định chất lượng</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fas fa-shipping-fast text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Giao hàng nhanh</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Giao hàng toàn quốc, thanh toán khi nhận hàng</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fas fa-heart text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Tư vấn tận tâm</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">Hỗ trợ 24/7, tư vấn nhiệt tình như người thân</p>
                 </div>
             </div>
         </div>

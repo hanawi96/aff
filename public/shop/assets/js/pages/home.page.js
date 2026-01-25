@@ -252,8 +252,16 @@ export class HomePage {
             });
         }
         
-        // Infinite scroll detection
-        this.setupInfiniteScroll();
+        // Load more button
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                this.productGrid.loadMore();
+            });
+        }
+        
+        // DISABLED: Infinite scroll (use button instead for better UX)
+        // this.setupInfiniteScroll();
         
         // Cart button
         const cartBtn = document.getElementById('cartBtn');
