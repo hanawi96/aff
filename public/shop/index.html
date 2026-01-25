@@ -618,7 +618,9 @@
             </div>
             
             <!-- Skeleton Loading -->
-            <div class="flex overflow-x-auto gap-3 pb-4 scrollbar-hide" id="categoriesSkeleton">
+            <div class="categories-chips-grid" id="categoriesSkeleton">
+                <div class="skeleton-category-chip"></div>
+                <div class="skeleton-category-chip"></div>
                 <div class="skeleton-category-chip"></div>
                 <div class="skeleton-category-chip"></div>
                 <div class="skeleton-category-chip"></div>
@@ -627,8 +629,8 @@
                 <div class="skeleton-category-chip"></div>
             </div>
             
-            <!-- Real Categories - Horizontal Scroll (hidden initially) -->
-            <div class="flex overflow-x-auto gap-3 pb-4 scrollbar-hide hidden" id="categoriesGrid">
+            <!-- Real Categories - Grid Layout (hidden initially) -->
+            <div class="categories-chips-grid hidden" id="categoriesGrid">
                 <!-- Categories will be loaded here as chips -->
             </div>
         </div>

@@ -779,6 +779,13 @@ body {
 }
 
 /* Category Chips - Handmade Style */
+.categories-chips-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
 .category-chip {
     display: inline-flex;
     align-items: center;
@@ -826,6 +833,11 @@ body {
 
 /* Mobile adjustments for category chips */
 @media (max-width: 768px) {
+    .categories-chips-grid {
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+    
     .category-chip {
         padding: 0.625rem 1rem;
         font-size: 0.875rem;
