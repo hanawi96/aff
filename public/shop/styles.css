@@ -872,18 +872,22 @@ body {
     left: 10px;
     background: var(--accent-color);
     color: var(--white);
-    padding: 0.3rem 0.8rem;
+    padding: 0.35rem 0.8rem;
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
     z-index: 2;
+    line-height: 1.2;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .product-badge.sale {
     background: linear-gradient(135deg, #e74c3c, #c0392b);
     font-weight: 700;
     box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
-    font-size: 0.85rem;
 }
 
 .product-badge.new {
@@ -923,19 +927,22 @@ body {
 }
 
 .product-favorites-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.25rem;
     background: rgba(255, 255, 255, 0.95);
     border: none;
     cursor: pointer;
-    padding: 0.4rem 0.6rem;
+    padding: 0.35rem 0.6rem;
     border-radius: 20px;
     transition: var(--transition);
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-dark);
     font-weight: 600;
+    height: 26px;
+    line-height: 1.2;
 }
 
 .product-favorites-btn:hover {
@@ -1519,20 +1526,22 @@ body {
     
     /* Product Badges - Mobile: Giảm size và tách vị trí */
     .product-badge {
-        font-size: 0.65rem; /* Giảm từ 0.7rem */
-        padding: 0.2rem 0.5rem; /* Giảm padding */
-        border-radius: 12px; /* Giảm border radius */
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        height: 20px;
+        line-height: 1.2;
     }
     
     .product-badge.handmade {
-        bottom: auto; /* Reset bottom */
-        top: 6px; /* Đặt ở góc trên phải */
+        bottom: auto;
+        top: 6px;
         left: auto;
         right: 6px;
     }
     
     .product-badge.chemical-free {
-        bottom: 6px; /* Góc dưới trái */
+        bottom: 6px;
         left: 6px;
         right: auto;
     }
