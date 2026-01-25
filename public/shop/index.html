@@ -664,32 +664,56 @@
     </section>
 
     <!-- Products -->
-    <section class="py-16 bg-gray-50" id="products">
-        <div class="container mx-auto px-4">
+    <!-- Products - Handmade Style -->
+    <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-primary/5 relative overflow-hidden" id="products">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+        
+        <div class="container mx-auto px-4 relative">
+            <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
-                <h2 class="text-4xl font-display font-bold text-gray-800 mb-4">Sản Phẩm Nổi Bật</h2>
-                <p class="text-gray-600 text-lg">Những sản phẩm được yêu thích nhất</p>
+                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
+                    <span class="text-primary font-semibold text-sm">✨ Sản phẩm nổi bật</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                    Được các mẹ<br class="md:hidden">
+                    <span class="font-handwritten text-primary text-4xl md:text-5xl">yêu thích nhất</span>
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                    Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu
+                </p>
+                
+                <!-- Handmade divider -->
+                <div class="flex items-center justify-center gap-3 mt-6">
+                    <div class="w-12 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
+                    <i class="fas fa-heart text-primary text-sm"></i>
+                    <div class="w-12 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
+                </div>
             </div>
             
-            <!-- Filter & Sort -->
-            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                <div class="flex flex-wrap gap-2">
-                    <button class="filter-tab active px-6 py-2 rounded-full bg-primary text-white font-medium transition hover:bg-accent" data-filter="all">Tất cả</button>
-                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="popular">Phổ biến</button>
-                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="new">Mới nhất</button>
-                    <button class="filter-tab px-6 py-2 rounded-full bg-white text-gray-700 font-medium transition hover:bg-gray-100" data-filter="sale">Giảm giá</button>
+            <!-- Filter - Soft Style -->
+            <div class="flex justify-center items-center mb-10">
+                <!-- Filter Tabs - Chip Style -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button class="filter-chip active" data-filter="best-selling">
+                        <i class="fas fa-fire"></i>
+                        <span>Bán chạy</span>
+                    </button>
+                    <button class="filter-chip" data-filter="favorite">
+                        <i class="fas fa-heart"></i>
+                        <span>Yêu thích</span>
+                    </button>
+                    <button class="filter-chip" data-filter="new">
+                        <i class="fas fa-star"></i>
+                        <span>Mới nhất</span>
+                    </button>
                 </div>
-                <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="default">Mặc định</option>
-                    <option value="price-asc">Giá: Thấp đến cao</option>
-                    <option value="price-desc">Giá: Cao đến thấp</option>
-                    <option value="name">Tên A-Z</option>
-                </select>
             </div>
 
             <!-- Products Grid -->
             <!-- Skeleton Loading -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productsSkeleton">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" id="productsSkeleton">
                 <div class="skeleton-product-card">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
@@ -757,18 +781,70 @@
             </div>
             
             <!-- Real Products (hidden initially) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden" id="productsGrid">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 hidden" id="productsGrid">
                 <!-- Products will be loaded here -->
             </div>
 
-            <!-- Load More Button -->
+            <!-- Load More Button - Handmade Style -->
             <div class="text-center mt-12" id="loadMoreContainer">
-                <button class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl transform hover:scale-105" id="loadMoreBtn" style="display: none;">
+                <button class="inline-flex items-center gap-2 bg-white hover:bg-primary text-primary hover:text-white border-2 border-primary px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl transform hover:scale-105" id="loadMoreBtn" style="display: none;">
                     <i class="fas fa-plus-circle"></i>
                     <span>Xem thêm sản phẩm</span>
                 </button>
             </div>
         </div>
+        
+        <!-- Custom Styles for Products Section -->
+        <style>
+            /* Filter Chips - Handmade Style */
+            .filter-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.625rem 1.25rem;
+                background: white;
+                border: 2px solid #f4a261;
+                border-radius: 50px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: 600;
+                font-size: 0.9rem;
+                color: #666;
+                box-shadow: 0 2px 8px rgba(244, 162, 97, 0.1);
+            }
+            
+            .filter-chip:hover {
+                background: linear-gradient(135deg, #f4a261, #e76f51);
+                color: white;
+                border-color: #f4a261;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
+            }
+            
+            .filter-chip.active {
+                background: linear-gradient(135deg, #f4a261, #e76f51);
+                color: white;
+                border-color: #f4a261;
+                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+            }
+            
+            .filter-chip i {
+                font-size: 0.9rem;
+            }
+            
+            /* Mobile adjustments */
+            @media (max-width: 640px) {
+                .filter-chip {
+                    padding: 0.5rem 1rem;
+                    font-size: 0.85rem;
+                    gap: 0.4rem;
+                }
+                
+                .filter-chip i {
+                    font-size: 0.85rem;
+                }
+            }
+        </style>
     </section>
 
     <!-- Testimonials Section - Lời mẹ chia sẻ -->

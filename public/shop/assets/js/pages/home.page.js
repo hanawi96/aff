@@ -234,10 +234,11 @@ export class HomePage {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Filter tabs
-        document.querySelectorAll('.filter-tab').forEach(tab => {
+        // Filter tabs/chips (support both .filter-tab and .filter-chip)
+        const filterButtons = document.querySelectorAll('.filter-tab, .filter-chip');
+        filterButtons.forEach(tab => {
             tab.addEventListener('click', () => {
-                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                filterButtons.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 const filter = tab.dataset.filter;
                 this.productGrid.filter(filter);

@@ -15,7 +15,7 @@ export class ProductGrid {
         this.filteredProducts = [];
         this.displayedCount = options.initialCount || 12;
         this.itemsPerPage = options.itemsPerPage || 12;
-        this.currentFilter = 'all';
+        this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
         this.currentSort = 'default';
     }
     
@@ -26,18 +26,15 @@ export class ProductGrid {
         this.allProducts = products;
         
         // Update filteredProducts to use all products
-        if (this.currentFilter === 'all') {
-            this.filteredProducts = [...products];
+        if (this.currentFilter === 'all' || this.currentFilter === 'best-selling') {
+            // Apply default filter (best-selling)
+            this.filter(this.currentFilter);
+            return; // filter() already calls render()
         } else {
             // Re-apply current filter with all products
             this.filter(this.currentFilter);
             return; // filter() already calls render()
         }
-        
-        // Update button visibility
-        this.updateLoadMoreButton();
-        
-        console.log('📦 All products loaded:', products.length);
     }
     
     /**
@@ -59,15 +56,30 @@ export class ProductGrid {
         const sourceProducts = this.allProducts.length > 0 ? this.allProducts : this.products;
         
         switch (filterType) {
-            case 'popular':
-                this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);
+            case 'best-selling':
+                // Bán chạy: Sắp xếp theo số lượng đã bán (purchases)
+                this.filteredProducts = [...sourceProducts]
+                    .sort((a, b) => (b.purchases || 0) - (a.purchases || 0))
+                    .slice(0, 20); // Lấy top 20 sản phẩm bán chạy nhất
+                break;
+            case 'favorite':
+                // Yêu thích: Sắp xếp theo số lượt yêu thích (favorites_count)
+                this.filteredProducts = [...sourceProducts]
+                    .sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0))
+                    .slice(0, 20); // Lấy top 20 sản phẩm được yêu thích nhất
                 break;
             case 'new':
+                // Mới nhất: Sắp xếp theo ID giảm dần
                 this.filteredProducts = [...sourceProducts]
                     .sort((a, b) => (b.id || 0) - (a.id || 0))
                     .slice(0, 20);
                 break;
+            case 'popular':
+                // Giữ lại để tương thích ngược
+                this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);
+                break;
             case 'sale':
+                // Giữ lại để tương thích ngược
                 this.filteredProducts = sourceProducts.filter(p => 
                     p.original_price && p.original_price > p.price
                 );
