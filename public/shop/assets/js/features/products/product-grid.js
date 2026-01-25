@@ -34,9 +34,6 @@ export class ProductGrid {
             return; // filter() already calls render()
         }
         
-        // SIMPLE: Just update button, don't re-render everything
-        this.updateLoadMoreButton();
-        
         console.log('📦 All products loaded:', products.length);
     }
     
@@ -125,27 +122,5 @@ export class ProductGrid {
     render() {
         const productsToShow = this.filteredProducts.slice(0, this.displayedCount);
         renderProducts(productsToShow, this.containerId);
-        
-        // Only update button if we have all products loaded
-        if (this.allProducts.length > 0) {
-            this.updateLoadMoreButton();
-        }
-    }
-    
-    /**
-     * Update load more button visibility
-     */
-    updateLoadMoreButton() {
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (!loadMoreBtn) return;
-        
-        const hasMore = this.hasMore();
-        const newDisplay = hasMore ? 'block' : 'none';
-        
-        // Only update if changed (prevent flickering)
-        if (loadMoreBtn.style.display !== newDisplay) {
-            loadMoreBtn.style.display = newDisplay;
-            console.log('🔘 Button:', hasMore ? 'VISIBLE' : 'HIDDEN', `(${this.displayedCount}/${this.filteredProducts.length})`);
-        }
     }
 }

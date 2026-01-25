@@ -29,6 +29,7 @@ export class QuickCheckout {
         this.countdownTimer = null; // Countdown timer instance
         this.countdownEndTime = null; // Countdown end timestamp
         this.needsBabyName = false; // Flag for products needing baby name
+        this.needsBabyWeight = true; // Flag for products needing baby weight (default: true)
         
         // LocalStorage key for form data
         this.STORAGE_KEY = 'quickCheckoutFormData';
@@ -77,6 +78,9 @@ export class QuickCheckout {
         // Check if product needs baby name (belongs to "Mix thẻ tên bé" category)
         this.needsBabyName = this.checkNeedsBabyName(product);
         
+        // Check if product needs baby weight (not raw materials/accessories)
+        this.needsBabyWeight = this.checkNeedsBabyWeight(product);
+        
         // Load cross-sell products
         await this.loadCrossSellProducts();
         
@@ -108,6 +112,33 @@ export class QuickCheckout {
         return product.categories.some(cat => 
             cat.name && cat.name.toLowerCase().includes('mix thẻ tên bé')
         );
+    }
+    
+    /**
+     * Check if product needs baby weight input
+     * Returns false for: Bi/charm bạc, Hạt đầu tâm, Sản phẩm bán kèm
+     */
+    checkNeedsBabyWeight(product) {
+        if (!product.categories || !Array.isArray(product.categories)) {
+            return true; // Default: require baby weight
+        }
+        
+        // Categories that DON'T need baby weight (raw materials & accessories)
+        const noWeightCategories = [
+            'bi, charm bạc',
+            'hạt đầu tâm mài sẵn',
+            'sản phẩm bán kèm'
+        ];
+        
+        // Check if product belongs to any of these categories
+        const belongsToNoWeightCategory = product.categories.some(cat => {
+            if (!cat.name) return false;
+            const catName = cat.name.toLowerCase().trim();
+            return noWeightCategories.some(noCat => catName === noCat);
+        });
+        
+        // If belongs to no-weight category, don't need baby weight
+        return !belongsToNoWeightCategory;
     }
     
     /**
@@ -206,6 +237,27 @@ export class QuickCheckout {
                 if (babyNameInput) {
                     babyNameInput.removeAttribute('required');
                     babyNameInput.value = ''; // Clear value
+                }
+            }
+        }
+        
+        // Show/hide baby weight input based on product category
+        const babyWeightGroup = document.querySelector('#checkoutBabyWeight')?.closest('.checkout-form-group');
+        if (babyWeightGroup) {
+            if (this.needsBabyWeight) {
+                babyWeightGroup.style.display = 'block';
+                // Add required attribute
+                const babyWeightSelect = document.getElementById('checkoutBabyWeight');
+                if (babyWeightSelect) {
+                    babyWeightSelect.setAttribute('required', 'required');
+                }
+            } else {
+                babyWeightGroup.style.display = 'none';
+                // Remove required attribute
+                const babyWeightSelect = document.getElementById('checkoutBabyWeight');
+                if (babyWeightSelect) {
+                    babyWeightSelect.removeAttribute('required');
+                    babyWeightSelect.value = ''; // Clear value
                 }
             }
         }
@@ -957,7 +1009,8 @@ export class QuickCheckout {
             return;
         }
         
-        if (!formData.babyWeight) {
+        // Only validate baby weight if product needs it
+        if (this.needsBabyWeight && !formData.babyWeight) {
             showToast('Vui lòng chọn cân nặng của bé', 'error');
             document.getElementById('checkoutBabyWeight').focus();
             return;
@@ -1028,7 +1081,7 @@ export class QuickCheckout {
                 cost_price: this.product.cost_price || 0,
                 quantity: this.quantity,
                 image: this.product.image,
-                size: formData.babyWeight, // Add baby weight to size
+                size: this.needsBabyWeight ? formData.babyWeight : '', // Only add baby weight if needed
                 notes: this.needsBabyName && formData.babyName ? `Tên bé: ${formData.babyName}` : '' // Add baby name to notes
             }
         ];
@@ -1044,7 +1097,7 @@ export class QuickCheckout {
                     cost_price: product.cost_price || 0,
                     quantity: item.quantity,
                     image: product.image,
-                    size: formData.babyWeight // Same baby weight for all items in order
+                    size: this.needsBabyWeight ? formData.babyWeight : '' // Only add baby weight if needed
                 });
             }
         });

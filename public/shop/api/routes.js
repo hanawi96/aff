@@ -3,7 +3,7 @@
 // ============================================
 
 import { createShopOrder, getShopProducts } from './handlers/orders.js';
-import { getActiveProducts } from './handlers/products.js';
+import { getActiveProducts, addProductFavorite, removeProductFavorite, getMostFavorited } from './handlers/products.js';
 import { registerCTV } from './handlers/ctv.js';
 import { jsonResponse } from '../../../src/utils/response.js';
 
@@ -30,6 +30,25 @@ export async function handleShopRoutes(request, env, corsHeaders) {
         // POST /api/shop/ctv/register - Register CTV from shop
         if (path === '/api/shop/ctv/register' && method === 'POST') {
             return await registerCTV(request, env, corsHeaders);
+        }
+
+        // POST /api/products/{id}/favorite - Add favorite
+        const favoriteMatch = path.match(/^\/api\/products\/(\d+)\/favorite$/);
+        if (favoriteMatch && method === 'POST') {
+            const productId = parseInt(favoriteMatch[1]);
+            return await addProductFavorite(productId, env, corsHeaders);
+        }
+
+        // DELETE /api/products/{id}/favorite - Remove favorite
+        if (favoriteMatch && method === 'DELETE') {
+            const productId = parseInt(favoriteMatch[1]);
+            return await removeProductFavorite(productId, env, corsHeaders);
+        }
+
+        // GET /api/products/most-favorited - Get most favorited products
+        if (path === '/api/products/most-favorited' && method === 'GET') {
+            const limit = parseInt(url.searchParams.get('limit')) || 10;
+            return await getMostFavorited(env, corsHeaders, limit);
         }
 
         // Not found

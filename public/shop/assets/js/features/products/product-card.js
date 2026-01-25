@@ -24,6 +24,11 @@ export function createProductCard(product) {
     const hasHandmadeBadge = product.is_handmade === 1 || product.tags?.includes('handmade');
     const hasChemicalFreeBadge = product.is_chemical_free === 1 || product.tags?.includes('chemical-free');
     
+    // Always show empty heart (far) by default
+    // User can click to add favorite, no need to track state
+    const heartClass = 'far';
+    const favoritedClass = '';
+    
     return `
         <div class="product-card" data-product-id="${product.id}">
             <div class="product-image-wrapper">
@@ -35,12 +40,10 @@ export function createProductCard(product) {
                 ${discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
                 ${hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}
                 ${hasChemicalFreeBadge ? `<span class="product-badge chemical-free">Không hóa chất</span>` : ''}
-                <div class="product-hover-actions">
-                    <button class="product-action-btn" onclick="window.productActions.quickView(${product.id})" title="Xem nhanh">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="product-action-btn" onclick="window.productActions.addToWishlist(${product.id})" title="Yêu thích">
-                        <i class="far fa-heart"></i>
+                <div class="product-favorites-section">
+                    <button class="product-favorites-btn ${favoritedClass}" onclick="window.productActions.toggleFavorite(${product.id})" title="Yêu thích" data-product-id="${product.id}">
+                        <i class="${heartClass} fa-heart"></i>
+                        <span class="favorites-count">${product.favorites_count || 0}</span>
                     </button>
                 </div>
             </div>
@@ -66,14 +69,13 @@ export function createProductCard(product) {
                         </div>
                     ` : ''}
                 </div>
-                <div class="product-buy-actions">
-                    <button class="btn-add-cart" onclick="window.productActions.addToCart(${product.id})">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span>Thêm giỏ</span>
-                    </button>
-                    <button class="btn-buy-now" onclick="window.productActions.buyNow(${product.id})">
-                        <i class="fas fa-bolt"></i>
+                <div class="product-button-actions">
+                    <button class="btn-primary-action" onclick="window.productActions.buyNow(${product.id})">
+                        <i class="fas fa-shopping-bag"></i>
                         <span>Mua ngay</span>
+                    </button>
+                    <button class="btn-add-to-cart" onclick="window.productActions.addToCart(${product.id})" title="Thêm vào giỏ hàng">
+                        <i class="fas fa-shopping-cart"></i>
                     </button>
                 </div>
             </div>

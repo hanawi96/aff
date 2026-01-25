@@ -19,7 +19,29 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=3">
+    
+    <!-- CRITICAL FIX: Force button layout -->
+    <style>
+        /* Force flex layout with highest specificity */
+        .product-card .product-info .product-button-actions {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 0.5rem !important;
+            width: 100% !important;
+            margin-top: 1rem !important;
+        }
+        
+        .product-card .product-info .product-button-actions .btn-primary-action {
+            flex: 1 !important;
+            display: flex !important;
+        }
+        
+        .product-card .product-info .product-button-actions .btn-add-to-cart {
+            flex: 0 0 44px !important;
+            display: flex !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -348,13 +370,6 @@
             <!-- Real Products (hidden initially) -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden" id="productsGrid">
                 <!-- Products will be loaded here -->
-            </div>
-
-            <!-- Load More -->
-            <div class="text-center mt-12">
-                <button class="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-full font-semibold transition border-2 border-gray-300" id="loadMoreBtn" style="display: none;">
-                    Xem thêm sản phẩm
-                </button>
             </div>
         </div>
     </section>

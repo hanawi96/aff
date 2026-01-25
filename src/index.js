@@ -29,7 +29,7 @@ export default {
             const action = url.searchParams.get('action');
 
             // Route to Shop API (public - no auth)
-            if (path.startsWith('/api/shop/')) {
+            if (path.startsWith('/api/shop/') || path.match(/^\/api\/products\/\d+\/favorite$/)) {
                 return await handleShopRoutes(request, env, corsHeaders);
             }
 

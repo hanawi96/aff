@@ -911,19 +911,54 @@ body {
     font-weight: 700;
 }
 
-.product-hover-actions {
+.product-favorites-section {
     position: absolute;
     top: 10px;
     right: 10px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    opacity: 0;
+    gap: 0.5rem;
+    opacity: 1;
     transition: var(--transition);
 }
 
-.product-card:hover .product-hover-actions {
-    opacity: 1;
+.product-favorites-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    border-radius: 20px;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-size: 0.85rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.product-favorites-btn:hover {
+    /* No hover effect */
+}
+
+.product-favorites-btn.pulse {
+    animation: pulse 0.3s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.product-favorites-btn.favorited {
+    background: #e74c3c;
+    color: white;
+}
+
+.product-favorites-btn.favorited:hover {
+    background: #c0392b;
 }
 
 .product-action-btn {
@@ -1027,41 +1062,6 @@ body {
 
 .price-save-info i {
     font-size: 0.75rem;
-}
-
-.add-to-cart-btn {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    color: var(--white);
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.625rem;
-    margin-top: auto;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.add-to-cart-btn:hover {
-    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.45);
-}
-
-.add-to-cart-btn:active {
-    transform: translateY(-1px);
-}
-
-.add-to-cart-btn i {
-    font-size: 1.1rem;
 }
 
 .load-more {
@@ -1517,10 +1517,6 @@ body {
         font-size: 1rem; /* Giảm một chút */
     }
     
-    .product-buy-actions {
-        margin-top: 0.5rem; /* Giảm margin top */
-    }
-    
     /* Product Badges - Mobile: Giảm size và tách vị trí */
     .product-badge {
         font-size: 0.65rem; /* Giảm từ 0.7rem */
@@ -1549,6 +1545,29 @@ body {
     .section-title {
         font-size: 1.8rem;
     }
+    
+    /* Favorites Section - Mobile */
+    .product-favorites-section {
+        top: auto !important;
+        bottom: 8px !important;
+        right: 8px !important;
+    }
+    
+    .product-favorites-btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.7rem;
+        border-radius: 12px;
+        gap: 0.15rem;
+    }
+    
+    .product-favorites-btn i {
+        font-size: 0.7rem;
+    }
+    
+    .favorites-count {
+        font-size: 0.65rem;
+    }
+}
 }
 
 /* Extra Small Mobile (< 400px) */
@@ -1569,6 +1588,36 @@ body {
         padding: 0.4rem 0.6rem;
         min-width: 55px;
     }
+    
+    .favorites-count {
+        font-size: 0.7rem;
+    }
+    
+    /* Favorites Section - Extra Small Mobile */
+    .product-favorites-section {
+        bottom: 6px !important;
+        right: 6px !important;
+    }
+    
+    .product-favorites-btn {
+        padding: 0.2rem 0.35rem;
+        font-size: 0.65rem;
+        border-radius: 10px;
+        gap: 0.1rem;
+    }
+    
+    .product-favorites-btn i {
+        font-size: 0.65rem;
+    }
+    
+    .favorites-count {
+        font-size: 0.6rem;
+    }
+        border-radius: 12px;
+        gap: 0.15rem;
+    }
+}
+}
     
     .timer-value {
         font-size: 1.3rem;
@@ -1640,17 +1689,26 @@ body {
 /* DUAL BUTTON SYSTEM - BUY NOW & ADD TO CART */
 /* ============================================ */
 
-/* Product Buy Actions - Dual Button */
-.product-buy-actions {
-    display: grid;
-    grid-template-columns: 40% 60%;
-    gap: 0.5rem;
-    margin-top: 1rem;
+/* Product Button Actions - Full Width Design */
+.product-button-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+    margin-top: 1rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch;
+    width: 100% !important;
+    padding: 0 !important; /* Remove any padding */
+    box-sizing: border-box;
 }
 
-.btn-add-cart,
-.btn-buy-now {
-    padding: 0.75rem 1rem;
+.btn-primary-action {
+    flex: 1;
+    padding: 0.875rem 0.5rem;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
     border: none;
     border-radius: 8px;
     font-weight: 600;
@@ -1660,36 +1718,48 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    text-transform: none;
+    gap: 0.4rem;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+    min-height: 44px;
+    box-sizing: border-box;
 }
 
-.btn-add-cart {
-    background: white;
-    border: 2px solid #e74c3c;
-    color: #e74c3c;
-}
-
-.btn-add-cart:hover {
-    background: #e74c3c;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-}
-
-.btn-buy-now {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: white;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-}
-
-.btn-buy-now:hover {
+.btn-primary-action:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    background: linear-gradient(135deg, #c0392b, #a93226);
 }
 
-.btn-add-cart i,
-.btn-buy-now i {
+.btn-add-to-cart {
+    flex: 0 0 44px;
+    min-height: 44px;
+    background: white;
+    border: 2px solid #e74c3c;
+    border-radius: 8px;
+    color: #e74c3c;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.btn-add-to-cart:hover {
+    background: #e74c3c;
+    color: white;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.btn-primary-action i {
+    font-size: 0.9rem;
+}
+
+.btn-add-to-cart i {
     font-size: 1rem;
 }
 
@@ -2818,20 +2888,31 @@ body {
 }
 
 /* Responsive Dual Button */
+/* Responsive Design - Full Width */
 @media (max-width: 768px) {
-    .product-buy-actions {
-        grid-template-columns: 35% 65%;
-        gap: 0.4rem;
+    .product-button-actions {
+        gap: 0.4rem !important;
+        margin-top: 0.75rem !important;
     }
     
-    .btn-add-cart,
-    .btn-buy-now {
-        padding: 0.65rem 0.75rem;
+    .btn-primary-action {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+        min-height: 40px;
+    }
+    
+    .btn-add-to-cart {
+        flex: 0 0 40px;
+        min-height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-primary-action i {
         font-size: 0.85rem;
     }
     
-    .btn-add-cart span {
-        display: none;
+    .btn-add-to-cart i {
+        font-size: 0.9rem;
     }
     
     /* Order Details Mobile */
@@ -2870,10 +2951,6 @@ body {
     
     .order-discount-badge {
         font-size: 0.8rem;
-    }
-    
-    .btn-add-cart i {
-        font-size: 1.1rem;
     }
     
     .flash-actions {

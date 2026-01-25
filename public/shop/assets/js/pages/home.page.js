@@ -37,6 +37,9 @@ export class HomePage {
      */
     async init() {
         try {
+            // Clean up old localStorage favorites (no longer used)
+            localStorage.removeItem('product_favorites');
+            
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
             
@@ -249,15 +252,7 @@ export class HomePage {
             });
         }
         
-        // Load more button - SIMPLE
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (loadMoreBtn) {
-            loadMoreBtn.addEventListener('click', () => {
-                this.productGrid.loadMore();
-            });
-        }
-        
-        // Infinite scroll detection (optional)
+        // Infinite scroll detection
         this.setupInfiniteScroll();
         
         // Cart button
@@ -308,6 +303,7 @@ export class HomePage {
     
     /**
      * Setup infinite scroll (auto load more when near bottom)
+     * Smart threshold based on screen size
      */
     setupInfiniteScroll() {
         let isLoading = false;
@@ -317,17 +313,49 @@ export class HomePage {
             if (isLoading) return;
             
             const scrollPosition = window.innerHeight + window.scrollY;
-            const threshold = document.documentElement.scrollHeight - 800;
+            const documentHeight = document.documentElement.scrollHeight;
+            
+            // Smart threshold: 
+            // - Mobile (< 768px): Load when 70% scrolled (earlier)
+            // - Tablet (768-1024px): Load when 80% scrolled
+            // - Desktop (> 1024px): Load when 85% scrolled
+            let scrollPercentage;
+            if (window.innerWidth < 768) {
+                scrollPercentage = 0.70; // Load earlier on mobile
+            } else if (window.innerWidth < 1024) {
+                scrollPercentage = 0.80; // Medium on tablet
+            } else {
+                scrollPercentage = 0.85; // Later on desktop
+            }
+            
+            const threshold = documentHeight * scrollPercentage;
+            
+            // Debug log (only when close to threshold)
+            if (scrollPosition >= threshold * 0.95) {
+                console.log('📜 Scroll check:', {
+                    scrollPosition: Math.round(scrollPosition),
+                    threshold: Math.round(threshold),
+                    percentage: Math.round((scrollPosition / documentHeight) * 100) + '%',
+                    hasMore: this.productGrid?.hasMore(),
+                    displayed: this.productGrid?.displayedCount,
+                    total: this.productGrid?.filteredProducts?.length,
+                    screenWidth: window.innerWidth
+                });
+            }
             
             if (scrollPosition >= threshold && this.productGrid.hasMore()) {
                 isLoading = true;
+                console.log('🔄 Loading more products...');
                 
-                // Just use productGrid.loadMore() - it handles everything
+                // Load more products
                 this.productGrid.loadMore();
                 
-                isLoading = false;
+                // Small delay to prevent rapid firing
+                setTimeout(() => {
+                    isLoading = false;
+                }, 300);
             }
-        }, 200); // Throttle to max once per 200ms
+        }, 150); // Reduced throttle for better responsiveness
         
         window.addEventListener('scroll', handleScroll, { passive: true });
     }
