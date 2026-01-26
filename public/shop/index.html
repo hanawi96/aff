@@ -604,7 +604,7 @@
         }
     </style>
 
-    <!-- Flash Sale - Handmade Style -->
+    <!-- Flash Sale - Vertical Scroll Design -->
     <section class="py-16 md:py-20 bg-gradient-to-br from-secondary/5 via-warm to-accent/5 relative overflow-hidden" id="flash-sale">
         <!-- Decorative elements -->
         <div class="absolute top-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"></div>
@@ -651,74 +651,270 @@
                 </div>
             </div>
             
-            <!-- Carousel Wrapper - Keep original structure for JS compatibility -->
-            <div class="flash-sale-carousel-wrapper">
-                <!-- Navigation Buttons - Soft Style -->
-                <button class="carousel-btn carousel-btn-prev" id="flashSalePrev" aria-label="Previous">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                
-                <div class="flash-sale-carousel" id="flashSaleCarousel">
-                    <!-- Skeleton Loading -->
-                    <div class="flash-sale-products" id="flashSaleSkeleton">
-                        <div class="skeleton-flash-card">
-                            <div class="skeleton-flash-image"></div>
-                            <div class="skeleton-flash-info">
-                                <div class="skeleton skeleton-flash-title"></div>
-                                <div class="skeleton skeleton-flash-price"></div>
-                                <div class="skeleton skeleton-flash-bar"></div>
-                                <div class="skeleton skeleton-flash-button"></div>
-                            </div>
-                        </div>
-                        <div class="skeleton-flash-card">
-                            <div class="skeleton-flash-image"></div>
-                            <div class="skeleton-flash-info">
-                                <div class="skeleton skeleton-flash-title"></div>
-                                <div class="skeleton skeleton-flash-price"></div>
-                                <div class="skeleton skeleton-flash-bar"></div>
-                                <div class="skeleton skeleton-flash-button"></div>
-                            </div>
-                        </div>
-                        <div class="skeleton-flash-card">
-                            <div class="skeleton-flash-image"></div>
-                            <div class="skeleton-flash-info">
-                                <div class="skeleton skeleton-flash-title"></div>
-                                <div class="skeleton skeleton-flash-price"></div>
-                                <div class="skeleton skeleton-flash-bar"></div>
-                                <div class="skeleton skeleton-flash-button"></div>
-                            </div>
-                        </div>
-                        <div class="skeleton-flash-card">
-                            <div class="skeleton-flash-image"></div>
-                            <div class="skeleton-flash-info">
-                                <div class="skeleton skeleton-flash-title"></div>
-                                <div class="skeleton skeleton-flash-price"></div>
-                                <div class="skeleton skeleton-flash-bar"></div>
-                                <div class="skeleton skeleton-flash-button"></div>
-                            </div>
+            <!-- Flash Sale Products Container - Fixed Height with Vertical Scroll -->
+            <div class="flash-sale-scroll-container">
+                <!-- Skeleton Loading -->
+                <div class="flash-sale-products-vertical" id="flashSaleSkeleton">
+                    <div class="skeleton-flash-card">
+                        <div class="skeleton-flash-image"></div>
+                        <div class="skeleton-flash-info">
+                            <div class="skeleton skeleton-flash-title"></div>
+                            <div class="skeleton skeleton-flash-price"></div>
+                            <div class="skeleton skeleton-flash-bar"></div>
+                            <div class="skeleton skeleton-flash-button"></div>
                         </div>
                     </div>
-                    
-                    <!-- Real Products (hidden initially) -->
-                    <div class="flash-sale-products hidden" id="flashSaleProducts">
-                        <!-- Flash sale products will be loaded here -->
+                    <div class="skeleton-flash-card">
+                        <div class="skeleton-flash-image"></div>
+                        <div class="skeleton-flash-info">
+                            <div class="skeleton skeleton-flash-title"></div>
+                            <div class="skeleton skeleton-flash-price"></div>
+                            <div class="skeleton skeleton-flash-bar"></div>
+                            <div class="skeleton skeleton-flash-button"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-flash-card">
+                        <div class="skeleton-flash-image"></div>
+                        <div class="skeleton-flash-info">
+                            <div class="skeleton skeleton-flash-title"></div>
+                            <div class="skeleton skeleton-flash-price"></div>
+                            <div class="skeleton skeleton-flash-bar"></div>
+                            <div class="skeleton skeleton-flash-button"></div>
+                        </div>
                     </div>
                 </div>
                 
-                <button class="carousel-btn carousel-btn-next" id="flashSaleNext" aria-label="Next">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+                <!-- Real Products (hidden initially) -->
+                <div class="flash-sale-products-vertical hidden" id="flashSaleProducts">
+                    <!-- Flash sale products will be loaded here -->
+                </div>
             </div>
-            
-            <!-- Dots Indicator -->
-            <div class="carousel-dots" id="flashSaleDots"></div>
         </div>
         
-        <!-- Custom Styles for Soft Flash Sale -->
+        <!-- Custom Styles for Vertical Scroll Flash Sale -->
         <style>
             /* Override flash sale section background */
             #flash-sale {
                 background: linear-gradient(135deg, rgba(231, 111, 81, 0.05), rgba(248, 237, 235, 1), rgba(233, 196, 106, 0.05)) !important;
+            }
+            
+            /* Flash Sale Scroll Container - Fixed Height with Vertical Scroll */
+            .flash-sale-scroll-container {
+                max-height: 620px;
+                overflow-y: auto;
+                overflow-x: hidden;
+                background: white;
+                border-radius: 24px;
+                padding: 1.5rem;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+                border: 2px solid rgba(244, 162, 97, 0.1);
+            }
+            
+            /* Custom Scrollbar */
+            .flash-sale-scroll-container::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            .flash-sale-scroll-container::-webkit-scrollbar-track {
+                background: #f8edeb;
+                border-radius: 10px;
+            }
+            
+            .flash-sale-scroll-container::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, #f4a261, #e76f51);
+                border-radius: 10px;
+            }
+            
+            .flash-sale-scroll-container::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(180deg, #e76f51, #f4a261);
+            }
+            
+            /* Products Grid Layout - 2 columns on desktop, 1 on mobile */
+            .flash-sale-products-vertical {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            /* Flash Sale Card - Horizontal Layout (Image Left, Info Right) */
+            .flash-sale-products-vertical .flash-sale-card {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: stretch;
+                min-height: 180px;
+            }
+            
+            /* Square Image - Full height of card */
+            .flash-sale-products-vertical .flash-sale-card .product-image-wrapper {
+                aspect-ratio: 1 / 1;
+                width: auto !important;
+                height: 100% !important;
+                flex-shrink: 0;
+                padding-top: 0 !important;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .flash-sale-products-vertical .flash-sale-card .product-image {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            
+            .flash-sale-products-vertical .flash-sale-card .product-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 0.75rem !important;
+                min-width: 0;
+            }
+            
+            /* Skeleton Flash Card - Horizontal Layout */
+            .flash-sale-products-vertical .skeleton-flash-card {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: stretch;
+                height: 160px;
+                background: white;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
+            }
+            
+            .flash-sale-products-vertical .skeleton-flash-image {
+                flex: 0 0 160px !important;
+                width: 160px !important;
+                height: 160px !important;
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+            }
+            
+            .flash-sale-products-vertical .skeleton-flash-info {
+                flex: 1;
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            /* ===== FLASH SALE CARD - REFACTORED ===== */
+            
+            /* Badge */
+            .flash-sale-products-vertical .flash-badge {
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                background: linear-gradient(135deg, #e76f51, #e74c3c);
+                color: white;
+                font-weight: 700;
+                font-size: 0.7rem;
+                padding: 0.2rem 0.45rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(231, 111, 81, 0.4);
+                z-index: 2;
+            }
+            
+            /* Product Name */
+            .flash-sale-products-vertical .flash-product-name {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #1f2937;
+                line-height: 1.2;
+                margin: 0 0 0.4rem 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            
+            /* Price Box */
+            .flash-sale-products-vertical .flash-price-box {
+                margin-bottom: 0.4rem;
+            }
+            
+            /* Price Row: Flash price (left) | Old price (right, close) */
+            .flash-sale-products-vertical .flash-price-row {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 0.2rem;
+            }
+            
+            .flash-sale-products-vertical .flash-price-main {
+                font-size: 1.3rem;
+                font-weight: 800;
+                color: #e76f51;
+                line-height: 1.1;
+            }
+            
+            .flash-sale-products-vertical .flash-price-old {
+                font-size: 0.75rem;
+                color: #9ca3af;
+                text-decoration: line-through;
+            }
+            
+            /* Savings - full width below */
+            .flash-sale-products-vertical .flash-save {
+                font-size: 0.7rem;
+                color: #10b981;
+                font-weight: 600;
+                background: #d1fae5;
+                padding: 0.15rem 0.4rem;
+                border-radius: 4px;
+                display: inline-block;
+            }
+            
+            /* Stock */
+            .flash-sale-products-vertical .flash-stock {
+                margin-bottom: 0.4rem;
+            }
+            
+            .flash-sale-products-vertical .flash-stock-bar {
+                height: 4px;
+                background: #f3f4f6;
+                border-radius: 2px;
+                overflow: hidden;
+                margin-bottom: 0.2rem;
+            }
+            
+            .flash-sale-products-vertical .flash-stock-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #f4a261, #e76f51);
+            }
+            
+            .flash-sale-products-vertical .flash-stock-text {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.6rem;
+                color: #6b7280;
+            }
+            
+            .flash-sale-products-vertical .flash-stock-text span:last-child {
+                color: #e76f51;
+                font-weight: 600;
+            }
+            
+            /* Button */
+            .flash-sale-products-vertical .flash-btn {
+                width: 100%;
+                background: linear-gradient(135deg, #f4a261, #e76f51);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 0.6rem;
+                font-weight: 700;
+                font-size: 0.7rem;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(244, 162, 97, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.3rem;
             }
             
             /* Mobile section adjustments */
@@ -740,9 +936,88 @@
                     font-size: 0.875rem !important;
                 }
                 
-                #flash-sale .inline-flex.items-center.gap-2 {
-                    padding: 0.5rem 1rem !important;
-                    font-size: 0.75rem !important;
+                .flash-sale-scroll-container {
+                    max-height: 860px;
+                    padding: 1rem;
+                }
+                
+                /* Mobile: 1 column layout */
+                .flash-sale-products-vertical {
+                    grid-template-columns: 1fr;
+                }
+                
+                /* Mobile: card auto height */
+                .flash-sale-products-vertical .flash-sale-card {
+                    min-height: 140px;
+                }
+                
+                .flash-sale-products-vertical .flash-sale-card .product-info {
+                    padding: 0.65rem !important;
+                }
+                
+                .flash-sale-products-vertical .skeleton-flash-card {
+                    min-height: 140px;
+                }
+                
+                .flash-sale-products-vertical .skeleton-flash-image {
+                    aspect-ratio: 1 / 1;
+                    width: auto !important;
+                    height: 100% !important;
+                }
+                
+                .flash-sale-products-vertical .skeleton-flash-info {
+                    padding: 0.75rem;
+                }
+                
+                /* Mobile: adjust text sizes */
+                .flash-sale-products-vertical .flash-badge {
+                    font-size: 0.6rem;
+                    padding: 0.15rem 0.3rem;
+                }
+                
+                .flash-sale-products-vertical .flash-product-name {
+                    font-size: 0.9rem;
+                    margin-bottom: 0.3rem;
+                }
+                
+                .flash-sale-products-vertical .flash-price-main {
+                    font-size: 1.1rem;
+                }
+                
+                .flash-sale-products-vertical .flash-price-old {
+                    font-size: 0.65rem;
+                }
+                
+                .flash-sale-products-vertical .flash-save {
+                    font-size: 0.6rem;
+                }
+                
+                .flash-sale-products-vertical .flash-stock-text {
+                    font-size: 0.55rem;
+                }
+                
+                .flash-sale-products-vertical .flash-btn {
+                    padding: 0.55rem;
+                    font-size: 0.65rem;
+                }
+            }
+            
+            /* Tablet: card auto height */
+            @media (min-width: 641px) and (max-width: 1024px) {
+                .flash-sale-products-vertical .flash-sale-card {
+                    min-height: 160px;
+                }
+                
+                .flash-sale-products-vertical .skeleton-flash-card {
+                    min-height: 160px;
+                }
+                
+                .flash-sale-products-vertical .flash-product-name {
+                    font-size: 0.8rem;
+                }
+                
+                .flash-sale-products-vertical .flash-price-main {
+                    font-size: 1.2rem;
                 }
             }
             
@@ -796,102 +1071,6 @@
                 
                 .timer-box {
                     min-width: 45px;
-                }
-            }
-            
-            /* Carousel Buttons - Soft Style */
-            .flash-sale-carousel-wrapper .carousel-btn {
-                width: 48px !important;
-                height: 48px !important;
-                background: white !important;
-                border: 2px solid #f4a261 !important;
-                border-radius: 50% !important;
-                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2) !important;
-                position: absolute !important;
-                top: 50% !important;
-                transform: translateY(-50%) !important;
-                z-index: 10 !important;
-            }
-            
-            .flash-sale-carousel-wrapper .carousel-btn-prev {
-                left: -60px !important;
-            }
-            
-            .flash-sale-carousel-wrapper .carousel-btn-next {
-                right: -60px !important;
-            }
-            
-            .flash-sale-carousel-wrapper .carousel-btn:hover {
-                background: #f4a261 !important;
-                color: white !important;
-                transform: translateY(-50%) scale(1.1) !important;
-                box-shadow: 0 6px 16px rgba(244, 162, 97, 0.3) !important;
-            }
-            
-            /* Dots - Soft Style */
-            .carousel-dots .dot {
-                width: 10px !important;
-                height: 10px !important;
-                border-radius: 50% !important;
-                background: #f4a261 !important;
-                opacity: 0.3 !important;
-            }
-            
-            .carousel-dots .dot.active {
-                opacity: 1 !important;
-                width: 24px !important;
-                border-radius: 5px !important;
-            }
-            
-            /* Mobile Responsive */
-            @media (max-width: 768px) {
-                .timer-box {
-                    min-width: 40px;
-                }
-                
-                #flashSaleTimer .timer-value {
-                    font-size: 1.25rem !important;
-                }
-                
-                #flashSaleTimer .timer-label {
-                    font-size: 0.65rem !important;
-                }
-                
-                /* Hide carousel buttons on mobile - use swipe instead */
-                .flash-sale-carousel-wrapper .carousel-btn {
-                    display: none !important;
-                }
-                
-                /* Add padding to carousel for better mobile UX */
-                .flash-sale-carousel-wrapper {
-                    padding: 0 !important;
-                }
-            }
-            
-            /* Tablet - smaller buttons */
-            @media (min-width: 769px) and (max-width: 1024px) {
-                .flash-sale-carousel-wrapper .carousel-btn {
-                    width: 40px !important;
-                    height: 40px !important;
-                }
-                
-                .flash-sale-carousel-wrapper .carousel-btn-prev {
-                    left: -50px !important;
-                }
-                
-                .flash-sale-carousel-wrapper .carousel-btn-next {
-                    right: -50px !important;
-                }
-            }
-            
-            /* Large screens - move buttons further out */
-            @media (min-width: 1280px) {
-                .flash-sale-carousel-wrapper .carousel-btn-prev {
-                    left: -80px !important;
-                }
-                
-                .flash-sale-carousel-wrapper .carousel-btn-next {
-                    right: -80px !important;
                 }
             }
         </style>

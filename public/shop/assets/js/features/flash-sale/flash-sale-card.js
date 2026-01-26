@@ -24,51 +24,49 @@ export function createFlashSaleCard(product) {
     
     let html = '<div class="flash-sale-card">';
     
-    // Image
+    // Image with badge
     html += '<div class="product-image-wrapper">';
     html += '<img src="' + imageUrl + '" ';
     html += 'alt="' + escapeHtml(product.product_name) + '" class="product-image" ';
     html += 'loading="lazy" ';
     html += 'onerror="this.src=\'' + CONFIG.DEFAULT_IMAGE + '\'">';
-    html += '<span class="flash-sale-badge">-' + discount + '%</span>';
+    html += '<span class="flash-badge">-' + discount + '%</span>';
     html += '</div>';
     
-    // Info
+    // Product info
     html += '<div class="product-info">';
     
-    // Product name
-    html += '<h3 class="product-name">' + escapeHtml(product.product_name) + '</h3>';
+    // Name
+    html += '<h3 class="flash-product-name">' + escapeHtml(product.product_name) + '</h3>';
     
-    // Price section
-    html += '<div class="flash-sale-price-section">';
-    html += '<div class="price-row">';
-    html += '<span class="flash-price">' + formatPrice(product.flash_price) + '</span>';
-    html += '<span class="save-badge">-' + formatPrice(savedAmount) + '</span>';
+    // Price - NEW LAYOUT
+    html += '<div class="flash-price-box">';
+    // Row 1: Flash price (left) | Original price (right, close together)
+    html += '<div class="flash-price-row">';
+    html += '<span class="flash-price-main">' + formatPrice(product.flash_price) + '</span>';
+    html += '<span class="flash-price-old">' + formatPrice(product.original_price) + '</span>';
     html += '</div>';
-    html += '<span class="original-price">' + formatPrice(product.original_price) + '</span>';
-    html += '</div>';
-    
-    // Stock section
-    html += '<div class="flash-stock-section">';
-    html += '<div class="stock-info-row">';
-    html += '<span class="stock-sold">Đã bán ' + soldCount + '/' + stockLimit + '</span>';
-    html += '<span class="stock-remaining">Còn ' + remaining + '</span>';
-    html += '</div>';
-    html += '<div class="stock-bar">';
-    html += '<div class="stock-bar-fill" style="width: ' + soldPercentage + '%"></div>';
+    // Row 2: Savings
+    html += '<div class="flash-save">';
+    html += 'Tiết kiệm ' + formatPrice(savedAmount);
     html += '</div>';
     html += '</div>';
     
-    // Action buttons
-    html += '<div class="flash-actions">';
-    html += '<button class="flash-add-cart" onclick="window.flashSaleActions.addToCart(' + product.id + ', ' + product.flash_price + ')">';
-    html += '<i class="fas fa-shopping-cart"></i>';
+    // Stock
+    html += '<div class="flash-stock">';
+    html += '<div class="flash-stock-bar">';
+    html += '<div class="flash-stock-fill" style="width: ' + soldPercentage + '%"></div>';
+    html += '</div>';
+    html += '<div class="flash-stock-text">';
+    html += '<span>Đã bán ' + soldCount + '</span>';
+    html += '<span>Còn ' + remaining + '</span>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Button
+    html += '<button class="flash-btn" onclick="window.flashSaleActions.buyNow(' + product.id + ', ' + product.flash_price + ')">';
+    html += '<i class="fas fa-shopping-cart"></i> THÊM GIỎ';
     html += '</button>';
-    html += '<button class="flash-buy-btn" onclick="window.flashSaleActions.buyNow(' + product.id + ', ' + product.flash_price + ')">';
-    html += '<i class="fas fa-bolt"></i>';
-    html += '<span>MUA NGAY</span>';
-    html += '</button>';
-    html += '</div>';
     
     html += '</div>';
     html += '</div>';

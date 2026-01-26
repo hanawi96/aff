@@ -160,10 +160,10 @@ export class HomePage {
         this.productActions = new ProductActions(this.products);
         window.productActions = this.productActions;
         
-        // Flash Sale Components
+        // Flash Sale Components - DISABLED (using vertical scroll instead)
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
         if (activeFlashSale && activeFlashSale.products) {
-            this.flashSaleCarousel = new FlashSaleCarousel('flashSaleProducts');
+            // this.flashSaleCarousel = new FlashSaleCarousel('flashSaleProducts');
             this.flashSaleActions = new FlashSaleActions(this.flashSales);
             this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
             
@@ -185,22 +185,33 @@ export class HomePage {
         // Render products
         this.productGrid.setProducts(this.products);
         
-        // Render flash sales
-        if (this.flashSaleCarousel) {
-            const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-            this.flashSaleCarousel.setProducts(activeFlashSale.products);
-            this.flashSaleTimer.start();
-        }
+        // Render flash sales - NO CAROUSEL
+        // Flash sales are rendered directly in renderFlashSales()
     }
     
     /**
      * Render flash sales
      */
     renderFlashSales() {
-        if (this.flashSaleCarousel) {
-            const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-            if (activeFlashSale && activeFlashSale.products) {
-                this.flashSaleCarousel.setProducts(activeFlashSale.products);
+        // Carousel disabled - using vertical scroll layout instead
+        // Just render the products directly without carousel
+        const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
+        if (activeFlashSale && activeFlashSale.products) {
+            // Render products directly to container
+            const container = document.getElementById('flashSaleProducts');
+            if (container) {
+                // Import createFlashSaleCard function
+                import('../features/flash-sale/flash-sale-card.js').then(module => {
+                    const { createFlashSaleCard } = module;
+                    container.innerHTML = activeFlashSale.products
+                        .filter(p => p.is_active === 1)
+                        .map(createFlashSaleCard)
+                        .join('');
+                });
+            }
+            
+            // Start timer
+            if (this.flashSaleTimer) {
                 this.flashSaleTimer.start();
             }
         }
