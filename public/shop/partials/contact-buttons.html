@@ -1,0 +1,140 @@
+<!-- Sticky Contact Buttons -->
+<link rel="stylesheet" href="assets/css/contact-buttons.css">
+
+<div class="sticky-contact-buttons">
+  <button type="button" class="contact-btn contact-btn-question" id="contactQuestionBtn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="white" stroke-width="2"/>
+      <path d="M12 16V16.01M12 13C12 11.5 13.5 11 13.5 9.5C13.5 8.5 12.5 8 12 8C11 8 10 8.5 10 9.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Hỏi đáp</span>
+  </button>
+  
+  <a href="https://zalo.me/0972483892" target="_blank" class="contact-btn contact-btn-zalo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12C2 14.89 3.25 17.49 5.23 19.34L4.17 22.5L7.5 21.43C8.93 22.08 10.43 22.5 12 22.5C17.52 22.5 22 18.02 22 12.5C22 6.98 17.52 2 12 2Z" fill="white"/>
+      <path d="M8.5 10.5H10.5V15.5H8.5V10.5ZM11.5 10.5H13.5L15.5 13V10.5H17.5V15.5H15.5L13.5 13V15.5H11.5V10.5Z" fill="#0068FF"/>
+    </svg>
+    <span>Zalo</span>
+  </a>
+</div>
+
+<!-- FAQ Modal -->
+<div class="faq-modal-overlay" id="faqModalOverlay" style="display: none;">
+  <div class="faq-modal">
+    <!-- Header -->
+    <div class="faq-modal-header">
+      <div class="faq-modal-title">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="white" stroke-width="2"/>
+          <path d="M12 16V16.01M12 13C12 11.5 13.5 11 13.5 9.5C13.5 8.5 12.5 8 12 8C11 8 10 8.5 10 9.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Câu hỏi thường gặp</span>
+      </div>
+      <button class="faq-modal-close" id="faqModalCloseX">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="faq-modal-body">
+      <!-- FAQ Items -->
+      <div class="faq-item faq-item-pink">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Vòng có phải làm từ cây dâu tằm thật hay không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Vâng, tất cả các sản phẩm vòng đầu tam của shop đều được làm 100% từ cành cây dâu tằm tự nhiên. Chúng tôi tuyển chọn cành dâu tằm chất lượng cao, qua quy trình bóc vỏ, phơi khô và mài nhẵn hoàn toàn thủ công để đảm bảo an toàn tuyệt đối cho bé.</p>
+        </div>
+      </div>
+
+      <div class="faq-item faq-item-blue">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Bạc mix vòng có phải bạc thật hay không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Các hạt bạc mix trong vòng đều là bạc thật 925 (bạc ta). Shop cam kết chất lượng bạc đạt chuẩn, không gây dị ứng và an toàn cho làn da nhạy cảm của bé. Bạc 925 có độ bền cao và giữ được màu sắc lâu dài.</p>
+        </div>
+      </div>
+
+      <div class="faq-item faq-item-green">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Vòng định nước có làm sao không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Vòng dâu tằm có thể tiếp xúc với nước nhưng mẹ nên hạn chế để vòng bền lâu hơn. Sau khi tắm hoặc tiếp xúc nước, mẹ nên lau khô vòng bằng khăn mềm. Tránh ngâm vòng trong nước quá lâu. Nếu có phụ kiện bạc, nên tháo ra khi tắm để bạc không bị xỉn màu.</p>
+        </div>
+      </div>
+
+      <div class="faq-item faq-item-orange">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Vòng mua cho bé sơ sinh thì bé lớn có đeo được tiếp không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Vòng có dây co giãn nên bé có thể đeo từ sơ sinh đến khoảng 3-4 tuổi tùy cỡ tay của bé. Nếu mẹ muốn bé đeo lâu dài hơn, shop có thể tư vấn size vòng phù hợp hoặc làm vòng theo yêu cầu với size lớn hơn. Mẹ cũng có thể đặt làm lại vòng mới khi bé lớn.</p>
+        </div>
+      </div>
+
+      <div class="faq-item faq-item-purple">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Vòng không sử dụng dễ lâu ngày có mốc không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Nếu bảo quản đúng cách, vòng có thể giữ được lâu dài. Mẹ nên bảo quản vòng ở nơi khô ráo, thoáng mát, tránh ẩm ướt. Có thể cho vào túi vải hoặc hộp kín. Nếu không sử dụng lâu ngày, mẹ nên lấy ra phơi nắng nhẹ định kỳ. Tránh để vòng ở nơi ẩm thấp sẽ giúp vòng không bị mốc.</p>
+        </div>
+      </div>
+
+      <div class="faq-item faq-item-cyan">
+        <button class="faq-question">
+          <span class="faq-dot"></span>
+          <span class="faq-text">Bạc này đeo có bị đen hay không?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>Bạc 925 có thể bị xỉn màu theo thời gian do tiếp xúc với không khí, mồ hôi và hóa chất. Đây là hiện tượng tự nhiên của bạc thật. Mẹ có thể làm sạch bằng cách dùng kem đánh răng hoặc nước rửa bạc chuyên dụng. Để bạc sáng lâu hơn, nên tháo vòng khi tắm và bảo quản ở nơi khô ráo.</p>
+        </div>
+      </div>
+
+      <!-- Contact Section -->
+      <div class="faq-contact">
+        <h3>Còn thắc mắc gì khác?</h3>
+        <p>Liên hệ trực tiếp với shop để được tư vấn chi tiết nhất</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="faq-modal-footer">
+      <a href="https://zalo.me/0972483892" target="_blank" class="faq-btn faq-btn-zalo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12C2 14.89 3.25 17.49 5.23 19.34L4.17 22.5L7.5 21.43C8.93 22.08 10.43 22.5 12 22.5C17.52 22.5 22 18.02 22 12.5C22 6.98 17.52 2 12 2Z" fill="white"/>
+        </svg>
+        Chat Zalo ngay
+      </a>
+      <button class="faq-btn faq-btn-close" id="faqModalCloseBtn">Đóng</button>
+    </div>
+  </div>
+</div>

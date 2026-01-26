@@ -169,6 +169,22 @@
         </div>
     </div>
 
+    <!-- Contact Buttons -->
+    <div id="contactButtonsContainer"></div>
+
+    <link rel="stylesheet" href="assets/css/faq-modal.css">
     <script src="cart.js"></script>
+    <script src="assets/js/faq-modal.js"></script>
+    <script>
+        // Load contact buttons
+        fetch('partials/contact-buttons.html')
+            .then(response => response.text())
+            .then(html => {
+                const container = document.getElementById('contactButtonsContainer');
+                container.innerHTML = html;
+                console.log('Contact buttons loaded and scripts executed');
+            })
+            .catch(error => console.error('Error loading contact buttons:', error));
+    </script>
 </body>
 </html>

@@ -1,0 +1,114 @@
+/* Sticky Contact Buttons */
+.sticky-contact-buttons {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+}
+
+.contact-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.contact-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.contact-btn:active {
+  transform: translateY(0);
+}
+
+.contact-btn-question {
+  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+}
+
+.contact-btn-question:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.contact-btn-scroll-top {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.contact-btn-scroll-top:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.contact-btn-zalo {
+  background: linear-gradient(135deg, #0068FF 0%, #0052CC 100%);
+}
+
+.contact-btn-zalo:hover {
+  background: linear-gradient(135deg, #0052CC 0%, #0041A8 100%);
+}
+
+.contact-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sticky-contact-buttons {
+    right: 12px;
+    bottom: 12px;
+    gap: 8px;
+  }
+  
+  .contact-btn span {
+    display: none;
+  }
+  
+  .contact-btn {
+    padding: 8px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  }
+  
+  .contact-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sticky-contact-buttons {
+    right: 10px;
+    bottom: 10px;
+    gap: 6px;
+  }
+  
+  .contact-btn {
+    padding: 7px;
+    width: 36px;
+    height: 36px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+  
+  .contact-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}
