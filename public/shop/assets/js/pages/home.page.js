@@ -293,7 +293,20 @@ export class HomePage {
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         if (loadMoreBtn) {
             loadMoreBtn.addEventListener('click', () => {
+                // Lưu vị trí hiện tại của button trước khi load more
+                const buttonPosition = loadMoreBtn.getBoundingClientRect().top + window.scrollY;
+                
+                // Load more products
                 this.productGrid.loadMore();
+                
+                // Sau khi render xong, scroll xuống vị trí button cũ (nơi sản phẩm mới bắt đầu)
+                setTimeout(() => {
+                    // Scroll mượt mà đến vị trí sản phẩm mới
+                    window.scrollTo({
+                        top: buttonPosition - 100, // Trừ 100px để có khoảng trống phía trên
+                        behavior: 'smooth'
+                    });
+                }, 100); // Đợi 100ms để DOM render xong
             });
         }
         
