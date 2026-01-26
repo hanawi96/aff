@@ -2,39 +2,63 @@
 (function() {
     'use strict';
 
+    // Configuration
+    const CONFIG = {
+        API_URL: window.location.port === '5500' ? 'http://localhost:8787' : ''
+    };
+
     // Helper function to get correct login path
     function getLoginPath() {
         // Check if we're in /public/ path (local) or root (production)
         const currentPath = window.location.pathname;
+        console.log('📍 Current path:', currentPath);
+        
+        let loginPath;
         if (currentPath.includes('/public/')) {
-            return '../login.html';
+            loginPath = '../login.html';
+        } else {
+            loginPath = '/login.html';
         }
-        return '/login.html';
+        
+        console.log('🔗 Login path:', loginPath);
+        return loginPath;
     }
 
     // Check if session token exists
     const sessionToken = localStorage.getItem('session_token');
     
+    console.log('🔐 Auth check starting...');
+    console.log('   Session token:', sessionToken ? 'EXISTS' : 'MISSING');
+    console.log('   API URL:', CONFIG.API_URL);
+    
     if (!sessionToken) {
+        console.log('❌ No token, redirecting to login');
         // No token, redirect to login
         window.location.href = getLoginPath();
         return;
     }
 
     // Verify session with server
+    console.log('🔍 Verifying session with server...');
     fetch(`${CONFIG.API_URL}?action=verifySession`, {
         headers: {
             'Authorization': `Bearer ${sessionToken}`
         }
     })
-    .then(res => res.json())
+    .then(res => {
+        console.log('📡 Response status:', res.status);
+        return res.json();
+    })
     .then(data => {
+        console.log('📦 Response data:', data);
         if (!data.success) {
+            console.log('❌ Session invalid, redirecting to login');
             // Invalid session, clear and redirect
             localStorage.removeItem('session_token');
             localStorage.removeItem('user_info');
             window.location.href = getLoginPath();
         } else {
+            console.log('✅ Session valid!');
             // Session valid, update user info
             localStorage.setItem('user_info', JSON.stringify(data.user));
             
@@ -43,7 +67,7 @@
         }
     })
     .catch(error => {
-        console.error('Auth check failed:', error);
+        console.error('❌ Auth check failed:', error);
         // On error, redirect to login
         localStorage.removeItem('session_token');
         localStorage.removeItem('user_info');

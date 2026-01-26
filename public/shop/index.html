@@ -350,9 +350,6 @@
         <div class="container mx-auto px-4 relative">
             <!-- Section Header with Handmade Divider -->
             <div class="text-center mb-12 md:mb-16">
-                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4 border-2 border-dashed border-primary/30">
-                    <span class="text-primary font-semibold text-sm">💚 Lợi ích cho bé yêu</span>
-                </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
                     Tại sao mẹ nên chọn<br>
                     <span class="font-handwritten text-primary text-4xl md:text-5xl">vòng dâu tằm cho bé?</span>
@@ -605,558 +602,62 @@
     </style>
 
     <!-- Flash Sale - Vertical Scroll Design -->
-    <section class="py-16 md:py-20 bg-gradient-to-br from-secondary/5 via-warm to-accent/5 relative overflow-hidden" id="flash-sale">
-        <!-- Decorative elements -->
-        <div class="absolute top-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
-        
-        <div class="container mx-auto px-4 relative">
-            <!-- Section Header -->
-            <div class="text-center mb-8 md:mb-12">
-                <!-- Title with Icon -->
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                    <div class="inline-flex items-center gap-3 mb-2">
-                        <i class="fas fa-gift text-secondary text-2xl md:text-3xl"></i>
-                        <span>Giảm giá</span>
-                    </div>
-                    <br>
-                    <span class="font-handwritten text-secondary text-4xl md:text-5xl">chỉ hôm nay!</span>
-                </h2>
-                <p class="text-gray-600 max-w-xl mx-auto mb-6">
-                    Những sản phẩm được yêu thích nhất với giá ưu đãi đặc biệt dành riêng cho mẹ
-                </p>
-                
-                <!-- Timer - Handmade Cute Style -->
-                <div class="flash-timer-handmade" id="flashSaleTimer">
-                    <div class="timer-header">
-                        <i class="fas fa-gift timer-gift-icon"></i>
-                        <span class="timer-text">Kết thúc sau:</span>
-                    </div>
-                    <div class="timer-boxes">
-                        <div class="timer-card">
-                            <div class="timer-number" id="hours">00</div>
-                            <div class="timer-unit">giờ</div>
-                        </div>
-                        <span class="timer-dot">•</span>
-                        <div class="timer-card">
-                            <div class="timer-number" id="minutes">00</div>
-                            <div class="timer-unit">phút</div>
-                        </div>
-                        <span class="timer-dot">•</span>
-                        <div class="timer-card">
-                            <div class="timer-number" id="seconds">00</div>
-                            <div class="timer-unit">giây</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Flash Sale Products Container - Fixed Height with Vertical Scroll -->
-            <div class="flash-sale-scroll-container">
-                <!-- Skeleton Loading -->
-                <div class="flash-sale-products-vertical" id="flashSaleSkeleton">
-                    <div class="skeleton-flash-card">
-                        <div class="skeleton-flash-image"></div>
-                        <div class="skeleton-flash-info">
-                            <div class="skeleton skeleton-flash-title"></div>
-                            <div class="skeleton skeleton-flash-price"></div>
-                            <div class="skeleton skeleton-flash-bar"></div>
-                            <div class="skeleton skeleton-flash-button"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-flash-card">
-                        <div class="skeleton-flash-image"></div>
-                        <div class="skeleton-flash-info">
-                            <div class="skeleton skeleton-flash-title"></div>
-                            <div class="skeleton skeleton-flash-price"></div>
-                            <div class="skeleton skeleton-flash-bar"></div>
-                            <div class="skeleton skeleton-flash-button"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-flash-card">
-                        <div class="skeleton-flash-image"></div>
-                        <div class="skeleton-flash-info">
-                            <div class="skeleton skeleton-flash-title"></div>
-                            <div class="skeleton skeleton-flash-price"></div>
-                            <div class="skeleton skeleton-flash-bar"></div>
-                            <div class="skeleton skeleton-flash-button"></div>
-                        </div>
-                    </div>
+    <!-- Flash Sale Section - Bundle Offer Style -->
+    <section class="py-8 md:py-12" id="flash-sale">
+        <div class="container mx-auto px-4">
+            <!-- Flash Sale Box - Giống Bundle Offer -->
+            <div class="bundle-offer-section" id="flashSaleSection">
+                <!-- Badge -->
+                <div class="bundle-offer-badge">
+                    <i class="fas fa-bolt"></i>
+                    <span>FLASH SALE</span>
                 </div>
                 
-                <!-- Real Products (hidden initially) -->
-                <div class="flash-sale-products-vertical hidden" id="flashSaleProducts">
+                <!-- Header -->
+                <div class="bundle-offer-header">
+                    <div class="bundle-offer-title">
+                        <h3>Giảm giá sốc - Chỉ hôm nay!</h3>
+                        <p>Những sản phẩm được yêu thích nhất với giá ưu đãi đặc biệt</p>
+                    </div>
+                </div>
+
+                <!-- Products List -->
+                <div class="bundle-products" id="flashSaleProducts">
                     <!-- Flash sale products will be loaded here -->
+                    <!-- Loading skeleton -->
+                    <div class="bundle-product-card" style="opacity: 0.5;">
+                        <div style="width: 120px; height: 120px; background: #f0f0f0; border-radius: 16px;"></div>
+                        <div class="bundle-product-info">
+                            <div style="height: 20px; background: #f0f0f0; border-radius: 4px; width: 70%;"></div>
+                            <div style="height: 16px; background: #f0f0f0; border-radius: 4px; width: 50%; margin-top: 8px;"></div>
+                            <div style="height: 40px; background: #f0f0f0; border-radius: 8px; margin-top: 8px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bundle-offer-footer">
+                    <div class="bundle-stats">
+                        <i class="fas fa-fire"></i>
+                        <span><strong id="flashSaleViewers">0</strong> người đang xem</span>
+                    </div>
+                    <div class="bundle-timer">
+                        <i class="fas fa-clock"></i>
+                        <span id="flashSaleTimer">Kết thúc sau: <strong>00:00:00</strong></span>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Custom Styles for Vertical Scroll Flash Sale -->
-        <style>
-            /* Override flash sale section background */
-            #flash-sale {
-                background: linear-gradient(135deg, rgba(231, 111, 81, 0.05), rgba(248, 237, 235, 1), rgba(233, 196, 106, 0.05)) !important;
-            }
-            
-            /* Flash Sale Scroll Container - Fixed Height with Vertical Scroll */
-            .flash-sale-scroll-container {
-                max-height: 620px;
-                overflow-y: auto;
-                overflow-x: hidden;
-                background: white;
-                border-radius: 24px;
-                padding: 1.5rem;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-                border: 2px solid rgba(244, 162, 97, 0.1);
-            }
-            
-            /* Custom Scrollbar */
-            .flash-sale-scroll-container::-webkit-scrollbar {
-                width: 8px;
-            }
-            
-            .flash-sale-scroll-container::-webkit-scrollbar-track {
-                background: #f8edeb;
-                border-radius: 10px;
-            }
-            
-            .flash-sale-scroll-container::-webkit-scrollbar-thumb {
-                background: linear-gradient(180deg, #f4a261, #e76f51);
-                border-radius: 10px;
-            }
-            
-            .flash-sale-scroll-container::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient(180deg, #e76f51, #f4a261);
-            }
-            
-            /* Products Grid Layout - 2 columns on desktop, 1 on mobile */
-            .flash-sale-products-vertical {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-            }
-            
-            /* Flash Sale Card - Horizontal Layout (Image Left, Info Right) */
-            .flash-sale-products-vertical .flash-sale-card {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: stretch;
-                min-height: 180px;
-            }
-            
-            /* Square Image - Full height of card */
-            .flash-sale-products-vertical .flash-sale-card .product-image-wrapper {
-                aspect-ratio: 1 / 1;
-                width: auto !important;
-                height: 100% !important;
-                flex-shrink: 0;
-                padding-top: 0 !important;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .flash-sale-products-vertical .flash-sale-card .product-image {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-            
-            .flash-sale-products-vertical .flash-sale-card .product-info {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                padding: 0.75rem !important;
-                min-width: 0;
-            }
-            
-            /* Skeleton Flash Card - Horizontal Layout */
-            .flash-sale-products-vertical .skeleton-flash-card {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: stretch;
-                height: 160px;
-                background: white;
-                border-radius: 20px;
-                overflow: hidden;
-                box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
-            }
-            
-            .flash-sale-products-vertical .skeleton-flash-image {
-                flex: 0 0 160px !important;
-                width: 160px !important;
-                height: 160px !important;
-                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-                background-size: 200% 100%;
-                animation: shimmer 1.5s infinite;
-            }
-            
-            .flash-sale-products-vertical .skeleton-flash-info {
-                flex: 1;
-                padding: 1rem;
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-            
-            /* ===== FLASH SALE CARD - REFACTORED ===== */
-            
-            /* Badge */
-            .flash-sale-products-vertical .flash-badge {
-                position: absolute;
-                top: 6px;
-                right: 6px;
-                background: linear-gradient(135deg, #e76f51, #e74c3c);
-                color: white;
-                font-weight: 700;
-                font-size: 0.7rem;
-                padding: 0.2rem 0.45rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 6px rgba(231, 111, 81, 0.4);
-                z-index: 2;
-            }
-            
-            /* Product Name */
-            .flash-sale-products-vertical .flash-product-name {
-                font-size: 0.85rem;
-                font-weight: 700;
-                color: #1f2937;
-                line-height: 1.2;
-                margin: 0 0 0.4rem 0;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            
-            /* Price Box */
-            .flash-sale-products-vertical .flash-price-box {
-                margin-bottom: 0.4rem;
-            }
-            
-            /* Price Row: Flash price (left) | Old price (right, close) */
-            .flash-sale-products-vertical .flash-price-row {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-bottom: 0.2rem;
-            }
-            
-            .flash-sale-products-vertical .flash-price-main {
-                font-size: 1.3rem;
-                font-weight: 800;
-                color: #e76f51;
-                line-height: 1.1;
-            }
-            
-            .flash-sale-products-vertical .flash-price-old {
-                font-size: 0.75rem;
-                color: #9ca3af;
-                text-decoration: line-through;
-            }
-            
-            /* Savings - full width below */
-            .flash-sale-products-vertical .flash-save {
-                font-size: 0.7rem;
-                color: #10b981;
-                font-weight: 600;
-                background: #d1fae5;
-                padding: 0.15rem 0.4rem;
-                border-radius: 4px;
-                display: inline-block;
-            }
-            
-            /* Stock */
-            .flash-sale-products-vertical .flash-stock {
-                margin-bottom: 0.4rem;
-            }
-            
-            .flash-sale-products-vertical .flash-stock-bar {
-                height: 4px;
-                background: #f3f4f6;
-                border-radius: 2px;
-                overflow: hidden;
-                margin-bottom: 0.2rem;
-            }
-            
-            .flash-sale-products-vertical .flash-stock-fill {
-                height: 100%;
-                background: linear-gradient(90deg, #f4a261, #e76f51);
-            }
-            
-            .flash-sale-products-vertical .flash-stock-text {
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.6rem;
-                color: #6b7280;
-            }
-            
-            .flash-sale-products-vertical .flash-stock-text span:last-child {
-                color: #e76f51;
-                font-weight: 600;
-            }
-            
-            /* Button */
-            .flash-sale-products-vertical .flash-btn {
-                width: 100%;
-                background: linear-gradient(135deg, #f4a261, #e76f51);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 0.6rem;
-                font-weight: 700;
-                font-size: 0.7rem;
-                cursor: pointer;
-                box-shadow: 0 2px 8px rgba(244, 162, 97, 0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.3rem;
-            }
-            
-            /* Mobile section adjustments */
-            @media (max-width: 640px) {
-                #flash-sale {
-                    padding-top: 3rem !important;
-                    padding-bottom: 3rem !important;
-                }
-                
-                #flash-sale h2 {
-                    font-size: 1.75rem !important;
-                }
-                
-                #flash-sale .font-handwritten {
-                    font-size: 2rem !important;
-                }
-                
-                #flash-sale p {
-                    font-size: 0.875rem !important;
-                }
-                
-                .flash-sale-scroll-container {
-                    max-height: 860px;
-                    padding: 1rem;
-                }
-                
-                /* Mobile: 1 column layout */
-                .flash-sale-products-vertical {
-                    grid-template-columns: 1fr;
-                }
-                
-                /* Mobile: card auto height */
-                .flash-sale-products-vertical .flash-sale-card {
-                    min-height: 140px;
-                }
-                
-                .flash-sale-products-vertical .flash-sale-card .product-info {
-                    padding: 0.65rem !important;
-                }
-                
-                .flash-sale-products-vertical .skeleton-flash-card {
-                    min-height: 140px;
-                }
-                
-                .flash-sale-products-vertical .skeleton-flash-image {
-                    aspect-ratio: 1 / 1;
-                    width: auto !important;
-                    height: 100% !important;
-                }
-                
-                .flash-sale-products-vertical .skeleton-flash-info {
-                    padding: 0.75rem;
-                }
-                
-                /* Mobile: adjust text sizes */
-                .flash-sale-products-vertical .flash-badge {
-                    font-size: 0.6rem;
-                    padding: 0.15rem 0.3rem;
-                }
-                
-                .flash-sale-products-vertical .flash-product-name {
-                    font-size: 0.9rem;
-                    margin-bottom: 0.3rem;
-                }
-                
-                .flash-sale-products-vertical .flash-price-main {
-                    font-size: 1.1rem;
-                }
-                
-                .flash-sale-products-vertical .flash-price-old {
-                    font-size: 0.65rem;
-                }
-                
-                .flash-sale-products-vertical .flash-save {
-                    font-size: 0.6rem;
-                }
-                
-                .flash-sale-products-vertical .flash-stock-text {
-                    font-size: 0.55rem;
-                }
-                
-                .flash-sale-products-vertical .flash-btn {
-                    padding: 0.55rem;
-                    font-size: 0.65rem;
-                }
-            }
-            
-            /* Tablet: card auto height */
-            @media (min-width: 641px) and (max-width: 1024px) {
-                .flash-sale-products-vertical .flash-sale-card {
-                    min-height: 160px;
-                }
-                
-                .flash-sale-products-vertical .skeleton-flash-card {
-                    min-height: 160px;
-                }
-                
-                .flash-sale-products-vertical .flash-product-name {
-                    font-size: 0.8rem;
-                }
-                
-                .flash-sale-products-vertical .flash-price-main {
-                    font-size: 1.2rem;
-                }
-            }
-            
-            /* ===== HANDMADE CUTE TIMER ===== */
-            .flash-timer-handmade {
-                display: inline-flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 0.75rem;
-                background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
-                padding: 1.25rem 1.75rem;
-                border-radius: 20px;
-                border: 3px dashed #f4a261;
-                box-shadow: 0 8px 20px rgba(244, 162, 97, 0.2);
-                position: relative;
-            }
-            
-            /* Decorative corner stars */
-            .flash-timer-handmade::before,
-            .flash-timer-handmade::after {
-                content: '✨';
-                position: absolute;
-                font-size: 1.25rem;
-            }
-            
-            .flash-timer-handmade::before {
-                top: -8px;
-                left: -8px;
-            }
-            
-            .flash-timer-handmade::after {
-                bottom: -8px;
-                right: -8px;
-            }
-            
-            .timer-header {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-            
-            .timer-gift-icon {
-                font-size: 1.5rem;
-                color: #e76f51;
-                animation: bounce 2s infinite;
-            }
-            
-            @keyframes bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-5px); }
-            }
-            
-            .timer-text {
-                font-family: 'Quicksand', sans-serif;
-                font-size: 1rem;
-                font-weight: 700;
-                color: #1f2937;
-            }
-            
-            .timer-boxes {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-            
-            .timer-card {
-                background: white;
-                padding: 0.75rem 1rem;
-                border-radius: 12px;
-                border: 2px solid #f4a261;
-                box-shadow: 0 4px 0 #f4a261;
-                min-width: 70px;
-                text-align: center;
-            }
-            
-            .timer-number {
-                font-size: 2rem;
-                font-weight: 800;
-                color: #e76f51;
-                line-height: 1;
-                font-family: 'Quicksand', sans-serif;
-            }
-            
-            .timer-unit {
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: #6b7280;
-                margin-top: 0.25rem;
-                text-transform: uppercase;
-            }
-            
-            .timer-dot {
-                font-size: 1.5rem;
-                color: #f4a261;
-                font-weight: 700;
-            }
-            
-            /* Mobile timer */
-            @media (max-width: 640px) {
-                .flash-timer-handmade {
-                    padding: 1rem 1.25rem;
-                }
-                
-                .timer-gift-icon {
-                    font-size: 1.25rem;
-                }
-                
-                .timer-text {
-                    font-size: 0.9rem;
-                }
-                
-                .timer-card {
-                    padding: 0.5rem 0.75rem;
-                    min-width: 60px;
-                }
-                
-                .timer-number {
-                    font-size: 1.5rem;
-                }
-                
-                .timer-unit {
-                    font-size: 0.65rem;
-                }
-                
-                .timer-dot {
-                    font-size: 1.25rem;
-                }
-            }
-        </style>
     </section>
+
+    <!-- Import Bundle Offer CSS from cart.css -->
+    <link rel="stylesheet" href="cart.css">
 
     <!-- Categories - Handmade Style -->
     <section class="py-12 md:py-16 bg-white">
         <div class="container mx-auto px-4">
             <!-- Section Header - Compact -->
             <div class="text-center mb-8">
-                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-3">
-                    <span class="text-primary font-semibold text-sm">🎨 Danh mục</span>
-                </div>
                 <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
                     Chọn theo<br class="md:hidden">
                     <span class="font-handwritten text-primary text-3xl md:text-4xl">sở thích của mẹ</span>
@@ -1209,7 +710,6 @@
         </style>
     </section>
 
-    <!-- Products -->
     <!-- Products - Handmade Style -->
     <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-primary/5 relative overflow-hidden" id="products">
         <!-- Decorative elements -->
@@ -1219,36 +719,15 @@
         <div class="container mx-auto px-4 relative">
             <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
-                <!-- Title with Icons -->
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                    <!-- Mobile: 2 lines -->
-                    <div class="md:hidden">
-                        <div class="inline-flex items-center gap-3 mb-2">
-                            <i class="fas fa-heart text-primary text-2xl"></i>
-                            <span>Được các mẹ</span>
-                            <i class="fas fa-sparkles text-primary text-2xl"></i>
-                        </div>
-                        <br>
-                        <span class="font-handwritten text-primary text-4xl">yêu thích nhất</span>
-                    </div>
-                    
-                    <!-- Desktop: 1 line -->
-                    <div class="hidden md:flex items-center justify-center gap-3">
-                        <i class="fas fa-heart text-primary text-3xl"></i>
-                        <span class="font-handwritten text-primary text-5xl">Được các mẹ yêu thích nhất</span>
-                        <i class="fas fa-sparkles text-primary text-3xl"></i>
-                    </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+                    Sản phẩm được
                 </h2>
-                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                <h3 class="font-handwritten text-primary text-4xl md:text-5xl mb-4">
+                    yêu thích nhất
+                </h3>
+                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed text-sm md:text-base">
                     Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu
                 </p>
-                
-                <!-- Handmade divider -->
-                <div class="flex items-center justify-center gap-3 mt-6">
-                    <div class="w-12 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
-                    <i class="fas fa-heart text-primary text-sm"></i>
-                    <div class="w-12 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
-                </div>
             </div>
             
             <!-- Filter - Soft Style -->
@@ -1411,13 +890,6 @@
         <div class="container mx-auto px-4">
             <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
-                <!-- Badge with Heart Icon -->
-                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
-                    <span class="text-primary font-semibold text-sm">
-                        <i class="fas fa-heart"></i> Lời mẹ chia sẻ
-                    </span>
-                </div>
-                
                 <!-- Title -->
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
                     Niềm tin từ<br>
@@ -2206,6 +1678,72 @@
         });
       });
     </script>
+
+    <!-- Baby Weight Selection Modal -->
+    <div class="modal-overlay hidden" id="babyWeightModal">
+        <div class="modal-content baby-weight-modal">
+            <div class="baby-weight-header">
+                <i class="fas fa-baby"></i>
+                <h3>Chọn cân nặng bé</h3>
+                <button class="modal-close-btn" id="closeBabyWeightModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="baby-weight-body">
+                <!-- Product Info -->
+                <div class="baby-weight-product" id="babyWeightProduct"></div>
+                
+                <!-- Warning -->
+                <div class="baby-weight-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Lưu ý: Vui lòng chọn đúng cân nặng của bé, không trừ hao.</span>
+                </div>
+                
+                <!-- Quick Selection -->
+                <div class="baby-weight-quick">
+                    <div class="quick-title">
+                        <i class="fas fa-bolt"></i>
+                        Chọn nhanh cân nặng
+                    </div>
+                    <div class="baby-weight-grid" id="babyWeightGrid">
+                        <button class="weight-btn" data-weight="unborn">Chưa sinh</button>
+                        <button class="weight-btn" data-weight="3kg">3kg</button>
+                        <button class="weight-btn" data-weight="4kg">4kg</button>
+                        <button class="weight-btn" data-weight="5kg">5kg</button>
+                        <button class="weight-btn" data-weight="6kg">6kg</button>
+                        <button class="weight-btn" data-weight="7kg">7kg</button>
+                        <button class="weight-btn" data-weight="8kg">8kg</button>
+                        <button class="weight-btn" data-weight="9kg">9kg</button>
+                        <button class="weight-btn" data-weight="10kg">10kg</button>
+                        <button class="weight-btn" data-weight="11kg">11kg</button>
+                        <button class="weight-btn" data-weight="12kg">12kg</button>
+                        <button class="weight-btn" data-weight="13kg">13kg</button>
+                        <button class="weight-btn" data-weight="14kg">14kg</button>
+                        <button class="weight-btn" data-weight="15kg">15kg</button>
+                    </div>
+                </div>
+                
+                <!-- Custom Input -->
+                <div class="baby-weight-custom">
+                    <div class="custom-title">
+                        <i class="fas fa-edit"></i>
+                        Nhập cân nặng khác (từ 16kg trở lên)
+                    </div>
+                    <div class="custom-input-group">
+                        <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="Nhập cân nặng..." min="16" max="50">
+                        <span class="custom-weight-unit">kg</span>
+                    </div>
+                </div>
+            </div>
+            <div class="baby-weight-footer">
+                <button class="btn-cancel-weight" id="cancelWeightBtn">Hủy</button>
+                <button class="btn-confirm-weight" id="confirmWeightBtn" disabled>
+                    <i class="fas fa-check"></i>
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- FAQ Modal -->
     <div class="faq-modal-overlay" id="faqModalOverlay" style="display: none;">

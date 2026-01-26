@@ -12,6 +12,7 @@ export async function getActiveProducts(request, env, corsHeaders) {
         const url = new URL(request.url);
         const category = url.searchParams.get('category');
         const search = url.searchParams.get('search');
+        const bundle = url.searchParams.get('bundle'); // Filter for bundle products
 
         // Build query
         let query = `
@@ -23,7 +24,20 @@ export async function getActiveProducts(request, env, corsHeaders) {
 
         const bindings = [];
 
-        if (category) {
+        // Filter for bundle products (from "Sản phẩm bán kèm" category or product_categories)
+        if (bundle === 'true') {
+            query = `
+                SELECT DISTINCT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN product_categories pc ON p.id = pc.product_id
+                LEFT JOIN categories cat ON pc.category_id = cat.id
+                WHERE p.is_active = 1
+                AND (cat.name = 'Sản phẩm bán kèm' OR c.name = 'Sản phẩm bán kèm')
+            `;
+        }
+
+        if (category && bundle !== 'true') {
             query += ` AND c.name = ?`;
             bindings.push(category);
         }

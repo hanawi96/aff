@@ -62,18 +62,24 @@ export class FlashSaleCarousel {
     }
     
     /**
-     * Update carousel display
+     * Update carousel display - DISABLED (show all products)
      */
     updateDisplay() {
+        // Carousel disabled - show all products in grid
         const container = document.getElementById(this.containerId);
         if (!container) return;
         
-        const translateX = -(this.currentPage * 100);
-        container.style.transform = `translateX(${translateX}%)`;
+        // Remove transform to show all products
+        container.style.transform = 'none';
         
-        // Update buttons
-        this.updateButtons();
-        this.updateDots();
+        // Hide buttons and dots
+        const prevBtn = document.getElementById('flashSalePrev');
+        const nextBtn = document.getElementById('flashSaleNext');
+        const dotsContainer = document.getElementById('flashSaleDots');
+        
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (dotsContainer) dotsContainer.style.display = 'none';
     }
     
     /**
@@ -155,23 +161,17 @@ export class FlashSaleCarousel {
     }
     
     /**
-     * Start auto play
+     * Start auto play - DISABLED
      */
     startAutoPlay() {
-        this.stopAutoPlay();
-        this.autoPlayInterval = setInterval(() => {
-            this.nextPage();
-        }, this.autoPlayDelay);
+        // Auto play disabled
     }
     
     /**
-     * Stop auto play
+     * Stop auto play - DISABLED
      */
     stopAutoPlay() {
-        if (this.autoPlayInterval) {
-            clearInterval(this.autoPlayInterval);
-            this.autoPlayInterval = null;
-        }
+        // Auto play disabled
     }
     
     /**
@@ -182,31 +182,11 @@ export class FlashSaleCarousel {
     }
     
     /**
-     * Setup event listeners
+     * Setup event listeners - DISABLED (no carousel navigation)
      */
     setupEventListeners() {
-        // Navigation buttons
-        const prevBtn = document.getElementById('flashSalePrev');
-        const nextBtn = document.getElementById('flashSaleNext');
-        
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => this.prevPage());
-        }
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => this.nextPage());
-        }
-        
-        // Touch/swipe support
-        this.setupTouchEvents();
-        
-        // Keyboard navigation
-        this.setupKeyboardEvents();
-        
-        // Resize handler
-        this.setupResizeHandler();
-        
-        // Pause on hover
-        this.setupHoverPause();
+        // All carousel navigation disabled
+        // Products displayed in static grid
     }
     
     /**

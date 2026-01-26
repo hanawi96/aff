@@ -11,6 +11,14 @@ import { showToast } from '../../shared/utils/helpers.js';
 export class ProductActions {
     constructor(products) {
         this.products = products;
+        this.babyWeightModal = null;
+    }
+    
+    /**
+     * Set baby weight modal instance
+     */
+    setBabyWeightModal(modal) {
+        this.babyWeightModal = modal;
     }
     
     /**
@@ -24,11 +32,41 @@ export class ProductActions {
      * Add product to cart
      */
     addToCart(productId) {
+        console.log('🛒 ProductActions: addToCart called for productId:', productId);
+        
         const product = this.products.find(p => p.id === productId);
         if (!product) {
-            console.error('Product not found:', productId);
+            console.error('❌ ProductActions: Product not found:', productId);
             return;
         }
+        
+        console.log('📦 ProductActions: Found product:', product.name);
+        console.log('   Product data:', product);
+        console.log('   BabyWeightModal instance:', this.babyWeightModal);
+        
+        // Check if product needs baby weight selection
+        if (this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product)) {
+            console.log('⚖️ ProductActions: Opening baby weight modal for product:', product.name);
+            // Open modal with callback
+            this.babyWeightModal.open(product, (selectedWeight) => {
+                console.log('✅ ProductActions: Weight selected:', selectedWeight);
+                this.addToCartWithWeight(product, selectedWeight);
+            });
+        } else {
+            console.log('➡️ ProductActions: Adding directly without baby weight');
+            // Add directly without baby weight
+            this.addToCartWithWeight(product, null);
+        }
+    }
+    
+    /**
+     * Add product to cart with weight
+     */
+    addToCartWithWeight(product, weight) {
+        console.log('🎯 addToCartWithWeight called');
+        console.log('   Product:', product.name);
+        console.log('   Weight received:', weight);
+        console.log('   Weight type:', typeof weight);
         
         const cartItem = {
             id: product.id,
@@ -38,8 +76,11 @@ export class ProductActions {
             image: product.image_url,
             maxQuantity: 99,
             badges: [],
-            isFlashSale: false
+            isFlashSale: false,
+            size: weight || '' // Add weight as size
         };
+        
+        console.log('   Cart item size:', cartItem.size);
         
         // Add badges
         if (product.is_handmade === 1) {

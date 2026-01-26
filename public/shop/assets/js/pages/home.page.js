@@ -8,6 +8,7 @@ import { ProductGrid, ProductActions } from '../features/products/index.js';
 import { renderCategories, CategoryActions } from '../features/categories/index.js';
 import { FlashSaleCarousel, FlashSaleActions, FlashSaleTimer } from '../features/flash-sale/index.js';
 import { QuickCheckout } from '../features/checkout/index.js';
+import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
 
 /**
@@ -40,6 +41,10 @@ export class HomePage {
             // Clean up old localStorage favorites (no longer used)
             localStorage.removeItem('product_favorites');
             
+            // Check if coming from cart page
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkoutParam = urlParams.get('checkout');
+            
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
             
@@ -57,6 +62,13 @@ export class HomePage {
             
             // Setup cart update listener
             this.setupCartUpdateListener();
+            
+            // If coming from cart, open checkout modal with cart data
+            if (checkoutParam === 'cart') {
+                setTimeout(() => {
+                    this.openCheckoutFromCart();
+                }, 500);
+            }
             
         } catch (error) {
             console.error('Home page initialization error:', error);
@@ -150,15 +162,24 @@ export class HomePage {
      * Initialize components (CRITICAL ONLY)
      */
     initializeCriticalComponents() {
+        console.log('🔧 HomePage: Initializing critical components...');
+        
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
             initialCount: 12,
             itemsPerPage: 12
         });
+        console.log('✅ HomePage: ProductGrid initialized');
+        
+        // Baby Weight Modal
+        this.babyWeightModal = new BabyWeightModal();
+        console.log('✅ HomePage: BabyWeightModal initialized');
         
         // Product Actions
         this.productActions = new ProductActions(this.products);
+        this.productActions.setBabyWeightModal(this.babyWeightModal);
         window.productActions = this.productActions;
+        console.log('✅ HomePage: ProductActions initialized and linked to BabyWeightModal');
         
         // Flash Sale Components - DISABLED (using vertical scroll instead)
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
@@ -168,11 +189,15 @@ export class HomePage {
             this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
             
             window.flashSaleActions = this.flashSaleActions;
+            console.log('✅ HomePage: FlashSale components initialized');
         }
         
         // Quick Checkout
         this.quickCheckout = new QuickCheckout();
         window.quickCheckout = this.quickCheckout;
+        console.log('✅ HomePage: QuickCheckout initialized');
+        
+        console.log('🎉 HomePage: All critical components initialized successfully');
     }
     
     /**
@@ -502,5 +527,63 @@ export class HomePage {
         console.error(message);
         // TODO: Implement error UI
         alert(message);
+    }
+    
+    /**
+     * Open checkout modal from cart page
+     */
+    openCheckoutFromCart() {
+        try {
+            // Get checkout data from localStorage
+            const checkoutDataStr = localStorage.getItem('checkoutData');
+            if (!checkoutDataStr) {
+                console.error('No checkout data found');
+                return;
+            }
+            
+            const checkoutData = JSON.parse(checkoutDataStr);
+            
+            // Validate data is not too old (5 minutes)
+            const now = Date.now();
+            if (now - checkoutData.timestamp > 5 * 60 * 1000) {
+                console.error('Checkout data expired');
+                localStorage.removeItem('checkoutData');
+                alert('Dữ liệu giỏ hàng đã hết hạn. Vui lòng quay lại giỏ hàng.');
+                window.location.href = 'cart.html';
+                return;
+            }
+            
+            // Open quick checkout modal with cart data
+            if (window.quickCheckout) {
+                // For now, just open with first product
+                // TODO: Implement multi-product checkout
+                if (checkoutData.cart && checkoutData.cart.length > 0) {
+                    const firstProduct = checkoutData.cart[0];
+                    window.quickCheckout.open({
+                        id: firstProduct.id,
+                        name: firstProduct.name,
+                        price: firstProduct.price,
+                        image: firstProduct.image,
+                        quantity: firstProduct.quantity
+                    });
+                    
+                    // Apply discount if exists
+                    if (checkoutData.discount) {
+                        setTimeout(() => {
+                            window.quickCheckout.applyDiscount(checkoutData.discount);
+                        }, 500);
+                    }
+                }
+            }
+            
+            // Clear checkout data
+            localStorage.removeItem('checkoutData');
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+        } catch (error) {
+            console.error('Error opening checkout from cart:', error);
+        }
     }
 }

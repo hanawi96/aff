@@ -37,7 +37,9 @@ class CartService {
                 quantity: quantity,
                 maxQuantity: product.maxQuantity || 99,
                 badges: product.badges || [],
-                isFlashSale: product.isFlashSale || false
+                isFlashSale: product.isFlashSale || false,
+                size: product.size || '', // Add baby weight (size)
+                note: product.note || '' // Add product note
             });
         }
         

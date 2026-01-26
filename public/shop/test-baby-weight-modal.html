@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Baby Weight Modal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            padding: 2rem;
+            font-family: 'Quicksand', sans-serif;
+        }
+        .test-btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 1rem;
+        }
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+        }
+        .log-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-left: 3px solid #f4a261;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        /* Override modal styles for better scrolling */
+        .baby-weight-modal {
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+        
+        .baby-weight-body {
+            overflow-y: auto !important;
+            flex: 1 !important;
+            max-height: calc(90vh - 200px) !important;
+        }
+        
+        .baby-weight-header,
+        .baby-weight-footer {
+            flex-shrink: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Baby Weight Modal</h1>
+    
+    <div>
+        <button class="test-btn" onclick="testModal()">Test Modal</button>
+        <button class="test-btn" onclick="testWithProduct()">Test with Product (needs weight)</button>
+        <button class="test-btn" onclick="testWithAdultProduct()">Test with Adult Product (skip weight)</button>
+        <button class="test-btn" onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div class="log-container" id="logContainer">
+        <div class="log-item">Console logs will appear here...</div>
+    </div>
+
+    <!-- Baby Weight Selection Modal -->
+    <div class="modal-overlay hidden" id="babyWeightModal">
+        <div class="modal-content baby-weight-modal">
+            <div class="baby-weight-header">
+                <i class="fas fa-baby"></i>
+                <h3>Chọn cân nặng bé</h3>
+                <button class="modal-close-btn" id="closeBabyWeightModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="baby-weight-body">
+                <!-- Product Info -->
+                <div class="baby-weight-product" id="babyWeightProduct"></div>
+                
+                <!-- Warning -->
+                <div class="baby-weight-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Lưu ý: Vui lòng chọn đúng cân nặng của bé, không trừ hao.</span>
+                </div>
+                
+                <!-- Quick Selection -->
+                <div class="baby-weight-quick">
+                    <div class="quick-title">
+                        <i class="fas fa-bolt"></i>
+                        Chọn nhanh cân nặng
+                    </div>
+                    <div class="baby-weight-grid" id="babyWeightGrid">
+                        <button class="weight-btn" data-weight="unborn">Chưa sinh</button>
+                        <button class="weight-btn" data-weight="3kg">3kg</button>
+                        <button class="weight-btn" data-weight="4kg">4kg</button>
+                        <button class="weight-btn" data-weight="5kg">5kg</button>
+                        <button class="weight-btn" data-weight="6kg">6kg</button>
+                        <button class="weight-btn" data-weight="7kg">7kg</button>
+                        <button class="weight-btn" data-weight="8kg">8kg</button>
+                        <button class="weight-btn" data-weight="9kg">9kg</button>
+                        <button class="weight-btn" data-weight="10kg">10kg</button>
+                        <button class="weight-btn" data-weight="11kg">11kg</button>
+                        <button class="weight-btn" data-weight="12kg">12kg</button>
+                        <button class="weight-btn" data-weight="13kg">13kg</button>
+                        <button class="weight-btn" data-weight="14kg">14kg</button>
+                        <button class="weight-btn" data-weight="15kg">15kg</button>
+                    </div>
+                </div>
+                
+                <!-- Custom Input -->
+                <div class="baby-weight-custom">
+                    <div class="custom-title">
+                        <i class="fas fa-edit"></i>
+                        Nhập cân nặng khác (từ 16kg trở lên)
+                    </div>
+                    <div class="custom-input-group">
+                        <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="Nhập cân nặng..." min="16" max="50">
+                        <span class="custom-weight-unit">kg</span>
+                    </div>
+                </div>
+            </div>
+            <div class="baby-weight-footer">
+                <button class="btn-cancel-weight" id="cancelWeightBtn">Hủy</button>
+                <button class="btn-confirm-weight" id="confirmWeightBtn" disabled>
+                    <i class="fas fa-check"></i>
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { BabyWeightModal } from './assets/js/shared/components/baby-weight-modal.js';
+        
+        // Override console.log to show in UI
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logContainer = document.getElementById('logContainer');
+        
+        function addLog(message, type = 'log') {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+            logItem.style.borderLeftColor = type === 'error' ? '#e74c3c' : '#f4a261';
+            logItem.textContent = message;
+            logContainer.appendChild(logItem);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Also log to real console
+            if (type === 'error') {
+                originalError(message);
+            } else {
+                originalLog(message);
+            }
+        }
+        
+        console.log = (...args) => addLog(args.join(' '), 'log');
+        console.error = (...args) => addLog('ERROR: ' + args.join(' '), 'error');
+        
+        // Initialize modal
+        window.babyWeightModal = new BabyWeightModal();
+        
+        // Test functions
+        window.testModal = function() {
+            console.log('=== TEST: Opening modal directly ===');
+            const modal = document.getElementById('babyWeightModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                console.log('✅ Modal opened directly');
+            } else {
+                console.error('❌ Modal element not found');
+            }
+        };
+        
+        window.testWithProduct = function() {
+            console.log('=== TEST: Opening modal with product (needs weight) ===');
+            const testProduct = {
+                id: 1,
+                name: 'Vòng Đầu Tam 7 Bi Bạc',
+                price: 150000,
+                image_url: '/assets/images/product_img/tat-ca-mau.webp',
+                categories: [
+                    { name: 'Vòng cho bé' }
+                ]
+            };
+            
+            console.log('Product:', testProduct);
+            
+            if (window.babyWeightModal) {
+                const needsWeight = window.babyWeightModal.needsBabyWeight(testProduct);
+                console.log('Needs weight:', needsWeight);
+                
+                if (needsWeight) {
+                    window.babyWeightModal.open(testProduct, (weight) => {
+                        console.log('✅ Weight selected:', weight);
+                    });
+                }
+            } else {
+                console.error('❌ BabyWeightModal not initialized');
+            }
+        };
+        
+        window.testWithAdultProduct = function() {
+            console.log('=== TEST: Testing with adult product (should skip weight) ===');
+            const adultProduct = {
+                id: 2,
+                name: 'Vòng Người Lớn',
+                price: 200000,
+                image_url: '/assets/images/product_img/tat-ca-mau.webp',
+                categories: [
+                    { name: 'Vòng người lớn' }
+                ]
+            };
+            
+            console.log('Product:', adultProduct);
+            
+            if (window.babyWeightModal) {
+                const needsWeight = window.babyWeightModal.needsBabyWeight(adultProduct);
+                console.log('Needs weight:', needsWeight);
+                
+                if (needsWeight) {
+                    console.log('Opening modal...');
+                    window.babyWeightModal.open(adultProduct, (weight) => {
+                        console.log('✅ Weight selected:', weight);
+                    });
+                } else {
+                    console.log('✅ Correctly skipped weight selection for adult product');
+                }
+            } else {
+                console.error('❌ BabyWeightModal not initialized');
+            }
+        };
+        
+        window.clearLogs = function() {
+            logContainer.innerHTML = '<div class="log-item">Console logs cleared...</div>';
+        };
+        
+        console.log('🎉 Test page loaded successfully');
+        console.log('BabyWeightModal instance:', window.babyWeightModal);
+    </script>
+</body>
+</html>

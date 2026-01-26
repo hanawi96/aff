@@ -2,13 +2,18 @@
 // CART PAGE - OPTIMIZED & PERFORMANT
 // ============================================
 
+// Import discount service
+import { discountService } from './assets/js/shared/services/discount.service.js';
+
 // Configuration
 const CONFIG = {
     FREE_SHIPPING_THRESHOLD: 500000,
     SHIPPING_FEE: 30000,
     STORAGE_KEY: 'cart',
     DISCOUNT_KEY: 'discount',
-    DEBOUNCE_DELAY: 300
+    DEBOUNCE_DELAY: 300,
+    // Backend API URL - use port 8787 if running on Live Server
+    API_BASE_URL: window.location.port === '5500' ? 'http://localhost:8787' : ''
 };
 
 // State Management
@@ -17,15 +22,12 @@ const state = {
     discount: null,
     subtotal: 0,
     total: 0,
-    shippingFee: CONFIG.SHIPPING_FEE
+    shippingFee: CONFIG.SHIPPING_FEE,
+    availableDiscounts: [], // Store available discounts from API
+    orderNote: '', // Store order note
+    bundleProducts: [], // Will be loaded from API
+    paymentMethod: 'cod' // Default payment method
 };
-
-// Available discount codes
-const DISCOUNT_CODES = [
-    { code: 'FREESHIP', type: 'shipping', value: 0, description: 'Miễn phí ship' },
-    { code: 'NEWMOM10', type: 'percent', value: 10, description: 'Giảm 10%' },
-    { code: 'SUMMER2024', type: 'fixed', value: 20000, description: 'Giảm 20.000đ' }
-];
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -152,28 +154,262 @@ const storage = {
 
 const cart = {
     // Initialize cart
-    init: () => {
+    init: async () => {
+        console.log('=== CART INIT START ===');
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
+        console.log('Cart items:', state.cart.length);
+        
+        // Load available discounts from API
+        await cart.loadAvailableDiscounts();
+        
+        // Load bundle products from API
+        await cart.loadBundleProducts();
         
         if (state.cart.length === 0) {
+            console.log('Cart is empty, showing empty state');
             cart.showEmpty();
         } else {
+            console.log('Cart has items, rendering...');
+            // Ensure summary is visible before rendering
+            const summarySection = document.querySelector('.cart-summary-section');
+            const cartSummary = document.querySelector('.cart-summary');
+            console.log('Summary section element:', summarySection);
+            console.log('Cart summary element:', cartSummary);
+            console.log('Summary section classes:', summarySection?.className);
+            console.log('Cart summary classes:', cartSummary?.className);
+            
+            summarySection?.classList.remove('hidden');
+            console.log('After remove hidden from section:', summarySection?.className);
+            
             cart.render();
             cart.updateSummary();
             cart.loadRecommended();
         }
 
         cart.setupEventListeners();
+        
+        // Fill demo data for testing (only if fields are empty)
+        setTimeout(() => {
+            const phoneInput = document.getElementById('cartPhone');
+            const nameInput = document.getElementById('cartName');
+            
+            if (phoneInput && !phoneInput.value) {
+                phoneInput.value = '0987654321';
+            }
+            
+            if (nameInput && !nameInput.value) {
+                nameInput.value = 'Nguyễn Văn A';
+            }
+            
+            // Set demo address after address selector is initialized
+            if (window.cartAddressSelector) {
+                // Wait for address selector to be ready
+                setTimeout(() => {
+                    // Set province (Hà Nội - code 01)
+                    const provinceSelect = document.getElementById('cartProvince');
+                    if (provinceSelect && !provinceSelect.value) {
+                        provinceSelect.value = '01';
+                        provinceSelect.dispatchEvent(new Event('change'));
+                        
+                        // Wait for districts to load, then set district
+                        setTimeout(() => {
+                            const districtSelect = document.getElementById('cartDistrict');
+                            if (districtSelect && districtSelect.options.length > 1) {
+                                districtSelect.selectedIndex = 1; // Select first district
+                                districtSelect.dispatchEvent(new Event('change'));
+                                
+                                // Wait for wards to load, then set ward
+                                setTimeout(() => {
+                                    const wardSelect = document.getElementById('cartWard');
+                                    if (wardSelect && wardSelect.options.length > 1) {
+                                        wardSelect.selectedIndex = 1; // Select first ward
+                                    }
+                                    
+                                    // Set street address
+                                    const streetInput = document.getElementById('cartStreet');
+                                    if (streetInput && !streetInput.value) {
+                                        streetInput.value = 'Số 123, Ngõ 456';
+                                    }
+                                }, 500);
+                            }
+                        }, 500);
+                    }
+                }, 1000);
+            }
+            
+            console.log('✅ Demo data filled for testing');
+        }, 500);
+        
+        // If there's a saved discount, show it in the input
+        if (state.discount) {
+            const input = document.getElementById('discountCode');
+            const applyBtn = document.getElementById('applyDiscountBtn');
+            
+            if (input) {
+                input.value = state.discount.code;
+                input.disabled = true;
+            }
+            
+            if (applyBtn) {
+                applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
+                applyBtn.onclick = discount.changeCode;
+            }
+            
+            // Show discount result
+            const discountText = discountService.formatDiscountText(state.discount);
+            discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
+        }
+    },
+
+    // Load available discounts from API
+    loadAvailableDiscounts: async () => {
+        try {
+            console.log('Loading available discounts from API...');
+            const allDiscounts = await discountService.getActiveDiscounts();
+            
+            // Filter visible and active discounts
+            state.availableDiscounts = allDiscounts.filter(d => {
+                return d.active && d.visible;
+            });
+            
+            console.log('Loaded discounts:', state.availableDiscounts.length);
+        } catch (error) {
+            console.error('Error loading discounts:', error);
+            state.availableDiscounts = [];
+        }
+    },
+
+    // Load bundle products from API
+    loadBundleProducts: async () => {
+        try {
+            console.log('Loading bundle products from API...');
+            console.log('API Base URL:', CONFIG.API_BASE_URL);
+            
+            // Use configured API base URL
+            const apiUrl = CONFIG.API_BASE_URL + '/api/shop/products?bundle=true';
+            console.log('Fetching from:', apiUrl);
+            
+            let response = await fetch(apiUrl);
+            
+            // If 404, try getting all products and filter client-side
+            if (response.status === 404) {
+                console.log('Bundle endpoint not found, trying all products endpoint...');
+                response = await fetch(CONFIG.API_BASE_URL + '/api/shop/products');
+            }
+            
+            if (!response.ok) {
+                console.error('API response not OK:', response.status, response.statusText);
+                throw new Error('Failed to load bundle products');
+            }
+            
+            const data = await response.json();
+            console.log('API response data:', data);
+            
+            if (!data.success) {
+                console.error('API returned error:', data.error);
+                throw new Error(data.error || 'API returned unsuccessful response');
+            }
+            
+            // Filter for bundle products (category name contains "bán kèm")
+            let bundleProducts = (data.products || []).filter(product => {
+                // Check if product has "Sản phẩm bán kèm" category
+                if (product.categories && Array.isArray(product.categories)) {
+                    return product.categories.some(cat => 
+                        cat.name && cat.name.toLowerCase().includes('bán kèm')
+                    );
+                }
+                // Fallback: check category_name
+                if (product.category_name && product.category_name.toLowerCase().includes('bán kèm')) {
+                    return true;
+                }
+                return false;
+            });
+            
+            console.log('Filtered bundle products:', bundleProducts.length);
+            
+            // Transform API data to match our format
+            state.bundleProducts = bundleProducts.map(product => {
+                console.log('Processing product:', product.name);
+                return {
+                    id: product.id,
+                    name: product.name,
+                    description: product.description || '',
+                    image: product.image_url || '/assets/images/product_img/tat-ca-mau.webp',
+                    price: product.price,
+                    originalPrice: product.original_price || product.price,
+                    isBundleProduct: true,
+                    maxQuantity: product.stock_quantity || 99
+                };
+            });
+            
+            console.log('✅ Successfully loaded', state.bundleProducts.length, 'bundle products from database');
+            
+            if (state.bundleProducts.length === 0) {
+                console.warn('No bundle products found in database, using fallback');
+                throw new Error('No bundle products found');
+            }
+        } catch (error) {
+            console.error('❌ Error loading bundle products:', error);
+            // Fallback to hardcoded data if API fails
+            console.log('⚠️ Using fallback hardcoded bundle products (4 items)');
+            state.bundleProducts = [
+                {
+                    id: 133,
+                    name: 'Bó dâu 7 CÀNH (bé trai)',
+                    description: 'Bó dâu tằm 7 cành tự nhiên dành riêng cho bé trai, giúp bé ngủ ngon, giảm stress và tăng cường tự nhiên.',
+                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
+                    price: 42000,
+                    originalPrice: 62000,
+                    isBundleProduct: true,
+                    maxQuantity: 99
+                },
+                {
+                    id: 134,
+                    name: 'Bó dâu 9 CÀNH (bé gái)',
+                    description: 'Bó dâu tằm 9 cành tự nhiên dành riêng cho bé gái, giúp bé ngủ ngon, giảm căng thẳng và mang lại may mắn cho bé yêu.',
+                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-dau-tam-de-phong.webp',
+                    price: 47000,
+                    originalPrice: 67000,
+                    isBundleProduct: true,
+                    maxQuantity: 99
+                },
+                {
+                    id: 84,
+                    name: 'Móc chìa khóa dâu tằm',
+                    description: 'Móc chìa khóa làm từ gỗ dâu tằm tự nhiên, nhỏ gọn và tiện lợi. Mang lại may mắn và bình an.',
+                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp',
+                    price: 29000,
+                    originalPrice: 39000,
+                    isBundleProduct: true,
+                    maxQuantity: 99
+                },
+                {
+                    id: 83,
+                    name: 'Túi Dâu Tằm Để Giường',
+                    description: 'Túi dâu tằm để giường, trong túi nhung cao cấp. Giúp bé ngủ ngon, giảm stress và tăng cường tự nhiên.',
+                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/tui_dau_tam.webp',
+                    price: 35000,
+                    originalPrice: 45000,
+                    isBundleProduct: true,
+                    maxQuantity: 99
+                }
+            ];
+        }
     },
 
     // Show empty cart
     showEmpty: () => {
+        console.log('=== SHOW EMPTY CART ===');
         document.getElementById('emptyCart').classList.remove('hidden');
         document.getElementById('cartItems').classList.add('hidden');
         document.getElementById('discountSection').classList.add('hidden');
+        document.getElementById('paymentSection').classList.add('hidden');
+        document.getElementById('customerInfoSection').classList.add('hidden');
         document.getElementById('recommendedSection').classList.add('hidden');
-        document.querySelector('.cart-summary-section').classList.add('hidden');
+        const summarySection = document.querySelector('.cart-summary-section');
+        summarySection.classList.add('hidden');
+        console.log('Summary section hidden:', summarySection.className);
     },
 
     // Update quantity
@@ -214,19 +450,62 @@ const cart = {
     render: () => {
         const container = document.getElementById('cartItems');
         
+        console.log('🛒 Rendering cart items:', state.cart.length);
+        state.cart.forEach((item, index) => {
+            console.log(`   Item ${index + 1}:`, item.name);
+            console.log('      - size:', item.size);
+            console.log('      - size type:', typeof item.size);
+            console.log('      - size truthy:', !!item.size);
+        });
+        
         const html = state.cart.map(item => {
-            const badgesHtml = item.badges && item.badges.length > 0 
-                ? '<div class="item-badges">' + 
-                  item.badges.map(badge => {
-                      const badgeClass = badge === 'Thủ công 100%' ? 'badge-handmade' : 'badge-chemical-free';
-                      return '<span class="item-badge ' + badgeClass + '">' + badge + '</span>';
-                  }).join('') + 
-                  '</div>'
-                : '';
-            
             const originalPriceHtml = item.originalPrice && item.originalPrice > item.price
                 ? '<span class="item-original-price">' + utils.formatPrice(item.originalPrice) + '</span>'
                 : '';
+            
+            // Note display
+            let noteHtml = '';
+            if (item.note) {
+                noteHtml = '<div class="item-note-saved">' +
+                    '<i class="fas fa-sticky-note"></i>' +
+                    '<div>' +
+                    '<div class="item-note-text">' + utils.escapeHtml(item.note) + '</div>' +
+                    '<div class="item-note-actions">' +
+                    '<button class="btn-note-action btn-edit-note" onclick="cart.editItemNote(' + item.id + ')">' +
+                    '<i class="fas fa-edit"></i> Sửa' +
+                    '</button>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
+            } else {
+                noteHtml = '<div class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
+                    '<i class="fas fa-plus-circle"></i>' +
+                    '<span>Thêm lưu ý cho sản phẩm</span>' +
+                    '</div>' +
+                    '<div class="item-note-input hidden" id="noteInput' + item.id + '">' +
+                    '<textarea class="item-note-textarea" ' +
+                    'id="noteText' + item.id + '" ' +
+                    'placeholder="Ví dụ: Làm size nhỏ hơn, thêm charm hình tim..." ' +
+                    'maxlength="200"></textarea>' +
+                    '<div class="item-note-actions">' +
+                    '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + item.id + ')">' +
+                    '<i class="fas fa-check"></i> Lưu' +
+                    '</button>' +
+                    '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelItemNote(' + item.id + ')">' +
+                    '<i class="fas fa-times"></i> Hủy' +
+                    '</button>' +
+                    '</div>' +
+                    '</div>';
+            }
+            
+            // Baby weight badge display
+            let babyWeightHtml = '';
+            if (item.size) {
+                babyWeightHtml = '<div class="item-baby-weight-badge">' +
+                    '<i class="fas fa-baby"></i>' +
+                    '<span>Cân nặng: ' + utils.escapeHtml(item.size) + '</span>' +
+                    '</div>';
+            }
             
             return '<div class="cart-item" data-id="' + item.id + '">' +
                 '<img src="' + (item.image || '/assets/images/product_img/tat-ca-mau.webp') + '" ' +
@@ -237,11 +516,12 @@ const cart = {
                 '<div class="item-name" onclick="cart.viewProduct(' + item.id + ')">' +
                 utils.escapeHtml(item.name) +
                 '</div>' +
-                badgesHtml +
+                babyWeightHtml +
                 '<div class="item-price-row">' +
                 '<span class="item-price">' + utils.formatPrice(item.price) + '</span>' +
                 originalPriceHtml +
                 '</div>' +
+                noteHtml +
                 '<div class="item-actions">' +
                 '<div class="quantity-selector">' +
                 '<button class="qty-btn" ' +
@@ -271,12 +551,187 @@ const cart = {
         container.innerHTML = html;
         container.classList.remove('hidden');
         
-        // Show discount section
+        console.log('=== RENDER COMPLETE ===');
+        
+        // Show discount section, order note section, payment section, and customer info section
         document.getElementById('discountSection').classList.remove('hidden');
+        document.getElementById('orderNoteSection').classList.remove('hidden');
+        document.getElementById('paymentSection').classList.remove('hidden');
+        document.getElementById('customerInfoSection').classList.remove('hidden');
+        
+        // Dispatch event for address selector initialization
+        setTimeout(() => {
+            window.dispatchEvent(new Event('cartInitialized'));
+        }, 100);
+        
+        // Show cart summary section
+        const summarySection = document.querySelector('.cart-summary-section');
+        const cartSummary = document.querySelector('.cart-summary');
+        console.log('Before showing summary:');
+        console.log('- Summary section:', summarySection);
+        console.log('- Cart summary:', cartSummary);
+        console.log('- Summary section display:', window.getComputedStyle(summarySection).display);
+        console.log('- Cart summary display:', window.getComputedStyle(cartSummary).display);
+        console.log('- Cart summary position:', window.getComputedStyle(cartSummary).position);
+        console.log('- Cart summary bottom:', window.getComputedStyle(cartSummary).bottom);
+        console.log('- Cart summary z-index:', window.getComputedStyle(cartSummary).zIndex);
+        
+        summarySection.classList.remove('hidden');
+        
+        console.log('After showing summary:');
+        console.log('- Summary section classes:', summarySection.className);
+        console.log('- Summary section display:', window.getComputedStyle(summarySection).display);
+        console.log('- Cart summary display:', window.getComputedStyle(cartSummary).display);
+        console.log('- Cart summary height:', cartSummary.offsetHeight);
+        console.log('- Cart summary width:', cartSummary.offsetWidth);
+        console.log('- Cart summary getBoundingClientRect:', cartSummary.getBoundingClientRect());
+        console.log('- Cart summary visibility:', window.getComputedStyle(cartSummary).visibility);
+        console.log('- Cart summary opacity:', window.getComputedStyle(cartSummary).opacity);
+        console.log('- Cart summary overflow:', window.getComputedStyle(cartSummary).overflow);
+        
+        // Check parent overflow
+        console.log('- Summary section overflow:', window.getComputedStyle(summarySection).overflow);
+        console.log('- Summary section height:', summarySection.offsetHeight);
+        
+        // Show bundle offer section
+        cart.renderBundleOffer();
         
         // Update cart count
         const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        document.getElementById('cartCount').textContent = '(' + totalItems + ')';
+        document.getElementById('cartCount').textContent = '(' + totalItems + ' sản phẩm)';
+    },
+
+    // Render bundle offer
+    renderBundleOffer: () => {
+        const section = document.getElementById('bundleOfferSection');
+        const container = document.getElementById('bundleProducts');
+        
+        if (!section || !container) return;
+        
+        // Check if cart has non-bundle products
+        const hasRegularProducts = state.cart.some(item => !item.isBundleProduct);
+        
+        if (!hasRegularProducts) {
+            section.classList.add('hidden');
+            return;
+        }
+        
+        section.classList.remove('hidden');
+        
+        const html = state.bundleProducts.map(product => {
+            const isInCart = state.cart.some(item => item.id === product.id);
+            const discountPercent = Math.round((1 - product.price / product.originalPrice) * 100);
+            
+            return '<div class="bundle-product-card ' + (isInCart ? 'selected' : '') + '">' +
+                '<img src="' + product.image + '" alt="' + utils.escapeHtml(product.name) + '" class="bundle-product-image">' +
+                '<div class="bundle-product-info">' +
+                '<div class="bundle-product-name">' + utils.escapeHtml(product.name) + '</div>' +
+                '<div class="bundle-product-pricing">' +
+                '<div class="bundle-original-price">' + utils.formatPrice(product.originalPrice) + '</div>' +
+                '<div class="bundle-price">' + utils.formatPrice(product.price) + '</div>' +
+                '<div class="bundle-discount-badge">-' + discountPercent + '%</div>' +
+                '</div>' +
+                '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
+                'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
+                '<i class="fas fa-' + (isInCart ? 'check' : 'plus') + '-circle"></i>' +
+                '<span>' + (isInCart ? 'Đã thêm' : 'Thêm ngay') + '</span>' +
+                '</button>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+        
+        container.innerHTML = html;
+    },
+
+    // Toggle bundle product
+    // Toggle bundle product
+    toggleBundleProduct: (productId) => {
+        const existingItem = state.cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+            // Remove from cart
+            state.cart = state.cart.filter(item => item.id !== productId);
+            utils.showToast('Đã xóa khỏi giỏ hàng', 'success');
+        } else {
+            // Add to cart directly (bundle products don't need baby weight)
+            const bundleProduct = state.bundleProducts.find(p => p.id === productId);
+            if (bundleProduct) {
+                state.cart.push({
+                    ...bundleProduct,
+                    quantity: 1,
+                    maxQuantity: 10
+                });
+                utils.showToast('Đã thêm vào giỏ hàng! 🎉', 'success');
+            }
+        }
+        
+        storage.saveCart(state.cart);
+        cart.render();
+        cart.updateSummary();
+    },
+
+    // Toggle item note input
+    toggleItemNote: (productId) => {
+        const noteInput = document.getElementById('noteInput' + productId);
+        const toggle = noteInput.previousElementSibling;
+        
+        if (noteInput.classList.contains('hidden')) {
+            noteInput.classList.remove('hidden');
+            toggle.classList.add('active');
+            document.getElementById('noteText' + productId).focus();
+        } else {
+            noteInput.classList.add('hidden');
+            toggle.classList.remove('active');
+        }
+    },
+
+    // Save item note
+    saveItemNote: (productId) => {
+        const noteText = document.getElementById('noteText' + productId).value.trim();
+        
+        if (!noteText) {
+            utils.showToast('Vui lòng nhập lưu ý', 'error');
+            return;
+        }
+        
+        const item = state.cart.find(i => i.id === productId);
+        if (item) {
+            item.note = noteText;
+            storage.saveCart(state.cart);
+            cart.render();
+            utils.showToast('Đã lưu lưu ý cho sản phẩm', 'success');
+        }
+    },
+
+    // Cancel item note
+    cancelItemNote: (productId) => {
+        const noteInput = document.getElementById('noteInput' + productId);
+        const toggle = noteInput.previousElementSibling;
+        const noteText = document.getElementById('noteText' + productId);
+        
+        noteText.value = '';
+        noteInput.classList.add('hidden');
+        toggle.classList.remove('active');
+    },
+
+    // Edit item note
+    editItemNote: (productId) => {
+        const item = state.cart.find(i => i.id === productId);
+        if (item && item.note) {
+            item.note = null;
+            storage.saveCart(state.cart);
+            cart.render();
+            
+            // Auto open note input
+            setTimeout(() => {
+                const noteInput = document.getElementById('noteInput' + productId);
+                const noteText = document.getElementById('noteText' + productId);
+                if (noteInput && noteText) {
+                    noteInput.classList.remove('hidden');
+                    noteText.focus();
+                }
+            }, 100);
+        }
     },
 
     // Handle quantity input
@@ -298,14 +753,16 @@ const cart = {
             return sum + (item.price * item.quantity);
         }, 0);
 
-        // Calculate discount
+        // Check if cart has bundle products
+        const hasBundleProduct = state.cart.some(item => item.isBundleProduct);
+
+        // Calculate discount using discountService
         let discountAmount = 0;
         if (state.discount) {
-            if (state.discount.type === 'percent') {
-                discountAmount = Math.floor(state.subtotal * state.discount.value / 100);
-            } else if (state.discount.type === 'fixed') {
-                discountAmount = state.discount.value;
-            } else if (state.discount.type === 'shipping') {
+            discountAmount = discountService.calculateDiscountAmount(state.discount, state.subtotal);
+            
+            // Handle free shipping discount
+            if (state.discount.type === 'freeship') {
                 state.shippingFee = 0;
             }
         }
@@ -313,21 +770,71 @@ const cart = {
         // Calculate shipping fee
         if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
             state.shippingFee = 0;
-        } else if (state.discount?.type !== 'shipping') {
+        } else if (hasBundleProduct) {
+            // Free shipping if cart has at least 1 bundle product
+            state.shippingFee = 0;
+        } else if (!state.discount || state.discount.type !== 'freeship') {
             state.shippingFee = CONFIG.SHIPPING_FEE;
         }
 
         // Calculate total
         state.total = state.subtotal - discountAmount + state.shippingFee;
 
+        console.log('=== UPDATE SUMMARY ===');
+        console.log('Subtotal:', state.subtotal);
+        console.log('Has bundle product:', hasBundleProduct);
+        console.log('Discount:', discountAmount);
+        console.log('Shipping:', state.shippingFee);
+        console.log('Total:', state.total);
+
+        // Ensure cart summary section is visible
+        const summarySection = document.querySelector('.cart-summary-section');
+        const cartSummary = document.querySelector('.cart-summary');
+        console.log('Summary section exists:', !!summarySection);
+        console.log('Cart summary exists:', !!cartSummary);
+        
+        summarySection?.classList.remove('hidden');
+
         // Update UI
         const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+        
         document.getElementById('summaryItemCount').textContent = `(${totalItems} sp)`;
         document.getElementById('subtotal').textContent = utils.formatPrice(state.subtotal);
-        document.getElementById('shippingFee').textContent = state.shippingFee === 0 
-            ? 'Miễn phí' 
-            : utils.formatPrice(state.shippingFee);
+        
+        // Update shipping fee with bundle product message
+        const shippingFeeElement = document.getElementById('shippingFee');
+        if (state.shippingFee === 0) {
+            if (hasBundleProduct) {
+                shippingFeeElement.innerHTML = '<span style="color: #27ae60; font-weight: 700;">Miễn phí</span> <span style="font-size: 0.75rem; color: #27ae60;">(Mua kèm)</span>';
+            } else {
+                shippingFeeElement.textContent = 'Miễn phí';
+            }
+        } else {
+            shippingFeeElement.textContent = utils.formatPrice(state.shippingFee);
+        }
+        
         document.getElementById('totalAmount').textContent = utils.formatPrice(state.total);
+        
+        // Update checkout button total
+        const checkoutTotal = document.getElementById('checkoutTotal');
+        if (checkoutTotal) {
+            checkoutTotal.textContent = utils.formatPrice(state.total);
+        }
+        
+        console.log('Total amount element text:', document.getElementById('totalAmount').textContent);
+        console.log('Total amount element display:', window.getComputedStyle(document.getElementById('totalAmount')).display);
+        
+        // Check if total-row is visible
+        const totalRow = document.querySelector('.total-row');
+        console.log('Total row element:', totalRow);
+        console.log('Total row display:', window.getComputedStyle(totalRow).display);
+        console.log('Total row visibility:', window.getComputedStyle(totalRow).visibility);
+        
+        // Check checkout button
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        console.log('Checkout button:', checkoutBtn);
+        console.log('Checkout button display:', window.getComputedStyle(checkoutBtn).display);
+        console.log('Checkout button visibility:', window.getComputedStyle(checkoutBtn).visibility);
 
         // Update discount row
         const discountRow = document.getElementById('discountRow');
@@ -341,6 +848,9 @@ const cart = {
 
         // Update shipping progress
         cart.updateShippingProgress();
+        
+        // Re-render available codes based on new subtotal
+        discount.renderAvailableCodes();
     },
 
     // Update shipping progress
@@ -368,6 +878,145 @@ const cart = {
         // For now, hide the section
         document.getElementById('recommendedSection').classList.add('hidden');
     },
+    
+    // Proceed to checkout
+    proceedToCheckout: async () => {
+        console.log('🚀 Starting checkout process...');
+        
+        // Validate customer information
+        const phone = document.getElementById('cartPhone').value.trim();
+        const name = document.getElementById('cartName').value.trim();
+        
+        if (!phone) {
+            utils.showToast('Vui lòng nhập số điện thoại', 'error');
+            document.getElementById('cartPhone').focus();
+            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        if (!name) {
+            utils.showToast('Vui lòng nhập họ và tên', 'error');
+            document.getElementById('cartName').focus();
+            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        // Validate address
+        if (!window.cartAddressSelector) {
+            utils.showToast('Đang tải địa chỉ, vui lòng thử lại', 'error');
+            return;
+        }
+        
+        const addressValidation = window.cartAddressSelector.validate();
+        if (!addressValidation.isValid) {
+            utils.showToast(addressValidation.message, 'error');
+            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        // Get address data
+        const addressData = window.cartAddressSelector.getAddressData();
+        
+        // Prepare cart items for API (products array)
+        const cartItems = state.cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            cost_price: item.cost_price || 0,
+            quantity: item.quantity,
+            image: item.image,
+            size: item.size || '', // Baby weight
+            notes: item.note || '' // Product note
+        }));
+        
+        console.log('📦 Cart items:', cartItems);
+        
+        // Prepare order data matching backend format
+        const orderData = {
+            orderId: 'DH' + Date.now(),
+            orderDate: Date.now(),
+            customer: {
+                name: name,
+                phone: phone
+            },
+            address: addressData.fullAddress,
+            province_id: addressData.provinceCode,
+            province_name: addressData.provinceName,
+            district_id: addressData.districtCode,
+            district_name: addressData.districtName,
+            ward_id: addressData.wardCode,
+            ward_name: addressData.wardName,
+            street_address: addressData.street,
+            paymentMethod: state.paymentMethod,
+            payment_method: state.paymentMethod,
+            status: 'pending',
+            referralCode: null,
+            shippingFee: state.shippingFee,
+            shipping_fee: state.shippingFee,
+            shippingCost: 0,
+            shipping_cost: 0,
+            total: state.total,
+            totalAmount: state.total,
+            cart: cartItems,
+            notes: state.orderNote || null,
+            discount_id: state.discount ? state.discount.id : null,
+            discountCode: state.discount ? state.discount.code : null,
+            discount_code: state.discount ? state.discount.code : null,
+            discountAmount: state.discount ? discountService.calculateDiscountAmount(state.discount, state.subtotal) : 0,
+            discount_amount: state.discount ? discountService.calculateDiscountAmount(state.discount, state.subtotal) : 0,
+            is_priority: 0,
+            source: 'shop-cart' // Mark as coming from cart page
+        };
+        
+        console.log('📤 Sending order data:', orderData);
+        
+        // Disable checkout button
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const originalBtnText = checkoutBtn.innerHTML;
+        checkoutBtn.disabled = true;
+        checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+        
+        try {
+            // Send to API
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/shop/order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                console.log('✅ Order created successfully:', result.order);
+                
+                // Clear cart
+                storage.saveCart([]);
+                storage.saveDiscount(null);
+                localStorage.removeItem('orderNote');
+                
+                // Show success message
+                utils.showToast('🎉 Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.', 'success');
+                
+                // Wait a bit then redirect to home
+                setTimeout(() => {
+                    window.location.href = 'index.html?order=success';
+                }, 2000);
+                
+            } else {
+                throw new Error(result.error || 'Không thể tạo đơn hàng');
+            }
+            
+        } catch (error) {
+            console.error('❌ Checkout error:', error);
+            utils.showToast(`Lỗi: ${error.message}`, 'error');
+            
+            // Re-enable button
+            checkoutBtn.disabled = false;
+            checkoutBtn.innerHTML = originalBtnText;
+        }
+    },
 
     // Setup event listeners
     setupEventListeners: () => {
@@ -379,7 +1028,14 @@ const cart = {
                     utils.showToast('Giỏ hàng trống', 'error');
                     return;
                 }
-                window.location.href = 'checkout.html';
+                
+                // Validate payment method
+                if (!cartPayment.validatePayment()) {
+                    return;
+                }
+                
+                // Redirect to quick checkout modal with cart data
+                cart.proceedToCheckout();
             };
         }
 
@@ -399,8 +1055,63 @@ const cart = {
             };
         }
 
+        // View all codes button
+        const viewAllBtn = document.getElementById('viewAllCodesBtn');
+        if (viewAllBtn) {
+            viewAllBtn.onclick = discount.showAllDiscounts;
+        }
+
+        // Close all discounts modal
+        const closeAllBtn = document.getElementById('closeAllDiscountsModal');
+        if (closeAllBtn) {
+            closeAllBtn.onclick = discount.closeAllDiscounts;
+        }
+
+        // Click outside modal to close
+        const allDiscountsModal = document.getElementById('allDiscountsModal');
+        if (allDiscountsModal) {
+            allDiscountsModal.onclick = (e) => {
+                if (e.target === allDiscountsModal) {
+                    discount.closeAllDiscounts();
+                }
+            };
+        }
+
         // Render available codes
         discount.renderAvailableCodes();
+        
+        // Setup order note
+        const orderNoteTextarea = document.getElementById('orderNote');
+        const orderNoteCharCount = document.getElementById('orderNoteCharCount');
+        
+        if (orderNoteTextarea) {
+            // Load saved note
+            const savedNote = localStorage.getItem('orderNote') || '';
+            orderNoteTextarea.value = savedNote;
+            state.orderNote = savedNote;
+            orderNoteCharCount.textContent = savedNote.length + '/500';
+            
+            // Auto-save on input with debounce
+            let saveTimeout;
+            orderNoteTextarea.addEventListener('input', () => {
+                const length = orderNoteTextarea.value.length;
+                orderNoteCharCount.textContent = length + '/500';
+                
+                if (length > 450) {
+                    orderNoteCharCount.style.color = 'var(--secondary)';
+                } else {
+                    orderNoteCharCount.style.color = 'var(--text-light)';
+                }
+                
+                // Auto-save after 1 second of no typing
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    const note = orderNoteTextarea.value.trim();
+                    state.orderNote = note;
+                    localStorage.setItem('orderNote', note);
+                }, 1000);
+            });
+        }
     }
 };
 
@@ -409,8 +1120,53 @@ const cart = {
 // ============================================
 
 const discount = {
+    // Calculate actual savings for a discount
+    calculateSavings: (discountCode) => {
+        if (!discountCode) return 0;
+        
+        const amount = discountService.calculateDiscountAmount(discountCode, state.subtotal);
+        
+        // For freeship, add shipping fee as savings
+        if (discountCode.type === 'freeship' && state.subtotal < CONFIG.FREE_SHIPPING_THRESHOLD) {
+            return amount + CONFIG.SHIPPING_FEE;
+        }
+        
+        return amount;
+    },
+
+    // Get best discounts sorted by savings
+    getBestDiscounts: (limit = 3) => {
+        if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
+            return [];
+        }
+
+        // Calculate savings for each discount
+        const discountsWithSavings = state.availableDiscounts.map(d => {
+            const savings = discount.calculateSavings(d);
+            const isApplicable = !d.min_order_amount || state.subtotal >= d.min_order_amount;
+            
+            return {
+                ...d,
+                savings,
+                isApplicable
+            };
+        });
+
+        // Sort by: applicable first, then by savings (highest first)
+        const sorted = discountsWithSavings.sort((a, b) => {
+            // Applicable discounts first
+            if (a.isApplicable && !b.isApplicable) return -1;
+            if (!a.isApplicable && b.isApplicable) return 1;
+            
+            // Then by savings amount
+            return b.savings - a.savings;
+        });
+
+        return limit ? sorted.slice(0, limit) : sorted;
+    },
+
     // Apply discount code
-    apply: () => {
+    apply: async () => {
         const input = document.getElementById('discountCode');
         const code = input.value.trim().toUpperCase();
 
@@ -419,11 +1175,24 @@ const discount = {
             return;
         }
 
-        // Find discount code
-        const discountCode = DISCOUNT_CODES.find(d => d.code === code);
+        // Find discount code from available discounts
+        const discountCode = state.availableDiscounts.find(d => d.code.toUpperCase() === code);
 
         if (!discountCode) {
-            discount.showResult('Mã giảm giá không hợp lệ', 'error');
+            discount.showResult('Mã giảm giá không hợp lệ hoặc đã hết hạn', 'error');
+            return;
+        }
+
+        // Check if discount is active
+        if (!discountCode.active) {
+            discount.showResult('Mã giảm giá đã hết hạn', 'error');
+            return;
+        }
+
+        // Check minimum order amount
+        if (discountCode.min_order_amount && state.subtotal < discountCode.min_order_amount) {
+            const minAmount = utils.formatPrice(discountCode.min_order_amount);
+            discount.showResult(`Đơn hàng tối thiểu ${minAmount} để áp dụng mã này`, 'error');
             return;
         }
 
@@ -432,17 +1201,64 @@ const discount = {
         storage.saveDiscount(discountCode);
         
         cart.updateSummary();
-        discount.showResult(`✓ Đã áp dụng mã ${code}`, 'success');
         
-        input.value = '';
+        const discountText = discountService.formatDiscountText(discountCode);
+        discount.showResult(`✓ Đã áp dụng mã ${code} - ${discountText}`, 'success');
+        
+        // Keep the code in input and disable it
+        input.value = code;
+        input.disabled = true;
+        
+        // Update apply button to show "Đổi mã"
+        const applyBtn = document.getElementById('applyDiscountBtn');
+        if (applyBtn) {
+            applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
+            applyBtn.onclick = discount.changeCode;
+        }
+        
         utils.showToast('Áp dụng mã thành công!', 'success');
+    },
+
+    // Change discount code
+    changeCode: () => {
+        const input = document.getElementById('discountCode');
+        const applyBtn = document.getElementById('applyDiscountBtn');
+        
+        // Clear input and enable it
+        input.value = '';
+        input.disabled = false;
+        input.focus();
+        
+        // Reset apply button
+        if (applyBtn) {
+            applyBtn.innerHTML = '<i class="fas fa-check"></i> Áp dụng';
+            applyBtn.onclick = discount.apply;
+        }
+        
+        // Remove current discount
+        discount.remove();
     },
 
     // Remove discount
     remove: () => {
+        const input = document.getElementById('discountCode');
+        const applyBtn = document.getElementById('applyDiscountBtn');
+        
         state.discount = null;
         storage.saveDiscount(null);
         state.shippingFee = CONFIG.SHIPPING_FEE;
+        
+        // Clear and enable input
+        if (input) {
+            input.value = '';
+            input.disabled = false;
+        }
+        
+        // Reset apply button
+        if (applyBtn) {
+            applyBtn.innerHTML = '<i class="fas fa-check"></i> Áp dụng';
+            applyBtn.onclick = discount.apply;
+        }
         
         cart.updateSummary();
         discount.showResult('', 'error');
@@ -456,6 +1272,7 @@ const discount = {
         
         if (!message) {
             resultEl.classList.add('hidden');
+            resultEl.classList.remove('success', 'error');
             return;
         }
 
@@ -471,29 +1288,236 @@ const discount = {
         resultEl.classList.remove('hidden');
     },
 
-    // Render available codes
+    // Render available codes (top 3 best)
     renderAvailableCodes: () => {
         const container = document.getElementById('availableCodes');
+        const viewAllBtn = document.getElementById('viewAllCodesBtn');
         
-        const html = DISCOUNT_CODES.map(code => 
-            '<div class="code-item">' +
-            '<div>' +
-            '<span class="code-name">' + code.code + '</span>' +
-            '<span> - ' + code.description + '</span>' +
-            '</div>' +
-            '<button class="code-apply-btn" onclick="discount.quickApply(\'' + code.code + '\')">' +
-            'Áp dụng' +
-            '</button>' +
-            '</div>'
-        ).join('');
+        if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #999; padding: 1rem; font-size: 0.9rem;">Không có mã giảm giá khả dụng</div>';
+            viewAllBtn.classList.add('hidden');
+            return;
+        }
+
+        // Get top 3 best discounts
+        const bestDiscounts = discount.getBestDiscounts(3);
+
+        const html = bestDiscounts.map(code => {
+            const discountText = discountService.formatDiscountText(code);
+            const savingsText = code.savings > 0 ? `Tiết kiệm ${utils.formatPrice(code.savings)}` : '';
+            
+            return '<div class="code-item">' +
+                '<div>' +
+                '<span class="code-name">' + utils.escapeHtml(code.code) + '</span>' +
+                '<span> - ' + utils.escapeHtml(discountText) + '</span>' +
+                (savingsText ? '<div style="font-size: 0.75rem; color: var(--success); font-weight: 700; margin-top: 0.25rem;">💰 ' + savingsText + '</div>' : '') +
+                '</div>' +
+                '<button class="code-apply-btn" ' +
+                'onclick="discount.quickApply(\'' + utils.escapeHtml(code.code) + '\')" ' +
+                (code.isApplicable ? '' : 'disabled') + '>' +
+                'Áp dụng' +
+                '</button>' +
+                '</div>';
+        }).join('');
 
         container.innerHTML = html;
+
+        // Show "View All" button if there are more than 3 discounts
+        if (state.availableDiscounts.length > 3) {
+            viewAllBtn.classList.remove('hidden');
+        } else {
+            viewAllBtn.classList.add('hidden');
+        }
+    },
+
+    // Show all discounts modal
+    showAllDiscounts: () => {
+        const modal = document.getElementById('allDiscountsModal');
+        const container = document.getElementById('allDiscountsList');
+        
+        if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
+            container.innerHTML = '<div class="no-discounts-message">' +
+                '<i class="fas fa-tags"></i>' +
+                '<p>Không có mã giảm giá khả dụng</p>' +
+                '</div>';
+            modal.classList.remove('hidden');
+            return;
+        }
+
+        // Get all discounts sorted by best savings
+        const allDiscounts = discount.getBestDiscounts(null);
+
+        const html = allDiscounts.map(code => {
+            const discountText = discountService.formatDiscountText(code);
+            const savings = code.savings;
+            
+            let icon = 'fa-tag';
+            if (code.type === 'freeship') icon = 'fa-shipping-fast';
+            if (code.type === 'gift') icon = 'fa-gift';
+            
+            let detailsHtml = '';
+            
+            if (code.min_order_amount) {
+                detailsHtml += '<div class="discount-card-detail">' +
+                    '<i class="fas fa-shopping-cart"></i>' +
+                    '<span>Đơn tối thiểu: ' + utils.formatPrice(code.min_order_amount) + '</span>' +
+                    '</div>';
+            }
+            
+            if (code.expiry_date) {
+                const expiryDate = new Date(code.expiry_date);
+                const daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                detailsHtml += '<div class="discount-card-detail">' +
+                    '<i class="fas fa-clock"></i>' +
+                    '<span>HSD: ' + expiryDate.toLocaleDateString('vi-VN') + 
+                    (daysLeft > 0 && daysLeft <= 7 ? ' (còn ' + daysLeft + ' ngày)' : '') +
+                    '</span>' +
+                    '</div>';
+            }
+            
+            if (code.usage_limit) {
+                detailsHtml += '<div class="discount-card-detail">' +
+                    '<i class="fas fa-users"></i>' +
+                    '<span>Giới hạn: ' + code.usage_limit + ' lượt</span>' +
+                    '</div>';
+            }
+            
+            return '<div class="discount-card ' + (code.isApplicable ? '' : 'disabled') + '">' +
+                (savings > 0 && code.isApplicable ? '<div class="discount-card-savings">💰 Tiết kiệm ' + utils.formatPrice(savings) + '</div>' : '') +
+                '<div class="discount-card-header">' +
+                '<div class="discount-card-icon">' +
+                '<i class="fas ' + icon + '"></i>' +
+                '</div>' +
+                '<div class="discount-card-info">' +
+                '<div class="discount-card-code">' + utils.escapeHtml(code.code) + '</div>' +
+                (code.title ? '<div class="discount-card-title">' + utils.escapeHtml(code.title) + '</div>' : '') +
+                '<div class="discount-card-desc">' + utils.escapeHtml(discountText) + '</div>' +
+                '</div>' +
+                '</div>' +
+                (detailsHtml ? '<div class="discount-card-details">' + detailsHtml + '</div>' : '') +
+                '<button class="discount-card-apply" ' +
+                'onclick="discount.applyFromModal(\'' + utils.escapeHtml(code.code) + '\')" ' +
+                (code.isApplicable ? '' : 'disabled') + '>' +
+                '<i class="fas fa-check"></i>' +
+                (code.isApplicable ? 'Áp dụng ngay' : 'Chưa đủ điều kiện') +
+                '</button>' +
+                '</div>';
+        }).join('');
+
+        container.innerHTML = html;
+        modal.classList.remove('hidden');
+    },
+
+    // Close all discounts modal
+    closeAllDiscounts: () => {
+        const modal = document.getElementById('allDiscountsModal');
+        modal.classList.add('hidden');
+    },
+
+    // Apply discount from modal
+    applyFromModal: (code) => {
+        discount.closeAllDiscounts();
+        document.getElementById('discountCode').value = code;
+        discount.apply();
     },
 
     // Quick apply discount
     quickApply: (code) => {
         document.getElementById('discountCode').value = code;
         discount.apply();
+    }
+};
+
+// ============================================
+// PAYMENT METHODS
+// ============================================
+
+const cartPayment = {
+    bankTransferConfirmed: false, // Track if bank transfer is confirmed
+    
+    // Select payment method
+    selectPaymentMethod: (method) => {
+        state.paymentMethod = method;
+        
+        // Update UI
+        document.querySelectorAll('.payment-method-item').forEach(item => {
+            if (item.dataset.method === method) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // Show/hide bank transfer info
+        const bankInfo = document.getElementById('bankTransferInfo');
+        if (method === 'bank') {
+            bankInfo.classList.remove('hidden');
+            // Update bank transfer amount
+            const amountEl = document.getElementById('bankTransferAmount');
+            if (amountEl) {
+                amountEl.textContent = utils.formatPrice(state.total);
+            }
+            // Reset confirmation state
+            cartPayment.bankTransferConfirmed = false;
+            const confirmBtn = document.getElementById('cartBankConfirmBtn');
+            if (confirmBtn) {
+                confirmBtn.style.display = 'flex';
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Xác nhận đã chuyển khoản';
+            }
+        } else {
+            bankInfo.classList.add('hidden');
+        }
+        
+        console.log('Payment method selected:', method);
+    },
+    
+    // Confirm bank transfer
+    confirmBankTransfer: () => {
+        cartPayment.bankTransferConfirmed = true;
+        
+        const confirmBtn = document.getElementById('cartBankConfirmBtn');
+        const errorMsg = document.getElementById('cartBankConfirmError');
+        
+        if (confirmBtn) {
+            confirmBtn.innerHTML = '<i class="fas fa-check-double"></i> Đã xác nhận';
+            confirmBtn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+            confirmBtn.style.cursor = 'default';
+            confirmBtn.onclick = null;
+        }
+        
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+        }
+        
+        utils.showToast('Đã xác nhận chuyển khoản! ✓', 'success');
+        console.log('Bank transfer confirmed');
+    },
+    
+    // Copy bank info to clipboard
+    copyBankInfo: (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            utils.showToast('Đã sao chép: ' + text, 'success');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            utils.showToast('Không thể sao chép', 'error');
+        });
+    },
+    
+    // Validate payment before checkout
+    validatePayment: () => {
+        if (state.paymentMethod === 'bank' && !cartPayment.bankTransferConfirmed) {
+            const errorMsg = document.getElementById('cartBankConfirmError');
+            if (errorMsg) {
+                errorMsg.classList.remove('hidden');
+            }
+            // Scroll to error
+            const bankInfo = document.getElementById('bankTransferInfo');
+            if (bankInfo) {
+                bankInfo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return false;
+        }
+        return true;
     }
 };
 
@@ -508,3 +1532,4 @@ document.addEventListener('DOMContentLoaded', () => {
 // Expose to global scope for inline event handlers
 window.cart = cart;
 window.discount = discount;
+window.cartPayment = cartPayment;
