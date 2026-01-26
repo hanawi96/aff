@@ -392,10 +392,12 @@ export class HomePage {
      * Filter products by category
      */
     filterByCategory(categoryId) {
-        console.log('Filter by category:', categoryId);
-        // TODO: Implement category filtering
-        // For now, just show all products
-        this.productGrid.filter('all');
+        console.log('HomePage: Filter by category:', categoryId);
+        
+        // Call productGrid's filterByCategory method
+        if (this.productGrid) {
+            this.productGrid.filterByCategory(categoryId);
+        }
     }
     
     /**

@@ -93,6 +93,43 @@ export class ProductGrid {
     }
     
     /**
+     * Filter products by category
+     */
+    filterByCategory(categoryId) {
+        console.log('ProductGrid: Filtering by category:', categoryId);
+        
+        // Use allProducts if available, otherwise use products
+        const sourceProducts = this.allProducts.length > 0 ? this.allProducts : this.products;
+        
+        if (!categoryId) {
+            // No category selected, show all products
+            this.filteredProducts = [...sourceProducts];
+        } else {
+            // Filter products by category
+            this.filteredProducts = sourceProducts.filter(product => {
+                // Check if product has categories array
+                if (Array.isArray(product.categories)) {
+                    return product.categories.some(cat => cat.id === categoryId);
+                }
+                // Check if product has category_id
+                if (product.category_id) {
+                    return product.category_id === categoryId;
+                }
+                // Check if product has category_ids array
+                if (Array.isArray(product.category_ids)) {
+                    return product.category_ids.includes(categoryId);
+                }
+                return false;
+            });
+        }
+        
+        console.log('ProductGrid: Filtered products:', this.filteredProducts.length);
+        
+        this.displayedCount = this.itemsPerPage;
+        this.render();
+    }
+    
+    /**
      * Sort products
      */
     sort(sortType) {

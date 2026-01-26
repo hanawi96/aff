@@ -451,32 +451,34 @@ body {
     border-radius: 5px;
 }
 
-/* Flash Sale Product Card - Redesigned Simple & Professional */
+/* Flash Sale Product Card - Handmade Style */
 .flash-sale-card {
     background: var(--white);
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
+    transition: all 0.3s ease;
     position: relative;
     display: flex;
     flex-direction: column;
     -webkit-tap-highlight-color: transparent;
+    border: 2px solid transparent;
 }
 
 .flash-sale-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(244, 162, 97, 0.15);
+    border-color: rgba(244, 162, 97, 0.2);
 }
 
 .flash-sale-card:active {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
 }
 
 .flash-sale-card .product-image-wrapper {
     position: relative;
     padding-top: 100%;
-    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+    background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
 }
 
 .flash-sale-card .product-image {
@@ -492,13 +494,13 @@ body {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
     color: white;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     padding: 0.4rem 0.9rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(255,107,107,0.4);
+    border-radius: 25px;
+    box-shadow: 0 3px 10px rgba(231, 111, 81, 0.4);
     z-index: 2;
 }
 
@@ -506,16 +508,16 @@ body {
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.65rem;
     flex: 1;
 }
 
 .flash-sale-card .product-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-dark);
     line-height: 1.4;
-    min-height: 2.8rem;
+    min-height: 2.6rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -523,11 +525,11 @@ body {
     margin: 0;
 }
 
-/* Price Section - Simplified */
+/* Price Section - Handmade Style */
 .flash-sale-price-section {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.4rem;
 }
 
 .price-row {
@@ -538,46 +540,47 @@ body {
 }
 
 .flash-price {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    color: #ff6b6b;
+    color: #e76f51;
     letter-spacing: -0.5px;
 }
 
 .save-badge {
-    background: #ff6b6b;
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
     color: white;
     padding: 0.25rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
     font-weight: 700;
     white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(231, 111, 81, 0.3);
 }
 
 .original-price {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #999;
     text-decoration: line-through;
     font-weight: 500;
 }
 
-/* Stock Section - Simplified & Balanced */
+/* Stock Section - Handmade Style */
 .flash-stock-section {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .stock-info-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
 }
 
 .stock-sold {
-    color: #ff6b6b;
+    color: #e76f51;
 }
 
 .stock-remaining {
@@ -586,7 +589,7 @@ body {
 
 .stock-bar {
     height: 6px;
-    background: #f0f0f0;
+    background: rgba(244, 162, 97, 0.1);
     border-radius: 10px;
     overflow: hidden;
     position: relative;
@@ -594,7 +597,7 @@ body {
 
 .stock-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ff6b6b, #ff8e53);
+    background: linear-gradient(90deg, #f4a261, #e76f51);
     border-radius: 10px;
     transition: width 0.3s ease;
     position: relative;
@@ -611,43 +614,43 @@ body {
     animation: shimmer 2s infinite;
 }
 
-/* Buy Button - Simplified */
+/* Buy Button - Handmade Style (Red for urgency) */
 .flash-buy-btn {
     width: 100%;
     padding: 0.85rem;
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 25px;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.35);
+    box-shadow: 0 4px 12px rgba(231, 111, 81, 0.35);
     margin-top: auto;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
 .flash-buy-btn:hover {
-    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.45);
+    box-shadow: 0 6px 20px rgba(231, 111, 81, 0.45);
 }
 
 .flash-buy-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 2px 8px rgba(231, 111, 81, 0.3);
 }
 
 .flash-buy-btn i {
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 @keyframes shimmer {
@@ -906,25 +909,28 @@ body {
     margin-bottom: 3rem;
 }
 
+/* Product Card - Handmade Style */
 .product-card {
     background: var(--white);
-    border-radius: 12px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
+    transition: all 0.3s ease;
     cursor: pointer;
+    border: 2px solid transparent;
 }
 
 .product-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(244, 162, 97, 0.15);
+    border-color: rgba(244, 162, 97, 0.2);
 }
 
 .product-image-wrapper {
     position: relative;
     padding-top: 100%;
     overflow: hidden;
-    background: var(--bg-light);
+    background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
 }
 
 .product-image {
@@ -938,62 +944,63 @@ body {
 }
 
 .product-card:hover .product-image {
-    transform: scale(1.1);
+    transform: scale(1.08);
 }
 
 .product-badge {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 12px;
+    left: 12px;
     background: var(--accent-color);
     color: var(--white);
-    padding: 0.35rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    border-radius: 25px;
+    font-size: 0.75rem;
+    font-weight: 700;
     z-index: 2;
     line-height: 1.2;
-    height: 26px;
+    height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .product-badge.sale {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
+    box-shadow: 0 3px 10px rgba(231, 111, 81, 0.4);
 }
 
 .product-badge.new {
     background: linear-gradient(135deg, #27ae60, #229954);
-    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
 }
 
 .product-badge.handmade {
-    background: linear-gradient(135deg, #f39c12, #e67e22);
+    background: linear-gradient(135deg, #f4a261, #e76f51);
     top: auto;
-    bottom: 10px;
-    left: 10px;
+    bottom: 12px;
+    left: 12px;
     right: auto;
-    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+    box-shadow: 0 3px 10px rgba(244, 162, 97, 0.4);
     font-weight: 700;
 }
 
 .product-badge.chemical-free {
-    background: linear-gradient(135deg, #27ae60, #229954);
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
     top: auto;
-    bottom: 10px;
+    bottom: 12px;
     left: auto;
-    right: 10px;
-    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    right: 12px;
+    box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
     font-weight: 700;
 }
 
 .product-favorites-section {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 12px;
+    right: 12px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -1005,23 +1012,24 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 0.3rem;
     background: rgba(255, 255, 255, 0.95);
-    border: none;
+    border: 2px solid rgba(244, 162, 97, 0.3);
     cursor: pointer;
-    padding: 0.35rem 0.6rem;
-    border-radius: 20px;
+    padding: 0.4rem 0.7rem;
+    border-radius: 25px;
     transition: var(--transition);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    font-size: 0.8rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    font-size: 0.75rem;
     color: var(--text-dark);
-    font-weight: 600;
-    height: 26px;
+    font-weight: 700;
+    height: 28px;
     line-height: 1.2;
 }
 
 .product-favorites-btn:hover {
-    /* No hover effect */
+    background: rgba(244, 162, 97, 0.1);
+    border-color: rgba(244, 162, 97, 0.5);
 }
 
 .product-favorites-btn.pulse {
@@ -1035,12 +1043,13 @@ body {
 }
 
 .product-favorites-btn.favorited {
-    background: #e74c3c;
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
     color: white;
+    border-color: #e76f51;
 }
 
 .product-favorites-btn.favorited:hover {
-    background: #c0392b;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
 }
 
 .product-action-btn {
@@ -1070,38 +1079,38 @@ body {
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
+    gap: 0.75rem;
 }
 
 .product-name {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-dark);
-    line-height: 1.5;
-    min-height: 3.3rem;
+    line-height: 1.4;
+    min-height: 2.8rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
 }
 
 .product-rating {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
 }
 
 .stars {
-    color: #ffc107;
-    font-size: 0.9rem;
+    color: #f4a261;
+    font-size: 0.85rem;
     display: flex;
-    gap: 3px;
+    gap: 2px;
 }
 
 .rating-count {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-light);
     font-weight: 500;
 }
@@ -1109,41 +1118,45 @@ body {
 .product-price-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
     margin-bottom: 0.5rem;
 }
 
 .product-price {
     display: flex;
     align-items: baseline;
-    gap: 0.75rem;
+    gap: 0.6rem;
 }
 
 .current-price {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: #e74c3c;
+    color: #e76f51;
     letter-spacing: -0.5px;
 }
 
 .original-price {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #95a5a6;
     text-decoration: line-through;
     font-weight: 500;
 }
 
 .price-save-info {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #27ae60;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
+    background: rgba(39, 174, 96, 0.08);
+    padding: 0.25rem 0.6rem;
+    border-radius: 15px;
+    width: fit-content;
 }
 
 .price-save-info i {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
 }
 
 .load-more {
@@ -1509,30 +1522,31 @@ body {
     
     /* Flash Sale Card - Mobile Optimized */
     .flash-sale-card {
-        border-radius: 12px;
+        border-radius: 16px;
     }
     
     .flash-sale-badge {
-        top: 8px;
-        left: 8px;
-        font-size: 0.8rem;
+        top: 10px;
+        left: 10px;
+        font-size: 0.75rem;
         padding: 0.3rem 0.7rem;
+        border-radius: 20px;
     }
     
     .flash-sale-card .product-info {
         padding: 0.75rem;
-        gap: 0.6rem;
+        gap: 0.55rem;
     }
     
     .flash-sale-card .product-name {
-        font-size: 0.9rem;
-        min-height: 2.5rem;
+        font-size: 0.85rem;
+        min-height: 2.3rem;
         line-height: 1.3;
     }
     
     /* Price Section - Mobile */
     .flash-sale-price-section {
-        gap: 0.25rem;
+        gap: 0.3rem;
     }
     
     .flash-price {
@@ -1542,6 +1556,7 @@ body {
     .save-badge {
         font-size: 0.7rem;
         padding: 0.2rem 0.5rem;
+        border-radius: 12px;
     }
     
     .original-price {
@@ -1550,11 +1565,11 @@ body {
     
     /* Stock Section - Mobile */
     .flash-stock-section {
-        gap: 0.4rem;
+        gap: 0.35rem;
     }
     
     .stock-info-row {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
     
     .stock-bar {
@@ -1564,48 +1579,106 @@ body {
     /* Buy Button - Mobile */
     .flash-buy-btn {
         padding: 0.7rem;
-        font-size: 0.8rem;
-        border-radius: 8px;
+        font-size: 0.75rem;
+        border-radius: 20px;
     }
     
     .flash-buy-btn i {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     /* Regular Products Grid - Mobile */
     .products-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 0.75rem; /* Giảm từ 1rem xuống 0.75rem để tối ưu không gian */
+        gap: 0.75rem;
     }
     
-    /* Product Info - Mobile: Giảm padding để tối ưu không gian */
+    /* Product Card - Mobile */
+    .product-card {
+        border-radius: 16px;
+    }
+    
+    /* Product Info - Mobile */
     .product-info {
-        padding: 0.875rem; /* Giảm từ 1.25rem xuống 0.875rem */
-        gap: 0.625rem; /* Giảm gap giữa các elements */
+        padding: 0.875rem;
+        gap: 0.625rem;
     }
     
     .product-name {
-        font-size: 0.95rem; /* Giảm font size một chút */
-        min-height: auto; /* Bỏ min-height cố định */
-        margin-bottom: 0.125rem;
+        font-size: 0.9rem;
+        min-height: 2.5rem;
+        margin-bottom: 0;
+        line-height: 1.3;
+    }
+    
+    .product-rating {
+        gap: 0.4rem;
+    }
+    
+    .stars {
+        font-size: 0.75rem;
+        gap: 1px;
+    }
+    
+    .rating-count {
+        font-size: 0.75rem;
     }
     
     .product-price-wrapper {
-        gap: 0.375rem; /* Giảm gap */
-        margin-bottom: 0.375rem;
+        gap: 0.3rem;
+        margin-bottom: 0.4rem;
     }
     
     .product-price {
-        font-size: 1rem; /* Giảm một chút */
+        gap: 0.5rem;
     }
     
-    /* Product Badges - Mobile: Giảm size và tách vị trí */
+    .current-price {
+        font-size: 1.2rem;
+    }
+    
+    .original-price {
+        font-size: 0.85rem;
+    }
+    
+    .price-save-info {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    /* Product Badges - Mobile */
     .product-badge {
         font-size: 0.65rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        height: 20px;
-        line-height: 1.2;
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        height: 24px;
+        top: 10px;
+        left: 10px;
+    }
+    
+    .product-badge.handmade,
+    .product-badge.chemical-free {
+        bottom: 10px;
+        left: 10px;
+        right: auto;
+    }
+    
+    .product-badge.chemical-free {
+        left: auto;
+        right: 10px;
+    }
+    
+    /* Favorites Button - Mobile */
+    .product-favorites-section {
+        top: 10px;
+        right: 10px;
+    }
+    
+    .product-favorites-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+        height: 24px;
+        gap: 0.25rem;
     }
     
     .product-badge.handmade {
@@ -1771,6 +1844,7 @@ body {
 
 /* ============================================ */
 /* DUAL BUTTON SYSTEM - BUY NOW & ADD TO CART */
+/* Handmade Style - Soft & Rounded */
 /* ============================================ */
 
 /* Product Button Actions - Full Width Design */
@@ -1784,18 +1858,18 @@ body {
     align-items: stretch !important;
     justify-content: stretch;
     width: 100% !important;
-    padding: 0 !important; /* Remove any padding */
+    padding: 0 !important;
     box-sizing: border-box;
 }
 
 .btn-primary-action {
     flex: 1;
     padding: 0.875rem 0.5rem;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    background: linear-gradient(135deg, #f4a261, #e76f51);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 25px;
+    font-weight: 700;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1803,40 +1877,46 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
     min-height: 44px;
     box-sizing: border-box;
 }
 
 .btn-primary-action:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
-    background: linear-gradient(135deg, #c0392b, #a93226);
+    box-shadow: 0 6px 20px rgba(244, 162, 97, 0.4);
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
 }
 
 .btn-add-to-cart {
     flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
     min-height: 44px;
+    max-width: 44px;
+    max-height: 44px;
     background: white;
-    border: 2px solid #e74c3c;
-    border-radius: 8px;
-    color: #e74c3c;
+    border: 2px solid #f4a261;
+    border-radius: 50%;
+    color: #f4a261;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.15);
     padding: 0;
     box-sizing: border-box;
 }
 
 .btn-add-to-cart:hover {
-    background: #e74c3c;
+    background: linear-gradient(135deg, #f4a261, #e76f51);
     color: white;
+    border-color: #f4a261;
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 4px 15px rgba(244, 162, 97, 0.3);
 }
 
 .btn-primary-action i {
@@ -1847,38 +1927,44 @@ body {
     font-size: 1rem;
 }
 
-/* Flash Sale Actions */
+/* Flash Sale Actions - Handmade Style */
 .flash-actions {
     display: grid;
     grid-template-columns: 50px 1fr;
     gap: 0.5rem;
     margin-top: 1rem;
+    align-items: center;
 }
 
 .flash-add-cart {
     width: 50px;
     height: 50px;
-    border: 2px solid white;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 8px;
+    border: 2px solid #e76f51;
+    background: white;
+    color: #e76f51;
+    border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(231, 111, 81, 0.15);
 }
 
 .flash-add-cart:hover {
-    background: white;
-    color: #e74c3c;
+    background: linear-gradient(135deg, #e76f51, #e74c3c);
+    color: white;
+    border-color: #e76f51;
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(231, 111, 81, 0.3);
 }
 
-.flash-buy-btn {
+/* Flash buy button in actions layout */
+.flash-actions .flash-buy-btn {
     flex: 1;
+    height: 50px;
+    min-height: 50px;
 }
 
 /* Quick Checkout Modal */
@@ -2987,7 +3073,12 @@ body {
     
     .btn-add-to-cart {
         flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
         min-height: 40px;
+        max-width: 40px;
+        max-height: 40px;
         font-size: 0.9rem;
     }
     

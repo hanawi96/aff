@@ -36,6 +36,19 @@
             font-family: 'Quicksand', sans-serif;
         }
         
+        /* Hero image blur effect - much softer and smoother */
+        .hero-image-blur {
+            mask-image: 
+                linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 10%, black 25%, black 75%, rgba(0,0,0,0.3) 90%, transparent 100%),
+                linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 10%, black 25%, black 75%, rgba(0,0,0,0.3) 90%, transparent 100%);
+            mask-composite: intersect;
+            -webkit-mask-image: 
+                linear-gradient(to right, transparent 0%, rgba(0,0,0,0.3) 10%, black 25%, black 75%, rgba(0,0,0,0.3) 90%, transparent 100%),
+                linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 10%, black 25%, black 75%, rgba(0,0,0,0.3) 90%, transparent 100%);
+            -webkit-mask-composite: source-in;
+            filter: blur(1px);
+        }
+        
         /* Force button layout */
         .product-card .product-info .product-button-actions {
             display: flex !important;
@@ -150,7 +163,7 @@
                     <!-- Main headline -->
                     <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
                         Bảo vệ con yêu<br>
-                        <span class="font-handwritten text-primary text-4xl md:text-6xl lg:text-7xl">bằng tình yêu thủ công</span>
+                        <span class="font-handwritten text-primary text-4xl md:text-6xl lg:text-7xl">bằng vòng dâu tằm thủ công</span>
                     </h1>
                     
                     <!-- Sub-headline -->
@@ -198,20 +211,8 @@
                 
                 <!-- Right: Image -->
                 <div class="relative">
-                    <div class="relative rounded-3xl overflow-hidden shadow-2xl">
-                        <img src="/assets/images/banner.webp" alt="Vòng đầu tam handmade" class="w-full h-auto">
-                        <!-- Overlay badge -->
-                        <div class="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <i class="fas fa-shield-heart text-primary text-xl"></i>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-800 text-sm">An toàn tuyệt đối</p>
-                                    <p class="text-xs text-gray-600">Đã kiểm định chất lượng</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="relative">
+                        <img src="../assets/images/591718600_708804902275744_4218533615448447888_n.jpg" alt="Vòng đầu tam handmade" class="w-full h-auto rounded-3xl hero-image-blur">
                     </div>
                     
                     <!-- Decorative floating elements -->
@@ -231,76 +232,104 @@
                     <span class="text-primary font-semibold text-sm">✨ Quy trình làm vòng</span>
                 </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-                    Từng đường kim mũi chỉ<br>
-                    <span class="font-handwritten text-primary">đều là tình yêu thương</span>
+                    Từng công đoạn<br>
+                    <span class="font-handwritten text-primary text-4xl md:text-5xl">đều là tình yêu thương</span>
                 </h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">
+                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
                     Mỗi chiếc vòng đầu tam được làm thủ công hoàn toàn, qua bàn tay khéo léo của nghệ nhân với hơn 10 năm kinh nghiệm
                 </p>
             </div>
 
-            <!-- Process Steps -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            <!-- Process Steps - 6 Steps Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
                 <!-- Step 1 -->
                 <div class="text-center group">
-                    <div class="relative mb-6">
-                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
                             <img src="/assets/images/quy-trinh-lam-vong/2.webp" alt="Chọn nguyên liệu" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         </div>
-                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             1
                         </div>
                     </div>
-                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Chọn nguyên liệu</h3>
-                    <p class="text-sm text-gray-600">Tuyển chọn đá tự nhiên, bạc S925 chất lượng cao</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Chọn nguyên liệu</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Tuyển chọn cành dâu tằm chất lượng cao</p>
                 </div>
 
                 <!-- Step 2 -->
                 <div class="text-center group">
-                    <div class="relative mb-6">
-                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
-                            <img src="/assets/images/quy-trinh-lam-vong/3.webp" alt="Xâu chuỗi" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
+                            <img src="/assets/images/quy-trinh-lam-vong/3.webp" alt="Bóc dâu tằm" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         </div>
-                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             2
                         </div>
                     </div>
-                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Xâu chuỗi tỉ mỉ</h3>
-                    <p class="text-sm text-gray-600">Từng viên đá được xâu cẩn thận, đều tay</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Bóc dâu tằm</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Bóc vỏ cành dâu tằm cẩn thận</p>
                 </div>
 
                 <!-- Step 3 -->
                 <div class="text-center group">
-                    <div class="relative mb-6">
-                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
-                            <img src="/assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp" alt="Chạt cạnh" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
+                            <img src="/assets/images/quy-trinh-lam-vong/4.webp" alt="Phơi khô" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         </div>
-                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             3
                         </div>
                     </div>
-                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Chạt cạnh mịn</h3>
-                    <p class="text-sm text-gray-600">Đánh bóng, làm mịn để an toàn cho bé</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Phơi khô</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Phơi khô dâu tằm tự nhiên</p>
                 </div>
 
                 <!-- Step 4 -->
                 <div class="text-center group">
-                    <div class="relative mb-6">
-                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition">
-                            <img src="/assets/images/quy-trinh-lam-vong/5.webp" alt="Kiểm tra chất lượng" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
+                            <img src="/assets/images/quy-trinh-lam-vong/chat-canh-dau-tam.webp" alt="Mài nhỏ cành" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         </div>
-                        <div class="absolute -top-3 -left-3 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             4
                         </div>
                     </div>
-                    <h3 class="font-semibold text-lg text-gray-800 mb-2">Kiểm tra kỹ</h3>
-                    <p class="text-sm text-gray-600">Đảm bảo chất lượng trước khi đến tay mẹ</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Mài nhỏ cành</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Mài nhỏ cành dâu tằm thành hạt</p>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="text-center group">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
+                            <img src="/assets/images/quy-trinh-lam-vong/5.webp" alt="Mài mịn viền" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            5
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Mài mịn viền</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Mài mịn viền hạt để an toàn</p>
+                </div>
+
+                <!-- Step 6 -->
+                <div class="text-center group">
+                    <div class="relative mb-4">
+                        <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
+                            <img src="/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp" alt="Xỏ vòng" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        </div>
+                        <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            6
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Xỏ vòng</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Xỏ vòng tỉ mỉ, hoàn thiện sản phẩm</p>
                 </div>
             </div>
 
             <!-- CTA -->
             <div class="text-center mt-12">
-                <a href="#products" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl">
+                <a href="#products" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl transform hover:scale-105">
                     <i class="fas fa-heart"></i>
                     <span>Đặt hàng ngay cho bé yêu</span>
                 </a>
@@ -317,15 +346,13 @@
         <div class="container mx-auto px-4 relative">
             <!-- Section Header -->
             <div class="text-center mb-8 md:mb-12">
-                <!-- Badge -->
-                <div class="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-white px-6 py-3 rounded-full mb-4 shadow-lg animate-pulse">
-                    <i class="fas fa-gift text-xl"></i>
-                    <span class="font-bold text-sm md:text-base">Ưu đãi đặc biệt hôm nay</span>
-                </div>
-                
-                <!-- Title -->
+                <!-- Title with Icon -->
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                    Giảm giá<br>
+                    <div class="inline-flex items-center gap-3 mb-2">
+                        <i class="fas fa-gift text-secondary text-2xl md:text-3xl"></i>
+                        <span>Giảm giá</span>
+                    </div>
+                    <br>
                     <span class="font-handwritten text-secondary text-4xl md:text-5xl">chỉ hôm nay!</span>
                 </h2>
                 <p class="text-gray-600 max-w-xl mx-auto mb-6">
@@ -673,12 +700,25 @@
         <div class="container mx-auto px-4 relative">
             <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
-                <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
-                    <span class="text-primary font-semibold text-sm">✨ Sản phẩm nổi bật</span>
-                </div>
+                <!-- Title with Icons -->
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                    Được các mẹ<br class="md:hidden">
-                    <span class="font-handwritten text-primary text-4xl md:text-5xl">yêu thích nhất</span>
+                    <!-- Mobile: 2 lines -->
+                    <div class="md:hidden">
+                        <div class="inline-flex items-center gap-3 mb-2">
+                            <i class="fas fa-heart text-primary text-2xl"></i>
+                            <span>Được các mẹ</span>
+                            <i class="fas fa-sparkles text-primary text-2xl"></i>
+                        </div>
+                        <br>
+                        <span class="font-handwritten text-primary text-4xl">yêu thích nhất</span>
+                    </div>
+                    
+                    <!-- Desktop: 1 line -->
+                    <div class="hidden md:flex items-center justify-center gap-3">
+                        <i class="fas fa-heart text-primary text-3xl"></i>
+                        <span class="font-handwritten text-primary text-5xl">Được các mẹ yêu thích nhất</span>
+                        <i class="fas fa-sparkles text-primary text-3xl"></i>
+                    </div>
                 </h2>
                 <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
                     Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu
@@ -850,16 +890,23 @@
     <!-- Testimonials Section - Lời mẹ chia sẻ -->
     <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-accent/5" id="reviews">
         <div class="container mx-auto px-4">
-            <!-- Section Header -->
+            <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
+                <!-- Badge with Heart Icon -->
                 <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
-                    <span class="text-primary font-semibold text-sm">💝 Lời mẹ chia sẻ</span>
+                    <span class="text-primary font-semibold text-sm">
+                        <i class="fas fa-heart"></i> Lời mẹ chia sẻ
+                    </span>
                 </div>
+                
+                <!-- Title -->
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
                     Niềm tin từ<br>
-                    <span class="font-handwritten text-primary">hàng ngàn mẹ bỉm</span>
+                    <span class="font-handwritten text-primary text-4xl md:text-5xl">hàng ngàn mẹ bỉm</span>
                 </h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">
+                
+                <!-- Description -->
+                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
                     Những chia sẻ chân thành từ các mẹ đã tin dùng sản phẩm của chúng tôi
                 </p>
             </div>
@@ -1043,115 +1090,212 @@
     </section>
 
     <!-- Why Choose Us - Features -->
-    <section class="py-16 md:py-20 bg-white">
+    <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-primary/5">
         <div class="container mx-auto px-4">
-            <!-- Section Header -->
+            <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
                 <div class="inline-block bg-primary/10 px-4 py-2 rounded-full mb-4">
-                    <span class="text-primary font-semibold text-sm">🌟 Tại sao chọn chúng tôi</span>
+                    <span class="text-primary font-semibold text-sm">
+                        <i class="fas fa-home"></i> Tại sao chọn chúng tôi
+                    </span>
                 </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
                     Cam kết của<br>
-                    <span class="font-handwritten text-primary">Vòng Đầu Tam</span>
+                    <span class="font-handwritten text-primary text-4xl md:text-5xl">Vòng Đầu Tam</span>
                 </h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
-                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <!-- Features Grid - Soft Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Feature 1: 100% Thủ công -->
+                <div class="bg-white rounded-3xl p-6 text-center hover:shadow-xl transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <i class="fas fa-hand-sparkles text-2xl text-white"></i>
                     </div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2">100% Thủ công</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">Từng sản phẩm được làm thủ công tỉ mỉ bởi nghệ nhân giàu kinh nghiệm</p>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Từng sản phẩm được làm thủ công tỉ mỉ bởi nghệ nhân giàu kinh nghiệm
+                    </p>
                 </div>
                 
-                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
-                    <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <!-- Feature 2: An toàn tuyệt đối -->
+                <div class="bg-white rounded-3xl p-6 text-center hover:shadow-xl transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <i class="fas fa-leaf text-2xl text-white"></i>
                     </div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2">An toàn tuyệt đối</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">Không hóa chất, nguyên liệu tự nhiên, đã kiểm định chất lượng</p>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Không hóa chất, nguyên liệu tự nhiên, đã kiểm định chất lượng
+                    </p>
                 </div>
                 
-                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <!-- Feature 3: Giao hàng nhanh -->
+                <div class="bg-white rounded-3xl p-6 text-center hover:shadow-xl transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <i class="fas fa-shipping-fast text-2xl text-white"></i>
                     </div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2">Giao hàng nhanh</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">Giao hàng toàn quốc, thanh toán khi nhận hàng</p>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Giao hàng toàn quốc, thanh toán khi nhận hàng
+                    </p>
                 </div>
                 
-                <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-warm to-white hover:shadow-xl transition border-2 border-primary/10">
-                    <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <!-- Feature 4: Tư vấn tận tâm -->
+                <div class="bg-white rounded-3xl p-6 text-center hover:shadow-xl transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <i class="fas fa-heart text-2xl text-white"></i>
                     </div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2">Tư vấn tận tâm</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">Hỗ trợ 24/7, tư vấn nhiệt tình như người thân</p>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Hỗ trợ 24/7, tư vấn nhiệt tình như người thân
+                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-                <div>
-                    <div class="flex items-center space-x-3 mb-4">
-                        <i class="fas fa-gem text-3xl text-primary"></i>
-                        <span class="text-2xl font-display font-bold">Vòng Đầu Tam</span>
+    <!-- Footer - Handmade Style -->
+    <footer class="bg-gradient-to-br from-warm via-white to-primary/5 border-t-2 border-primary/10">
+        <!-- Main Footer Content -->
+        <div class="container mx-auto px-4 py-12 md:py-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-10">
+                <!-- Brand Section -->
+                <div class="text-center md:text-left">
+                    <div class="inline-flex items-center space-x-2 mb-4">
+                        <div class="relative">
+                            <i class="fas fa-heart text-3xl text-primary"></i>
+                            <i class="fas fa-sparkles text-xs text-accent absolute -top-1 -right-1"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-handwritten text-2xl text-primary leading-none">Vòng Đầu Tam</span>
+                            <span class="text-xs text-gray-500 font-medium">Handmade với yêu thương</span>
+                        </div>
                     </div>
-                    <p class="text-gray-400 mb-4">Trang sức handmade cao cấp, mang đến may mắn và bình an cho bạn và gia đình.</p>
-                    <div class="flex space-x-3">
-                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                    <p class="text-gray-600 mb-6 leading-relaxed text-sm">
+                        Mỗi chiếc vòng được làm thủ công tỉ mỉ, gửi gắm yêu thương và mong ước tốt đẹp nhất đến bé yêu của mẹ
+                    </p>
+                    
+                    <!-- Social Links - Soft Style -->
+                    <div class="flex space-x-3 justify-center md:justify-start">
+                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
                             <i class="fab fa-facebook"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
                             <i class="fab fa-instagram"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
                             <i class="fab fa-tiktok"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition">
+                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
                             <i class="fab fa-youtube"></i>
                         </a>
                     </div>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold mb-4">Về chúng tôi</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Giới thiệu</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Quy trình sản xuất</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Chính sách bảo hành</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Điều khoản dịch vụ</a></li>
+                
+                <!-- About Section -->
+                <div class="text-center md:text-left">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
+                        <i class="fas fa-info-circle text-primary text-sm"></i>
+                        <span>Về chúng tôi</span>
+                    </h4>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Giới thiệu</span>
+                        </a></li>
+                        <li><a href="#process" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Quy trình thủ công</span>
+                        </a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Chính sách bảo hành</span>
+                        </a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Điều khoản dịch vụ</span>
+                        </a></li>
                     </ul>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold mb-4">Hỗ trợ</h4>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Hướng dẫn đặt hàng</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Chính sách đổi trả</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Phương thức thanh toán</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Câu hỏi thường gặp</a></li>
+                
+                <!-- Support Section -->
+                <div class="text-center md:text-left">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
+                        <i class="fas fa-headset text-primary text-sm"></i>
+                        <span>Hỗ trợ mẹ</span>
+                    </h4>
+                    <ul class="space-y-2.5">
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Hướng dẫn đặt hàng</span>
+                        </a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Chính sách đổi trả</span>
+                        </a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Phương thức thanh toán</span>
+                        </a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                            <i class="fas fa-chevron-right text-xs text-primary/50"></i>
+                            <span>Câu hỏi thường gặp</span>
+                        </a></li>
                     </ul>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold mb-4">Liên hệ</h4>
+                
+                <!-- Contact Section -->
+                <div class="text-center md:text-left">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
+                        <i class="fas fa-phone-alt text-primary text-sm"></i>
+                        <span>Liên hệ</span>
+                    </h4>
                     <ul class="space-y-3">
-                        <li class="flex items-center text-gray-400">
-                            <i class="fas fa-phone mr-3 text-primary"></i> 0123 456 789
+                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-phone text-primary text-xs"></i>
+                            </div>
+                            <span>0123 456 789</span>
                         </li>
-                        <li class="flex items-center text-gray-400">
-                            <i class="fas fa-envelope mr-3 text-primary"></i> contact@vongdautam.vn
+                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-envelope text-primary text-xs"></i>
+                            </div>
+                            <span>contact@vongdautam.vn</span>
                         </li>
-                        <li class="flex items-center text-gray-400">
-                            <i class="fas fa-map-marker-alt mr-3 text-primary"></i> Hà Nội, Việt Nam
+                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-map-marker-alt text-primary text-xs"></i>
+                            </div>
+                            <span>Hà Nội, Việt Nam</span>
                         </li>
                     </ul>
+                    
+                    <!-- Trust Badge -->
+                    <div class="mt-6 inline-flex items-center gap-2 bg-white border-2 border-primary/20 rounded-full px-4 py-2 shadow-sm">
+                        <i class="fas fa-shield-check text-primary"></i>
+                        <span class="text-xs font-semibold text-gray-700">Uy tín 100%</span>
+                    </div>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
-                <p>&copy; 2025 Vòng Đầu Tam. All rights reserved.</p>
+            
+            <!-- Divider with Heart -->
+            <div class="flex items-center justify-center gap-3 mb-8">
+                <div class="w-24 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
+                <i class="fas fa-heart text-primary text-sm"></i>
+                <div class="w-24 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
+            </div>
+            
+            <!-- Bottom Section -->
+            <div class="text-center">
+                <p class="text-gray-600 text-sm mb-3">
+                    <i class="fas fa-heart text-primary text-xs mr-1"></i>
+                    Làm bằng tình yêu thương dành cho bé yêu
+                    <i class="fas fa-heart text-primary text-xs ml-1"></i>
+                </p>
+                <p class="text-gray-500 text-xs">
+                    &copy; 2025 Vòng Đầu Tam. Tất cả quyền được bảo lưu.
+                </p>
             </div>
         </div>
     </footer>
