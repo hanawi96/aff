@@ -626,26 +626,26 @@
                     Những sản phẩm được yêu thích nhất với giá ưu đãi đặc biệt dành riêng cho mẹ
                 </p>
                 
-                <!-- Timer - Soft Style -->
-                <div class="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-lg border-2 border-secondary/20" id="flashSaleTimer">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-clock text-secondary text-lg"></i>
-                        <span class="text-gray-700 font-medium text-sm">Kết thúc sau:</span>
+                <!-- Timer - Handmade Cute Style -->
+                <div class="flash-timer-handmade" id="flashSaleTimer">
+                    <div class="timer-header">
+                        <i class="fas fa-gift timer-gift-icon"></i>
+                        <span class="timer-text">Kết thúc sau:</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <div class="timer-box">
-                            <span class="timer-value" id="hours">00</span>
-                            <span class="timer-label">giờ</span>
+                    <div class="timer-boxes">
+                        <div class="timer-card">
+                            <div class="timer-number" id="hours">00</div>
+                            <div class="timer-unit">giờ</div>
                         </div>
-                        <span class="timer-separator">:</span>
-                        <div class="timer-box">
-                            <span class="timer-value" id="minutes">00</span>
-                            <span class="timer-label">phút</span>
+                        <span class="timer-dot">•</span>
+                        <div class="timer-card">
+                            <div class="timer-number" id="minutes">00</div>
+                            <div class="timer-unit">phút</div>
                         </div>
-                        <span class="timer-separator">:</span>
-                        <div class="timer-box">
-                            <span class="timer-value" id="seconds">00</span>
-                            <span class="timer-label">giây</span>
+                        <span class="timer-dot">•</span>
+                        <div class="timer-card">
+                            <div class="timer-number" id="seconds">00</div>
+                            <div class="timer-unit">giây</div>
                         </div>
                     </div>
                 </div>
@@ -1021,56 +1021,129 @@
                 }
             }
             
-            /* Timer Box - Soft Style */
-            .timer-box {
-                display: flex;
+            /* ===== HANDMADE CUTE TIMER ===== */
+            .flash-timer-handmade {
+                display: inline-flex;
                 flex-direction: column;
                 align-items: center;
-                min-width: 50px;
+                gap: 0.75rem;
+                background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
+                padding: 1.25rem 1.75rem;
+                border-radius: 20px;
+                border: 3px dashed #f4a261;
+                box-shadow: 0 8px 20px rgba(244, 162, 97, 0.2);
+                position: relative;
             }
             
-            #flashSaleTimer .timer-value {
-                font-size: 1.5rem !important;
-                font-weight: 700 !important;
-                color: #e76f51 !important;
-                line-height: 1 !important;
+            /* Decorative corner stars */
+            .flash-timer-handmade::before,
+            .flash-timer-handmade::after {
+                content: '✨';
+                position: absolute;
+                font-size: 1.25rem;
             }
             
-            #flashSaleTimer .timer-label {
-                font-size: 0.7rem !important;
-                color: #666 !important;
-                margin-top: 2px !important;
+            .flash-timer-handmade::before {
+                top: -8px;
+                left: -8px;
             }
             
-            #flashSaleTimer .timer-separator {
-                font-size: 1.5rem !important;
-                font-weight: 700 !important;
-                color: #e76f51 !important;
-                margin: 0 0.25rem !important;
+            .flash-timer-handmade::after {
+                bottom: -8px;
+                right: -8px;
             }
             
-            /* Mobile timer adjustments */
+            .timer-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .timer-gift-icon {
+                font-size: 1.5rem;
+                color: #e76f51;
+                animation: bounce 2s infinite;
+            }
+            
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-5px); }
+            }
+            
+            .timer-text {
+                font-family: 'Quicksand', sans-serif;
+                font-size: 1rem;
+                font-weight: 700;
+                color: #1f2937;
+            }
+            
+            .timer-boxes {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .timer-card {
+                background: white;
+                padding: 0.75rem 1rem;
+                border-radius: 12px;
+                border: 2px solid #f4a261;
+                box-shadow: 0 4px 0 #f4a261;
+                min-width: 70px;
+                text-align: center;
+            }
+            
+            .timer-number {
+                font-size: 2rem;
+                font-weight: 800;
+                color: #e76f51;
+                line-height: 1;
+                font-family: 'Quicksand', sans-serif;
+            }
+            
+            .timer-unit {
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #6b7280;
+                margin-top: 0.25rem;
+                text-transform: uppercase;
+            }
+            
+            .timer-dot {
+                font-size: 1.5rem;
+                color: #f4a261;
+                font-weight: 700;
+            }
+            
+            /* Mobile timer */
             @media (max-width: 640px) {
-                #flashSaleTimer {
-                    flex-direction: column !important;
-                    gap: 0.5rem !important;
-                    padding: 1rem !important;
+                .flash-timer-handmade {
+                    padding: 1rem 1.25rem;
                 }
                 
-                #flashSaleTimer > div:first-child {
-                    font-size: 0.75rem !important;
+                .timer-gift-icon {
+                    font-size: 1.25rem;
                 }
                 
-                #flashSaleTimer .timer-value {
-                    font-size: 1.25rem !important;
+                .timer-text {
+                    font-size: 0.9rem;
                 }
                 
-                #flashSaleTimer .timer-label {
-                    font-size: 0.6rem !important;
+                .timer-card {
+                    padding: 0.5rem 0.75rem;
+                    min-width: 60px;
                 }
                 
-                .timer-box {
-                    min-width: 45px;
+                .timer-number {
+                    font-size: 1.5rem;
+                }
+                
+                .timer-unit {
+                    font-size: 0.65rem;
+                }
+                
+                .timer-dot {
+                    font-size: 1.25rem;
                 }
             }
         </style>
