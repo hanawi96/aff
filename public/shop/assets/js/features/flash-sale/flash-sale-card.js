@@ -38,11 +38,16 @@ export function createFlashSaleCard(product) {
     html += '<div class="bundle-discount-badge">-' + discount + '%</div>';
     html += '</div>';
     
-    // Add button
-    html += '<button class="bundle-add-btn" onclick="window.flashSaleActions.buyNow(' + product.id + ', ' + product.flash_price + ')">';
-    html += '<i class="fas fa-plus-circle"></i>';
-    html += '<span>Thêm ngay</span>';
+    // Button actions - 2 buttons like normal product card
+    html += '<div class="bundle-product-actions">';
+    html += '<button class="bundle-btn-primary" onclick="window.flashSaleActions.buyNow(' + product.id + ', ' + product.flash_price + ')">';
+    html += '<i class="fas fa-shopping-bag"></i>';
+    html += '<span>Mua ngay</span>';
     html += '</button>';
+    html += '<button class="bundle-btn-cart" onclick="window.flashSaleActions.addToCart(' + product.id + ', ' + product.flash_price + ')" title="Thêm vào giỏ hàng">';
+    html += '<i class="fas fa-shopping-cart"></i>';
+    html += '</button>';
+    html += '</div>';
     
     html += '</div>'; // Close product-info
     html += '</div>'; // Close product-card

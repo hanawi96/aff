@@ -3395,7 +3395,7 @@ body {
     transform: translate(-50%, -50%);
     background: linear-gradient(135deg, var(--secondary), #c0392b);
     color: var(--white);
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.25rem;
     border-radius: 12px;
     font-weight: 800;
     font-size: 0.8rem;
@@ -3410,6 +3410,27 @@ body {
 
 .bundle-offer-badge i {
     font-size: 0.9rem;
+}
+
+.bundle-offer-badge .badge-separator {
+    opacity: 0.5;
+    margin: 0 0.25rem;
+}
+
+.bundle-offer-badge #flashSaleBadgeTimer {
+    font-family: 'Courier New', monospace;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+/* Remove old timer badge styles */
+.flash-sale-timer-badge {
+    display: none;
+}
+
+/* Remove extra margin */
+.bundle-offer-section {
+    margin-top: 0;
 }
 
 .bundle-offer-header {
@@ -3593,6 +3614,70 @@ body {
 
 .bundle-add-btn i {
     font-size: 0.9rem;
+}
+
+/* Bundle Product Actions - 2 Buttons Layout */
+.bundle-product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.bundle-btn-primary {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+    white-space: nowrap;
+}
+
+.bundle-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(244, 162, 97, 0.4);
+}
+
+.bundle-btn-primary i {
+    font-size: 0.9rem;
+}
+
+.bundle-btn-cart {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--white);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.2);
+}
+
+.bundle-btn-cart:hover {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    transform: translateY(-2px) rotate(5deg);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+}
+
+.bundle-btn-cart i {
+    font-size: 1rem;
 }
 
 .bundle-offer-footer {

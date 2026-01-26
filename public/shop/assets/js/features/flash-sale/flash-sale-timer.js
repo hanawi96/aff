@@ -54,6 +54,9 @@ export class FlashSaleTimer {
      * Set time display
      */
     setTime(hours, minutes, seconds) {
+        const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        // Update old timer elements (if exist)
         const hoursEl = document.getElementById('hours');
         const minutesEl = document.getElementById('minutes');
         const secondsEl = document.getElementById('seconds');
@@ -61,5 +64,17 @@ export class FlashSaleTimer {
         if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
         if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
         if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        
+        // Update footer timer
+        const footerTimer = document.getElementById('flashSaleTimer');
+        if (footerTimer) {
+            footerTimer.innerHTML = `<i class="fas fa-clock"></i><span>Kết thúc sau: <strong>${timeString}</strong></span>`;
+        }
+        
+        // Update badge timer (inside badge - just time)
+        const badgeTimer = document.getElementById('flashSaleBadgeTimer');
+        if (badgeTimer) {
+            badgeTimer.textContent = timeString;
+        }
     }
 }
