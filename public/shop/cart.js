@@ -165,6 +165,9 @@ const cart = {
         // Load bundle products from API
         await cart.loadBundleProducts();
         
+        // Wait for skeleton to completely fade out before showing content
+        await cart.hideSkeleton();
+        
         if (state.cart.length === 0) {
             cart.showEmpty();
         } else {
@@ -244,6 +247,7 @@ const cart = {
             if (applyBtn) {
                 applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
                 applyBtn.onclick = discount.changeCode;
+                applyBtn.classList.add('btn-change-code');
             }
             
             // Show discount result
@@ -388,10 +392,56 @@ const cart = {
         }
     },
 
+    // Hide skeleton and show content with smooth transition
+    hideSkeleton: () => {
+        const skeleton = document.getElementById('cartSkeleton');
+        const skeletonSummary = document.getElementById('cartSummarySkeleton');
+        
+        // Fade out skeleton first
+        const fadeOutPromises = [];
+        
+        if (skeleton) {
+            const promise = new Promise(resolve => {
+                skeleton.style.opacity = '0';
+                skeleton.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => {
+                    skeleton.classList.add('hidden');
+                    resolve();
+                }, 300);
+            });
+            fadeOutPromises.push(promise);
+        }
+        
+        if (skeletonSummary) {
+            const promise = new Promise(resolve => {
+                skeletonSummary.style.opacity = '0';
+                skeletonSummary.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => {
+                    skeletonSummary.classList.add('hidden');
+                    resolve();
+                }, 300);
+            });
+            fadeOutPromises.push(promise);
+        }
+        
+        // Return promise that resolves when all skeletons are hidden
+        return Promise.all(fadeOutPromises);
+    },
+
     // Show empty cart
     showEmpty: () => {
         console.log('=== SHOW EMPTY CART ===');
-        document.getElementById('emptyCart').classList.remove('hidden');
+        const emptyCart = document.getElementById('emptyCart');
+        
+        emptyCart.classList.remove('hidden');
+        emptyCart.style.opacity = '0';
+        
+        // Fade in empty cart
+        requestAnimationFrame(() => {
+            emptyCart.style.transition = 'opacity 0.5s ease';
+            emptyCart.style.opacity = '1';
+        });
+        
         document.getElementById('cartItems').classList.add('hidden');
         document.getElementById('discountSection').classList.add('hidden');
         document.getElementById('paymentSection').classList.add('hidden');
@@ -584,15 +634,47 @@ const cart = {
         }).join('');
 
         container.innerHTML = html;
+        
+        // Remove hidden class but keep opacity 0 initially
         container.classList.remove('hidden');
+        container.style.opacity = '0';
         
         console.log('=== RENDER COMPLETE ===');
         
         // Show discount section, order note section, payment section, and customer info section
-        document.getElementById('discountSection').classList.remove('hidden');
-        document.getElementById('orderNoteSection').classList.remove('hidden');
-        document.getElementById('paymentSection').classList.remove('hidden');
-        document.getElementById('customerInfoSection').classList.remove('hidden');
+        const sectionsToShow = [
+            'discountSection',
+            'orderNoteSection', 
+            'paymentSection',
+            'customerInfoSection'
+        ];
+        
+        // Prepare all sections (remove hidden but keep opacity 0)
+        sectionsToShow.forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.remove('hidden');
+                section.style.opacity = '0';
+            }
+        });
+        
+        // Fade in all content together after a small delay
+        requestAnimationFrame(() => {
+            // Fade in cart items
+            container.style.transition = 'opacity 0.5s ease';
+            container.style.opacity = '1';
+            
+            // Fade in all sections with slight stagger
+            sectionsToShow.forEach((sectionId, index) => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        section.style.opacity = '1';
+                    }, 50 + (index * 30));
+                }
+            });
+        });
         
         // Dispatch event for address selector initialization
         setTimeout(() => {
@@ -652,6 +734,7 @@ const cart = {
         }
         
         section.classList.remove('hidden');
+        section.style.opacity = '0';
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);
@@ -676,6 +759,14 @@ const cart = {
         }).join('');
         
         container.innerHTML = html;
+        
+        // Fade in bundle section
+        requestAnimationFrame(() => {
+            section.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                section.style.opacity = '1';
+            }, 200);
+        });
     },
 
     // Toggle bundle product
@@ -869,6 +960,20 @@ const cart = {
         console.log('Cart summary exists:', !!cartSummary);
         
         summarySection?.classList.remove('hidden');
+        
+        // Prepare summary (remove hidden but keep opacity 0)
+        if (cartSummary) {
+            cartSummary.classList.remove('hidden');
+            cartSummary.style.opacity = '0';
+            
+            // Fade in summary after a small delay
+            requestAnimationFrame(() => {
+                cartSummary.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    cartSummary.style.opacity = '1';
+                }, 100);
+            });
+        }
 
         // Update UI
         const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -1220,6 +1325,27 @@ const cart = {
                 }, 1000);
             });
         }
+        
+        // Update bank transfer note when phone changes
+        const phoneInput = document.getElementById('cartPhone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', () => {
+                // Only update if bank transfer is selected
+                if (state.paymentMethod === 'bank') {
+                    const bankTransferNote = document.getElementById('bankTransferNote');
+                    if (bankTransferNote) {
+                        const phone = phoneInput.value.trim() || '0386190596';
+                        bankTransferNote.textContent = phone;
+                        
+                        // Update copy button onclick
+                        const copyBtn = bankTransferNote.nextElementSibling;
+                        if (copyBtn && copyBtn.classList.contains('copy-btn')) {
+                            copyBtn.onclick = () => cartPayment.copyBankInfo(phone);
+                        }
+                    }
+                }
+            });
+        }
     }
 };
 
@@ -1317,11 +1443,12 @@ const discount = {
         input.value = code;
         input.disabled = true;
         
-        // Update apply button to show "Đổi mã"
+        // Update apply button to show "Đổi mã" with special styling
         const applyBtn = document.getElementById('applyDiscountBtn');
         if (applyBtn) {
             applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
             applyBtn.onclick = discount.changeCode;
+            applyBtn.classList.add('btn-change-code');
         }
         
         utils.showToast('Áp dụng mã thành công!', 'success');
@@ -1341,6 +1468,7 @@ const discount = {
         if (applyBtn) {
             applyBtn.innerHTML = '<i class="fas fa-check"></i> Áp dụng';
             applyBtn.onclick = discount.apply;
+            applyBtn.classList.remove('btn-change-code');
         }
         
         // Remove current discount
@@ -1378,21 +1506,16 @@ const discount = {
     showResult: (message, type) => {
         const resultEl = document.getElementById('discountResult');
         
-        if (!message) {
+        if (!message || type === 'success') {
+            // Hide result for success (code shows in input) or when no message
             resultEl.classList.add('hidden');
             resultEl.classList.remove('success', 'error');
             return;
         }
 
+        // Only show for error messages
         resultEl.className = 'discount-result ' + type;
-        
-        if (type === 'success') {
-            resultEl.innerHTML = '<span>' + message + '</span>' +
-                '<button class="remove-discount" onclick="discount.remove()">Xóa</button>';
-        } else {
-            resultEl.textContent = message;
-        }
-        
+        resultEl.textContent = message;
         resultEl.classList.remove('hidden');
     },
 
@@ -1559,11 +1682,27 @@ const cartPayment = {
         const bankInfo = document.getElementById('bankTransferInfo');
         if (method === 'bank') {
             bankInfo.classList.remove('hidden');
+            
             // Update bank transfer amount
             const amountEl = document.getElementById('bankTransferAmount');
             if (amountEl) {
                 amountEl.textContent = utils.formatPrice(state.total);
             }
+            
+            // Update bank transfer note with customer phone
+            const phoneInput = document.getElementById('cartPhone');
+            const bankTransferNote = document.getElementById('bankTransferNote');
+            if (phoneInput && bankTransferNote) {
+                const phone = phoneInput.value.trim() || '0386190596';
+                bankTransferNote.textContent = phone;
+                
+                // Update copy button onclick
+                const copyBtn = bankTransferNote.nextElementSibling;
+                if (copyBtn && copyBtn.classList.contains('copy-btn')) {
+                    copyBtn.onclick = () => cartPayment.copyBankInfo(phone);
+                }
+            }
+            
             // Reset confirmation state
             cartPayment.bankTransferConfirmed = false;
             const confirmBtn = document.getElementById('cartBankConfirmBtn');
@@ -1688,6 +1827,14 @@ const bundleCountdown = {
 document.addEventListener('DOMContentLoaded', () => {
     cart.init();
     bundleCountdown.init();
+    
+    // Event delegation for remove discount button
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('[data-action="remove-discount"]')) {
+            e.preventDefault();
+            discount.remove();
+        }
+    });
 });
 
 // Expose to global scope for inline event handlers

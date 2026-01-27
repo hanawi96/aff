@@ -41,6 +41,55 @@
             <div class="cart-layout">
                 <!-- Left Column: Cart Items -->
                 <div class="cart-items-section">
+                    <!-- Skeleton Loading State -->
+                    <div class="cart-skeleton" id="cartSkeleton">
+                        <div class="skeleton-header">
+                            <div class="skeleton-icon">🛍️</div>
+                            <div class="skeleton-text">Đang chuẩn bị giỏ hàng của mẹ...</div>
+                        </div>
+                        
+                        <!-- Skeleton Cart Items -->
+                        <div class="skeleton-items">
+                            <div class="skeleton-item">
+                                <div class="skeleton-image"></div>
+                                <div class="skeleton-content">
+                                    <div class="skeleton-line skeleton-title"></div>
+                                    <div class="skeleton-line skeleton-subtitle"></div>
+                                    <div class="skeleton-line skeleton-price"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="skeleton-item">
+                                <div class="skeleton-image"></div>
+                                <div class="skeleton-content">
+                                    <div class="skeleton-line skeleton-title"></div>
+                                    <div class="skeleton-line skeleton-subtitle"></div>
+                                    <div class="skeleton-line skeleton-price"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="skeleton-item">
+                                <div class="skeleton-image"></div>
+                                <div class="skeleton-content">
+                                    <div class="skeleton-line skeleton-title"></div>
+                                    <div class="skeleton-line skeleton-subtitle"></div>
+                                    <div class="skeleton-line skeleton-price"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Skeleton Sections -->
+                        <div class="skeleton-section">
+                            <div class="skeleton-line skeleton-section-title"></div>
+                            <div class="skeleton-box"></div>
+                        </div>
+                        
+                        <div class="skeleton-section">
+                            <div class="skeleton-line skeleton-section-title"></div>
+                            <div class="skeleton-box"></div>
+                        </div>
+                    </div>
+                    
                     <!-- Empty State -->
                     <div class="empty-cart hidden" id="emptyCart">
                         <div class="empty-icon">
@@ -58,7 +107,7 @@
                     </div>
 
                     <!-- Cart Items -->
-                    <div class="cart-items" id="cartItems">
+                    <div class="cart-items hidden" id="cartItems">
                         <!-- Items will be rendered here -->
                     </div>
 
@@ -280,7 +329,22 @@
 
                 <!-- Right Column: Summary -->
                 <div class="cart-summary-section">
-                    <div class="cart-summary" id="cartSummary">
+                    <!-- Skeleton Summary -->
+                    <div class="cart-summary-skeleton" id="cartSummarySkeleton">
+                        <div class="skeleton-summary-header">
+                            <div class="skeleton-line skeleton-summary-title"></div>
+                        </div>
+                        <div class="skeleton-summary-rows">
+                            <div class="skeleton-line skeleton-summary-row"></div>
+                            <div class="skeleton-line skeleton-summary-row"></div>
+                            <div class="skeleton-line skeleton-summary-row"></div>
+                        </div>
+                        <div class="skeleton-summary-divider"></div>
+                        <div class="skeleton-line skeleton-summary-total"></div>
+                        <div class="skeleton-summary-button"></div>
+                    </div>
+                    
+                    <div class="cart-summary hidden" id="cartSummary">
                         <div class="summary-header">
                             <i class="fas fa-receipt"></i>
                             <h3>Tóm tắt đơn hàng</h3>
