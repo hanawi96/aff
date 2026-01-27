@@ -1800,6 +1800,28 @@
                         <span class="custom-weight-unit">kg</span>
                     </div>
                 </div>
+                
+                <!-- Price Surcharge Info (shown when weight > 15kg) -->
+                <div class="baby-weight-surcharge hidden" id="babyWeightSurcharge">
+                    <div class="surcharge-icon">⚠️</div>
+                    <div class="surcharge-content">
+                        <div class="surcharge-title">Cân nặng trên 15kg</div>
+                        <div class="surcharge-details">
+                            <div class="surcharge-row">
+                                <span>Giá gốc:</span>
+                                <span id="surchargeOriginalPrice">0đ</span>
+                            </div>
+                            <div class="surcharge-row surcharge-fee">
+                                <span>Phụ phí:</span>
+                                <span id="surchargeFee">+0đ</span>
+                            </div>
+                            <div class="surcharge-row surcharge-total">
+                                <span>Tổng cộng:</span>
+                                <span id="surchargeTotalPrice">0đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="baby-weight-footer">
                 <button class="btn-cancel-weight" id="cancelWeightBtn">Hủy</button>

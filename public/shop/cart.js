@@ -26,7 +26,8 @@ const state = {
     availableDiscounts: [], // Store available discounts from API
     orderNote: '', // Store order note
     bundleProducts: [], // Will be loaded from API
-    paymentMethod: 'cod' // Default payment method
+    paymentMethod: 'cod', // Default payment method
+    openNoteInputs: new Set() // Track which note inputs are open
 };
 
 // ============================================
@@ -155,10 +156,8 @@ const storage = {
 const cart = {
     // Initialize cart
     init: async () => {
-        console.log('=== CART INIT START ===');
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
-        console.log('Cart items:', state.cart.length);
         
         // Load available discounts from API
         await cart.loadAvailableDiscounts();
@@ -167,20 +166,11 @@ const cart = {
         await cart.loadBundleProducts();
         
         if (state.cart.length === 0) {
-            console.log('Cart is empty, showing empty state');
             cart.showEmpty();
         } else {
-            console.log('Cart has items, rendering...');
             // Ensure summary is visible before rendering
             const summarySection = document.querySelector('.cart-summary-section');
-            const cartSummary = document.querySelector('.cart-summary');
-            console.log('Summary section element:', summarySection);
-            console.log('Cart summary element:', cartSummary);
-            console.log('Summary section classes:', summarySection?.className);
-            console.log('Cart summary classes:', cartSummary?.className);
-            
             summarySection?.classList.remove('hidden');
-            console.log('After remove hidden from section:', summarySection?.className);
             
             cart.render();
             cart.updateSummary();
@@ -412,19 +402,33 @@ const cart = {
         console.log('Summary section hidden:', summarySection.className);
     },
 
-    // Update quantity
-    updateQuantity: (productId, newQuantity) => {
+    // Update quantity - optimized with proper state sync
+    updateQuantity: (productId, delta) => {
         const item = state.cart.find(i => i.id === productId);
         if (!item) return;
 
-        // Validate quantity
-        newQuantity = Math.max(1, Math.min(newQuantity, item.maxQuantity || 99));
-        item.quantity = newQuantity;
-
-        storage.saveCart(state.cart);
-        cart.render();
-        cart.updateSummary();
+        // Calculate new quantity
+        const newQuantity = Math.max(1, Math.min(item.quantity + delta, item.maxQuantity || 99));
         
+        // No change needed
+        if (newQuantity === item.quantity) return;
+        
+        item.quantity = newQuantity;
+        storage.saveCart(state.cart);
+        
+        // Update DOM
+        const cartItem = document.querySelector(`.cart-item[data-id="${productId}"]`);
+        if (cartItem) {
+            const qtyInput = cartItem.querySelector('.qty-input');
+            const minusBtn = cartItem.querySelector('[data-action="decrease"]');
+            const plusBtn = cartItem.querySelector('[data-action="increase"]');
+            
+            if (qtyInput) qtyInput.value = newQuantity;
+            if (minusBtn) minusBtn.disabled = newQuantity <= 1;
+            if (plusBtn) plusBtn.disabled = newQuantity >= (item.maxQuantity || 99);
+        }
+        
+        cart.updateSummary();
         utils.showToast('Đã cập nhật số lượng');
     },
 
@@ -463,12 +467,21 @@ const cart = {
                 ? '<span class="item-original-price">' + utils.formatPrice(item.originalPrice) + '</span>'
                 : '';
             
+            // Calculate discount percentage
+            const discountPercent = item.originalPrice && item.originalPrice > item.price
+                ? Math.round((1 - item.price / item.originalPrice) * 100)
+                : 0;
+            
+            const discountBadgeHtml = discountPercent > 0
+                ? '<span class="item-discount-badge">-' + discountPercent + '%</span>'
+                : '';
+            
             // Note display
             let noteHtml = '';
             if (item.note) {
-                noteHtml = '<div class="item-note-saved">' +
+                noteHtml = '<div class="item-note-row">' +
+                    '<div class="item-note-saved">' +
                     '<i class="fas fa-sticky-note"></i>' +
-                    '<div>' +
                     '<div class="item-note-text">' + utils.escapeHtml(item.note) + '</div>' +
                     '<div class="item-note-actions">' +
                     '<button class="btn-note-action btn-edit-note" onclick="cart.editItemNote(' + item.id + ')">' +
@@ -476,11 +489,19 @@ const cart = {
                     '</button>' +
                     '</div>' +
                     '</div>' +
+                    '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
+                    '<i class="fas fa-trash"></i>' +
+                    '</button>' +
                     '</div>';
             } else {
-                noteHtml = '<div class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
+                noteHtml = '<div class="item-note-row">' +
+                    '<div class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
                     '<i class="fas fa-plus-circle"></i>' +
                     '<span>Thêm lưu ý cho sản phẩm</span>' +
+                    '</div>' +
+                    '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
+                    '<i class="fas fa-trash"></i>' +
+                    '</button>' +
                     '</div>' +
                     '<div class="item-note-input hidden" id="noteInput' + item.id + '">' +
                     '<textarea class="item-note-textarea" ' +
@@ -498,41 +519,46 @@ const cart = {
                     '</div>';
             }
             
-            // Baby weight badge display
+            // Baby weight badge display - now below image
             let babyWeightHtml = '';
             if (item.size) {
                 babyWeightHtml = '<div class="item-baby-weight-badge">' +
-                    '<i class="fas fa-baby"></i>' +
-                    '<span>Cân nặng: ' + utils.escapeHtml(item.size) + '</span>' +
+                    '<span>Size: ' + utils.escapeHtml(item.size) + '</span>' +
                     '</div>';
             }
             
-            // Calculate total price for this item
-            const itemTotal = item.price * item.quantity;
+            // Weight surcharge notice (separate line)
+            let weightSurchargeHtml = '';
+            if (item.weightSurcharge && item.weightSurcharge > 0) {
+                weightSurchargeHtml = '<div class="item-weight-surcharge-notice">' +
+                    '<i class="fas fa-info-circle"></i>' +
+                    '<span>Đã bao gồm phụ phí cân nặng trên 15kg: +' + utils.formatPrice(item.weightSurcharge) + '</span>' +
+                    '</div>';
+            }
             
-            return '<div class="cart-item" data-id="' + item.id + '">' +
+            return '<div class="cart-item" data-id="' + item.id + '" data-item-id="' + item.id + '">' +
+                '<div class="cart-item-main">' +
+                '<div class="item-image-container">' +
                 '<img src="' + (item.image || '/assets/images/product_img/tat-ca-mau.webp') + '" ' +
                 'alt="' + utils.escapeHtml(item.name) + '" ' +
                 'class="item-image" ' +
                 'onclick="cart.viewProduct(' + item.id + ')">' +
-                '<div class="item-details">' +
+                babyWeightHtml +
+                '</div>' +
+                '<div class="item-info">' +
                 '<div class="item-name" onclick="cart.viewProduct(' + item.id + ')">' +
                 utils.escapeHtml(item.name) +
                 '</div>' +
-                babyWeightHtml +
-                '<div class="item-price-row">' +
-                '<div class="item-unit-price">' +
-                '<span class="item-price">' + utils.formatPrice(item.price) + '</span>' +
-                (item.quantity > 1 ? '<span class="item-multiply">× ' + item.quantity + '</span>' : '') +
+                '<div class="item-price-quantity-row">' +
+                '<div class="item-price-group">' +
                 originalPriceHtml +
+                '<span class="item-price">' + utils.formatPrice(item.price) + '</span>' +
+                discountBadgeHtml +
                 '</div>' +
-                (item.quantity > 1 ? '<div class="item-total-price">' + utils.formatPrice(itemTotal) + '</div>' : '') +
-                '</div>' +
-                noteHtml +
-                '<div class="item-actions">' +
                 '<div class="quantity-selector">' +
                 '<button class="qty-btn" ' +
-                'onclick="cart.updateQuantity(' + item.id + ', ' + (item.quantity - 1) + ')" ' +
+                'data-action="decrease" ' +
+                'data-product-id="' + item.id + '" ' +
                 (item.quantity <= 1 ? 'disabled' : '') + '>' +
                 '<i class="fas fa-minus"></i>' +
                 '</button>' +
@@ -540,18 +566,20 @@ const cart = {
                 'value="' + item.quantity + '" ' +
                 'min="1" ' +
                 'max="' + (item.maxQuantity || 99) + '" ' +
+                'data-product-id="' + item.id + '" ' +
                 'onchange="cart.handleQuantityInput(' + item.id + ', this.value)">' +
                 '<button class="qty-btn" ' +
-                'onclick="cart.updateQuantity(' + item.id + ', ' + (item.quantity + 1) + ')" ' +
+                'data-action="increase" ' +
+                'data-product-id="' + item.id + '" ' +
                 (item.quantity >= (item.maxQuantity || 99) ? 'disabled' : '') + '>' +
                 '<i class="fas fa-plus"></i>' +
                 '</button>' +
                 '</div>' +
-                '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
-                '<i class="fas fa-trash"></i>' +
-                '</button>' +
+                '</div>' +
+                (weightSurchargeHtml ? weightSurchargeHtml : '') +
                 '</div>' +
                 '</div>' +
+                noteHtml +
                 '</div>';
         }).join('');
 
@@ -725,20 +753,60 @@ const cart = {
     editItemNote: (productId) => {
         const item = state.cart.find(i => i.id === productId);
         if (item && item.note) {
-            item.note = null;
-            storage.saveCart(state.cart);
-            cart.render();
+            // Không xóa note, chỉ render lại với textarea
+            const oldNote = item.note;
             
-            // Auto open note input
-            setTimeout(() => {
-                const noteInput = document.getElementById('noteInput' + productId);
-                const noteText = document.getElementById('noteText' + productId);
-                if (noteInput && noteText) {
-                    noteInput.classList.remove('hidden');
-                    noteText.focus();
-                }
-            }, 100);
+            // Tìm container của item này
+            const itemElement = document.querySelector(`[data-item-id="${productId}"]`);
+            if (!itemElement) return;
+            
+            // Tìm phần note row
+            const noteRow = itemElement.querySelector('.item-note-row');
+            if (!noteRow) return;
+            
+            // Thay thế HTML để hiển thị textarea với note cũ
+            noteRow.innerHTML = 
+                '<div class="item-note-toggle active">' +
+                '<i class="fas fa-edit"></i>' +
+                '<span>Đang sửa lưu ý</span>' +
+                '</div>' +
+                '<button class="delete-btn" onclick="cart.removeItem(' + productId + ')">' +
+                '<i class="fas fa-trash"></i>' +
+                '</button>';
+            
+            // Thêm textarea sau note row
+            const noteInput = document.createElement('div');
+            noteInput.className = 'item-note-input';
+            noteInput.id = 'noteInput' + productId;
+            noteInput.innerHTML = 
+                '<textarea class="item-note-textarea" ' +
+                'id="noteText' + productId + '" ' +
+                'placeholder="Ví dụ: Làm size nhỏ hơn, thêm charm hình tim..." ' +
+                'maxlength="200">' + utils.escapeHtml(oldNote) + '</textarea>' +
+                '<div class="item-note-actions">' +
+                '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + productId + ')">' +
+                '<i class="fas fa-check"></i> Lưu' +
+                '</button>' +
+                '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelEditNote(' + productId + ')">' +
+                '<i class="fas fa-times"></i> Hủy' +
+                '</button>' +
+                '</div>';
+            
+            noteRow.parentNode.insertBefore(noteInput, noteRow.nextSibling);
+            
+            // Focus textarea
+            const textarea = document.getElementById('noteText' + productId);
+            if (textarea) {
+                textarea.focus();
+                textarea.setSelectionRange(oldNote.length, oldNote.length);
+            }
         }
+    },
+
+    // Cancel edit note (restore original note)
+    cancelEditNote: (productId) => {
+        // Chỉ cần render lại, note vẫn còn trong state
+        cart.render();
     },
 
     // Handle quantity input
@@ -808,16 +876,31 @@ const cart = {
         document.getElementById('summaryItemCount').textContent = `(${totalItems} sp)`;
         document.getElementById('subtotal').textContent = utils.formatPrice(state.subtotal);
         
-        // Update shipping fee with bundle product message
+        // Always show shipping fee (30k)
         const shippingFeeElement = document.getElementById('shippingFee');
+        shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
+        
+        // Show freeship discount row if applicable
+        const freeshipRow = document.getElementById('freeshipRow');
+        const freeshipLabel = document.getElementById('freeshipLabel');
+        const freeshipAmount = document.getElementById('freeshipAmount');
+        
         if (state.shippingFee === 0) {
+            freeshipRow.classList.remove('hidden');
+            freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
+            
+            // Set label based on reason
             if (hasBundleProduct) {
-                shippingFeeElement.innerHTML = '<span style="color: #27ae60; font-weight: 700;">Miễn phí</span> <span style="font-size: 0.75rem; color: #27ae60;">(Mua kèm)</span>';
+                freeshipLabel.textContent = '(Mua kèm)';
+            } else if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
+                freeshipLabel.textContent = '(Đơn ≥500k)';
+            } else if (state.discount && state.discount.type === 'freeship') {
+                freeshipLabel.textContent = '(' + state.discount.code + ')';
             } else {
-                shippingFeeElement.textContent = 'Miễn phí';
+                freeshipLabel.textContent = '';
             }
         } else {
-            shippingFeeElement.textContent = utils.formatPrice(state.shippingFee);
+            freeshipRow.classList.add('hidden');
         }
         
         document.getElementById('totalAmount').textContent = utils.formatPrice(state.total);
@@ -1027,6 +1110,24 @@ const cart = {
 
     // Setup event listeners
     setupEventListeners: () => {
+        // Event delegation for quantity buttons
+        const cartItemsContainer = document.getElementById('cartItems');
+        if (cartItemsContainer) {
+            cartItemsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                
+                const action = btn.dataset.action;
+                const productId = parseInt(btn.dataset.productId);
+                
+                if (action === 'increase') {
+                    cart.updateQuantity(productId, 1);
+                } else if (action === 'decrease') {
+                    cart.updateQuantity(productId, -1);
+                }
+            });
+        }
+        
         // Checkout button
         const checkoutBtn = document.getElementById('checkoutBtn');
         if (checkoutBtn) {
@@ -1398,7 +1499,6 @@ const discount = {
                 '<div class="discount-card-info">' +
                 '<div class="discount-card-code">' + utils.escapeHtml(code.code) + '</div>' +
                 (code.title ? '<div class="discount-card-title">' + utils.escapeHtml(code.title) + '</div>' : '') +
-                '<div class="discount-card-desc">' + utils.escapeHtml(discountText) + '</div>' +
                 '</div>' +
                 '</div>' +
                 (detailsHtml ? '<div class="discount-card-details">' + detailsHtml + '</div>' : '') +
@@ -1529,11 +1629,65 @@ const cartPayment = {
 };
 
 // ============================================
+// BUNDLE COUNTDOWN TIMER
+// ============================================
+
+const bundleCountdown = {
+    endTime: null,
+    intervalId: null,
+    
+    init: () => {
+        // Set countdown to end at midnight (00:00:00)
+        const now = new Date();
+        const midnight = new Date(now);
+        midnight.setHours(24, 0, 0, 0);
+        bundleCountdown.endTime = midnight.getTime();
+        
+        // Start countdown
+        bundleCountdown.update();
+        bundleCountdown.intervalId = setInterval(bundleCountdown.update, 1000);
+    },
+    
+    update: () => {
+        const now = new Date().getTime();
+        const distance = bundleCountdown.endTime - now;
+        
+        if (distance < 0) {
+            // Reset to next midnight
+            const tomorrow = new Date();
+            tomorrow.setHours(24, 0, 0, 0);
+            bundleCountdown.endTime = tomorrow.getTime();
+            return;
+        }
+        
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        const countdownText = document.getElementById('bundleCountdownText');
+        if (countdownText) {
+            countdownText.textContent = 
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+        }
+    },
+    
+    destroy: () => {
+        if (bundleCountdown.intervalId) {
+            clearInterval(bundleCountdown.intervalId);
+            bundleCountdown.intervalId = null;
+        }
+    }
+};
+
+// ============================================
 // INITIALIZE
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
     cart.init();
+    bundleCountdown.init();
 });
 
 // Expose to global scope for inline event handlers

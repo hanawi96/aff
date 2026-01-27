@@ -4525,6 +4525,89 @@ body {
     color: #2c3e50;
 }
 
+/* Price Surcharge Info */
+.baby-weight-surcharge {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border-radius: 12px;
+    border: 2px solid #ffb74d;
+    display: flex;
+    gap: 0.75rem;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.surcharge-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.surcharge-content {
+    flex: 1;
+}
+
+.surcharge-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e65100;
+    margin-bottom: 0.5rem;
+}
+
+.surcharge-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.surcharge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #5d4037;
+}
+
+.surcharge-row span:first-child {
+    font-weight: 600;
+}
+
+.surcharge-row span:last-child {
+    font-weight: 700;
+}
+
+.surcharge-fee {
+    color: #f57c00;
+}
+
+.surcharge-fee span:last-child {
+    color: #e65100;
+}
+
+.surcharge-total {
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 2px dashed rgba(230, 81, 0, 0.3);
+    font-size: 1rem;
+    color: #bf360c;
+}
+
+.surcharge-total span:last-child {
+    font-size: 1.1rem;
+    color: #bf360c;
+}
+
 .baby-weight-footer {
     display: flex;
     gap: 0.75rem;

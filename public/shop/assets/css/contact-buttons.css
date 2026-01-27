@@ -70,7 +70,7 @@
 @media (max-width: 768px) {
   .sticky-contact-buttons {
     right: 12px;
-    bottom: 80px;
+    bottom: 120px;
     gap: 8px;
   }
   
@@ -96,7 +96,7 @@
 @media (max-width: 480px) {
   .sticky-contact-buttons {
     right: 10px;
-    bottom: 75px;
+    bottom: 110px;
     gap: 6px;
   }
   

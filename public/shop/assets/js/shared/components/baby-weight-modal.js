@@ -14,28 +14,33 @@ export class BabyWeightModal {
         this.selectedWeight = null;
         this.callback = null;
         
+        // Price surcharge for weight > 15kg
+        this.SURCHARGE_VONG_TRON = 20000; // 20k for "Vòng trơn" category
+        this.SURCHARGE_OTHER = 40000;     // 40k for other categories
+        this.VONG_TRON_CATEGORY_ID = 8;   // Category ID for "Vòng trơn"
+        
         // Category IDs that DON'T need baby weight selection
         // These are stable and won't break if category names change
         // 
-        // HOW TO UPDATE THIS LIST:
-        // 1. Run: node database/get-categories.js
-        // 2. Copy the output array and paste it here
-        //
-        // CURRENT SKIP CATEGORIES (from Turso database):
+        // ONLY 4 CATEGORIES SKIP BABY WEIGHT:
+        // 1. Bi, charm bạc - Phụ kiện riêng lẻ
+        // 2. Hạt dâu tằm mài sẵn - Nguyên liệu thô
+        // 3. Sản phẩm bán kèm - Phụ kiện đi kèm
+        // 4. Vòng người lớn - Vòng cho người lớn
         this.skipCategoryIds = [
-            24,  // Bi, charm bạc - Phụ kiện riêng lẻ, không cần cân nặng
-            14,  // Hạt dâu tằm mài sẵn - Nguyên liệu thô, không cần cân nặng
-            23,  // Sản phẩm bán kèm - Phụ kiện đi kèm, không cần cân nặng
-            22,  // Vòng người lớn - Vòng cho người lớn, không cần cân nặng bé
+            24,  // Bi, charm bạc
+            14,  // Hạt dâu tằm mài sẵn
+            23,  // Sản phẩm bán kèm
+            22,  // Vòng người lớn
         ];
         
         // Fallback: Category names (less reliable, but works if IDs not set)
         // This will be used if skipCategoryIds is empty
         this.skipCategoryNames = [
-            'vòng người lớn',
             'bi, charm bạc',
+            'hạt dâu tằm mài sẵn',
             'sản phẩm bán kèm',
-            'hạt dâu tằm mài sẵn'
+            'vòng người lớn'
         ];
         
         this.init();
@@ -189,6 +194,7 @@ export class BabyWeightModal {
      */
     close() {
         document.getElementById('babyWeightModal').classList.add('hidden');
+        this.hideSurchargeInfo();
         this.currentProduct = null;
         this.selectedWeight = null;
         this.callback = null;
@@ -212,8 +218,70 @@ export class BabyWeightModal {
         // Clear custom input
         document.getElementById('customWeightInput').value = '';
         
+        // Hide surcharge info (preset weights are <= 15kg)
+        this.hideSurchargeInfo();
+        
         // Enable confirm button
         document.getElementById('confirmWeightBtn').disabled = false;
+    }
+    
+    /**
+     * Check if product is in "Vòng trơn" category
+     */
+    isVongTronCategory(product) {
+        if (!product.categories || product.categories.length === 0) {
+            return false;
+        }
+        
+        return product.categories.some(cat => {
+            const catId = cat.id || cat.category_id;
+            return catId === this.VONG_TRON_CATEGORY_ID;
+        });
+    }
+    
+    /**
+     * Calculate surcharge based on weight and category
+     */
+    calculateSurcharge(weightKg) {
+        if (weightKg <= 15) {
+            return 0;
+        }
+        
+        const isVongTron = this.isVongTronCategory(this.currentProduct);
+        return isVongTron ? this.SURCHARGE_VONG_TRON : this.SURCHARGE_OTHER;
+    }
+    
+    /**
+     * Show surcharge info
+     */
+    showSurchargeInfo(weightKg) {
+        const surchargeDiv = document.getElementById('babyWeightSurcharge');
+        if (!surchargeDiv || !this.currentProduct) return;
+        
+        const surcharge = this.calculateSurcharge(weightKg);
+        
+        if (surcharge > 0) {
+            const originalPrice = this.currentProduct.price;
+            const totalPrice = originalPrice + surcharge;
+            
+            document.getElementById('surchargeOriginalPrice').textContent = this.formatPrice(originalPrice);
+            document.getElementById('surchargeFee').textContent = '+' + this.formatPrice(surcharge);
+            document.getElementById('surchargeTotalPrice').textContent = this.formatPrice(totalPrice);
+            
+            surchargeDiv.classList.remove('hidden');
+        } else {
+            this.hideSurchargeInfo();
+        }
+    }
+    
+    /**
+     * Hide surcharge info
+     */
+    hideSurchargeInfo() {
+        const surchargeDiv = document.getElementById('babyWeightSurcharge');
+        if (surchargeDiv) {
+            surchargeDiv.classList.add('hidden');
+        }
     }
     
     /**
@@ -228,10 +296,14 @@ export class BabyWeightModal {
             // Clear quick selection
             document.querySelectorAll('.weight-btn').forEach(btn => btn.classList.remove('selected'));
             
+            // Show surcharge info
+            this.showSurchargeInfo(weight);
+            
             // Enable confirm button
             document.getElementById('confirmWeightBtn').disabled = false;
         } else {
             this.selectedWeight = null;
+            this.hideSurchargeInfo();
             document.getElementById('confirmWeightBtn').disabled = true;
         }
     }
@@ -244,9 +316,16 @@ export class BabyWeightModal {
             return;
         }
         
-        // Call callback with selected weight
+        // Extract weight number from selectedWeight (e.g., "18kg" -> 18)
+        const weightMatch = this.selectedWeight.match(/(\d+)/);
+        const weightKg = weightMatch ? parseInt(weightMatch[1]) : 0;
+        
+        // Calculate surcharge
+        const surcharge = this.calculateSurcharge(weightKg);
+        
+        // Call callback with selected weight and surcharge
         if (this.callback) {
-            this.callback(this.selectedWeight);
+            this.callback(this.selectedWeight, surcharge);
         }
         
         // Close modal

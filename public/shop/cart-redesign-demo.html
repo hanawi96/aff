@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Card Sản Phẩm Mới - Giỏ Hàng</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="cart.css">
+    <style>
+        body {
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8edeb 0%, #fff 50%, rgba(233, 196, 106, 0.1) 100%);
+        }
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .demo-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 12px rgba(244, 162, 97, 0.08);
+        }
+        .demo-header h1 {
+            font-size: 2rem;
+            color: #f4a261;
+            margin-bottom: 0.5rem;
+        }
+        .demo-header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .comparison-label {
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+        }
+        .features-list {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-top: 1rem;
+            box-shadow: 0 2px 8px rgba(244, 162, 97, 0.08);
+        }
+        .features-list h3 {
+            color: #f4a261;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        .features-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #2c3e50;
+        }
+        .features-list li i {
+            color: #27ae60;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎨 Thiết Kế Card Sản Phẩm Mới</h1>
+            <p>Gọn gàng, tối ưu, responsive tốt trên mọi thiết bị</p>
+        </div>
+
+        <div class="features-list">
+            <h3>✨ Cải tiến chính:</h3>
+            <ul>
+                <li><i class="fas fa-check-circle"></i> Bố cục ngang compact - tiết kiệm không gian 40%</li>
+                <li><i class="fas fa-check-circle"></i> Thông tin được nhóm logic theo mức độ quan trọng</li>
+                <li><i class="fas fa-check-circle"></i> Hình ảnh nhỏ gọn hơn (100x100px) nhưng vẫn rõ nét</li>
+                <li><i class="fas fa-check-circle"></i> Badge cân nặng và giá nằm cùng hàng</li>
+                <li><i class="fas fa-check-circle"></i> Nút tăng/giảm số lượng nhỏ gọn hơn (32x32px)</li>
+                <li><i class="fas fa-check-circle"></i> Phụ phí cân nặng inline với thông tin giá</li>
+                <li><i class="fas fa-check-circle"></i> Khoảng cách đồng nhất, dễ đọc hơn</li>
+                <li><i class="fas fa-check-circle"></i> Responsive tốt - tự động điều chỉnh trên mobile</li>
+            </ul>
+        </div>
+
+        <div class="comparison">
+            <div>
+                <div class="comparison-label">🎯 Thiết Kế Mới - Tối Ưu</div>
+                
+                <!-- Example 1: Product with baby weight -->
+                <div class="cart-items">
+                    <div class="cart-item">
+                        <div class="cart-item-main">
+                            <img src="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/Vong%20tron/vong-tron-buoc-moi.webp" 
+                                 alt="7 hổ phách nâu đỏ" 
+                                 class="item-image">
+                            <div class="item-info">
+                                <div class="item-name">7 hổ phách nâu đỏ</div>
+                                
+                                <div class="item-meta-row">
+                                    <div class="item-baby-weight-badge">
+                                        <i class="fas fa-baby"></i>
+                                        <span>Cân nặng: 21kg</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-price-row">
+                                    <span class="item-original-price">285.000đ</span>
+                                    <span class="item-price">245.000đ</span>
+                                    <span class="item-discount-badge">-14%</span>
+                                </div>
+                                
+                                <div class="item-meta-row">
+                                    <div class="item-weight-surcharge-notice">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Phụ phí cân nặng: +40.000đ</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-actions">
+                                    <div class="quantity-selector">
+                                        <button class="qty-btn">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="qty-input" value="2" min="1">
+                                        <button class="qty-btn">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <button class="delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="item-note-toggle">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Thêm lưu ý cho sản phẩm</span>
+                        </div>
+                    </div>
+
+                    <!-- Example 2: Product without baby weight -->
+                    <div class="cart-item">
+                        <div class="cart-item-main">
+                            <img src="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/tui_dau_tam.webp" 
+                                 alt="Túi Dâu Tằm Để Giường" 
+                                 class="item-image">
+                            <div class="item-info">
+                                <div class="item-name">Túi Dâu Tằm Để Giường</div>
+                                
+                                <div class="item-price-row">
+                                    <span class="item-original-price">45.000đ</span>
+                                    <span class="item-price">35.000đ</span>
+                                    <span class="item-discount-badge">-22%</span>
+                                </div>
+                                
+                                <div class="item-actions">
+                                    <div class="quantity-selector">
+                                        <button class="qty-btn">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="qty-input" value="1" min="1">
+                                        <button class="qty-btn">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <button class="delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="item-note-saved">
+                            <i class="fas fa-sticky-note"></i>
+                            <div class="item-note-text">Gói quà đẹp giúp em nhé</div>
+                            <div class="item-note-actions">
+                                <button class="btn-note-action btn-edit-note">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Example 3: Long product name -->
+                    <div class="cart-item">
+                        <div class="cart-item-main">
+                            <img src="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo%20de/vong_dau_tam_7_hat_bo_de.webp" 
+                                 alt="Vòng đầu tằm 7 hạt bồ đề" 
+                                 class="item-image">
+                            <div class="item-info">
+                                <div class="item-name">Vòng đầu tằm 7 hạt bồ đề dây vàng - Phiên bản đặc biệt cho bé</div>
+                                
+                                <div class="item-meta-row">
+                                    <div class="item-baby-weight-badge">
+                                        <i class="fas fa-baby"></i>
+                                        <span>Cân nặng: 8kg</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-price-row">
+                                    <span class="item-price">195.000đ</span>
+                                </div>
+                                
+                                <div class="item-actions">
+                                    <div class="quantity-selector">
+                                        <button class="qty-btn" disabled>
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="qty-input" value="1" min="1">
+                                        <button class="qty-btn">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <button class="delete-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-list" style="margin-top: 2rem;">
+            <h3>📱 Responsive Design:</h3>
+            <ul>
+                <li><i class="fas fa-check-circle"></i> Desktop: Bố cục ngang, tận dụng không gian</li>
+                <li><i class="fas fa-check-circle"></i> Mobile: Tự động thu nhỏ, vẫn giữ đầy đủ thông tin</li>
+                <li><i class="fas fa-check-circle"></i> Hình ảnh: 100x100px (desktop) → 80x80px (mobile)</li>
+                <li><i class="fas fa-check-circle"></i> Font size tự động điều chỉnh theo màn hình</li>
+                <li><i class="fas fa-check-circle"></i> Touch-friendly: Nút bấm đủ lớn cho ngón tay</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: white; border-radius: 16px;">
+            <p style="color: #7f8c8d; font-size: 0.95rem;">
+                💡 <strong>Lưu ý:</strong> Thiết kế này đã được áp dụng vào file <code>cart.css</code>. 
+                Refresh trang giỏ hàng để xem thay đổi!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

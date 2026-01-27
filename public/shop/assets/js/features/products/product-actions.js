@@ -48,39 +48,47 @@ export class ProductActions {
         if (this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product)) {
             console.log('⚖️ ProductActions: Opening baby weight modal for product:', product.name);
             // Open modal with callback
-            this.babyWeightModal.open(product, (selectedWeight) => {
+            this.babyWeightModal.open(product, (selectedWeight, surcharge = 0) => {
                 console.log('✅ ProductActions: Weight selected:', selectedWeight);
-                this.addToCartWithWeight(product, selectedWeight);
+                console.log('💰 ProductActions: Surcharge:', surcharge);
+                this.addToCartWithWeight(product, selectedWeight, surcharge);
             });
         } else {
             console.log('➡️ ProductActions: Adding directly without baby weight');
             // Add directly without baby weight
-            this.addToCartWithWeight(product, null);
+            this.addToCartWithWeight(product, null, 0);
         }
     }
     
     /**
      * Add product to cart with weight
      */
-    addToCartWithWeight(product, weight) {
+    addToCartWithWeight(product, weight, surcharge = 0) {
         console.log('🎯 addToCartWithWeight called');
         console.log('   Product:', product.name);
         console.log('   Weight received:', weight);
         console.log('   Weight type:', typeof weight);
+        console.log('   Surcharge:', surcharge);
+        
+        // Calculate final price with surcharge
+        const finalPrice = product.price + surcharge;
         
         const cartItem = {
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: finalPrice, // Use price with surcharge
             originalPrice: product.original_price,
             image: product.image_url,
             maxQuantity: 99,
             badges: [],
             isFlashSale: false,
-            size: weight || '' // Add weight as size
+            size: weight || '', // Add weight as size
+            weightSurcharge: surcharge // Store surcharge for reference
         };
         
         console.log('   Cart item size:', cartItem.size);
+        console.log('   Cart item price:', cartItem.price);
+        console.log('   Cart item surcharge:', cartItem.weightSurcharge);
         
         // Add badges
         if (product.is_handmade === 1) {

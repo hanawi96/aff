@@ -122,6 +122,10 @@
                         <div class="bundle-offer-badge">
                             <i class="fas fa-gift"></i>
                             <span>Ưu đãi đặc biệt</span>
+                            <div class="bundle-countdown" id="bundleCountdown">
+                                <i class="fas fa-clock"></i>
+                                <span id="bundleCountdownText">--:--:--</span>
+                            </div>
                         </div>
                         
                         <div class="bundle-offer-header">
@@ -147,10 +151,7 @@
                                 <i class="fas fa-users"></i>
                                 <span><strong>847 mẹ</strong> đã mua kèm tuần này</span>
                             </div>
-                            <div class="bundle-timer">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg>
-                                <span>Ưu đãi có hạn</span>
-                            </div>
+                            
                         </div>
                     </div>
 
@@ -283,7 +284,6 @@
                         <div class="summary-header">
                             <i class="fas fa-receipt"></i>
                             <h3>Tóm tắt đơn hàng</h3>
-                            <i class="fas fa-chevron-up summary-toggle-icon"></i>
                         </div>
                         
                         <div class="summary-content">
@@ -292,16 +292,23 @@
                                 <span class="amount" id="subtotal">0đ</span>
                             </div>
                             
+                            <div class="summary-row">
+                                <span>Phí vận chuyển:</span>
+                                <span class="amount" id="shippingFee">30.000đ</span>
+                            </div>
+                            
+                            <div class="summary-row discount-row hidden" id="freeshipRow">
+                                <span>
+                                    Miễn phí vận chuyển <span class="discount-code-label" id="freeshipLabel"></span>:
+                                </span>
+                                <span class="amount discount-amount" id="freeshipAmount">-0đ</span>
+                            </div>
+                            
                             <div class="summary-row discount-row hidden" id="discountRow">
                                 <span>
                                     Giảm giá <span class="discount-code-label" id="discountCodeLabel"></span>:
                                 </span>
                                 <span class="amount discount-amount" id="discountAmount">-0đ</span>
-                            </div>
-                            
-                            <div class="summary-row">
-                                <span>Phí vận chuyển:</span>
-                                <span class="amount" id="shippingFee">30.000đ</span>
                             </div>
                             
                             <div class="summary-divider"></div>
@@ -312,6 +319,13 @@
                             </div>
                             
                             <div class="checkout-submit-section-cart">
+                                <div class="checkout-guarantee-badge">
+                                    <i class="fas fa-shield-check"></i>
+                                    <div class="guarantee-text">
+                                        <span class="guarantee-main">Nhận hàng kiểm tra thoải mái</span>
+                                        <span class="guarantee-sub">Không ưng ý? Hoàn tiền 100%</span>
+                                    </div>
+                                </div>
                                 <div class="checkout-total-box-cart">
                                     <div class="total-label-main-cart">ĐẶT HÀNG NGAY</div>
                                     <div class="total-amount-cart" id="checkoutTotal">0đ</div>
