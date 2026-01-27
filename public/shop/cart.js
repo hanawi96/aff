@@ -1366,7 +1366,7 @@ const discount = {
             
             if (code.min_order_amount) {
                 detailsHtml += '<div class="discount-card-detail">' +
-                    '<i class="fas fa-shopping-cart"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>' +
                     '<span>Đơn tối thiểu: ' + utils.formatPrice(code.min_order_amount) + '</span>' +
                     '</div>';
             }
@@ -1375,7 +1375,7 @@ const discount = {
                 const expiryDate = new Date(code.expiry_date);
                 const daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
                 detailsHtml += '<div class="discount-card-detail">' +
-                    '<i class="fas fa-clock"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg>' +
                     '<span>HSD: ' + expiryDate.toLocaleDateString('vi-VN') + 
                     (daysLeft > 0 && daysLeft <= 7 ? ' (còn ' + daysLeft + ' ngày)' : '') +
                     '</span>' +

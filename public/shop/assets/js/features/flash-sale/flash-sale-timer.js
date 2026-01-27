@@ -9,6 +9,7 @@ export class FlashSaleTimer {
     constructor(flashSale) {
         this.flashSale = flashSale;
         this.intervalId = null;
+        this.viewersIntervalId = null;
     }
     
     /**
@@ -38,6 +39,36 @@ export class FlashSaleTimer {
         
         updateTimer();
         this.intervalId = setInterval(updateTimer, 1000);
+        
+        // Start random viewers counter
+        this.startViewersCounter();
+    }
+    
+    /**
+     * Start random viewers counter (2-30 people)
+     */
+    startViewersCounter() {
+        const updateViewers = () => {
+            const randomViewers = Math.floor(Math.random() * 29) + 2; // 2-30
+            const viewersEl = document.getElementById('flashSaleViewers');
+            if (viewersEl) {
+                viewersEl.textContent = randomViewers;
+            }
+        };
+        
+        // Update immediately
+        updateViewers();
+        
+        // Update every 5-10 seconds randomly
+        const scheduleNextUpdate = () => {
+            const delay = Math.floor(Math.random() * 5000) + 5000; // 5-10 seconds
+            this.viewersIntervalId = setTimeout(() => {
+                updateViewers();
+                scheduleNextUpdate();
+            }, delay);
+        };
+        
+        scheduleNextUpdate();
     }
     
     /**
@@ -47,6 +78,10 @@ export class FlashSaleTimer {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
+        }
+        if (this.viewersIntervalId) {
+            clearTimeout(this.viewersIntervalId);
+            this.viewersIntervalId = null;
         }
     }
     
@@ -68,7 +103,7 @@ export class FlashSaleTimer {
         // Update footer timer
         const footerTimer = document.getElementById('flashSaleTimer');
         if (footerTimer) {
-            footerTimer.innerHTML = `<i class="fas fa-clock"></i><span>Kết thúc sau: <strong>${timeString}</strong></span>`;
+            footerTimer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg><span>Kết thúc sau: <strong>${timeString}</strong></span>`;
         }
         
         // Update badge timer (inside badge - just time)

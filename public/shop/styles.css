@@ -825,7 +825,7 @@ body {
 }
 
 .category-chip-icon {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -850,11 +850,58 @@ body {
     }
     
     .category-chip-icon {
-        font-size: 1rem;
+        font-size: 0.8rem;
     }
     
     .category-chip-name {
         font-size: 0.875rem;
+    }
+}
+
+/* Preference Chips - Chọn theo sở thích của mẹ */
+.preference-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.15rem;
+    background: white;
+    border: 2px solid rgba(244, 162, 97, 0.3);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #666;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(244, 162, 97, 0.08);
+}
+
+.preference-chip:hover {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: white;
+    border-color: #f4a261;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2);
+}
+
+.preference-chip.active {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: white;
+    border-color: #f4a261;
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
+}
+
+.preference-chip svg {
+    flex-shrink: 0;
+}
+
+/* Mobile adjustments for preference chips */
+@media (max-width: 768px) {
+    .preference-chip {
+        padding: 0.55rem 0.95rem;
+        font-size: 0.85rem;
+        gap: 0.4rem;
     }
 }
 
@@ -1213,6 +1260,103 @@ body {
 .feature-text {
     color: var(--text-light);
     line-height: 1.6;
+}
+
+/* Benefits Section - Handmade Style with Checkmarks */
+.benefit-card-new {
+    background: linear-gradient(135deg, #ffffff 0%, #fff9f5 100%);
+    border: 2px solid rgba(244, 162, 97, 0.15);
+    border-radius: 20px;
+    padding: 1.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.benefit-card-new::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(244, 162, 97, 0.03) 0%, rgba(231, 111, 81, 0.03) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.benefit-card-new:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(244, 162, 97, 0.15);
+    border-color: rgba(244, 162, 97, 0.3);
+}
+
+.benefit-card-new:hover::before {
+    opacity: 1;
+}
+
+.benefit-check {
+    font-size: 1.75rem;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(244, 162, 97, 0.2));
+    animation: checkPulse 2s ease-in-out infinite;
+}
+
+@keyframes checkPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.benefit-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.benefit-title-new {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.benefit-desc-new {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Mobile adjustments for benefits */
+@media (max-width: 768px) {
+    .benefit-card-new {
+        padding: 1.25rem;
+        gap: 0.75rem;
+    }
+    
+    .benefit-check {
+        font-size: 1.5rem;
+    }
+    
+    .benefit-title-new {
+        font-size: 0.95rem;
+    }
+    
+    .benefit-desc-new {
+        font-size: 0.85rem;
+    }
 }
 
 /* Footer */
@@ -1868,7 +2012,7 @@ body {
 
 .btn-primary-action {
     flex: 1;
-    padding: 0.875rem 0.5rem;
+    padding: 0 0.5rem;
     background: linear-gradient(135deg, #f4a261, #e76f51);
     color: white;
     border: none;
@@ -1882,7 +2026,9 @@ body {
     justify-content: center;
     gap: 0.4rem;
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
+    height: 44px;
     min-height: 44px;
+    max-height: 44px;
     box-sizing: border-box;
 }
 
@@ -3070,9 +3216,11 @@ body {
     }
     
     .btn-primary-action {
-        padding: 0.75rem 0.5rem;
+        padding: 0 0.5rem;
         font-size: 0.85rem;
+        height: 40px;
         min-height: 40px;
+        max-height: 40px;
     }
     
     .btn-add-to-cart {

@@ -14,15 +14,28 @@ export class BabyWeightModal {
         this.selectedWeight = null;
         this.callback = null;
         
-        // Categories that DON'T need baby weight selection
-        this.skipCategories = [
+        // Category IDs that DON'T need baby weight selection
+        // These are stable and won't break if category names change
+        // 
+        // HOW TO UPDATE THIS LIST:
+        // 1. Run: node database/get-categories.js
+        // 2. Copy the output array and paste it here
+        //
+        // CURRENT SKIP CATEGORIES (from Turso database):
+        this.skipCategoryIds = [
+            24,  // Bi, charm bạc - Phụ kiện riêng lẻ, không cần cân nặng
+            14,  // Hạt dâu tằm mài sẵn - Nguyên liệu thô, không cần cân nặng
+            23,  // Sản phẩm bán kèm - Phụ kiện đi kèm, không cần cân nặng
+            22,  // Vòng người lớn - Vòng cho người lớn, không cần cân nặng bé
+        ];
+        
+        // Fallback: Category names (less reliable, but works if IDs not set)
+        // This will be used if skipCategoryIds is empty
+        this.skipCategoryNames = [
             'vòng người lớn',
-            'bi charm bạc', 
+            'bi, charm bạc',
             'sản phẩm bán kèm',
-            'vong nguoi lon',
-            'bi, charm bac',
-            'người lớn',
-            'nguoi lon'
+            'hạt dâu tằm mài sẵn'
         ];
         
         this.init();
@@ -50,24 +63,59 @@ export class BabyWeightModal {
             return true;
         }
         
-        // Check if any category matches skip list
-        const hasSkipCategory = product.categories.some(cat => {
-            const catName = (cat.name || cat.category_name || '').toLowerCase();
-            console.log('   Checking category:', catName);
+        // Method 1: Check by category ID (preferred, more stable)
+        if (this.skipCategoryIds.length > 0) {
+            const hasSkipCategoryById = product.categories.some(cat => {
+                const catId = cat.id || cat.category_id;
+                const catName = cat.name || cat.category_name || '';
+                
+                console.log('   Checking category by ID:', catName, '(ID:', catId, ')');
+                
+                const shouldSkip = this.skipCategoryIds.includes(catId);
+                
+                if (shouldSkip) {
+                    console.log('   ❌ Found skip category by ID:', catId, '(', catName, ')');
+                }
+                
+                return shouldSkip;
+            });
             
-            const shouldSkip = this.skipCategories.some(skip => 
-                catName.includes(skip.toLowerCase())
-            );
-            
-            if (shouldSkip) {
-                console.log('   ❌ Found skip category:', catName);
+            if (hasSkipCategoryById) {
+                console.log('   Final decision (by ID) - needs baby weight: false');
+                return false;
             }
+        }
+        
+        // Method 2: Fallback to category name matching (if IDs not configured)
+        const normalize = (str) => {
+            return str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+                .replace(/[,\s]+/g, ' ') // Replace commas and multiple spaces with single space
+                .trim();
+        };
+        
+        const hasSkipCategoryByName = product.categories.some(cat => {
+            const catName = cat.name || cat.category_name || '';
+            const normalizedCatName = normalize(catName);
+            
+            console.log('   Checking category by name:', catName, '→ normalized:', normalizedCatName);
+            
+            const shouldSkip = this.skipCategoryNames.some(skip => {
+                const normalizedSkip = normalize(skip);
+                const matches = normalizedCatName.includes(normalizedSkip) || normalizedSkip.includes(normalizedCatName);
+                if (matches) {
+                    console.log('   ❌ Matched skip category by name:', skip);
+                }
+                return matches;
+            });
             
             return shouldSkip;
         });
         
-        const needs = !hasSkipCategory;
-        console.log('   Final decision - needs baby weight:', needs);
+        const needs = !hasSkipCategoryByName;
+        console.log('   Final decision (by name) - needs baby weight:', needs);
         return needs;
     }
     

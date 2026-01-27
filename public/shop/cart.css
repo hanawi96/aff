@@ -3460,6 +3460,35 @@ body {
     letter-spacing: 1px;
 }
 
+/* Flash Bolt Icon Animation */
+.flash-bolt-icon {
+    animation: flashBolt 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+}
+
+@keyframes flashBolt {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+    }
+    25% {
+        opacity: 0.7;
+        transform: scale(1.15) rotate(-5deg);
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)) drop-shadow(0 0 12px rgba(255, 223, 0, 0.8));
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(5deg);
+        filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)) drop-shadow(0 0 16px rgba(255, 223, 0, 1));
+    }
+    75% {
+        opacity: 0.7;
+        transform: scale(1.15) rotate(-5deg);
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)) drop-shadow(0 0 12px rgba(255, 223, 0, 0.8));
+    }
+}
+
 /* Remove old timer badge styles */
 .flash-sale-timer-badge {
     display: none;
@@ -3738,6 +3767,61 @@ body {
 .bundle-stats i {
     color: var(--primary);
     font-size: 1rem;
+}
+
+/* Live Indicator - Pulsing Dot */
+.live-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: relative;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.live-dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: ripple 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+@keyframes ripple {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+    }
 }
 
 .bundle-stats strong {
