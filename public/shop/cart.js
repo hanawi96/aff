@@ -507,6 +507,9 @@ const cart = {
                     '</div>';
             }
             
+            // Calculate total price for this item
+            const itemTotal = item.price * item.quantity;
+            
             return '<div class="cart-item" data-id="' + item.id + '">' +
                 '<img src="' + (item.image || '/assets/images/product_img/tat-ca-mau.webp') + '" ' +
                 'alt="' + utils.escapeHtml(item.name) + '" ' +
@@ -518,8 +521,12 @@ const cart = {
                 '</div>' +
                 babyWeightHtml +
                 '<div class="item-price-row">' +
+                '<div class="item-unit-price">' +
                 '<span class="item-price">' + utils.formatPrice(item.price) + '</span>' +
+                (item.quantity > 1 ? '<span class="item-multiply">× ' + item.quantity + '</span>' : '') +
                 originalPriceHtml +
+                '</div>' +
+                (item.quantity > 1 ? '<div class="item-total-price">' + utils.formatPrice(itemTotal) + '</div>' : '') +
                 '</div>' +
                 noteHtml +
                 '<div class="item-actions">' +
