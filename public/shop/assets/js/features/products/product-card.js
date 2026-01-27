@@ -20,9 +20,14 @@ export function createProductCard(product) {
         ? product.original_price - product.price
         : 0;
     
-    // Check badges
-    const hasHandmadeBadge = product.is_handmade === 1 || product.tags?.includes('handmade');
-    const hasChemicalFreeBadge = product.is_chemical_free === 1 || product.tags?.includes('chemical-free');
+    // Check badges - only hide for "Bi, charm bạc" category (ID 24)
+    // Other categories like "Hạt dâu tằm mài sẵn" and "Sản phẩm bán kèm" still show badges
+    const isBiCharmBac = product.categories?.some(cat => 
+        (cat.id === 24 || cat.category_id === 24)
+    );
+    
+    const hasHandmadeBadge = !isBiCharmBac && (product.is_handmade === 1 || product.tags?.includes('handmade'));
+    const hasChemicalFreeBadge = !isBiCharmBac && (product.is_chemical_free === 1 || product.tags?.includes('chemical-free'));
     
     // Check if product is favorited
     const isFavorited = product.is_favorited === 1 || product.is_favorited === true;

@@ -14,33 +14,36 @@ export class BabyWeightModal {
         this.selectedWeight = null;
         this.callback = null;
         
-        // Price surcharge for weight > 15kg
+        // Price surcharge for weight > 15kg (baby products)
         this.SURCHARGE_VONG_TRON = 20000; // 20k for "Vòng trơn" category
         this.SURCHARGE_OTHER = 40000;     // 40k for other categories
-        this.VONG_TRON_CATEGORY_ID = 8;   // Category ID for "Vòng trơn"
+        this.VONG_TRON_CATEGORY_IDS = [8, 11]; // Category IDs: 8=Vòng trơn, 11=Vòng cơ giãn
+        
+        // Price surcharge for adult bracelets (weight > 65kg)
+        this.ADULT_WEIGHT_THRESHOLD = 65;       // Surcharge applies above 65kg (15% of price)
         
         // Category IDs that DON'T need baby weight selection
         // These are stable and won't break if category names change
         // 
-        // ONLY 4 CATEGORIES SKIP BABY WEIGHT:
+        // ONLY 3 CATEGORIES SKIP WEIGHT SELECTION:
         // 1. Bi, charm bạc - Phụ kiện riêng lẻ
         // 2. Hạt dâu tằm mài sẵn - Nguyên liệu thô
         // 3. Sản phẩm bán kèm - Phụ kiện đi kèm
-        // 4. Vòng người lớn - Vòng cho người lớn
         this.skipCategoryIds = [
             24,  // Bi, charm bạc
             14,  // Hạt dâu tằm mài sẵn
             23,  // Sản phẩm bán kèm
-            22,  // Vòng người lớn
         ];
+        
+        // Adult bracelet category (needs weight selection but different options)
+        this.adultBraceletCategoryId = 22; // Vòng người lớn
         
         // Fallback: Category names (less reliable, but works if IDs not set)
         // This will be used if skipCategoryIds is empty
         this.skipCategoryNames = [
             'bi, charm bạc',
             'hạt dâu tằm mài sẵn',
-            'sản phẩm bán kèm',
-            'vòng người lớn'
+            'sản phẩm bán kèm'
         ];
         
         this.init();
@@ -125,6 +128,18 @@ export class BabyWeightModal {
     }
     
     /**
+     * Check if product is adult bracelet
+     */
+    isAdultBracelet(product) {
+        if (!product.categories || product.categories.length === 0) return false;
+        
+        return product.categories.some(cat => {
+            const catId = cat.id || cat.category_id;
+            return catId === this.adultBraceletCategoryId;
+        });
+    }
+    
+    /**
      * Open modal
      */
     open(product, callback) {
@@ -133,6 +148,8 @@ export class BabyWeightModal {
         this.currentProduct = product;
         this.selectedWeight = null;
         this.callback = callback;
+        
+        const isAdult = this.isAdultBracelet(product);
         
         // Render product info
         const productHtml = `
@@ -153,10 +170,28 @@ export class BabyWeightModal {
         
         productContainer.innerHTML = productHtml;
         
+        // Update modal title and labels based on product type
+        const modalTitle = document.querySelector('#babyWeightModal .baby-weight-modal-title');
+        const customLabel = document.querySelector('#babyWeightModal .custom-weight-label');
+        
+        if (isAdult) {
+            if (modalTitle) modalTitle.textContent = 'Chọn cân nặng người lớn';
+            if (customLabel) customLabel.innerHTML = '<i class="fas fa-edit"></i> Hoặc nhập cân nặng khác (35-120kg):';
+        } else {
+            if (modalTitle) modalTitle.textContent = 'Chọn cân nặng bé';
+            if (customLabel) customLabel.innerHTML = '<i class="fas fa-edit"></i> Hoặc nhập cân nặng khác (16-50kg):';
+        }
+        
+        // Render weight options based on product type
+        this.renderWeightOptions(isAdult);
+        
         // Reset selections
         document.querySelectorAll('.weight-btn').forEach(btn => btn.classList.remove('selected'));
         const customInput = document.getElementById('customWeightInput');
-        if (customInput) customInput.value = '';
+        if (customInput) {
+            customInput.value = '';
+            customInput.placeholder = isAdult ? 'VD: 60' : 'VD: 18';
+        }
         
         const confirmBtn = document.getElementById('confirmWeightBtn');
         if (confirmBtn) confirmBtn.disabled = true;
@@ -168,25 +203,37 @@ export class BabyWeightModal {
             return;
         }
         
-        console.log('📊 Modal element:', modal);
-        console.log('   Current classes:', modal.className);
-        console.log('   Current display:', window.getComputedStyle(modal).display);
-        console.log('   Current z-index:', window.getComputedStyle(modal).zIndex);
-        console.log('   Current position:', window.getComputedStyle(modal).position);
-        
         modal.classList.remove('hidden');
-        
-        // Check after removing hidden
-        setTimeout(() => {
-            console.log('📊 After removing hidden:');
-            console.log('   Classes:', modal.className);
-            console.log('   Display:', window.getComputedStyle(modal).display);
-            console.log('   Visibility:', window.getComputedStyle(modal).visibility);
-            console.log('   Opacity:', window.getComputedStyle(modal).opacity);
-            console.log('   Z-index:', window.getComputedStyle(modal).zIndex);
-        }, 100);
-        
         console.log('✅ BabyWeightModal: Modal opened successfully');
+    }
+    
+    /**
+     * Render weight options based on product type
+     */
+    renderWeightOptions(isAdult) {
+        const container = document.getElementById('babyWeightOptions');
+        if (!container) return;
+        
+        let weights = [];
+        if (isAdult) {
+            // Adult weights: 35-70kg (8 presets evenly distributed)
+            weights = [35, 40, 45, 50, 55, 60, 65, 70];
+        } else {
+            // Baby weights: "Chưa sinh" + 3-15kg
+            weights = ['unborn', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        }
+        
+        container.innerHTML = weights.map(w => {
+            if (w === 'unborn') {
+                return `<button type="button" class="weight-btn" data-weight="unborn">Chưa sinh</button>`;
+            }
+            return `<button type="button" class="weight-btn" data-weight="${w}kg">${w}kg</button>`;
+        }).join('');
+        
+        // Re-attach event listeners
+        container.querySelectorAll('.weight-btn').forEach(btn => {
+            btn.onclick = () => this.selectWeight(btn.dataset.weight);
+        });
     }
     
     /**
@@ -218,31 +265,73 @@ export class BabyWeightModal {
         // Clear custom input
         document.getElementById('customWeightInput').value = '';
         
-        // Hide surcharge info (preset weights are <= 15kg)
-        this.hideSurchargeInfo();
+        // Extract weight number and check for surcharge
+        const weightMatch = weight.match(/(\d+)/);
+        const weightKg = weightMatch ? parseInt(weightMatch[1]) : 0;
+        const isAdult = this.isAdultBracelet(this.currentProduct);
+        
+        // Show surcharge info if applicable
+        if (isAdult && weightKg > this.ADULT_WEIGHT_THRESHOLD) {
+            this.showSurchargeInfo(weightKg);
+        } else if (!isAdult && weightKg > 15) {
+            this.showSurchargeInfo(weightKg);
+        } else {
+            this.hideSurchargeInfo();
+        }
         
         // Enable confirm button
         document.getElementById('confirmWeightBtn').disabled = false;
     }
     
     /**
-     * Check if product is in "Vòng trơn" category
+     * Check if product is in "Vòng trơn" category or has "trơn" in name
      */
     isVongTronCategory(product) {
-        if (!product.categories || product.categories.length === 0) {
-            return false;
+        // Check by category IDs first
+        if (product.categories && product.categories.length > 0) {
+            const hasTronCategory = product.categories.some(cat => {
+                const catId = cat.id || cat.category_id;
+                return this.VONG_TRON_CATEGORY_IDS.includes(catId);
+            });
+            
+            if (hasTronCategory) return true;
         }
         
-        return product.categories.some(cat => {
-            const catId = cat.id || cat.category_id;
-            return catId === this.VONG_TRON_CATEGORY_ID;
-        });
+        // Fallback: Check by product name (for adult bracelets)
+        const productName = (product.name || '').toLowerCase();
+        
+        // Must have "trơn" or "tron" in name
+        const hasTron = productName.includes('trơn') || productName.includes('tron');
+        
+        // If has "trơn", it's a simple bracelet (15k surcharge)
+        if (hasTron) return true;
+        
+        // If has "co giãn" but also has "mix", it's NOT a simple bracelet (30k surcharge)
+        const hasCoGian = productName.includes('co giãn') || productName.includes('cơ giãn');
+        const hasMix = productName.includes('mix');
+        
+        if (hasCoGian && !hasMix) return true;
+        
+        return false;
     }
     
     /**
      * Calculate surcharge based on weight and category
      */
     calculateSurcharge(weightKg) {
+        // Adult bracelets: 15% surcharge if > 65kg
+        if (this.isAdultBracelet(this.currentProduct)) {
+            if (weightKg <= this.ADULT_WEIGHT_THRESHOLD) {
+                return 0;
+            }
+            
+            // Calculate 15% of product price and round down to nearest 1000
+            const basePrice = this.currentProduct.price || 0;
+            const surcharge = basePrice * 0.15;
+            return Math.floor(surcharge / 1000) * 1000;
+        }
+        
+        // Baby products: surcharge only if > 15kg
         if (weightKg <= 15) {
             return 0;
         }
@@ -263,6 +352,16 @@ export class BabyWeightModal {
         if (surcharge > 0) {
             const originalPrice = this.currentProduct.price;
             const totalPrice = originalPrice + surcharge;
+            
+            const isAdult = this.isAdultBracelet(this.currentProduct);
+            const isVongTron = this.isVongTronCategory(this.currentProduct);
+            const thresholdText = isAdult ? '65kg' : '15kg';
+            
+            // Update surcharge title with reason
+            const surchargeTitle = surchargeDiv.querySelector('.surcharge-title');
+            if (surchargeTitle) {
+                surchargeTitle.textContent = `Cân nặng trên ${thresholdText} - Cần thêm nhiều nguyên liệu`;
+            }
             
             document.getElementById('surchargeOriginalPrice').textContent = this.formatPrice(originalPrice);
             document.getElementById('surchargeFee').textContent = '+' + this.formatPrice(surcharge);
@@ -289,15 +388,26 @@ export class BabyWeightModal {
      */
     handleCustomInput(value) {
         const weight = parseInt(value);
+        const isAdult = this.isAdultBracelet(this.currentProduct);
         
-        if (weight >= 16 && weight <= 50) {
+        // Validate based on product type
+        const minWeight = isAdult ? 35 : 16;
+        const maxWeight = isAdult ? 120 : 50;
+        
+        if (weight >= minWeight && weight <= maxWeight) {
             this.selectedWeight = weight + 'kg';
             
             // Clear quick selection
             document.querySelectorAll('.weight-btn').forEach(btn => btn.classList.remove('selected'));
             
-            // Show surcharge info
-            this.showSurchargeInfo(weight);
+            // Show surcharge info based on thresholds
+            if (isAdult && weight > this.ADULT_WEIGHT_THRESHOLD) {
+                this.showSurchargeInfo(weight);
+            } else if (!isAdult && weight > 15) {
+                this.showSurchargeInfo(weight);
+            } else {
+                this.hideSurchargeInfo();
+            }
             
             // Enable confirm button
             document.getElementById('confirmWeightBtn').disabled = false;

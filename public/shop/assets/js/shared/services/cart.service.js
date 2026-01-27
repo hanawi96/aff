@@ -23,7 +23,10 @@ class CartService {
     }
     
     addItem(product, quantity = 1) {
-        const existingItem = this.cart.find(item => item.id === product.id);
+        // Find existing item with same ID AND same size (weight)
+        const existingItem = this.cart.find(item => 
+            item.id === product.id && item.size === (product.size || '')
+        );
         
         if (existingItem) {
             existingItem.quantity += quantity;

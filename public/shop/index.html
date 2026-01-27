@@ -1750,7 +1750,7 @@
         <div class="modal-content baby-weight-modal">
             <div class="baby-weight-header">
                 <i class="fas fa-baby"></i>
-                <h3>Chọn cân nặng bé</h3>
+                <h3 class="baby-weight-modal-title">Chọn cân nặng bé</h3>
                 <button class="modal-close-btn" id="closeBabyWeightModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1759,20 +1759,13 @@
                 <!-- Product Info -->
                 <div class="baby-weight-product" id="babyWeightProduct"></div>
                 
-                <!-- Warning -->
-                <div class="baby-weight-warning">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Lưu ý: Vui lòng chọn đúng cân nặng của bé, không trừ hao.</span>
-                </div>
-                
                 <!-- Quick Selection -->
                 <div class="baby-weight-quick">
                     <div class="quick-title">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clip-rule="evenodd" /></svg>
                         Chọn nhanh cân nặng
                     </div>
-                    <div class="baby-weight-grid" id="babyWeightGrid">
-                        <button class="weight-btn" data-weight="unborn">Chưa sinh</button>
+                    <div class="baby-weight-grid" id="babyWeightOptions">
                         <button class="weight-btn" data-weight="3kg">3kg</button>
                         <button class="weight-btn" data-weight="4kg">4kg</button>
                         <button class="weight-btn" data-weight="5kg">5kg</button>
@@ -1791,12 +1784,12 @@
                 
                 <!-- Custom Input -->
                 <div class="baby-weight-custom">
-                    <div class="custom-title">
+                    <div class="custom-title custom-weight-label">
                         <i class="fas fa-edit"></i>
-                        Nhập cân nặng khác (từ 16kg trở lên)
+                        Hoặc nhập cân nặng khác (16-50kg):
                     </div>
                     <div class="custom-input-group">
-                        <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="Nhập cân nặng..." min="16" max="50">
+                        <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="VD: 18" min="16" max="120">
                         <span class="custom-weight-unit">kg</span>
                     </div>
                 </div>

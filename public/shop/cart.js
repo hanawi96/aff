@@ -580,9 +580,14 @@ const cart = {
             // Weight surcharge notice (separate line)
             let weightSurchargeHtml = '';
             if (item.weightSurcharge && item.weightSurcharge > 0) {
+                // Determine threshold based on weight in size
+                const weightMatch = item.size ? item.size.match(/(\d+)/) : null;
+                const weight = weightMatch ? parseInt(weightMatch[1]) : 0;
+                const threshold = weight > 50 ? '65kg' : '15kg'; // If weight > 50, it's adult bracelet
+                
                 weightSurchargeHtml = '<div class="item-weight-surcharge-notice">' +
                     '<i class="fas fa-info-circle"></i>' +
-                    '<span>Đã bao gồm phụ phí cân nặng trên 15kg: +' + utils.formatPrice(item.weightSurcharge) + '</span>' +
+                    '<span>Đã bao gồm phụ phí cân nặng trên ' + threshold + ': +' + utils.formatPrice(item.weightSurcharge) + '</span>' +
                     '</div>';
             }
             
