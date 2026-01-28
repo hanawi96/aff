@@ -4550,6 +4550,97 @@ body {
     background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(39, 174, 96, 0.02));
 }
 
+/* Bundle Skeleton Styles */
+.bundle-skeleton {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.bundle-skeleton-item {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    border: 2px solid var(--primary)/10;
+}
+
+.bundle-skeleton-image {
+    width: 90px;
+    height: 120px;
+    border-radius: 16px;
+    background: linear-gradient(90deg, 
+        rgba(244, 162, 97, 0.05) 0%, 
+        rgba(233, 196, 106, 0.08) 50%, 
+        rgba(244, 162, 97, 0.05) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+.bundle-skeleton-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.bundle-skeleton-line {
+    height: 16px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, 
+        rgba(244, 162, 97, 0.05) 0%, 
+        rgba(233, 196, 106, 0.08) 50%, 
+        rgba(244, 162, 97, 0.05) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+.bundle-skeleton-title {
+    width: 80%;
+    height: 20px;
+}
+
+.bundle-skeleton-price {
+    width: 50%;
+    height: 24px;
+}
+
+.bundle-skeleton-button {
+    width: 100%;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, 
+        rgba(244, 162, 97, 0.08) 0%, 
+        rgba(233, 196, 106, 0.12) 50%, 
+        rgba(244, 162, 97, 0.08) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Mobile Bundle Skeleton */
+@media (max-width: 768px) {
+    .bundle-skeleton {
+        grid-template-columns: 1fr;
+    }
+    
+    .bundle-skeleton-image {
+        width: 70px;
+        height: 90px;
+    }
+}
+
 .bundle-product-image {
     width: auto;
     height: 100%;

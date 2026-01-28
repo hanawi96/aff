@@ -158,30 +158,43 @@ const storage = {
 const cart = {
     // Initialize cart
     init: async () => {
+        console.log('🚀 [INIT] Starting cart initialization...');
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
+        console.log('📦 [INIT] Cart loaded:', state.cart.length, 'items');
         
         // Load available discounts in background (non-blocking)
+        console.log('🎫 [INIT] Loading discounts (non-blocking)...');
         cart.loadAvailableDiscounts();
         
-        // Load bundle products in background (non-blocking)
-        cart.loadBundleProducts();
+        // CÁCH 1: Đợi bundle products load xong trước khi hiển thị
+        console.log('🎁 [INIT] Loading bundle products (BLOCKING)...');
+        await cart.loadBundleProducts();
+        console.log('✅ [INIT] Bundle products loaded:', state.bundleProducts.length);
         
         // Hide skeleton with reduced delay
+        console.log('👻 [INIT] Hiding skeleton...');
         await cart.hideSkeleton();
+        console.log('✅ [INIT] Skeleton hidden');
         
         if (state.cart.length === 0) {
+            console.log('🛒 [INIT] Cart is empty, showing empty state');
             cart.showEmpty();
         } else {
+            console.log('🛒 [INIT] Cart has items, rendering...');
             // Ensure summary is visible before rendering
             const summarySection = document.querySelector('.cart-summary-section');
             summarySection?.classList.remove('hidden');
             
+            console.log('📝 [INIT] Calling cart.render()...');
             cart.render();
+            console.log('💰 [INIT] Calling cart.updateSummary()...');
             cart.updateSummary();
+            console.log('🎯 [INIT] Calling cart.loadRecommended()...');
             cart.loadRecommended();
         }
 
+        console.log('🎮 [INIT] Setting up event listeners...');
         cart.setupEventListeners();
         
         // Fill demo data for testing (only if fields are empty)
@@ -278,32 +291,34 @@ const cart = {
 
     // Load bundle products from API
     loadBundleProducts: async () => {
+        console.log('🎁 [BUNDLE] Starting loadBundleProducts...');
         try {
-            console.log('Loading bundle products from API...');
-            console.log('API Base URL:', CONFIG.API_BASE_URL);
+            console.log('🎁 [BUNDLE] Loading bundle products from API...');
+            console.log('🎁 [BUNDLE] API Base URL:', CONFIG.API_BASE_URL);
             
             // Use configured API base URL
             const apiUrl = CONFIG.API_BASE_URL + '/api/shop/products?bundle=true';
-            console.log('Fetching from:', apiUrl);
+            console.log('🎁 [BUNDLE] Fetching from:', apiUrl);
             
             let response = await fetch(apiUrl);
+            console.log('🎁 [BUNDLE] Response status:', response.status);
             
             // If 404, try getting all products and filter client-side
             if (response.status === 404) {
-                console.log('Bundle endpoint not found, trying all products endpoint...');
+                console.log('🎁 [BUNDLE] Bundle endpoint not found, trying all products endpoint...');
                 response = await fetch(CONFIG.API_BASE_URL + '/api/shop/products');
             }
             
             if (!response.ok) {
-                console.error('API response not OK:', response.status, response.statusText);
+                console.error('🎁 [BUNDLE] API response not OK:', response.status, response.statusText);
                 throw new Error('Failed to load bundle products');
             }
             
             const data = await response.json();
-            console.log('API response data:', data);
+            console.log('🎁 [BUNDLE] API response data:', data);
             
             if (!data.success) {
-                console.error('API returned error:', data.error);
+                console.error('🎁 [BUNDLE] API returned error:', data.error);
                 throw new Error(data.error || 'API returned unsuccessful response');
             }
             
@@ -322,11 +337,11 @@ const cart = {
                 return false;
             });
             
-            console.log('Filtered bundle products:', bundleProducts.length);
+            console.log('🎁 [BUNDLE] Filtered bundle products:', bundleProducts.length);
             
             // Transform API data to match our format
             state.bundleProducts = bundleProducts.map(product => {
-                console.log('Processing product:', product.name);
+                console.log('🎁 [BUNDLE] Processing product:', product.name);
                 return {
                     id: product.id,
                     name: product.name,
@@ -339,20 +354,19 @@ const cart = {
                 };
             });
             
-            console.log('✅ Successfully loaded', state.bundleProducts.length, 'bundle products from database');
+            console.log('✅ [BUNDLE] Successfully loaded', state.bundleProducts.length, 'bundle products from database');
             
             if (state.bundleProducts.length === 0) {
-                console.warn('No bundle products found in database, using fallback');
+                console.warn('⚠️ [BUNDLE] No bundle products found in database, using fallback');
                 throw new Error('No bundle products found');
             }
             
-            // Re-render bundle offer section after data loaded
-            cart.renderBundleOffer();
+            console.log('🎁 [BUNDLE] loadBundleProducts completed successfully');
             
         } catch (error) {
-            console.error('❌ Error loading bundle products:', error);
+            console.error('❌ [BUNDLE] Error loading bundle products:', error);
             // Fallback to hardcoded data if API fails
-            console.log('⚠️ Using fallback hardcoded bundle products (4 items)');
+            console.log('⚠️ [BUNDLE] Using fallback hardcoded bundle products (4 items)');
             state.bundleProducts = [
                 {
                     id: 133,
@@ -395,9 +409,7 @@ const cart = {
                     maxQuantity: 99
                 }
             ];
-            
-            // Re-render with fallback data
-            cart.renderBundleOffer();
+            console.log('🎁 [BUNDLE] Fallback data set, length:', state.bundleProducts.length);
         }
     },
 
@@ -672,19 +684,29 @@ const cart = {
             }
         });
         
+        // Show bundle offer section (prepare it too)
+        console.log('🎁 [RENDER] About to call renderBundleOffer()...');
+        console.log('🎁 [RENDER] state.bundleProducts length:', state.bundleProducts?.length || 0);
+        cart.renderBundleOffer();
+        console.log('🎁 [RENDER] renderBundleOffer() completed');
+        
         // Fade in all content together after a small delay
         requestAnimationFrame(() => {
+            console.log('🎨 [RENDER] Starting fade-in for cart items and sections...');
             // Fade in cart items
             container.style.transition = 'opacity 0.5s ease';
             container.style.opacity = '1';
+            console.log('🎨 [RENDER] Cart items opacity set to 1');
             
-            // Fade in all sections with slight stagger
-            sectionsToShow.forEach((sectionId, index) => {
+            // Fade in all sections with slight stagger (including bundle section)
+            const allSections = [...sectionsToShow, 'bundleOfferSection'];
+            allSections.forEach((sectionId, index) => {
                 const section = document.getElementById(sectionId);
-                if (section) {
+                if (section && !section.classList.contains('hidden')) {
                     section.style.transition = 'opacity 0.5s ease';
                     setTimeout(() => {
                         section.style.opacity = '1';
+                        console.log(`🎨 [RENDER] ${sectionId} opacity set to 1 (delay: ${50 + (index * 30)}ms)`);
                     }, 50 + (index * 30));
                 }
             });
@@ -698,34 +720,8 @@ const cart = {
         // Show cart summary section
         const summarySection = document.querySelector('.cart-summary-section');
         const cartSummary = document.querySelector('.cart-summary');
-        console.log('Before showing summary:');
-        console.log('- Summary section:', summarySection);
-        console.log('- Cart summary:', cartSummary);
-        console.log('- Summary section display:', window.getComputedStyle(summarySection).display);
-        console.log('- Cart summary display:', window.getComputedStyle(cartSummary).display);
-        console.log('- Cart summary position:', window.getComputedStyle(cartSummary).position);
-        console.log('- Cart summary bottom:', window.getComputedStyle(cartSummary).bottom);
-        console.log('- Cart summary z-index:', window.getComputedStyle(cartSummary).zIndex);
         
         summarySection.classList.remove('hidden');
-        
-        console.log('After showing summary:');
-        console.log('- Summary section classes:', summarySection.className);
-        console.log('- Summary section display:', window.getComputedStyle(summarySection).display);
-        console.log('- Cart summary display:', window.getComputedStyle(cartSummary).display);
-        console.log('- Cart summary height:', cartSummary.offsetHeight);
-        console.log('- Cart summary width:', cartSummary.offsetWidth);
-        console.log('- Cart summary getBoundingClientRect:', cartSummary.getBoundingClientRect());
-        console.log('- Cart summary visibility:', window.getComputedStyle(cartSummary).visibility);
-        console.log('- Cart summary opacity:', window.getComputedStyle(cartSummary).opacity);
-        console.log('- Cart summary overflow:', window.getComputedStyle(cartSummary).overflow);
-        
-        // Check parent overflow
-        console.log('- Summary section overflow:', window.getComputedStyle(summarySection).overflow);
-        console.log('- Summary section height:', summarySection.offsetHeight);
-        
-        // Show bundle offer section
-        cart.renderBundleOffer();
         
         // Update cart count
         const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -734,36 +730,38 @@ const cart = {
 
     // Render bundle offer
     renderBundleOffer: () => {
+        console.log('🎁 [RENDER] Starting renderBundleOffer...');
         const section = document.getElementById('bundleOfferSection');
         const container = document.getElementById('bundleProducts');
         
-        if (!section || !container) return;
+        if (!section || !container) {
+            console.log('❌ [RENDER] Section or container not found');
+            return;
+        }
         
         // Check if cart has non-bundle products
         const hasRegularProducts = state.cart.some(item => !item.isBundleProduct);
+        console.log('🎁 [RENDER] Has regular products:', hasRegularProducts);
         
         if (!hasRegularProducts) {
+            console.log('🎁 [RENDER] No regular products, hiding bundle section');
             section.classList.add('hidden');
             return;
         }
         
-        section.classList.remove('hidden');
-        section.style.opacity = '0';
-        
-        // Show loading state if bundle products not loaded yet
+        // CÁCH 1: Không cần skeleton vì đã đợi load xong
         if (!state.bundleProducts || state.bundleProducts.length === 0) {
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #999;">' +
-                '<i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>' +
-                '<div style="font-size: 0.9rem;">Đang tải sản phẩm bán kèm...</div>' +
-                '</div>';
-            
-            // Fade in section
-            requestAnimationFrame(() => {
-                section.style.transition = 'opacity 0.3s ease';
-                section.style.opacity = '1';
-            });
+            console.log('🎁 [RENDER] No bundle products available, hiding section');
+            section.classList.add('hidden');
             return;
         }
+        
+        console.log('🎁 [RENDER] Rendering', state.bundleProducts.length, 'bundle products');
+        
+        // Render real products
+        section.classList.remove('hidden');
+        section.style.opacity = '0';
+        console.log('🎁 [RENDER] Section shown with opacity 0');
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);
@@ -788,14 +786,10 @@ const cart = {
         }).join('');
         
         container.innerHTML = html;
+        console.log('🎁 [RENDER] HTML content set');
         
-        // Fade in bundle section
-        requestAnimationFrame(() => {
-            section.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => {
-                section.style.opacity = '1';
-            }, 200);
-        });
+        // KHÔNG fade-in ở đây nữa - sẽ fade-in cùng với các sections khác
+        console.log('🎁 [RENDER] Bundle section prepared (will fade-in with other sections)');
     },
 
     // Toggle bundle product
