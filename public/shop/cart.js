@@ -4,6 +4,8 @@
 
 // Import discount service
 import { discountService } from './assets/js/shared/services/discount.service.js';
+// Import success modal
+import { successModal } from './assets/js/shared/components/success-modal.js';
 
 // Configuration
 const CONFIG = {
@@ -1170,11 +1172,10 @@ const cart = {
         
         console.log('📤 Sending order data:', orderData);
         
-        // Disable checkout button
+        // Show loading state on checkout button
         const checkoutBtn = document.getElementById('checkoutBtn');
-        const originalBtnText = checkoutBtn.innerHTML;
         checkoutBtn.disabled = true;
-        checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+        checkoutBtn.classList.add('loading');
         
         try {
             // Send to API
@@ -1196,13 +1197,11 @@ const cart = {
                 storage.saveDiscount(null);
                 localStorage.removeItem('orderNote');
                 
-                // Show success message
-                utils.showToast('🎉 Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.', 'success');
-                
-                // Wait a bit then redirect to home
-                setTimeout(() => {
-                    window.location.href = 'index.html?order=success';
-                }, 2000);
+                // Show success modal with order info
+                successModal.show({
+                    orderId: result.order.id,
+                    total: result.order.total
+                });
                 
             } else {
                 throw new Error(result.error || 'Không thể tạo đơn hàng');
@@ -1214,7 +1213,7 @@ const cart = {
             
             // Re-enable button
             checkoutBtn.disabled = false;
-            checkoutBtn.innerHTML = originalBtnText;
+            checkoutBtn.classList.remove('loading');
         }
     },
 
