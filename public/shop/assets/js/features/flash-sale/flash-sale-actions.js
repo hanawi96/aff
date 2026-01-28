@@ -10,6 +10,14 @@ import { cartService } from '../../shared/services/cart.service.js';
 export class FlashSaleActions {
     constructor(flashSales) {
         this.flashSales = flashSales;
+        this.babyWeightModal = null;
+    }
+    
+    /**
+     * Set baby weight modal instance
+     */
+    setBabyWeightModal(modal) {
+        this.babyWeightModal = modal;
     }
     
     /**
@@ -46,15 +54,36 @@ export class FlashSaleActions {
             return;
         }
         
+        // Check if product needs baby weight selection
+        if (this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product)) {
+            // Open modal with callback
+            this.babyWeightModal.open(product, (selectedWeight, surcharge = 0) => {
+                this.addToCartWithWeight(product, flashPrice, selectedWeight, surcharge);
+            });
+        } else {
+            // Add directly without baby weight
+            this.addToCartWithWeight(product, flashPrice, null, 0);
+        }
+    }
+    
+    /**
+     * Add flash sale product to cart with weight
+     */
+    addToCartWithWeight(product, flashPrice, weight, surcharge = 0) {
+        // Calculate final price with surcharge
+        const finalPrice = flashPrice + surcharge;
+        
         const cartItem = {
             id: product.id,
             name: product.product_name,
-            price: flashPrice,
+            price: finalPrice, // Use flash price with surcharge
             originalPrice: product.original_price,
             image: product.image_url,
             maxQuantity: product.stock_limit - product.sold_count || 99,
             badges: ['Flash Sale'],
-            isFlashSale: true
+            isFlashSale: true,
+            size: weight || '', // Add weight as size
+            weightSurcharge: surcharge // Store surcharge for reference
         };
         
         cartService.addItem(cartItem, 1);

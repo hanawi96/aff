@@ -186,10 +186,11 @@ export class HomePage {
         if (activeFlashSale && activeFlashSale.products) {
             // this.flashSaleCarousel = new FlashSaleCarousel('flashSaleProducts');
             this.flashSaleActions = new FlashSaleActions(this.flashSales);
+            this.flashSaleActions.setBabyWeightModal(this.babyWeightModal);
             this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
             
             window.flashSaleActions = this.flashSaleActions;
-            console.log('✅ HomePage: FlashSale components initialized');
+            console.log('✅ HomePage: FlashSale components initialized and linked to BabyWeightModal');
         }
         
         // Quick Checkout

@@ -16,6 +16,24 @@ export async function getFlashSaleProducts(flashSaleId, env, corsHeaders) {
             ORDER BY fsp.created_at_unix DESC
         `).bind(flashSaleId).all();
 
+        // Load categories for each product
+        for (let product of products) {
+            if (product.category_id) {
+                const { results: categories } = await env.DB.prepare(`
+                    SELECT 
+                        c.id,
+                        c.name as category_name
+                    FROM product_categories pc
+                    INNER JOIN categories c ON pc.category_id = c.id
+                    WHERE pc.product_id = ?
+                `).bind(product.product_id).all();
+                
+                product.categories = categories;
+            } else {
+                product.categories = [];
+            }
+        }
+
         return jsonResponse({
             success: true,
             products: products
