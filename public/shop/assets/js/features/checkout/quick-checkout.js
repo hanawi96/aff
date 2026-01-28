@@ -239,41 +239,35 @@ export class QuickCheckout {
         // Show/hide baby name input based on product category
         const babyNameGroup = document.getElementById('babyNameGroup');
         if (babyNameGroup) {
+            const babyNameInput = document.getElementById('checkoutBabyName');
             if (this.needsBabyName) {
                 babyNameGroup.style.display = 'block';
-                // Add required attribute
-                const babyNameInput = document.getElementById('checkoutBabyName');
                 if (babyNameInput) {
                     babyNameInput.setAttribute('required', 'required');
                 }
             } else {
                 babyNameGroup.style.display = 'none';
-                // Remove required attribute
-                const babyNameInput = document.getElementById('checkoutBabyName');
                 if (babyNameInput) {
                     babyNameInput.removeAttribute('required');
-                    babyNameInput.value = ''; // Clear value
+                    babyNameInput.value = '';
                 }
             }
         }
         
         // Show/hide baby weight input based on product category
-        const babyWeightGroup = document.querySelector('#checkoutBabyWeight')?.closest('.checkout-form-group');
+        const babyWeightGroup = document.getElementById('babyWeightGroup');
         if (babyWeightGroup) {
+            const babyWeightInput = document.getElementById('checkoutBabyWeight');
             if (this.needsBabyWeight) {
                 babyWeightGroup.style.display = 'block';
-                // Add required attribute
-                const babyWeightSelect = document.getElementById('checkoutBabyWeight');
-                if (babyWeightSelect) {
-                    babyWeightSelect.setAttribute('required', 'required');
+                if (babyWeightInput) {
+                    babyWeightInput.setAttribute('required', 'required');
                 }
             } else {
                 babyWeightGroup.style.display = 'none';
-                // Remove required attribute
-                const babyWeightSelect = document.getElementById('checkoutBabyWeight');
-                if (babyWeightSelect) {
-                    babyWeightSelect.removeAttribute('required');
-                    babyWeightSelect.value = ''; // Clear value
+                if (babyWeightInput) {
+                    babyWeightInput.removeAttribute('required');
+                    babyWeightInput.value = '';
                 }
             }
         }
@@ -891,24 +885,8 @@ export class QuickCheckout {
             babyWeightInput.value = weightKg + 'kg';
         }
         
-        // Hide preset buttons
-        const presetButtons = document.querySelector('.weight-preset-buttons');
-        if (presetButtons) {
-            presetButtons.style.display = 'none';
-        }
-        
-        // Hide label
-        const babyWeightGroup = document.getElementById('babyWeightGroup');
-        const label = babyWeightGroup?.querySelector('.checkout-form-label');
-        if (label) {
-            label.style.display = 'none';
-        }
-        
-        // Hide input wrapper
-        const inputWrapper = document.querySelector('.custom-weight-input-wrapper');
-        if (inputWrapper) {
-            inputWrapper.style.display = 'none';
-        }
+        // Hide weight selection UI
+        this.hideWeightSelectionUI();
         
         // Update hint text to show confirmation
         const hintEl = document.getElementById('customWeightHint');
@@ -937,20 +915,11 @@ export class QuickCheckout {
      * Accept preset weight (hide buttons and show confirmation)
      */
     acceptPresetWeight(weight, displayText) {
-        // Hide preset buttons
-        const presetButtons = document.querySelector('.weight-preset-buttons');
-        if (presetButtons) {
-            presetButtons.style.display = 'none';
-        }
-        
-        // Hide label
-        const babyWeightGroup = document.getElementById('babyWeightGroup');
-        const label = babyWeightGroup?.querySelector('.checkout-form-label');
-        if (label) {
-            label.style.display = 'none';
-        }
+        // Hide weight selection UI
+        this.hideWeightSelectionUI();
         
         // Show confirmation in baby weight group
+        const babyWeightGroup = document.getElementById('babyWeightGroup');
         if (babyWeightGroup) {
             // Create or update confirmation message
             let confirmationDiv = document.getElementById('weightConfirmationMessage');
@@ -966,31 +935,55 @@ export class QuickCheckout {
                     <i class="fas fa-check-circle" style="color: #28a745;"></i>
                     Đã chọn: ${displayText}
                 </span>
-                <button type="button" id="presetWeightChangeBtn" style="background: white; border: 2px solid #28a745; color: #28a745; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
+                <button type="button" class="preset-weight-change-btn" style="background: white; border: 2px solid #28a745; color: #28a745; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
                     <i class="fas fa-edit"></i> Chọn lại
                 </button>
             `;
-            
-            // Add event listener to "Chọn lại" button
-            const changeBtn = document.getElementById('presetWeightChangeBtn');
-            if (changeBtn) {
-                changeBtn.addEventListener('click', () => {
-                    this.resetPresetWeight();
-                });
-                
-                // Add hover effect
-                changeBtn.addEventListener('mouseenter', () => {
-                    changeBtn.style.background = '#28a745';
-                    changeBtn.style.color = 'white';
-                });
-                changeBtn.addEventListener('mouseleave', () => {
-                    changeBtn.style.background = 'white';
-                    changeBtn.style.color = '#28a745';
-                });
-            }
         }
         
         showToast(`Đã chọn cân nặng: ${displayText}`, 'success');
+    }
+    
+    /**
+     * Hide weight selection UI (common helper)
+     */
+    hideWeightSelectionUI() {
+        // Hide preset buttons
+        const presetButtons = document.querySelector('.weight-preset-buttons');
+        if (presetButtons) {
+            presetButtons.style.display = 'none';
+        }
+        
+        // Hide label
+        const babyWeightGroup = document.getElementById('babyWeightGroup');
+        const label = babyWeightGroup?.querySelector('.checkout-form-label');
+        if (label) {
+            label.style.display = 'none';
+        }
+        
+        // Hide custom input wrapper
+        const inputWrapper = document.querySelector('.custom-weight-input-wrapper');
+        if (inputWrapper) {
+            inputWrapper.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Show weight selection UI (common helper)
+     */
+    showWeightSelectionUI() {
+        // Show preset buttons
+        const presetButtons = document.querySelector('.weight-preset-buttons');
+        if (presetButtons) {
+            presetButtons.style.display = 'grid';
+        }
+        
+        // Show label
+        const babyWeightGroup = document.getElementById('babyWeightGroup');
+        const label = babyWeightGroup?.querySelector('.checkout-form-label');
+        if (label) {
+            label.style.display = 'flex';
+        }
     }
     
     /**
@@ -1000,35 +993,14 @@ export class QuickCheckout {
         const customWeightInput = document.getElementById('customWeightInput');
         const customWeightGroup = document.getElementById('customWeightGroup');
         const babyWeightInput = document.getElementById('checkoutBabyWeight');
-        const weightPresetButtons = document.querySelectorAll('.weight-preset-btn');
-        const hintEl = document.getElementById('customWeightHint');
-        const confirmBtn = document.getElementById('customWeightConfirmBtn');
-        const changeBtn = document.getElementById('customWeightChangeBtn');
+        
+        // Show weight selection UI again
+        this.showWeightSelectionUI();
         
         // Clear custom input
         if (customWeightInput) {
             customWeightInput.value = '';
             customWeightInput.disabled = false;
-        }
-        
-        // Reset hint text
-        if (hintEl) {
-            const span = hintEl.querySelector('span');
-            if (span) {
-                span.innerHTML = '<i class="fas fa-info-circle"></i> Nhập từ 3kg đến 50kg';
-            }
-            hintEl.style.color = '#666';
-            hintEl.style.fontWeight = 'normal';
-        }
-        
-        // Hide "Chọn lại" button
-        if (changeBtn) {
-            changeBtn.classList.add('hidden');
-        }
-        
-        // Enable button
-        if (confirmBtn) {
-            confirmBtn.disabled = true;
         }
         
         // Hide custom group
@@ -1042,6 +1014,7 @@ export class QuickCheckout {
         }
         
         // Remove selected class from all buttons
+        const weightPresetButtons = document.querySelectorAll('.weight-preset-btn');
         weightPresetButtons.forEach(btn => btn.classList.remove('selected'));
         
         showToast('Vui lòng chọn lại cân nặng', 'info');
@@ -1056,20 +1029,10 @@ export class QuickCheckout {
         const confirmBtn = document.getElementById('customWeightConfirmBtn');
         const changeBtn = document.getElementById('customWeightChangeBtn');
         const babyWeightInput = document.getElementById('checkoutBabyWeight');
-        const presetButtons = document.querySelector('.weight-preset-buttons');
         const inputWrapper = document.querySelector('.custom-weight-input-wrapper');
-        const babyWeightGroup = document.getElementById('babyWeightGroup');
         
-        // Show preset buttons again
-        if (presetButtons) {
-            presetButtons.style.display = 'grid';
-        }
-        
-        // Show label again
-        const label = babyWeightGroup?.querySelector('.checkout-form-label');
-        if (label) {
-            label.style.display = 'flex';
-        }
+        // Show weight selection UI
+        this.showWeightSelectionUI();
         
         // Show input wrapper again
         if (inputWrapper) {
@@ -1123,20 +1086,10 @@ export class QuickCheckout {
      */
     resetPresetWeight() {
         const babyWeightInput = document.getElementById('checkoutBabyWeight');
-        const presetButtons = document.querySelector('.weight-preset-buttons');
         const confirmationDiv = document.getElementById('weightConfirmationMessage');
-        const babyWeightGroup = document.getElementById('babyWeightGroup');
         
-        // Show preset buttons again
-        if (presetButtons) {
-            presetButtons.style.display = 'grid';
-        }
-        
-        // Show label again
-        const label = babyWeightGroup?.querySelector('.checkout-form-label');
-        if (label) {
-            label.style.display = 'flex';
-        }
+        // Show weight selection UI
+        this.showWeightSelectionUI();
         
         // Remove confirmation message
         if (confirmationDiv) {
@@ -1858,6 +1811,17 @@ export class QuickCheckout {
                 orderDetailsToggle.classList.toggle('active');
                 orderDetailsContent.classList.toggle('hidden');
                 orderDetailsContent.classList.toggle('show');
+            });
+        }
+        
+        // Event delegation for preset weight "Chọn lại" button
+        const babyWeightGroup = document.getElementById('babyWeightGroup');
+        if (babyWeightGroup) {
+            babyWeightGroup.addEventListener('click', (e) => {
+                // Check if clicked element is preset weight change button
+                if (e.target.closest('.preset-weight-change-btn')) {
+                    this.resetPresetWeight();
+                }
             });
         }
         
