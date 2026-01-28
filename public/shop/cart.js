@@ -6,6 +6,13 @@
 import { discountService } from './assets/js/shared/services/discount.service.js';
 // Import success modal
 import { successModal } from './assets/js/shared/components/success-modal.js';
+// Import bundle products service
+import { bundleProductsService } from './assets/js/shared/services/bundle-products.service.js';
+// Import form validator
+import { FormValidator } from './assets/js/shared/utils/form-validator.js';
+import { checkoutValidationRules } from './assets/js/shared/constants/validation-rules.js';
+// Import error display service for address errors
+import { errorDisplayService } from './assets/js/shared/services/error-display.service.js';
 
 // Configuration
 const CONFIG = {
@@ -15,7 +22,11 @@ const CONFIG = {
     DISCOUNT_KEY: 'discount',
     DEBOUNCE_DELAY: 300,
     // Backend API URL - use port 8787 if running on Live Server
-    API_BASE_URL: window.location.port === '5500' ? 'http://localhost:8787' : ''
+    API_BASE_URL: window.location.port === '5500' ? 'http://localhost:8787' : '',
+    // Animation timing constants
+    FADE_IN_BASE_DELAY: 50,      // Base delay for first section
+    FADE_IN_STAGGER: 30,          // Delay between each section
+    ADDRESS_INIT_DELAY: 100       // Wait time for address selector init
 };
 
 // State Management
@@ -29,7 +40,8 @@ const state = {
     orderNote: '', // Store order note
     bundleProducts: [], // Will be loaded from API
     paymentMethod: 'cod', // Default payment method
-    openNoteInputs: new Set() // Track which note inputs are open
+    openNoteInputs: new Set(), // Track which note inputs are open
+    validator: null // Form validator instance
 };
 
 // ============================================
@@ -158,96 +170,39 @@ const storage = {
 const cart = {
     // Initialize cart
     init: async () => {
-        console.log('🚀 [INIT] Starting cart initialization...');
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
-        console.log('📦 [INIT] Cart loaded:', state.cart.length, 'items');
         
         // Load available discounts in background (non-blocking)
-        console.log('🎫 [INIT] Loading discounts (non-blocking)...');
         cart.loadAvailableDiscounts();
         
-        // CÁCH 1: Đợi bundle products load xong trước khi hiển thị
-        console.log('🎁 [INIT] Loading bundle products (BLOCKING)...');
+        // Wait for bundle products to load
         await cart.loadBundleProducts();
-        console.log('✅ [INIT] Bundle products loaded:', state.bundleProducts.length);
+        console.log('✅ Bundle products loaded:', state.bundleProducts.length);
         
-        // Hide skeleton with reduced delay
-        console.log('👻 [INIT] Hiding skeleton...');
+        // Hide skeleton
         await cart.hideSkeleton();
-        console.log('✅ [INIT] Skeleton hidden');
         
         if (state.cart.length === 0) {
-            console.log('🛒 [INIT] Cart is empty, showing empty state');
             cart.showEmpty();
         } else {
-            console.log('🛒 [INIT] Cart has items, rendering...');
             // Ensure summary is visible before rendering
             const summarySection = document.querySelector('.cart-summary-section');
             summarySection?.classList.remove('hidden');
             
-            console.log('📝 [INIT] Calling cart.render()...');
             cart.render();
-            console.log('💰 [INIT] Calling cart.updateSummary()...');
             cart.updateSummary();
-            console.log('🎯 [INIT] Calling cart.loadRecommended()...');
             cart.loadRecommended();
         }
 
-        console.log('🎮 [INIT] Setting up event listeners...');
         cart.setupEventListeners();
         
-        // Fill demo data for testing (only if fields are empty)
-        setTimeout(() => {
-            const phoneInput = document.getElementById('cartPhone');
-            const nameInput = document.getElementById('cartName');
-            
-            if (phoneInput && !phoneInput.value) {
-                phoneInput.value = '0987654321';
-            }
-            
-            if (nameInput && !nameInput.value) {
-                nameInput.value = 'Nguyễn Văn A';
-            }
-            
-            // Set demo address after address selector is initialized
-            if (window.cartAddressSelector) {
-                // Wait for address selector to be ready
-                setTimeout(() => {
-                    // Set province (Hà Nội - code 01)
-                    const provinceSelect = document.getElementById('cartProvince');
-                    if (provinceSelect && !provinceSelect.value) {
-                        provinceSelect.value = '01';
-                        provinceSelect.dispatchEvent(new Event('change'));
-                        
-                        // Wait for districts to load, then set district
-                        setTimeout(() => {
-                            const districtSelect = document.getElementById('cartDistrict');
-                            if (districtSelect && districtSelect.options.length > 1) {
-                                districtSelect.selectedIndex = 1; // Select first district
-                                districtSelect.dispatchEvent(new Event('change'));
-                                
-                                // Wait for wards to load, then set ward
-                                setTimeout(() => {
-                                    const wardSelect = document.getElementById('cartWard');
-                                    if (wardSelect && wardSelect.options.length > 1) {
-                                        wardSelect.selectedIndex = 1; // Select first ward
-                                    }
-                                    
-                                    // Set street address
-                                    const streetInput = document.getElementById('cartStreet');
-                                    if (streetInput && !streetInput.value) {
-                                        streetInput.value = 'Số 123, Ngõ 456';
-                                    }
-                                }, 500);
-                            }
-                        }, 500);
-                    }
-                }, 1000);
-            }
-            
-            console.log('✅ Demo data filled for testing');
-        }, 500);
+        // Initialize form validator (ALWAYS, even if cart is empty)
+        // User might add items later
+        cart.initializeValidator();
+        
+        // Fill demo data for testing
+        cart.fillDemoData();
         
         // If there's a saved discount, show it in the input
         if (state.discount) {
@@ -270,146 +225,148 @@ const cart = {
             discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
         }
     },
+    
+    // Initialize form validator
+    initializeValidator: () => {
+        console.log('🔧 [CART] Initializing form validator...');
+        
+        // Wait a bit for DOM to be ready
+        setTimeout(() => {
+            // Check if elements exist
+            const phoneInput = document.getElementById('cartPhone');
+            const nameInput = document.getElementById('cartName');
+            
+            console.log('🔍 [CART] Phone input:', phoneInput);
+            console.log('🔍 [CART] Name input:', nameInput);
+            
+            if (!phoneInput || !nameInput) {
+                console.error('❌ [CART] Form inputs not found! Retrying...');
+                // Retry after 500ms
+                setTimeout(() => cart.initializeValidator(), 500);
+                return;
+            }
+            
+            state.validator = new FormValidator({
+                formId: 'customerInfoSection', // Use section as form container
+                rules: {
+                    cartPhone: checkoutValidationRules.phone,
+                    cartName: checkoutValidationRules.name,
+                    // Address fields validated separately by AddressSelector
+                },
+                isModal: false,
+                scrollOffset: 100, // Page has sticky header
+                autoClear: true
+            });
+            
+            console.log('✅ [CART] Form validator initialized:', state.validator);
+            
+            // Setup auto-clear for address fields
+            cart.setupAddressAutoClear();
+        }, 100);
+    },
+    
+    // Setup auto-clear for address fields
+    setupAddressAutoClear: () => {
+        // Wait for address selector to be ready
+        setTimeout(() => {
+            const provinceSelect = document.getElementById('provinceSelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const wardSelect = document.getElementById('wardSelect');
+            const streetInput = document.getElementById('streetInput');
+            
+            if (provinceSelect) {
+                provinceSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('provinceSelect');
+                });
+            }
+            
+            if (districtSelect) {
+                districtSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('districtSelect');
+                });
+            }
+            
+            if (wardSelect) {
+                wardSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('wardSelect');
+                });
+            }
+            
+            if (streetInput) {
+                streetInput.addEventListener('input', () => {
+                    errorDisplayService.clearError('streetInput');
+                });
+            }
+            
+            console.log('✅ [CART] Address auto-clear setup complete');
+        }, 500);
+    },
 
     // Load available discounts from API
     loadAvailableDiscounts: async () => {
         try {
-            console.log('Loading available discounts from API...');
             const allDiscounts = await discountService.getActiveDiscounts();
-            
-            // Filter visible and active discounts
-            state.availableDiscounts = allDiscounts.filter(d => {
-                return d.active && d.visible;
-            });
-            
-            console.log('Loaded discounts:', state.availableDiscounts.length);
+            state.availableDiscounts = allDiscounts.filter(d => d.active && d.visible);
         } catch (error) {
             console.error('Error loading discounts:', error);
             state.availableDiscounts = [];
         }
     },
 
-    // Load bundle products from API
+    // Fill demo data for testing
+    fillDemoData: async () => {
+        // Helper to wait for element
+        const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        await waitFor(500);
+        
+        // Fill basic info
+        const phoneInput = document.getElementById('cartPhone');
+        const nameInput = document.getElementById('cartName');
+        
+        if (phoneInput && !phoneInput.value) phoneInput.value = '0987654321';
+        if (nameInput && !nameInput.value) nameInput.value = 'Nguyễn Văn A';
+        
+        // Fill address if selector is ready
+        if (!window.cartAddressSelector) return;
+        
+        await waitFor(1000);
+        
+        const provinceSelect = document.getElementById('cartProvince');
+        if (provinceSelect && !provinceSelect.value) {
+            provinceSelect.value = '01';
+            provinceSelect.dispatchEvent(new Event('change'));
+            
+            await waitFor(500);
+            
+            const districtSelect = document.getElementById('cartDistrict');
+            if (districtSelect && districtSelect.options.length > 1) {
+                districtSelect.selectedIndex = 1;
+                districtSelect.dispatchEvent(new Event('change'));
+                
+                await waitFor(500);
+                
+                const wardSelect = document.getElementById('cartWard');
+                if (wardSelect && wardSelect.options.length > 1) {
+                    wardSelect.selectedIndex = 1;
+                }
+                
+                const streetInput = document.getElementById('cartStreet');
+                if (streetInput && !streetInput.value) {
+                    streetInput.value = 'Số 123, Ngõ 456';
+                }
+            }
+        }
+    },
+
+    // Load bundle products - Using shared service
     loadBundleProducts: async () => {
-        console.log('🎁 [BUNDLE] Starting loadBundleProducts...');
         try {
-            console.log('🎁 [BUNDLE] Loading bundle products from API...');
-            console.log('🎁 [BUNDLE] API Base URL:', CONFIG.API_BASE_URL);
-            
-            // Use configured API base URL
-            const apiUrl = CONFIG.API_BASE_URL + '/api/shop/products?bundle=true';
-            console.log('🎁 [BUNDLE] Fetching from:', apiUrl);
-            
-            let response = await fetch(apiUrl);
-            console.log('🎁 [BUNDLE] Response status:', response.status);
-            
-            // If 404, try getting all products and filter client-side
-            if (response.status === 404) {
-                console.log('🎁 [BUNDLE] Bundle endpoint not found, trying all products endpoint...');
-                response = await fetch(CONFIG.API_BASE_URL + '/api/shop/products');
-            }
-            
-            if (!response.ok) {
-                console.error('🎁 [BUNDLE] API response not OK:', response.status, response.statusText);
-                throw new Error('Failed to load bundle products');
-            }
-            
-            const data = await response.json();
-            console.log('🎁 [BUNDLE] API response data:', data);
-            
-            if (!data.success) {
-                console.error('🎁 [BUNDLE] API returned error:', data.error);
-                throw new Error(data.error || 'API returned unsuccessful response');
-            }
-            
-            // Filter for bundle products (category name contains "bán kèm")
-            let bundleProducts = (data.products || []).filter(product => {
-                // Check if product has "Sản phẩm bán kèm" category
-                if (product.categories && Array.isArray(product.categories)) {
-                    return product.categories.some(cat => 
-                        cat.name && cat.name.toLowerCase().includes('bán kèm')
-                    );
-                }
-                // Fallback: check category_name
-                if (product.category_name && product.category_name.toLowerCase().includes('bán kèm')) {
-                    return true;
-                }
-                return false;
-            });
-            
-            console.log('🎁 [BUNDLE] Filtered bundle products:', bundleProducts.length);
-            
-            // Transform API data to match our format
-            state.bundleProducts = bundleProducts.map(product => {
-                console.log('🎁 [BUNDLE] Processing product:', product.name);
-                return {
-                    id: product.id,
-                    name: product.name,
-                    description: product.description || '',
-                    image: product.image_url || '/assets/images/product_img/tat-ca-mau.webp',
-                    price: product.price,
-                    originalPrice: product.original_price || product.price,
-                    isBundleProduct: true,
-                    maxQuantity: product.stock_quantity || 99
-                };
-            });
-            
-            console.log('✅ [BUNDLE] Successfully loaded', state.bundleProducts.length, 'bundle products from database');
-            
-            if (state.bundleProducts.length === 0) {
-                console.warn('⚠️ [BUNDLE] No bundle products found in database, using fallback');
-                throw new Error('No bundle products found');
-            }
-            
-            console.log('🎁 [BUNDLE] loadBundleProducts completed successfully');
-            
+            state.bundleProducts = await bundleProductsService.loadBundleProducts();
+            console.log('✅ Bundle products loaded:', state.bundleProducts.length);
         } catch (error) {
-            console.error('❌ [BUNDLE] Error loading bundle products:', error);
-            // Fallback to hardcoded data if API fails
-            console.log('⚠️ [BUNDLE] Using fallback hardcoded bundle products (4 items)');
-            state.bundleProducts = [
-                {
-                    id: 133,
-                    name: 'Bó dâu 7 CÀNH (bé trai)',
-                    description: 'Bó dâu tằm 7 cành tự nhiên dành riêng cho bé trai, giúp bé ngủ ngon, giảm stress và tăng cường tự nhiên.',
-                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
-                    price: 42000,
-                    originalPrice: 62000,
-                    isBundleProduct: true,
-                    maxQuantity: 99
-                },
-                {
-                    id: 134,
-                    name: 'Bó dâu 9 CÀNH (bé gái)',
-                    description: 'Bó dâu tằm 9 cành tự nhiên dành riêng cho bé gái, giúp bé ngủ ngon, giảm căng thẳng và mang lại may mắn cho bé yêu.',
-                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/bo-dau-tam-de-phong.webp',
-                    price: 47000,
-                    originalPrice: 67000,
-                    isBundleProduct: true,
-                    maxQuantity: 99
-                },
-                {
-                    id: 84,
-                    name: 'Móc chìa khóa dâu tằm',
-                    description: 'Móc chìa khóa làm từ gỗ dâu tằm tự nhiên, nhỏ gọn và tiện lợi. Mang lại may mắn và bình an.',
-                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/moc_chia_khoa_dau_tam_ko_hop_kim.webp',
-                    price: 29000,
-                    originalPrice: 39000,
-                    isBundleProduct: true,
-                    maxQuantity: 99
-                },
-                {
-                    id: 83,
-                    name: 'Túi Dâu Tằm Để Giường',
-                    description: 'Túi dâu tằm để giường, trong túi nhung cao cấp. Giúp bé ngủ ngon, giảm stress và tăng cường tự nhiên.',
-                    image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/assets/images/product_img/tui_dau_tam.webp',
-                    price: 35000,
-                    originalPrice: 45000,
-                    isBundleProduct: true,
-                    maxQuantity: 99
-                }
-            ];
-            console.log('🎁 [BUNDLE] Fallback data set, length:', state.bundleProducts.length);
+            console.error('Error loading bundle products:', error);
+            state.bundleProducts = [];
         }
     },
 
@@ -451,7 +408,6 @@ const cart = {
 
     // Show empty cart
     showEmpty: () => {
-        console.log('=== SHOW EMPTY CART ===');
         const emptyCart = document.getElementById('emptyCart');
         
         emptyCart.classList.remove('hidden');
@@ -470,7 +426,6 @@ const cart = {
         document.getElementById('recommendedSection').classList.add('hidden');
         const summarySection = document.querySelector('.cart-summary-section');
         summarySection.classList.add('hidden');
-        console.log('Summary section hidden:', summarySection.className);
     },
 
     // Update quantity - optimized with proper state sync
@@ -524,14 +479,6 @@ const cart = {
     // Render cart items
     render: () => {
         const container = document.getElementById('cartItems');
-        
-        console.log('🛒 Rendering cart items:', state.cart.length);
-        state.cart.forEach((item, index) => {
-            console.log(`   Item ${index + 1}:`, item.name);
-            console.log('      - size:', item.size);
-            console.log('      - size type:', typeof item.size);
-            console.log('      - size truthy:', !!item.size);
-        });
         
         const html = state.cart.map(item => {
             const originalPriceHtml = item.originalPrice && item.originalPrice > item.price
@@ -665,14 +612,12 @@ const cart = {
         container.classList.remove('hidden');
         container.style.opacity = '0';
         
-        console.log('=== RENDER COMPLETE ===');
-        
-        // Show discount section, order note section, payment section, and customer info section
+        // Show sections in priority order: customer info first (most important)
         const sectionsToShow = [
+            'customerInfoSection',  // Hiện đầu tiên - quan trọng nhất
             'discountSection',
-            'orderNoteSection', 
             'paymentSection',
-            'customerInfoSection'
+            'orderNoteSection'
         ];
         
         // Prepare all sections (remove hidden but keep opacity 0)
@@ -684,38 +629,33 @@ const cart = {
             }
         });
         
+        // Dispatch event for address selector initialization BEFORE fade-in
+        window.dispatchEvent(new Event('cartInitialized'));
+        
         // Show bundle offer section (prepare it too)
-        console.log('🎁 [RENDER] About to call renderBundleOffer()...');
-        console.log('🎁 [RENDER] state.bundleProducts length:', state.bundleProducts?.length || 0);
         cart.renderBundleOffer();
-        console.log('🎁 [RENDER] renderBundleOffer() completed');
         
-        // Fade in all content together after a small delay
-        requestAnimationFrame(() => {
-            console.log('🎨 [RENDER] Starting fade-in for cart items and sections...');
-            // Fade in cart items
-            container.style.transition = 'opacity 0.5s ease';
-            container.style.opacity = '1';
-            console.log('🎨 [RENDER] Cart items opacity set to 1');
-            
-            // Fade in all sections with slight stagger (including bundle section)
-            const allSections = [...sectionsToShow, 'bundleOfferSection'];
-            allSections.forEach((sectionId, index) => {
-                const section = document.getElementById(sectionId);
-                if (section && !section.classList.contains('hidden')) {
-                    section.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => {
-                        section.style.opacity = '1';
-                        console.log(`🎨 [RENDER] ${sectionId} opacity set to 1 (delay: ${50 + (index * 30)}ms)`);
-                    }, 50 + (index * 30));
-                }
-            });
-        });
-        
-        // Dispatch event for address selector initialization
+        // Small delay to let address selector initialize
         setTimeout(() => {
-            window.dispatchEvent(new Event('cartInitialized'));
-        }, 100);
+            // Fade in all content together
+            requestAnimationFrame(() => {
+                // Fade in cart items
+                container.style.transition = 'opacity 0.5s ease';
+                container.style.opacity = '1';
+                
+                // Fade in all sections with slight stagger (including bundle section)
+                const allSections = [...sectionsToShow, 'bundleOfferSection'];
+                allSections.forEach((sectionId, index) => {
+                    const section = document.getElementById(sectionId);
+                    if (section && !section.classList.contains('hidden')) {
+                        section.style.transition = 'opacity 0.5s ease';
+                        setTimeout(() => {
+                            section.style.opacity = '1';
+                        }, CONFIG.FADE_IN_BASE_DELAY + (index * CONFIG.FADE_IN_STAGGER));
+                    }
+                });
+            });
+        }, CONFIG.ADDRESS_INIT_DELAY); // Wait for address selector to initialize
         
         // Show cart summary section
         const summarySection = document.querySelector('.cart-summary-section');
@@ -730,51 +670,43 @@ const cart = {
 
     // Render bundle offer
     renderBundleOffer: () => {
-        console.log('🎁 [RENDER] Starting renderBundleOffer...');
         const section = document.getElementById('bundleOfferSection');
         const container = document.getElementById('bundleProducts');
         
-        if (!section || !container) {
-            console.log('❌ [RENDER] Section or container not found');
-            return;
-        }
+        if (!section || !container) return;
         
         // Check if cart has non-bundle products
         const hasRegularProducts = state.cart.some(item => !item.isBundleProduct);
-        console.log('🎁 [RENDER] Has regular products:', hasRegularProducts);
         
         if (!hasRegularProducts) {
-            console.log('🎁 [RENDER] No regular products, hiding bundle section');
             section.classList.add('hidden');
             return;
         }
         
-        // CÁCH 1: Không cần skeleton vì đã đợi load xong
         if (!state.bundleProducts || state.bundleProducts.length === 0) {
-            console.log('🎁 [RENDER] No bundle products available, hiding section');
             section.classList.add('hidden');
             return;
         }
-        
-        console.log('🎁 [RENDER] Rendering', state.bundleProducts.length, 'bundle products');
         
         // Render real products
         section.classList.remove('hidden');
         section.style.opacity = '0';
-        console.log('🎁 [RENDER] Section shown with opacity 0');
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);
-            const discountPercent = Math.round((1 - product.price / product.originalPrice) * 100);
+            
+            // Calculate discount percent only if originalPrice exists and is greater than price
+            const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+            const discountPercent = hasDiscount ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
             
             return '<div class="bundle-product-card ' + (isInCart ? 'selected' : '') + '">' +
                 '<img src="' + product.image + '" alt="' + utils.escapeHtml(product.name) + '" class="bundle-product-image">' +
                 '<div class="bundle-product-info">' +
                 '<div class="bundle-product-name">' + utils.escapeHtml(product.name) + '</div>' +
                 '<div class="bundle-product-pricing">' +
-                '<div class="bundle-original-price">' + utils.formatPrice(product.originalPrice) + '</div>' +
+                (hasDiscount ? '<div class="bundle-original-price">' + utils.formatPrice(product.originalPrice) + '</div>' : '') +
                 '<div class="bundle-price">' + utils.formatPrice(product.price) + '</div>' +
-                '<div class="bundle-discount-badge">-' + discountPercent + '%</div>' +
+                (hasDiscount ? '<div class="bundle-discount-badge">-' + discountPercent + '%</div>' : '') +
                 '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
                 'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
@@ -786,10 +718,6 @@ const cart = {
         }).join('');
         
         container.innerHTML = html;
-        console.log('🎁 [RENDER] HTML content set');
-        
-        // KHÔNG fade-in ở đây nữa - sẽ fade-in cùng với các sections khác
-        console.log('🎁 [RENDER] Bundle section prepared (will fade-in with other sections)');
     },
 
     // Toggle bundle product
@@ -1100,37 +1028,77 @@ const cart = {
     // Proceed to checkout
     proceedToCheckout: async () => {
         console.log('🚀 Starting checkout process...');
+        console.log('🔍 [CART] Validator instance:', state.validator);
         
-        // Validate customer information
-        const phone = document.getElementById('cartPhone').value.trim();
-        const name = document.getElementById('cartName').value.trim();
-        
-        if (!phone) {
-            utils.showToast('Vui lòng nhập số điện thoại', 'error');
-            document.getElementById('cartPhone').focus();
-            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Check if validator exists
+        if (!state.validator) {
+            console.error('❌ [CART] Validator not initialized!');
+            // This is a system error, not validation error
+            // Keep toast for system errors
+            utils.showToast('Lỗi hệ thống, vui lòng tải lại trang', 'error');
             return;
         }
         
-        if (!name) {
-            utils.showToast('Vui lòng nhập họ và tên', 'error');
-            document.getElementById('cartName').focus();
-            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Validate form using validator
+        console.log('🔍 [CART] Calling validator.validate()...');
+        const validationResult = state.validator.validate();
+        console.log('📊 [CART] Validation result:', validationResult);
+        
+        if (!validationResult.isValid) {
+            console.log('❌ [CART] Validation failed, errors:', validationResult.errors);
+            // Errors are already displayed inline
+            // Scroll to customer info section
+            document.getElementById('customerInfoSection').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
             return;
         }
+        
+        console.log('✅ [CART] Validation passed!');
+        
+        // Get validated form data
+        const formData = state.validator.getFormData();
+        const phone = formData.cartPhone;
+        const name = formData.cartName;
         
         // Validate address
         if (!window.cartAddressSelector) {
+            // This is a system error (address selector not loaded)
+            // Keep toast for system errors
             utils.showToast('Đang tải địa chỉ, vui lòng thử lại', 'error');
             return;
         }
         
         const addressValidation = window.cartAddressSelector.validate();
         if (!addressValidation.isValid) {
-            utils.showToast(addressValidation.message, 'error');
-            document.getElementById('customerInfoSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Show inline error instead of toast
+            console.log('❌ [CART] Address validation failed:', addressValidation.message);
+            
+            // Determine which field has error and show inline message
+            if (!window.cartAddressSelector.provinceCode) {
+                errorDisplayService.showError('provinceSelect', addressValidation.message);
+            } else if (!window.cartAddressSelector.districtCode) {
+                errorDisplayService.showError('districtSelect', addressValidation.message);
+            } else if (!window.cartAddressSelector.wardCode) {
+                errorDisplayService.showError('wardSelect', addressValidation.message);
+            } else if (!window.cartAddressSelector.street) {
+                errorDisplayService.showError('streetInput', addressValidation.message);
+            }
+            
+            // Scroll to address section
+            document.getElementById('customerInfoSection').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
             return;
         }
+        
+        // Clear any address errors if validation passed
+        errorDisplayService.clearError('provinceSelect');
+        errorDisplayService.clearError('districtSelect');
+        errorDisplayService.clearError('wardSelect');
+        errorDisplayService.clearError('streetInput');
         
         // Get address data
         const addressData = window.cartAddressSelector.getAddressData();

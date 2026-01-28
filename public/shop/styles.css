@@ -2258,7 +2258,7 @@ body {
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
     z-index: 10;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 180px;
     align-items: center;
     gap: 1rem;
     border-radius: 0 0 16px 16px;
@@ -2338,16 +2338,18 @@ body {
 .checkout-submit-btn {
     width: 100%;
     min-height: 64px;
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: white;
     border: none;
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.3s ease;
+    text-transform: uppercase;
+    white-space: nowrap;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -3075,6 +3077,21 @@ body {
     box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
 }
 
+/* Error state - same styling as focus */
+.checkout-form-input.error,
+.checkout-form-select.error,
+.checkout-form-textarea.error {
+    border-color: #e74c3c;
+}
+
+.checkout-form-input.error:focus,
+.checkout-form-select.error:focus,
+.checkout-form-textarea.error:focus {
+    outline: none;
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
 .checkout-form-textarea {
     resize: vertical;
     min-height: 80px;
@@ -3729,7 +3746,7 @@ body {
         padding: 1rem;
         gap: 0.75rem;
         border-radius: 0;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 140px;
     }
     
     .checkout-total-box {
@@ -4327,18 +4344,19 @@ body {
 /* Discount Input Group */
 .discount-input-wrapper {
     display: flex;
-    gap: 0;
+    gap: 4px; /* Add gap between input and button */
     position: relative;
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    background: transparent;
 }
 
 .discount-code-display {
     flex: 1;
     border: 2px solid #e8e8e8 !important;
-    border-right: none !important;
-    border-radius: 12px 0 0 12px !important;
+    border-radius: 12px !important; /* Full radius since there's gap now */
     background: #f8f9fa !important;
     font-size: 0.95rem;
     font-weight: 500;
@@ -4369,9 +4387,10 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: 0 12px 12px 0;
+    border-radius: 12px; /* Full radius since there's gap now */
     background: linear-gradient(135deg, #3498db, #2980b9);
     color: white;
+    margin: 0;
 }
 
 .discount-action-btn:hover {
@@ -4450,18 +4469,26 @@ body {
     
     .discount-input-wrapper {
         border-radius: 10px;
+        gap: 4px !important; /* Force gap on mobile */
+        padding: 0;
     }
     
     .discount-code-display {
         font-size: 0.875rem;
         padding: 0.75rem 0.875rem !important;
-        border-radius: 10px 0 0 10px !important;
+        border-radius: 10px !important; /* Full radius */
     }
     
     .discount-action-btn {
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
-        border-radius: 0 10px 10px 0;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8rem;
+        border-radius: 10px !important; /* Full radius */
+        margin: 0;
+        gap: 0.375rem;
+    }
+    
+    .discount-action-btn i {
+        font-size: 0.75rem;
     }
 }
 

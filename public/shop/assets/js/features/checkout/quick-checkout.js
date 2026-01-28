@@ -11,6 +11,10 @@ import { AddressSelector } from '../../components/address-selector.js';
 import { DiscountModal } from '../../components/discount-modal.js';
 import { discountService } from '../../shared/services/discount.service.js';
 import { successModal } from '../../shared/components/success-modal.js';
+import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
+import { FormValidator } from '../../shared/utils/form-validator.js';
+import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
+import { errorDisplayService } from '../../shared/services/error-display.service.js';
 
 /**
  * Quick Checkout Manager
@@ -34,6 +38,9 @@ export class QuickCheckout {
         
         // LocalStorage key for form data
         this.STORAGE_KEY = 'quickCheckoutFormData';
+        
+        // Initialize form validator
+        this.validator = null; // Will be initialized after modal opens
         
         // Initialize discount modal
         this.discountModal = new DiscountModal((discount, amount) => this.applyDiscount(discount, amount));
@@ -88,6 +95,9 @@ export class QuickCheckout {
         // Render product info immediately (synchronous)
         this.render();
         
+        // Initialize form validator
+        this.initializeValidator();
+        
         // Load data asynchronously in background (non-blocking)
         Promise.all([
             this.loadCrossSellProducts().then(() => {
@@ -113,6 +123,71 @@ export class QuickCheckout {
         } else {
             this.addressSelector.reset();
         }
+    }
+    
+    /**
+     * Initialize form validator
+     */
+    initializeValidator() {
+        // Update rules based on product requirements
+        updateValidationRule('babyWeight', { required: this.needsBabyWeight });
+        updateValidationRule('babyName', { required: this.needsBabyName });
+        
+        // Create validator instance
+        this.validator = new FormValidator({
+            formId: 'quickCheckoutModal', // Use modal ID as form container
+            rules: {
+                checkoutPhone: checkoutValidationRules.phone,
+                checkoutName: checkoutValidationRules.name,
+                checkoutBabyWeight: checkoutValidationRules.babyWeight,
+                checkoutBabyName: checkoutValidationRules.babyName,
+                // Address fields will be validated separately by AddressSelector
+                checkoutNote: checkoutValidationRules.note
+            },
+            isModal: true,
+            modalId: 'quickCheckoutModal',
+            scrollOffset: 20,
+            autoClear: true
+        });
+        
+        // Setup auto-clear for address fields
+        this.setupAddressAutoClear();
+    }
+    
+    /**
+     * Setup auto-clear for address fields
+     */
+    setupAddressAutoClear() {
+        setTimeout(() => {
+            const provinceSelect = document.getElementById('provinceSelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const wardSelect = document.getElementById('wardSelect');
+            const streetInput = document.getElementById('streetInput');
+            
+            if (provinceSelect) {
+                provinceSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('provinceSelect');
+                });
+            }
+            
+            if (districtSelect) {
+                districtSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('districtSelect');
+                });
+            }
+            
+            if (wardSelect) {
+                wardSelect.addEventListener('change', () => {
+                    errorDisplayService.clearError('wardSelect');
+                });
+            }
+            
+            if (streetInput) {
+                streetInput.addEventListener('input', () => {
+                    errorDisplayService.clearError('streetInput');
+                });
+            }
+        }, 500);
     }
     
     /**
@@ -175,28 +250,16 @@ export class QuickCheckout {
     }
     
     /**
-     * Load cross-sell products (Hardcoded: Bó đầu 7 cành và 9 cành)
+     * Load cross-sell products - Using shared service
      */
     async loadCrossSellProducts() {
-        // Hardcode 2 sản phẩm bán kèm
-        this.crossSellProducts = [
-            {
-                id: 133,
-                name: 'Bó đầu 7 CÀNH (bé gái)',
-                price: 42000,
-                originalPrice: null,
-                image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
-                is_active: 1
-            },
-            {
-                id: 134,
-                name: 'Bó đầu 9 CÀNH (bé gái)',
-                price: 47000,
-                originalPrice: null,
-                image: 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/products/1768450336930-iwxo9u.jpg',
-                is_active: 1
-            }
-        ];
+        try {
+            this.crossSellProducts = await bundleProductsService.loadBundleProducts();
+            console.log('✅ [QUICK-CHECKOUT] Loaded', this.crossSellProducts.length, 'cross-sell products');
+        } catch (error) {
+            console.error('❌ [QUICK-CHECKOUT] Error loading cross-sell products:', error);
+            this.crossSellProducts = [];
+        }
     }
     
     /**
@@ -1431,41 +1494,45 @@ export class QuickCheckout {
     async submit() {
         if (!this.product) return;
         
-        // Get form data
-        const formData = {
-            phone: document.getElementById('checkoutPhone').value.trim(),
-            name: document.getElementById('checkoutName').value.trim(),
-            babyWeight: document.getElementById('checkoutBabyWeight').value,
-            babyName: document.getElementById('checkoutBabyName')?.value.trim() || '',
-            note: document.getElementById('checkoutNote').value.trim()
-        };
+        // Validate form using validator
+        const validationResult = this.validator.validate();
         
-        // Validate basic fields
-        if (!formData.phone) {
-            showToast('Vui lòng nhập số điện thoại', 'error');
-            document.getElementById('checkoutPhone').focus();
+        if (!validationResult.isValid) {
+            // Errors are already displayed by validator
+            // No need for toast
             return;
         }
         
-        if (!formData.name) {
-            showToast('Vui lòng nhập tên khách hàng', 'error');
-            document.getElementById('checkoutName').focus();
+        // Validate address
+        const addressValidation = this.addressSelector.validate();
+        if (!addressValidation.isValid) {
+            // Show inline error for address fields
+            if (!this.addressSelector.provinceCode) {
+                errorDisplayService.showError('provinceSelect', addressValidation.message);
+            } else if (!this.addressSelector.districtCode) {
+                errorDisplayService.showError('districtSelect', addressValidation.message);
+            } else if (!this.addressSelector.wardCode) {
+                errorDisplayService.showError('wardSelect', addressValidation.message);
+            } else if (!this.addressSelector.street) {
+                errorDisplayService.showError('streetInput', addressValidation.message);
+            }
+            
+            // Scroll to address section in modal
+            const addressContainer = document.getElementById('addressSelectorContainer');
+            if (addressContainer) {
+                addressContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }
             return;
         }
         
-        // Only validate baby weight if product needs it
-        if (this.needsBabyWeight && !formData.babyWeight) {
-            showToast('Vui lòng chọn cân nặng của bé', 'error');
-            document.getElementById('checkoutBabyWeight').focus();
-            return;
-        }
-        
-        // Validate baby name if needed
-        if (this.needsBabyName && !formData.babyName) {
-            showToast('Vui lòng nhập tên bé để khắc lên thẻ', 'error');
-            document.getElementById('checkoutBabyName').focus();
-            return;
-        }
+        // Clear address errors if validation passed
+        errorDisplayService.clearError('provinceSelect');
+        errorDisplayService.clearError('districtSelect');
+        errorDisplayService.clearError('wardSelect');
+        errorDisplayService.clearError('streetInput');
         
         // Validate bank transfer confirmation
         if (this.paymentMethod === 'bank' && !this.bankTransferConfirmed) {
@@ -1495,12 +1562,8 @@ export class QuickCheckout {
             return;
         }
         
-        // Validate address
-        const addressValidation = this.addressSelector.validate();
-        if (!addressValidation.isValid) {
-            showToast(addressValidation.message, 'error');
-            return;
-        }
+        // Get form data (already validated)
+        const formData = this.validator.getFormData();
         
         // Get address data
         const addressData = this.addressSelector.getAddressData();

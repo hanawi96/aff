@@ -1,0 +1,79 @@
+/* ============================================
+   FORM VALIDATION STYLES
+   Shared styles for form validation errors
+   ============================================ */
+
+/* Note: We rely on existing form styles for input borders.
+   We only add the .error class to trigger existing :focus styles */
+
+/* Error message */
+.error-message {
+    display: none;
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 6px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.2s ease;
+}
+
+.error-message.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.error-message::before {
+    content: "⚠ ";
+    font-weight: bold;
+}
+
+/* Shake animation for error fields */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+/* Highlight animation when scrolling to error */
+@keyframes highlight {
+    0% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
+}
+
+.highlight {
+    animation: highlight 1s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .error-message {
+        font-size: 11px;
+    }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .error-message {
+        color: #ff6b6b;
+    }
+}
+
+/* Accessibility improvements */
+.error-message[role="alert"] {
+    /* Ensure screen readers announce errors */
+}

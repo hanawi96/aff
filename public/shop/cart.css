@@ -1061,6 +1061,20 @@ body {
     background: var(--white);
 }
 
+/* Error state for validation */
+.checkout-form-input.error,
+.checkout-form-select.error,
+.checkout-form-textarea.error {
+    border-color: #e74c3c;
+}
+
+.checkout-form-input.error:focus,
+.checkout-form-select.error:focus,
+.checkout-form-textarea.error:focus {
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.1);
+}
+
 .checkout-form-textarea {
     resize: vertical;
     min-height: 80px;
@@ -3249,9 +3263,10 @@ body {
 
     .discount-input-group input {
         font-size: 0.9rem;
-        padding: 0.75rem 1rem;
-        border-radius: 10px;
-        min-height: 44px; /* Touch-friendly */
+        padding: 1rem 1.25rem; /* Tăng padding để button có không gian */
+        padding-right: 135px; /* Tạo khoảng trống cho button */
+        border-radius: 16px; /* Tăng border-radius */
+        min-height: 50px; /* Đảm bảo input đủ cao */
     }
 
     .discount-input-group input::placeholder {
@@ -3259,12 +3274,16 @@ body {
     }
 
     .btn-apply {
-        padding: 0.75rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 10px;
+        position: absolute;
+        right: 8px; /* Gap với border */
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 0.625rem 1.125rem; /* Giảm padding để button nhỏ hơn */
+        font-size: 0.85rem; /* Giảm font size */
+        border-radius: 12px; /* Tăng border-radius */
         white-space: nowrap;
         gap: 0.375rem;
-        min-height: 44px; /* Touch-friendly size */
+        height: auto; /* Bỏ min-height, để tự động */
     }
 
     .btn-apply:active {
@@ -4548,97 +4567,6 @@ body {
 .bundle-product-card.selected {
     border-color: var(--success);
     background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(39, 174, 96, 0.02));
-}
-
-/* Bundle Skeleton Styles */
-.bundle-skeleton {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    width: 100%;
-}
-
-.bundle-skeleton-item {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 1.25rem;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 1rem;
-    border: 2px solid var(--primary)/10;
-}
-
-.bundle-skeleton-image {
-    width: 90px;
-    height: 120px;
-    border-radius: 16px;
-    background: linear-gradient(90deg, 
-        rgba(244, 162, 97, 0.05) 0%, 
-        rgba(233, 196, 106, 0.08) 50%, 
-        rgba(244, 162, 97, 0.05) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-}
-
-.bundle-skeleton-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    justify-content: space-between;
-}
-
-.bundle-skeleton-line {
-    height: 16px;
-    border-radius: 8px;
-    background: linear-gradient(90deg, 
-        rgba(244, 162, 97, 0.05) 0%, 
-        rgba(233, 196, 106, 0.08) 50%, 
-        rgba(244, 162, 97, 0.05) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-}
-
-.bundle-skeleton-title {
-    width: 80%;
-    height: 20px;
-}
-
-.bundle-skeleton-price {
-    width: 50%;
-    height: 24px;
-}
-
-.bundle-skeleton-button {
-    width: 100%;
-    height: 40px;
-    border-radius: 12px;
-    background: linear-gradient(90deg, 
-        rgba(244, 162, 97, 0.08) 0%, 
-        rgba(233, 196, 106, 0.12) 50%, 
-        rgba(244, 162, 97, 0.08) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
-
-/* Mobile Bundle Skeleton */
-@media (max-width: 768px) {
-    .bundle-skeleton {
-        grid-template-columns: 1fr;
-    }
-    
-    .bundle-skeleton-image {
-        width: 70px;
-        height: 90px;
-    }
 }
 
 .bundle-product-image {

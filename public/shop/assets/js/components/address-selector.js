@@ -93,6 +93,11 @@ export class AddressSelector {
                 this.street = '';
                 this.updateDistricts();
                 this.updateFullAddress();
+                
+                // Auto-open district dropdown if user interaction
+                if (e.isTrusted && this.provinceCode) {
+                    this.autoOpenDropdown(districtSelect);
+                }
             });
         }
         
@@ -103,6 +108,11 @@ export class AddressSelector {
                 this.street = '';
                 this.updateWards();
                 this.updateFullAddress();
+                
+                // Auto-open ward dropdown if user interaction
+                if (e.isTrusted && this.districtCode) {
+                    this.autoOpenDropdown(wardSelect);
+                }
             });
         }
         
@@ -111,10 +121,26 @@ export class AddressSelector {
                 this.wardCode = e.target.value;
                 this.updateFullAddress();
                 
-                // Enable street input
-                if (streetInput) {
+                // Enable, scroll to, and focus street input
+                if (streetInput && this.wardCode) {
                     streetInput.disabled = false;
-                    streetInput.focus();
+                    
+                    // Scroll to street input if user interaction
+                    if (e.isTrusted) {
+                        streetInput.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        
+                        // Focus after scroll
+                        setTimeout(() => {
+                            streetInput.focus();
+                        }, 300);
+                    } else {
+                        // Just focus if programmatic
+                        streetInput.focus();
+                    }
                 }
             });
         }
@@ -125,6 +151,58 @@ export class AddressSelector {
                 this.updateFullAddress();
             });
         }
+    }
+    
+    /**
+     * Auto-open dropdown after options loaded
+     * @param {HTMLSelectElement} selectElement 
+     */
+    autoOpenDropdown(selectElement) {
+        if (!selectElement || selectElement.disabled) return;
+        
+        // Wait for DOM update and options to be populated
+        requestAnimationFrame(() => {
+            // Check if select has options (more than just placeholder)
+            if (selectElement.options.length > 1) {
+                // Scroll to element smoothly
+                selectElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+                
+                // Focus the select after scroll starts
+                setTimeout(() => {
+                    selectElement.focus();
+                    
+                    // Try modern showPicker API (Chrome 99+, Edge 99+)
+                    if (typeof selectElement.showPicker === 'function') {
+                        try {
+                            selectElement.showPicker();
+                        } catch (e) {
+                            // Fallback: simulate click
+                            this.simulateClick(selectElement);
+                        }
+                    } else {
+                        // Fallback for older browsers
+                        this.simulateClick(selectElement);
+                    }
+                }, 300); // Wait for smooth scroll to complete
+            }
+        });
+    }
+    
+    /**
+     * Simulate click to open dropdown (fallback)
+     * @param {HTMLSelectElement} selectElement 
+     */
+    simulateClick(selectElement) {
+        const event = new MouseEvent('mousedown', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        });
+        selectElement.dispatchEvent(event);
     }
     
     /**
