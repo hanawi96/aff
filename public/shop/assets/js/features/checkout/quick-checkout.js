@@ -10,6 +10,7 @@ import { apiService } from '../../shared/services/api.service.js';
 import { AddressSelector } from '../../components/address-selector.js';
 import { DiscountModal } from '../../components/discount-modal.js';
 import { discountService } from '../../shared/services/discount.service.js';
+import { successModal } from '../../shared/components/success-modal.js';
 
 /**
  * Quick Checkout Manager
@@ -1585,10 +1586,12 @@ export class QuickCheckout {
             source: 'shop' // Mark as coming from shop
         };
         
-        // Disable submit button
+        // Disable submit button and show spinner only
         const submitBtn = document.getElementById('checkoutSubmit');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+        
+        // Add loading class to show spinner and hide text
+        submitBtn.classList.add('loading');
         
         try {
             // Send to API
@@ -1603,18 +1606,27 @@ export class QuickCheckout {
             const result = await response.json();
             
             if (response.ok && result.success) {
-                // Success
-                showToast('Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.', 'success');
-                
                 // Clear saved form data after successful order
                 this.clearSavedData();
                 
                 // Stop countdown
                 this.stopCountdown();
                 
+                // Remove loading class
+                submitBtn.classList.remove('loading');
+                
+                // Close checkout modal
                 this.close();
                 
-                // TODO: Redirect to success page or show order confirmation
+                // Show success modal with order info
+                successModal.show({
+                    orderId: result.order?.order_id || orderData.orderId,
+                    total: totalAmount
+                });
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                
                 console.log('✅ Order created:', result.order);
             } else {
                 throw new Error(result.error || 'Không thể tạo đơn hàng');
@@ -1624,7 +1636,7 @@ export class QuickCheckout {
             console.error('Checkout error:', error);
             showToast(`Lỗi: ${error.message}`, 'error');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = 'ĐẶT HÀNG';
+            submitBtn.classList.remove('loading');
         }
     }
     
