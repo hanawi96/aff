@@ -23,6 +23,22 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ============================================
+   CRITICAL: PREVENT FLASH OF CONTENT (FOUC)
+   Must be loaded FIRST before any other styles
+   ============================================ */
+.cart-items,
+.empty-cart,
+.bundle-offer-section,
+.discount-section,
+.order-note-section,
+.payment-section,
+.customer-info-section,
+.cart-summary {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 body {
     font-family: 'Quicksand', sans-serif;
     color: var(--text-dark);
@@ -2419,24 +2435,45 @@ body {
     overflow: hidden !important;
 }
 
-/* Loading state - prevent flash of content */
+/* Loading state - prevent flash of content (CRITICAL - Must be loaded first) */
 .cart-items,
+.empty-cart,
+.bundle-offer-section,
 .discount-section,
 .order-note-section,
 .payment-section,
 .customer-info-section,
 .cart-summary {
-    opacity: 1;
-    transition: opacity 0.5s ease;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Show when not hidden - Override with higher specificity */
+.cart-items:not(.hidden),
+.empty-cart:not(.hidden),
+.bundle-offer-section:not(.hidden),
+.discount-section:not(.hidden),
+.order-note-section:not(.hidden),
+.payment-section:not(.hidden),
+.customer-info-section:not(.hidden),
+.cart-summary:not(.hidden) {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure hidden state is absolute */
 .cart-items.hidden,
+.empty-cart.hidden,
+.bundle-offer-section.hidden,
 .discount-section.hidden,
 .order-note-section.hidden,
 .payment-section.hidden,
 .customer-info-section.hidden,
 .cart-summary.hidden {
     opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
 }
 
 /* ============================================
@@ -2494,12 +2531,13 @@ body {
     display: flex;
     gap: 1rem;
     padding: 1.25rem;
+    padding-top: 1rem;
     background: linear-gradient(135deg, 
         rgba(248, 237, 235, 0.3) 0%, 
         rgba(255, 251, 247, 0.5) 50%,
         rgba(233, 196, 106, 0.1) 100%
     );
-    border-radius: 16px;
+    border-radius: 20px;
     border: 1px solid rgba(244, 162, 97, 0.1);
 }
 
@@ -2562,7 +2600,7 @@ body {
         rgba(248, 237, 235, 0.3) 0%, 
         rgba(255, 251, 247, 0.5) 100%
     );
-    border-radius: 16px;
+    border-radius: 20px;
     border: 2px dashed rgba(244, 162, 97, 0.15);
 }
 
@@ -2588,10 +2626,10 @@ body {
 /* Skeleton Summary */
 .cart-summary-skeleton {
     background: var(--white);
-    border-radius: 20px;
+    border-radius: 24px;
     padding: 1.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 2px solid var(--primary)/10;
+    box-shadow: var(--shadow-md);
+    border: 3px solid var(--primary)/10;
     animation: fadeIn 0.3s ease;
 }
 

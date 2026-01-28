@@ -16,20 +16,41 @@ export async function getFlashSaleProducts(flashSaleId, env, corsHeaders) {
             ORDER BY fsp.created_at_unix DESC
         `).bind(flashSaleId).all();
 
-        // Load categories for each product
-        for (let product of products) {
-            if (product.category_id) {
-                const { results: categories } = await env.DB.prepare(`
-                    SELECT 
-                        c.id,
-                        c.name as category_name
-                    FROM product_categories pc
-                    INNER JOIN categories c ON pc.category_id = c.id
-                    WHERE pc.product_id = ?
-                `).bind(product.product_id).all();
-                
-                product.categories = categories;
-            } else {
+        // Get ALL product-category relationships in ONE query (optimized)
+        const productIds = products.map(p => p.product_id);
+        
+        if (productIds.length > 0) {
+            const placeholders = productIds.map(() => '?').join(',');
+            const { results: allProductCategories } = await env.DB.prepare(`
+                SELECT 
+                    pc.product_id,
+                    c.id,
+                    c.name as category_name
+                FROM product_categories pc
+                INNER JOIN categories c ON pc.category_id = c.id
+                WHERE pc.product_id IN (${placeholders})
+                ORDER BY pc.product_id, pc.is_primary DESC, pc.display_order ASC
+            `).bind(...productIds).all();
+            
+            // Group categories by product_id
+            const categoriesByProduct = {};
+            for (let pc of allProductCategories) {
+                if (!categoriesByProduct[pc.product_id]) {
+                    categoriesByProduct[pc.product_id] = [];
+                }
+                categoriesByProduct[pc.product_id].push({
+                    id: pc.id,
+                    name: pc.category_name
+                });
+            }
+            
+            // Assign categories to products
+            for (let product of products) {
+                product.categories = categoriesByProduct[product.product_id] || [];
+            }
+        } else {
+            // No products, set empty categories
+            for (let product of products) {
                 product.categories = [];
             }
         }

@@ -161,13 +161,13 @@ const cart = {
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
         
-        // Load available discounts from API
-        await cart.loadAvailableDiscounts();
+        // Load available discounts in background (non-blocking)
+        cart.loadAvailableDiscounts();
         
-        // Load bundle products from API
-        await cart.loadBundleProducts();
+        // Load bundle products in background (non-blocking)
+        cart.loadBundleProducts();
         
-        // Wait for skeleton to completely fade out before showing content
+        // Hide skeleton with reduced delay
         await cart.hideSkeleton();
         
         if (state.cart.length === 0) {
@@ -345,6 +345,10 @@ const cart = {
                 console.warn('No bundle products found in database, using fallback');
                 throw new Error('No bundle products found');
             }
+            
+            // Re-render bundle offer section after data loaded
+            cart.renderBundleOffer();
+            
         } catch (error) {
             console.error('❌ Error loading bundle products:', error);
             // Fallback to hardcoded data if API fails
@@ -391,6 +395,9 @@ const cart = {
                     maxQuantity: 99
                 }
             ];
+            
+            // Re-render with fallback data
+            cart.renderBundleOffer();
         }
     },
 
@@ -399,17 +406,17 @@ const cart = {
         const skeleton = document.getElementById('cartSkeleton');
         const skeletonSummary = document.getElementById('cartSummarySkeleton');
         
-        // Fade out skeleton first
+        // Fade out skeleton with reduced delay (150ms for better performance)
         const fadeOutPromises = [];
         
         if (skeleton) {
             const promise = new Promise(resolve => {
                 skeleton.style.opacity = '0';
-                skeleton.style.transition = 'opacity 0.3s ease';
+                skeleton.style.transition = 'opacity 0.15s ease';
                 setTimeout(() => {
                     skeleton.classList.add('hidden');
                     resolve();
-                }, 300);
+                }, 150);
             });
             fadeOutPromises.push(promise);
         }
@@ -417,11 +424,11 @@ const cart = {
         if (skeletonSummary) {
             const promise = new Promise(resolve => {
                 skeletonSummary.style.opacity = '0';
-                skeletonSummary.style.transition = 'opacity 0.3s ease';
+                skeletonSummary.style.transition = 'opacity 0.15s ease';
                 setTimeout(() => {
                     skeletonSummary.classList.add('hidden');
                     resolve();
-                }, 300);
+                }, 150);
             });
             fadeOutPromises.push(promise);
         }
@@ -742,6 +749,21 @@ const cart = {
         
         section.classList.remove('hidden');
         section.style.opacity = '0';
+        
+        // Show loading state if bundle products not loaded yet
+        if (!state.bundleProducts || state.bundleProducts.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #999;">' +
+                '<i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>' +
+                '<div style="font-size: 0.9rem;">Đang tải sản phẩm bán kèm...</div>' +
+                '</div>';
+            
+            // Fade in section
+            requestAnimationFrame(() => {
+                section.style.transition = 'opacity 0.3s ease';
+                section.style.opacity = '1';
+            });
+            return;
+        }
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);

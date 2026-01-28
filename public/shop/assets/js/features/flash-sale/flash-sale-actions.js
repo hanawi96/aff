@@ -109,7 +109,8 @@ export class FlashSaleActions {
                 originalPrice: product.original_price,
                 image: product.image_url,
                 maxQuantity: product.stock_limit - product.sold_count || 99,
-                isFlashSale: true
+                isFlashSale: true,
+                categories: product.categories || [] // Pass categories for baby weight check
             });
         }
     }
