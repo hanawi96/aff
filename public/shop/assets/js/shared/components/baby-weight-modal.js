@@ -14,13 +14,13 @@ export class BabyWeightModal {
         this.selectedWeight = null;
         this.callback = null;
         
-        // Price surcharge for weight > 15kg (baby products)
-        this.SURCHARGE_VONG_TRON = 20000; // 20k for "Vòng trơn" category
-        this.SURCHARGE_OTHER = 40000;     // 40k for other categories
-        this.VONG_TRON_CATEGORY_IDS = [8, 11]; // Category IDs: 8=Vòng trơn, 11=Vòng cơ giãn
+        // Price surcharge for weight > 15kg: 15% of product price (rounded down to nearest 1000)
+        this.BABY_WEIGHT_THRESHOLD = 15;        // Surcharge applies above 15kg
+        this.BABY_SURCHARGE_PERCENT = 0.15;     // 15% of product price
         
         // Price surcharge for adult bracelets (weight > 65kg)
         this.ADULT_WEIGHT_THRESHOLD = 65;       // Surcharge applies above 65kg (15% of price)
+        this.ADULT_SURCHARGE_PERCENT = 0.15;    // 15% of product price
         
         // Category IDs that DON'T need baby weight selection
         // These are stable and won't break if category names change
@@ -131,7 +131,7 @@ export class BabyWeightModal {
      * Check if product is adult bracelet
      */
     isAdultBracelet(product) {
-        if (!product.categories || product.categories.length === 0) return false;
+        if (!product || !product.categories || product.categories.length === 0) return false;
         
         return product.categories.some(cat => {
             const catId = cat.id || cat.category_id;
@@ -327,17 +327,19 @@ export class BabyWeightModal {
             
             // Calculate 15% of product price and round down to nearest 1000
             const basePrice = this.currentProduct.price || 0;
-            const surcharge = basePrice * 0.15;
+            const surcharge = basePrice * this.ADULT_SURCHARGE_PERCENT;
             return Math.floor(surcharge / 1000) * 1000;
         }
         
-        // Baby products: surcharge only if > 15kg
-        if (weightKg <= 15) {
+        // Baby products: 15% surcharge if > 15kg
+        if (weightKg <= this.BABY_WEIGHT_THRESHOLD) {
             return 0;
         }
         
-        const isVongTron = this.isVongTronCategory(this.currentProduct);
-        return isVongTron ? this.SURCHARGE_VONG_TRON : this.SURCHARGE_OTHER;
+        // Calculate 15% of product price and round down to nearest 1000
+        const basePrice = this.currentProduct.price || 0;
+        const surcharge = basePrice * this.BABY_SURCHARGE_PERCENT;
+        return Math.floor(surcharge / 1000) * 1000;
     }
     
     /**
@@ -354,7 +356,6 @@ export class BabyWeightModal {
             const totalPrice = originalPrice + surcharge;
             
             const isAdult = this.isAdultBracelet(this.currentProduct);
-            const isVongTron = this.isVongTronCategory(this.currentProduct);
             const thresholdText = isAdult ? '65kg' : '15kg';
             
             // Update surcharge title with reason

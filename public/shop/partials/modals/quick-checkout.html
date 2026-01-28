@@ -64,25 +64,65 @@
             </div>
             
             <!-- Baby Weight -->
-            <div class="checkout-form-group">
+            <div class="checkout-form-group" id="babyWeightGroup">
                 <label class="checkout-form-label">
                     <i class="fas fa-baby"></i>
                     Cân nặng của bé<span class="required">*</span>
                 </label>
-                <select class="checkout-form-select" id="checkoutBabyWeight" required>
-                    <option value="">Chọn cân nặng</option>
-                    <option value="unborn">Chưa sinh</option>
-                    <option value="3kg">3kg</option>
-                    <option value="4kg">4kg</option>
-                    <option value="5kg">5kg</option>
-                    <option value="6kg">6kg</option>
-                    <option value="7kg">7kg</option>
-                    <option value="8kg">8kg</option>
-                    <option value="9kg">9kg</option>
-                    <option value="10kg">10kg</option>
-                    <option value="11kg">11kg</option>
-                    <option value="12kg">12kg</option>
-                </select>
+                
+                <!-- Weight Preset Buttons -->
+                <div class="weight-preset-buttons">
+                    <button type="button" class="weight-preset-btn" data-weight="unborn">
+                        <i class="fas fa-heart"></i>
+                        <span>Chưa sinh</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="3-4kg">
+                        <span class="weight-range">3-4kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="4-6kg">
+                        <span class="weight-range">4-6kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="6-8kg">
+                        <span class="weight-range">6-8kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="8-10kg">
+                        <span class="weight-range">8-10kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="10-12kg">
+                        <span class="weight-range">10-12kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn" data-weight="12-15kg">
+                        <span class="weight-range">12-15kg</span>
+                    </button>
+                    <button type="button" class="weight-preset-btn weight-custom-btn" data-weight="custom">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Nhập khác</span>
+                    </button>
+                </div>
+                
+                <!-- Hidden input to store selected weight -->
+                <input type="hidden" id="checkoutBabyWeight" name="babyWeight" required>
+            </div>
+            
+            <!-- Custom Weight Input (hidden by default) -->
+            <div class="checkout-form-group hidden" id="customWeightGroup">
+                <label class="checkout-form-label">
+                    <i class="fas fa-weight"></i>
+                    Nhập cân nặng (kg)<span class="required">*</span>
+                </label>
+                <div class="custom-weight-input-wrapper">
+                    <input type="number" class="checkout-form-input" id="customWeightInput" placeholder="Ví dụ: 18" min="3" max="50" step="0.5">
+                    <button type="button" class="custom-weight-confirm-btn" id="customWeightConfirmBtn">
+                        <i class="fas fa-check"></i>
+                        Xác nhận
+                    </button>
+                </div>
+                <small id="customWeightHint" style="color: #666; font-size: 0.85rem; margin-top: 4px; display: flex; align-items: center; gap: 0.5rem;">
+                    <span><i class="fas fa-info-circle"></i> Nhập từ 3kg đến 50kg</span>
+                    <button type="button" class="custom-weight-change-btn hidden" id="customWeightChangeBtn" style="margin-left: auto;">
+                        <i class="fas fa-edit"></i> Chọn lại
+                    </button>
+                </small>
             </div>
             
             <!-- Baby Name (conditional - only for "Mix thẻ tên bé" products) -->
@@ -214,7 +254,7 @@
             
             <!-- Order Details (moved from footer) -->
             <div class="order-details-section">
-                <button class="order-details-toggle" id="orderDetailsToggle">
+                <button class="order-details-toggle active" id="orderDetailsToggle">
                     <span class="order-details-title">
                         <i class="fas fa-receipt"></i>
                         Chi tiết đơn hàng
@@ -222,55 +262,60 @@
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </button>
                 
-                <div class="order-details-content hidden" id="orderDetailsContent">
-                    <!-- Main Product -->
-                    <div class="order-item">
-                        <div class="order-item-info">
-                            <span class="order-item-name" id="orderMainProductName">Sản phẩm</span>
-                            <span class="order-item-qty" id="orderMainProductQty">x1</span>
+                <div class="order-details-content show" id="orderDetailsContent">
+                    <!-- Products List -->
+                    <div class="order-products-list">
+                        <!-- Main Product -->
+                        <div class="order-item">
+                            <div class="order-item-info">
+                                <span class="order-item-name" id="orderMainProductName">Sản phẩm</span>
+                                <span class="order-item-qty" id="orderMainProductQty">x1</span>
+                            </div>
+                            <span class="order-item-price" id="orderMainProductPrice">0đ</span>
                         </div>
-                        <span class="order-item-price" id="orderMainProductPrice">0đ</span>
+                        
+                        <!-- Cross-sell Products -->
+                        <div id="orderCrossSellItems"></div>
                     </div>
-                    
-                    <!-- Cross-sell Products -->
-                    <div id="orderCrossSellItems"></div>
                     
                     <!-- Summary Section -->
                     <div class="order-summary-section">
                         <!-- Subtotal -->
-                        <div class="order-summary-row">
-                            <span class="order-summary-label">Tạm tính</span>
-                            <span class="order-summary-value" id="orderSubtotal">0đ</span>
+                        <div class="summary-row">
+                            <span>Tạm tính:</span>
+                            <span class="amount" id="orderSubtotal">0đ</span>
                         </div>
                         
                         <!-- Shipping -->
-                        <div class="order-summary-row">
-                            <span class="order-summary-label">Phí vận chuyển</span>
-                            <span class="order-summary-value" id="orderShipping">0đ</span>
+                        <div class="summary-row">
+                            <span>Phí vận chuyển:</span>
+                            <span class="amount" id="orderShipping">0đ</span>
                         </div>
                         
                         <!-- Discount (if any) -->
-                        <div class="order-summary-row hidden" id="orderDiscountRow">
-                            <span class="order-summary-label">
+                        <div class="summary-row discount-row hidden" id="orderDiscountRow">
+                            <span>
                                 <i class="fas fa-tag"></i>
-                                Giảm giá
+                                Giảm giá:
                             </span>
-                            <span class="order-summary-value discount" id="orderDiscountAmount">-0đ</span>
+                            <span class="amount discount-amount" id="orderDiscountAmount">-0đ</span>
                         </div>
                         
+                        <div class="summary-divider"></div>
+                        
                         <!-- Total -->
-                        <div class="order-summary-row total">
-                            <span class="order-summary-label">Tổng cộng</span>
-                            <span class="order-summary-value" id="orderTotalDetail">0đ</span>
+                        <div class="summary-row total-row">
+                            <span>Tổng cộng:</span>
+                            <span class="amount total-amount" id="orderTotalDetail">0đ</span>
                         </div>
                         
                         <!-- Payment on Delivery (COD) -->
-                        <div class="order-summary-row payment-row" id="orderPaymentRow">
-                            <span class="order-summary-label payment-label">
+                        <div class="summary-row payment-row hidden" id="orderPaymentRow">
+                            <span class="payment-label">
                                 <i class="fas fa-money-bill-wave"></i>
                                 <span id="orderPaymentLabel">Thanh toán khi nhận hàng</span>
                             </span>
-                            <span class="order-summary-value payment-value" id="orderPaymentAmount">0đ</span>
+                            <span class="amount payment-value" id="orderPaymentAmount">0đ</span>
                         </div>
                     </div>
                 </div>
@@ -279,12 +324,9 @@
         
         <!-- Submit Section - Sticky Footer (outside body) -->
         <div class="checkout-submit-section">
-            <div class="checkout-total-box">
-                <div class="total-label-main" id="checkoutTotalLabel">Tổng cộng</div>
-                <div class="total-amount-row">
-                    <div class="total-amount" id="checkoutTotalInline">0đ</div>
-                    <div class="total-label" id="checkoutSavingsLabel">Tiết kiệm 0đ</div>
-                </div>
+            <div class="checkout-guarantee-box">
+                <div class="guarantee-title">Nhận hàng kiểm tra thoải mái</div>
+                <div class="guarantee-subtitle">Không ưng ý? Hoàn tiền 100%</div>
             </div>
             <button class="checkout-submit-btn" id="checkoutSubmit">
                 ĐẶT HÀNG
