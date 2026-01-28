@@ -6,9 +6,10 @@ export async function getAllCategories(env, corsHeaders) {
         const { results: categories } = await env.DB.prepare(`
             SELECT 
                 c.*,
-                COUNT(DISTINCT p.id) as product_count
+                COUNT(DISTINCT pc.product_id) as product_count
             FROM categories c
-            LEFT JOIN products p ON c.id = p.category_id AND p.is_active = 1
+            LEFT JOIN product_categories pc ON c.id = pc.category_id
+            LEFT JOIN products p ON pc.product_id = p.id AND p.is_active = 1
             WHERE c.is_active = 1
             GROUP BY c.id
             ORDER BY c.display_order ASC, c.name ASC

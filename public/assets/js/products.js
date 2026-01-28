@@ -27,8 +27,63 @@ document.addEventListener('DOMContentLoaded', function () {
         setupEventListeners();
         setupKeyboardShortcuts();
         checkOutdatedProducts();
+        
+        // Load filters from URL
+        loadFiltersFromURL();
     });
 });
+
+// Load filters from URL parameters
+function loadFiltersFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Get category from URL
+    const categoryId = urlParams.get('category');
+    if (categoryId) {
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.value = categoryId;
+            currentFilters.categoryId = parseInt(categoryId);
+        }
+    }
+    
+    // Get search term from URL
+    const searchTerm = urlParams.get('search');
+    if (searchTerm) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = searchTerm;
+            currentFilters.searchTerm = searchTerm;
+        }
+    }
+    
+    // Apply filters if any exist
+    if (categoryId || searchTerm) {
+        searchAndSort();
+    }
+}
+
+// Update URL with current filters
+function updateURL() {
+    const params = new URLSearchParams();
+    
+    // Add category to URL if selected
+    if (currentFilters.categoryId) {
+        params.set('category', currentFilters.categoryId);
+    }
+    
+    // Add search term to URL if exists
+    if (currentFilters.searchTerm) {
+        params.set('search', currentFilters.searchTerm);
+    }
+    
+    // Update URL without reloading page
+    const newURL = params.toString() 
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+    
+    window.history.pushState({ filters: currentFilters }, '', newURL);
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -41,6 +96,32 @@ function setupEventListeners() {
     if (categoryFilter) {
         categoryFilter.addEventListener('change', searchAndSort);
     }
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.filters) {
+            // Restore filters from history state
+            currentFilters = event.state.filters;
+            
+            // Update UI
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            
+            if (searchInput) {
+                searchInput.value = currentFilters.searchTerm || '';
+            }
+            
+            if (categoryFilter) {
+                categoryFilter.value = currentFilters.categoryId || '';
+            }
+            
+            // Re-apply filters
+            searchAndSort();
+        } else {
+            // No state, load from URL
+            loadFiltersFromURL();
+        }
+    });
 }
 
 // Setup keyboard shortcuts
@@ -116,11 +197,12 @@ async function loadProducts() {
 
         if (data.success) {
             allProducts = data.products || [];
-            filteredProducts = [...allProducts];
 
             console.log('📦 Loaded products:', allProducts.length);
 
-            renderProducts();
+            // Re-apply current filters (skip URL update to avoid duplicate history entries)
+            searchAndSort(true);
+            
             hideLoading();
         } else {
             throw new Error(data.error || 'Failed to load products');
@@ -190,7 +272,7 @@ function updateSortBadge() {
 }
 
 // Search and sort (combined)
-function searchAndSort() {
+function searchAndSort(skipURLUpdate = false) {
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const searchTerm = searchInput?.value || '';
@@ -200,12 +282,24 @@ function searchAndSort() {
 
     currentFilters.searchTerm = searchTerm.trim();
     currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+    
+    // Update URL with current filters (skip if called from loadProducts on initial load)
+    if (!skipURLUpdate) {
+        updateURL();
+    }
 
     let results = [...allProducts];
 
-    // Apply category filter
+    // Apply category filter - Support multi-category products
     if (currentFilters.categoryId) {
-        results = results.filter(product => product.category_id === currentFilters.categoryId);
+        results = results.filter(product => {
+            // Check if product has multiple categories (new system)
+            if (product.category_ids && product.category_ids.length > 0) {
+                return product.category_ids.includes(currentFilters.categoryId);
+            }
+            // Fallback to single category (old system)
+            return product.category_id === currentFilters.categoryId;
+        });
     }
 
     // Apply search filter
