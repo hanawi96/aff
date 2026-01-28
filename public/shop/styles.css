@@ -1359,6 +1359,237 @@ body {
     }
 }
 
+/* ============================================
+   Artisan Story Section - Câu chuyện người làm vòng
+   ============================================ */
+
+.artisan-story-section {
+    background: linear-gradient(135deg, #ffffff 0%, #fef9f5 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.artisan-story-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(244, 162, 97, 0.03) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Section Title */
+.artisan-story-title {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    position: relative;
+}
+
+.title-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Story Content Container */
+.artisan-story-content {
+    background: white;
+    border: 2px dashed rgba(244, 162, 97, 0.2);
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.artisan-story-content:hover {
+    box-shadow: 0 6px 20px rgba(244, 162, 97, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Image */
+.artisan-image-wrapper {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.artisan-image {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2);
+    transition: all 0.3s ease;
+}
+
+.artisan-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(244, 162, 97, 0.3);
+}
+
+/* Text Content */
+.artisan-text-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.artisan-greeting {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-family: 'Quicksand', sans-serif;
+}
+
+.artisan-story {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+    margin-bottom: 1.5rem;
+}
+
+.artisan-story p {
+    margin-bottom: 1rem;
+}
+
+.artisan-story p:last-child {
+    margin-bottom: 0;
+}
+
+/* Highlights */
+.artisan-highlights {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.highlight-card {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(248, 237, 235, 0.8), rgba(233, 196, 106, 0.1));
+    border: 2px solid rgba(244, 162, 97, 0.15);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.highlight-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(244, 162, 97, 0.2);
+    border-color: rgba(244, 162, 97, 0.3);
+}
+
+.highlight-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.highlight-content {
+    flex: 1;
+}
+
+.highlight-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.highlight-text {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    line-height: 1.4;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .artisan-story-title {
+        font-size: 1.5rem;
+    }
+
+    .title-icon {
+        font-size: 2rem;
+    }
+
+    .artisan-story-content {
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .artisan-image-wrapper {
+        margin: 0 auto;
+    }
+
+    .artisan-image {
+        width: 150px;
+        height: 150px;
+    }
+
+    .artisan-greeting {
+        font-size: 1.25rem;
+    }
+
+    .artisan-story {
+        font-size: 0.975rem;
+        line-height: 1.7;
+    }
+
+    .artisan-highlights {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .highlight-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .highlight-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Tablet */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .artisan-story-content {
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .artisan-image {
+        width: 180px;
+        height: 180px;
+    }
+
+    .artisan-highlights {
+        flex-wrap: wrap;
+    }
+
+    .highlight-card {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 200px;
+    }
+}
+
 /* Footer */
 .footer {
     background: var(--secondary-color);
