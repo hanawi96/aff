@@ -55,7 +55,8 @@ import {
 import { 
     createCategory, 
     updateCategory, 
-    deleteCategory 
+    deleteCategory,
+    reorderCategories
 } from '../services/products/category-service.js';
 
 // Discounts
@@ -274,6 +275,11 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await deleteExport(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'mergeExports':
             return await mergeExports(data.exportIds, env).then(result => jsonResponse(result, 200, corsHeaders));
+        
+        // Categories
+        case 'reorderCategories':
+            return await reorderCategories(data, env, corsHeaders);
+        
         default:
             return jsonResponse({
                 success: false,

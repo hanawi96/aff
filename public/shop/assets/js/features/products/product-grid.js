@@ -25,16 +25,9 @@ export class ProductGrid {
     setAllProducts(products) {
         this.allProducts = products;
         
-        // Update filteredProducts to use all products
-        if (this.currentFilter === 'all' || this.currentFilter === 'best-selling') {
-            // Apply default filter (best-selling)
-            this.filter(this.currentFilter);
-            return; // filter() already calls render()
-        } else {
-            // Re-apply current filter with all products
-            this.filter(this.currentFilter);
-            return; // filter() already calls render()
-        }
+        // Chỉ cập nhật allProducts, KHÔNG render lại
+        // Người dùng sẽ thấy sản phẩm ban đầu cho đến khi họ click vào filter
+        console.log('✅ All products loaded:', products.length);
     }
     
     /**

@@ -129,9 +129,11 @@ function renderCategories() {
     emptyState.classList.add('hidden');
     categoriesTable.classList.remove('hidden');
     
-    tbody.innerHTML = filteredCategories.map(category => {
+    tbody.innerHTML = filteredCategories.map((category, index) => {
         const isActive = category.is_active;
         const productCount = category.product_count || 0;
+        const canMoveUp = index > 0;
+        const canMoveDown = index < filteredCategories.length - 1;
         
         return `
             <tr class="hover:bg-gray-50 transition-colors">
@@ -151,7 +153,9 @@ function renderCategories() {
                     `}
                 </td>
                 <td class="px-6 py-4 text-center">
-                    <span class="text-sm text-gray-600">${category.display_order || 0}</span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                        ${category.display_order || 0}
+                    </span>
                 </td>
                 <td class="px-6 py-4">
                     <div class="text-sm">
@@ -163,16 +167,44 @@ function renderCategories() {
                     ${getStatusBadge(isActive)}
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <div class="flex items-center justify-end gap-3">
+                    <div class="flex items-center justify-end gap-2">
+                        <!-- Move Up Button -->
+                        <button 
+                            onclick="moveCategoryUp(${category.id})" 
+                            ${!canMoveUp ? 'disabled' : ''} 
+                            class="p-2 rounded-lg transition-all ${canMoveUp ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
+                            title="Di chuyển lên">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" />
+                            </svg>
+                        </button>
+                        
+                        <!-- Move Down Button -->
+                        <button 
+                            onclick="moveCategoryDown(${category.id})" 
+                            ${!canMoveDown ? 'disabled' : ''} 
+                            class="p-2 rounded-lg transition-all ${canMoveDown ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
+                            title="Di chuyển xuống">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        <!-- Divider -->
+                        <div class="w-px h-6 bg-gray-200 mx-1"></div>
+                        
+                        <!-- Edit Button -->
                         <button onclick="editCategory(${category.id})" 
-                            class="text-indigo-600 hover:text-indigo-700 transition-colors" 
+                            class="text-indigo-600 hover:text-indigo-700 transition-colors p-2 hover:bg-indigo-50 rounded-lg" 
                             title="Chỉnh sửa">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
+                        
+                        <!-- Delete Button -->
                         <button onclick="deleteCategory(${category.id}, '${category.name}')" 
-                            class="text-red-600 hover:text-red-700 transition-colors" 
+                            class="text-red-600 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-lg" 
                             title="Xóa">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -333,4 +365,91 @@ function showSuccess(message) {
 function logout() {
     localStorage.removeItem('sessionId');
     window.location.href = '../login.html';
+}
+
+// ============================================
+// CATEGORY REORDERING
+// ============================================
+
+async function moveCategoryUp(categoryId) {
+    await reorderCategory(categoryId, 'up');
+}
+
+async function moveCategoryDown(categoryId) {
+    await reorderCategory(categoryId, 'down');
+}
+
+async function reorderCategory(categoryId, direction) {
+    // Find current category index in filteredCategories
+    const currentIndex = filteredCategories.findIndex(c => c.id === categoryId);
+    if (currentIndex === -1) return;
+    
+    // Calculate target index
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= filteredCategories.length) {
+        return;
+    }
+    
+    // OPTIMISTIC UPDATE: Backup and swap categories immediately
+    const backupFiltered = [...filteredCategories];
+    const backupAll = [...allCategories];
+    
+    // Get target category ID BEFORE swapping
+    const targetCategoryId = filteredCategories[targetIndex].id;
+    
+    // Swap in filteredCategories
+    const temp = filteredCategories[currentIndex];
+    filteredCategories[currentIndex] = filteredCategories[targetIndex];
+    filteredCategories[targetIndex] = temp;
+    
+    // Update display_order values
+    filteredCategories[currentIndex].display_order = currentIndex;
+    filteredCategories[targetIndex].display_order = targetIndex;
+    
+    // Also update in allCategories
+    const allCurrentIndex = allCategories.findIndex(c => c.id === categoryId);
+    const allTargetIndex = allCategories.findIndex(c => c.id === targetCategoryId);
+    
+    if (allCurrentIndex !== -1 && allTargetIndex !== -1) {
+        const tempAll = allCategories[allCurrentIndex];
+        allCategories[allCurrentIndex] = allCategories[allTargetIndex];
+        allCategories[allTargetIndex] = tempAll;
+        allCategories[allCurrentIndex].display_order = allCurrentIndex;
+        allCategories[allTargetIndex].display_order = allTargetIndex;
+    }
+    
+    // Re-render UI immediately (optimistic)
+    renderCategories();
+    
+    try {
+        // Send request to server (in background)
+        const response = await fetch(`${API_URL}?action=reorderCategories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                category_id: parseInt(categoryId),
+                direction: direction
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Success - reload to sync with server
+            await loadCategories();
+        } else {
+            throw new Error(data.error || 'Không thể sắp xếp lại');
+        }
+    } catch (error) {
+        console.error('❌ Error reordering category:', error);
+        
+        // ROLLBACK: Restore backup on error
+        filteredCategories = backupFiltered;
+        allCategories = backupAll;
+        renderCategories();
+        
+        showError('Không thể thay đổi vị trí. Đã hoàn tác.');
+    }
 }

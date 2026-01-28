@@ -1174,6 +1174,19 @@ body {
     font-weight: 500;
 }
 
+.silver-mini-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+    color: #4a4a4a;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(192, 192, 192, 0.3);
+    border: 1px solid rgba(192, 192, 192, 0.4);
+}
+
 .product-price-wrapper {
     display: flex;
     flex-direction: column;
@@ -2001,6 +2014,11 @@ body {
     
     .product-rating {
         gap: 0.4rem;
+    }
+    
+    .silver-mini-badge {
+        font-size: 0.6rem;
+        padding: 0.125rem 0.4rem;
     }
     
     .stars {

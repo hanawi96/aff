@@ -30,6 +30,21 @@ export function createProductCard(product) {
     const hasChemicalFreeBadge = !isBiCharmBac && (product.is_chemical_free === 1 || product.tags?.includes('chemical-free'));
     const hasSilverBadge = isBiCharmBac; // Show "Cam kết bạc thật" badge for Bi, charm bạc category
     
+    // Check if product should show "bạc thật" mini badge next to rating
+    // Exclude by category: Mix hạt bồ đề (13), Mix hổ phách (16), Mix chỉ màu các loại (20), Sản phẩm bán kèm (23)
+    const EXCLUDE_SILVER_MINI_BADGE_CATEGORIES = [13, 16, 20, 23];
+    
+    // Exclude by specific product ID: Vòng trơn buộc mối (8)
+    const EXCLUDE_SILVER_MINI_BADGE_PRODUCTS = [8];
+    
+    const hasExcludedCategory = product.categories?.some(cat => 
+        EXCLUDE_SILVER_MINI_BADGE_CATEGORIES.includes(cat.id || cat.category_id)
+    );
+    
+    const isExcludedProduct = EXCLUDE_SILVER_MINI_BADGE_PRODUCTS.includes(product.id);
+    
+    const showSilverMiniBadge = !hasExcludedCategory && !isExcludedProduct;
+    
     // Check if product is favorited
     const isFavorited = product.is_favorited === 1 || product.is_favorited === true;
     const heartClass = isFavorited ? 'fas' : 'far';
@@ -61,6 +76,7 @@ export function createProductCard(product) {
                         ${generateStars(rating)}
                     </div>
                     <span class="rating-count">(${purchases})</span>
+                    ${showSilverMiniBadge ? '<span class="silver-mini-badge">Bạc thật</span>' : ''}
                 </div>
                 <div class="product-price-wrapper">
                     <div class="product-price">

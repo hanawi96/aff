@@ -271,3 +271,89 @@ export async function deleteCategory(data, env, corsHeaders) {
         }, 500, corsHeaders);
     }
 }
+
+// Reorder categories (swap display_order)
+export async function reorderCategories(data, env, corsHeaders) {
+    try {
+        if (!data.category_id || !data.direction) {
+            return jsonResponse({
+                success: false,
+                error: 'Category ID and direction are required'
+            }, 400, corsHeaders);
+        }
+
+        if (!['up', 'down'].includes(data.direction)) {
+            return jsonResponse({
+                success: false,
+                error: 'Direction must be "up" or "down"'
+            }, 400, corsHeaders);
+        }
+
+        // Get all active categories ordered by display_order
+        const { results: categories } = await env.DB.prepare(`
+            SELECT id, display_order
+            FROM categories
+            WHERE is_active = 1
+            ORDER BY display_order ASC, id ASC
+        `).all();
+
+        if (!categories || categories.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'No categories found'
+            }, 404, corsHeaders);
+        }
+
+        // Find current category index
+        const currentIndex = categories.findIndex(c => c.id === data.category_id);
+        
+        if (currentIndex === -1) {
+            return jsonResponse({
+                success: false,
+                error: 'Category not found'
+            }, 404, corsHeaders);
+        }
+
+        // Calculate target index
+        const targetIndex = data.direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+        // Check bounds
+        if (targetIndex < 0 || targetIndex >= categories.length) {
+            return jsonResponse({
+                success: false,
+                error: 'Cannot move category beyond list boundaries'
+            }, 400, corsHeaders);
+        }
+
+        // Get the two categories to swap
+        const currentCategory = categories[currentIndex];
+        const targetCategory = categories[targetIndex];
+
+        // Swap display_order values
+        const now = Math.floor(Date.now() / 1000);
+        
+        await env.DB.prepare(`
+            UPDATE categories
+            SET display_order = ?, updated_at_unix = ?
+            WHERE id = ?
+        `).bind(targetCategory.display_order, now, currentCategory.id).run();
+
+        await env.DB.prepare(`
+            UPDATE categories
+            SET display_order = ?, updated_at_unix = ?
+            WHERE id = ?
+        `).bind(currentCategory.display_order, now, targetCategory.id).run();
+
+        return jsonResponse({
+            success: true,
+            message: 'Categories reordered successfully'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error reordering categories:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}

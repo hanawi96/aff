@@ -78,7 +78,7 @@ export class HomePage {
     
     /**
      * Load critical above-the-fold content FIRST
-     * Priority: Flash Sales + First 12 Products
+     * Priority: Flash Sales + First 12 Best-Selling Products
      */
     async loadCriticalContent() {
         // Load flash sales and first page of products in parallel
@@ -88,7 +88,10 @@ export class HomePage {
         ]);
         
         this.flashSales = flashSales;
-        this.products = productsPage.products;
+        
+        // Sort first 12 products by best-selling (purchases)
+        this.products = productsPage.products.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
+        
         this.hasMoreProducts = productsPage.hasMore;
         this.currentPage = 1;
     }
@@ -109,7 +112,7 @@ export class HomePage {
             const allProducts = await apiService.getAllProducts();
             this.allProducts = allProducts;
             
-            // Update ProductGrid with all products
+            // Update ProductGrid with all products (KHÔNG render lại)
             if (this.productGrid) {
                 this.productGrid.setAllProducts(allProducts);
             }
