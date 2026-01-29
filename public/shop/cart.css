@@ -1025,11 +1025,9 @@ body {
     margin-bottom: 0.625rem;
 }
 
-.checkout-form-label i {
-    font-size: 0.875rem;
+.checkout-form-label svg {
+    flex-shrink: 0;
     color: var(--primary);
-    width: 20px;
-    text-align: center;
 }
 
 .checkout-form-label .required {

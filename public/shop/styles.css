@@ -3099,15 +3099,17 @@ body {
 }
 
 .checkout-form-label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.9rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.5rem;
 }
 
-.checkout-form-label i {
-    margin-right: 0.5rem;
+.checkout-form-label svg {
+    flex-shrink: 0;
     color: #e74c3c;
 }
 
@@ -3718,8 +3720,18 @@ body {
     transition: all 0.2s ease;
 }
 
+.checkout-qty-btn svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    pointer-events: none;
+}
+
 .checkout-qty-btn:hover:not(:disabled) {
     background: #e74c3c;
+    color: white;
+}
+
+.checkout-qty-btn:hover:not(:disabled) svg {
     color: white;
 }
 

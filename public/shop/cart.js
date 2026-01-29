@@ -215,7 +215,7 @@ const cart = {
             }
             
             if (applyBtn) {
-                applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
+                applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
                 applyBtn.onclick = discount.changeCode;
                 applyBtn.classList.add('btn-change-code');
             }
@@ -499,26 +499,34 @@ const cart = {
             if (item.note) {
                 noteHtml = '<div class="item-note-row">' +
                     '<div class="item-note-saved">' +
-                    '<i class="fas fa-sticky-note"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; flex-shrink: 0;">' +
+                    '<path fill-rule="evenodd" d="M5.337 21.718a6.707 6.707 0 0 1-.533-.074.75.75 0 0 1-.44-1.223 3.73 3.73 0 0 0 .814-1.686c.023-.115-.022-.317-.254-.543C3.274 16.587 2.25 14.41 2.25 12c0-5.03 4.428-9 9.75-9s9.75 3.97 9.75 9c0 5.03-4.428 9-9.75 9-.833 0-1.643-.097-2.417-.279a6.721 6.721 0 0 1-4.246.997Z" clip-rule="evenodd" />' +
+                    '</svg>' +
                     '<div class="item-note-text">' + utils.escapeHtml(item.note) + '</div>' +
                     '<div class="item-note-actions">' +
                     '<button class="btn-note-action btn-edit-note" onclick="cart.editItemNote(' + item.id + ')">' +
-                    '<i class="fas fa-edit"></i> Sửa' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Sửa' +
                     '</button>' +
                     '</div>' +
                     '</div>' +
                     '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
-                    '<i class="fas fa-trash"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                    '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
+                    '</svg>' +
                     '</button>' +
                     '</div>';
             } else {
                 noteHtml = '<div class="item-note-row">' +
                     '<div class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
-                    '<i class="fas fa-plus-circle"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block;">' +
+                    '<path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />' +
+                    '</svg>' +
                     '<span>Thêm lưu ý cho sản phẩm</span>' +
                     '</div>' +
                     '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
-                    '<i class="fas fa-trash"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                    '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
+                    '</svg>' +
                     '</button>' +
                     '</div>' +
                     '<div class="item-note-input hidden" id="noteInput' + item.id + '">' +
@@ -528,10 +536,10 @@ const cart = {
                     'maxlength="200"></textarea>' +
                     '<div class="item-note-actions">' +
                     '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + item.id + ')">' +
-                    '<i class="fas fa-check"></i> Lưu' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Lưu' +
                     '</button>' +
                     '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelItemNote(' + item.id + ')">' +
-                    '<i class="fas fa-times"></i> Hủy' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg> Hủy' +
                     '</button>' +
                     '</div>' +
                     '</div>';
@@ -554,7 +562,7 @@ const cart = {
                 const threshold = weight > 50 ? '65kg' : '15kg'; // If weight > 50, it's adult bracelet
                 
                 weightSurchargeHtml = '<div class="item-weight-surcharge-notice">' +
-                    '<i class="fas fa-info-circle"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>' +
                     '<span>Đã bao gồm phụ phí cân nặng trên ' + threshold + ': +' + utils.formatPrice(item.weightSurcharge) + '</span>' +
                     '</div>';
             }
@@ -583,7 +591,9 @@ const cart = {
                 'data-action="decrease" ' +
                 'data-product-id="' + item.id + '" ' +
                 (item.quantity <= 1 ? 'disabled' : '') + '>' +
-                '<i class="fas fa-minus"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                '<path fill-rule="evenodd" d="M4.25 12a.75.75 0 0 1 .75-.75h14a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />' +
+                '</svg>' +
                 '</button>' +
                 '<input type="number" class="qty-input" ' +
                 'value="' + item.quantity + '" ' +
@@ -595,7 +605,9 @@ const cart = {
                 'data-action="increase" ' +
                 'data-product-id="' + item.id + '" ' +
                 (item.quantity >= (item.maxQuantity || 99) ? 'disabled' : '') + '>' +
-                '<i class="fas fa-plus"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                '<path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />' +
+                '</svg>' +
                 '</button>' +
                 '</div>' +
                 '</div>' +
@@ -711,7 +723,7 @@ const cart = {
                 '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
                 'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
-                '<i class="fas fa-' + (isInCart ? 'check' : 'plus') + '-circle"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Z' + (isInCart ? 'M12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z' : 'm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z') + '" clip-rule="evenodd" /></svg>' +
                 '<span>' + (isInCart ? 'Đã thêm' : 'Thêm ngay') + '</span>' +
                 '</button>' +
                 '</div>';
@@ -809,11 +821,13 @@ const cart = {
             // Thay thế HTML để hiển thị textarea với note cũ
             noteRow.innerHTML = 
                 '<div class="item-note-toggle active">' +
-                '<i class="fas fa-edit"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg>' +
                 '<span>Đang sửa lưu ý</span>' +
                 '</div>' +
                 '<button class="delete-btn" onclick="cart.removeItem(' + productId + ')">' +
-                '<i class="fas fa-trash"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
+                '</svg>' +
                 '</button>';
             
             // Thêm textarea sau note row
@@ -827,10 +841,10 @@ const cart = {
                 'maxlength="200">' + utils.escapeHtml(oldNote) + '</textarea>' +
                 '<div class="item-note-actions">' +
                 '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + productId + ')">' +
-                '<i class="fas fa-check"></i> Lưu' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Lưu' +
                 '</button>' +
                 '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelEditNote(' + productId + ')">' +
-                '<i class="fas fa-times"></i> Hủy' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg> Hủy' +
                 '</button>' +
                 '</div>';
             
@@ -1013,7 +1027,7 @@ const cart = {
         const shippingMessage = document.getElementById('shippingMessage');
 
         if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
-            shippingMessage.innerHTML = '<i class="fas fa-check-circle"></i> Bạn được MIỄN PHÍ SHIP!';
+            shippingMessage.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> Bạn được MIỄN PHÍ SHIP!';
             progressFill.style.width = '100%';
             progressSection.classList.remove('hidden');
         } else {
@@ -1463,7 +1477,7 @@ const discount = {
         // Update apply button to show "Đổi mã" with special styling
         const applyBtn = document.getElementById('applyDiscountBtn');
         if (applyBtn) {
-            applyBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Đổi mã';
+            applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
             applyBtn.onclick = discount.changeCode;
             applyBtn.classList.add('btn-change-code');
         }
@@ -1483,7 +1497,7 @@ const discount = {
         
         // Reset apply button
         if (applyBtn) {
-            applyBtn.innerHTML = '<i class="fas fa-check"></i> Áp dụng';
+            applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Áp dụng';
             applyBtn.onclick = discount.apply;
             applyBtn.classList.remove('btn-change-code');
         }
@@ -1509,7 +1523,7 @@ const discount = {
         
         // Reset apply button
         if (applyBtn) {
-            applyBtn.innerHTML = '<i class="fas fa-check"></i> Áp dụng';
+            applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Áp dụng';
             applyBtn.onclick = discount.apply;
         }
         
@@ -1573,7 +1587,7 @@ const discount = {
                 '<button class="code-apply-btn' + (isApplied ? ' applied' : '') + '" ' +
                 'onclick="discount.quickApply(\'' + utils.escapeHtml(code.code) + '\')" ' +
                 (code.isApplicable && !isApplied ? '' : 'disabled') + '>' +
-                (isApplied ? '<i class="fas fa-check-circle"></i> Đã áp dụng' : 'Áp dụng') +
+                (isApplied ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> Đã áp dụng' : 'Áp dụng') +
                 '</button>' +
                 '</div>';
         }).join('');
@@ -1596,7 +1610,10 @@ const discount = {
         
         if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
             container.innerHTML = '<div class="no-discounts-message">' +
-                '<i class="fas fa-tags"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 3rem; height: 3rem; display: inline-block; opacity: 0.3;">' +
+                '<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />' +
+                '<path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />' +
+                '</svg>' +
                 '<p>Không có mã giảm giá khả dụng</p>' +
                 '</div>';
             modal.classList.remove('hidden');
@@ -1610,9 +1627,9 @@ const discount = {
             const discountText = discountService.formatDiscountText(code);
             const savings = code.savings;
             
-            let icon = 'fa-tag';
-            if (code.type === 'freeship') icon = 'fa-shipping-fast';
-            if (code.type === 'gift') icon = 'fa-gift';
+            let iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem;"><path fill-rule="evenodd" d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" clip-rule="evenodd" /></svg>';
+            if (code.type === 'freeship') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem;"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z" /><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" /><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" /></svg>';
+            if (code.type === 'gift') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem;"><path d="M9.375 3a1.875 1.875 0 0 0 0 3.75h1.875v4.5H3.375A1.875 1.875 0 0 1 1.5 9.375v-.75c0-1.036.84-1.875 1.875-1.875h3.193A3.375 3.375 0 0 1 12 2.753a3.375 3.375 0 0 1 5.432 3.997h3.943c1.035 0 1.875.84 1.875 1.875v.75c0 1.036-.84 1.875-1.875 1.875H12.75v-4.5h1.875a1.875 1.875 0 1 0-1.875-1.875V6.75h-1.5V4.875C11.25 3.839 10.41 3 9.375 3ZM11.25 12.75H3v6.75a2.25 2.25 0 0 0 2.25 2.25h6v-9ZM12.75 12.75v9h6.75a2.25 2.25 0 0 0 2.25-2.25v-6.75h-9Z" /></svg>';
             
             let detailsHtml = '';
             
@@ -1636,7 +1653,10 @@ const discount = {
             
             if (code.usage_limit) {
                 detailsHtml += '<div class="discount-card-detail">' +
-                    '<i class="fas fa-users"></i>' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">' +
+                    '<path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clip-rule="evenodd" />' +
+                    '<path d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />' +
+                    '</svg>' +
                     '<span>Giới hạn: ' + code.usage_limit + ' lượt</span>' +
                     '</div>';
             }
@@ -1645,7 +1665,7 @@ const discount = {
                 (savings > 0 && code.isApplicable ? '<div class="discount-card-savings">💰 Tiết kiệm ' + utils.formatPrice(savings) + '</div>' : '') +
                 '<div class="discount-card-header">' +
                 '<div class="discount-card-icon">' +
-                '<i class="fas ' + icon + '"></i>' +
+                iconSvg +
                 '</div>' +
                 '<div class="discount-card-info">' +
                 '<div class="discount-card-code">' + utils.escapeHtml(code.code) + '</div>' +
@@ -1656,7 +1676,7 @@ const discount = {
                 '<button class="discount-card-apply" ' +
                 'onclick="discount.applyFromModal(\'' + utils.escapeHtml(code.code) + '\')" ' +
                 (code.isApplicable ? '' : 'disabled') + '>' +
-                '<i class="fas fa-check"></i>' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg>' +
                 (code.isApplicable ? 'Áp dụng ngay' : 'Chưa đủ điều kiện') +
                 '</button>' +
                 '</div>';
@@ -1736,7 +1756,7 @@ const cartPayment = {
             const confirmBtn = document.getElementById('cartBankConfirmBtn');
             if (confirmBtn) {
                 confirmBtn.style.display = 'flex';
-                confirmBtn.innerHTML = '<i class="fas fa-check-circle"></i> Xác nhận đã chuyển khoản';
+                confirmBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> Xác nhận đã chuyển khoản';
             }
         } else {
             bankInfo.classList.add('hidden');
@@ -1753,7 +1773,7 @@ const cartPayment = {
         const errorMsg = document.getElementById('cartBankConfirmError');
         
         if (confirmBtn) {
-            confirmBtn.innerHTML = '<i class="fas fa-check-double"></i> Đã xác nhận';
+            confirmBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle; margin-left: -0.5rem;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Đã xác nhận';
             confirmBtn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
             confirmBtn.style.cursor = 'default';
             confirmBtn.onclick = null;
