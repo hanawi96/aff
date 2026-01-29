@@ -2845,22 +2845,63 @@ body {
     
     /* Bundle product card - Mobile/Tablet */
     .bundle-product-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+        display: grid !important;
+        grid-template-columns: 120px 1fr !important;
+        grid-template-rows: auto auto !important;
+        gap: 0.75rem !important;
         padding: 1rem;
         border-radius: 16px;
     }
 
     .bundle-product-image {
-        width: 100%;
-        height: auto;
-        min-width: unset;
-        max-width: unset;
-        max-height: unset;
-        aspect-ratio: 1;
+        width: 120px;
+        height: 120px;
+        max-width: 120px;
+        max-height: 120px;
         border-radius: 12px;
         object-fit: cover;
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .bundle-product-info {
+        grid-column: 2;
+        grid-row: 1;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+        justify-content: flex-start !important;
+        min-width: 0;
+    }
+    
+    .bundle-product-name {
+        margin-bottom: 0 !important;
+    }
+    
+    .bundle-product-pricing {
+        margin-bottom: 0 !important;
+    }
+
+    /* Bundle product actions - Full width buttons on mobile */
+    .bundle-product-actions {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        width: 100% !important;
+        margin-top: 0.5rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 0.5rem !important;
+    }
+
+    .bundle-btn-primary {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .bundle-btn-cart {
+        flex: 0 0 48px;
+        width: 48px;
+        height: 48px;
     }
 
     .container {
@@ -4439,8 +4480,9 @@ body {
     padding: 1.25rem;
     display: grid;
     grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
     gap: 1rem;
-    align-items: stretch;
+    align-items: start;
     border: 2px solid var(--primary)/20;
     transition: var(--transition);
 }
@@ -4465,6 +4507,8 @@ body {
     object-fit: cover;
     border: 2px solid var(--primary)/15;
     flex-shrink: 0;
+    grid-column: 1;
+    grid-row: 1;
 }
 
 .bundle-product-info {
@@ -4472,7 +4516,18 @@ body {
     flex-direction: column;
     gap: 0.75rem;
     min-width: 0;
-    justify-content: space-between;
+    justify-content: flex-start;
+    grid-column: 2;
+    grid-row: 1;
+}
+
+/* All screens: Actions xuống dòng riêng full width */
+.bundle-product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0;
+    grid-column: 1 / -1;
+    grid-row: 2;
 }
 
 .bundle-product-name {
@@ -4577,13 +4632,6 @@ body {
 
 .bundle-add-btn i {
     font-size: 0.9rem;
-}
-
-/* Bundle Product Actions - 2 Buttons Layout */
-.bundle-product-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
 }
 
 .bundle-btn-primary {
