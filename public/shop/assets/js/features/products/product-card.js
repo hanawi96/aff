@@ -34,8 +34,11 @@ export function createProductCard(product) {
     // Exclude by category: Mix hạt bồ đề (13), Mix hổ phách (16), Mix chỉ màu các loại (20), Sản phẩm bán kèm (23)
     const EXCLUDE_SILVER_MINI_BADGE_CATEGORIES = [13, 16, 20, 23];
     
-    // Exclude by specific product ID: Vòng trơn buộc mối (8)
-    const EXCLUDE_SILVER_MINI_BADGE_PRODUCTS = [8];
+    // Exclude by specific product ID: 
+    // - Vòng trơn buộc mối (8)
+    // - Vòng ngũ sắc mix 1 hạt dâu (26)
+    // - [NGƯỜI LỚN] Vòng trơn co giãn (79)
+    const EXCLUDE_SILVER_MINI_BADGE_PRODUCTS = [8, 26, 79];
     
     const hasExcludedCategory = product.categories?.some(cat => 
         EXCLUDE_SILVER_MINI_BADGE_CATEGORIES.includes(cat.id || cat.category_id)

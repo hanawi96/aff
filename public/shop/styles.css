@@ -76,6 +76,29 @@ body {
     gap: 2rem;
 }
 
+/* Ensure nav is visible on desktop (lg breakpoint and above) */
+@media (min-width: 1024px) {
+    nav.hidden {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 0.5rem 0 !important;
+    }
+    
+    /* Ensure nav links are visible and have proper color on desktop */
+    nav a {
+        color: #374151 !important; /* gray-700 */
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 0.5rem 0.75rem !important;
+        display: inline-block !important;
+    }
+    
+    nav a:hover {
+        color: #f4a261 !important; /* primary */
+    }
+}
+
 .nav-link {
     color: var(--text-dark);
     text-decoration: none;

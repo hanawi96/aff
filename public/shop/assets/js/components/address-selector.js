@@ -85,6 +85,10 @@ export class AddressSelector {
         const wardSelect = document.getElementById('wardSelect');
         const streetInput = document.getElementById('streetInput');
         
+        // Detect if mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                        || window.innerWidth <= 768;
+        
         if (provinceSelect) {
             provinceSelect.addEventListener('change', (e) => {
                 this.provinceCode = e.target.value;
@@ -94,8 +98,8 @@ export class AddressSelector {
                 this.updateDistricts();
                 this.updateFullAddress();
                 
-                // Auto-open district dropdown if user interaction
-                if (e.isTrusted && this.provinceCode) {
+                // Auto-open district dropdown ONLY on desktop
+                if (!isMobile && e.isTrusted && this.provinceCode) {
                     this.autoOpenDropdown(districtSelect);
                 }
             });
@@ -109,8 +113,8 @@ export class AddressSelector {
                 this.updateWards();
                 this.updateFullAddress();
                 
-                // Auto-open ward dropdown if user interaction
-                if (e.isTrusted && this.districtCode) {
+                // Auto-open ward dropdown ONLY on desktop
+                if (!isMobile && e.isTrusted && this.districtCode) {
                     this.autoOpenDropdown(wardSelect);
                 }
             });
@@ -121,25 +125,34 @@ export class AddressSelector {
                 this.wardCode = e.target.value;
                 this.updateFullAddress();
                 
-                // Enable, scroll to, and focus street input
+                // Enable and focus street input
                 if (streetInput && this.wardCode) {
                     streetInput.disabled = false;
                     
-                    // Scroll to street input if user interaction
-                    if (e.isTrusted) {
-                        streetInput.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'nearest'
-                        });
-                        
-                        // Focus after scroll
+                    // On mobile: just focus without scroll
+                    // On desktop: scroll and focus
+                    if (isMobile) {
+                        // Simple focus for mobile
                         setTimeout(() => {
                             streetInput.focus();
-                        }, 300);
+                        }, 100);
                     } else {
-                        // Just focus if programmatic
-                        streetInput.focus();
+                        // Scroll to street input if user interaction on desktop
+                        if (e.isTrusted) {
+                            streetInput.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center',
+                                inline: 'nearest'
+                            });
+                            
+                            // Focus after scroll
+                            setTimeout(() => {
+                                streetInput.focus();
+                            }, 300);
+                        } else {
+                            // Just focus if programmatic
+                            streetInput.focus();
+                        }
                     }
                 }
             });
