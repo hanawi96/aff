@@ -8,7 +8,6 @@ import { showToast } from '../../shared/utils/helpers.js';
 import { CONFIG } from '../../shared/constants/config.js';
 import { apiService } from '../../shared/services/api.service.js';
 import { AddressSelector } from '../../components/address-selector.js';
-import { DiscountModal } from '../../components/discount-modal.js';
 import { discountService } from '../../shared/services/discount.service.js';
 import { successModal } from '../../shared/components/success-modal.js';
 import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
@@ -42,18 +41,26 @@ export class QuickCheckout {
         // Initialize form validator
         this.validator = null; // Will be initialized after modal opens
         
-        // Initialize discount modal
-        this.discountModal = new DiscountModal((discount, amount) => this.applyDiscount(discount, amount));
-        this.discountModal.setupEventListeners();
-        
-        // Expose to window for onclick handlers
-        window.discountModal = this.discountModal;
-        
         // Load shipping fee from API
         this.loadShippingFee();
         
+        // Load available discounts
+        this.loadAvailableDiscounts();
+        
         this.setupEventListeners();
         this.setupAutoSave();
+    }
+    
+    /**
+     * Load available discounts from API
+     */
+    async loadAvailableDiscounts() {
+        try {
+            this.availableDiscounts = await discountService.getActiveDiscounts();
+        } catch (error) {
+            console.error('Error loading discounts:', error);
+            this.availableDiscounts = [];
+        }
     }
     
     /**
@@ -1459,13 +1466,138 @@ export class QuickCheckout {
     }
     
     /**
-     * Open discount modal
+     * Open discount modal (using shared cart modal)
      */
     async openDiscountModal() {
         console.log('🎫 Opening discount modal...');
         const orderAmount = this.calculateTotal() + this.discountAmount; // Get amount before discount
         console.log('Order amount:', orderAmount);
-        await this.discountModal.open(orderAmount);
+        
+        // Use shared modal from cart
+        this.renderDiscountsToModal(orderAmount);
+        
+        // Show modal
+        const modal = document.getElementById('allDiscountsModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+        
+        // Setup close handlers
+        const closeBtn = document.getElementById('closeAllDiscountsModal');
+        if (closeBtn) {
+            closeBtn.onclick = () => this.closeDiscountModal();
+        }
+        
+        // Click outside to close
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                this.closeDiscountModal();
+            }
+        };
+    }
+    
+    /**
+     * Close discount modal
+     */
+    closeDiscountModal() {
+        const modal = document.getElementById('allDiscountsModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+    
+    /**
+     * Render discounts to modal
+     */
+    renderDiscountsToModal(orderAmount) {
+        const container = document.getElementById('allDiscountsList');
+        if (!container) return;
+        
+        if (!this.availableDiscounts || this.availableDiscounts.length === 0) {
+            container.innerHTML = '<div class="no-discounts-message">' +
+                '<i class="fas fa-tags"></i>' +
+                '<p>Không có mã giảm giá khả dụng</p>' +
+                '</div>';
+            return;
+        }
+        
+        // Filter and sort discounts
+        const discounts = this.availableDiscounts
+            .filter(d => d.active && d.visible)
+            .map(d => {
+                const isApplicable = !d.min_order_amount || orderAmount >= d.min_order_amount;
+                const savings = isApplicable ? discountService.calculateDiscountAmount(d, orderAmount) : 0;
+                return { ...d, isApplicable, savings };
+            })
+            .sort((a, b) => {
+                if (a.isApplicable && !b.isApplicable) return -1;
+                if (!a.isApplicable && b.isApplicable) return 1;
+                return b.savings - a.savings;
+            });
+        
+        const html = discounts.map(code => {
+            const discountText = discountService.formatDiscountText(code);
+            
+            let icon = 'fa-tag';
+            if (code.type === 'freeship') icon = 'fa-shipping-fast';
+            if (code.type === 'gift') icon = 'fa-gift';
+            
+            let detailsHtml = '';
+            
+            if (code.min_order_amount) {
+                detailsHtml += '<div class="discount-card-detail">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>' +
+                    '<span>Đơn tối thiểu: ' + formatPrice(code.min_order_amount) + '</span>' +
+                    '</div>';
+            }
+            
+            if (code.expiry_date) {
+                const expiryDate = new Date(code.expiry_date);
+                const daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                detailsHtml += '<div class="discount-card-detail">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg>' +
+                    '<span>HSD: ' + expiryDate.toLocaleDateString('vi-VN') + 
+                    (daysLeft > 0 && daysLeft <= 7 ? ' (còn ' + daysLeft + ' ngày)' : '') +
+                    '</span>' +
+                    '</div>';
+            }
+            
+            return '<div class="discount-card ' + (code.isApplicable ? '' : 'disabled') + '">' +
+                (code.savings > 0 && code.isApplicable ? '<div class="discount-card-savings">💰 Tiết kiệm ' + formatPrice(code.savings) + '</div>' : '') +
+                '<div class="discount-card-header">' +
+                '<div class="discount-card-icon">' +
+                '<i class="fas ' + icon + '"></i>' +
+                '</div>' +
+                '<div class="discount-card-info">' +
+                '<div class="discount-card-code">' + escapeHtml(code.code) + '</div>' +
+                (code.title ? '<div class="discount-card-title">' + escapeHtml(code.title) + '</div>' : '') +
+                '</div>' +
+                '</div>' +
+                (detailsHtml ? '<div class="discount-card-details">' + detailsHtml + '</div>' : '') +
+                '<button class="discount-card-apply" ' +
+                'onclick="quickCheckout.applyDiscountFromModal(\'' + escapeHtml(code.code) + '\')" ' +
+                (code.isApplicable ? '' : 'disabled') + '>' +
+                '<i class="fas fa-check"></i>' +
+                (code.isApplicable ? 'Áp dụng ngay' : 'Chưa đủ điều kiện') +
+                '</button>' +
+                '</div>';
+        }).join('');
+        
+        container.innerHTML = html;
+    }
+    
+    /**
+     * Apply discount from modal
+     */
+    applyDiscountFromModal(code) {
+        const discount = this.availableDiscounts.find(d => d.code === code);
+        if (!discount) return;
+        
+        const orderAmount = this.calculateTotal() + this.discountAmount;
+        const amount = discountService.calculateDiscountAmount(discount, orderAmount);
+        
+        this.applyDiscount(discount, amount);
+        this.closeDiscountModal();
     }
     
     /**

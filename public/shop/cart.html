@@ -364,7 +364,7 @@
                             <h3>Tóm tắt đơn hàng</h3>
                         </div>
                         
-                        <div class="summary-content">
+                        <div class="summary-rows">
                             <div class="summary-row">
                                 <span>Tạm tính <span class="item-count" id="summaryItemCount">(0 sp)</span>:</span>
                                 <span class="amount" id="subtotal">0đ</span>
@@ -376,42 +376,38 @@
                             </div>
                             
                             <div class="summary-row discount-row hidden" id="freeshipRow">
-                                <span>
-                                    Miễn phí vận chuyển <span class="discount-code-label" id="freeshipLabel"></span>:
-                                </span>
+                                <span>Miễn phí vận chuyển <span class="discount-code-label" id="freeshipLabel"></span>:</span>
                                 <span class="amount discount-amount" id="freeshipAmount">-0đ</span>
                             </div>
                             
                             <div class="summary-row discount-row hidden" id="discountRow">
-                                <span>
-                                    Giảm giá <span class="discount-code-label" id="discountCodeLabel"></span>:
-                                </span>
+                                <span>Giảm giá <span class="discount-code-label" id="discountCodeLabel"></span>:</span>
                                 <span class="amount discount-amount" id="discountAmount">-0đ</span>
                             </div>
-                            
-                            <div class="summary-divider"></div>
-                            
-                            <div class="summary-row total-row">
-                                <span>Tổng cộng:</span>
-                                <span class="amount total-amount" id="totalAmount">0đ</span>
-                            </div>
-                            
-                            <div class="checkout-submit-section-cart">
-                                <div class="checkout-guarantee-badge">
-                                    <i class="fas fa-shield-check"></i>
-                                    <div class="guarantee-text">
-                                        <span class="guarantee-main">Nhận hàng kiểm tra thoải mái</span>
-                                        <span class="guarantee-sub">Không ưng ý? Hoàn tiền 100%</span>
-                                    </div>
+                        </div>
+                        
+                        <div class="summary-divider"></div>
+                        
+                        <div class="summary-total">
+                            <span>Tổng cộng:</span>
+                            <span class="total-amount" id="totalAmount">0đ</span>
+                        </div>
+                        
+                        <div class="checkout-submit-section-cart">
+                            <div class="checkout-guarantee-badge">
+                                <i class="fas fa-shield-check"></i>
+                                <div class="guarantee-text">
+                                    <span class="guarantee-main">Nhận hàng kiểm tra thoải mái</span>
+                                    <span class="guarantee-sub">Không ưng ý? Hoàn tiền 100%</span>
                                 </div>
-                                <div class="checkout-total-box-cart">
-                                    <div class="total-label-main-cart">ĐẶT HÀNG NGAY</div>
-                                    <div class="total-amount-cart" id="checkoutTotal">0đ</div>
-                                </div>
-                                <button class="checkout-submit-btn-cart" id="checkoutBtn">
-                                    ĐẶT HÀNG
-                                </button>
                             </div>
+                            <div class="checkout-total-box-cart">
+                                <div class="total-label-main-cart">ĐẶT HÀNG NGAY</div>
+                                <div class="total-amount-cart" id="checkoutTotal">0đ</div>
+                            </div>
+                            <button class="checkout-submit-btn-cart" id="checkoutBtn">
+                                ĐẶT HÀNG
+                            </button>
                         </div>
                         
                         <div class="trust-badges">

@@ -33,9 +33,9 @@ async function queryDiscounts() {
                 expiry_date,
                 notes,
                 usage_count,
-                created_at
+                created_at_unix
             FROM discounts
-            ORDER BY created_at DESC
+            ORDER BY created_at_unix DESC
             LIMIT 20
         `);
 
@@ -51,7 +51,7 @@ async function queryDiscounts() {
             console.log(`    Active: ${row.active} | Visible: ${row.visible} | Usage: ${row.usage_count}`);
             console.log(`    Expiry: ${row.expiry_date}`);
             if (row.notes) console.log(`    Notes: ${row.notes}`);
-            console.log(`    Created: ${row.created_at}`);
+            console.log(`    Created: ${row.created_at_unix ? new Date(row.created_at_unix).toLocaleString('vi-VN') : 'N/A'}`);
         });
 
         console.log('\n' + '='.repeat(120));

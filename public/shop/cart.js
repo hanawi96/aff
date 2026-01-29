@@ -967,20 +967,27 @@ const cart = {
             checkoutTotal.textContent = utils.formatPrice(state.total);
         }
         
-        console.log('Total amount element text:', document.getElementById('totalAmount').textContent);
-        console.log('Total amount element display:', window.getComputedStyle(document.getElementById('totalAmount')).display);
+        const totalAmountElement = document.getElementById('totalAmount');
+        if (totalAmountElement) {
+            console.log('Total amount element text:', totalAmountElement.textContent);
+            console.log('Total amount element display:', window.getComputedStyle(totalAmountElement).display);
+        }
         
         // Check if total-row is visible
         const totalRow = document.querySelector('.total-row');
-        console.log('Total row element:', totalRow);
-        console.log('Total row display:', window.getComputedStyle(totalRow).display);
-        console.log('Total row visibility:', window.getComputedStyle(totalRow).visibility);
+        if (totalRow) {
+            console.log('Total row element:', totalRow);
+            console.log('Total row display:', window.getComputedStyle(totalRow).display);
+            console.log('Total row visibility:', window.getComputedStyle(totalRow).visibility);
+        }
         
         // Check checkout button
         const checkoutBtn = document.getElementById('checkoutBtn');
-        console.log('Checkout button:', checkoutBtn);
-        console.log('Checkout button display:', window.getComputedStyle(checkoutBtn).display);
-        console.log('Checkout button visibility:', window.getComputedStyle(checkoutBtn).visibility);
+        if (checkoutBtn) {
+            console.log('Checkout button:', checkoutBtn);
+            console.log('Checkout button display:', window.getComputedStyle(checkoutBtn).display);
+            console.log('Checkout button visibility:', window.getComputedStyle(checkoutBtn).visibility);
+        }
 
         // Update discount row
         const discountRow = document.getElementById('discountRow');
@@ -1346,6 +1353,11 @@ const discount = {
     calculateSavings: (discountCode) => {
         if (!discountCode) return 0;
         
+        // Check if order meets minimum requirement
+        if (discountCode.min_order_amount && state.subtotal < discountCode.min_order_amount) {
+            return 0; // Not applicable yet, no savings
+        }
+        
         const amount = discountService.calculateDiscountAmount(discountCode, state.subtotal);
         
         // For freeship, add shipping fee as savings
@@ -1362,26 +1374,43 @@ const discount = {
             return [];
         }
 
-        // Calculate savings for each discount
+        // Calculate savings and remaining amount for each discount
         const discountsWithSavings = state.availableDiscounts.map(d => {
             const savings = discount.calculateSavings(d);
             const isApplicable = !d.min_order_amount || state.subtotal >= d.min_order_amount;
+            const remainingAmount = isApplicable ? 0 : (d.min_order_amount - state.subtotal);
             
             return {
                 ...d,
                 savings,
-                isApplicable
+                isApplicable,
+                remainingAmount
             };
         });
 
-        // Sort by: applicable first, then by savings (highest first)
+        // Smart sorting logic:
+        // 1. Applicable discounts first (sorted by highest savings)
+        // 2. Then non-applicable discounts (sorted by lowest remaining amount - closest to reach)
         const sorted = discountsWithSavings.sort((a, b) => {
-            // Applicable discounts first
+            // Group 1: Applicable discounts
             if (a.isApplicable && !b.isApplicable) return -1;
             if (!a.isApplicable && b.isApplicable) return 1;
             
-            // Then by savings amount
-            return b.savings - a.savings;
+            // Within applicable group: sort by highest savings
+            if (a.isApplicable && b.isApplicable) {
+                return b.savings - a.savings;
+            }
+            
+            // Within non-applicable group: sort by lowest remaining amount (easiest to reach)
+            if (!a.isApplicable && !b.isApplicable) {
+                // If remaining amounts are equal, prefer higher discount value
+                if (a.remainingAmount === b.remainingAmount) {
+                    return b.discount_value - a.discount_value;
+                }
+                return a.remainingAmount - b.remainingAmount;
+            }
+            
+            return 0;
         });
 
         return limit ? sorted.slice(0, limit) : sorted;
@@ -1523,18 +1552,28 @@ const discount = {
 
         const html = bestDiscounts.map(code => {
             const discountText = discountService.formatDiscountText(code);
-            const savingsText = code.savings > 0 ? `Tiết kiệm ${utils.formatPrice(code.savings)}` : '';
+            let savingsText = '';
             
-            return '<div class="code-item">' +
+            // Check if this code is currently applied
+            const isApplied = state.discount && state.discount.code === code.code;
+            
+            if (code.isApplicable && code.savings > 0) {
+                savingsText = `Tiết kiệm ${utils.formatPrice(code.savings)}`;
+            } else if (!code.isApplicable && code.min_order_amount) {
+                const remaining = code.min_order_amount - state.subtotal;
+                savingsText = `Mua thêm ${utils.formatPrice(remaining)} để áp dụng`;
+            }
+            
+            return '<div class="code-item' + (!code.isApplicable ? ' disabled' : '') + (isApplied ? ' applied' : '') + '">' +
                 '<div>' +
                 '<span class="code-name">' + utils.escapeHtml(code.code) + '</span>' +
                 '<span> - ' + utils.escapeHtml(discountText) + '</span>' +
-                (savingsText ? '<div style="font-size: 0.75rem; color: var(--success); font-weight: 700; margin-top: 0.25rem;">💰 ' + savingsText + '</div>' : '') +
+                (savingsText ? '<div style="font-size: 0.75rem; color: ' + (code.isApplicable ? 'var(--success)' : 'var(--warning)') + '; font-weight: 700; margin-top: 0.25rem;">' + (code.isApplicable ? '💰 ' : '💡 ') + savingsText + '</div>' : '') +
                 '</div>' +
-                '<button class="code-apply-btn" ' +
+                '<button class="code-apply-btn' + (isApplied ? ' applied' : '') + '" ' +
                 'onclick="discount.quickApply(\'' + utils.escapeHtml(code.code) + '\')" ' +
-                (code.isApplicable ? '' : 'disabled') + '>' +
-                'Áp dụng' +
+                (code.isApplicable && !isApplied ? '' : 'disabled') + '>' +
+                (isApplied ? '<i class="fas fa-check-circle"></i> Đã áp dụng' : 'Áp dụng') +
                 '</button>' +
                 '</div>';
         }).join('');
@@ -1549,6 +1588,7 @@ const discount = {
         }
     },
 
+    // Show all discounts modal
     // Show all discounts modal
     showAllDiscounts: () => {
         const modal = document.getElementById('allDiscountsModal');
@@ -1829,3 +1869,12 @@ document.addEventListener('DOMContentLoaded', () => {
 window.cart = cart;
 window.discount = discount;
 window.cartPayment = cartPayment;
+
+
+// ============================================
+// EXPOSE TO WINDOW FOR EXTERNAL ACCESS
+// ============================================
+
+// Expose discount object for quick checkout modal to use
+window.cartDiscount = discount;
+window.cartState = state;
