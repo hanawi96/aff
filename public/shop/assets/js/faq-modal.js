@@ -9,6 +9,12 @@
     const questionBtn = document.getElementById('contactQuestionBtn');
     const faqItems = document.querySelectorAll('.faq-item');
 
+    // If question button doesn't exist, this page doesn't need FAQ modal functionality
+    if (!questionBtn) {
+      console.log('FAQ Modal: Question button not found - skipping initialization (normal for cart page)');
+      return;
+    }
+
     console.log('=== Elements found ===', {
       modal: !!modal,
       modalDisplay: modal ? window.getComputedStyle(modal).display : 'N/A',
@@ -44,32 +50,28 @@
     }
 
     // Open modal
-    if (questionBtn) {
-      console.log('=== Attaching click handler to question button ===');
-      questionBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('=== Question button clicked! ===');
-        if (modal) {
-          console.log('Opening modal...');
-          modal.style.display = 'flex';
-          modal.style.alignItems = 'center';
-          modal.style.justifyContent = 'center';
-          modal.classList.add('active');
-          document.body.style.overflow = 'hidden';
-          
-          console.log('Modal opened - display:', window.getComputedStyle(modal).display);
-          console.log('Modal opened - position:', window.getComputedStyle(modal).position);
-          console.log('Modal opened - alignItems:', window.getComputedStyle(modal).alignItems);
-          console.log('Modal opened - justifyContent:', window.getComputedStyle(modal).justifyContent);
-          console.log('Modal opened - zIndex:', window.getComputedStyle(modal).zIndex);
-        } else {
-          console.error('Modal element not found!');
-        }
-      });
-    } else {
-      console.error('Question button not found!');
-    }
+    console.log('=== Attaching click handler to question button ===');
+    questionBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('=== Question button clicked! ===');
+      if (modal) {
+        console.log('Opening modal...');
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        console.log('Modal opened - display:', window.getComputedStyle(modal).display);
+        console.log('Modal opened - position:', window.getComputedStyle(modal).position);
+        console.log('Modal opened - alignItems:', window.getComputedStyle(modal).alignItems);
+        console.log('Modal opened - justifyContent:', window.getComputedStyle(modal).justifyContent);
+        console.log('Modal opened - zIndex:', window.getComputedStyle(modal).zIndex);
+      } else {
+        console.error('Modal element not found!');
+      }
+    });
 
     // Close modal function
     function closeModal() {

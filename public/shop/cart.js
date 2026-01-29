@@ -41,7 +41,8 @@ const state = {
     bundleProducts: [], // Will be loaded from API
     paymentMethod: 'cod', // Default payment method
     openNoteInputs: new Set(), // Track which note inputs are open
-    validator: null // Form validator instance
+    validator: null, // Form validator instance
+    isInitialized: false // Prevent double initialization
 };
 
 // ============================================
@@ -170,6 +171,14 @@ const storage = {
 const cart = {
     // Initialize cart
     init: async () => {
+        // Prevent double initialization
+        if (state.isInitialized) {
+            console.warn('⚠️ [CART] Already initialized, skipping...');
+            return;
+        }
+        
+        state.isInitialized = true;
+        
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
         
@@ -178,7 +187,6 @@ const cart = {
         
         // Wait for bundle products to load
         await cart.loadBundleProducts();
-        console.log('✅ Bundle products loaded:', state.bundleProducts.length);
         
         // Hide skeleton
         await cart.hideSkeleton();
@@ -190,79 +198,75 @@ const cart = {
             const summarySection = document.querySelector('.cart-summary-section');
             summarySection?.classList.remove('hidden');
             
+            // Wait a bit for DOM to be ready after skeleton hide
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
             cart.render();
             cart.updateSummary();
-            cart.loadRecommended();
         }
 
         cart.setupEventListeners();
         
-        // Initialize form validator (ALWAYS, even if cart is empty)
-        // User might add items later
-        cart.initializeValidator();
+        // Initialize form validator ONLY if cart has items
+        if (state.cart.length > 0) {
+            cart.initializeValidator();
+        }
         
         // Fill demo data for testing
         cart.fillDemoData();
         
         // If there's a saved discount, show it in the input
-        if (state.discount) {
-            const input = document.getElementById('discountCode');
-            const applyBtn = document.getElementById('applyDiscountBtn');
-            
-            if (input) {
-                input.value = state.discount.code;
-                input.disabled = true;
-            }
-            
-            if (applyBtn) {
-                applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
-                applyBtn.onclick = discount.changeCode;
-                applyBtn.classList.add('btn-change-code');
-            }
-            
-            // Show discount result
-            const discountText = discountService.formatDiscountText(state.discount);
-            discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
+        if (state.discount && state.cart.length > 0) {
+            // Wait for discount section to be rendered
+            setTimeout(() => {
+                const input = document.getElementById('discountCode');
+                const applyBtn = document.getElementById('applyDiscountBtn');
+                
+                if (input) {
+                    input.value = state.discount.code;
+                    input.disabled = true;
+                }
+                
+                if (applyBtn) {
+                    applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
+                    applyBtn.onclick = discount.changeCode;
+                    applyBtn.classList.add('btn-change-code');
+                }
+                
+                // Show discount result
+                const discountText = discountService.formatDiscountText(state.discount);
+                discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
+            }, 200);
         }
     },
     
     // Initialize form validator
     initializeValidator: () => {
-        console.log('🔧 [CART] Initializing form validator...');
-        
-        // Wait a bit for DOM to be ready
+        // Wait for DOM to be fully ready
         setTimeout(() => {
             // Check if elements exist
             const phoneInput = document.getElementById('cartPhone');
             const nameInput = document.getElementById('cartName');
             
-            console.log('🔍 [CART] Phone input:', phoneInput);
-            console.log('🔍 [CART] Name input:', nameInput);
-            
             if (!phoneInput || !nameInput) {
-                console.error('❌ [CART] Form inputs not found! Retrying...');
-                // Retry after 500ms
-                setTimeout(() => cart.initializeValidator(), 500);
+                // Elements not ready yet - skip silently
                 return;
             }
             
             state.validator = new FormValidator({
-                formId: 'customerInfoSection', // Use section as form container
+                formId: 'customerInfoSection',
                 rules: {
                     cartPhone: checkoutValidationRules.phone,
                     cartName: checkoutValidationRules.name,
-                    // Address fields validated separately by AddressSelector
                 },
                 isModal: false,
-                scrollOffset: 100, // Page has sticky header
+                scrollOffset: 100,
                 autoClear: true
             });
             
-            console.log('✅ [CART] Form validator initialized:', state.validator);
-            
             // Setup auto-clear for address fields
             cart.setupAddressAutoClear();
-        }, 100);
+        }, 300);
     },
     
     // Setup auto-clear for address fields
@@ -297,8 +301,6 @@ const cart = {
                     errorDisplayService.clearError('streetInput');
                 });
             }
-            
-            console.log('✅ [CART] Address auto-clear setup complete');
         }, 500);
     },
 
@@ -419,13 +421,26 @@ const cart = {
             emptyCart.style.opacity = '1';
         });
         
-        document.getElementById('cartItems').classList.add('hidden');
-        document.getElementById('discountSection').classList.add('hidden');
-        document.getElementById('paymentSection').classList.add('hidden');
-        document.getElementById('customerInfoSection').classList.add('hidden');
-        document.getElementById('recommendedSection').classList.add('hidden');
+        // Hide all sections safely
+        const sectionsToHide = [
+            'cartItems',
+            'discountSection',
+            'paymentSection',
+            'customerInfoSection',
+            'recommendedSection'
+        ];
+        
+        sectionsToHide.forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('hidden');
+            }
+        });
+        
         const summarySection = document.querySelector('.cart-summary-section');
-        summarySection.classList.add('hidden');
+        if (summarySection) {
+            summarySection.classList.add('hidden');
+        }
     },
 
     // Update quantity - optimized with proper state sync
@@ -479,6 +494,11 @@ const cart = {
     // Render cart items
     render: () => {
         const container = document.getElementById('cartItems');
+        
+        if (!container) {
+            // This can happen during skeleton phase - not an error
+            return;
+        }
         
         const html = state.cart.map(item => {
             const originalPriceHtml = item.originalPrice && item.originalPrice > item.price
@@ -723,8 +743,11 @@ const cart = {
                 '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
                 'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Z' + (isInCart ? 'M12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z' : 'm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z') + '" clip-rule="evenodd" /></svg>' +
-                '<span>' + (isInCart ? 'Đã thêm' : 'Thêm ngay') + '</span>' +
+                (isInCart 
+                    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>'
+                    : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>'
+                ) +
+                '<span>' + (isInCart ? 'Đã thêm' : 'Thêm vào đơn hàng') + '</span>' +
                 '</button>' +
                 '</div>';
         }).join('');
@@ -735,6 +758,7 @@ const cart = {
     // Toggle bundle product
     // Toggle bundle product
     toggleBundleProduct: (productId) => {
+        const wasEmpty = state.cart.length === 0;
         const existingItem = state.cart.find(item => item.id === productId);
         
         if (existingItem) {
@@ -755,8 +779,18 @@ const cart = {
         }
         
         storage.saveCart(state.cart);
-        cart.render();
-        cart.updateSummary();
+        
+        if (state.cart.length === 0) {
+            cart.showEmpty();
+        } else {
+            cart.render();
+            cart.updateSummary();
+            
+            // Initialize validator if cart was empty before
+            if (wasEmpty && !state.validator) {
+                setTimeout(() => cart.initializeValidator(), 500);
+            }
+        }
     },
 
     // Toggle item note input
@@ -911,18 +945,9 @@ const cart = {
         // Calculate total
         state.total = state.subtotal - discountAmount + state.shippingFee;
 
-        console.log('=== UPDATE SUMMARY ===');
-        console.log('Subtotal:', state.subtotal);
-        console.log('Has bundle product:', hasBundleProduct);
-        console.log('Discount:', discountAmount);
-        console.log('Shipping:', state.shippingFee);
-        console.log('Total:', state.total);
-
         // Ensure cart summary section is visible
         const summarySection = document.querySelector('.cart-summary-section');
         const cartSummary = document.querySelector('.cart-summary');
-        console.log('Summary section exists:', !!summarySection);
-        console.log('Cart summary exists:', !!cartSummary);
         
         summarySection?.classList.remove('hidden');
         
@@ -943,81 +968,76 @@ const cart = {
         // Update UI
         const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
         
-        document.getElementById('summaryItemCount').textContent = `(${totalItems} sp)`;
-        document.getElementById('subtotal').textContent = utils.formatPrice(state.subtotal);
-        
-        // Always show shipping fee (30k)
+        const summaryItemCount = document.getElementById('summaryItemCount');
+        const subtotalElement = document.getElementById('subtotal');
         const shippingFeeElement = document.getElementById('shippingFee');
-        shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
-        
-        // Show freeship discount row if applicable
         const freeshipRow = document.getElementById('freeshipRow');
         const freeshipLabel = document.getElementById('freeshipLabel');
         const freeshipAmount = document.getElementById('freeshipAmount');
+        const totalAmountElement = document.getElementById('totalAmount');
+        const discountRow = document.getElementById('discountRow');
+        const discountCodeLabel = document.getElementById('discountCodeLabel');
+        const discountAmountElement = document.getElementById('discountAmount');
         
-        if (state.shippingFee === 0) {
-            freeshipRow.classList.remove('hidden');
-            freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
-            
-            // Set label based on reason
-            if (hasBundleProduct) {
-                freeshipLabel.textContent = '(Mua kèm)';
-            } else if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
-                freeshipLabel.textContent = '(Đơn ≥500k)';
-            } else if (state.discount && state.discount.type === 'freeship') {
-                freeshipLabel.textContent = '(' + state.discount.code + ')';
-            } else {
-                freeshipLabel.textContent = '';
-            }
-        } else {
-            freeshipRow.classList.add('hidden');
+        // Check if all required elements exist
+        if (!summaryItemCount || !subtotalElement || !shippingFeeElement || !totalAmountElement) {
+            // Elements not ready yet - skip silently
+            return;
         }
         
-        document.getElementById('totalAmount').textContent = utils.formatPrice(state.total);
+        summaryItemCount.textContent = `(${totalItems} sp)`;
+        subtotalElement.textContent = utils.formatPrice(state.subtotal);
+        
+        // Always show shipping fee (30k)
+        shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
+        
+        // Show freeship discount row if applicable
+        if (freeshipRow && freeshipLabel && freeshipAmount) {
+            if (state.shippingFee === 0) {
+                freeshipRow.classList.remove('hidden');
+                freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
+                
+                // Set label based on reason
+                if (hasBundleProduct) {
+                    freeshipLabel.textContent = '(Mua kèm)';
+                } else if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
+                    freeshipLabel.textContent = '(Đơn ≥500k)';
+                } else if (state.discount && state.discount.type === 'freeship') {
+                    freeshipLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem; color: #10b981;"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>(' + state.discount.code + ')';
+                } else {
+                    freeshipLabel.textContent = '';
+                }
+            } else {
+                freeshipRow.classList.add('hidden');
+            }
+        }
+        
+        totalAmountElement.textContent = utils.formatPrice(state.total);
         
         // Update checkout button total
         const checkoutTotal = document.getElementById('checkoutTotal');
         if (checkoutTotal) {
             checkoutTotal.textContent = utils.formatPrice(state.total);
         }
-        
-        const totalAmountElement = document.getElementById('totalAmount');
-        if (totalAmountElement) {
-            console.log('Total amount element text:', totalAmountElement.textContent);
-            console.log('Total amount element display:', window.getComputedStyle(totalAmountElement).display);
-        }
-        
-        // Check if total-row is visible
-        const totalRow = document.querySelector('.total-row');
-        if (totalRow) {
-            console.log('Total row element:', totalRow);
-            console.log('Total row display:', window.getComputedStyle(totalRow).display);
-            console.log('Total row visibility:', window.getComputedStyle(totalRow).visibility);
-        }
-        
-        // Check checkout button
-        const checkoutBtn = document.getElementById('checkoutBtn');
-        if (checkoutBtn) {
-            console.log('Checkout button:', checkoutBtn);
-            console.log('Checkout button display:', window.getComputedStyle(checkoutBtn).display);
-            console.log('Checkout button visibility:', window.getComputedStyle(checkoutBtn).visibility);
-        }
 
         // Update discount row
-        const discountRow = document.getElementById('discountRow');
-        if (discountAmount > 0) {
-            discountRow.classList.remove('hidden');
-            document.getElementById('discountCodeLabel').textContent = '(' + state.discount.code + ')';
-            document.getElementById('discountAmount').textContent = '-' + utils.formatPrice(discountAmount);
-        } else {
-            discountRow.classList.add('hidden');
+        if (discountRow && discountCodeLabel && discountAmountElement) {
+            if (discountAmount > 0) {
+                discountRow.classList.remove('hidden');
+                discountCodeLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem; color: #10b981;"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>(' + state.discount.code + ')';
+                discountAmountElement.textContent = '-' + utils.formatPrice(discountAmount);
+            } else {
+                discountRow.classList.add('hidden');
+            }
         }
 
         // Update shipping progress
         cart.updateShippingProgress();
         
-        // Re-render available codes based on new subtotal
-        discount.renderAvailableCodes();
+        // Re-render available codes based on new subtotal (only if cart has items)
+        if (state.cart.length > 0) {
+            discount.renderAvailableCodes();
+        }
     },
 
     // Update shipping progress
@@ -1039,34 +1059,19 @@ const cart = {
         }
     },
 
-    // Load recommended products
-    loadRecommended: () => {
-        // TODO: Implement recommendation logic
-        // For now, hide the section
-        document.getElementById('recommendedSection').classList.add('hidden');
-    },
-    
     // Proceed to checkout
     proceedToCheckout: async () => {
-        console.log('🚀 Starting checkout process...');
-        console.log('🔍 [CART] Validator instance:', state.validator);
-        
         // Check if validator exists
         if (!state.validator) {
             console.error('❌ [CART] Validator not initialized!');
-            // This is a system error, not validation error
-            // Keep toast for system errors
             utils.showToast('Lỗi hệ thống, vui lòng tải lại trang', 'error');
             return;
         }
         
         // Validate form using validator
-        console.log('🔍 [CART] Calling validator.validate()...');
         const validationResult = state.validator.validate();
-        console.log('📊 [CART] Validation result:', validationResult);
         
         if (!validationResult.isValid) {
-            console.log('❌ [CART] Validation failed, errors:', validationResult.errors);
             // Errors are already displayed inline
             // Scroll to customer info section
             document.getElementById('customerInfoSection').scrollIntoView({ 
@@ -1076,8 +1081,6 @@ const cart = {
             return;
         }
         
-        console.log('✅ [CART] Validation passed!');
-        
         // Get validated form data
         const formData = state.validator.getFormData();
         const phone = formData.cartPhone;
@@ -1085,16 +1088,12 @@ const cart = {
         
         // Validate address
         if (!window.cartAddressSelector) {
-            // This is a system error (address selector not loaded)
-            // Keep toast for system errors
             utils.showToast('Đang tải địa chỉ, vui lòng thử lại', 'error');
             return;
         }
         
         const addressValidation = window.cartAddressSelector.validate();
         if (!addressValidation.isValid) {
-            // Show inline error instead of toast
-            console.log('❌ [CART] Address validation failed:', addressValidation.message);
             
             // Determine which field has error and show inline message
             if (!window.cartAddressSelector.provinceCode) {
@@ -1135,8 +1134,6 @@ const cart = {
             size: item.size || '', // Baby weight
             notes: item.note || '' // Product note
         }));
-        
-        console.log('📦 Cart items:', cartItems);
         
         // Prepare order data matching backend format
         const orderData = {
@@ -1299,8 +1296,11 @@ const cart = {
             };
         }
 
-        // Render available codes
-        discount.renderAvailableCodes();
+        // Render available codes - ONLY if cart has items
+        if (state.cart.length > 0) {
+            // Wait a bit for DOM to be ready
+            setTimeout(() => discount.renderAvailableCodes(), 100);
+        }
         
         // Setup order note
         const orderNoteTextarea = document.getElementById('orderNote');
@@ -1537,6 +1537,11 @@ const discount = {
     showResult: (message, type) => {
         const resultEl = document.getElementById('discountResult');
         
+        // Null-safe check - skip silently if not ready
+        if (!resultEl) {
+            return;
+        }
+        
         if (!message || type === 'success') {
             // Hide result for success (code shows in input) or when no message
             resultEl.classList.add('hidden');
@@ -1555,9 +1560,16 @@ const discount = {
         const container = document.getElementById('availableCodes');
         const viewAllBtn = document.getElementById('viewAllCodesBtn');
         
+        // Null-safe check - skip silently if not ready
+        if (!container) {
+            return;
+        }
+        
         if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
             container.innerHTML = '<div style="text-align: center; color: #999; padding: 1rem; font-size: 0.9rem;">Không có mã giảm giá khả dụng</div>';
-            viewAllBtn.classList.add('hidden');
+            if (viewAllBtn) {
+                viewAllBtn.classList.add('hidden');
+            }
             return;
         }
 
@@ -1595,10 +1607,12 @@ const discount = {
         container.innerHTML = html;
 
         // Show "View All" button if there are more than 3 discounts
-        if (state.availableDiscounts.length > 3) {
-            viewAllBtn.classList.remove('hidden');
-        } else {
-            viewAllBtn.classList.add('hidden');
+        if (viewAllBtn) {
+            if (state.availableDiscounts.length > 3) {
+                viewAllBtn.classList.remove('hidden');
+            } else {
+                viewAllBtn.classList.add('hidden');
+            }
         }
     },
 

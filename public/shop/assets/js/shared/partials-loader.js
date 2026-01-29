@@ -6,9 +6,10 @@
  * Load HTML partial into a container
  * @param {string} partialPath - Path to the partial HTML file
  * @param {string} containerId - ID of the container element
+ * @param {boolean} silent - If true, don't log warning when container not found
  * @returns {Promise<void>}
  */
-export async function loadPartial(partialPath, containerId) {
+export async function loadPartial(partialPath, containerId, silent = false) {
     try {
         const response = await fetch(partialPath);
         if (!response.ok) {
@@ -19,7 +20,9 @@ export async function loadPartial(partialPath, containerId) {
         const container = document.getElementById(containerId);
         
         if (!container) {
-            console.warn(`Container not found: ${containerId}`);
+            if (!silent) {
+                console.warn(`Container not found: ${containerId}`);
+            }
             return;
         }
         
@@ -31,12 +34,12 @@ export async function loadPartial(partialPath, containerId) {
 
 /**
  * Load multiple partials
- * @param {Array<{path: string, containerId: string}>} partials
+ * @param {Array<{path: string, containerId: string, silent?: boolean}>} partials
  * @returns {Promise<void>}
  */
 export async function loadPartials(partials) {
-    const promises = partials.map(({ path, containerId }) => 
-        loadPartial(path, containerId)
+    const promises = partials.map(({ path, containerId, silent = false }) => 
+        loadPartial(path, containerId, silent)
     );
     
     await Promise.all(promises);
@@ -46,9 +49,10 @@ export async function loadPartials(partials) {
  * Append HTML partial to a container (doesn't replace existing content)
  * @param {string} partialPath - Path to the partial HTML file
  * @param {string} containerId - ID of the container element
+ * @param {boolean} silent - If true, don't log warning when container not found
  * @returns {Promise<void>}
  */
-export async function appendPartial(partialPath, containerId) {
+export async function appendPartial(partialPath, containerId, silent = false) {
     try {
         const response = await fetch(partialPath);
         if (!response.ok) {
@@ -59,7 +63,9 @@ export async function appendPartial(partialPath, containerId) {
         const container = document.getElementById(containerId);
         
         if (!container) {
-            console.warn(`Container not found: ${containerId}`);
+            if (!silent) {
+                console.warn(`Container not found: ${containerId}`);
+            }
             return;
         }
         
@@ -71,16 +77,15 @@ export async function appendPartial(partialPath, containerId) {
 
 /**
  * Load common partials (header, footer, modals)
+ * Only loads if containers exist (silent mode)
  * @returns {Promise<void>}
  */
 export async function loadCommonPartials() {
     await loadPartials([
-        { path: '/shop/partials/header.html', containerId: 'header-placeholder' },
-        { path: '/shop/partials/footer.html', containerId: 'footer-placeholder' },
-        { path: '/shop/partials/modals/cart-sidebar.html', containerId: 'modals-placeholder' },
-        { path: '/shop/partials/modals/quick-checkout.html', containerId: 'modals-placeholder' },
-        { path: '/shop/partials/modals/discount-selector.html', containerId: 'modals-placeholder' }
+        { path: '/shop/partials/header.html', containerId: 'header-placeholder', silent: true },
+        { path: '/shop/partials/footer.html', containerId: 'footer-placeholder', silent: true },
+        { path: '/shop/partials/modals/cart-sidebar.html', containerId: 'modals-placeholder', silent: true },
+        { path: '/shop/partials/modals/quick-checkout.html', containerId: 'modals-placeholder', silent: true },
+        { path: '/shop/partials/modals/discount-selector.html', containerId: 'modals-placeholder', silent: true }
     ]);
-    
-    console.log('✅ Common partials loaded');
 }
