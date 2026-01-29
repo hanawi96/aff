@@ -708,12 +708,12 @@ const cart = {
                 '<div class="bundle-price">' + utils.formatPrice(product.price) + '</div>' +
                 (hasDiscount ? '<div class="bundle-discount-badge">-' + discountPercent + '%</div>' : '') +
                 '</div>' +
+                '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
                 'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
                 '<i class="fas fa-' + (isInCart ? 'check' : 'plus') + '-circle"></i>' +
                 '<span>' + (isInCart ? 'Đã thêm' : 'Thêm ngay') + '</span>' +
                 '</button>' +
-                '</div>' +
                 '</div>';
         }).join('');
         
