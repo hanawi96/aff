@@ -4,75 +4,106 @@
 
 .hierarchical-address-selector {
     width: 100%;
+    position: relative;
 }
 
-/* Search Wrapper */
-.address-search-wrapper {
+/* Chips + Search Wrapper */
+.address-chips-wrapper {
     position: relative;
     width: 100%;
-    margin-bottom: 0.75rem;
-    z-index: 9999;
-}
-
-.address-search-input-group {
-    position: relative;
-    width: 100%;
-}
-
-.address-search-input {
-    width: 100%;
-    padding: 0.875rem 2.75rem 0.875rem 1rem;
-    font-size: 0.9375rem;
+    min-height: 48px;
+    padding: 0.5rem;
     border: 2px solid #e0e0e0;
     border-radius: 12px;
-    outline: none;
-    transition: all 0.2s ease;
-    font-family: 'Quicksand', sans-serif;
     background: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    margin-bottom: 0;
 }
 
-.address-search-input:focus {
+.address-chips-wrapper:focus-within {
     border-color: #f4a261;
     box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.1);
 }
 
-.address-search-input::placeholder {
-    color: #999;
+/* Address Chips */
+.address-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
 }
 
-.address-search-clear {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.75rem;
-    height: 1.75rem;
-    border: none;
-    background: #f5f5f5;
-    border-radius: 50%;
-    cursor: pointer;
+.address-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(244, 162, 97, 0.2);
+}
+
+.address-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(244, 162, 97, 0.3);
+}
+
+.chip-text {
+    white-space: nowrap;
+}
+
+.chip-remove {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    width: 18px;
+    height: 18px;
     padding: 0;
+    border: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
-.address-search-clear:hover {
-    background: #e0e0e0;
+.chip-remove:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
 }
 
-.address-search-clear svg {
-    width: 1rem;
-    height: 1rem;
-    color: #666;
+.chip-remove svg {
+    width: 12px;
+    height: 12px;
+    color: #fff;
 }
 
-.address-search-clear.hidden {
-    display: none;
+/* Search Input inside chips wrapper */
+.address-chips-wrapper .address-search-input {
+    flex: 1;
+    min-width: 150px;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.9375rem;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'Quicksand', sans-serif;
 }
 
-/* Dropdown */
+.address-chips-wrapper .address-search-input::placeholder {
+    color: #999;
+}
+
+/* Dropdown - positioned relative to chips-wrapper */
 .address-dropdown {
     position: absolute;
     top: calc(100% + 0.5rem);
@@ -246,6 +277,7 @@
 
 /* Street Input */
 .address-street-wrapper {
+    margin-top: 0.75rem;
     margin-bottom: 0.75rem;
 }
 

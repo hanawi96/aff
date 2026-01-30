@@ -37,6 +37,9 @@ export class HierarchicalAddressSelector {
         // Flag to prevent closing dropdown immediately after selection
         this.justSelected = false;
         
+        // Flag to prevent closing dropdown when deleting chip
+        this.isDeletingChip = false;
+        
         // Keyboard navigation
         this.focusedIndex = -1;
         this.resultItems = [];
@@ -144,9 +147,9 @@ export class HierarchicalAddressSelector {
         
         let html = '<div class="hierarchical-address-selector">';
         
-        // Search input with dropdown
-        html += '<div class="address-search-wrapper">';
-        html += '<div class="address-search-input-group">';
+        // Chips + Search input wrapper (with dropdown inside for proper positioning)
+        html += '<div class="address-chips-wrapper">';
+        html += '<div class="address-chips" id="addressChips"></div>';
         html += '<input type="text" ';
         html += 'class="address-search-input" ';
         html += 'id="addressSearchInput" ';
@@ -156,23 +159,15 @@ export class HierarchicalAddressSelector {
         html += 'aria-expanded="false" ';
         html += 'aria-controls="addressDropdown" ';
         html += 'aria-autocomplete="list">';
-        html += '<button class="address-search-clear hidden" id="addressSearchClear" aria-label="Xóa tìm kiếm">';
-        html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z" clip-rule="evenodd" /></svg>';
-        html += '</button>';
-        html += '</div>';
         
-        // Dropdown results
+        // Dropdown results (inside chips-wrapper for proper positioning)
         html += '<div class="address-dropdown hidden" id="addressDropdown" role="listbox">';
         html += '<div class="address-dropdown-content" id="addressDropdownContent">';
         html += '<!-- Results will be rendered here -->';
         html += '</div>';
         html += '</div>';
-        html += '</div>';
         
-        // Breadcrumb navigation
-        html += '<div class="address-breadcrumb hidden" id="addressBreadcrumb" role="navigation" aria-label="Địa chỉ đã chọn">';
-        html += '<div class="breadcrumb-items" id="breadcrumbItems"></div>';
-        html += '</div>';
+        html += '</div>'; // Close address-chips-wrapper
         
         // Street input (shown after ward selection)
         html += '<div class="address-street-wrapper hidden" id="addressStreetWrapper">';
@@ -209,26 +204,8 @@ export class HierarchicalAddressSelector {
                 this.handleSearchInput(e.target.value);
             });
             
-            searchInput.addEventListener('focus', (e) => {
-                // Keep the selected address, just move cursor to end
-                if (e.target.getAttribute('data-display-mode') === 'true') {
-                    const text = e.target.value;
-                    setTimeout(() => {
-                        e.target.setSelectionRange(text.length, text.length);
-                    }, 0);
-                }
-                this.performSearch(); // Render appropriate list
-            });
-            
-            searchInput.addEventListener('click', (e) => {
-                // Check if user clicked on X symbol
-                if (e.target.getAttribute('data-display-mode') === 'true') {
-                    const clickPosition = e.target.selectionStart;
-                    const text = e.target.value;
-                    
-                    // Find which X was clicked based on cursor position
-                    this.handleDeleteClick(text, clickPosition);
-                }
+            searchInput.addEventListener('focus', () => {
+                this.performSearch();
             });
             
             // Keyboard navigation
@@ -237,10 +214,22 @@ export class HierarchicalAddressSelector {
             });
         }
         
-        // Clear button
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                this.clearSearch();
+        // Event delegation for chip removal
+        const chipsContainer = document.getElementById('addressChips');
+        if (chipsContainer) {
+            chipsContainer.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('[data-action="remove-chip"]');
+                if (removeBtn) {
+                    e.stopPropagation(); // Prevent event bubbling
+                    this.isDeletingChip = true; // Set flag
+                    const level = removeBtn.dataset.level;
+                    this.deleteLevel(level);
+                    
+                    // Reset flag after event loop
+                    setTimeout(() => {
+                        this.isDeletingChip = false;
+                    }, 100);
+                }
             });
         }
         
@@ -280,6 +269,9 @@ export class HierarchicalAddressSelector {
         this.boundHandlers.handleClickOutside = (e) => {
             // Ignore if we just selected something
             if (this.justSelected) return;
+            
+            // Ignore if we're deleting a chip
+            if (this.isDeletingChip) return;
             
             const wrapper = document.querySelector('.hierarchical-address-selector');
             
@@ -438,7 +430,29 @@ export class HierarchicalAddressSelector {
     deleteLevel(level) {
         if (level === 'province') {
             // Reset everything
-            this.reset();
+            this.provinceCode = '';
+            this.districtCode = '';
+            this.wardCode = '';
+            this.selectedProvince = null;
+            this.selectedDistrict = null;
+            this.selectedWard = null;
+            this.currentLevel = 'province';
+            this.street = '';
+            this.searchQuery = '';
+            
+            this.hideStreetInput();
+            this.updateChipsDisplay();
+            this.updateFullAddress();
+            
+            // Open dropdown to select province
+            const searchInput = document.getElementById('addressSearchInput');
+            if (searchInput) {
+                searchInput.value = '';
+                this.renderProvinces();
+                this.openDropdown();
+                // Focus after a small delay to ensure dropdown is open
+                setTimeout(() => searchInput.focus(), 50);
+            }
         } else if (level === 'district') {
             // Keep province, reset district and ward
             this.districtCode = '';
@@ -446,30 +460,40 @@ export class HierarchicalAddressSelector {
             this.selectedDistrict = null;
             this.selectedWard = null;
             this.currentLevel = 'district';
+            this.searchQuery = '';
+            
             this.hideStreetInput();
-            this.updateSearchInputDisplay();
+            this.updateChipsDisplay();
             this.updateFullAddress();
             
             // Open dropdown to select district
             const searchInput = document.getElementById('addressSearchInput');
             if (searchInput) {
-                searchInput.focus();
-                this.performSearch();
+                searchInput.value = '';
+                this.renderDistricts();
+                this.openDropdown();
+                // Focus after a small delay to ensure dropdown is open
+                setTimeout(() => searchInput.focus(), 50);
             }
         } else if (level === 'ward') {
             // Keep province and district, reset ward
             this.wardCode = '';
             this.selectedWard = null;
             this.currentLevel = 'ward';
+            this.searchQuery = '';
+            
             this.hideStreetInput();
-            this.updateSearchInputDisplay();
+            this.updateChipsDisplay();
             this.updateFullAddress();
             
             // Open dropdown to select ward
             const searchInput = document.getElementById('addressSearchInput');
             if (searchInput) {
-                searchInput.focus();
-                this.performSearch();
+                searchInput.value = '';
+                this.renderWards();
+                this.openDropdown();
+                // Focus after a small delay to ensure dropdown is open
+                setTimeout(() => searchInput.focus(), 50);
             }
         }
     }
@@ -765,7 +789,7 @@ export class HierarchicalAddressSelector {
         this.selectedWard = null;
         
         // Update UI
-        this.updateSearchInputDisplay();
+        this.updateChipsDisplay();
         this.renderDistricts();
         this.updateFullAddress();
         
@@ -798,7 +822,7 @@ export class HierarchicalAddressSelector {
         this.selectedWard = null;
         
         // Update UI
-        this.updateSearchInputDisplay();
+        this.updateChipsDisplay();
         this.renderWards();
         this.updateFullAddress();
         
@@ -824,7 +848,7 @@ export class HierarchicalAddressSelector {
         this.currentLevel = 'complete';
         
         // Update UI
-        this.updateSearchInputDisplay();
+        this.updateChipsDisplay();
         this.closeDropdown();
         this.showStreetInput();
         this.updateFullAddress();
@@ -918,26 +942,72 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Update search input to show selected address
+     * Update chips display
      */
-    updateSearchInputDisplay() {
+    updateChipsDisplay() {
+        const chipsContainer = document.getElementById('addressChips');
+        if (!chipsContainer) return;
+        
+        let html = '';
+        
+        // Province chip
+        if (this.selectedProvince) {
+            const shortName = this.selectedProvince.name.replace('Tỉnh ', '').replace('Thành phố ', 'TP ');
+            html += '<div class="address-chip" data-level="province">';
+            html += '<span class="chip-text">' + shortName + '</span>';
+            html += '<button class="chip-remove" data-action="remove-chip" data-level="province" aria-label="Xóa ' + shortName + '">';
+            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
+            html += '</button>';
+            html += '</div>';
+        }
+        
+        // District chip
+        if (this.selectedDistrict) {
+            const shortName = this.selectedDistrict.name
+                .replace('Quận ', 'Q.')
+                .replace('Huyện ', 'H.')
+                .replace('Thành phố ', 'TP ')
+                .replace('Thị xã ', 'TX ');
+            html += '<div class="address-chip" data-level="district">';
+            html += '<span class="chip-text">' + shortName + '</span>';
+            html += '<button class="chip-remove" data-action="remove-chip" data-level="district" aria-label="Xóa ' + shortName + '">';
+            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
+            html += '</button>';
+            html += '</div>';
+        }
+        
+        // Ward chip
+        if (this.selectedWard) {
+            const shortName = this.selectedWard.name
+                .replace('Phường ', 'P.')
+                .replace('Xã ', 'X.')
+                .replace('Thị trấn ', 'TT ');
+            html += '<div class="address-chip" data-level="ward">';
+            html += '<span class="chip-text">' + shortName + '</span>';
+            html += '<button class="chip-remove" data-action="remove-chip" data-level="ward" aria-label="Xóa ' + shortName + '">';
+            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
+            html += '</button>';
+            html += '</div>';
+        }
+        
+        chipsContainer.innerHTML = html;
+        
+        // Update placeholder
         const searchInput = document.getElementById('addressSearchInput');
-        if (!searchInput) return;
-        
-        // Build display text
-        const displayText = this.getSelectedAddressText();
-        
-        if (displayText) {
-            searchInput.value = displayText;
-            searchInput.setAttribute('data-display-mode', 'true');
-            
-            // Move cursor to end
-            setTimeout(() => {
-                searchInput.setSelectionRange(displayText.length, displayText.length);
-            }, 0);
-        } else {
-            searchInput.value = '';
-            searchInput.removeAttribute('data-display-mode');
+        if (searchInput) {
+            if (this.selectedWard) {
+                searchInput.placeholder = '';
+                searchInput.style.display = 'none';
+            } else if (this.selectedDistrict) {
+                searchInput.placeholder = '🔍 Tìm phường/xã...';
+                searchInput.style.display = 'block';
+            } else if (this.selectedProvince) {
+                searchInput.placeholder = '🔍 Tìm quận/huyện...';
+                searchInput.style.display = 'block';
+            } else {
+                searchInput.placeholder = '🔍 Tìm tỉnh/thành phố...';
+                searchInput.style.display = 'block';
+            }
         }
     }
     
@@ -959,7 +1029,7 @@ export class HierarchicalAddressSelector {
             this.renderWards();
         }
         
-        this.updateSearchInputDisplay();
+        this.updateChipsDisplay();
         this.updateFullAddress();
         this.hideStreetInput();
     }
@@ -1152,9 +1222,8 @@ export class HierarchicalAddressSelector {
         
         if (searchInput) searchInput.value = '';
         if (streetInput) streetInput.value = '';
-        if (clearBtn) clearBtn.classList.add('hidden');
         
-        this.updateSearchInputDisplay();
+        this.updateChipsDisplay();
         this.hideStreetInput();
         this.closeDropdown();
         this.updateFullAddress();
