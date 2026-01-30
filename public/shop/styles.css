@@ -1579,7 +1579,7 @@ body {
 
     .artisan-story-content {
         flex-direction: column;
-        padding: 1.5rem;
+        padding: 1.5rem 10px;
         gap: 1.5rem;
         text-align: center;
     }
