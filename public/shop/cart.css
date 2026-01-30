@@ -962,7 +962,8 @@ body {
     box-shadow: var(--shadow-sm);
     border: 2px solid var(--primary)/10;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    z-index: 10;
 }
 
 .customer-info-section::before {
@@ -3152,7 +3153,7 @@ body {
     flex-wrap: nowrap;
     gap: 0.75rem;
     box-shadow: 0 8px 20px rgba(231, 111, 81, 0.6);
-    z-index: 2;
+    z-index: 1;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     white-space: nowrap;

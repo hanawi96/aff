@@ -15,12 +15,28 @@ class AddressService {
         if (this.loaded) return this.addressData;
         
         try {
-            const response = await fetch('../assets/data/tree.json');
+            // Determine correct path based on current location
+            let basePath;
+            const pathname = window.location.pathname;
+            
+            if (pathname.includes('/shop/')) {
+                // From shop directory
+                basePath = '../assets/data/tree.json';
+            } else if (pathname.includes('/admin/')) {
+                // From admin directory
+                basePath = '../assets/data/tree.json';
+            } else {
+                // From root or other locations
+                basePath = '/assets/data/tree.json';
+            }
+            
+            const response = await fetch(basePath);
             if (!response.ok) {
                 throw new Error('Failed to load address data');
             }
             this.addressData = await response.json();
             this.loaded = true;
+            console.log('✅ Address data loaded:', Object.keys(this.addressData).length, 'provinces');
             return this.addressData;
         } catch (error) {
             console.error('Error loading address data:', error);

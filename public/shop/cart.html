@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="cart.css">
     <link rel="stylesheet" href="assets/css/form-validation.css">
+    <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
 </head>
 <body>
     <!-- Header -->
@@ -568,16 +569,16 @@
     <script type="module" src="cart.js"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script type="module">
-        // Import and initialize address selector for cart page
-        import { AddressSelector } from './assets/js/components/address-selector.js';
+        // Import and initialize hierarchical address selector for cart page
+        import { HierarchicalAddressSelector } from './assets/js/components/hierarchical-address-selector.js';
         
         // Wait for DOM and cart to be ready
         window.addEventListener('cartInitialized', async () => {
             const container = document.getElementById('cartAddressSelectorContainer');
             if (container && !window.cartAddressSelector) {
-                window.cartAddressSelector = new AddressSelector('cartAddressSelectorContainer');
+                window.cartAddressSelector = new HierarchicalAddressSelector('cartAddressSelectorContainer');
                 await window.cartAddressSelector.init();
-                console.log('✅ Address selector initialized for cart');
+                console.log('✅ Hierarchical address selector initialized for cart');
             }
         });
     </script>
