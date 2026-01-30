@@ -5894,3 +5894,29 @@ body {
     font-weight: 700;
     color: #f39c12;
 }
+
+
+/* ============================================
+   ADDRESS DISPLAY (Same as Quick Checkout Modal)
+   ============================================ */
+
+.address-display {
+    background: #f9f9f9;
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.address-display-label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.address-display-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+}

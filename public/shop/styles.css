@@ -4298,9 +4298,11 @@ body {
     height: 44px;
 }
 
-.cross-sell-header-legend i {
+.cross-sell-header-legend i,
+.cross-sell-header-legend svg {
     color: white;
     font-size: 1.1rem;
+    flex-shrink: 0;
 }
 
 .cross-sell-header-legend strong {
@@ -5968,3 +5970,47 @@ body {
         padding: 0.75rem 1.25rem;
     }
 }
+
+
+/* ============================================
+   GIFT ICON ANIMATION (Same style as Flash Bolt)
+   ============================================ */
+
+/* Gift icon animation - same as flash bolt */
+.gift-icon-animated {
+    display: inline-block !important;
+    width: 1.4rem !important;
+    height: 1.4rem !important;
+    color: white !important;
+    animation: giftBolt 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+}
+
+@keyframes giftBolt {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+    }
+    25% {
+        opacity: 0.7;
+        transform: scale(1.15) rotate(-5deg);
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)) drop-shadow(0 0 12px rgba(255, 223, 0, 0.8));
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(5deg);
+        filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)) drop-shadow(0 0 16px rgba(255, 223, 0, 1));
+    }
+    75% {
+        opacity: 0.7;
+        transform: scale(1.15) rotate(-5deg);
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)) drop-shadow(0 0 12px rgba(255, 223, 0, 0.8));
+    }
+}
+
+/* Hover effect - faster animation */
+.cross-sell-header-legend:hover .gift-icon-animated {
+    animation: giftBolt 0.8s ease-in-out infinite;
+}
+
