@@ -2030,7 +2030,7 @@ body {
     
     /* Product Info - Mobile */
     .product-info {
-        padding: 0.875rem;
+        padding: 6px;
         gap: 0.625rem;
     }
     
@@ -5687,6 +5687,10 @@ body {
 @media (max-width: 768px) {
     .success-modal-content {
         padding: 2rem 1.5rem;
+    }
+
+    .quy-trinh-lam{
+        gap:10px;
     }
     
     .success-modal-header {

@@ -86,13 +86,6 @@ body {
     border: 2px solid var(--primary)/20;
 }
 
-.back-btn:hover {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--white);
-    transform: scale(1.1) rotate(-5deg);
-    box-shadow: var(--shadow-sm);
-}
-
 .header-title-group {
     flex: 1;
     display: flex;
@@ -1463,21 +1456,6 @@ body {
     justify-content: center;
     gap: 0.625rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.btn-view-all-codes:hover {
-    background: linear-gradient(135deg, var(--primary)/10, var(--secondary)/10);
-    border-color: var(--primary)/40;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
-}
-
-.btn-view-all-codes:hover {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--white);
-    border-color: transparent;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
 }
 
 .btn-view-all-codes i {
