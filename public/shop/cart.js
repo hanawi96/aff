@@ -1510,6 +1510,14 @@ const discount = {
         input.value = code;
         input.disabled = true;
         
+        // Show check icon
+        const wrapper = input.closest('.discount-input-wrapper');
+        const checkIcon = wrapper?.querySelector('.discount-check-icon');
+        if (wrapper && checkIcon) {
+            wrapper.classList.add('discount-applied');
+            checkIcon.classList.remove('hidden');
+        }
+        
         // Update apply button to show "Đổi mã" with special styling
         const applyBtn = document.getElementById('applyDiscountBtn');
         if (applyBtn) {
@@ -1530,6 +1538,14 @@ const discount = {
         input.value = '';
         input.disabled = false;
         input.focus();
+        
+        // Hide check icon
+        const wrapper = input.closest('.discount-input-wrapper');
+        const checkIcon = wrapper?.querySelector('.discount-check-icon');
+        if (wrapper && checkIcon) {
+            wrapper.classList.remove('discount-applied');
+            checkIcon.classList.add('hidden');
+        }
         
         // Reset apply button
         if (applyBtn) {
@@ -1555,6 +1571,14 @@ const discount = {
         if (input) {
             input.value = '';
             input.disabled = false;
+        }
+        
+        // Hide check icon
+        const wrapper = input?.closest('.discount-input-wrapper');
+        const checkIcon = wrapper?.querySelector('.discount-check-icon');
+        if (wrapper && checkIcon) {
+            wrapper.classList.remove('discount-applied');
+            checkIcon.classList.add('hidden');
         }
         
         // Reset apply button
