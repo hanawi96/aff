@@ -1154,13 +1154,20 @@ body {
     padding: 0;
     border-radius: 0;
     box-shadow: none;
+    gap: 0.75rem;
+}
+
+.discount-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
 }
 
 .discount-input-group input {
     flex: 1;
     width: 100%;
-    padding: 1rem 1.25rem;
-    padding-right: 110px;
+    padding: 1rem 3rem 1rem 1.25rem; /* Extra padding-right for check icon */
     border: 3px dashed rgba(144, 202, 149, 0.5);
     border-radius: 28px;
     font-size: 0.95rem;
@@ -1209,6 +1216,52 @@ body {
 
 .discount-input-group input:hover:not(:disabled) {
     border-color: rgba(102, 187, 106, 0.6);
+}
+
+/* Check icon for applied discount */
+.discount-check-icon {
+    position: absolute;
+    left: 1.25rem; /* Start from left padding of input */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #27ae60;
+    pointer-events: none;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease, left 0.3s ease;
+    z-index: 10;
+    margin-left: 0; /* Will be calculated dynamically */
+}
+
+.discount-check-icon.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: checkmarkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkmarkPop {
+    0% {
+        transform: translateY(-50%) scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(-50%) scale(1.2);
+    }
+    100% {
+        transform: translateY(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* When discount is applied, enhance the green styling */
+.discount-input-wrapper.discount-applied input {
+    border-color: rgba(102, 187, 106, 0.8) !important;
+    background: linear-gradient(135deg, 
+        rgba(232, 245, 233, 0.9) 0%, 
+        rgba(200, 230, 201, 0.8) 100%
+    ) !important;
 }
 
 /* Button inside input - Compact style */
@@ -5921,55 +5974,3 @@ body {
     line-height: 1.4;
 }
 
-
-/* ============================================
-   DISCOUNT INPUT WITH CHECK ICON
-   ============================================ */
-
-.discount-input-wrapper {
-    position: relative;
-    flex: 1;
-}
-
-.discount-input-wrapper input {
-    width: 100%;
-    padding-right: 2.5rem; /* Space for check icon */
-}
-
-.discount-check-icon {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.5rem;
-    height: 1.5rem;
-    color: #27ae60;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.discount-check-icon:not(.hidden) {
-    opacity: 1;
-    animation: checkmarkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes checkmarkPop {
-    0% {
-        transform: translateY(-50%) scale(0);
-        opacity: 0;
-    }
-    50% {
-        transform: translateY(-50%) scale(1.2);
-    }
-    100% {
-        transform: translateY(-50%) scale(1);
-        opacity: 1;
-    }
-}
-
-/* When discount is applied, add green border to input */
-.discount-input-wrapper.discount-applied input {
-    border-color: #27ae60;
-    background-color: #f0fdf4;
-}

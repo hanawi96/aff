@@ -1511,11 +1511,56 @@ const discount = {
         input.disabled = true;
         
         // Show check icon
+        console.log('🔍 DEBUG: Trying to show check icon');
+        console.log('Input element:', input);
+        
         const wrapper = input.closest('.discount-input-wrapper');
+        console.log('Wrapper element:', wrapper);
+        
         const checkIcon = wrapper?.querySelector('.discount-check-icon');
+        console.log('Check icon element:', checkIcon);
+        
         if (wrapper && checkIcon) {
+            console.log('✅ Both wrapper and checkIcon found, adding classes');
             wrapper.classList.add('discount-applied');
-            checkIcon.classList.remove('hidden');
+            checkIcon.classList.add('show');
+            
+            // Calculate icon position based on text width
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const inputStyle = window.getComputedStyle(input);
+            context.font = inputStyle.font;
+            const textWidth = context.measureText(input.value).width;
+            const inputPaddingLeft = parseFloat(inputStyle.paddingLeft);
+            
+            // Position icon right after the text
+            checkIcon.style.left = `${inputPaddingLeft + textWidth + 10}px`; // 10px gap after text
+            
+            console.log('Check icon classes after add show:', checkIcon.classList);
+            console.log('Text width:', textWidth, 'Icon left position:', checkIcon.style.left);
+            
+            // Check computed styles
+            setTimeout(() => {
+                const computedStyle = window.getComputedStyle(checkIcon);
+                console.log('Computed opacity:', computedStyle.opacity);
+                console.log('Computed visibility:', computedStyle.visibility);
+                console.log('Computed display:', computedStyle.display);
+                console.log('Computed position:', computedStyle.position);
+                console.log('Computed z-index:', computedStyle.zIndex);
+                console.log('Computed right:', computedStyle.right);
+                console.log('Computed top:', computedStyle.top);
+                console.log('Computed width:', computedStyle.width);
+                console.log('Computed height:', computedStyle.height);
+                console.log('Computed color:', computedStyle.color);
+                console.log('Computed fill:', computedStyle.fill);
+                
+                // Get bounding rect
+                const rect = checkIcon.getBoundingClientRect();
+                console.log('Icon bounding rect:', rect);
+                console.log('Icon is in viewport:', rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth);
+            }, 100);
+        } else {
+            console.error('❌ Missing elements:', { wrapper, checkIcon });
         }
         
         // Update apply button to show "Đổi mã" with special styling
@@ -1544,7 +1589,7 @@ const discount = {
         const checkIcon = wrapper?.querySelector('.discount-check-icon');
         if (wrapper && checkIcon) {
             wrapper.classList.remove('discount-applied');
-            checkIcon.classList.add('hidden');
+            checkIcon.classList.remove('show');
         }
         
         // Reset apply button
@@ -1578,7 +1623,7 @@ const discount = {
         const checkIcon = wrapper?.querySelector('.discount-check-icon');
         if (wrapper && checkIcon) {
             wrapper.classList.remove('discount-applied');
-            checkIcon.classList.add('hidden');
+            checkIcon.classList.remove('show');
         }
         
         // Reset apply button
