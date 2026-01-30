@@ -1770,7 +1770,6 @@ body {
 .bank-info-content {
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
 }
 
 .bank-info-row {
@@ -1779,7 +1778,7 @@ body {
     align-items: center;
     font-size: 0.925rem;
     padding: 0.75rem;
-    background: var(--white);
+    background: transparent;
     border-radius: 10px;
     border: 1px solid var(--primary)/10;
 }
@@ -3302,6 +3301,10 @@ body {
     font-size: 1rem;
 }
 
+.box-flash-sale{
+    padding-top: 0;
+}
+
 .bundle-offer-footer {
     margin-top: 1.25rem;
     padding-top: 1rem;
@@ -3843,6 +3846,28 @@ body {
         background: var(--warm);
     }
     
+    .order-note-section {
+
+    padding: 1rem;
+
+    }
+
+    .customer-info-section{
+        padding: 1rem;
+    }
+
+    .bank-info-row{
+        padding: 0.5rem 0;
+    }
+
+    .payment-section{
+        padding: 1rem;
+    }
+
+    .bank-transfer-info{
+        padding: 1rem;
+    }
+
     /* Mobile: Chỉ override kích thước và spacing */
     .bundle-product-card {
         padding: 1rem;

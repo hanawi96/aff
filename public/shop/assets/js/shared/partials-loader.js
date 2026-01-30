@@ -85,7 +85,6 @@ export async function loadCommonPartials() {
         { path: '/shop/partials/header.html', containerId: 'header-placeholder', silent: true },
         { path: '/shop/partials/footer.html', containerId: 'footer-placeholder', silent: true },
         { path: '/shop/partials/modals/cart-sidebar.html', containerId: 'modals-placeholder', silent: true },
-        { path: '/shop/partials/modals/quick-checkout.html', containerId: 'modals-placeholder', silent: true },
         { path: '/shop/partials/modals/discount-selector.html', containerId: 'modals-placeholder', silent: true }
     ]);
 }
