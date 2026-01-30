@@ -222,27 +222,62 @@ export class HomePage {
      * Render flash sales
      */
     renderFlashSales() {
+        console.log('🔥 Rendering flash sales:', this.flashSales);
+        
+        // Check if we have any flash sales
+        if (!this.flashSales || this.flashSales.length === 0) {
+            console.warn('🔥 No flash sales data available');
+            this.hideFlashSaleSection();
+            return;
+        }
+        
         // Carousel disabled - using vertical scroll layout instead
         // Just render the products directly without carousel
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-        if (activeFlashSale && activeFlashSale.products) {
+        
+        console.log('🔥 Active flash sale found:', activeFlashSale);
+        
+        if (activeFlashSale && activeFlashSale.products && activeFlashSale.products.length > 0) {
+            console.log('🔥 Flash sale products:', activeFlashSale.products.length);
+            
             // Render products directly to container
             const container = document.getElementById('flashSaleProducts');
             if (container) {
+                console.log('🔥 Container found, rendering products...');
                 // Import createFlashSaleCard function
                 import('../features/flash-sale/flash-sale-card.js').then(module => {
                     const { createFlashSaleCard } = module;
-                    container.innerHTML = activeFlashSale.products
-                        .filter(p => p.is_active === 1)
-                        .map(createFlashSaleCard)
-                        .join('');
+                    const activeProducts = activeFlashSale.products.filter(p => p.is_active === 1);
+                    console.log('🔥 Active products to render:', activeProducts.length);
+                    
+                    if (activeProducts.length > 0) {
+                        container.innerHTML = activeProducts.map(createFlashSaleCard).join('');
+                    } else {
+                        console.warn('🔥 No active products in flash sale');
+                        this.hideFlashSaleSection();
+                    }
                 });
+            } else {
+                console.warn('🔥 Container #flashSaleProducts not found');
             }
             
             // Start timer
             if (this.flashSaleTimer) {
                 this.flashSaleTimer.start();
             }
+        } else {
+            console.warn('🔥 No active flash sale or no products');
+            this.hideFlashSaleSection();
+        }
+    }
+    
+    /**
+     * Hide flash sale section if no active sales
+     */
+    hideFlashSaleSection() {
+        const section = document.getElementById('flashSaleSection');
+        if (section) {
+            section.style.display = 'none';
         }
     }
     

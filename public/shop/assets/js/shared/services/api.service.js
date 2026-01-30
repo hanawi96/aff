@@ -159,20 +159,27 @@ class ApiService {
         
         console.log('🌐 Fetching flash sales from API');
         const data = await this.get('/get', { action: 'getActiveFlashSales' });
+        console.log('🔥 Flash sales API response:', data);
+        
         const salesArray = data.flashSales || data || [];
+        console.log('🔥 Flash sales array:', salesArray);
         
         // Load products for each flash sale
         for (let flashSale of salesArray) {
+            console.log('🔥 Loading products for flash sale:', flashSale.id);
             const productsData = await this.get('/get', {
                 action: 'getFlashSaleProducts',
                 flashSaleId: flashSale.id
             });
+            console.log('🔥 Products data:', productsData);
             flashSale.products = productsData.products || productsData || [];
+            console.log('🔥 Flash sale products loaded:', flashSale.products.length);
         }
         
         // Cache the result
         this.setCache('flashSales', salesArray);
         
+        console.log('🔥 Final flash sales with products:', salesArray);
         return salesArray;
     }
     

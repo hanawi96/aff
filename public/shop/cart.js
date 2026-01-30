@@ -1014,6 +1014,42 @@ const cart = {
         
         totalAmountElement.textContent = utils.formatPrice(state.total);
         
+        // Update payment row based on payment method
+        const cartPaymentRow = document.getElementById('cartPaymentRow');
+        const cartPaymentLabel = cartPaymentRow?.querySelector('.payment-label');
+        const cartPaymentAmount = document.getElementById('cartPaymentAmount');
+        
+        if (cartPaymentRow && cartPaymentLabel && cartPaymentAmount) {
+            if (state.paymentMethod === 'bank' && cartPayment.bankTransferConfirmed) {
+                // Đã chuyển khoản - hiển thị rõ ràng đã thanh toán
+                cartPaymentRow.classList.remove('hidden');
+                cartPaymentRow.classList.add('paid');
+                cartPaymentRow.classList.add('payment-note-simple');
+                cartPaymentRow.classList.remove('payment-row');
+                cartPaymentLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; flex-shrink: 0;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg><span style="white-space: nowrap;">Đã thanh toán ' + utils.formatPrice(state.total) + '</span><span style="white-space: nowrap;"> - Không cần trả thêm</span>';
+                cartPaymentAmount.textContent = '';
+            } else if (state.paymentMethod === 'bank' && !cartPayment.bankTransferConfirmed) {
+                // Chưa xác nhận chuyển khoản
+                cartPaymentRow.classList.remove('hidden');
+                cartPaymentRow.classList.remove('paid');
+                cartPaymentRow.classList.remove('payment-note-simple');
+                cartPaymentRow.classList.add('payment-row');
+                cartPaymentLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" /><path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" /><path d="M12 7.875a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" /></svg> Cần thanh toán trước';
+                cartPaymentAmount.textContent = utils.formatPrice(state.total);
+            } else if (state.paymentMethod === 'cod') {
+                // COD
+                cartPaymentRow.classList.remove('hidden');
+                cartPaymentRow.classList.remove('paid');
+                cartPaymentRow.classList.remove('payment-note-simple');
+                cartPaymentRow.classList.add('payment-row');
+                cartPaymentLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path d="M10.464 8.746c.227-.18.497-.311.786-.394v2.795a2.252 2.252 0 0 1-.786-.393c-.394-.313-.546-.681-.546-1.004 0-.323.152-.691.546-1.004ZM12.75 15.662v-2.824c.347.085.664.228.921.421.427.32.579.686.579.991 0 .305-.152.671-.579.991a2.534 2.534 0 0 1-.921.42Z" /><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v.816a3.836 3.836 0 0 0-1.72.756c-.712.566-1.112 1.35-1.112 2.178 0 .829.4 1.612 1.113 2.178.502.4 1.102.647 1.719.756v2.978a2.536 2.536 0 0 1-.921-.421l-.879-.66a.75.75 0 0 0-.9 1.2l.879.66c.533.4 1.169.645 1.821.75V18a.75.75 0 0 0 1.5 0v-.81a4.124 4.124 0 0 0 1.821-.749c.745-.559 1.179-1.344 1.179-2.191 0-.847-.434-1.632-1.179-2.191a4.122 4.122 0 0 0-1.821-.75V8.354c.29.082.559.213.786.393l.415.33a.75.75 0 0 0 .933-1.175l-.415-.33a3.836 3.836 0 0 0-1.719-.755V6Z" clip-rule="evenodd" /></svg> Thanh toán khi nhận hàng';
+                cartPaymentAmount.textContent = utils.formatPrice(state.total);
+            } else {
+                // Hide payment row if no payment method selected
+                cartPaymentRow.classList.add('hidden');
+            }
+        }
+        
         // Update checkout button total
         const checkoutTotal = document.getElementById('checkoutTotal');
         if (checkoutTotal) {
@@ -1783,12 +1819,62 @@ const cartPayment = {
     confirmBankTransfer: () => {
         cartPayment.bankTransferConfirmed = true;
         
+        // Get bank transfer info container
+        const bankInfo = document.getElementById('bankTransferInfo');
+        if (bankInfo) {
+            bankInfo.classList.add('confirmed');
+        }
+        
+        // Create confirmed notice
+        const bankInfoContent = document.querySelector('#bankTransferInfo .bank-info-content');
+        if (bankInfoContent && !document.getElementById('bankPaymentConfirmedNotice')) {
+            const confirmedNotice = document.createElement('div');
+            confirmedNotice.id = 'bankPaymentConfirmedNotice';
+            confirmedNotice.className = 'bank-payment-confirmed-notice';
+            confirmedNotice.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+                </svg>
+                <div class="notice-content">
+                    <div class="notice-title">Đã xác nhận thanh toán</div>
+                    <div class="notice-subtitle">Không cần thanh toán khi nhận hàng</div>
+                </div>
+            `;
+            
+            // Insert before bank info content
+            bankInfoContent.parentNode.insertBefore(confirmedNotice, bankInfoContent);
+            
+            // Collapse bank info content
+            bankInfoContent.classList.add('collapsed');
+            
+            // Add toggle button
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'bank-info-toggle';
+            toggleBtn.innerHTML = `
+                <span>Xem thông tin chuyển khoản</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem;">
+                    <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />
+                </svg>
+            `;
+            toggleBtn.onclick = () => {
+                bankInfoContent.classList.toggle('show');
+                toggleBtn.classList.toggle('expanded');
+                const span = toggleBtn.querySelector('span');
+                span.textContent = toggleBtn.classList.contains('expanded') 
+                    ? 'Ẩn thông tin chuyển khoản' 
+                    : 'Xem thông tin chuyển khoản';
+            };
+            
+            bankInfoContent.parentNode.insertBefore(toggleBtn, bankInfoContent.nextSibling);
+        }
+        
         const confirmBtn = document.getElementById('cartBankConfirmBtn');
         const errorMsg = document.getElementById('cartBankConfirmError');
         
         if (confirmBtn) {
+            confirmBtn.style.display = 'none';
             confirmBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle; margin-left: -0.5rem;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Đã xác nhận';
-            confirmBtn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+            confirmBtn.style.background = 'linear-gradient(135deg, #1e8449, #239b56)';
             confirmBtn.style.cursor = 'default';
             confirmBtn.onclick = null;
         }
@@ -1797,7 +1883,9 @@ const cartPayment = {
             errorMsg.classList.add('hidden');
         }
         
-        utils.showToast('Đã xác nhận chuyển khoản! ✓', 'success');
+        // Update summary to show paid status
+        cart.updateSummary();
+        
         console.log('Bank transfer confirmed');
     },
     

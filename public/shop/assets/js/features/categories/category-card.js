@@ -31,7 +31,7 @@ export function createCategoryCard(category) {
 export function renderCategories(categories, containerId) {
     const container = document.getElementById(containerId);
     if (!container) {
-        console.error(`Container #${containerId} not found`);
+        // Container not ready yet - silently return
         return;
     }
     

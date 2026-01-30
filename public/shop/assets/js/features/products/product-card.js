@@ -116,7 +116,7 @@ export function createProductCard(product) {
 export function renderProducts(products, containerId) {
     const container = document.getElementById(containerId);
     if (!container) {
-        console.error(`Container #${containerId} not found`);
+        // Container not ready yet - silently return
         return;
     }
     

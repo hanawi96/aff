@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -99,7 +99,7 @@
             background: linear-gradient(135deg, #fff5f0, #ffe8d6);
             border: 2px dashed #f4a261;
             border-radius: 12px;
-            padding: 1rem 1.5rem;
+            padding: 0.5rem 1rem;
             display: inline-flex;
             align-items: center;
             gap: 0.75rem;
@@ -484,7 +484,7 @@
 
             <!-- Bottom CTA - Handmade Style -->
             <div class="text-center mt-12 md:mt-16">
-                <div class="inline-block bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 px-8 py-6 rounded-2xl border-3 border-dashed border-primary shadow-lg" style="box-shadow: 0 8px 0 rgba(244, 162, 97, 0.15);">
+                <div class="cta-gift-box inline-block bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 px-2 py-6 md:px-8 md:py-6 rounded-2xl border-3 border-dashed border-primary shadow-lg" style="box-shadow: 0 8px 0 rgba(244, 162, 97, 0.15);">
                     <p class="text-lg md:text-xl font-semibold text-gray-800 mb-3">
                         🌿 Món quà ý nghĩa từ thiên nhiên dành cho bé yêu
                     </p>
@@ -511,6 +511,13 @@
             border: 3px dashed #f4a261;
             position: relative;
             box-shadow: 0 4px 12px rgba(244, 162, 97, 0.1);
+        }
+
+        /* CTA Gift Box Responsive Padding */
+        @media (max-width: 767px) {
+            .cta-gift-box {
+                padding: 1.5rem 0.5rem !important;
+            }
         }
 
         /* Alternating rotation for handmade feel */
@@ -1613,7 +1620,7 @@
                     <!-- Bank Transfer Info (Hidden by default) -->
                     <div class="bank-transfer-info hidden" id="bankTransferInfo">
                         <div class="bank-info-header">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block;">
                                 <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
                                 <path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" />
                                 <path d="M12 7.875a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
@@ -1625,7 +1632,6 @@
                                 <span class="bank-info-label">Số tiền cần chuyển:</span>
                                 <span class="bank-info-value highlight" id="bankTransferAmount">0đ</span>
                             </div>
-                            <div class="bank-info-divider"></div>
                             <div class="bank-info-row">
                                 <span class="bank-info-label">Người nhận:</span>
                                 <span class="bank-info-value">LÊ THỊ ANH</span>
@@ -1639,7 +1645,7 @@
                                 <span class="bank-info-value">
                                     <span id="bankAccountNumber">6968969012</span>
                                     <button class="copy-btn" onclick="quickCheckout.copyBankInfo('6968969012')" title="Sao chép">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
                                             <path fill-rule="evenodd" d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 0 1-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0 1 13.5 1.5H15a3 3 0 0 1 2.663 1.618ZM12 4.5A1.5 1.5 0 0 1 13.5 3H15a1.5 1.5 0 0 1 1.5 1.5H12Z" clip-rule="evenodd" />
                                             <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 0 1 9 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0 1 16.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625v-12Z" />
                                             <path d="M10.5 10.5a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963 5.23 5.23 0 0 0-3.434-1.279h-1.875a.375.375 0 0 1-.375-.375V10.5Z" />
@@ -1652,7 +1658,7 @@
                                 <span class="bank-info-value">
                                     <span id="bankTransferNote">0386190596</span>
                                     <button class="copy-btn" onclick="quickCheckout.copyBankInfo('0386190596')" title="Sao chép">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
                                             <path fill-rule="evenodd" d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 0 1-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0 1 13.5 1.5H15a3 3 0 0 1 2.663 1.618ZM12 4.5A1.5 1.5 0 0 1 13.5 3H15a1.5 1.5 0 0 1 1.5 1.5H12Z" clip-rule="evenodd" />
                                             <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 0 1 9 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0 1 16.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625v-12Z" />
                                             <path d="M10.5 10.5a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963 5.23 5.23 0 0 0-3.434-1.279h-1.875a.375.375 0 0 1-.375-.375V10.5Z" />
@@ -1661,28 +1667,16 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="bank-info-note">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
-                                <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
-                            </svg>
-                            Lưu ý: Vui lòng chuyển đúng số tiền và nội dung.
-                        </div>
-                        
-                        <!-- Compact Countdown Timer -->
-                        <div class="payment-countdown-compact" id="paymentCountdown">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg>
-                            <span>Vui lòng thanh toán trong</span>
-                            <strong id="countdownTime">10:00</strong>
-                        </div>
+                       
                         
                         <button class="bank-confirm-btn" id="bankConfirmBtn" onclick="quickCheckout.confirmBankTransfer()">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;">
                                 <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
                             </svg>
                             Xác nhận đã chuyển khoản
                         </button>
                         <div class="bank-confirm-error hidden" id="bankConfirmError">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
                                 <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
                             </svg>
                             Vui lòng bấm xác nhận đã chuyển khoản
