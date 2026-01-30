@@ -193,6 +193,7 @@
 }
 
 .faq-btn-zalo {
+  flex: 2;
   background: linear-gradient(135deg, #0068FF 0%, #0052CC 100%);
   color: white;
 }
@@ -202,6 +203,7 @@
 }
 
 .faq-btn-close {
+  flex: 0.8;
   background: white;
   color: #6b7280;
   border: 2px solid #e5e7eb;
@@ -236,6 +238,6 @@
   .faq-contact { padding: 16px; }
   .faq-contact h3 { font-size: 16px; }
   .faq-contact p { font-size: 13px; }
-  .faq-modal-footer { padding: 16px; flex-direction: column; }
-  .faq-btn { padding: 12px 20px; font-size: 14px; }
+  .faq-modal-footer { padding: 16px; gap: 8px; }
+  .faq-btn { padding: 12px 16px; font-size: 14px; }
 }
