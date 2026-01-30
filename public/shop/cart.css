@@ -966,17 +966,6 @@ body {
     z-index: 10;
 }
 
-.customer-info-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
-    border-radius: 20px 20px 0 0;
-}
-
 .customer-info-header {
     display: flex;
     align-items: center;
