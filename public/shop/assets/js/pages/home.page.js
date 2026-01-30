@@ -240,6 +240,9 @@ export class HomePage {
         if (activeFlashSale && activeFlashSale.products && activeFlashSale.products.length > 0) {
             console.log('🔥 Flash sale products:', activeFlashSale.products.length);
             
+            // Show flash sale section
+            this.showFlashSaleSection();
+            
             // Render products directly to container
             const container = document.getElementById('flashSaleProducts');
             if (container) {
@@ -259,6 +262,7 @@ export class HomePage {
                 });
             } else {
                 console.warn('🔥 Container #flashSaleProducts not found');
+                this.hideFlashSaleSection();
             }
             
             // Start timer
@@ -275,9 +279,21 @@ export class HomePage {
      * Hide flash sale section if no active sales
      */
     hideFlashSaleSection() {
-        const section = document.getElementById('flashSaleSection');
+        const section = document.getElementById('flash-sale');
         if (section) {
             section.style.display = 'none';
+            console.log('🔥 Flash sale section hidden');
+        }
+    }
+    
+    /**
+     * Show flash sale section
+     */
+    showFlashSaleSection() {
+        const section = document.getElementById('flash-sale');
+        if (section) {
+            section.style.display = 'block';
+            console.log('🔥 Flash sale section shown');
         }
     }
     
