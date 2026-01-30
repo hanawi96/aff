@@ -220,6 +220,17 @@ export class HierarchicalAddressSelector {
                 this.performSearch(); // Render appropriate list
             });
             
+            searchInput.addEventListener('click', (e) => {
+                // Check if user clicked on X symbol
+                if (e.target.getAttribute('data-display-mode') === 'true') {
+                    const clickPosition = e.target.selectionStart;
+                    const text = e.target.value;
+                    
+                    // Find which X was clicked based on cursor position
+                    this.handleDeleteClick(text, clickPosition);
+                }
+            });
+            
             // Keyboard navigation
             searchInput.addEventListener('keydown', (e) => {
                 this.handleKeyboardNavigation(e);
@@ -386,17 +397,95 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Get selected address text for display
+     * Handle click on delete (X) symbol
+     */
+    handleDeleteClick(text, clickPosition) {
+        // Find all X positions
+        const xPositions = [];
+        for (let i = 0; i < text.length; i++) {
+            if (text[i] === 'ⓧ') {
+                xPositions.push({ pos: i, level: null });
+            }
+        }
+        
+        // Determine which level each X belongs to
+        if (xPositions.length === 3) {
+            // Province X / District X / Ward X
+            xPositions[0].level = 'province';
+            xPositions[1].level = 'district';
+            xPositions[2].level = 'ward';
+        } else if (xPositions.length === 2) {
+            // Province X / District X
+            xPositions[0].level = 'province';
+            xPositions[1].level = 'district';
+        } else if (xPositions.length === 1) {
+            // Province X
+            xPositions[0].level = 'province';
+        }
+        
+        // Find which X was clicked (within 2 characters range)
+        for (const xPos of xPositions) {
+            if (Math.abs(clickPosition - xPos.pos) <= 2) {
+                this.deleteLevel(xPos.level);
+                return;
+            }
+        }
+    }
+    
+    /**
+     * Delete a specific level
+     */
+    deleteLevel(level) {
+        if (level === 'province') {
+            // Reset everything
+            this.reset();
+        } else if (level === 'district') {
+            // Keep province, reset district and ward
+            this.districtCode = '';
+            this.wardCode = '';
+            this.selectedDistrict = null;
+            this.selectedWard = null;
+            this.currentLevel = 'district';
+            this.hideStreetInput();
+            this.updateSearchInputDisplay();
+            this.updateFullAddress();
+            
+            // Open dropdown to select district
+            const searchInput = document.getElementById('addressSearchInput');
+            if (searchInput) {
+                searchInput.focus();
+                this.performSearch();
+            }
+        } else if (level === 'ward') {
+            // Keep province and district, reset ward
+            this.wardCode = '';
+            this.selectedWard = null;
+            this.currentLevel = 'ward';
+            this.hideStreetInput();
+            this.updateSearchInputDisplay();
+            this.updateFullAddress();
+            
+            // Open dropdown to select ward
+            const searchInput = document.getElementById('addressSearchInput');
+            if (searchInput) {
+                searchInput.focus();
+                this.performSearch();
+            }
+        }
+    }
+    
+    /**
+     * Get selected address text for display with delete buttons
      */
     getSelectedAddressText() {
         let text = '';
         
         if (this.selectedWard) {
-            text = `${this.selectedProvince.name}/${this.selectedDistrict.name}/${this.selectedWard.name}`;
+            text = `${this.selectedProvince.name} ⓧ / ${this.selectedDistrict.name} ⓧ / ${this.selectedWard.name} ⓧ`;
         } else if (this.selectedDistrict) {
-            text = `${this.selectedProvince.name}/${this.selectedDistrict.name}`;
+            text = `${this.selectedProvince.name} ⓧ / ${this.selectedDistrict.name} ⓧ`;
         } else if (this.selectedProvince) {
-            text = this.selectedProvince.name;
+            text = `${this.selectedProvince.name} ⓧ`;
         }
         
         return text;
