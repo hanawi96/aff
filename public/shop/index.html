@@ -1699,12 +1699,10 @@
                 <div class="order-details-section">
                     <button class="order-details-toggle active" id="orderDetailsToggle">
                         <span class="order-details-title">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block;">
-                                <path d="M11.644 1.59a.75.75 0 0 1 .712 0l9.75 5.25a.75.75 0 0 1 0 1.32l-9.75 5.25a.75.75 0 0 1-.712 0l-9.75-5.25a.75.75 0 0 1 0-1.32l9.75-5.25Z" />
-                                <path d="m3.265 10.602 7.668 4.129a2.25 2.25 0 0 0 2.134 0l7.668-4.13 1.37.739a.75.75 0 0 1 0 1.32l-9.75 5.25a.75.75 0 0 1-.71 0l-9.75-5.25a.75.75 0 0 1 0-1.32l1.37-.738Z" />
-                                <path d="m10.933 19.231-7.668-4.13-1.37.739a.75.75 0 0 0 0 1.32l9.75 5.25c.221.12.489.12.71 0l9.75-5.25a.75.75 0 0 0 0-1.32l-1.37-.738-7.668 4.13a2.25 2.25 0 0 1-2.134-.001Z" />
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.3rem; height: 1.3rem; display: inline-block;">
+                                <path fill-rule="evenodd" d="M12 1.5c-1.921 0-3.816.111-5.68.327-1.497.174-2.57 1.46-2.57 2.93V21.75a.75.75 0 0 0 1.029.696l3.471-1.388 3.472 1.388a.75.75 0 0 0 .556 0l3.472-1.388 3.471 1.388a.75.75 0 0 0 1.029-.696V4.757c0-1.47-1.073-2.756-2.57-2.93A49.255 49.255 0 0 0 12 1.5Zm3.53 7.28a.75.75 0 0 0-1.06-1.06l-6 6a.75.75 0 1 0 1.06 1.06l6-6ZM8.625 9a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Zm5.625 3.375a1.125 1.125 0 1 0 0 2.25 1.125 1.125 0 0 0 0-2.25Z" clip-rule="evenodd" />
                             </svg>
-                            Chi tiết đơn hàng
+                            Tóm tắt đơn hàng
                         </span>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="toggle-icon" style="width: 1.125rem; height: 1.125rem;">
                             <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />
@@ -1712,65 +1710,46 @@
                     </button>
                     
                     <div class="order-details-content show" id="orderDetailsContent">
-                        <!-- Products List -->
-                        <div class="order-products-list">
-                            <!-- Main Product -->
-                            <div class="order-item">
-                                <div class="order-item-info">
-                                    <span class="order-item-name" id="orderMainProductName">Sản phẩm</span>
-                                    <span class="order-item-qty" id="orderMainProductQty">x1</span>
-                                </div>
-                                <span class="order-item-price" id="orderMainProductPrice">0đ</span>
-                            </div>
-                            
-                            <!-- Cross-sell Products -->
-                            <div id="orderCrossSellItems"></div>
-                        </div>
-                        
-                        <!-- Summary Section -->
-                        <div class="order-summary-section">
-                            <!-- Subtotal -->
+                        <!-- Use same structure as cart summary -->
+                        <div class="summary-rows">
                             <div class="summary-row">
-                                <span>Tạm tính:</span>
+                                <span>Tạm tính <span class="item-count" id="orderItemCount">(1 sp)</span>:</span>
                                 <span class="amount" id="orderSubtotal">0đ</span>
                             </div>
                             
-                            <!-- Shipping -->
                             <div class="summary-row">
                                 <span>Phí vận chuyển:</span>
-                                <span class="amount" id="orderShipping">0đ</span>
+                                <span class="amount" id="orderShipping">30.000đ</span>
                             </div>
                             
-                            <!-- Discount (if any) -->
+                            <div class="summary-row discount-row hidden" id="orderFreeshipRow">
+                                <span>Miễn phí vận chuyển <span class="discount-code-label" id="orderFreeshipLabel"></span>:</span>
+                                <span class="amount discount-amount" id="orderFreeshipAmount">-0đ</span>
+                            </div>
+                            
                             <div class="summary-row discount-row hidden" id="orderDiscountRow">
-                                <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
-                                        <path fill-rule="evenodd" d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" clip-rule="evenodd" />
-                                    </svg>
-                                    Giảm giá:
-                                </span>
+                                <span>Giảm giá <span class="discount-code-label" id="orderDiscountCodeLabel"></span>:</span>
                                 <span class="amount discount-amount" id="orderDiscountAmount">-0đ</span>
                             </div>
-                            
-                            <div class="summary-divider"></div>
-                            
-                            <!-- Total -->
-                            <div class="summary-row total-row">
-                                <span>Tổng cộng:</span>
-                                <span class="amount total-amount" id="orderTotalDetail">0đ</span>
-                            </div>
-                            
-                            <!-- Payment on Delivery (COD) -->
-                            <div class="summary-row payment-row hidden" id="orderPaymentRow">
-                                <span class="payment-label">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
-                                        <path d="M10.464 8.746c.227-.18.497-.311.786-.394v2.795a2.252 2.252 0 0 1-.786-.393c-.394-.313-.546-.681-.546-1.004 0-.323.152-.691.546-1.004ZM12.75 15.662v-2.824c.347.085.664.228.921.421.427.32.579.686.579.991 0 .305-.152.671-.579.991a2.534 2.534 0 0 1-.921.42Z" />
-                                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v.816a3.836 3.836 0 0 0-1.72.756c-.712.566-1.112 1.35-1.112 2.178 0 .829.4 1.612 1.113 2.178.502.4 1.102.647 1.719.756v2.978a2.536 2.536 0 0 1-.921-.421l-.879-.66a.75.75 0 0 0-.9 1.2l.879.66c.533.4 1.169.645 1.821.75V18a.75.75 0 0 0 1.5 0v-.81a4.124 4.124 0 0 0 1.821-.749c.745-.559 1.179-1.344 1.179-2.191 0-.847-.434-1.632-1.179-2.191a4.122 4.122 0 0 0-1.821-.75V8.354c.29.082.559.213.786.393l.415.33a.75.75 0 0 0 .933-1.175l-.415-.33a3.836 3.836 0 0 0-1.719-.755V6Z" clip-rule="evenodd" />
-                                    </svg>
-                                    <span id="orderPaymentLabel">Thanh toán khi nhận hàng</span>
-                                </span>
-                                <span class="amount payment-value" id="orderPaymentAmount">0đ</span>
-                            </div>
+                        </div>
+                        
+                        <div class="summary-divider"></div>
+                        
+                        <div class="summary-total">
+                            <span>Tổng cộng:</span>
+                            <span class="total-amount" id="orderTotalDetail">0đ</span>
+                        </div>
+                        
+                        <!-- Payment Status Row (for bank transfer) -->
+                        <div class="summary-row payment-row hidden" id="orderPaymentRow">
+                            <span class="payment-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
+                                    <path d="M10.464 8.746c.227-.18.497-.311.786-.394v2.795a2.252 2.252 0 0 1-.786-.393c-.394-.313-.546-.681-.546-1.004 0-.323.152-.691.546-1.004ZM12.75 15.662v-2.824c.347.085.664.228.921.421.427.32.579.686.579.991 0 .305-.152.671-.579.991a2.534 2.534 0 0 1-.921.42Z" />
+                                    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v.816a3.836 3.836 0 0 0-1.72.756c-.712.566-1.112 1.35-1.112 2.178 0 .829.4 1.612 1.113 2.178.502.4 1.102.647 1.719.756v2.978a2.536 2.536 0 0 1-.921-.421l-.879-.66a.75.75 0 0 0-.9 1.2l.879.66c.533.4 1.169.645 1.821.75V18a.75.75 0 0 0 1.5 0v-.81a4.124 4.124 0 0 0 1.821-.749c.745-.559 1.179-1.344 1.179-2.191 0-.847-.434-1.632-1.179-2.191a4.122 4.122 0 0 0-1.821-.75V8.354c.29.082.559.213.786.393l.415.33a.75.75 0 0 0 .933-1.175l-.415-.33a3.836 3.836 0 0 0-1.719-.755V6Z" clip-rule="evenodd" />
+                                </svg>
+                                Thanh toán khi nhận hàng
+                            </span>
+                            <span class="amount payment-value" id="orderPaymentAmount">0đ</span>
                         </div>
                     </div>
                 </div>
@@ -2058,6 +2037,16 @@
     </div>
 
     <link rel="stylesheet" href="assets/css/faq-modal.css">
+    
+    <!-- Image Preview Modal -->
+    <div class="image-preview-modal" id="imagePreviewModal">
+        <div class="image-preview-content">
+            <button class="image-preview-close" onclick="window.closeImagePreview()">&times;</button>
+            <img id="imagePreviewImg" src="" alt="">
+            <div class="image-preview-title" id="imagePreviewTitle"></div>
+        </div>
+    </div>
+    
     <script type="module" src="assets/js/app.js"></script>
     <script src="assets/js/faq-modal.js"></script>
 </body>

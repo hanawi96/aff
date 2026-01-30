@@ -1955,10 +1955,20 @@ const bundleCountdown = {
         
         const countdownText = document.getElementById('bundleCountdownText');
         if (countdownText) {
-            countdownText.textContent = 
-                String(hours).padStart(2, '0') + ':' +
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
+            // Format with time-number class for styled boxes (same as flash sale)
+            const h = String(hours).padStart(2, '0');
+            const m = String(minutes).padStart(2, '0');
+            const s = String(seconds).padStart(2, '0');
+            
+            const displayText = `<span class="time-number">${h}</span>:<span class="time-number">${m}</span>:<span class="time-number">${s}</span>`;
+            
+            // Add show-seconds class for consistent styling with flash sale
+            const badge = countdownText.closest('.bundle-offer-badge');
+            if (badge) {
+                badge.classList.add('show-seconds');
+            }
+            
+            countdownText.innerHTML = displayText;
         }
     },
     

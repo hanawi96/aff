@@ -18,15 +18,23 @@ export class FlashSaleTimer {
     start() {
         if (!this.flashSale) return;
         
-        const endTime = this.flashSale.end_time * 1000;
+        // FAKE COUNTDOWN: Always show 2 hours 26 minutes countdown
+        // This creates urgency without depending on actual database time
+        const FAKE_HOURS = 2;
+        const FAKE_MINUTES = 26;
+        const FAKE_SECONDS = 0;
+        
+        // Calculate fake end time (2h 26m from now)
+        const fakeEndTime = Date.now() + (FAKE_HOURS * 60 * 60 * 1000) + (FAKE_MINUTES * 60 * 1000) + (FAKE_SECONDS * 1000);
         
         const updateTimer = () => {
             const now = Date.now();
-            const diff = endTime - now;
+            const diff = fakeEndTime - now;
             
             if (diff <= 0) {
+                // When countdown ends, restart it (loop forever)
                 this.stop();
-                this.setTime(0, 0, 0);
+                this.start(); // Restart with fresh 2h 26m
                 return;
             }
             
@@ -86,30 +94,54 @@ export class FlashSaleTimer {
     }
     
     /**
-     * Set time display
+     * Set time display with smart formatting
      */
     setTime(hours, minutes, seconds) {
-        const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        // Simple digital clock format: 02:26:26
+        const h = String(hours).padStart(2, '0');
+        const m = String(minutes).padStart(2, '0');
+        const s = String(seconds).padStart(2, '0');
+        
+        let displayText = `<span class="time-number">${h}</span>:<span class="time-number">${m}</span>:<span class="time-number">${s}</span>`;
+        
+        // Legacy format for compatibility
+        const timeString = `${h}:${m}:${s}`;
         
         // Update old timer elements (if exist)
         const hoursEl = document.getElementById('hours');
         const minutesEl = document.getElementById('minutes');
         const secondsEl = document.getElementById('seconds');
         
-        if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
-        if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
-        if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        if (hoursEl) hoursEl.textContent = h;
+        if (minutesEl) minutesEl.textContent = m;
+        if (secondsEl) secondsEl.textContent = s;
         
         // Update footer timer
         const footerTimer = document.getElementById('flashSaleTimer');
         if (footerTimer) {
-            footerTimer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg><span>Kết thúc sau: <strong>${timeString}</strong></span>`;
+            footerTimer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg><span>${displayText}</span>`;
         }
         
-        // Update badge timer (inside badge - just time)
+        // Update badge timer
         const badgeTimer = document.getElementById('flashSaleBadgeTimer');
         if (badgeTimer) {
-            badgeTimer.textContent = timeString;
+            // Check if content changed to trigger animation
+            const oldContent = badgeTimer.getAttribute('data-old-content');
+            const newContent = displayText;
+            
+            if (oldContent !== newContent) {
+                badgeTimer.classList.add('updating');
+                setTimeout(() => badgeTimer.classList.remove('updating'), 300);
+            }
+            
+            badgeTimer.innerHTML = displayText;
+            badgeTimer.setAttribute('data-old-content', newContent);
+            
+            // Add show-seconds class for consistent styling
+            const badge = badgeTimer.closest('.bundle-offer-badge');
+            if (badge) {
+                badge.classList.add('show-seconds');
+            }
         }
     }
 }

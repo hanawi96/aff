@@ -1294,47 +1294,21 @@ export class QuickCheckout {
         // Calculate weight surcharge once at the beginning
         const weightSurcharge = this.getCurrentWeightSurcharge();
         
-        // Update main product
-        document.getElementById('orderMainProductName').textContent = this.product.name;
-        document.getElementById('orderMainProductQty').textContent = `x${this.quantity}`;
-        
-        // Calculate product price with weight surcharge
-        const productTotalPrice = (this.product.price * this.quantity) + weightSurcharge;
-        document.getElementById('orderMainProductPrice').textContent = formatPrice(productTotalPrice);
-        
-        // Update cross-sell products
-        const crossSellContainer = document.getElementById('orderCrossSellItems');
-        if (this.selectedCrossSells.length > 0) {
-            let html = '';
-            this.selectedCrossSells.forEach(item => {
-                const product = this.crossSellProducts.find(p => p.id === item.id);
-                if (product) {
-                    html += '<div class="order-item">';
-                    html += '<div class="order-item-info">';
-                    html += '<span class="order-item-name">' + escapeHtml(product.name) + '</span>';
-                    html += '<span class="order-item-qty">x' + item.quantity + '</span>';
-                    html += '</div>';
-                    html += '<div class="order-item-actions">';
-                    html += '<span class="order-item-price">' + formatPrice(product.price * item.quantity) + '</span>';
-                    html += '<button class="order-item-remove" onclick="quickCheckout.removeCrossSell(' + product.id + ')" title="Xóa sản phẩm">';
-                    html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" /></svg>';
-                    html += '</button>';
-                    html += '</div>';
-                    html += '</div>';
-                }
-            });
-            crossSellContainer.innerHTML = html;
-            crossSellContainer.classList.remove('hidden');
-        } else {
-            crossSellContainer.classList.add('hidden');
-        }
-        
         // Calculate totals (reuse weightSurcharge from above)
         const subtotal = (this.product.price * this.quantity) + weightSurcharge;
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => {
             const product = this.crossSellProducts.find(p => p.id === item.id);
             return sum + (product ? product.price * item.quantity : 0);
         }, 0);
+        
+        // Calculate total item count
+        const totalItemCount = this.quantity + this.selectedCrossSells.reduce((sum, item) => sum + item.quantity, 0);
+        
+        // Update item count display
+        const orderItemCount = document.getElementById('orderItemCount');
+        if (orderItemCount) {
+            orderItemCount.textContent = `(${totalItemCount} sp)`;
+        }
         
         // Calculate shipping (free if any cross-sell selected or discount is freeship)
         const hasFreeShipping = this.selectedCrossSells.length > 0 || 

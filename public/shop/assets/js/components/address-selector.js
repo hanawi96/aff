@@ -67,8 +67,8 @@ export class AddressSelector {
         
         html += '</div>';
         
-        // Full address display
-        html += '<div class="address-display" id="addressDisplay">';
+        // Full address display - Hidden by default
+        html += '<div class="address-display hidden" id="addressDisplay">';
         html += '<div class="address-display-label">Địa chỉ đầy đủ:</div>';
         html += '<div class="address-display-text">Vui lòng chọn địa chỉ</div>';
         html += '</div>';
@@ -98,6 +98,16 @@ export class AddressSelector {
                 this.updateDistricts();
                 this.updateFullAddress();
                 
+                // Show address display when province is selected
+                const addressDisplay = document.getElementById('addressDisplay');
+                if (addressDisplay) {
+                    if (this.provinceCode) {
+                        addressDisplay.classList.remove('hidden');
+                    } else {
+                        addressDisplay.classList.add('hidden');
+                    }
+                }
+                
                 // Auto-open district dropdown ONLY on desktop
                 if (!isMobile && e.isTrusted && this.provinceCode) {
                     this.autoOpenDropdown(districtSelect);
@@ -125,8 +135,11 @@ export class AddressSelector {
                 this.wardCode = e.target.value;
                 this.updateFullAddress();
                 
-                // Enable and focus street input
+                const streetItem = document.getElementById('streetItem');
+                
+                // Show and enable street input when ward is selected
                 if (streetInput && this.wardCode) {
+                    streetItem?.classList.remove('hidden');
                     streetInput.disabled = false;
                     
                     // On mobile: just focus without scroll
@@ -223,12 +236,20 @@ export class AddressSelector {
      */
     updateDistricts() {
         const districtSelect = document.getElementById('districtSelect');
+        const districtItem = document.getElementById('districtItem');
         const wardSelect = document.getElementById('wardSelect');
+        const wardItem = document.getElementById('wardItem');
         const streetInput = document.getElementById('streetInput');
+        const streetItem = document.getElementById('streetItem');
         
         if (!districtSelect) return;
         
         if (!this.provinceCode) {
+            // Hide all subsequent fields
+            districtItem?.classList.add('hidden');
+            wardItem?.classList.add('hidden');
+            streetItem?.classList.add('hidden');
+            
             districtSelect.disabled = true;
             districtSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
             wardSelect.disabled = true;
@@ -248,6 +269,13 @@ export class AddressSelector {
         districtSelect.innerHTML = html;
         districtSelect.disabled = false;
         
+        // Show district field
+        districtItem?.classList.remove('hidden');
+        
+        // Hide subsequent fields
+        wardItem?.classList.add('hidden');
+        streetItem?.classList.add('hidden');
+        
         // Reset wards and street
         wardSelect.disabled = true;
         wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
@@ -260,11 +288,17 @@ export class AddressSelector {
      */
     updateWards() {
         const wardSelect = document.getElementById('wardSelect');
+        const wardItem = document.getElementById('wardItem');
         const streetInput = document.getElementById('streetInput');
+        const streetItem = document.getElementById('streetItem');
         
         if (!wardSelect) return;
         
         if (!this.districtCode) {
+            // Hide subsequent fields
+            wardItem?.classList.add('hidden');
+            streetItem?.classList.add('hidden');
+            
             wardSelect.disabled = true;
             wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
             streetInput.disabled = true;
@@ -281,6 +315,12 @@ export class AddressSelector {
         
         wardSelect.innerHTML = html;
         wardSelect.disabled = false;
+        
+        // Show ward field
+        wardItem?.classList.remove('hidden');
+        
+        // Hide street field until ward is selected
+        streetItem?.classList.add('hidden');
         
         // Reset street
         streetInput.disabled = true;

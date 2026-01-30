@@ -4,6 +4,7 @@
 
 import { loadCommonPartials } from './shared/partials-loader.js';
 import { HomePage } from './pages/home.page.js';
+import './shared/utils/image-preview.js'; // Import image preview utility
 
 /**
  * Application Entry Point

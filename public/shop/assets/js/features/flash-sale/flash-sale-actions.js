@@ -125,4 +125,48 @@ export class FlashSaleActions {
             badge.textContent = itemCount;
         }
     }
+    
+    /**
+     * Preview product image
+     */
+    previewImage(imageUrl, productName) {
+        const modal = document.getElementById('imagePreviewModal');
+        const img = document.getElementById('imagePreviewImg');
+        const title = document.getElementById('imagePreviewTitle');
+        
+        if (modal && img && title) {
+            img.src = imageUrl;
+            img.alt = productName;
+            title.textContent = productName;
+            modal.classList.add('active');
+            
+            // Close on click outside
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    window.closeImagePreview();
+                }
+            };
+            
+            // Close on ESC key
+            document.addEventListener('keydown', this.handleEscKey);
+        }
+    }
+    
+    /**
+     * Handle ESC key press
+     */
+    handleEscKey(e) {
+        if (e.key === 'Escape') {
+            window.closeImagePreview();
+        }
+    }
 }
+
+// Global function to close image preview
+window.closeImagePreview = function() {
+    const modal = document.getElementById('imagePreviewModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.removeEventListener('keydown', FlashSaleActions.prototype.handleEscKey);
+    }
+};
