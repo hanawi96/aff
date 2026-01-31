@@ -6068,8 +6068,7 @@ body {
     border-radius: 16px;
     max-width: 500px;
     width: 100%;
-    max-height: 85vh; /* Tăng từ calc(100vh - 48px) */
-    min-height: 500px; /* Đảm bảo chiều cao tối thiểu */
+    max-height: 85vh;
     margin: auto;
     display: flex;
     flex-direction: column;
@@ -6199,13 +6198,17 @@ body {
     
     .address-modal-content {
         max-height: 100vh;
-        min-height: 100vh;
+        min-height: 100vh; /* Full height on mobile */
         border-radius: 0;
         margin: 0;
     }
     
     .address-modal-header {
         padding: 1rem;
+        /* Ensure header stays at top */
+        position: sticky;
+        top: 0;
+        z-index: 11;
     }
     
     .address-modal-header h3 {
@@ -6213,11 +6216,25 @@ body {
     }
     
     .address-modal-body {
-        padding: 1rem 0.5rem;
+        padding: 1rem;
+        /* Reasonable padding for mobile - removed excessive 80px */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        /* Add padding for sticky footer */
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     }
     
     .address-modal-footer {
         padding: 1rem;
+        /* Ensure button is always visible above browser bar */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
+        /* Sticky on mobile too */
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        /* Enhanced shadow for mobile */
+        box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.12);
+        /* Ensure it's above everything */
+        background: white;
     }
 }
 
@@ -6257,6 +6274,10 @@ body {
     
     .address-modal-header {
         padding: 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 11;
+        background: white;
     }
     
     .address-modal-header h3 {
@@ -6265,8 +6286,8 @@ body {
     
     .address-modal-body {
         padding: 1rem;
-        /* Reasonable padding for mobile - removed excessive 80px */
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        /* Add padding for sticky footer - button height ~60px + padding */
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     }
     
     .address-modal-footer {
@@ -6274,10 +6295,13 @@ body {
         /* Ensure button is always visible above browser bar */
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
         /* Sticky on mobile too */
-        position: sticky;
+        position: fixed;
         bottom: 0;
+        left: 0;
+        right: 0;
         z-index: 10;
         /* Enhanced shadow for mobile */
         box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.12);
+        background: white;
     }
 }
