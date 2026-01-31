@@ -615,6 +615,12 @@ export class QuickCheckout {
         if (method === 'cod') {
             this.bankTransferConfirmed = false;
             this.stopCountdown();
+            
+            // Remove 'paid' class from order details section
+            const orderDetailsSection = document.querySelector('.order-details-section');
+            if (orderDetailsSection) {
+                orderDetailsSection.classList.remove('paid');
+            }
         }
         
         // Update UI - both active class and radio button
@@ -780,6 +786,12 @@ export class QuickCheckout {
         const bankInfo = document.getElementById('bankTransferInfo');
         if (bankInfo) {
             bankInfo.classList.add('confirmed');
+        }
+        
+        // Add 'paid' class to order details section to change total amount color to green
+        const orderDetailsSection = document.querySelector('.order-details-section');
+        if (orderDetailsSection) {
+            orderDetailsSection.classList.add('paid');
         }
         
         // Create confirmed notice
@@ -1610,7 +1622,6 @@ export class QuickCheckout {
                 discountResult.innerHTML = '<div class="discount-error">✗ Mã giảm giá không tồn tại hoặc đã hết hạn</div>';
                 discountResult.style.display = 'block';
             }
-            showToast('Mã giảm giá không hợp lệ', 'error');
             return;
         }
         
@@ -1621,7 +1632,6 @@ export class QuickCheckout {
                 discountResult.innerHTML = '<div class="discount-error">✗ Đơn hàng tối thiểu ' + formatPrice(discount.min_order_amount) + ' để áp dụng mã này</div>';
                 discountResult.style.display = 'block';
             }
-            showToast('Chưa đủ điều kiện áp dụng mã', 'error');
             return;
         }
         
@@ -1772,7 +1782,6 @@ export class QuickCheckout {
         this.appliedDiscount = discount;
         this.discountAmount = amount;
         this.updateSummary();
-        showToast('Đã áp dụng mã giảm giá!', 'success');
     }
     
     /**
@@ -1782,7 +1791,6 @@ export class QuickCheckout {
         this.appliedDiscount = null;
         this.discountAmount = 0;
         this.updateSummary();
-        showToast('Đã xóa mã giảm giá', 'info');
     }
     
     /**

@@ -1474,7 +1474,7 @@ const discount = {
         const code = input.value.trim().toUpperCase();
 
         if (!code) {
-            utils.showToast('Vui lòng nhập mã giảm giá', 'error');
+            discount.showResult('Vui lòng nhập mã giảm giá', 'error');
             return;
         }
 
@@ -1572,8 +1572,6 @@ const discount = {
             applyBtn.onclick = discount.changeCode;
             applyBtn.classList.add('btn-change-code');
         }
-        
-        utils.showToast('Áp dụng mã thành công!', 'success');
     },
 
     // Change discount code
@@ -1636,8 +1634,6 @@ const discount = {
         
         cart.updateSummary();
         discount.showResult('', 'error');
-        
-        utils.showToast('Đã xóa mã giảm giá', 'success');
     },
 
     // Show discount result
