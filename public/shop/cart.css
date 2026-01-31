@@ -2306,6 +2306,18 @@ body {
     font-weight: 900;
 }
 
+/* Change total amount color to green when paid */
+.cart-summary.paid .total-amount {
+    color: #27ae60;
+    transition: color 0.3s ease;
+}
+
+/* Change "Đã thanh toán:" label color to green when paid */
+.cart-summary.paid .summary-total #totalLabel {
+    color: #27ae60;
+    transition: color 0.3s ease;
+}
+
 .btn-checkout {
     width: 100%;
     padding: 1.125rem 1.5rem;
