@@ -974,13 +974,20 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
+        console.log('📂 [DEBUG] Opening dropdown...');
+        console.log('📂 [DEBUG] Window width:', window.innerWidth);
+        
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
+            console.log('📂 [DEBUG] Dropdown visible');
             
             // Lock body scroll on mobile (but not in modal - modal already locks body)
             if (window.innerWidth <= 768) {
+                console.log('📂 [DEBUG] Mobile detected - calling lockBodyScroll()');
                 this.lockBodyScroll();
+            } else {
+                console.log('📂 [DEBUG] Desktop - skip body lock');
             }
         }
         
@@ -1001,11 +1008,15 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
+        console.log('📁 [DEBUG] Closing dropdown...');
+        
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
+            console.log('📁 [DEBUG] Dropdown hidden');
             
             // Unlock body scroll
+            console.log('📁 [DEBUG] Calling unlockBodyScroll()');
             this.unlockBodyScroll();
         }
         
@@ -1028,12 +1039,16 @@ export class HierarchicalAddressSelector {
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
             // In modal - don't lock body, it's already locked
+            console.log('🔒 [DEBUG] In modal - skip body lock');
             return;
         }
         
         // Add class to both html and body for scroll lock
         document.documentElement.classList.add('address-dropdown-open');
         document.body.classList.add('address-dropdown-open');
+        console.log('🔒 [DEBUG] Body scroll LOCKED - classes added to html and body');
+        console.log('🔒 [DEBUG] html overflow:', window.getComputedStyle(document.documentElement).overflow);
+        console.log('🔒 [DEBUG] body overflow:', window.getComputedStyle(document.body).overflow);
     }
     
     /**
@@ -1044,12 +1059,14 @@ export class HierarchicalAddressSelector {
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
             // In modal - don't unlock body
+            console.log('🔓 [DEBUG] In modal - skip body unlock');
             return;
         }
         
         // Remove class from both html and body
         document.documentElement.classList.remove('address-dropdown-open');
         document.body.classList.remove('address-dropdown-open');
+        console.log('🔓 [DEBUG] Body scroll UNLOCKED - classes removed from html and body');
     }
     
     /**
