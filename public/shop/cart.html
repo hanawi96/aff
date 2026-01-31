@@ -45,6 +45,47 @@
             </div>
         </div>
     </header>
+    
+    <!-- DEBUG: Copy Logs Button (TEMPORARY - Remove after debugging) -->
+    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 99999;">
+        <button id="copyLogsBtn" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        ">
+            📋 Copy Logs
+        </button>
+    </div>
+    <script>
+        document.getElementById('copyLogsBtn').addEventListener('click', function() {
+            const logs = window.addressDebugLogs || [];
+            const logText = logs.join('\n');
+            
+            // Copy to clipboard
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(logText).then(() => {
+                    this.textContent = '✅ Copied!';
+                    this.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+                    setTimeout(() => {
+                        this.innerHTML = '📋 Copy Logs';
+                        this.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    }, 2000);
+                });
+            } else {
+                // Fallback for older browsers
+                alert('Logs:\n\n' + logText);
+            }
+        });
+    </script>
 
     <!-- Main Content -->
     <main class="cart-main">

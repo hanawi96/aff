@@ -974,20 +974,30 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
-        console.log('📂 [DEBUG] Opening dropdown...');
-        console.log('📂 [DEBUG] Window width:', window.innerWidth);
+        const log1 = `📂 [DEBUG] Opening dropdown...`;
+        const log2 = `📂 [DEBUG] Window width: ${window.innerWidth}`;
+        console.log(log1);
+        console.log(log2);
+        window.addressDebugLogs = window.addressDebugLogs || [];
+        window.addressDebugLogs.push(log1, log2);
         
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
-            console.log('📂 [DEBUG] Dropdown visible');
+            const log3 = `📂 [DEBUG] Dropdown visible`;
+            console.log(log3);
+            window.addressDebugLogs.push(log3);
             
             // Lock body scroll on mobile (but not in modal - modal already locks body)
             if (window.innerWidth <= 768) {
-                console.log('📂 [DEBUG] Mobile detected - calling lockBodyScroll()');
+                const log4 = `📂 [DEBUG] Mobile detected - calling lockBodyScroll()`;
+                console.log(log4);
+                window.addressDebugLogs.push(log4);
                 this.lockBodyScroll();
             } else {
-                console.log('📂 [DEBUG] Desktop - skip body lock');
+                const log4 = `📂 [DEBUG] Desktop - skip body lock`;
+                console.log(log4);
+                window.addressDebugLogs.push(log4);
             }
         }
         
@@ -1008,15 +1018,22 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
-        console.log('📁 [DEBUG] Closing dropdown...');
+        const log1 = `📁 [DEBUG] Closing dropdown...`;
+        console.log(log1);
+        window.addressDebugLogs = window.addressDebugLogs || [];
+        window.addressDebugLogs.push(log1);
         
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
-            console.log('📁 [DEBUG] Dropdown hidden');
+            const log2 = `📁 [DEBUG] Dropdown hidden`;
+            console.log(log2);
+            window.addressDebugLogs.push(log2);
             
             // Unlock body scroll
-            console.log('📁 [DEBUG] Calling unlockBodyScroll()');
+            const log3 = `📁 [DEBUG] Calling unlockBodyScroll()`;
+            console.log(log3);
+            window.addressDebugLogs.push(log3);
             this.unlockBodyScroll();
         }
         
@@ -1039,16 +1056,36 @@ export class HierarchicalAddressSelector {
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
             // In modal - don't lock body, it's already locked
-            console.log('🔒 [DEBUG] In modal - skip body lock');
+            const log = `🔒 [DEBUG] In modal - skip body lock`;
+            console.log(log);
+            window.addressDebugLogs = window.addressDebugLogs || [];
+            window.addressDebugLogs.push(log);
             return;
         }
         
         // Add class to both html and body for scroll lock
         document.documentElement.classList.add('address-dropdown-open');
         document.body.classList.add('address-dropdown-open');
-        console.log('🔒 [DEBUG] Body scroll LOCKED - classes added to html and body');
-        console.log('🔒 [DEBUG] html overflow:', window.getComputedStyle(document.documentElement).overflow);
-        console.log('🔒 [DEBUG] body overflow:', window.getComputedStyle(document.body).overflow);
+        
+        const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
+        const bodyOverflow = window.getComputedStyle(document.body).overflow;
+        const htmlClasses = document.documentElement.className;
+        const bodyClasses = document.body.className;
+        
+        const log1 = `🔒 [DEBUG] Body scroll LOCKED - classes added to html and body`;
+        const log2 = `🔒 [DEBUG] html.className: "${htmlClasses}"`;
+        const log3 = `🔒 [DEBUG] body.className: "${bodyClasses}"`;
+        const log4 = `🔒 [DEBUG] html overflow: ${htmlOverflow}`;
+        const log5 = `🔒 [DEBUG] body overflow: ${bodyOverflow}`;
+        
+        console.log(log1);
+        console.log(log2);
+        console.log(log3);
+        console.log(log4);
+        console.log(log5);
+        
+        window.addressDebugLogs = window.addressDebugLogs || [];
+        window.addressDebugLogs.push(log1, log2, log3, log4, log5);
     }
     
     /**
@@ -1059,14 +1096,21 @@ export class HierarchicalAddressSelector {
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
             // In modal - don't unlock body
-            console.log('🔓 [DEBUG] In modal - skip body unlock');
+            const log = `🔓 [DEBUG] In modal - skip body unlock`;
+            console.log(log);
+            window.addressDebugLogs = window.addressDebugLogs || [];
+            window.addressDebugLogs.push(log);
             return;
         }
         
         // Remove class from both html and body
         document.documentElement.classList.remove('address-dropdown-open');
         document.body.classList.remove('address-dropdown-open');
-        console.log('🔓 [DEBUG] Body scroll UNLOCKED - classes removed from html and body');
+        
+        const log = `🔓 [DEBUG] Body scroll UNLOCKED - classes removed from html and body`;
+        console.log(log);
+        window.addressDebugLogs = window.addressDebugLogs || [];
+        window.addressDebugLogs.push(log);
     }
     
     /**
