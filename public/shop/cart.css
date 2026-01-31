@@ -1026,7 +1026,7 @@ body {
     padding: 0.875rem 1rem;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: all 0.25s ease;
     font-family: 'Quicksand', sans-serif;
     background: var(--white);
