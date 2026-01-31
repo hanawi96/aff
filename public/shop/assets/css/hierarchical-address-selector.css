@@ -199,12 +199,6 @@
     animation: dropdownSlideIn 0.2s ease;
     display: flex;
     flex-direction: column;
-    
-    /* Prevent scroll propagation - CSS only approach */
-    overscroll-behavior: contain;
-    
-    /* Isolation for better performance */
-    isolation: isolate;
 }
 
 /* Mobile: Taller dropdown for easier scrolling */
@@ -256,9 +250,16 @@
     flex: 1;
     padding: 0.5rem;
     
-    /* Simple, native scroll - no optimizations that might cause issues */
+    /* Pure native scroll - no tricks */
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+}
+
+/* Force GPU acceleration for smooth scroll on mobile */
+@media (max-width: 768px) {
+    .address-dropdown-content {
+        transform: translate3d(0, 0, 0);
+        -webkit-transform: translate3d(0, 0, 0);
+    }
 }
 
 .address-dropdown.hidden {
