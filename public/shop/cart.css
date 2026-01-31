@@ -6142,8 +6142,14 @@ body {
     background: white;
     border-top: 2px solid #f0f0f0;
     flex-shrink: 0;
+    /* Sticky footer */
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
     /* Add safe padding for mobile browsers */
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    /* Shadow for depth */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .address-confirm-btn {
@@ -6262,7 +6268,11 @@ body {
         padding: 1rem;
         /* Ensure button is always visible above browser bar */
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
-        /* Add shadow to make it stand out */
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+        /* Sticky on mobile too */
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        /* Enhanced shadow for mobile */
+        box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.12);
     }
 }
