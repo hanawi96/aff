@@ -1031,7 +1031,8 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        // Add class to body for scroll lock
+        // Add class to both html and body for scroll lock
+        document.documentElement.classList.add('address-dropdown-open');
         document.body.classList.add('address-dropdown-open');
     }
     
@@ -1046,7 +1047,8 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        // Remove class from body
+        // Remove class from both html and body
+        document.documentElement.classList.remove('address-dropdown-open');
         document.body.classList.remove('address-dropdown-open');
     }
     

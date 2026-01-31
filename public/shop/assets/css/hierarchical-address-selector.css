@@ -525,8 +525,14 @@
 /* Remove unused animation classes */
 
 /* Body scroll lock when address dropdown is open (cart page only) */
-body.address-dropdown-open,
-html:has(body.address-dropdown-open) {
+body.address-dropdown-open {
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+}
+
+/* Also lock html to prevent iOS Safari bounce */
+html.address-dropdown-open {
     overflow: hidden !important;
     touch-action: none !important;
     overscroll-behavior: none !important;
