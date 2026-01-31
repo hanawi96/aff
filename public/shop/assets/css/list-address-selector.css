@@ -1,0 +1,383 @@
+/* ============================================
+   LIST ADDRESS SELECTOR STYLES (Single Box)
+   ============================================ */
+
+.list-address-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Single Address Box */
+.address-box {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.address-box.hidden {
+    display: none;
+}
+
+/* Selected Address Display (inside address box) */
+.selected-address-display {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 0.875rem;
+    background: linear-gradient(135deg, rgba(244, 162, 97, 0.08), rgba(233, 196, 106, 0.08));
+    border: 1.5px solid rgba(244, 162, 97, 0.3);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.selected-address-display.hidden {
+    display: none;
+}
+
+/* Breadcrumb */
+.address-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(233, 196, 106, 0.1));
+    border-radius: 8px;
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+    min-height: 40px;
+}
+
+.breadcrumb-item {
+    color: #666;
+    font-weight: 500;
+}
+
+.breadcrumb-item.active {
+    color: #f4a261;
+    font-weight: 700;
+}
+
+.breadcrumb-item.clickable {
+    color: #f4a261;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item.clickable:hover {
+    color: #e76f51;
+}
+
+.breadcrumb-separator {
+    color: #ccc;
+    margin: 0 0.25rem;
+}
+
+/* Search Box */
+.address-search-box {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    color: #999;
+    pointer-events: none;
+}
+
+.address-search-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: 'Quicksand', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.address-search-input:focus {
+    outline: none;
+    border-color: #f4a261;
+    box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.1);
+}
+
+/* Address List */
+.address-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    /* No max-height - let it expand naturally */
+}
+
+/* Custom scrollbar */
+.address-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.address-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.address-list::-webkit-scrollbar-thumb {
+    background: #f4a261;
+    border-radius: 10px;
+}
+
+.address-list::-webkit-scrollbar-thumb:hover {
+    background: #e76f51;
+}
+
+/* Address Item */
+.address-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.address-item:hover {
+    background: #fff5f0;
+    border-color: #f4a261;
+}
+
+.item-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.chevron-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: #ccc;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.address-item:hover .chevron-icon {
+    color: #f4a261;
+    transform: translateX(2px);
+}
+
+/* Empty State */
+.address-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #999;
+    font-size: 0.875rem;
+}
+
+/* Street Section */
+.street-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.street-section.hidden {
+    display: none;
+}
+
+/* Selected Address Summary */
+.selected-address-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(233, 196, 106, 0.1));
+    border: 2px solid #f4a261;
+    border-radius: 10px;
+}
+
+.summary-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #f4a261;
+    flex-shrink: 0;
+}
+
+.summary-breadcrumb {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.summary-address-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.summary-address-group:hover {
+    background: rgba(244, 162, 97, 0.15);
+}
+
+.summary-breadcrumb-item {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.summary-edit-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    background: white;
+    border: 1.5px solid #f4a261;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.summary-edit-icon svg {
+    width: 0.7rem;
+    height: 0.7rem;
+    color: #f4a261;
+}
+
+.summary-edit-icon:hover {
+    background: #f4a261;
+    transform: scale(1.1);
+}
+
+.summary-edit-icon:hover svg {
+    color: white;
+}
+
+.summary-edit-icon:active {
+    transform: scale(0.95);
+}
+
+.summary-separator {
+    color: #999;
+    font-weight: 400;
+    user-select: none;
+    margin: 0 0.125rem;
+}
+
+.summary-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-text {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+    line-height: 1.4;
+}
+
+/* Label */
+.address-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.label-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: #f4a261;
+}
+
+/* Street Input */
+.address-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: 'Quicksand', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.address-input:focus {
+    outline: none;
+    border-color: #f4a261;
+    box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .address-box {
+        padding: 0.875rem;
+    }
+    
+    .address-item {
+        padding: 0.625rem 0.75rem;
+    }
+    
+    .item-name {
+        font-size: 0.875rem;
+    }
+    
+    .breadcrumb-item {
+        font-size: 0.8rem;
+    }
+    
+    .summary-breadcrumb {
+        font-size: 0.85rem;
+    }
+    
+    .summary-address-group {
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .summary-breadcrumb-item {
+        font-size: 0.85rem;
+    }
+    
+    .summary-edit-icon {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+    
+    .summary-edit-icon svg {
+        width: 0.65rem;
+        height: 0.65rem;
+    }
+    
+    .summary-icon {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+    
+    .summary-separator {
+        margin: 0;
+    }
+}

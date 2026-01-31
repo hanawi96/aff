@@ -732,7 +732,9 @@ const cart = {
             const discountPercent = hasDiscount ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
             
             return '<div class="bundle-product-card ' + (isInCart ? 'selected' : '') + '">' +
+                '<div class="bundle-product-image-container">' +
                 '<img src="' + product.image + '" alt="' + utils.escapeHtml(product.name) + '" class="bundle-product-image">' +
+                '</div>' +
                 '<div class="bundle-product-info">' +
                 '<div class="bundle-product-name">' + utils.escapeHtml(product.name) + '</div>' +
                 '<div class="bundle-product-pricing">' +
@@ -1128,18 +1130,19 @@ const cart = {
             return;
         }
         
-        const addressValidation = window.cartAddressSelector.validate();
-        if (!addressValidation.isValid) {
+        const addressData = window.cartAddressSelector.getAddress();
+        if (!addressData.isComplete) {
+            utils.showToast('Vui lòng chọn đầy đủ địa chỉ giao hàng', 'error');
             
             // Determine which field has error and show inline message
-            if (!window.cartAddressSelector.provinceCode) {
-                errorDisplayService.showError('provinceSelect', addressValidation.message);
-            } else if (!window.cartAddressSelector.districtCode) {
-                errorDisplayService.showError('districtSelect', addressValidation.message);
-            } else if (!window.cartAddressSelector.wardCode) {
-                errorDisplayService.showError('wardSelect', addressValidation.message);
-            } else if (!window.cartAddressSelector.street) {
-                errorDisplayService.showError('streetInput', addressValidation.message);
+            if (!addressData.provinceCode) {
+                errorDisplayService.showError('provinceSelect', 'Vui lòng chọn Tỉnh/Thành phố');
+            } else if (!addressData.districtCode) {
+                errorDisplayService.showError('districtSelect', 'Vui lòng chọn Quận/Huyện');
+            } else if (!addressData.wardCode) {
+                errorDisplayService.showError('wardSelect', 'Vui lòng chọn Phường/Xã');
+            } else if (!addressData.street) {
+                errorDisplayService.showError('streetInput', 'Vui lòng nhập địa chỉ cụ thể');
             }
             
             // Scroll to address section
@@ -1156,8 +1159,7 @@ const cart = {
         errorDisplayService.clearError('wardSelect');
         errorDisplayService.clearError('streetInput');
         
-        // Get address data
-        const addressData = window.cartAddressSelector.getAddressData();
+        // Get address data (already have it from validation above)
         
         // Prepare cart items for API (products array)
         const cartItems = state.cart.map(item => ({

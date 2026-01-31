@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="cart.css">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
+    <link rel="stylesheet" href="assets/css/list-address-selector.css">
 </head>
 <body>
     <!-- Header -->
@@ -570,8 +571,8 @@
     <script type="module" src="cart.js"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script type="module">
-        // Import and initialize hierarchical address selector for cart page
-        import { HierarchicalAddressSelector } from './assets/js/components/hierarchical-address-selector.js';
+        // Import and initialize list address selector for cart page
+        import { ListAddressSelector } from './assets/js/components/list-address-selector.js';
         
         // Setup Address Modal - DEFINE FIRST before using
         function setupAddressModal() {
@@ -592,14 +593,6 @@
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
                 document.body.classList.add('modal-open');
-                
-                // Auto-open dropdown and show provinces list
-                setTimeout(() => {
-                    if (window.cartAddressSelector) {
-                        // Trigger search to render provinces
-                        window.cartAddressSelector.performSearch();
-                    }
-                }, 150);
             });
             
             // Close modal
@@ -607,16 +600,6 @@
                 modal.classList.add('hidden');
                 document.body.style.overflow = '';
                 document.body.classList.remove('modal-open');
-                
-                // Remove dropdown-open class from modal body
-                if (modalBody) {
-                    modalBody.classList.remove('dropdown-open');
-                }
-                
-                // Close dropdown when modal closes
-                if (window.cartAddressSelector) {
-                    window.cartAddressSelector.closeDropdown();
-                }
             };
             
             closeBtn.addEventListener('click', closeModal);
@@ -628,29 +611,13 @@
                 }
             });
             
-            // Listen for dropdown open/close events to toggle modal body scroll
-            document.addEventListener('addressDropdownToggle', (e) => {
-                if (!modalBody) return;
-                
-                // Only handle if we're inside the modal
-                const isInModal = e.detail?.container?.closest('.address-modal');
-                if (!isInModal) return;
-                
-                if (e.detail?.isOpen) {
-                    modalBody.classList.add('dropdown-open');
-                } else {
-                    modalBody.classList.remove('dropdown-open');
-                }
-            });
-            
             // Confirm address
             confirmBtn.addEventListener('click', () => {
-                const addressData = window.cartAddressSelector.getAddressData();
+                const addressData = window.cartAddressSelector.getAddress();
                 
                 // Validate
-                const validation = window.cartAddressSelector.validate();
-                if (!validation.isValid) {
-                    alert(validation.message);
+                if (!addressData.isComplete) {
+                    alert('Vui lòng chọn đầy đủ địa chỉ và nhập địa chỉ cụ thể');
                     return;
                 }
                 
@@ -673,9 +640,9 @@
             const modalContainer = document.getElementById('modalAddressSelectorContainer');
             
             if (modalContainer && !window.cartAddressSelector) {
-                window.cartAddressSelector = new HierarchicalAddressSelector('modalAddressSelectorContainer');
+                window.cartAddressSelector = new ListAddressSelector('modalAddressSelectorContainer');
                 await window.cartAddressSelector.init();
-                console.log('✅ Address selector initialized in modal');
+                console.log('✅ List address selector initialized in modal');
             }
             
             // Setup modal controls
