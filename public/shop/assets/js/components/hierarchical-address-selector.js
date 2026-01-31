@@ -153,21 +153,34 @@ export class HierarchicalAddressSelector {
         
         let html = '<div class="hierarchical-address-selector">';
         
-        // Chips + Search input wrapper (with dropdown inside for proper positioning)
+        // Chips + Selector button wrapper (with dropdown inside for proper positioning)
         html += '<div class="address-chips-wrapper">';
-        html += '<div class="address-chips" id="addressChips"></div>';
-        html += '<input type="text" ';
-        html += 'class="address-search-input" ';
-        html += 'id="addressSearchInput" ';
-        html += 'placeholder="🔍 Tìm tỉnh/thành phố, quận/huyện, phường/xã..." ';
-        html += 'autocomplete="off" ';
-        html += 'role="combobox" ';
-        html += 'aria-expanded="false" ';
-        html += 'aria-controls="addressDropdown" ';
-        html += 'aria-autocomplete="list">';
+        
+        // Clickable selector area (not an input)
+        html += '<div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">';
+        html += '<div class="address-chips" id="addressChips">';
+        html += '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>';
+        html += '</div>';
+        html += '<svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">';
+        html += '<path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />';
+        html += '</svg>';
+        html += '</div>';
         
         // Dropdown results (inside chips-wrapper for proper positioning)
         html += '<div class="address-dropdown hidden" id="addressDropdown" role="listbox">';
+        
+        // Search input inside dropdown
+        html += '<div class="address-dropdown-search">';
+        html += '<svg class="search-icon-inside" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">';
+        html += '<path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />';
+        html += '</svg>';
+        html += '<input type="text" ';
+        html += 'class="address-search-input" ';
+        html += 'id="addressSearchInput" ';
+        html += 'placeholder="Tìm nhanh địa chỉ..." ';
+        html += 'autocomplete="off">';
+        html += '</div>';
+        
         html += '<div class="address-dropdown-content" id="addressDropdownContent">';
         html += '<!-- Results will be rendered here -->';
         html += '</div>';
@@ -199,20 +212,37 @@ export class HierarchicalAddressSelector {
      * Setup event listeners
      */
     setupEventListeners() {
+        const selectorDisplay = document.getElementById('addressSelectorDisplay');
         const searchInput = document.getElementById('addressSearchInput');
-        const clearBtn = document.getElementById('addressSearchClear');
         const streetInput = document.getElementById('streetInput');
         const dropdown = document.getElementById('addressDropdown');
         
-        // Search input
+        // Selector display click - open dropdown
+        if (selectorDisplay) {
+            selectorDisplay.addEventListener('click', () => {
+                this.scrollInputIntoView();
+                this.performSearch();
+                this.openDropdown();
+            });
+            
+            // Keyboard support
+            selectorDisplay.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.scrollInputIntoView();
+                    this.performSearch();
+                    this.openDropdown();
+                }
+            });
+        }
+        
+        // Search input inside dropdown
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.handleSearchInput(e.target.value);
             });
             
             searchInput.addEventListener('focus', () => {
-                // Scroll input to top on mobile for better visibility
-                this.scrollInputIntoView();
                 this.performSearch();
             });
             
@@ -246,6 +276,8 @@ export class HierarchicalAddressSelector {
         
         // Event delegation for dropdown clicks
         if (dropdown) {
+            const dropdownContent = dropdown.querySelector('.address-dropdown-content');
+            
             dropdown.addEventListener('click', (e) => {
                 const target = e.target.closest('[data-action]');
                 if (!target) return;
@@ -267,30 +299,54 @@ export class HierarchicalAddressSelector {
                 }
             });
             
-            // Prevent scroll propagation on mobile
-            dropdown.addEventListener('touchstart', (e) => {
-                this.isInteracting = true;
-            }, { passive: true });
-            
-            dropdown.addEventListener('touchmove', (e) => {
-                const target = e.currentTarget;
-                const scrollTop = target.scrollTop;
-                const scrollHeight = target.scrollHeight;
-                const height = target.clientHeight;
-                const delta = e.touches[0].clientY - (this.lastTouchY || e.touches[0].clientY);
-                this.lastTouchY = e.touches[0].clientY;
+            // Prevent scroll propagation on mobile - apply to dropdown content
+            if (dropdownContent) {
+                let startY = 0;
+                let isDragging = false;
                 
-                // Prevent scroll propagation when at boundaries
-                if ((scrollTop === 0 && delta > 0) || 
-                    (scrollTop + height >= scrollHeight && delta < 0)) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-            
-            dropdown.addEventListener('touchend', () => {
-                this.lastTouchY = null;
-                setTimeout(() => this.isInteracting = false, 100);
-            }, { passive: true });
+                dropdownContent.addEventListener('touchstart', (e) => {
+                    this.isInteracting = true;
+                    isDragging = true;
+                    startY = e.touches[0].pageY;
+                }, { passive: true });
+                
+                dropdownContent.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const currentY = e.touches[0].pageY;
+                    const scrollTop = dropdownContent.scrollTop;
+                    const scrollHeight = dropdownContent.scrollHeight;
+                    const clientHeight = dropdownContent.clientHeight;
+                    const isScrollable = scrollHeight > clientHeight;
+                    
+                    if (!isScrollable) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    
+                    const deltaY = currentY - startY;
+                    const isAtTop = scrollTop <= 0;
+                    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                    
+                    if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    
+                    startY = currentY;
+                }, { passive: false });
+                
+                dropdownContent.addEventListener('touchend', () => {
+                    isDragging = false;
+                    setTimeout(() => this.isInteracting = false, 100);
+                }, { passive: true });
+                
+                dropdownContent.addEventListener('touchcancel', () => {
+                    isDragging = false;
+                    setTimeout(() => this.isInteracting = false, 100);
+                }, { passive: true });
+            }
         }
         
         // Click outside to close dropdown
@@ -524,7 +580,7 @@ export class HierarchicalAddressSelector {
                         score: this.calculateScore(province.normalizedName, normalizedQuery)
                     });
                     
-                    if (results.length >= MAX_RESULTS) break;
+                    if (results.length >= this.MAX_RESULTS) break;
                 }
             }
         } else if (this.currentLevel === 'district' && this.selectedProvince) {
@@ -539,7 +595,7 @@ export class HierarchicalAddressSelector {
                         score: this.calculateScore(district.normalizedName, normalizedQuery)
                     });
                     
-                    if (results.length >= MAX_RESULTS) break;
+                    if (results.length >= this.MAX_RESULTS) break;
                 }
             }
         } else if (this.currentLevel === 'ward' && this.selectedDistrict) {
@@ -555,7 +611,7 @@ export class HierarchicalAddressSelector {
                         score: this.calculateScore(ward.normalizedName, normalizedQuery)
                     });
                     
-                    if (results.length >= MAX_RESULTS) break;
+                    if (results.length >= this.MAX_RESULTS) break;
                 }
             }
         }
@@ -567,26 +623,35 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Match text - match complete syllables only (Vietnamese-aware)
-     * This prevents "ha" from matching "hai" in "Hải Dương"
+     * Match text - Optimized Vietnamese-aware matching
      */
     matchText(text, query) {
-        // Split into words/syllables
+        // For very short queries (1 char), allow anywhere match
+        if (query.length === 1) {
+            return text.includes(query);
+        }
+        
+        // For 2-char queries, prefer word start but allow anywhere
+        if (query.length === 2) {
+            const words = text.split(' ');
+            // Check if any word starts with query
+            for (const word of words) {
+                if (word.startsWith(query)) return true;
+            }
+            // Fallback: allow anywhere match
+            return text.includes(query);
+        }
+        
+        // For longer queries (3+ chars), use smart syllable matching
         const words = text.split(' ');
         
         // Check if query matches start of any complete word
         for (const word of words) {
-            // Only match if:
-            // 1. Word starts with query AND
-            // 2. Either word equals query OR next char is space/end (complete syllable match)
             if (word === query) {
                 return true; // Exact match
             }
+            
             if (word.startsWith(query)) {
-                // Check if this is a complete syllable match
-                // In Vietnamese, each syllable is separated by space
-                // So "ha" should match "ha noi" but not "hai duong"
-                // We need to check if the remaining part after query makes sense
                 const remaining = word.substring(query.length);
                 
                 // If remaining is empty, it's exact match
@@ -594,14 +659,14 @@ export class HierarchicalAddressSelector {
                 
                 // If remaining starts with a vowel, it's likely part of same syllable
                 // Vietnamese syllables: consonant + vowel + (optional consonant)
-                // So "ha" + "i" = "hai" (one syllable)
-                // But "ha" + " " + "noi" = two syllables
+                // So "ha" + "i" = "hai" (one syllable) - should NOT match
+                // But "ha" + " " + "noi" = two syllables - should match
                 const vowels = ['a', 'e', 'i', 'o', 'u', 'y'];
                 if (vowels.includes(remaining[0])) {
                     continue; // Skip this match, it's part of same syllable
                 }
                 
-                // Otherwise it's a valid match (e.g., "han" matches "hanoi")
+                // Otherwise it's a valid match
                 return true;
             }
         }
@@ -610,18 +675,41 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Calculate match score
+     * Calculate match score - Improved scoring
      * Higher score = better match
      */
     calculateScore(text, query) {
-        // Exact match at start = highest score
-        if (text.startsWith(query)) return 100;
+        const words = text.split(' ');
+        
+        // Exact match = highest score
+        if (text === query) return 1000;
+        
+        // First word exact match = very high score
+        if (words[0] === query) return 500;
+        
+        // Starts with query = high score
+        if (text.startsWith(query)) {
+            // Bonus for shorter text (more specific)
+            return 100 + (100 / text.length);
+        }
+        
+        // Any word starts with query = medium-high score
+        for (let i = 0; i < words.length; i++) {
+            if (words[i].startsWith(query)) {
+                // Earlier words get higher score
+                return 70 - (i * 5);
+            }
+        }
         
         // Contains query = medium score
-        if (text.includes(query)) return 50;
+        if (text.includes(query)) {
+            // Bonus for position (earlier is better)
+            const position = text.indexOf(query);
+            return 50 - (position / text.length * 20);
+        }
         
-        // Fuzzy match = low score
-        return 20;
+        // Fallback
+        return 10;
     }
     
     /**
@@ -803,8 +891,9 @@ export class HierarchicalAddressSelector {
      */
     updateChipsDisplay() {
         const chipsContainer = document.getElementById('addressChips');
-        const searchInput = document.getElementById('addressSearchInput');
-        if (!chipsContainer || !searchInput) return;
+        const placeholder = chipsContainer?.querySelector('.address-placeholder');
+        
+        if (!chipsContainer) return;
         
         const chips = [];
         const levels = [
@@ -827,22 +916,11 @@ export class HierarchicalAddressSelector {
             </div>`);
         });
         
-        chipsContainer.innerHTML = chips.join('');
-        
-        // Update placeholder and visibility
-        const placeholders = {
-            ward: '',
-            district: '🔍 Tìm phường/xã...',
-            province: '🔍 Tìm quận/huyện...',
-            default: '🔍 Tìm tỉnh/thành phố...'
-        };
-        
-        if (this.selectedWard) {
-            searchInput.style.display = 'none';
-            searchInput.placeholder = '';
+        // Show/hide placeholder based on chips
+        if (chips.length > 0) {
+            chipsContainer.innerHTML = chips.join('');
         } else {
-            searchInput.style.display = 'block';
-            searchInput.placeholder = placeholders[this.currentLevel] || placeholders.default;
+            chipsContainer.innerHTML = '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>';
         }
     }
     
