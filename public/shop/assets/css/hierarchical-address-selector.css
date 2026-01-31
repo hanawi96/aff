@@ -205,7 +205,13 @@
     
     /* Isolation for better performance */
     isolation: isolate;
-    contain: layout style paint;
+}
+
+/* Mobile: Taller dropdown for easier scrolling */
+@media (max-width: 768px) {
+    .address-dropdown {
+        max-height: 60vh;
+    }
 }
 
 /* Search input inside dropdown */
@@ -250,21 +256,9 @@
     flex: 1;
     padding: 0.5rem;
     
-    /* Optimal scroll behavior for mobile */
+    /* Simple, native scroll - no optimizations that might cause issues */
+    -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    
-    /* Prevent momentum scroll from propagating */
-    position: relative;
-    
-    /* Hardware acceleration for smooth scrolling */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: scroll-position;
-    
-    /* Ensure smooth scrolling on iOS */
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
 }
 
 .address-dropdown.hidden {
@@ -481,9 +475,7 @@
         padding: 0.875rem 2.5rem 0.875rem 0.875rem;
     }
     
-    .address-dropdown {
-        max-height: 60vh; /* Taller on mobile for easier scrolling */
-    }
+    /* Remove duplicate dropdown styles - moved above */
     
     .address-list-item,
     .address-result-item {
@@ -531,3 +523,11 @@
 }
 
 /* Remove unused animation classes */
+
+/* Body scroll lock when address dropdown is open (cart page only) */
+body.address-dropdown-open,
+html:has(body.address-dropdown-open) {
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+}

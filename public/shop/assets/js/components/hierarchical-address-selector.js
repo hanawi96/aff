@@ -978,7 +978,7 @@ export class HierarchicalAddressSelector {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
             
-            // Lock body scroll to prevent scroll propagation (only on mobile)
+            // Lock body scroll on mobile (but not in modal - modal already locks body)
             if (window.innerWidth <= 768) {
                 this.lockBodyScroll();
             }
@@ -1031,9 +1031,8 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        // Simple overflow hidden approach (no position fixed to avoid layout issues)
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
+        // Add class to body for scroll lock
+        document.body.classList.add('address-dropdown-open');
     }
     
     /**
@@ -1047,9 +1046,8 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        // Unlock body
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
+        // Remove class from body
+        document.body.classList.remove('address-dropdown-open');
     }
     
     /**
