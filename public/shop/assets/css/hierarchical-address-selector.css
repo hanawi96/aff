@@ -202,6 +202,9 @@
     flex-direction: column;
     overflow: hidden;
     transform: translateZ(0);
+    
+    /* Prevent overscroll propagation */
+    overscroll-behavior: contain;
 }
 
 /* Mobile: Taller dropdown for easier scrolling */
@@ -254,6 +257,9 @@
     
     /* Force browser to treat like native scrolling */
     -webkit-overflow-scrolling: touch;
+    
+    /* Prevent overscroll bounce at top/bottom */
+    overscroll-behavior-y: contain;
 }
 
 
