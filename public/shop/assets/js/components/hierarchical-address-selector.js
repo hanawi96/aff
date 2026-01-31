@@ -205,6 +205,8 @@ export class HierarchicalAddressSelector {
             });
             
             searchInput.addEventListener('focus', () => {
+                // Scroll input to top on mobile for better visibility
+                this.scrollInputIntoView();
                 this.performSearch();
             });
             
@@ -281,6 +283,32 @@ export class HierarchicalAddressSelector {
             }
         };
         document.addEventListener('click', this.boundHandlers.handleClickOutside);
+    }
+    
+    /**
+     * Scroll input into view for better visibility on mobile
+     */
+    scrollInputIntoView() {
+        const searchInput = document.getElementById('addressSearchInput');
+        if (!searchInput) return;
+        
+        // Small delay to ensure keyboard is shown
+        setTimeout(() => {
+            // Get the chips wrapper (parent of input)
+            const chipsWrapper = searchInput.closest('.address-chips-wrapper');
+            if (!chipsWrapper) return;
+            
+            // Calculate position to scroll to (with some offset from top)
+            const offset = 80; // Space from top of viewport
+            const elementPosition = chipsWrapper.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - offset;
+            
+            // Smooth scroll to position
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }, 300); // Wait for keyboard animation on mobile
     }
     
     /**
