@@ -1160,7 +1160,7 @@ body {
     padding: 1rem 3rem 1rem 1.25rem; /* Extra padding-right for check icon */
     border: 3px dashed rgba(144, 202, 149, 0.5);
     border-radius: 28px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: all 0.3s ease;
     font-family: 'Quicksand', sans-serif;
     font-weight: 600;
@@ -4881,7 +4881,7 @@ body {
     }
 
     .discount-input-group input {
-        font-size: 0.9rem;
+        font-size:1rem;
         padding: 1rem 1.25rem; /* Tăng padding để button có không gian */
         padding-right: 135px; /* Tạo khoảng trống cho button */
         border-radius: 16px; /* Tăng border-radius */
@@ -4889,7 +4889,7 @@ body {
     }
 
     .discount-input-group input::placeholder {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .btn-apply {
