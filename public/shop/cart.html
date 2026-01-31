@@ -573,22 +573,7 @@
         // Import and initialize hierarchical address selector for cart page
         import { HierarchicalAddressSelector } from './assets/js/components/hierarchical-address-selector.js';
         
-        // Wait for DOM and cart to be ready
-        window.addEventListener('cartInitialized', async () => {
-            // Initialize address selector in MODAL instead of inline
-            const modalContainer = document.getElementById('modalAddressSelectorContainer');
-            
-            if (modalContainer && !window.cartAddressSelector) {
-                window.cartAddressSelector = new HierarchicalAddressSelector('modalAddressSelectorContainer');
-                await window.cartAddressSelector.init();
-                console.log('✅ Address selector initialized in modal');
-            }
-            
-            // Setup modal controls
-            setupAddressModal();
-        });
-        
-        // Setup Address Modal
+        // Setup Address Modal - DEFINE FIRST before using
         function setupAddressModal() {
             const modal = document.getElementById('addressModal');
             const modalBody = modal.querySelector('.address-modal-body');
@@ -596,6 +581,11 @@
             const closeBtn = document.getElementById('closeAddressModalBtn');
             const confirmBtn = document.getElementById('confirmAddressBtn');
             const selectedText = document.getElementById('selectedAddressText');
+            
+            if (!modal || !openBtn || !closeBtn || !confirmBtn) {
+                console.error('❌ Modal elements not found');
+                return;
+            }
             
             // Open modal
             openBtn.addEventListener('click', () => {
@@ -673,7 +663,24 @@
                 
                 console.log('✅ Address selected:', addressData);
             });
+            
+            console.log('✅ Address modal setup complete');
         }
+        
+        // Wait for DOM and cart to be ready
+        window.addEventListener('cartInitialized', async () => {
+            // Initialize address selector in MODAL instead of inline
+            const modalContainer = document.getElementById('modalAddressSelectorContainer');
+            
+            if (modalContainer && !window.cartAddressSelector) {
+                window.cartAddressSelector = new HierarchicalAddressSelector('modalAddressSelectorContainer');
+                await window.cartAddressSelector.init();
+                console.log('✅ Address selector initialized in modal');
+            }
+            
+            // Setup modal controls
+            setupAddressModal();
+        });
     </script>
     <script>
         // Load contact buttons
