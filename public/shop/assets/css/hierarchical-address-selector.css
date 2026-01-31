@@ -252,6 +252,11 @@
     
     /* Pure native scroll - no tricks */
     -webkit-overflow-scrolling: touch;
+    
+    /* Optimize scroll performance */
+    will-change: scroll-position;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 /* Force GPU acceleration for smooth scroll on mobile */
@@ -301,13 +306,19 @@
     padding: 0.75rem 1rem;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease;
     background: #fff;
 }
 
 .address-list-item:hover {
     background: #fff0f5;
-    transform: translateX(4px);
+}
+
+/* Disable hover transform on mobile for better performance */
+@media (hover: hover) {
+    .address-list-item:hover {
+        transform: translateX(4px);
+    }
 }
 
 .address-list-item .item-icon {
@@ -349,13 +360,19 @@
     padding: 0.875rem 1rem;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease;
     background: #fff;
 }
 
 .address-result-item:hover {
     background: #fff0f5;
-    transform: translateX(4px);
+}
+
+/* Disable hover transform on mobile for better performance */
+@media (hover: hover) {
+    .address-result-item:hover {
+        transform: translateX(4px);
+    }
 }
 
 .address-result-item .result-icon {
