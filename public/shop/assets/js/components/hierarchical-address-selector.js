@@ -29,16 +29,9 @@ export class HierarchicalAddressSelector {
         
         // Debounce timer
         this.searchDebounceTimer = null;
-        this.DEBOUNCE_DELAY = 150;
         
-        // Flag to prevent search when programmatically clearing input
-        this.isSelecting = false;
-        
-        // Flag to prevent closing dropdown immediately after selection
-        this.justSelected = false;
-        
-        // Flag to prevent closing dropdown when deleting chip
-        this.isDeletingChip = false;
+        // Single flag for preventing dropdown close during interactions
+        this.isInteracting = false;
         
         // Keyboard navigation
         this.focusedIndex = -1;
@@ -46,9 +39,19 @@ export class HierarchicalAddressSelector {
         
         // Event listeners for cleanup
         this.boundHandlers = {
-            handleClickOutside: null,
-            handleKeyDown: null
+            handleClickOutside: null
         };
+        
+        // Constants
+        this.DEBOUNCE_DELAY = 150;
+        this.MAX_RESULTS = 50;
+        this.SCROLL_OFFSET = 80;
+        this.KEYBOARD_DELAY = 300;
+        this.FOCUS_DELAY = 50;
+        
+        // SVG icon template
+        this.LOCATION_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg>';
+        this.CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
     }
     
     /**
@@ -222,15 +225,10 @@ export class HierarchicalAddressSelector {
             chipsContainer.addEventListener('click', (e) => {
                 const removeBtn = e.target.closest('[data-action="remove-chip"]');
                 if (removeBtn) {
-                    e.stopPropagation(); // Prevent event bubbling
-                    this.isDeletingChip = true; // Set flag
-                    const level = removeBtn.dataset.level;
-                    this.deleteLevel(level);
-                    
-                    // Reset flag after event loop
-                    setTimeout(() => {
-                        this.isDeletingChip = false;
-                    }, 100);
+                    e.stopPropagation();
+                    this.isInteracting = true;
+                    this.deleteLevel(removeBtn.dataset.level);
+                    setTimeout(() => this.isInteracting = false, 100);
                 }
             });
         }
@@ -269,15 +267,9 @@ export class HierarchicalAddressSelector {
         
         // Click outside to close dropdown
         this.boundHandlers.handleClickOutside = (e) => {
-            // Ignore if we just selected something
-            if (this.justSelected) return;
-            
-            // Ignore if we're deleting a chip
-            if (this.isDeletingChip) return;
+            if (this.isInteracting) return;
             
             const wrapper = document.querySelector('.hierarchical-address-selector');
-            
-            // Only close if click is truly outside the entire component
             if (wrapper && !wrapper.contains(e.target)) {
                 this.closeDropdown();
             }
@@ -292,23 +284,15 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         if (!searchInput) return;
         
-        // Small delay to ensure keyboard is shown
         setTimeout(() => {
-            // Get the chips wrapper (parent of input)
             const chipsWrapper = searchInput.closest('.address-chips-wrapper');
             if (!chipsWrapper) return;
             
-            // Calculate position to scroll to (with some offset from top)
-            const offset = 80; // Space from top of viewport
             const elementPosition = chipsWrapper.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - offset;
+            const offsetPosition = elementPosition + window.pageYOffset - this.SCROLL_OFFSET;
             
-            // Smooth scroll to position
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-        }, 300); // Wait for keyboard animation on mobile
+            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }, this.KEYBOARD_DELAY);
     }
     
     /**
@@ -379,35 +363,7 @@ export class HierarchicalAddressSelector {
      * Handle search input with debounce
      */
     handleSearchInput(query) {
-        // Skip if we're in the middle of selecting
-        if (this.isSelecting) return;
-        
-        // Extract search query from input (after the selected address part)
-        const searchInput = document.getElementById('addressSearchInput');
-        if (searchInput && searchInput.getAttribute('data-display-mode') === 'true') {
-            // Get the base address text
-            const baseAddress = this.getSelectedAddressText();
-            const fullText = query;
-            
-            // Extract only the search part (after base address)
-            if (fullText.startsWith(baseAddress)) {
-                this.searchQuery = fullText.substring(baseAddress.length).trim();
-            } else {
-                this.searchQuery = query.trim();
-            }
-        } else {
-            this.searchQuery = query.trim();
-        }
-        
-        // Show/hide clear button
-        const clearBtn = document.getElementById('addressSearchClear');
-        if (clearBtn) {
-            if (this.searchQuery) {
-                clearBtn.classList.remove('hidden');
-            } else {
-                clearBtn.classList.add('hidden');
-            }
-        }
+        this.searchQuery = query.trim();
         
         // Debounce search
         clearTimeout(this.searchDebounceTimer);
@@ -417,130 +373,57 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Handle click on delete (X) symbol
+     * Reset state helper
      */
-    handleDeleteClick(text, clickPosition) {
-        // Find all X positions
-        const xPositions = [];
-        for (let i = 0; i < text.length; i++) {
-            if (text[i] === 'ⓧ') {
-                xPositions.push({ pos: i, level: null });
-            }
+    resetState(level) {
+        const levels = { province: 0, district: 1, ward: 2 };
+        const resetLevel = levels[level];
+        
+        if (resetLevel <= 0) {
+            this.provinceCode = '';
+            this.selectedProvince = null;
+        }
+        if (resetLevel <= 1) {
+            this.districtCode = '';
+            this.selectedDistrict = null;
+        }
+        if (resetLevel <= 2) {
+            this.wardCode = '';
+            this.selectedWard = null;
         }
         
-        // Determine which level each X belongs to
-        if (xPositions.length === 3) {
-            // Province X / District X / Ward X
-            xPositions[0].level = 'province';
-            xPositions[1].level = 'district';
-            xPositions[2].level = 'ward';
-        } else if (xPositions.length === 2) {
-            // Province X / District X
-            xPositions[0].level = 'province';
-            xPositions[1].level = 'district';
-        } else if (xPositions.length === 1) {
-            // Province X
-            xPositions[0].level = 'province';
-        }
-        
-        // Find which X was clicked (within 2 characters range)
-        for (const xPos of xPositions) {
-            if (Math.abs(clickPosition - xPos.pos) <= 2) {
-                this.deleteLevel(xPos.level);
-                return;
-            }
-        }
+        this.currentLevel = level;
+        this.searchQuery = '';
+        this.hideStreetInput();
+        this.updateChipsDisplay();
+        this.updateFullAddress();
     }
     
     /**
      * Delete a specific level
      */
     deleteLevel(level) {
-        if (level === 'province') {
-            // Reset everything
-            this.provinceCode = '';
-            this.districtCode = '';
-            this.wardCode = '';
-            this.selectedProvince = null;
-            this.selectedDistrict = null;
-            this.selectedWard = null;
-            this.currentLevel = 'province';
-            this.street = '';
-            this.searchQuery = '';
-            
-            this.hideStreetInput();
-            this.updateChipsDisplay();
-            this.updateFullAddress();
-            
-            // Open dropdown to select province
-            const searchInput = document.getElementById('addressSearchInput');
-            if (searchInput) {
-                searchInput.value = '';
-                this.renderProvinces();
-                this.openDropdown();
-                // Focus after a small delay to ensure dropdown is open
-                setTimeout(() => searchInput.focus(), 50);
-            }
-        } else if (level === 'district') {
-            // Keep province, reset district and ward
-            this.districtCode = '';
-            this.wardCode = '';
-            this.selectedDistrict = null;
-            this.selectedWard = null;
-            this.currentLevel = 'district';
-            this.searchQuery = '';
-            
-            this.hideStreetInput();
-            this.updateChipsDisplay();
-            this.updateFullAddress();
-            
-            // Open dropdown to select district
-            const searchInput = document.getElementById('addressSearchInput');
-            if (searchInput) {
-                searchInput.value = '';
-                this.renderDistricts();
-                this.openDropdown();
-                // Focus after a small delay to ensure dropdown is open
-                setTimeout(() => searchInput.focus(), 50);
-            }
-        } else if (level === 'ward') {
-            // Keep province and district, reset ward
-            this.wardCode = '';
-            this.selectedWard = null;
-            this.currentLevel = 'ward';
-            this.searchQuery = '';
-            
-            this.hideStreetInput();
-            this.updateChipsDisplay();
-            this.updateFullAddress();
-            
-            // Open dropdown to select ward
-            const searchInput = document.getElementById('addressSearchInput');
-            if (searchInput) {
-                searchInput.value = '';
-                this.renderWards();
-                this.openDropdown();
-                // Focus after a small delay to ensure dropdown is open
-                setTimeout(() => searchInput.focus(), 50);
-            }
-        }
+        this.resetState(level);
+        
+        const searchInput = document.getElementById('addressSearchInput');
+        if (!searchInput) return;
+        
+        searchInput.value = '';
+        this.renderList(level);
+        this.openDropdown();
+        setTimeout(() => searchInput.focus(), this.FOCUS_DELAY);
     }
     
     /**
-     * Get selected address text for display with delete buttons
+     * Render list based on level
      */
-    getSelectedAddressText() {
-        let text = '';
-        
-        if (this.selectedWard) {
-            text = `${this.selectedProvince.name} ⓧ / ${this.selectedDistrict.name} ⓧ / ${this.selectedWard.name} ⓧ`;
-        } else if (this.selectedDistrict) {
-            text = `${this.selectedProvince.name} ⓧ / ${this.selectedDistrict.name} ⓧ`;
-        } else if (this.selectedProvince) {
-            text = `${this.selectedProvince.name} ⓧ`;
-        }
-        
-        return text;
+    renderList(level) {
+        const renderMap = {
+            province: () => this.renderProvinces(),
+            district: () => this.renderDistricts(),
+            ward: () => this.renderWards()
+        };
+        renderMap[level]?.();
     }
     
     /**
@@ -548,23 +431,14 @@ export class HierarchicalAddressSelector {
      */
     performSearch() {
         this.openDropdown();
-        this.focusedIndex = -1; // Reset keyboard focus
+        this.focusedIndex = -1;
         
         if (!this.searchQuery) {
-            // Show appropriate list based on current level
-            if (this.currentLevel === 'province') {
-                this.renderProvinces();
-            } else if (this.currentLevel === 'district') {
-                this.renderDistricts();
-            } else if (this.currentLevel === 'ward') {
-                this.renderWards();
-            }
+            this.renderList(this.currentLevel);
             return;
         }
         
-        const normalizedQuery = this.normalizeText(this.searchQuery);
-        const results = this.searchAddresses(normalizedQuery);
-        
+        const results = this.searchAddresses(this.normalizeText(this.searchQuery));
         this.renderSearchResults(results);
     }
     
@@ -573,7 +447,6 @@ export class HierarchicalAddressSelector {
      */
     searchAddresses(normalizedQuery) {
         const results = [];
-        const MAX_RESULTS = 50;
         
         // Context-aware search based on current level
         if (this.currentLevel === 'province') {
@@ -715,46 +588,19 @@ export class HierarchicalAddressSelector {
      */
     renderResultItem(result) {
         const { type, province, district, ward } = result;
+        const datasets = `data-action="select-result" data-type="${type}" data-province="${province.code}"${district ? ` data-district="${district.code}"` : ''}${ward ? ` data-ward="${ward.code}"` : ''}`;
         
-        let html = '<div class="address-result-item" role="option" tabindex="-1" data-action="select-result" data-type="' + type + '" ';
-        html += 'data-province="' + province.code + '" ';
+        const mainText = type === 'province' ? province.name : (type === 'district' ? district.name : ward.name);
+        const subText = type === 'district' ? province.name : (type === 'ward' ? `${district.name}, ${province.name}` : '');
         
-        if (district) {
-            html += 'data-district="' + district.code + '" ';
-        }
-        
-        if (ward) {
-            html += 'data-ward="' + ward.code + '" ';
-        }
-        
-        html += '>';
-        
-        // Icon - same for all levels
-        html += '<span class="result-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg></span>';
-        
-        // Main text
-        html += '<div class="result-content">';
-        
-        if (type === 'province') {
-            html += '<div class="result-main">' + this.highlightMatch(province.name, this.searchQuery) + '</div>';
-        } else if (type === 'district') {
-            html += '<div class="result-main">' + this.highlightMatch(district.name, this.searchQuery) + '</div>';
-            html += '<div class="result-sub">' + province.name + '</div>';
-        } else {
-            html += '<div class="result-main">' + this.highlightMatch(ward.name, this.searchQuery) + '</div>';
-            html += '<div class="result-sub">' + district.name + ', ' + province.name + '</div>';
-        }
-        
-        html += '</div>';
-        
-        // Arrow indicator
-        if (type !== 'ward') {
-            html += '<span class="result-arrow" aria-hidden="true">›</span>';
-        }
-        
-        html += '</div>';
-        
-        return html;
+        return `<div class="address-result-item" role="option" tabindex="-1" ${datasets}>
+            <span class="result-icon" aria-hidden="true">${this.LOCATION_ICON}</span>
+            <div class="result-content">
+                <div class="result-main">${this.highlightMatch(mainText, this.searchQuery)}</div>
+                ${subText ? `<div class="result-sub">${subText}</div>` : ''}
+            </div>
+            ${type !== 'ward' ? '<span class="result-arrow" aria-hidden="true">›</span>' : ''}
+        </div>`;
     }
     
     /**
@@ -800,173 +646,81 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Select province
+     * Select address level
      */
-    selectProvince(code) {
-        // Set flag to prevent closing dropdown
-        this.justSelected = true;
+    selectLevel(level, code) {
+        this.isInteracting = true;
         
-        this.provinceCode = code;
-        this.selectedProvince = this.normalizedData.find(p => p.code === code);
-        this.currentLevel = 'district';
-        
-        // Clear district and ward
-        this.districtCode = '';
-        this.wardCode = '';
-        this.selectedDistrict = null;
-        this.selectedWard = null;
-        
-        // Update UI
-        this.updateChipsDisplay();
-        this.renderDistricts();
-        this.updateFullAddress();
-        
-        // Hide clear button when showing selected address
-        const clearBtn = document.getElementById('addressSearchClear');
-        if (clearBtn) {
-            clearBtn.classList.add('hidden');
+        if (level === 'province') {
+            this.provinceCode = code;
+            this.selectedProvince = this.normalizedData.find(p => p.code === code);
+            this.currentLevel = 'district';
+            this.districtCode = '';
+            this.wardCode = '';
+            this.selectedDistrict = null;
+            this.selectedWard = null;
+            this.updateChipsDisplay();
+            this.renderDistricts();
+        } else if (level === 'district') {
+            this.districtCode = code;
+            this.selectedDistrict = this.selectedProvince?.districts.find(d => d.code === code);
+            this.currentLevel = 'ward';
+            this.wardCode = '';
+            this.selectedWard = null;
+            this.updateChipsDisplay();
+            this.renderWards();
+        } else if (level === 'ward') {
+            this.wardCode = code;
+            this.selectedWard = this.selectedDistrict?.wards.find(w => w.code === code);
+            this.currentLevel = 'complete';
+            this.updateChipsDisplay();
+            this.closeDropdown();
+            this.showStreetInput();
+            const streetInput = document.getElementById('streetInput');
+            if (streetInput) setTimeout(() => streetInput.focus(), 200);
         }
         
-        // Reset flags after event loop completes
-        setTimeout(() => {
-            this.isSelecting = false;
-            this.justSelected = false;
-        }, 100);
-    }
-    
-    /**
-     * Select district
-     */
-    selectDistrict(code) {
-        // Set flag to prevent closing dropdown
-        this.justSelected = true;
-        
-        this.districtCode = code;
-        this.selectedDistrict = this.selectedProvince?.districts.find(d => d.code === code);
-        this.currentLevel = 'ward';
-        
-        // Clear ward
-        this.wardCode = '';
-        this.selectedWard = null;
-        
-        // Update UI
-        this.updateChipsDisplay();
-        this.renderWards();
         this.updateFullAddress();
-        
-        // Hide clear button when showing selected address
-        const clearBtn = document.getElementById('addressSearchClear');
-        if (clearBtn) {
-            clearBtn.classList.add('hidden');
-        }
-        
-        // Reset flags after event loop completes
-        setTimeout(() => {
-            this.isSelecting = false;
-            this.justSelected = false;
-        }, 100);
+        setTimeout(() => this.isInteracting = false, 100);
     }
     
-    /**
-     * Select ward
-     */
-    selectWard(code) {
-        this.wardCode = code;
-        this.selectedWard = this.selectedDistrict?.wards.find(w => w.code === code);
-        this.currentLevel = 'complete';
-        
-        // Update UI
-        this.updateChipsDisplay();
-        this.closeDropdown();
-        this.showStreetInput();
-        this.updateFullAddress();
-        
-        // Focus street input
-        const streetInput = document.getElementById('streetInput');
-        if (streetInput) {
-            setTimeout(() => streetInput.focus(), 200);
-        }
-        
-        // Reset flag after a tick
-        setTimeout(() => {
-            this.isSelecting = false;
-        }, 0);
-    }
+    selectProvince(code) { this.selectLevel('province', code); }
+    selectDistrict(code) { this.selectLevel('district', code); }
+    selectWard(code) { this.selectLevel('ward', code); }
     
     /**
-     * Render provinces list
+     * Render generic list (provinces/districts/wards)
      */
-    renderProvinces() {
+    renderGenericList(items, header, action) {
         const content = document.getElementById('addressDropdownContent');
         if (!content) return;
         
-        let html = '<div class="address-dropdown-header">Chọn Tỉnh/Thành phố</div>';
-        html += '<div class="address-dropdown-list" role="listbox">';
+        const itemsHtml = items.map(item => 
+            `<div class="address-list-item" role="option" tabindex="-1" data-action="${action}" data-code="${item.code}">
+                <span class="item-icon" aria-hidden="true">${this.LOCATION_ICON}</span>
+                <span class="item-text">${item.name}</span>
+                ${action !== 'select-ward' ? '<span class="item-arrow" aria-hidden="true">›</span>' : ''}
+            </div>`
+        ).join('');
         
-        this.normalizedData.forEach(province => {
-            html += '<div class="address-list-item" role="option" tabindex="-1" data-action="select-province" data-code="' + province.code + '">';
-            html += '<span class="item-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg></span>';
-            html += '<span class="item-text">' + province.name + '</span>';
-            html += '<span class="item-arrow" aria-hidden="true">›</span>';
-            html += '</div>';
-        });
+        content.innerHTML = `<div class="address-dropdown-header">${header}</div>
+            <div class="address-dropdown-list" role="listbox">${itemsHtml}</div>`;
         
-        html += '</div>';
-        
-        content.innerHTML = html;
+        if (action !== 'select-province') this.openDropdown();
     }
     
-    /**
-     * Render districts list
-     */
+    renderProvinces() {
+        this.renderGenericList(this.normalizedData, 'Chọn Tỉnh/Thành phố', 'select-province');
+    }
+    
     renderDistricts() {
         if (!this.selectedProvince) return;
-        
-        const content = document.getElementById('addressDropdownContent');
-        if (!content) return;
-        
-        let html = '<div class="address-dropdown-header">Chọn Quận/Huyện</div>';
-        html += '<div class="address-dropdown-list" role="listbox">';
-        
-        this.selectedProvince.districts.forEach(district => {
-            html += '<div class="address-list-item" role="option" tabindex="-1" data-action="select-district" data-code="' + district.code + '">';
-            html += '<span class="item-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg></span>';
-            html += '<span class="item-text">' + district.name + '</span>';
-            html += '<span class="item-arrow" aria-hidden="true">›</span>';
-            html += '</div>';
-        });
-        
-        html += '</div>';
-        
-        content.innerHTML = html;
-        
-        this.openDropdown();
+        this.renderGenericList(this.selectedProvince.districts, 'Chọn Quận/Huyện', 'select-district');
     }
     
-    /**
-     * Render wards list
-     */
     renderWards() {
         if (!this.selectedDistrict) return;
-        
-        const content = document.getElementById('addressDropdownContent');
-        if (!content) return;
-        
-        let html = '<div class="address-dropdown-header">Chọn Phường/Xã</div>';
-        html += '<div class="address-dropdown-list" role="listbox">';
-        
-        this.selectedDistrict.wards.forEach(ward => {
-            html += '<div class="address-list-item" role="option" tabindex="-1" data-action="select-ward" data-code="' + ward.code + '">';
-            html += '<span class="item-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg></span>';
-            html += '<span class="item-text">' + ward.name + '</span>';
-            html += '</div>';
-        });
-        
-        html += '</div>';
-        
-        content.innerHTML = html;
-        
-        this.openDropdown();
+        this.renderGenericList(this.selectedDistrict.wards, 'Chọn Phường/Xã', 'select-ward');
     }
     
     /**
@@ -974,89 +728,71 @@ export class HierarchicalAddressSelector {
      */
     updateChipsDisplay() {
         const chipsContainer = document.getElementById('addressChips');
-        if (!chipsContainer) return;
-        
-        let html = '';
-        
-        // Province chip
-        if (this.selectedProvince) {
-            const shortName = this.selectedProvince.name.replace('Tỉnh ', '').replace('Thành phố ', 'TP ');
-            html += '<div class="address-chip" data-level="province">';
-            html += '<span class="chip-text">' + shortName + '</span>';
-            html += '<button class="chip-remove" data-action="remove-chip" data-level="province" aria-label="Xóa ' + shortName + '">';
-            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
-            html += '</button>';
-            html += '</div>';
-        }
-        
-        // District chip
-        if (this.selectedDistrict) {
-            const shortName = this.selectedDistrict.name
-                .replace('Quận ', 'Q.')
-                .replace('Huyện ', 'H.')
-                .replace('Thành phố ', 'TP ')
-                .replace('Thị xã ', 'TX ');
-            html += '<div class="address-chip" data-level="district">';
-            html += '<span class="chip-text">' + shortName + '</span>';
-            html += '<button class="chip-remove" data-action="remove-chip" data-level="district" aria-label="Xóa ' + shortName + '">';
-            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
-            html += '</button>';
-            html += '</div>';
-        }
-        
-        // Ward chip
-        if (this.selectedWard) {
-            const shortName = this.selectedWard.name
-                .replace('Phường ', 'P.')
-                .replace('Xã ', 'X.')
-                .replace('Thị trấn ', 'TT ');
-            html += '<div class="address-chip" data-level="ward">';
-            html += '<span class="chip-text">' + shortName + '</span>';
-            html += '<button class="chip-remove" data-action="remove-chip" data-level="ward" aria-label="Xóa ' + shortName + '">';
-            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
-            html += '</button>';
-            html += '</div>';
-        }
-        
-        chipsContainer.innerHTML = html;
-        
-        // Update placeholder
         const searchInput = document.getElementById('addressSearchInput');
-        if (searchInput) {
-            if (this.selectedWard) {
-                searchInput.placeholder = '';
-                searchInput.style.display = 'none';
-            } else if (this.selectedDistrict) {
-                searchInput.placeholder = '🔍 Tìm phường/xã...';
-                searchInput.style.display = 'block';
-            } else if (this.selectedProvince) {
-                searchInput.placeholder = '🔍 Tìm quận/huyện...';
-                searchInput.style.display = 'block';
-            } else {
-                searchInput.placeholder = '🔍 Tìm tỉnh/thành phố...';
-                searchInput.style.display = 'block';
-            }
+        if (!chipsContainer || !searchInput) return;
+        
+        const chips = [];
+        const levels = [
+            { selected: this.selectedProvince, prefix: ['Tỉnh ', 'Thành phố '], replace: 'TP ', level: 'province' },
+            { selected: this.selectedDistrict, prefix: ['Quận ', 'Huyện ', 'Thành phố ', 'Thị xã '], replace: ['Q.', 'H.', 'TP ', 'TX '], level: 'district' },
+            { selected: this.selectedWard, prefix: ['Phường ', 'Xã ', 'Thị trấn '], replace: ['P.', 'X.', 'TT '], level: 'ward' }
+        ];
+        
+        levels.forEach(({ selected, prefix, replace, level }) => {
+            if (!selected) return;
+            let shortName = selected.name;
+            prefix.forEach((p, i) => {
+                shortName = shortName.replace(p, Array.isArray(replace) ? replace[i] : replace);
+            });
+            chips.push(`<div class="address-chip" data-level="${level}">
+                <span class="chip-text">${shortName}</span>
+                <button class="chip-remove" data-action="remove-chip" data-level="${level}" aria-label="Xóa ${shortName}">
+                    ${this.CLOSE_ICON}
+                </button>
+            </div>`);
+        });
+        
+        chipsContainer.innerHTML = chips.join('');
+        
+        // Update placeholder and visibility
+        const placeholders = {
+            ward: '',
+            district: '🔍 Tìm phường/xã...',
+            province: '🔍 Tìm quận/huyện...',
+            default: '🔍 Tìm tỉnh/thành phố...'
+        };
+        
+        if (this.selectedWard) {
+            searchInput.style.display = 'none';
+            searchInput.placeholder = '';
+        } else {
+            searchInput.style.display = 'block';
+            searchInput.placeholder = placeholders[this.currentLevel] || placeholders.default;
         }
     }
     
     /**
-     * Navigate to a specific level
+     * Navigate to a specific level (unused - can be removed if not needed)
      */
     goToLevel(level) {
-        if (level === 'province') {
-            this.districtCode = '';
-            this.wardCode = '';
-            this.selectedDistrict = null;
-            this.selectedWard = null;
-            this.currentLevel = 'district';
-            this.renderDistricts();
-        } else if (level === 'district') {
-            this.wardCode = '';
-            this.selectedWard = null;
-            this.currentLevel = 'ward';
-            this.renderWards();
-        }
+        const resetMap = {
+            province: () => {
+                this.districtCode = '';
+                this.wardCode = '';
+                this.selectedDistrict = null;
+                this.selectedWard = null;
+                this.currentLevel = 'district';
+                this.renderDistricts();
+            },
+            district: () => {
+                this.wardCode = '';
+                this.selectedWard = null;
+                this.currentLevel = 'ward';
+                this.renderWards();
+            }
+        };
         
+        resetMap[level]?.();
         this.updateChipsDisplay();
         this.updateFullAddress();
         this.hideStreetInput();
@@ -1152,41 +888,16 @@ export class HierarchicalAddressSelector {
     }
     
     /**
-     * Clear search
+     * Clear search (unused - can be removed)
      */
     clearSearch() {
         const searchInput = document.getElementById('addressSearchInput');
-        const clearBtn = document.getElementById('addressSearchClear');
-        
         if (searchInput) {
-            // If we have selected address, keep it and just clear search part
-            if (searchInput.getAttribute('data-display-mode') === 'true') {
-                const baseAddress = this.getSelectedAddressText();
-                searchInput.value = baseAddress;
-                this.searchQuery = '';
-                searchInput.focus();
-                setTimeout(() => {
-                    searchInput.setSelectionRange(baseAddress.length, baseAddress.length);
-                }, 0);
-            } else {
-                searchInput.value = '';
-                this.searchQuery = '';
-                searchInput.focus();
-            }
+            searchInput.value = '';
+            this.searchQuery = '';
+            searchInput.focus();
         }
-        
-        if (clearBtn) {
-            clearBtn.classList.add('hidden');
-        }
-        
-        // Show appropriate list based on current level
-        if (this.currentLevel === 'province') {
-            this.renderProvinces();
-        } else if (this.currentLevel === 'district') {
-            this.renderDistricts();
-        } else if (this.currentLevel === 'ward') {
-            this.renderWards();
-        }
+        this.renderList(this.currentLevel);
     }
     
     /**
