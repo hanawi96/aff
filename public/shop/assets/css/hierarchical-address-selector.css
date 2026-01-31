@@ -194,11 +194,14 @@
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     max-height: 400px;
-    overflow: hidden;
     z-index: 10000;
     animation: dropdownSlideIn 0.2s ease;
+    
+    /* Copy from modal - exact same structure */
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    transform: translateZ(0);
 }
 
 /* Mobile: Taller dropdown for easier scrolling */
@@ -246,26 +249,10 @@
 
 .address-dropdown-content {
     overflow-y: auto;
-    overflow-x: hidden;
     flex: 1;
     padding: 0.5rem;
-    
-    /* Pure native scroll - no tricks */
-    -webkit-overflow-scrolling: touch;
-    
-    /* Optimize scroll performance */
-    will-change: scroll-position;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
 }
 
-/* Force GPU acceleration for smooth scroll on mobile */
-@media (max-width: 768px) {
-    .address-dropdown-content {
-        transform: translate3d(0, 0, 0);
-        -webkit-transform: translate3d(0, 0, 0);
-    }
-}
 
 .address-dropdown.hidden {
     display: none;

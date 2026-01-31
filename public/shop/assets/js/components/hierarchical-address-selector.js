@@ -47,7 +47,7 @@ export class HierarchicalAddressSelector {
         
         // Constants
         this.DEBOUNCE_DELAY = 150;
-        this.MAX_RESULTS = 50;
+        this.MAX_RESULTS = 30; // Reduced for better mobile performance
         this.SCROLL_OFFSET = 80;
         this.KEYBOARD_DELAY = 300;
         this.FOCUS_DELAY = 50;
