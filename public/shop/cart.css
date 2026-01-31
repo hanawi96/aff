@@ -6137,6 +6137,11 @@ body {
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* When dropdown is open inside modal, prevent body scroll to avoid double scrollbar */
+.address-modal-body.dropdown-open {
+    overflow-y: hidden;
+}
+
 .address-modal-footer {
     padding: 1.25rem 1.5rem;
     background: white;
@@ -6260,8 +6265,8 @@ body {
     
     .address-modal-body {
         padding: 1rem;
-        /* Extra padding for mobile browser bars */
-        padding-bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px));
+        /* Reasonable padding for mobile - removed excessive 80px */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
     
     .address-modal-footer {

@@ -980,6 +980,12 @@ export class HierarchicalAddressSelector {
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
+            
+            // Dispatch event for modal to handle scroll
+            const container = document.getElementById(this.containerId);
+            document.dispatchEvent(new CustomEvent('addressDropdownToggle', {
+                detail: { isOpen: true, container }
+            }));
         }
         
         if (searchInput) {
@@ -1002,6 +1008,12 @@ export class HierarchicalAddressSelector {
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
+            
+            // Dispatch event for modal to handle scroll
+            const container = document.getElementById(this.containerId);
+            document.dispatchEvent(new CustomEvent('addressDropdownToggle', {
+                detail: { isOpen: false, container }
+            }));
         }
         
         if (searchInput) {

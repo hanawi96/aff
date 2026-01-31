@@ -591,6 +591,7 @@
         // Setup Address Modal
         function setupAddressModal() {
             const modal = document.getElementById('addressModal');
+            const modalBody = modal.querySelector('.address-modal-body');
             const openBtn = document.getElementById('openAddressModalBtn');
             const closeBtn = document.getElementById('closeAddressModalBtn');
             const confirmBtn = document.getElementById('confirmAddressBtn');
@@ -600,6 +601,7 @@
             openBtn.addEventListener('click', () => {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+                document.body.classList.add('modal-open');
                 
                 // Auto-open dropdown and show provinces list
                 setTimeout(() => {
@@ -614,6 +616,12 @@
             const closeModal = () => {
                 modal.classList.add('hidden');
                 document.body.style.overflow = '';
+                document.body.classList.remove('modal-open');
+                
+                // Remove dropdown-open class from modal body
+                if (modalBody) {
+                    modalBody.classList.remove('dropdown-open');
+                }
                 
                 // Close dropdown when modal closes
                 if (window.cartAddressSelector) {
@@ -628,6 +636,22 @@
                 if (e.target === modal) {
                     closeModal();
                 }
+            });
+            
+            // Listen for dropdown open/close events to toggle modal body scroll
+            document.addEventListener('addressDropdownToggle', (e) => {
+                if (!modalBody) return;
+                
+                // Only handle if we're inside the modal
+                const isInModal = e.detail?.container?.closest('.address-modal');
+                if (!isInModal) return;
+                
+                if (e.detail?.isOpen) {
+                    modalBody.classList.add('dropdown-open');
+                } else {
+                    modalBody.classList.remove('dropdown-open');
+                }
+            });
             });
             
             // Confirm address

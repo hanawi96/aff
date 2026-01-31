@@ -194,7 +194,7 @@
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     max-height: 400px;
-    z-index: 10000;
+    z-index: 10001; /* Higher than modal overlay (10000) */
     animation: dropdownSlideIn 0.2s ease;
     
     /* Copy from modal - exact same structure */
@@ -538,8 +538,8 @@
 
 /* Remove unused animation classes */
 
-/* Body scroll lock when address dropdown is open (cart page only) */
-body.address-dropdown-open {
+/* Body scroll lock when address dropdown is open (cart page only, NOT in modal) */
+body.address-dropdown-open:not(.modal-open) {
     /* DON'T use overflow: hidden - it prevents dropdown from scrolling! */
     /* Use position: fixed instead to lock scroll but allow child elements to scroll */
     position: fixed;
@@ -547,7 +547,20 @@ body.address-dropdown-open {
     overflow-y: scroll; /* Keep scrollbar space */
 }
 
-html.address-dropdown-open {
+html.address-dropdown-open:not(.modal-open) {
     /* Prevent iOS Safari bounce */
     overflow: hidden;
+}
+
+/* When dropdown is inside modal, use different approach */
+.address-modal .address-dropdown {
+    /* Ensure dropdown stays within modal bounds */
+    max-height: 50vh;
+}
+
+/* Mobile: Make dropdown taller in modal */
+@media (max-width: 768px) {
+    .address-modal .address-dropdown {
+        max-height: 60vh;
+    }
 }
