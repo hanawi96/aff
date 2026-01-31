@@ -6133,6 +6133,8 @@ body {
     overflow-y: auto;
     flex: 1;
     min-height: 0; /* Important for flex scrolling */
+    /* Add safe padding for mobile browsers */
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .address-modal-footer {
@@ -6140,6 +6142,8 @@ body {
     background: white;
     border-top: 2px solid #f0f0f0;
     flex-shrink: 0;
+    /* Add safe padding for mobile browsers */
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
 }
 
 .address-confirm-btn {
@@ -6223,5 +6227,42 @@ body {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Mobile Responsive for Address Modal */
+@media (max-width: 768px) {
+    .address-modal {
+        padding: 0;
+        align-items: stretch;
+    }
+    
+    .address-modal-content {
+        max-height: 100vh;
+        min-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+    
+    .address-modal-header {
+        padding: 1rem;
+    }
+    
+    .address-modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .address-modal-body {
+        padding: 1rem;
+        /* Extra padding for mobile browser bars */
+        padding-bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px));
+    }
+    
+    .address-modal-footer {
+        padding: 1rem;
+        /* Ensure button is always visible above browser bar */
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px));
+        /* Add shadow to make it stand out */
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
     }
 }
