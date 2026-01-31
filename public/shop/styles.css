@@ -2667,6 +2667,7 @@ body {
 .order-details-toggle {
     width: 100%;
     padding: 0.875rem 1rem;
+    padding-bottom: 1.5rem;
     background: transparent;
     border: none;
     display: flex;
@@ -2674,8 +2675,18 @@ body {
     justify-content: space-between;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-bottom: 2px dashed var(--primary)/20;
-    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+/* Gray divider line below title */
+.order-details-toggle::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
 }
 
 .order-details-toggle:hover {
@@ -2707,6 +2718,7 @@ body {
 
 .order-details-content {
     padding: 0 1rem 1rem 1rem;
+    padding-top: 1.5rem;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -4203,7 +4215,7 @@ body {
     }
     
     .order-details-toggle {
-        padding: 0.65rem 0.85rem;
+        padding: 1.5rem 0.85rem;
     }
     
     .order-details-title {

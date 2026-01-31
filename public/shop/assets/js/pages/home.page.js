@@ -10,6 +10,7 @@ import { FlashSaleCarousel, FlashSaleActions, FlashSaleTimer } from '../features
 import { QuickCheckout } from '../features/checkout/index.js';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
+import { bundleProductsService } from '../shared/services/bundle-products.service.js';
 
 /**
  * Home Page Manager
@@ -53,6 +54,9 @@ export class HomePage {
             
             // Phase 2: Load remaining content in background
             this.loadRemainingContent();
+            
+            // Phase 3: Pre-load bundle products for quick checkout (in background)
+            this.preloadBundleProducts();
             
             // Setup event listeners
             this.setupEventListeners();
@@ -122,6 +126,23 @@ export class HomePage {
                 this.productActions.products = allProducts;
             }
         }, 500);
+    }
+    
+    /**
+     * Pre-load bundle products for quick checkout (in background)
+     * This ensures bundle products are cached and ready when user opens quick checkout modal
+     */
+    preloadBundleProducts() {
+        setTimeout(async () => {
+            try {
+                console.log('📦 [HOME] Pre-loading bundle products for quick checkout...');
+                await bundleProductsService.loadBundleProducts();
+                console.log('✅ [HOME] Bundle products pre-loaded and cached');
+            } catch (error) {
+                console.error('❌ [HOME] Error pre-loading bundle products:', error);
+                // Non-critical error, don't show to user
+            }
+        }, 1000); // Load after 1 second to not block other content
     }
     
     /**

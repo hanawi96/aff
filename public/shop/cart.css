@@ -4462,7 +4462,7 @@ body {
         align-items: center;
         flex-wrap: nowrap !important;
         gap: 0.75rem;
-        padding: 5px 0;
+        padding: 25px 0 5px 0;
         font-size: 0.9rem;
         color: var(--text-dark);
         border-bottom: none !important;
