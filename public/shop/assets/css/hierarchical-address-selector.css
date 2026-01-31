@@ -544,14 +544,14 @@
 
 /* Body scroll lock when address dropdown is open (cart page only) */
 body.address-dropdown-open {
-    overflow: hidden !important;
-    touch-action: none !important;
-    overscroll-behavior: none !important;
+    /* DON'T use overflow: hidden - it prevents dropdown from scrolling! */
+    /* Use position: fixed instead to lock scroll but allow child elements to scroll */
+    position: fixed;
+    width: 100%;
+    overflow-y: scroll; /* Keep scrollbar space */
 }
 
-/* Also lock html to prevent iOS Safari bounce */
 html.address-dropdown-open {
-    overflow: hidden !important;
-    touch-action: none !important;
-    overscroll-behavior: none !important;
+    /* Prevent iOS Safari bounce */
+    overflow: hidden;
 }

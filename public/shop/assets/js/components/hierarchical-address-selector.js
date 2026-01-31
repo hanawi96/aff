@@ -33,6 +33,9 @@ export class HierarchicalAddressSelector {
         // Single flag for preventing dropdown close during interactions
         this.isInteracting = false;
         
+        // Save scroll position when locking body
+        this.savedScrollPosition = 0;
+        
         // Keyboard navigation
         this.focusedIndex = -1;
         this.resultItems = [];
@@ -1055,37 +1058,15 @@ export class HierarchicalAddressSelector {
         // Check if we're in a modal (modal already locks body)
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
-            // In modal - don't lock body, it's already locked
-            const log = `🔒 [DEBUG] In modal - skip body lock`;
-            console.log(log);
-            window.addressDebugLogs = window.addressDebugLogs || [];
-            window.addressDebugLogs.push(log);
             return;
         }
         
-        // Add class to both html and body for scroll lock
-        document.documentElement.classList.add('address-dropdown-open');
-        document.body.classList.add('address-dropdown-open');
+        // Simple - exactly like modal does it
+        document.body.style.overflow = 'hidden';
         
-        const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
-        const bodyOverflow = window.getComputedStyle(document.body).overflow;
-        const htmlClasses = document.documentElement.className;
-        const bodyClasses = document.body.className;
-        
-        const log1 = `🔒 [DEBUG] Body scroll LOCKED - classes added to html and body`;
-        const log2 = `🔒 [DEBUG] html.className: "${htmlClasses}"`;
-        const log3 = `🔒 [DEBUG] body.className: "${bodyClasses}"`;
-        const log4 = `🔒 [DEBUG] html overflow: ${htmlOverflow}`;
-        const log5 = `🔒 [DEBUG] body overflow: ${bodyOverflow}`;
-        
-        console.log(log1);
-        console.log(log2);
-        console.log(log3);
-        console.log(log4);
-        console.log(log5);
-        
+        console.log('🔒 Body locked');
         window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push(log1, log2, log3, log4, log5);
+        window.addressDebugLogs.push('🔒 Body locked');
     }
     
     /**
@@ -1095,22 +1076,15 @@ export class HierarchicalAddressSelector {
         // Check if we're in a modal
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
-            // In modal - don't unlock body
-            const log = `🔓 [DEBUG] In modal - skip body unlock`;
-            console.log(log);
-            window.addressDebugLogs = window.addressDebugLogs || [];
-            window.addressDebugLogs.push(log);
             return;
         }
         
-        // Remove class from both html and body
-        document.documentElement.classList.remove('address-dropdown-open');
-        document.body.classList.remove('address-dropdown-open');
+        // Simple - exactly like modal does it
+        document.body.style.overflow = '';
         
-        const log = `🔓 [DEBUG] Body scroll UNLOCKED - classes removed from html and body`;
-        console.log(log);
+        console.log('🔓 Body unlocked');
         window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push(log);
+        window.addressDebugLogs.push('🔓 Body unlocked');
     }
     
     /**
