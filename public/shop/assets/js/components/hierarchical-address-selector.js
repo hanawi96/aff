@@ -33,9 +33,6 @@ export class HierarchicalAddressSelector {
         // Single flag for preventing dropdown close during interactions
         this.isInteracting = false;
         
-        // Touch tracking for scroll prevention
-        this.lastTouchY = null;
-        
         // Keyboard navigation
         this.focusedIndex = -1;
         this.resultItems = [];
@@ -299,51 +296,13 @@ export class HierarchicalAddressSelector {
                 }
             });
             
-            // Prevent scroll propagation - Improved approach
+            // Mark interaction state for dropdown clicks
             if (dropdownContent) {
-                let touchStartY = 0;
-                let touchStartScrollTop = 0;
-                
-                dropdownContent.addEventListener('touchstart', (e) => {
+                dropdownContent.addEventListener('touchstart', () => {
                     this.isInteracting = true;
-                    touchStartY = e.touches[0].clientY;
-                    touchStartScrollTop = dropdownContent.scrollTop;
                 }, { passive: true });
-                
-                dropdownContent.addEventListener('touchmove', (e) => {
-                    const touchY = e.touches[0].clientY;
-                    const touchDelta = touchY - touchStartY;
-                    const scrollTop = dropdownContent.scrollTop;
-                    const scrollHeight = dropdownContent.scrollHeight;
-                    const clientHeight = dropdownContent.clientHeight;
-                    
-                    // Check if content is scrollable
-                    const isScrollable = scrollHeight > clientHeight;
-                    
-                    if (!isScrollable) {
-                        // Not scrollable - prevent all scrolling
-                        e.preventDefault();
-                        return;
-                    }
-                    
-                    // Calculate if we're at boundaries
-                    const isAtTop = scrollTop <= 0;
-                    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
-                    
-                    // Prevent scroll propagation at boundaries
-                    const isScrollingUp = touchDelta > 0;
-                    const isScrollingDown = touchDelta < 0;
-                    
-                    if ((isAtTop && isScrollingUp) || (isAtBottom && isScrollingDown)) {
-                        e.preventDefault();
-                    }
-                }, { passive: false });
                 
                 dropdownContent.addEventListener('touchend', () => {
-                    setTimeout(() => this.isInteracting = false, 100);
-                }, { passive: true });
-                
-                dropdownContent.addEventListener('touchcancel', () => {
                     setTimeout(() => this.isInteracting = false, 100);
                 }, { passive: true });
             }

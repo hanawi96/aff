@@ -200,10 +200,12 @@
     display: flex;
     flex-direction: column;
     
-    /* Prevent scroll propagation on mobile */
+    /* Prevent scroll propagation - CSS only approach */
     overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    
+    /* Isolation for better performance */
+    isolation: isolate;
+    contain: layout style paint;
 }
 
 /* Search input inside dropdown */
@@ -248,14 +250,21 @@
     flex: 1;
     padding: 0.5rem;
     
-    /* Stronger scroll containment */
-    overscroll-behavior-y: contain;
+    /* Optimal scroll behavior for mobile */
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
     
-    /* Ensure it's a scroll container */
+    /* Prevent momentum scroll from propagating */
     position: relative;
+    
+    /* Hardware acceleration for smooth scrolling */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
     will-change: scroll-position;
+    
+    /* Ensure smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
 }
 
 .address-dropdown.hidden {
@@ -271,10 +280,6 @@
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-.address-dropdown-content {
-    padding: 0.5rem;
 }
 
 .address-dropdown-header {
@@ -477,12 +482,13 @@
     }
     
     .address-dropdown {
-        max-height: 300px;
+        max-height: 60vh; /* Taller on mobile for easier scrolling */
     }
     
     .address-list-item,
     .address-result-item {
-        padding: 0.875rem;
+        padding: 1rem; /* Larger touch targets */
+        min-height: 48px; /* Minimum touch target size */
     }
     
     .address-list-item .item-text,
@@ -505,17 +511,6 @@
     text-align: center;
     color: #999;
     font-size: 0.9375rem;
-}
-
-/* Performance Optimizations */
-.address-dropdown-content {
-    contain: layout style paint;
-    will-change: scroll-position;
-}
-
-.address-list-item,
-.address-result-item {
-    contain: layout style;
 }
 
 /* Keyboard Navigation Focus */
