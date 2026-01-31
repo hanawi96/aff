@@ -35,6 +35,7 @@ export class HierarchicalAddressSelector {
         
         // Touch tracking for scroll prevention
         this.lastTouchY = null;
+        this.scrollPosition = 0; // Save scroll position when locking body
         
         // Keyboard navigation
         this.focusedIndex = -1;
@@ -299,51 +300,51 @@ export class HierarchicalAddressSelector {
                 }
             });
             
-            // Prevent scroll propagation on mobile - apply to dropdown content
+            // Prevent scroll propagation - Improved approach
             if (dropdownContent) {
-                let startY = 0;
-                let isDragging = false;
+                let touchStartY = 0;
+                let touchStartScrollTop = 0;
                 
                 dropdownContent.addEventListener('touchstart', (e) => {
                     this.isInteracting = true;
-                    isDragging = true;
-                    startY = e.touches[0].pageY;
+                    touchStartY = e.touches[0].clientY;
+                    touchStartScrollTop = dropdownContent.scrollTop;
                 }, { passive: true });
                 
                 dropdownContent.addEventListener('touchmove', (e) => {
-                    if (!isDragging) return;
-                    
-                    const currentY = e.touches[0].pageY;
+                    const touchY = e.touches[0].clientY;
+                    const touchDelta = touchY - touchStartY;
                     const scrollTop = dropdownContent.scrollTop;
                     const scrollHeight = dropdownContent.scrollHeight;
                     const clientHeight = dropdownContent.clientHeight;
+                    
+                    // Check if content is scrollable
                     const isScrollable = scrollHeight > clientHeight;
                     
                     if (!isScrollable) {
+                        // Not scrollable - prevent all scrolling
                         e.preventDefault();
-                        e.stopPropagation();
                         return;
                     }
                     
-                    const deltaY = currentY - startY;
+                    // Calculate if we're at boundaries
                     const isAtTop = scrollTop <= 0;
                     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
                     
-                    if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
+                    // Prevent scroll propagation at boundaries
+                    const isScrollingUp = touchDelta > 0;
+                    const isScrollingDown = touchDelta < 0;
                     
-                    startY = currentY;
+                    if ((isAtTop && isScrollingUp) || (isAtBottom && isScrollingDown)) {
+                        e.preventDefault();
+                    }
                 }, { passive: false });
                 
                 dropdownContent.addEventListener('touchend', () => {
-                    isDragging = false;
                     setTimeout(() => this.isInteracting = false, 100);
                 }, { passive: true });
                 
                 dropdownContent.addEventListener('touchcancel', () => {
-                    isDragging = false;
                     setTimeout(() => this.isInteracting = false, 100);
                 }, { passive: true });
             }
@@ -424,6 +425,9 @@ export class HierarchicalAddressSelector {
         }
         
         clearTimeout(this.searchDebounceTimer);
+        
+        // Unlock body scroll if it was locked
+        this.unlockBodyScroll();
     }
     
     /**
@@ -1010,14 +1014,24 @@ export class HierarchicalAddressSelector {
     openDropdown() {
         const dropdown = document.getElementById('addressDropdown');
         const searchInput = document.getElementById('addressSearchInput');
+        const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
+            
+            // Lock body scroll to prevent scroll propagation (only on mobile)
+            if (window.innerWidth <= 768) {
+                this.lockBodyScroll();
+            }
         }
         
         if (searchInput) {
             searchInput.setAttribute('aria-expanded', 'true');
+        }
+        
+        if (selectorDisplay) {
+            selectorDisplay.setAttribute('aria-expanded', 'true');
         }
     }
     
@@ -1027,17 +1041,69 @@ export class HierarchicalAddressSelector {
     closeDropdown() {
         const dropdown = document.getElementById('addressDropdown');
         const searchInput = document.getElementById('addressSearchInput');
+        const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
+            
+            // Unlock body scroll
+            this.unlockBodyScroll();
         }
         
         if (searchInput) {
             searchInput.setAttribute('aria-expanded', 'false');
         }
         
+        if (selectorDisplay) {
+            selectorDisplay.setAttribute('aria-expanded', 'false');
+        }
+        
         this.focusedIndex = -1;
+    }
+    
+    /**
+     * Lock body scroll (prevent page scroll when dropdown is open)
+     */
+    lockBodyScroll() {
+        // Check if we're in a modal (modal already locks body)
+        const modal = document.querySelector('.quick-checkout-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            // In modal - don't lock body, it's already locked
+            return;
+        }
+        
+        // Save current scroll position
+        this.scrollPosition = window.pageYOffset;
+        
+        // Lock body
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${this.scrollPosition}px`;
+        document.body.style.width = '100%';
+    }
+    
+    /**
+     * Unlock body scroll
+     */
+    unlockBodyScroll() {
+        // Check if we're in a modal
+        const modal = document.querySelector('.quick-checkout-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            // In modal - don't unlock body
+            return;
+        }
+        
+        // Unlock body
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        
+        // Restore scroll position
+        if (this.scrollPosition !== undefined) {
+            window.scrollTo(0, this.scrollPosition);
+        }
     }
     
     /**

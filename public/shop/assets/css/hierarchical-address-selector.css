@@ -244,8 +244,18 @@
 
 .address-dropdown-content {
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     padding: 0.5rem;
+    
+    /* Stronger scroll containment */
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    
+    /* Ensure it's a scroll container */
+    position: relative;
+    will-change: scroll-position;
 }
 
 .address-dropdown.hidden {
