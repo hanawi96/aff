@@ -552,15 +552,20 @@ html.address-dropdown-open:not(.modal-open) {
     overflow: hidden;
 }
 
-/* When dropdown is inside modal, use different approach */
+/* When dropdown is inside modal, keep it simple with absolute positioning */
 .address-modal .address-dropdown {
-    /* Ensure dropdown stays within modal bounds */
-    max-height: 50vh;
+    /* Increase max-height to show more items */
+    max-height: 350px;
 }
 
-/* Mobile: Make dropdown taller in modal */
+/* Mobile: Make dropdown taller in modal - calculate based on available space */
 @media (max-width: 768px) {
     .address-modal .address-dropdown {
-        max-height: 60vh;
+        /* Calculate: 100dvh - header - footer - padding - search input - extra spacing */
+        max-height: calc(100dvh - 60px - 70px - 60px - 60px);
+        /* Fallback for older browsers */
+        max-height: calc(100vh - 60px - 70px - 60px - 60px);
+        /* Add margin bottom for spacing */
+        margin-bottom: 1rem;
     }
 }
