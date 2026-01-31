@@ -35,7 +35,6 @@ export class HierarchicalAddressSelector {
         
         // Touch tracking for scroll prevention
         this.lastTouchY = null;
-        this.scrollPosition = 0; // Save scroll position when locking body
         
         // Keyboard navigation
         this.focusedIndex = -1;
@@ -1073,14 +1072,9 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        // Save current scroll position
-        this.scrollPosition = window.pageYOffset;
-        
-        // Lock body
+        // Simple overflow hidden approach (no position fixed to avoid layout issues)
         document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${this.scrollPosition}px`;
-        document.body.style.width = '100%';
+        document.body.style.touchAction = 'none';
     }
     
     /**
@@ -1096,14 +1090,7 @@ export class HierarchicalAddressSelector {
         
         // Unlock body
         document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        
-        // Restore scroll position
-        if (this.scrollPosition !== undefined) {
-            window.scrollTo(0, this.scrollPosition);
-        }
+        document.body.style.touchAction = '';
     }
     
     /**
