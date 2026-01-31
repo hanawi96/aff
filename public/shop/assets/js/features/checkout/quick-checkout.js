@@ -125,7 +125,9 @@ export class QuickCheckout {
      */
     async initializeAddressSelector() {
         if (!this.addressSelector) {
-            this.addressSelector = new AddressSelector('addressSelectorContainer');
+            // Use HierarchicalAddressSelector instead of old AddressSelector
+            const { HierarchicalAddressSelector } = await import('../../components/hierarchical-address-selector.js');
+            this.addressSelector = new HierarchicalAddressSelector('quickCheckoutAddressSelectorContainer');
             await this.addressSelector.init();
         } else {
             this.addressSelector.reset();
@@ -615,12 +617,15 @@ export class QuickCheckout {
             this.stopCountdown();
         }
         
-        // Update UI
+        // Update UI - both active class and radio button
         document.querySelectorAll('.payment-method-item').forEach(item => {
+            const radio = item.querySelector('.payment-method-radio');
             if (item.dataset.method === method) {
                 item.classList.add('active');
+                if (radio) radio.checked = true;
             } else {
                 item.classList.remove('active');
+                if (radio) radio.checked = false;
             }
         });
         
@@ -1680,7 +1685,7 @@ export class QuickCheckout {
             }
             
             // Scroll to address section in modal
-            const addressContainer = document.getElementById('addressSelectorContainer');
+            const addressContainer = document.getElementById('quickCheckoutAddressSelectorContainer');
             if (addressContainer) {
                 addressContainer.scrollIntoView({ 
                     behavior: 'smooth', 

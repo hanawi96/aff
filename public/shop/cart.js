@@ -1836,12 +1836,15 @@ const cartPayment = {
     selectPaymentMethod: (method) => {
         state.paymentMethod = method;
         
-        // Update UI
+        // Update UI - both active class and radio button
         document.querySelectorAll('.payment-method-item').forEach(item => {
+            const radio = item.querySelector('.payment-method-radio');
             if (item.dataset.method === method) {
                 item.classList.add('active');
+                if (radio) radio.checked = true;
             } else {
                 item.classList.remove('active');
+                if (radio) radio.checked = false;
             }
         });
         

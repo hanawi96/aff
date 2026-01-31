@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/form-validation.css">
+    <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
     <script>
         tailwind.config = {
             theme: {
@@ -1470,7 +1471,7 @@
                         </svg>
                         Địa chỉ giao hàng<span class="required">*</span>
                     </label>
-                    <div id="addressSelectorContainer"></div>
+                    <div id="quickCheckoutAddressSelectorContainer"></div>
                 </div>
                 
                 <!-- Baby Weight -->
@@ -1592,27 +1593,17 @@
                     </label>
                     <div class="payment-methods">
                         <div class="payment-method-item active" data-method="cod" onclick="quickCheckout.selectPaymentMethod('cod')">
-                            <div class="payment-method-icon">💵</div>
+                            <input type="radio" name="payment-method-quick" class="payment-method-radio" checked>
                             <div class="payment-method-info">
                                 <div class="payment-method-name">Thanh toán khi nhận hàng</div>
                                 <div class="payment-method-desc">Thanh toán bằng tiền mặt khi nhận hàng</div>
                             </div>
-                            <div class="payment-method-check">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem;">
-                                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
                         </div>
                         <div class="payment-method-item" data-method="bank" onclick="quickCheckout.selectPaymentMethod('bank')">
-                            <div class="payment-method-icon">🏦</div>
+                            <input type="radio" name="payment-method-quick" class="payment-method-radio">
                             <div class="payment-method-info">
                                 <div class="payment-method-name">Chuyển khoản ngân hàng</div>
                                 <div class="payment-method-desc">Chuyển khoản trước, giao hàng sau</div>
-                            </div>
-                            <div class="payment-method-check">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem;">
-                                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-                                </svg>
                             </div>
                         </div>
                     </div>

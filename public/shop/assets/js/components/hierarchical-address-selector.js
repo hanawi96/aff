@@ -33,6 +33,9 @@ export class HierarchicalAddressSelector {
         // Single flag for preventing dropdown close during interactions
         this.isInteracting = false;
         
+        // Touch tracking for scroll prevention
+        this.lastTouchY = null;
+        
         // Keyboard navigation
         this.focusedIndex = -1;
         this.resultItems = [];
@@ -263,6 +266,31 @@ export class HierarchicalAddressSelector {
                     this.selectResult(target);
                 }
             });
+            
+            // Prevent scroll propagation on mobile
+            dropdown.addEventListener('touchstart', (e) => {
+                this.isInteracting = true;
+            }, { passive: true });
+            
+            dropdown.addEventListener('touchmove', (e) => {
+                const target = e.currentTarget;
+                const scrollTop = target.scrollTop;
+                const scrollHeight = target.scrollHeight;
+                const height = target.clientHeight;
+                const delta = e.touches[0].clientY - (this.lastTouchY || e.touches[0].clientY);
+                this.lastTouchY = e.touches[0].clientY;
+                
+                // Prevent scroll propagation when at boundaries
+                if ((scrollTop === 0 && delta > 0) || 
+                    (scrollTop + height >= scrollHeight && delta < 0)) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            dropdown.addEventListener('touchend', () => {
+                this.lastTouchY = null;
+                setTimeout(() => this.isInteracting = false, 100);
+            }, { passive: true });
         }
         
         // Click outside to close dropdown
@@ -288,10 +316,46 @@ export class HierarchicalAddressSelector {
             const chipsWrapper = searchInput.closest('.address-chips-wrapper');
             if (!chipsWrapper) return;
             
-            const elementPosition = chipsWrapper.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - this.SCROLL_OFFSET;
+            // Check if we're inside a modal
+            const modal = chipsWrapper.closest('.quick-checkout-modal');
             
-            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            if (modal) {
+                // Inside modal - scroll the modal body to bring input to top
+                const modalBody = modal.querySelector('.quick-checkout-body');
+                const modalHeader = modal.querySelector('.quick-checkout-header');
+                
+                if (modalBody) {
+                    // Find the parent form group
+                    const formGroup = chipsWrapper.closest('.checkout-form-group');
+                    if (formGroup) {
+                        // Get offsetTop of form group relative to modal body
+                        let offsetTop = 0;
+                        let element = formGroup;
+                        
+                        // Calculate total offset from modal body
+                        while (element && element !== modalBody) {
+                            offsetTop += element.offsetTop;
+                            element = element.offsetParent;
+                        }
+                        
+                        // Get header height to avoid being covered
+                        const headerHeight = modalHeader ? modalHeader.offsetHeight : 0;
+                        
+                        // Scroll to position: offsetTop - headerHeight - small padding (10px)
+                        // This ensures input appears right below the header
+                        modalBody.scrollTo({ 
+                            top: Math.max(0, offsetTop - headerHeight - 10), 
+                            behavior: 'smooth' 
+                        });
+                    }
+                }
+            } else {
+                // Not in modal - scroll the window (cart page)
+                const elementPosition = chipsWrapper.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - this.SCROLL_OFFSET;
+                
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            }
         }, this.KEYBOARD_DELAY);
     }
     
@@ -572,7 +636,18 @@ export class HierarchicalAddressSelector {
             return;
         }
         
-        let html = '<div class="address-dropdown-results">';
+        // Determine header based on current level
+        let header = 'Kết quả tìm kiếm';
+        if (this.currentLevel === 'province') {
+            header = 'Chọn Tỉnh/Thành phố';
+        } else if (this.currentLevel === 'district') {
+            header = 'Chọn Quận/Huyện';
+        } else if (this.currentLevel === 'ward') {
+            header = 'Chọn Phường/Xã';
+        }
+        
+        let html = `<div class="address-dropdown-header">${header}</div>`;
+        html += '<div class="address-dropdown-results">';
         
         results.forEach(result => {
             html += this.renderResultItem(result);
