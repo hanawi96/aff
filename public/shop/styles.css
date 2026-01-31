@@ -5108,27 +5108,22 @@ body {
 .btn-view-codes {
     width: 100%;
     margin-top: 1rem;
-    padding: 0.875rem 1.25rem;
-    background: linear-gradient(135deg, #ffffff, #fff9f5);
-    border: 2px solid rgba(244, 162, 97, 0.2);
-    border-radius: 12px;
+    background: transparent;
+    border: none;
     color: #f4a261;
     font-weight: 700;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .btn-view-codes:hover {
-    background: linear-gradient(135deg, #fff9f5, #fff0e6);
-    border-color: rgba(244, 162, 97, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+    color: #e67e22;
+    transform: translateY(-1px);
 }
 
 /* Discount result */
@@ -5286,10 +5281,8 @@ body {
     }
     
     .btn-view-codes {
-        padding: 0.75rem 1rem;
         font-size: 0.9rem;
     }
-    
     .discount-result-quick {
         font-size: 0.8rem;
     }
