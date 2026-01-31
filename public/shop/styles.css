@@ -4871,7 +4871,7 @@ body {
     box-shadow: none;
 }
 
-.discount-code-display {
+.discount-input-wrapper .checkout-form-input {
     flex: 1;
     width: 100%;
     padding: 1rem 1.25rem;
@@ -4892,7 +4892,7 @@ body {
     box-shadow: 0 2px 8px rgba(144, 202, 149, 0.15);
 }
 
-.discount-code-display::placeholder {
+.discount-input-wrapper .checkout-form-input::placeholder {
     text-transform: none;
     letter-spacing: normal;
     font-weight: 500;
@@ -4900,19 +4900,7 @@ body {
     font-style: normal;
 }
 
-.discount-code-display:disabled {
-    background: linear-gradient(135deg, 
-        rgba(232, 245, 233, 0.7) 0%, 
-        rgba(200, 230, 201, 0.6) 100%
-    ) !important;
-    border: 3px dashed rgba(102, 187, 106, 0.6) !important;
-    color: #1b5e20;
-    cursor: not-allowed;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba(102, 187, 106, 0.2);
-}
-
-.discount-code-display:focus {
+.discount-input-wrapper .checkout-form-input:focus {
     outline: none;
     border-color: rgba(102, 187, 106, 0.7) !important;
     background: linear-gradient(135deg, 
@@ -4922,11 +4910,11 @@ body {
     box-shadow: 0 3px 12px rgba(102, 187, 106, 0.25);
 }
 
-.discount-code-display:hover:not(:disabled) {
+.discount-input-wrapper .checkout-form-input:hover {
     border-color: rgba(102, 187, 106, 0.6) !important;
 }
 
-.discount-code-display.has-discount {
+.discount-input-wrapper .checkout-form-input.has-discount {
     color: #1b5e20;
     font-weight: 700;
     background: linear-gradient(135deg, 
@@ -4964,16 +4952,209 @@ body {
 
 .discount-action-btn:hover {
     background: #ffb3c1;
-    transform: translateY(-50%);
+    transform: translateY(-50%) scale(1.02);
 }
 
 .discount-action-btn:active {
     background: #ffa0b0;
-    transform: translateY(-50%);
+    transform: translateY(-50%) scale(0.98);
 }
 
-.discount-action-btn i {
+/* Available codes section - Compact design like cart page */
+.available-codes-quick {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(244, 162, 97, 0.15);
+}
+
+.codes-title-quick {
     font-size: 0.95rem;
+    color: #2c3e50;
+    margin-bottom: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.code-list-quick {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.code-item-quick {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #ffffff, #fff9f5);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    border: 2px solid rgba(244, 162, 97, 0.15);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.code-item-quick:hover {
+    border-color: rgba(244, 162, 97, 0.4);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+}
+
+.code-item-quick.disabled {
+    background: linear-gradient(135deg, #fafafa, #f5f5f5);
+    border: 2px dashed #e0e0e0;
+    opacity: 0.75;
+}
+
+.code-item-quick.disabled:hover {
+    transform: none;
+    border-color: #e0e0e0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.code-item-quick.disabled .code-name-quick {
+    color: #999;
+}
+
+.code-item-quick.applied {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.08), rgba(39, 174, 96, 0.05));
+    border: 2px solid #27ae60;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
+}
+
+.code-item-quick.applied:hover {
+    transform: none;
+    border-color: #27ae60;
+}
+
+.code-item-quick.applied .code-name-quick {
+    color: #27ae60;
+}
+
+.code-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.code-name-quick {
+    font-weight: 700;
+    color: #f4a261;
+    font-size: 1rem;
+}
+
+.code-desc-quick {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.code-savings-quick {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+    color: #27ae60;
+}
+
+.code-item-quick.disabled .code-savings-quick {
+    color: #f39c12;
+}
+
+.code-apply-btn-quick {
+    background: linear-gradient(135deg, #f4a261, #e67e22);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.code-apply-btn-quick:hover:not(:disabled) {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.4);
+}
+
+.code-apply-btn-quick:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(244, 162, 97, 0.3);
+}
+
+.code-apply-btn-quick:disabled {
+    background: #f5f5f5;
+    border: 1px dashed #d0d0d0;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+.code-apply-btn-quick.applied {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    border: none;
+    color: white;
+    cursor: default;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+/* View all codes button */
+.btn-view-codes {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.875rem 1.25rem;
+    background: linear-gradient(135deg, #ffffff, #fff9f5);
+    border: 2px solid rgba(244, 162, 97, 0.2);
+    border-radius: 12px;
+    color: #f4a261;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-view-codes:hover {
+    background: linear-gradient(135deg, #fff9f5, #fff0e6);
+    border-color: rgba(244, 162, 97, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+}
+
+/* Discount result */
+.discount-result-quick {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: none;
+}
+
+.discount-result-quick .discount-success {
+    color: #1b5e20;
+    background: linear-gradient(135deg, rgba(232, 245, 233, 0.8), rgba(200, 230, 201, 0.6));
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 2px solid rgba(102, 187, 106, 0.4);
+}
+
+.discount-result-quick .discount-error {
+    color: #c62828;
+    background: linear-gradient(135deg, rgba(255, 235, 238, 0.8), rgba(255, 205, 210, 0.6));
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 2px solid rgba(239, 83, 80, 0.4);
 }
 
 .discount-applied {
@@ -5043,26 +5224,74 @@ body {
     
     .discount-input-wrapper {
         border-radius: 10px;
-        gap: 4px !important; /* Force gap on mobile */
+        gap: 4px !important;
         padding: 0;
     }
     
-    .discount-code-display {
+    .discount-input-wrapper .checkout-form-input {
         font-size: 0.875rem;
-        padding: 0.75rem 0.875rem !important;
-        border-radius: 10px !important; /* Full radius */
+        padding: 0.875rem 1rem !important;
+        padding-right: 100px !important;
+        border-radius: 24px !important;
     }
     
     .discount-action-btn {
         padding: 0.625rem 0.875rem;
-        font-size: 0.8rem;
-        border-radius: 10px !important; /* Full radius */
+        font-size: 0.75rem;
+        border-radius: 18px !important;
         margin: 0;
         gap: 0.375rem;
+        min-width: 85px;
     }
     
-    .discount-action-btn i {
-        font-size: 0.75rem;
+    .available-codes-quick {
+        margin-top: 0.875rem;
+        padding-top: 0.875rem;
+    }
+    
+    .codes-title-quick {
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .code-list-quick {
+        gap: 0.5rem;
+    }
+    
+    .code-item-quick {
+        padding: 0.625rem;
+        font-size: 0.85rem;
+    }
+    
+    .code-item-quick:hover {
+        transform: translateX(2px);
+    }
+    
+    .code-name-quick {
+        font-size: 0.9rem;
+    }
+    
+    .code-desc-quick {
+        font-size: 0.85rem;
+    }
+    
+    .code-apply-btn-quick {
+        padding: 0.5rem 0.875rem;
+        font-size: 0.8rem;
+        box-shadow: 0 2px 6px rgba(244, 162, 97, 0.25);
+    }
+    
+    .code-apply-btn-quick:hover:not(:disabled) {
+        box-shadow: 0 3px 10px rgba(244, 162, 97, 0.35);
+    }
+    
+    .btn-view-codes {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .discount-result-quick {
+        font-size: 0.8rem;
     }
 }
 

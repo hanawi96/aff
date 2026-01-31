@@ -1486,18 +1486,150 @@ export class QuickCheckout {
     updateDiscountDisplay() {
         const discountInput = document.getElementById('discountCodeInput');
         const discountBtnText = document.getElementById('discountBtnText');
+        const discountResult = document.getElementById('discountResultQuick');
         
         if (this.appliedDiscount) {
-            // Có mã giảm giá
             discountInput.value = this.appliedDiscount.code;
             discountInput.classList.add('has-discount');
             discountBtnText.textContent = 'Đổi mã';
+            
+            const discountText = discountService.formatDiscountText(this.appliedDiscount);
+            if (discountResult) {
+                discountResult.innerHTML = '<div class="discount-success">✓ Đã áp dụng mã <strong>' + this.appliedDiscount.code + '</strong> - ' + discountText + '</div>';
+                discountResult.style.display = 'block';
+            }
         } else {
-            // Chưa có mã giảm giá
             discountInput.value = '';
             discountInput.classList.remove('has-discount');
-            discountBtnText.textContent = 'Chọn mã';
+            discountBtnText.textContent = 'Áp dụng';
+            
+            if (discountResult) {
+                discountResult.style.display = 'none';
+                discountResult.innerHTML = '';
+            }
         }
+        
+        // Render available codes
+        this.renderAvailableCodes();
+    }
+    
+    /**
+     * Render top 2 available discount codes
+     */
+    renderAvailableCodes() {
+        const container = document.getElementById('codeListQuick');
+        if (!container) return;
+        
+        if (!this.availableDiscounts || this.availableDiscounts.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #999; padding: 0.75rem; font-size: 0.85rem;">Không có mã giảm giá khả dụng</div>';
+            return;
+        }
+        
+        // Get top 2 best discounts
+        const orderAmount = this.calculateTotal() + this.discountAmount;
+        const bestDiscounts = this.availableDiscounts
+            .filter(d => d.active && d.visible)
+            .map(d => {
+                const isApplicable = !d.min_order_amount || orderAmount >= d.min_order_amount;
+                const savings = isApplicable ? discountService.calculateDiscountAmount(d, orderAmount) : 0;
+                return { ...d, isApplicable, savings };
+            })
+            .sort((a, b) => {
+                if (a.isApplicable && !b.isApplicable) return -1;
+                if (!a.isApplicable && b.isApplicable) return 1;
+                return b.savings - a.savings;
+            })
+            .slice(0, 2);
+        
+        const html = bestDiscounts.map(code => {
+            const discountText = discountService.formatDiscountText(code);
+            const isApplied = this.appliedDiscount && this.appliedDiscount.code === code.code;
+            
+            let savingsText = '';
+            if (code.isApplicable && code.savings > 0) {
+                savingsText = `💰 Tiết kiệm ${formatPrice(code.savings)}`;
+            } else if (!code.isApplicable && code.min_order_amount) {
+                const remaining = code.min_order_amount - orderAmount;
+                savingsText = `💡 Mua thêm ${formatPrice(remaining)} để áp dụng`;
+            }
+            
+            return '<div class="code-item-quick' + (!code.isApplicable ? ' disabled' : '') + (isApplied ? ' applied' : '') + '">' +
+                '<div class="code-item-info">' +
+                '<span class="code-name-quick">' + escapeHtml(code.code) + '</span>' +
+                '<span class="code-desc-quick"> - ' + escapeHtml(discountText) + '</span>' +
+                (savingsText ? '<div class="code-savings-quick">' + savingsText + '</div>' : '') +
+                '</div>' +
+                '<button class="code-apply-btn-quick' + (isApplied ? ' applied' : '') + '" ' +
+                'onclick="quickCheckout.quickApplyDiscount(\'' + escapeHtml(code.code) + '\')" ' +
+                (code.isApplicable && !isApplied ? '' : 'disabled') + '>' +
+                (isApplied ? '✓ Đã áp dụng' : 'Áp dụng') +
+                '</button>' +
+                '</div>';
+        }).join('');
+        
+        container.innerHTML = html;
+    }
+    
+    /**
+     * Quick apply discount from available codes
+     */
+    quickApplyDiscount(code) {
+        const discount = this.availableDiscounts.find(d => d.code === code);
+        if (!discount) return;
+        
+        const orderAmount = this.calculateTotal() + this.discountAmount;
+        const amount = discountService.calculateDiscountAmount(discount, orderAmount);
+        
+        this.applyDiscount(discount, amount);
+    }
+    
+    /**
+     * Apply discount manually from input
+     */
+    async applyDiscountManually() {
+        const input = document.getElementById('discountCodeInput');
+        const code = input.value.trim().toUpperCase();
+        const discountResult = document.getElementById('discountResultQuick');
+        
+        if (!code) {
+            if (this.appliedDiscount) {
+                this.removeDiscount();
+            }
+            return;
+        }
+        
+        // If same code already applied, remove it
+        if (this.appliedDiscount && this.appliedDiscount.code === code) {
+            this.removeDiscount();
+            return;
+        }
+        
+        // Find discount
+        const discount = this.availableDiscounts.find(d => d.code === code && d.active);
+        
+        if (!discount) {
+            if (discountResult) {
+                discountResult.innerHTML = '<div class="discount-error">✗ Mã giảm giá không tồn tại hoặc đã hết hạn</div>';
+                discountResult.style.display = 'block';
+            }
+            showToast('Mã giảm giá không hợp lệ', 'error');
+            return;
+        }
+        
+        // Check minimum order
+        const orderAmount = this.calculateTotal() + this.discountAmount;
+        if (discount.min_order_amount && orderAmount < discount.min_order_amount) {
+            if (discountResult) {
+                discountResult.innerHTML = '<div class="discount-error">✗ Đơn hàng tối thiểu ' + formatPrice(discount.min_order_amount) + ' để áp dụng mã này</div>';
+                discountResult.style.display = 'block';
+            }
+            showToast('Chưa đủ điều kiện áp dụng mã', 'error');
+            return;
+        }
+        
+        // Apply discount
+        const amount = discountService.calculateDiscountAmount(discount, orderAmount);
+        this.applyDiscount(discount, amount);
     }
     
     /**
@@ -2142,11 +2274,40 @@ export class QuickCheckout {
             }
         }
         
-        // Discount button
+        // Discount input and button
+        const discountInput = document.getElementById('discountCodeInput');
         const discountActionBtn = document.getElementById('discountActionBtn');
+        const viewCodesBtn = document.getElementById('viewCodesBtn');
+        
+        if (discountInput) {
+            // Enter key to apply
+            discountInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.applyDiscountManually();
+                }
+            });
+            
+            // Auto uppercase
+            discountInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+            });
+        }
         
         if (discountActionBtn) {
-            discountActionBtn.addEventListener('click', () => this.openDiscountModal());
+            discountActionBtn.addEventListener('click', () => {
+                if (this.appliedDiscount) {
+                    // If has discount, button acts as "change code" - remove current
+                    this.removeDiscount();
+                } else {
+                    // Try to apply from input
+                    this.applyDiscountManually();
+                }
+            });
+        }
+        
+        if (viewCodesBtn) {
+            viewCodesBtn.addEventListener('click', () => this.openDiscountModal());
         }
         
         // ESC key to close
