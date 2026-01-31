@@ -977,31 +977,9 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
-        const log1 = `📂 [DEBUG] Opening dropdown...`;
-        const log2 = `📂 [DEBUG] Window width: ${window.innerWidth}`;
-        console.log(log1);
-        console.log(log2);
-        window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push(log1, log2);
-        
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
-            const log3 = `📂 [DEBUG] Dropdown visible`;
-            console.log(log3);
-            window.addressDebugLogs.push(log3);
-            
-            // Lock body scroll on mobile (but not in modal - modal already locks body)
-            if (window.innerWidth <= 768) {
-                const log4 = `📂 [DEBUG] Mobile detected - calling lockBodyScroll()`;
-                console.log(log4);
-                window.addressDebugLogs.push(log4);
-                this.lockBodyScroll();
-            } else {
-                const log4 = `📂 [DEBUG] Desktop - skip body lock`;
-                console.log(log4);
-                window.addressDebugLogs.push(log4);
-            }
         }
         
         if (searchInput) {
@@ -1021,23 +999,9 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
-        const log1 = `📁 [DEBUG] Closing dropdown...`;
-        console.log(log1);
-        window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push(log1);
-        
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
-            const log2 = `📁 [DEBUG] Dropdown hidden`;
-            console.log(log2);
-            window.addressDebugLogs.push(log2);
-            
-            // Unlock body scroll
-            const log3 = `📁 [DEBUG] Calling unlockBodyScroll()`;
-            console.log(log3);
-            window.addressDebugLogs.push(log3);
-            this.unlockBodyScroll();
         }
         
         if (searchInput) {
@@ -1063,10 +1027,6 @@ export class HierarchicalAddressSelector {
         
         // Simple - exactly like modal does it
         document.body.style.overflow = 'hidden';
-        
-        console.log('🔒 Body locked');
-        window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push('🔒 Body locked');
     }
     
     /**
@@ -1081,10 +1041,6 @@ export class HierarchicalAddressSelector {
         
         // Simple - exactly like modal does it
         document.body.style.overflow = '';
-        
-        console.log('🔓 Body unlocked');
-        window.addressDebugLogs = window.addressDebugLogs || [];
-        window.addressDebugLogs.push('🔓 Body unlocked');
     }
     
     /**

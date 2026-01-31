@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giỏ Hàng - Vòng Đầu Tam</title>
     
-    <!-- Eruda Debug Console for Mobile (TEMPORARY - Remove after debugging) -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
@@ -46,47 +42,6 @@
         </div>
     </header>
     
-    <!-- DEBUG: Copy Logs Button (TEMPORARY - Remove after debugging) -->
-    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 99999;">
-        <button id="copyLogsBtn" style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-weight: 600;
-            font-size: 14px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        ">
-            📋 Copy Logs
-        </button>
-    </div>
-    <script>
-        document.getElementById('copyLogsBtn').addEventListener('click', function() {
-            const logs = window.addressDebugLogs || [];
-            const logText = logs.join('\n');
-            
-            // Copy to clipboard
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(logText).then(() => {
-                    this.textContent = '✅ Copied!';
-                    this.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
-                    setTimeout(() => {
-                        this.innerHTML = '📋 Copy Logs';
-                        this.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    }, 2000);
-                });
-            } else {
-                // Fallback for older browsers
-                alert('Logs:\n\n' + logText);
-            }
-        });
-    </script>
-
     <!-- Main Content -->
     <main class="cart-main">
         <div class="container">
@@ -207,7 +162,7 @@
                             <input type="text" class="checkout-form-input" id="cartName" placeholder="Nhập họ và tên" required>
                         </div>
                         
-                        <!-- Address Selector -->
+                        <!-- Address Selector - Click to open modal -->
                         <div class="checkout-form-group">
                             <label class="checkout-form-label">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
@@ -215,7 +170,17 @@
                                 </svg>
                                 Địa chỉ giao hàng<span class="required">*</span>
                             </label>
-                            <div id="cartAddressSelectorContainer"></div>
+                            
+                            <!-- Address Display Button -->
+                            <button type="button" class="address-select-btn" id="openAddressModalBtn">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;">
+                                    <path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                                </svg>
+                                <span id="selectedAddressText">Chọn địa chỉ giao hàng</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; margin-left: auto;">
+                                    <path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -610,13 +575,82 @@
         
         // Wait for DOM and cart to be ready
         window.addEventListener('cartInitialized', async () => {
-            const container = document.getElementById('cartAddressSelectorContainer');
-            if (container && !window.cartAddressSelector) {
-                window.cartAddressSelector = new HierarchicalAddressSelector('cartAddressSelectorContainer');
+            // Initialize address selector in MODAL instead of inline
+            const modalContainer = document.getElementById('modalAddressSelectorContainer');
+            
+            if (modalContainer && !window.cartAddressSelector) {
+                window.cartAddressSelector = new HierarchicalAddressSelector('modalAddressSelectorContainer');
                 await window.cartAddressSelector.init();
-                console.log('✅ Hierarchical address selector initialized for cart');
+                console.log('✅ Address selector initialized in modal');
             }
+            
+            // Setup modal controls
+            setupAddressModal();
         });
+        
+        // Setup Address Modal
+        function setupAddressModal() {
+            const modal = document.getElementById('addressModal');
+            const openBtn = document.getElementById('openAddressModalBtn');
+            const closeBtn = document.getElementById('closeAddressModalBtn');
+            const confirmBtn = document.getElementById('confirmAddressBtn');
+            const selectedText = document.getElementById('selectedAddressText');
+            
+            // Open modal
+            openBtn.addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                
+                // Auto-open dropdown and show provinces list
+                setTimeout(() => {
+                    if (window.cartAddressSelector) {
+                        // Trigger search to render provinces
+                        window.cartAddressSelector.performSearch();
+                    }
+                }, 150);
+            });
+            
+            // Close modal
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                
+                // Close dropdown when modal closes
+                if (window.cartAddressSelector) {
+                    window.cartAddressSelector.closeDropdown();
+                }
+            };
+            
+            closeBtn.addEventListener('click', closeModal);
+            
+            // Click outside to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            // Confirm address
+            confirmBtn.addEventListener('click', () => {
+                const addressData = window.cartAddressSelector.getAddressData();
+                
+                // Validate
+                const validation = window.cartAddressSelector.validate();
+                if (!validation.isValid) {
+                    alert(validation.message);
+                    return;
+                }
+                
+                // Update button text
+                selectedText.textContent = addressData.fullAddress;
+                selectedText.classList.add('has-address');
+                
+                // Close modal
+                closeModal();
+                
+                console.log('✅ Address selected:', addressData);
+            });
+        }
     </script>
     <script>
         // Load contact buttons
@@ -629,5 +663,36 @@
             })
             .catch(error => console.error('Error loading contact buttons:', error));
     </script>
+    
+    <!-- Address Selection Modal -->
+    <div class="address-modal hidden" id="addressModal">
+        <div class="address-modal-content">
+            <div class="address-modal-header">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;">
+                        <path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                    </svg>
+                    Chọn địa chỉ giao hàng
+                </h3>
+                <button class="address-modal-close" id="closeAddressModalBtn" aria-label="Đóng">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div class="address-modal-body">
+                <div id="modalAddressSelectorContainer"></div>
+            </div>
+            <div class="address-modal-footer">
+                <button class="address-confirm-btn" id="confirmAddressBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+                    </svg>
+                    Xác nhận địa chỉ
+                </button>
+            </div>
+        </div>
+    </div>
+    
 </body>
 </html>
