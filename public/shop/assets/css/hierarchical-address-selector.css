@@ -251,6 +251,13 @@
     overflow-y: auto;
     flex: 1;
     padding: 0.5rem;
+    
+    /* Force browser to treat like native scrolling */
+    -webkit-overflow-scrolling: touch;
+    
+    /* Reduce paint complexity */
+    contain: strict;
+    content-visibility: auto;
 }
 
 
@@ -295,6 +302,10 @@
     cursor: pointer;
     transition: background 0.15s ease;
     background: #fff;
+    
+    /* Optimize rendering */
+    contain: layout style paint;
+    will-change: background;
 }
 
 .address-list-item:hover {
@@ -349,6 +360,10 @@
     cursor: pointer;
     transition: background 0.15s ease;
     background: #fff;
+    
+    /* Optimize rendering */
+    contain: layout style paint;
+    will-change: background;
 }
 
 .address-result-item:hover {
