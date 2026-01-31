@@ -2166,7 +2166,7 @@ body {
         font-size: 0.65rem;
     }
 }
-}
+
 
 /* Extra Small Mobile (< 400px) */
 @media (max-width: 400px) {
@@ -2210,12 +2210,12 @@ body {
     
     .favorites-count {
         font-size: 0.6rem;
-    }
+    
         border-radius: 12px;
         gap: 0.15rem;
     }
-}
-}
+
+
     
     .timer-value {
         font-size: 1.3rem;
