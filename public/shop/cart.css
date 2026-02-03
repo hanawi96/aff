@@ -3417,6 +3417,7 @@ body {
     flex-shrink: 0;
     grid-column: 1;
     grid-row: 1;
+    padding-bottom: 12px; /* Tạo không gian cho icon nằm ngoài */
 }
 
 .bundle-product-image {
@@ -3438,14 +3439,15 @@ body {
 
 .bundle-image-preview-btn {
     position: absolute;
-    bottom: 4px;
-    right: 4px;
+    bottom: 0; /* Nửa chiều cao của button (24px / 2 = 12px) */
+    right: 3px; /* Căn giữa theo chiều ngang */
+    transform: translateX(50%); /* Dịch về giữa */
     width: 24px;
     height: 24px;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     border: none;
-    border-radius: 8px;
+    border-radius: 50%; /* Làm tròn hoàn toàn */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3453,6 +3455,7 @@ body {
     transition: all 0.2s ease;
     z-index: 2;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .bundle-image-preview-btn svg {
@@ -3463,11 +3466,12 @@ body {
 
 .bundle-image-preview-btn:hover {
     background: rgba(0, 0, 0, 0.8);
-    transform: scale(1.1);
+    transform: translateX(50%) scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .bundle-image-preview-btn:active {
-    transform: scale(0.95);
+    transform: translateX(50%) scale(0.95);
 }
 
 /* Image Preview Modal */
@@ -3639,6 +3643,130 @@ body {
     border-radius: 8px;
     font-size: 0.7rem;
     font-weight: 800;
+}
+
+/* ============================================
+   PROGRESS BAR - Flash Sale Sold Tracking (Handmade Warm)
+   ============================================ */
+.bundle-progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.bundle-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.bundle-sold {
+    color: #e76f51;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.bundle-remaining {
+    color: #27ae60;
+    font-weight: 700;
+}
+
+.bundle-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #f5f5f5 0%, #e8e8e8 100%);
+    border-radius: 10px;
+    overflow: visible; /* Cho phép particles bay ra ngoài */
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.bundle-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f4a261 0%, #e76f51 50%, #e9c46a 100%);
+    border-radius: 10px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 2px 4px rgba(244, 162, 97, 0.3);
+    overflow: visible;
+}
+
+/* Shimmer animation for progress bar */
+.bundle-progress-fill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    animation: shimmer 2s infinite;
+    z-index: 1;
+}
+
+/* Particles bay ra từ đầu mút thanh progress - Hiệu ứng đang chạy */
+.bundle-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -2px; /* Ở đầu mút bên phải */
+    width: 6px;
+    height: 6px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translateY(-50%);
+    box-shadow: 
+        2px 0 4px rgba(255, 255, 255, 0.8),
+        4px -2px 3px rgba(255, 255, 255, 0.6),
+        4px 2px 3px rgba(255, 255, 255, 0.6),
+        6px 0 2px rgba(255, 255, 255, 0.4),
+        6px -3px 2px rgba(255, 255, 255, 0.3),
+        6px 3px 2px rgba(255, 255, 255, 0.3);
+    animation: sparkle 1s ease-in-out infinite;
+    z-index: 2;
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+        box-shadow: 
+            2px 0 4px rgba(255, 255, 255, 0.8),
+            4px -2px 3px rgba(255, 255, 255, 0.6),
+            4px 2px 3px rgba(255, 255, 255, 0.6),
+            6px 0 2px rgba(255, 255, 255, 0.4),
+            6px -3px 2px rgba(255, 255, 255, 0.3),
+            6px 3px 2px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        opacity: 0.7;
+        transform: translateY(-50%) scale(1.2);
+        box-shadow: 
+            3px 0 6px rgba(255, 255, 255, 0.9),
+            6px -3px 5px rgba(255, 255, 255, 0.7),
+            6px 3px 5px rgba(255, 255, 255, 0.7),
+            9px 0 4px rgba(255, 255, 255, 0.5),
+            9px -4px 3px rgba(255, 255, 255, 0.4),
+            9px 4px 3px rgba(255, 255, 255, 0.4);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
 .bundle-add-btn {
@@ -5342,8 +5470,8 @@ body {
     .bundle-image-preview-btn {
         width: 17px;
         height: 17px;
-        bottom: 4px;
-        right: 4px;
+        bottom: 32px;
+        right: 1px;
         border-radius: 4px;
     }
 
