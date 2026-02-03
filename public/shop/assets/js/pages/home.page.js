@@ -82,22 +82,23 @@ export class HomePage {
     
     /**
      * Load critical above-the-fold content FIRST
-     * Priority: Flash Sales + First 12 Best-Selling Products
+     * Priority: ALL Products (for filtering) + Flash Sales
      */
     async loadCriticalContent() {
-        // Load flash sales and first page of products in parallel
-        const [flashSales, productsPage] = await Promise.all([
-            apiService.getActiveFlashSales(),
-            apiService.getProductsPaginated(1, 12) // Only first 12 products
+        // Load ALL products và flash sales song song
+        const [allProducts, flashSales] = await Promise.all([
+            apiService.getAllProducts(), // Load TẤT CẢ ngay từ đầu
+            apiService.getActiveFlashSales()
         ]);
         
+        this.allProducts = allProducts;
+        this.products = allProducts; // Sync để tương thích
         this.flashSales = flashSales;
         
-        // Sort first 12 products by best-selling (purchases)
-        this.products = productsPage.products.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
-        
-        this.hasMoreProducts = productsPage.hasMore;
-        this.currentPage = 1;
+        console.log('✅ Critical content loaded:', {
+            products: allProducts.length,
+            flashSales: flashSales.length
+        });
     }
     
     /**
@@ -111,21 +112,7 @@ export class HomePage {
             this.hideCategoriesSkeleton();
         }, 100);
         
-        // Load all products for filtering/sorting (in background)
-        setTimeout(async () => {
-            const allProducts = await apiService.getAllProducts();
-            this.allProducts = allProducts;
-            
-            // Update ProductGrid with all products (KHÔNG render lại)
-            if (this.productGrid) {
-                this.productGrid.setAllProducts(allProducts);
-            }
-            
-            // Update ProductActions with all products
-            if (this.productActions) {
-                this.productActions.products = allProducts;
-            }
-        }, 500);
+        // Không cần load products nữa vì đã load hết ở loadCriticalContent
     }
     
     /**
@@ -152,11 +139,11 @@ export class HomePage {
         // Initialize components for critical content
         this.initializeCriticalComponents();
         
-        // Render critical content
+        // Render critical content - Có đủ dữ liệu rồi, render ngay!
         this.renderFlashSales();
         this.renderProducts();
         
-        // Hide skeleton for flash sales and products
+        // Hide skeleton
         this.hideFlashSaleSkeleton();
         this.hideProductsSkeleton();
     }
@@ -190,8 +177,8 @@ export class HomePage {
         
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
-            initialCount: 12,
-            itemsPerPage: 12
+            initialCount: 8,  // Giảm từ 12 xuống 8 để button "Xem thêm" luôn hiện
+            itemsPerPage: 8   // Mỗi lần load thêm 8 sản phẩm
         });
         console.log('✅ HomePage: ProductGrid initialized');
         
@@ -233,7 +220,8 @@ export class HomePage {
         renderCategories(this.categories, 'categoriesGrid');
         
         // Render products
-        this.productGrid.setProducts(this.products);
+        const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
+        this.productGrid.setAllProducts(productsToRender);
         
         // Render flash sales - NO CAROUSEL
         // Flash sales are rendered directly in renderFlashSales()
@@ -322,7 +310,9 @@ export class HomePage {
      * Render products
      */
     renderProducts() {
-        this.productGrid.setProducts(this.products);
+        // Chỉ cần set products, ProductGrid sẽ tự xử lý
+        const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
+        this.productGrid.setAllProducts(productsToRender);
     }
     
     /**

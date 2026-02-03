@@ -10,33 +10,49 @@ import { renderProducts } from './product-card.js';
 export class ProductGrid {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.products = [];
-        this.allProducts = []; // Store all products for filtering
-        this.filteredProducts = [];
-        this.displayedCount = options.initialCount || 12;
-        this.itemsPerPage = options.itemsPerPage || 12;
+        this.products = []; // Deprecated - chỉ để tương thích
+        this.allProducts = []; // NGUỒN DỮ LIỆU CHÍNH - Tất cả sản phẩm
+        this.filteredProducts = []; // Sản phẩm sau khi filter
+        this.displayedCount = options.initialCount || 8;
+        this.itemsPerPage = options.itemsPerPage || 8;
         this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
         this.currentSort = 'default';
     }
     
     /**
-     * Set all products (for filtering/sorting)
+     * Set all products (NGUỒN DỮ LIỆU CHÍNH)
+     * Đây là method chính để set dữ liệu
      */
     setAllProducts(products) {
         this.allProducts = products;
+        this.products = products; // Sync để tương thích
         
-        // Chỉ cập nhật allProducts, KHÔNG render lại
-        // Người dùng sẽ thấy sản phẩm ban đầu cho đến khi họ click vào filter
-        console.log('✅ All products loaded:', products.length);
+        // Áp dụng lại filter hiện tại
+        this.applyCurrentFilter();
+        
+        console.log('✅ All products set:', products.length);
     }
     
     /**
-     * Set products data
+     * Set products data (DEPRECATED - dùng setAllProducts thay thế)
+     * Giữ lại để tương thích với code cũ
      */
     setProducts(products) {
-        this.products = products;
-        this.filteredProducts = [...products];
-        this.render();
+        console.warn('⚠️ setProducts is deprecated, use setAllProducts instead');
+        this.setAllProducts(products);
+    }
+    
+    /**
+     * Apply current filter (internal method)
+     */
+    applyCurrentFilter() {
+        if (this.currentFilter) {
+            this.filter(this.currentFilter);
+        } else {
+            this.filteredProducts = [...this.allProducts];
+            this.displayedCount = this.itemsPerPage;
+            this.render();
+        }
     }
     
     /**
@@ -45,8 +61,14 @@ export class ProductGrid {
     filter(filterType) {
         this.currentFilter = filterType;
         
-        // Use allProducts if available, otherwise use products
-        const sourceProducts = this.allProducts.length > 0 ? this.allProducts : this.products;
+        // LUÔN dùng allProducts làm nguồn
+        const sourceProducts = this.allProducts;
+        
+        // Nếu chưa có dữ liệu, không làm gì
+        if (!sourceProducts || sourceProducts.length === 0) {
+            console.warn('⚠️ No products to filter');
+            return;
+        }
         
         switch (filterType) {
             case 'best-selling':
@@ -78,8 +100,11 @@ export class ProductGrid {
                 this.filteredProducts = [...sourceProducts];
         }
         
+        // Reset về trang đầu
         this.displayedCount = this.itemsPerPage;
         this.render();
+        
+        console.log(`🔍 Filter "${filterType}": ${this.filteredProducts.length} products`);
     }
     
     /**
@@ -88,8 +113,14 @@ export class ProductGrid {
     filterByCategory(categoryId) {
         console.log('ProductGrid: Filtering by category:', categoryId);
         
-        // Use allProducts if available, otherwise use products
-        const sourceProducts = this.allProducts.length > 0 ? this.allProducts : this.products;
+        // LUÔN dùng allProducts làm nguồn
+        const sourceProducts = this.allProducts;
+        
+        // Nếu chưa có dữ liệu, không làm gì
+        if (!sourceProducts || sourceProducts.length === 0) {
+            console.warn('⚠️ No products to filter by category');
+            return;
+        }
         
         if (!categoryId) {
             // No category selected, show all products
@@ -115,6 +146,7 @@ export class ProductGrid {
         
         console.log('ProductGrid: Filtered products:', this.filteredProducts.length);
         
+        // Reset về trang đầu
         this.displayedCount = this.itemsPerPage;
         this.render();
     }
