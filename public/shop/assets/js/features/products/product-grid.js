@@ -13,8 +13,9 @@ export class ProductGrid {
         this.products = []; // Deprecated - chỉ để tương thích
         this.allProducts = []; // NGUỒN DỮ LIỆU CHÍNH - Tất cả sản phẩm
         this.filteredProducts = []; // Sản phẩm sau khi filter
-        this.displayedCount = options.initialCount || 8;
-        this.itemsPerPage = options.itemsPerPage || 8;
+        this.initialCount = options.initialCount || 16;    // Số sản phẩm hiển thị ban đầu
+        this.itemsPerPage = options.itemsPerPage || 8;     // Số sản phẩm load thêm mỗi lần
+        this.displayedCount = this.initialCount;           // Bắt đầu với initialCount
         this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
         this.currentSort = 'default';
     }
@@ -50,7 +51,7 @@ export class ProductGrid {
             this.filter(this.currentFilter);
         } else {
             this.filteredProducts = [...this.allProducts];
-            this.displayedCount = this.itemsPerPage;
+            this.displayedCount = this.initialCount; // Reset về initialCount (16)
             this.render();
         }
     }
@@ -100,8 +101,8 @@ export class ProductGrid {
                 this.filteredProducts = [...sourceProducts];
         }
         
-        // Reset về trang đầu
-        this.displayedCount = this.itemsPerPage;
+        // Reset về số lượng ban đầu
+        this.displayedCount = this.initialCount; // Reset về initialCount (16)
         this.render();
         
         console.log(`🔍 Filter "${filterType}": ${this.filteredProducts.length} products`);
@@ -146,8 +147,8 @@ export class ProductGrid {
         
         console.log('ProductGrid: Filtered products:', this.filteredProducts.length);
         
-        // Reset về trang đầu
-        this.displayedCount = this.itemsPerPage;
+        // Reset về số lượng ban đầu
+        this.displayedCount = this.initialCount; // Reset về initialCount (16)
         this.render();
     }
     

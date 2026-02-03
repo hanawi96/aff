@@ -177,8 +177,8 @@ export class HomePage {
         
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
-            initialCount: 8,  // Giảm từ 12 xuống 8 để button "Xem thêm" luôn hiện
-            itemsPerPage: 8   // Mỗi lần load thêm 8 sản phẩm
+            initialCount: 16,  // Hiển thị 16 sản phẩm ban đầu (4 hàng x 4 cột)
+            itemsPerPage: 8    // Mỗi lần "Xem thêm" load thêm 8 sản phẩm
         });
         console.log('✅ HomePage: ProductGrid initialized');
         
