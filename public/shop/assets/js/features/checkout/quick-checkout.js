@@ -253,6 +253,13 @@ export class QuickCheckout {
         // Stop countdown timer
         this.stopCountdown();
         
+        // Clean URL (remove ?buy parameter)
+        const url = new URL(window.location);
+        if (url.searchParams.has('buy')) {
+            url.searchParams.delete('buy');
+            window.history.pushState({}, '', url.pathname + (url.search || ''));
+        }
+        
         this.product = null;
         this.quantity = 1;
         this.selectedCrossSells = [];

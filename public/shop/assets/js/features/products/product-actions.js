@@ -112,6 +112,10 @@ export class ProductActions {
             return;
         }
         
+        // Update URL with buy parameter
+        const newUrl = `${window.location.pathname}?buy=${productId}`;
+        window.history.pushState({ productId }, '', newUrl);
+        
         // Trigger quick checkout
         if (window.quickCheckout) {
             window.quickCheckout.open({

@@ -6,7 +6,7 @@ import { apiService } from '../shared/services/api.service.js';
 import { cartService } from '../shared/services/cart.service.js';
 import { ProductGrid, ProductActions } from '../features/products/index.js';
 import { renderCategories, CategoryActions } from '../features/categories/index.js';
-import { FlashSaleCarousel, FlashSaleActions, FlashSaleTimer } from '../features/flash-sale/index.js';
+import { FlashSaleActions, FlashSaleTimer } from '../features/flash-sale/index.js';
 import { QuickCheckout } from '../features/checkout/index.js';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
@@ -42,9 +42,10 @@ export class HomePage {
             // Clean up old localStorage favorites (no longer used)
             localStorage.removeItem('product_favorites');
             
-            // Check if coming from cart page
+            // Check URL params
             const urlParams = new URLSearchParams(window.location.search);
             const checkoutParam = urlParams.get('checkout');
+            const buyParam = urlParams.get('buy');
             
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
@@ -67,10 +68,16 @@ export class HomePage {
             // Setup cart update listener
             this.setupCartUpdateListener();
             
-            // If coming from cart, open checkout modal with cart data
+            // Handle URL params
             if (checkoutParam === 'cart') {
+                // Coming from cart page
                 setTimeout(() => {
                     this.openCheckoutFromCart();
+                }, 500);
+            } else if (buyParam) {
+                // Direct buy link
+                setTimeout(() => {
+                    this.openQuickBuyFromURL(buyParam);
                 }, 500);
             }
             
@@ -208,6 +215,27 @@ export class HomePage {
         this.quickCheckout = new QuickCheckout();
         window.quickCheckout = this.quickCheckout;
         console.log('✅ HomePage: QuickCheckout initialized');
+        
+        // Expose helper functions globally
+        window.generateBuyNowLink = (productId) => {
+            const baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?buy=${productId}`;
+        };
+        
+        window.copyBuyNowLink = async (productId) => {
+            const link = window.generateBuyNowLink(productId);
+            try {
+                await navigator.clipboard.writeText(link);
+                console.log('✅ Link copied:', link);
+                alert('✅ Đã copy link mua ngay!\n\n' + link);
+                return true;
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                return false;
+            }
+        };
+        
+        console.log('✅ HomePage: Helper functions exposed (generateBuyNowLink, copyBuyNowLink)');
         
         console.log('🎉 HomePage: All critical components initialized successfully');
     }
@@ -609,6 +637,58 @@ export class HomePage {
     }
     
     /**
+     * Open quick buy modal from URL parameter
+     */
+    async openQuickBuyFromURL(productId) {
+        try {
+            const id = parseInt(productId);
+            if (isNaN(id)) {
+                console.error('Invalid product ID:', productId);
+                return;
+            }
+            
+            console.log('🔗 Opening quick buy for product ID:', id);
+            
+            // Try to find product in already loaded products first
+            let product = this.allProducts.find(p => p.id === id);
+            
+            // If not found, fetch from API
+            if (!product) {
+                console.log('📡 Product not in cache, fetching from API...');
+                product = await apiService.getProductById(id);
+            }
+            
+            if (!product) {
+                console.error('Product not found:', id);
+                alert('Không tìm thấy sản phẩm. Vui lòng thử lại!');
+                // Clean URL on error
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            // Open quick checkout modal (URL already has ?buy=xxx, don't change it)
+            if (window.quickCheckout) {
+                window.quickCheckout.open({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    originalPrice: product.original_price,
+                    image: product.image_url || product.image,
+                    maxQuantity: 99,
+                    isFlashSale: false,
+                    categories: product.categories || []
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error opening quick buy from URL:', error);
+            alert('Có lỗi xảy ra. Vui lòng thử lại!');
+            // Clean URL on error
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    
+    /**
      * Open checkout modal from cart page
      */
     openCheckoutFromCart() {
@@ -657,9 +737,6 @@ export class HomePage {
             
             // Clear checkout data
             localStorage.removeItem('checkoutData');
-            
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
             
         } catch (error) {
             console.error('Error opening checkout from cart:', error);
