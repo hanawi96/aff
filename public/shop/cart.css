@@ -3602,6 +3602,90 @@ body {
     cursor: pointer;
 }
 
+/* Product Pricing Section - Handmade Style */
+.product-pricing-section {
+    display: block;
+    padding: 1rem;
+    background: linear-gradient(135deg, #fff8f0 0%, #fff5eb 100%);
+    border-top: 2px dashed rgba(244, 162, 97, 0.3);
+    border-bottom: 2px dashed rgba(244, 162, 97, 0.3);
+}
+
+.pricing-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.price-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.price-current {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #e76f51;
+    font-family: 'Quicksand', sans-serif;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(231, 111, 81, 0.1);
+}
+
+.price-original {
+    font-size: 1rem;
+    color: #95a5a6;
+    text-decoration: line-through;
+    font-weight: 500;
+}
+
+.discount-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    background: linear-gradient(135deg, #e76f51 0%, #f4a261 100%);
+    border-radius: 20px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    box-shadow: 0 4px 12px rgba(231, 111, 81, 0.3);
+    animation: gentlePulse 2s ease-in-out infinite;
+}
+
+.discount-badge svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+    animation: sparkleRotate 3s linear infinite;
+}
+
+@keyframes gentlePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(231, 111, 81, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(231, 111, 81, 0.4);
+    }
+}
+
+@keyframes sparkleRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.image-preview-image-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+
 .image-zoom-hint {
     position: absolute;
     bottom: 1.5rem;
@@ -4140,6 +4224,33 @@ body {
 
     .image-zoom-hint {
         display: flex;
+    }
+
+    .product-pricing-section {
+        padding: 0.75rem;
+    }
+
+    .pricing-container {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .price-current {
+        font-size: 1.5rem;
+    }
+
+    .price-original {
+        font-size: 0.875rem;
+    }
+
+    .discount-badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .discount-badge svg {
+        width: 14px;
+        height: 14px;
     }
 
     .product-gender-info {

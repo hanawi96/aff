@@ -26,8 +26,9 @@ const debounce = (func, wait) => {
  * @param {string} imageUrl - Image URL
  * @param {string} productName - Product name
  * @param {number} productId - Product ID
+ * @param {Object} priceData - Price data {price, originalPrice, discountPercent}
  */
-window.previewProductImage = async function(imageUrl, productName, productId) {
+window.previewProductImage = async function(imageUrl, productName, productId, priceData = null) {
     const modal = document.getElementById('imagePreviewModal');
     const img = document.getElementById('imagePreviewImg');
     const title = document.getElementById('imagePreviewTitle');
@@ -49,6 +50,9 @@ window.previewProductImage = async function(imageUrl, productName, productId) {
     
     if (title) title.textContent = productName;
     if (headerTitle) headerTitle.textContent = productName;
+    
+    // Update pricing information
+    updatePricingDisplay(priceData);
     
     // Show modal
     modal.classList.add('active');
@@ -83,6 +87,77 @@ window.previewProductImage = async function(imageUrl, productName, productId) {
         }
     });
 };
+
+/**
+ * Update pricing display in modal
+ * @param {Object} priceData - Price data {price, originalPrice, discountPercent}
+ */
+function updatePricingDisplay(priceData) {
+    const pricingSection = document.getElementById('productPricingSection');
+    const priceCurrent = document.getElementById('priceCurrentModal');
+    const priceOriginal = document.getElementById('priceOriginalModal');
+    const discountBadge = document.getElementById('discountBadgeModal');
+    const discountPercent = document.getElementById('discountPercentModal');
+
+    console.log('updatePricingDisplay called with:', priceData);
+    console.log('pricingSection found:', !!pricingSection);
+
+    if (!pricingSection) {
+        console.error('productPricingSection not found in DOM');
+        return;
+    }
+
+    // If no price data, hide the section
+    if (!priceData || !priceData.price) {
+        console.log('No price data, hiding section');
+        pricingSection.style.display = 'none';
+        return;
+    }
+
+    // Show pricing section
+    pricingSection.style.display = 'block';
+    console.log('Showing pricing section');
+
+    // Format price with thousand separator
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(price);
+    };
+
+    // Update current price
+    if (priceCurrent) {
+        priceCurrent.textContent = formatPrice(priceData.price);
+    }
+
+    // Update original price and discount badge
+    if (priceData.originalPrice && priceData.originalPrice > priceData.price) {
+        // Has discount
+        if (priceOriginal) {
+            priceOriginal.textContent = formatPrice(priceData.originalPrice);
+            priceOriginal.style.display = 'block';
+        }
+
+        if (discountBadge) {
+            const discount = priceData.discountPercent || 
+                Math.round(((priceData.originalPrice - priceData.price) / priceData.originalPrice) * 100);
+            
+            if (discountPercent) {
+                discountPercent.textContent = `-${discount}%`;
+            }
+            discountBadge.style.display = 'flex';
+        }
+    } else {
+        // No discount
+        if (priceOriginal) {
+            priceOriginal.style.display = 'none';
+        }
+        if (discountBadge) {
+            discountBadge.style.display = 'none';
+        }
+    }
+}
 
 /**
  * Setup fullscreen image viewer for mobile
