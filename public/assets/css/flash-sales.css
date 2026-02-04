@@ -200,8 +200,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: var(--z-modal-nested, 1060);
     animation: fadeIn 0.2s ease-out;
+    /* Performance optimization */
+    will-change: opacity;
 }
 
 .modal-content {

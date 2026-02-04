@@ -19,6 +19,18 @@
     --shadow-md: 0 4px 16px rgba(255,154,158,0.12);
     --shadow-lg: 0 8px 32px rgba(255,154,158,0.16);
     --transition: all 0.3s ease;
+    
+    /* Z-Index System - Centralized layer management */
+    --z-base: 1;
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-modal-nested: 1060;
+    --z-popover: 1070;
+    --z-tooltip: 1080;
+    --z-notification: 1090;
 }
 
 body {
@@ -5939,14 +5951,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: var(--z-modal-nested);
     padding: 1rem;
     animation: fadeIn 0.2s ease;
+    /* Performance optimization */
+    will-change: opacity;
 }
 
 /* Baby Weight Modal - Must be above image preview modal */
 #babyWeightModal {
-    z-index: 10001 !important;
+    z-index: var(--z-modal-nested);
 }
 
 .modal-overlay.hidden {
