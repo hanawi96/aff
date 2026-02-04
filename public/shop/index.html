@@ -2051,9 +2051,116 @@
     <!-- Image Preview Modal -->
     <div class="image-preview-modal" id="imagePreviewModal">
         <div class="image-preview-content">
-            <button class="image-preview-close" onclick="window.closeImagePreview()">&times;</button>
-            <img id="imagePreviewImg" src="" alt="">
-            <div class="image-preview-title" id="imagePreviewTitle"></div>
+            <!-- Header (like cart sidebar) -->
+            <div class="image-preview-header">
+                <h3 class="image-preview-header-title" id="imagePreviewHeaderTitle"></h3>
+                <button class="image-preview-close" onclick="window.closeImagePreview()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Scrollable Content Area (like cart-items) -->
+            <div class="image-preview-scroll-area">
+                <!-- Image Container with Zoom Hint -->
+                <div class="image-preview-image-wrapper" id="imagePreviewImageWrapper">
+                    <img id="imagePreviewImg" src="" alt="">
+                    <div class="image-zoom-hint">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8.25 10.875a2.625 2.625 0 1 1 5.25 0 2.625 2.625 0 0 1-5.25 0Z" />
+                            <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.125 4.5a4.125 4.125 0 1 0 2.338 7.524l2.007 2.006a.75.75 0 1 0 1.06-1.06l-2.006-2.007a4.125 4.125 0 0 0-3.399-6.463Z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Chạm để phóng to</span>
+                    </div>
+                </div>
+                
+                <div class="image-preview-info">
+                    <div class="image-preview-title" id="imagePreviewTitle"></div>
+                    
+                    <!-- Gender Info -->
+                    <div class="product-gender-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Phù hợp: <strong>Cả Nam và Nữ</strong></span>
+                    </div>
+                    
+                    <!-- Commitment Badge -->
+                    <div class="product-commitment">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.49 4.49 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Sản phẩm được làm từ <strong>cây dâu tằm Việt Nam</strong>, thủ công, không hóa chất, không tẩy màu</span>
+                    </div>
+                    
+                    <!-- Beads Info -->
+                    <div class="product-beads-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Số hạt dâu được căn vào số hạt đẹp, tính theo <strong>Sinh - Lão - Bệnh - Tử</strong>, các mẹ nhận vòng chỉ sẵn đeo cho bé.</span>
+                    </div>
+                    
+                    <!-- Size Info -->
+                    <div class="product-size-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 19.875v-6.75Z" />
+                        </svg>
+                        <span>Kích thước của vòng sẽ được làm theo cân nặng riêng của từng bé từ <strong>0 - 12kg</strong>, nếu trên 12kg giá sẽ cao hơn do cần thêm nguyên liệu.</span>
+                    </div>
+                    
+                    <!-- String Type Info (Dynamic based on materials) -->
+                    <div class="product-string-info" id="productStringInfo" style="display: none;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="image-preview-materials" id="imagePreviewMaterials">
+                        <!-- Materials will be loaded here -->
+                    </div>
+                    
+                    <!-- Custom Order Contact -->
+                    <div class="product-custom-contact">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Nếu các mẹ cần làm và mix vòng theo yêu cầu riêng vui lòng liên hệ Zalo: 
+                            <a href="https://zalo.me/0972483892" target="_blank" rel="noopener noreferrer" class="zalo-link">0972.483.892</a> hoặc 
+                            <a href="https://zalo.me/0386190596" target="_blank" rel="noopener noreferrer" class="zalo-link">0386.190.596</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer with Action Buttons (like cart-footer with absolute positioning) -->
+            <div class="image-preview-actions">
+                <button class="preview-btn-cart" id="previewAddToCart" title="Thêm vào giỏ hàng">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.25 2.25a.75.75 0 0 0 0 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 0 0-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 0 0 0-1.5H5.378A2.25 2.25 0 0 1 7.5 15h11.218a.75.75 0 0 0 .674-.421 60.358 60.358 0 0 0 2.96-7.228.75.75 0 0 0-.525-.965A60.864 60.864 0 0 0 5.68 4.509l-.232-.867A1.875 1.875 0 0 0 3.636 2.25H2.25ZM3.75 20.25a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM16.5 20.25a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z" />
+                    </svg>
+                    <span>Thêm vào giỏ</span>
+                </button>
+                <button class="preview-btn-buy" id="previewBuyNow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Mua ngay</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fullscreen Image Viewer (Mobile) -->
+    <div class="image-fullscreen-viewer" id="imageFullscreenViewer">
+        <button class="fullscreen-close" onclick="window.closeFullscreenImage()">&times;</button>
+        <div class="fullscreen-image-container">
+            <img id="fullscreenImg" src="" alt="">
+        </div>
+        <div class="fullscreen-hint">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" />
+            </svg>
+            <span>Vuốt xuống để đóng</span>
         </div>
     </div>
     

@@ -575,6 +575,7 @@ export async function getProductMaterials(productId, env, corsHeaders) {
             SELECT 
                 pm.*,
                 cc.item_cost,
+                cc.display_name,
                 (pm.quantity * cc.item_cost) as subtotal
             FROM product_materials pm
             JOIN cost_config cc ON pm.material_name = cc.item_name
