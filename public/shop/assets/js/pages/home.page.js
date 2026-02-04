@@ -46,6 +46,9 @@ export class HomePage {
             const urlParams = new URLSearchParams(window.location.search);
             const checkoutParam = urlParams.get('checkout');
             const buyParam = urlParams.get('buy');
+            const searchParam = urlParams.get('search');
+            const filterParam = urlParams.get('filter');
+            const categoryParam = urlParams.get('category');
             
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
@@ -68,7 +71,7 @@ export class HomePage {
             // Setup cart update listener
             this.setupCartUpdateListener();
             
-            // Handle URL params
+            // Handle URL params (priority order)
             if (checkoutParam === 'cart') {
                 // Coming from cart page
                 setTimeout(() => {
@@ -78,6 +81,16 @@ export class HomePage {
                 // Direct buy link
                 setTimeout(() => {
                     this.openQuickBuyFromURL(buyParam);
+                }, 500);
+            } else if (searchParam) {
+                // Search from URL (higher priority than category)
+                setTimeout(() => {
+                    this.performSearchFromURL(searchParam, filterParam);
+                }, 500);
+            } else if (categoryParam) {
+                // Category from URL
+                setTimeout(() => {
+                    this.filterByCategoryFromURL(categoryParam);
                 }, 500);
             }
             
@@ -364,14 +377,27 @@ export class HomePage {
      * Setup event listeners
      */
     setupEventListeners() {
+        // ============================================
+        // SEARCH FUNCTIONALITY - Expandable & Smooth
+        // ============================================
+        this.setupSearchListeners();
+        
         // Filter tabs/chips (support both .filter-tab and .filter-chip)
         const filterButtons = document.querySelectorAll('.filter-tab, .filter-chip');
         filterButtons.forEach(tab => {
             tab.addEventListener('click', () => {
+                // Update active state
                 filterButtons.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
+                
+                // Apply filter (works on search results if searching)
                 const filter = tab.dataset.filter;
                 this.productGrid.filter(filter);
+                
+                // Update URL if searching
+                if (this.productGrid.isSearching) {
+                    this.updateFilterURL(filter);
+                }
             });
         });
         
@@ -451,6 +477,468 @@ export class HomePage {
         });
         
         window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+    }
+    
+    /**
+     * Clear search and restore UI (helper method)
+     */
+    clearSearchAndRestoreUI() {
+        // Clear search in ProductGrid
+        if (this.productGrid) {
+            this.productGrid.clearSearch();
+        }
+        
+        // Hide search UI elements
+        const searchResultsBanner = document.getElementById('searchResultsBanner');
+        const searchEmptyState = document.getElementById('searchEmptyState');
+        const productsGrid = document.getElementById('productsGrid');
+        
+        if (searchResultsBanner) searchResultsBanner.style.display = 'none';
+        if (searchEmptyState) searchEmptyState.style.display = 'none';
+        if (productsGrid) productsGrid.style.display = '';
+        
+        // Restore original titles
+        const productsSectionTitle = document.getElementById('productsSectionTitle');
+        const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
+        const productsSectionDescription = document.getElementById('productsSectionDescription');
+        
+        if (productsSectionTitle) productsSectionTitle.textContent = 'Sản phẩm được';
+        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'yêu thích nhất';
+        if (productsSectionDescription) productsSectionDescription.textContent = 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
+    }
+    
+    /**
+     * Setup search listeners - Expandable search with smooth animations
+     */
+    setupSearchListeners() {
+        const searchContainer = document.getElementById('searchContainer');
+        const searchIconBtn = document.getElementById('searchIconBtn');
+        const searchInputWrapper = document.getElementById('searchInputWrapper');
+        const searchInput = document.getElementById('searchInput');
+        const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+        const searchClearBtn = document.getElementById('searchClearBtn');
+        
+        // Search results UI elements
+        const searchResultsBanner = document.getElementById('searchResultsBanner');
+        const searchResultsText = document.getElementById('searchResultsText');
+        const searchResultsClear = document.getElementById('searchResultsClear');
+        const searchEmptyState = document.getElementById('searchEmptyState');
+        const emptyStateKeyword = document.getElementById('emptyStateKeyword');
+        const emptyStateButton = document.getElementById('emptyStateButton');
+        const productsGrid = document.getElementById('productsGrid');
+        
+        // Products section title elements
+        const productsSectionTitle = document.getElementById('productsSectionTitle');
+        const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
+        const productsSectionDescription = document.getElementById('productsSectionDescription');
+        
+        // Store original titles
+        const originalTitle = productsSectionTitle ? productsSectionTitle.textContent : 'Sản phẩm được';
+        const originalSubtitle = productsSectionSubtitle ? productsSectionSubtitle.textContent : 'yêu thích nhất';
+        const originalDescription = productsSectionDescription ? productsSectionDescription.textContent : 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
+        
+        if (!searchContainer || !searchIconBtn || !searchInputWrapper || !searchInput || !searchSubmitBtn || !searchClearBtn) {
+            console.warn('⚠️ Search elements not found');
+            return;
+        }
+        
+        // Toggle search input visibility
+        const openSearch = () => {
+            searchContainer.classList.add('search-active');
+            searchInputWrapper.classList.add('active');
+            // Focus input IMMEDIATELY (no delay)
+            searchInput.focus();
+        };
+        
+        const closeSearch = () => {
+            searchContainer.classList.remove('search-active');
+            searchInputWrapper.classList.remove('active');
+            searchInput.value = '';
+            searchClearBtn.classList.remove('visible');
+        };
+        
+        // Clear search and restore filter
+        const clearSearchResults = () => {
+            // Clear search in ProductGrid
+            if (this.productGrid) {
+                this.productGrid.clearSearch();
+            }
+            
+            // Hide search UI
+            if (searchResultsBanner) searchResultsBanner.style.display = 'none';
+            if (searchEmptyState) searchEmptyState.style.display = 'none';
+            if (productsGrid) productsGrid.style.display = '';
+            
+            // Restore original titles
+            if (productsSectionTitle) productsSectionTitle.textContent = originalTitle;
+            if (productsSectionSubtitle) productsSectionSubtitle.textContent = originalSubtitle;
+            if (productsSectionDescription) productsSectionDescription.textContent = originalDescription;
+            
+            // Clear URL params
+            this.clearSearchURL();
+            
+            // Close search input
+            closeSearch();
+        };
+        
+        // Perform search with UI updates
+        const performSearch = () => {
+            const query = searchInput.value.trim();
+            
+            if (!query) {
+                clearSearchResults();
+                return;
+            }
+            
+            // Close search input first
+            closeSearch();
+            
+            // Update URL with search params
+            this.updateSearchURL(query);
+            
+            // Perform search (will apply current filter automatically)
+            if (this.productGrid) {
+                const results = this.productGrid.search(query);
+                
+                if (results) {
+                    // Update section titles for search
+                    if (productsSectionTitle) {
+                        productsSectionTitle.textContent = 'Kết quả tìm kiếm';
+                    }
+                    if (productsSectionSubtitle) {
+                        productsSectionSubtitle.textContent = `"${results.query}"`;
+                    }
+                    if (productsSectionDescription) {
+                        // Get current filter name
+                        const currentFilterName = this.getCurrentFilterName();
+                        productsSectionDescription.textContent = `Tìm thấy ${results.count} sản phẩm - Sắp xếp theo ${currentFilterName}`;
+                    }
+                    
+                    // Update UI based on results
+                    if (results.hasResults) {
+                        // Show results banner
+                        if (searchResultsBanner && searchResultsText) {
+                            searchResultsText.textContent = `Tìm thấy ${results.count} sản phẩm cho "${results.query}"`;
+                            searchResultsBanner.style.display = 'block';
+                        }
+                        
+                        // Hide empty state
+                        if (searchEmptyState) searchEmptyState.style.display = 'none';
+                        
+                        // Show products grid
+                        if (productsGrid) productsGrid.style.display = '';
+                    } else {
+                        // Show empty state
+                        if (searchEmptyState && emptyStateKeyword) {
+                            emptyStateKeyword.textContent = results.query;
+                            searchEmptyState.style.display = 'block';
+                        }
+                        
+                        // Hide results banner
+                        if (searchResultsBanner) searchResultsBanner.style.display = 'none';
+                        
+                        // Hide products grid
+                        if (productsGrid) productsGrid.style.display = 'none';
+                    }
+                    
+                    // Smooth scroll to products section
+                    this.scrollToProducts();
+                }
+            }
+        };
+        
+        // Click search icon to open
+        searchIconBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSearch();
+        });
+        
+        // Show/hide clear button when typing
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            if (query) {
+                searchClearBtn.classList.add('visible');
+            } else {
+                searchClearBtn.classList.remove('visible');
+            }
+        });
+        
+        // Click search submit button to perform search
+        searchSubmitBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            performSearch();
+        });
+        
+        // Enter key to perform search
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+        
+        // Clear button in search input
+        searchClearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            searchInput.value = '';
+            searchClearBtn.classList.remove('visible');
+            searchInput.focus();
+        });
+        
+        // Clear button in results banner
+        if (searchResultsClear) {
+            searchResultsClear.addEventListener('click', () => {
+                clearSearchResults();
+            });
+        }
+        
+        // Empty state button
+        if (emptyStateButton) {
+            emptyStateButton.addEventListener('click', () => {
+                clearSearchResults();
+                this.scrollToProducts();
+            });
+        }
+        
+        // Close search when clicking outside (desktop) or on backdrop (mobile)
+        document.addEventListener('click', (e) => {
+            if (!searchContainer.contains(e.target)) {
+                closeSearch();
+            }
+        });
+        
+        // Mobile: Click on backdrop (wrapper) to close, but not on input
+        searchInputWrapper.addEventListener('click', (e) => {
+            // If clicking on the wrapper itself (backdrop), close
+            if (e.target === searchInputWrapper) {
+                closeSearch();
+            }
+            // If clicking on input or buttons, don't close
+            e.stopPropagation();
+        });
+        
+        // Prevent closing when clicking on input
+        searchInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // ESC key to close search
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && searchInputWrapper.classList.contains('active')) {
+                closeSearch();
+            }
+        });
+        
+        console.log('✅ Search listeners setup complete (with results UI)');
+    }
+    
+    /**
+     * Smooth scroll to products section
+     */
+    scrollToProducts() {
+        const productsSection = document.getElementById('products');
+        if (productsSection) {
+            // Use RAF for smooth 60fps scroll
+            requestAnimationFrame(() => {
+                productsSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start'
+                });
+            });
+        }
+    }
+    
+    /**
+     * Get current filter name for display
+     */
+    getCurrentFilterName() {
+        if (!this.productGrid) return 'mặc định';
+        
+        const filterMap = {
+            'best-selling': 'bán chạy',
+            'favorite': 'yêu thích',
+            'new': 'mới nhất'
+        };
+        
+        return filterMap[this.productGrid.currentFilter] || 'mặc định';
+    }
+    
+    /**
+     * Update URL with search params (smart URL management)
+     */
+    updateSearchURL(query, filter = null) {
+        const url = new URL(window.location);
+        
+        // CLEAR category param when searching (search is global, not category-specific)
+        url.searchParams.delete('category');
+        
+        // Set search param
+        url.searchParams.set('search', query);
+        
+        // Set filter param if provided, otherwise use current filter
+        const currentFilter = filter || (this.productGrid ? this.productGrid.currentFilter : 'best-selling');
+        if (currentFilter && currentFilter !== 'best-selling') {
+            // Only add filter param if not default
+            url.searchParams.set('filter', currentFilter);
+        } else {
+            // Remove filter param if default
+            url.searchParams.delete('filter');
+        }
+        
+        // Update URL without reload
+        window.history.pushState({}, '', url);
+        
+        console.log('🔗 URL updated:', url.toString());
+    }
+    
+    /**
+     * Update URL filter param (when changing filter during search)
+     */
+    updateFilterURL(filter) {
+        const url = new URL(window.location);
+        
+        // Only update if searching
+        if (url.searchParams.has('search')) {
+            if (filter && filter !== 'best-selling') {
+                url.searchParams.set('filter', filter);
+            } else {
+                url.searchParams.delete('filter');
+            }
+            
+            // Update URL without reload
+            window.history.pushState({}, '', url);
+            
+            console.log('🔗 Filter URL updated:', url.toString());
+        }
+    }
+    
+    /**
+     * Update URL with category param
+     */
+    updateCategoryURL(categoryId) {
+        const url = new URL(window.location);
+        
+        // Clear search params
+        url.searchParams.delete('search');
+        url.searchParams.delete('filter');
+        
+        // Set category param
+        if (categoryId) {
+            url.searchParams.set('category', categoryId);
+        } else {
+            url.searchParams.delete('category');
+        }
+        
+        // Update URL without reload
+        window.history.pushState({}, '', url);
+        
+        console.log('🔗 Category URL updated:', url.toString());
+    }
+    
+    /**
+     * Clear search URL params
+     */
+    clearSearchURL() {
+        const url = new URL(window.location);
+        url.searchParams.delete('search');
+        url.searchParams.delete('filter');
+        
+        // Update URL without reload
+        window.history.pushState({}, '', url);
+        
+        console.log('🔗 URL cleared');
+    }
+    
+    /**
+     * Perform search from URL params (on page load)
+     */
+    performSearchFromURL(searchQuery, filterType = null) {
+        if (!searchQuery || !this.productGrid) return;
+        
+        console.log('🔗 Performing search from URL:', searchQuery, filterType);
+        
+        // Apply filter first if specified
+        if (filterType) {
+            // Update filter chip active state
+            const filterButtons = document.querySelectorAll('.filter-tab, .filter-chip');
+            filterButtons.forEach(btn => {
+                if (btn.dataset.filter === filterType) {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Set current filter in ProductGrid
+            this.productGrid.currentFilter = filterType;
+        }
+        
+        // Perform search
+        const results = this.productGrid.search(searchQuery);
+        
+        if (results) {
+            // Update UI
+            const searchResultsBanner = document.getElementById('searchResultsBanner');
+            const searchResultsText = document.getElementById('searchResultsText');
+            const searchEmptyState = document.getElementById('searchEmptyState');
+            const emptyStateKeyword = document.getElementById('emptyStateKeyword');
+            const productsGrid = document.getElementById('productsGrid');
+            const productsSectionTitle = document.getElementById('productsSectionTitle');
+            const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
+            const productsSectionDescription = document.getElementById('productsSectionDescription');
+            
+            // Update section titles
+            if (productsSectionTitle) {
+                productsSectionTitle.textContent = 'Kết quả tìm kiếm';
+            }
+            if (productsSectionSubtitle) {
+                productsSectionSubtitle.textContent = `"${results.query}"`;
+            }
+            if (productsSectionDescription) {
+                const currentFilterName = this.getCurrentFilterName();
+                productsSectionDescription.textContent = `Tìm thấy ${results.count} sản phẩm - Sắp xếp theo ${currentFilterName}`;
+            }
+            
+            // Update UI based on results
+            if (results.hasResults) {
+                if (searchResultsBanner && searchResultsText) {
+                    searchResultsText.textContent = `Tìm thấy ${results.count} sản phẩm cho "${results.query}"`;
+                    searchResultsBanner.style.display = 'block';
+                }
+                if (searchEmptyState) searchEmptyState.style.display = 'none';
+                if (productsGrid) productsGrid.style.display = '';
+            } else {
+                if (searchEmptyState && emptyStateKeyword) {
+                    emptyStateKeyword.textContent = results.query;
+                    searchEmptyState.style.display = 'block';
+                }
+                if (searchResultsBanner) searchResultsBanner.style.display = 'none';
+                if (productsGrid) productsGrid.style.display = 'none';
+            }
+            
+            // Scroll to products
+            this.scrollToProducts();
+        }
+    }
+    
+    /**
+     * Filter by category from URL (on page load)
+     */
+    filterByCategoryFromURL(categoryId) {
+        if (!categoryId || !this.productGrid) return;
+        
+        const catId = parseInt(categoryId);
+        if (isNaN(catId)) return;
+        
+        console.log('🔗 Filtering by category from URL:', catId);
+        
+        // Trigger category filter
+        if (window.categoryActions) {
+            window.categoryActions.filterByCategory(catId);
+        } else {
+            // Fallback if categoryActions not ready
+            this.productGrid.filterByCategory(catId);
+        }
     }
     
     /**
@@ -537,10 +1025,56 @@ export class HomePage {
     filterByCategory(categoryId) {
         console.log('HomePage: Filter by category:', categoryId);
         
-        // Call productGrid's filterByCategory method
+        // If searching, clear search first
+        if (this.productGrid && this.productGrid.isSearching) {
+            console.log('📂 Clearing search to view category');
+            this.clearSearchAndViewCategory(categoryId);
+            return;
+        }
+        
+        // Normal category filter
         if (this.productGrid) {
             this.productGrid.filterByCategory(categoryId);
         }
+        
+        // Update URL with category
+        this.updateCategoryURL(categoryId);
+    }
+    
+    /**
+     * Clear search and view category
+     */
+    clearSearchAndViewCategory(categoryId) {
+        // Clear search in ProductGrid
+        if (this.productGrid) {
+            this.productGrid.clearSearch();
+        }
+        
+        // Hide search UI
+        const searchResultsBanner = document.getElementById('searchResultsBanner');
+        const searchEmptyState = document.getElementById('searchEmptyState');
+        const productsGrid = document.getElementById('productsGrid');
+        
+        if (searchResultsBanner) searchResultsBanner.style.display = 'none';
+        if (searchEmptyState) searchEmptyState.style.display = 'none';
+        if (productsGrid) productsGrid.style.display = '';
+        
+        // Restore original titles
+        const productsSectionTitle = document.getElementById('productsSectionTitle');
+        const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
+        const productsSectionDescription = document.getElementById('productsSectionDescription');
+        
+        if (productsSectionTitle) productsSectionTitle.textContent = 'Sản phẩm được';
+        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'yêu thích nhất';
+        if (productsSectionDescription) productsSectionDescription.textContent = 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
+        
+        // Apply category filter
+        if (this.productGrid) {
+            this.productGrid.filterByCategory(categoryId);
+        }
+        
+        // Update URL with category
+        this.updateCategoryURL(categoryId);
     }
     
     /**

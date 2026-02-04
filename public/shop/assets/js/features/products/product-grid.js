@@ -18,6 +18,8 @@ export class ProductGrid {
         this.displayedCount = this.initialCount;           // Bắt đầu với initialCount
         this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
         this.currentSort = 'default';
+        this.isSearching = false; // Track search state
+        this.currentSearchQuery = ''; // Track current search query
     }
     
     /**
@@ -62,10 +64,18 @@ export class ProductGrid {
     filter(filterType) {
         this.currentFilter = filterType;
         
-        // LUÔN dùng allProducts làm nguồn
+        // If searching, just re-sort search results
+        if (this.isSearching) {
+            this.applySortToSearchResults();
+            this.displayedCount = this.initialCount;
+            this.render();
+            console.log(`🔍 Re-sorted search results by "${filterType}"`);
+            return;
+        }
+        
+        // Normal filter logic (when not searching)
         const sourceProducts = this.allProducts;
         
-        // Nếu chưa có dữ liệu, không làm gì
         if (!sourceProducts || sourceProducts.length === 0) {
             console.warn('⚠️ No products to filter');
             return;
@@ -150,6 +160,168 @@ export class ProductGrid {
         // Reset về số lượng ban đầu
         this.displayedCount = this.initialCount; // Reset về initialCount (16)
         this.render();
+    }
+    
+    /**
+     * Search products by keyword (SUPER FAST - Client-side)
+     * Searches in: name, sku, category names
+     * Returns filtered products WITHOUT sorting (sorting handled separately)
+     */
+    search(query) {
+        // Clear search if empty
+        if (!query || query.trim() === '') {
+            this.clearSearch();
+            return;
+        }
+        
+        const searchTerm = query.trim().toLowerCase();
+        const sourceProducts = this.allProducts;
+        
+        if (!sourceProducts || sourceProducts.length === 0) {
+            console.warn('⚠️ No products to search');
+            return;
+        }
+        
+        // Mark as searching
+        this.isSearching = true;
+        this.currentSearchQuery = query.trim();
+        
+        // SUPER FAST search - single pass through products
+        this.filteredProducts = sourceProducts.filter(product => {
+            // Search in name
+            if (product.name && product.name.toLowerCase().includes(searchTerm)) {
+                return true;
+            }
+            
+            // Search in SKU
+            if (product.sku && product.sku.toLowerCase().includes(searchTerm)) {
+                return true;
+            }
+            
+            // Search in category names
+            if (Array.isArray(product.categories)) {
+                return product.categories.some(cat => 
+                    cat.name && cat.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            return false;
+        });
+        
+        // Apply current filter/sort to search results
+        this.applySortToSearchResults();
+        
+        // Reset display count
+        this.displayedCount = this.initialCount;
+        this.render();
+        
+        console.log(`🔍 Search "${query}": ${this.filteredProducts.length} products found`);
+        
+        // Return results for UI update
+        return {
+            query: this.currentSearchQuery,
+            count: this.filteredProducts.length,
+            hasResults: this.filteredProducts.length > 0
+        };
+    }
+    
+    /**
+     * Apply sort to search results (internal method)
+     */
+    applySortToSearchResults() {
+        if (!this.isSearching || !this.filteredProducts.length) return;
+        
+        // Apply current filter as sort
+        switch (this.currentFilter) {
+            case 'best-selling':
+                // Bán chạy: Sắp xếp theo số lượng đã bán (purchases)
+                this.filteredProducts.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
+                break;
+            case 'favorite':
+                // Yêu thích: Sắp xếp theo số lượt yêu thích (favorites_count)
+                this.filteredProducts.sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0));
+                break;
+            case 'new':
+                // Mới nhất: Sắp xếp theo ID giảm dần
+                this.filteredProducts.sort((a, b) => (b.id || 0) - (a.id || 0));
+                break;
+        }
+        
+        console.log(`📊 Applied "${this.currentFilter}" sort to ${this.filteredProducts.length} search results`);
+    }
+    
+    /**
+     * Filter products (works on search results if searching)
+     */
+    filter(filterType) {
+        this.currentFilter = filterType;
+        
+        // If searching, just re-sort search results
+        if (this.isSearching) {
+            this.applySortToSearchResults();
+            this.displayedCount = this.initialCount;
+            this.render();
+            console.log(`🔍 Re-sorted search results by "${filterType}"`);
+            return;
+        }
+        
+        // Normal filter logic (when not searching)
+        const sourceProducts = this.allProducts;
+        
+        if (!sourceProducts || sourceProducts.length === 0) {
+            console.warn('⚠️ No products to filter');
+            return;
+        }
+        
+        switch (filterType) {
+            case 'best-selling':
+                this.filteredProducts = [...sourceProducts]
+                    .sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
+                break;
+            case 'favorite':
+                this.filteredProducts = [...sourceProducts]
+                    .sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0));
+                break;
+            case 'new':
+                this.filteredProducts = [...sourceProducts]
+                    .sort((a, b) => (b.id || 0) - (a.id || 0));
+                break;
+            case 'popular':
+                this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);
+                break;
+            case 'sale':
+                this.filteredProducts = sourceProducts.filter(p => 
+                    p.original_price && p.original_price > p.price
+                );
+                break;
+            default:
+                this.filteredProducts = [...sourceProducts];
+        }
+        
+        this.displayedCount = this.initialCount;
+        this.render();
+        
+        console.log(`🔍 Filter "${filterType}": ${this.filteredProducts.length} products`);
+    }
+    
+    /**
+     * Clear search and restore previous filter
+     */
+    clearSearch() {
+        this.isSearching = false;
+        this.currentSearchQuery = '';
+        this.applyCurrentFilter();
+    }
+    
+    /**
+     * Get search state
+     */
+    getSearchState() {
+        return {
+            isSearching: this.isSearching,
+            query: this.currentSearchQuery,
+            count: this.isSearching ? this.filteredProducts.length : 0
+        };
     }
     
     /**
