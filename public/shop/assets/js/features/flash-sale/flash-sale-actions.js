@@ -100,6 +100,14 @@ export class FlashSaleActions {
             return;
         }
         
+        // Use product's flash_price if flashPrice parameter is invalid
+        const actualPrice = (flashPrice && flashPrice > 0) ? flashPrice : product.flash_price;
+        
+        console.log('🔥 [BuyNow] Product:', product.product_name);
+        console.log('🔥 [BuyNow] Flash price param:', flashPrice);
+        console.log('🔥 [BuyNow] Product flash_price:', product.flash_price);
+        console.log('🔥 [BuyNow] Actual price used:', actualPrice);
+        
         // Update URL with buy parameter
         const newUrl = `${window.location.pathname}?buy=${productId}`;
         window.history.pushState({ productId }, '', newUrl);
@@ -109,7 +117,7 @@ export class FlashSaleActions {
             window.quickCheckout.open({
                 id: product.id,
                 name: product.product_name,
-                price: flashPrice,
+                price: actualPrice,
                 originalPrice: product.original_price,
                 image: product.image_url,
                 maxQuantity: product.stock_limit - product.sold_count || 99,

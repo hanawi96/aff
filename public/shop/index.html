@@ -39,6 +39,17 @@
     <link rel="stylesheet" href="assets/css/home.css?v=1">
 </head>
 <body class="bg-warm">
+    <!-- Inline script to prevent FOUC - Must run BEFORE HTML renders -->
+    <script>
+        // Marquee config - Change enabled to true/false
+        window.MARQUEE_ENABLED = true; // ← CHANGE THIS TO ENABLE/DISABLE
+        
+        // Apply immediately to prevent flash
+        if (!window.MARQUEE_ENABLED) {
+            document.documentElement.classList.add('marquee-disabled');
+        }
+    </script>
+    
     <!-- Marquee Banner - Announcement -->
     <div class="marquee-banner">
         <div class="marquee-content">
@@ -2207,6 +2218,11 @@
         </div>
     </div>
     
+    <script type="module">
+        // Initialize marquee banner
+        import { initMarqueeBanner } from './assets/js/shared/config/marquee-config.js';
+        initMarqueeBanner();
+    </script>
     <script type="module" src="assets/js/app.js"></script>
     <script src="assets/js/faq-modal.js"></script>
 </body>

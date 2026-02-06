@@ -53,6 +53,25 @@
     border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Hide marquee banner when disabled */
+.marquee-banner.disabled,
+html.marquee-disabled .marquee-banner {
+    display: none !important;
+}
+
+/* Adjust layout when marquee is disabled */
+html.marquee-disabled body {
+    padding-top: 0 !important;
+}
+
+html.marquee-disabled body > header.sticky {
+    top: 0 !important;
+}
+
+html.marquee-disabled .cart-header {
+    top: 0 !important;
+}
+
 .marquee-banner::before {
     content: '';
     position: absolute;
