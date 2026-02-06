@@ -13,6 +13,10 @@ import { FormValidator } from './assets/js/shared/utils/form-validator.js';
 import { checkoutValidationRules } from './assets/js/shared/constants/validation-rules.js';
 // Import error display service for address errors
 import { errorDisplayService } from './assets/js/shared/services/error-display.service.js';
+// Import CTV tracking
+import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } from './assets/js/shared/utils/ctv-tracking.js';
+// Import CTV debug panel
+import './assets/js/shared/components/ctv-debug-panel.js';
 
 // Configuration
 const CONFIG = {
@@ -179,11 +183,14 @@ const cart = {
         
         state.isInitialized = true;
         
+        // Check and save CTV referral from URL (if exists)
+        await checkAndSaveReferralFromURL();
+        
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
         
-        // Load available discounts in background (non-blocking)
-        cart.loadAvailableDiscounts();
+        // Load available discounts (await to ensure it completes)
+        await cart.loadAvailableDiscounts();
         
         // Wait for bundle products to load
         await cart.loadBundleProducts();
@@ -1163,6 +1170,31 @@ const cart = {
             notes: item.note || '' // Product note
         }));
         
+        // Get CTV info from cookie (if exists)
+        const ctvInfo = await getCTVInfoForOrder();
+        
+        // Calculate commission if CTV exists
+        let commission = 0;
+        let commissionRate = 0;
+        let referralCode = null;
+        let ctvPhone = null;
+        
+        if (ctvInfo) {
+            referralCode = ctvInfo.referralCode;
+            commissionRate = ctvInfo.commissionRate;
+            ctvPhone = ctvInfo.ctvPhone;
+            
+            // Hoa hồng = (total_amount - shipping_fee) × commission_rate
+            commission = calculateCommission(state.total, state.shippingFee, commissionRate);
+            
+            console.log('💰 CTV Commission:', {
+                ctv: ctvInfo.ctvName,
+                code: referralCode,
+                rate: `${(commissionRate * 100).toFixed(1)}%`,
+                commission: commission.toLocaleString('vi-VN') + 'đ'
+            });
+        }
+        
         // Prepare order data matching backend format
         const orderData = {
             orderId: 'DH' + Date.now(),
@@ -1182,7 +1214,11 @@ const cart = {
             paymentMethod: state.paymentMethod,
             payment_method: state.paymentMethod,
             status: 'pending',
-            referralCode: null,
+            referralCode: referralCode,
+            referral_code: referralCode,
+            commission: commission,
+            commission_rate: commissionRate,
+            ctv_phone: ctvPhone,
             shippingFee: state.shippingFee,
             shipping_fee: state.shippingFee,
             shippingCost: 0,
@@ -1666,8 +1702,8 @@ const discount = {
             return;
         }
 
-        // Get top 3 best discounts
-        const bestDiscounts = discount.getBestDiscounts(3);
+        // Get top 1 best discount (most beneficial)
+        const bestDiscounts = discount.getBestDiscounts(1);
 
         const html = bestDiscounts.map(code => {
             const discountText = discountService.formatDiscountText(code);
@@ -1699,9 +1735,9 @@ const discount = {
 
         container.innerHTML = html;
 
-        // Show "View All" button if there are more than 3 discounts
+        // Show "View All" button if there are more than 1 discount
         if (viewAllBtn) {
-            if (state.availableDiscounts.length > 3) {
+            if (state.availableDiscounts.length > 1) {
                 viewAllBtn.classList.remove('hidden');
             } else {
                 viewAllBtn.classList.add('hidden');
@@ -1741,9 +1777,17 @@ const discount = {
             let detailsHtml = '';
             
             if (code.min_order_amount) {
+                const isEnough = state.subtotal >= code.min_order_amount;
+                const amountNeeded = isEnough ? 0 : (code.min_order_amount - state.subtotal);
+                
                 detailsHtml += '<div class="discount-card-detail">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>' +
-                    '<span>Đơn tối thiểu: ' + utils.formatPrice(code.min_order_amount) + '</span>' +
+                    '<span>' + 
+                    (isEnough 
+                        ? 'Đơn tối thiểu: ' + utils.formatPrice(code.min_order_amount)
+                        : 'Mua thêm ' + utils.formatPrice(amountNeeded) + ' để được giảm'
+                    ) +
+                    '</span>' +
                     '</div>';
             }
             

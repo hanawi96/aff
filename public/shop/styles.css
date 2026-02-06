@@ -3882,18 +3882,6 @@ body {
     }
 }
 
-@keyframes shakeAndPulse {
-    0%, 100% {
-        transform: translateX(0);
-    }
-    10%, 30%, 50%, 70%, 90% {
-        transform: translateX(-5px);
-    }
-    20%, 40%, 60%, 80% {
-        transform: translateX(5px);
-    }
-}
-
 /* Checkout button highlight */
 .checkout-btn {
     transition: all 0.3s ease;
@@ -5026,6 +5014,22 @@ body {
     gap: 0.75rem;
 }
 
+.discount-tip {
+    margin-top: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
+    border-left: 3px solid #f4a261;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #5a4a3a;
+    line-height: 1.5;
+}
+
+.discount-tip strong {
+    color: #d97706;
+    font-weight: 600;
+}
+
 .code-item-quick {
     display: flex;
     align-items: center;
@@ -5726,6 +5730,43 @@ body {
     color: white;
     border-color: transparent;
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+}
+
+/* Nút "Chưa sinh" với icon trái tim */
+.weight-btn-icon {
+    background: linear-gradient(135deg, #ffeef0, #ffe0e5);
+    border-color: rgba(255, 105, 135, 0.3);
+}
+
+.weight-btn-icon:hover {
+    background: linear-gradient(135deg, #ffe0e5, #ffd0d8);
+    border-color: #ff6987;
+}
+
+.weight-btn-icon.selected {
+    background: linear-gradient(135deg, #ff6987, #ff4d7a);
+    border-color: transparent;
+}
+
+/* Nút "Nhập khác" */
+.weight-btn-custom {
+    background: linear-gradient(135deg, #f0f4f8, #e8eef5);
+    border: 2px dashed rgba(100, 150, 200, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #4a6fa5;
+}
+
+.weight-btn-custom:hover {
+    background: linear-gradient(135deg, #e8eef5, #dce6f0);
+    border-color: #4a6fa5;
+    transform: translateY(-2px);
+}
+
+.weight-btn-custom svg {
+    flex-shrink: 0;
 }
 
 .baby-weight-custom {

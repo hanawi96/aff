@@ -176,10 +176,10 @@ export class BabyWeightModal {
         
         if (isAdult) {
             if (modalTitle) modalTitle.textContent = 'Chọn cân nặng người lớn';
-            if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (35-120kg):';
+            if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (96kg trở lên):';
         } else {
             if (modalTitle) modalTitle.textContent = 'Chọn cân nặng bé';
-            if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (16-50kg):';
+            if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (16kg trở lên):';
         }
         
         // Render weight options based on product type
@@ -190,7 +190,9 @@ export class BabyWeightModal {
         const customInput = document.getElementById('customWeightInput');
         if (customInput) {
             customInput.value = '';
-            customInput.placeholder = isAdult ? 'VD: 60' : 'VD: 18';
+            customInput.placeholder = isAdult ? 'VD: 100' : 'VD: 18';
+            customInput.min = isAdult ? '96' : '16';
+            customInput.max = '120';
         }
         
         const confirmBtn = document.getElementById('confirmWeightBtn');
@@ -216,24 +218,57 @@ export class BabyWeightModal {
         
         let weights = [];
         if (isAdult) {
-            // Adult weights: 35-70kg (8 presets evenly distributed)
-            weights = [35, 40, 45, 50, 55, 60, 65, 70];
+            // Adult weights: ranges + custom
+            weights = [
+                { label: '35-45kg', value: '35-45kg' },
+                { label: '45-55kg', value: '45-55kg' },
+                { label: '55-65kg', value: '55-65kg' },
+                { label: '65-75kg', value: '65-75kg' },
+                { label: '75-85kg', value: '75-85kg' },
+                { label: '85-95kg', value: '85-95kg' }
+            ];
         } else {
-            // Baby weights: "Chưa sinh" + 3-15kg
-            weights = ['unborn', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+            // Baby weights: "Chưa sinh" + ranges + custom
+            weights = [
+                { label: '❤️ Chưa sinh', value: 'unborn', icon: true },
+                { label: '3-4kg', value: '3-4kg' },
+                { label: '4-6kg', value: '4-6kg' },
+                { label: '6-8kg', value: '6-8kg' },
+                { label: '8-10kg', value: '8-10kg' },
+                { label: '10-12kg', value: '10-12kg' },
+                { label: '12-15kg', value: '12-15kg' }
+            ];
         }
         
         container.innerHTML = weights.map(w => {
-            if (w === 'unborn') {
-                return `<button type="button" class="weight-btn" data-weight="unborn">Chưa sinh</button>`;
-            }
-            return `<button type="button" class="weight-btn" data-weight="${w}kg">${w}kg</button>`;
-        }).join('');
+            const iconClass = w.icon ? ' weight-btn-icon' : '';
+            return `<button type="button" class="weight-btn${iconClass}" data-weight="${w.value}">${w.label}</button>`;
+        }).join('') + `<button type="button" class="weight-btn weight-btn-custom" data-custom="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;">
+                <path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
+            </svg>
+            Nhập khác
+        </button>`;
         
         // Re-attach event listeners
         container.querySelectorAll('.weight-btn').forEach(btn => {
-            btn.onclick = () => this.selectWeight(btn.dataset.weight);
+            if (btn.dataset.custom) {
+                btn.onclick = () => this.focusCustomInput();
+            } else {
+                btn.onclick = () => this.selectWeight(btn.dataset.weight);
+            }
         });
+    }
+    
+    /**
+     * Focus on custom input
+     */
+    focusCustomInput() {
+        const customInput = document.getElementById('customWeightInput');
+        if (customInput) {
+            customInput.focus();
+            customInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
     
     /**
@@ -263,11 +298,31 @@ export class BabyWeightModal {
         });
         
         // Clear custom input
-        document.getElementById('customWeightInput').value = '';
+        const customInput = document.getElementById('customWeightInput');
+        if (customInput) {
+            customInput.value = '';
+        }
         
-        // Extract weight number and check for surcharge
-        const weightMatch = weight.match(/(\d+)/);
-        const weightKg = weightMatch ? parseInt(weightMatch[1]) : 0;
+        // Extract weight number for surcharge calculation
+        // Handle both single weights (e.g., "18kg") and ranges (e.g., "6-8kg")
+        let weightKg = 0;
+        
+        if (weight === 'unborn') {
+            weightKg = 0; // No surcharge for unborn
+        } else if (weight.includes('-')) {
+            // Range: use the upper bound for surcharge calculation
+            const match = weight.match(/(\d+)-(\d+)kg/);
+            if (match) {
+                weightKg = parseInt(match[2]); // Upper bound
+            }
+        } else {
+            // Single weight
+            const match = weight.match(/(\d+)/);
+            if (match) {
+                weightKg = parseInt(match[1]);
+            }
+        }
+        
         const isAdult = this.isAdultBracelet(this.currentProduct);
         
         // Show surcharge info if applicable
@@ -392,8 +447,8 @@ export class BabyWeightModal {
         const isAdult = this.isAdultBracelet(this.currentProduct);
         
         // Validate based on product type
-        const minWeight = isAdult ? 35 : 16;
-        const maxWeight = isAdult ? 120 : 50;
+        const minWeight = isAdult ? 96 : 16; // Adult: 96kg+, Baby: 16kg+
+        const maxWeight = 120; // Max for both
         
         if (weight >= minWeight && weight <= maxWeight) {
             this.selectedWeight = weight + 'kg';
@@ -427,9 +482,24 @@ export class BabyWeightModal {
             return;
         }
         
-        // Extract weight number from selectedWeight (e.g., "18kg" -> 18)
-        const weightMatch = this.selectedWeight.match(/(\d+)/);
-        const weightKg = weightMatch ? parseInt(weightMatch[1]) : 0;
+        // Extract weight number from selectedWeight for surcharge calculation
+        let weightKg = 0;
+        
+        if (this.selectedWeight === 'unborn') {
+            weightKg = 0;
+        } else if (this.selectedWeight.includes('-')) {
+            // Range: use upper bound
+            const match = this.selectedWeight.match(/(\d+)-(\d+)kg/);
+            if (match) {
+                weightKg = parseInt(match[2]);
+            }
+        } else {
+            // Single weight
+            const match = this.selectedWeight.match(/(\d+)/);
+            if (match) {
+                weightKg = parseInt(match[1]);
+            }
+        }
         
         // Calculate surcharge
         const surcharge = this.calculateSurcharge(weightKg);

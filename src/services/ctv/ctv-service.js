@@ -161,6 +161,65 @@ export async function verifyCTVCode(code, env, corsHeaders) {
     }
 }
 
+// Validate referral code hoặc custom slug (cho tracking từ URL)
+export async function validateReferralCode(ref, env, corsHeaders) {
+    try {
+        if (!ref || ref.trim() === '') {
+            return jsonResponse({
+                success: false,
+                message: 'Thiếu mã giới thiệu'
+            }, 400, corsHeaders);
+        }
+
+        // Tìm CTV theo referral_code hoặc custom_slug
+        const ctv = await env.DB.prepare(`
+            SELECT 
+                referral_code,
+                custom_slug,
+                full_name,
+                phone,
+                commission_rate,
+                status
+            FROM ctv 
+            WHERE referral_code = ? OR custom_slug = ?
+        `).bind(ref.trim(), ref.trim()).first();
+
+        if (!ctv) {
+            return jsonResponse({
+                success: false,
+                message: 'Mã giới thiệu không hợp lệ'
+            }, 404, corsHeaders);
+        }
+
+        // Kiểm tra trạng thái CTV
+        if (ctv.status !== 'Mới' && ctv.status !== 'Đang hoạt động') {
+            return jsonResponse({
+                success: false,
+                message: 'CTV không còn hoạt động'
+            }, 400, corsHeaders);
+        }
+
+        return jsonResponse({
+            success: true,
+            ctv: {
+                referralCode: ctv.referral_code,
+                customSlug: ctv.custom_slug,
+                name: ctv.full_name,
+                phone: ctv.phone,
+                commissionRate: ctv.commission_rate,
+                status: ctv.status
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error validating referral:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Lấy thông tin chi tiết của một CTV
 export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
     try {

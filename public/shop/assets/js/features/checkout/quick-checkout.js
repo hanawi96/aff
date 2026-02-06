@@ -14,6 +14,8 @@ import { bundleProductsService } from '../../shared/services/bundle-products.ser
 import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
+import { getCTVInfoForOrder, calculateCommission } from '../../shared/utils/ctv-tracking.js';
+import '../../shared/components/ctv-debug-panel.js';
 
 /**
  * Quick Checkout Manager
@@ -604,12 +606,10 @@ export class QuickCheckout {
         
         document.getElementById('checkoutNote').value = 'Giao hàng giờ hành chính';
         
-        // Fill address
-        if (this.addressSelector) {
-            await this.addressSelector.fillDemoData();
-        }
+        // Fill address - HierarchicalAddressSelector doesn't have fillDemoData method
+        // User needs to select address manually
         
-        showToast('Đã điền dữ liệu demo!', 'success');
+        showToast('Đã điền dữ liệu demo! Vui lòng chọn địa chỉ.', 'success');
     }
     
     /**
@@ -1542,7 +1542,7 @@ export class QuickCheckout {
             return;
         }
         
-        // Get top 2 best discounts
+        // Get top 1 best discount (most beneficial)
         const orderAmount = this.calculateTotal() + this.discountAmount;
         const bestDiscounts = this.availableDiscounts
             .filter(d => d.active && d.visible)
@@ -1556,7 +1556,7 @@ export class QuickCheckout {
                 if (!a.isApplicable && b.isApplicable) return 1;
                 return b.savings - a.savings;
             })
-            .slice(0, 2);
+            .slice(0, 1);
         
         const html = bestDiscounts.map(code => {
             const discountText = discountService.formatDiscountText(code);
@@ -1709,12 +1709,21 @@ export class QuickCheckout {
             .map(d => {
                 const isApplicable = !d.min_order_amount || orderAmount >= d.min_order_amount;
                 const savings = isApplicable ? discountService.calculateDiscountAmount(d, orderAmount) : 0;
-                return { ...d, isApplicable, savings };
+                const amountNeeded = isApplicable ? 0 : (d.min_order_amount - orderAmount);
+                return { ...d, isApplicable, savings, amountNeeded };
             })
             .sort((a, b) => {
+                // Mã áp dụng được lên đầu
                 if (a.isApplicable && !b.isApplicable) return -1;
                 if (!a.isApplicable && b.isApplicable) return 1;
-                return b.savings - a.savings;
+                
+                // Trong nhóm áp dụng được: tiết kiệm nhiều nhất lên đầu
+                if (a.isApplicable && b.isApplicable) {
+                    return b.savings - a.savings;
+                }
+                
+                // Trong nhóm chưa đủ: cần mua thêm ít nhất lên đầu
+                return a.amountNeeded - b.amountNeeded;
             });
         
         const html = discounts.map(code => {
@@ -1727,9 +1736,17 @@ export class QuickCheckout {
             let detailsHtml = '';
             
             if (code.min_order_amount) {
+                const isEnough = orderAmount >= code.min_order_amount;
+                const amountNeeded = isEnough ? 0 : (code.min_order_amount - orderAmount);
+                
                 detailsHtml += '<div class="discount-card-detail">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>' +
-                    '<span>Đơn tối thiểu: ' + formatPrice(code.min_order_amount) + '</span>' +
+                    '<span>' + 
+                    (isEnough 
+                        ? 'Đơn tối thiểu: ' + formatPrice(code.min_order_amount)
+                        : 'Mua thêm ' + formatPrice(amountNeeded) + ' để được giảm'
+                    ) +
+                    '</span>' +
                     '</div>';
             }
             
@@ -1806,10 +1823,15 @@ export class QuickCheckout {
     async submit() {
         if (!this.product) return;
         
+        console.log('🚀 Starting checkout submission...');
+        
         // Validate form using validator
         const validationResult = this.validator.validate();
         
+        console.log('📋 Validation result:', validationResult);
+        
         if (!validationResult.isValid) {
+            console.error('❌ Form validation failed:', validationResult.errors);
             // Errors are already displayed by validator
             // No need for toast
             return;
@@ -1817,7 +1839,14 @@ export class QuickCheckout {
         
         // Validate address
         const addressValidation = this.addressSelector.validate();
+        console.log('📍 Address validation:', addressValidation);
+        
         if (!addressValidation.isValid) {
+            console.error('❌ Address validation failed:', addressValidation.message);
+            
+            // Show toast notification
+            showToast(addressValidation.message, 'error');
+            
             // Show inline error for address fields
             if (!this.addressSelector.provinceCode) {
                 errorDisplayService.showError('provinceSelect', addressValidation.message);
@@ -1848,6 +1877,7 @@ export class QuickCheckout {
         
         // Validate bank transfer confirmation
         if (this.paymentMethod === 'bank' && !this.bankTransferConfirmed) {
+            console.error('❌ Bank transfer not confirmed');
             // Show error message
             const errorEl = document.getElementById('bankConfirmError');
             if (errorEl) {
@@ -1866,10 +1896,29 @@ export class QuickCheckout {
         }
         
         // Get form data (already validated)
-        const formData = this.validator.getFormData();
+        const rawFormData = this.validator.getFormData();
+        console.log('📝 Raw form data:', rawFormData);
+        
+        // Map field names (remove "checkout" prefix)
+        const formData = {
+            name: rawFormData.checkoutName || '',
+            phone: rawFormData.checkoutPhone || '',
+            babyWeight: rawFormData.checkoutBabyWeight || '',
+            babyName: rawFormData.checkoutBabyName || '',
+            note: rawFormData.checkoutNote || ''
+        };
+        console.log('📝 Mapped form data:', formData);
         
         // Get address data
         const addressData = this.addressSelector.getAddressData();
+        console.log('📍 Address data:', addressData);
+        
+        // Validate customer info
+        if (!formData.name || !formData.phone) {
+            console.error('❌ Missing customer info:', { name: formData.name, phone: formData.phone });
+            showToast('Thiếu thông tin khách hàng', 'error');
+            return;
+        }
         
         // Calculate totals
         const productTotal = this.product.price * this.quantity;
@@ -1915,6 +1964,36 @@ export class QuickCheckout {
         // Build notes: only custom note (baby weight is in order_items.size)
         const orderNotes = formData.note || null;
         
+        // Get CTV info from cookie (if exists)
+        console.log('📞 [Quick Checkout] Getting CTV info...');
+        const ctvInfo = await getCTVInfoForOrder();
+        console.log('📦 [Quick Checkout] CTV Info:', ctvInfo);
+        
+        // Calculate commission if CTV exists
+        let commission = 0;
+        let commissionRate = 0;
+        let referralCode = null;
+        let ctvPhone = null;
+        
+        if (ctvInfo) {
+            // Commission = (total - shipping) × rate
+            const revenue = totalAmount - shippingFee;
+            commission = calculateCommission(totalAmount, shippingFee, ctvInfo.commissionRate);
+            commissionRate = ctvInfo.commissionRate;
+            referralCode = ctvInfo.referralCode;
+            ctvPhone = ctvInfo.ctvPhone;
+            
+            console.log('💰 [Quick Checkout] Commission calculated:', {
+                revenue,
+                rate: commissionRate,
+                commission,
+                referralCode,
+                ctvPhone
+            });
+        } else {
+            console.log('ℹ️ [Quick Checkout] No CTV tracking found');
+        }
+        
         // Prepare order data matching backend format
         const orderData = {
             orderId: 'DH' + Date.now(),
@@ -1934,7 +2013,11 @@ export class QuickCheckout {
             paymentMethod: this.paymentMethod,
             payment_method: this.paymentMethod,
             status: 'pending',
-            referralCode: null,
+            referralCode: referralCode,
+            referral_code: referralCode,
+            commission: commission,
+            commission_rate: commissionRate,
+            ctv_phone: ctvPhone,
             shippingFee: shippingFee,
             shipping_fee: shippingFee,
             shippingCost: 0,

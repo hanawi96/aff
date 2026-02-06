@@ -92,10 +92,10 @@ export class ShopOrderService {
             discountAmount,
             orderDate,
             0, // is_priority
-            null, // referral_code (shop orders don't have CTV)
-            0, // commission
-            0, // commission_rate
-            null, // ctv_phone
+            data.referral_code || data.referralCode || null,
+            data.commission || 0,
+            data.commission_rate || 0,
+            data.ctv_phone || null,
             packagingDetails.total_cost,
             JSON.stringify(packagingDetails),
             taxData.amount,

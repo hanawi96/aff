@@ -26,8 +26,8 @@ export const checkoutValidationRules = {
     // Baby weight validation (conditional - only if field exists)
     babyWeight: {
         required: false, // Will be set dynamically
-        pattern: /^(Chưa sinh|\d+kg)$/i,
-        message: 'Cân nặng phải có dạng: 5kg, 10kg... hoặc "Chưa sinh"'
+        pattern: /^(Chưa sinh|unborn|\d+kg|\d+-\d+kg)$/i,
+        message: 'Cân nặng phải có dạng: 5kg, 6-8kg... hoặc "Chưa sinh"'
     },
     
     // Baby name validation (conditional - only if field exists)

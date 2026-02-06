@@ -107,16 +107,16 @@ function updatePricingDisplay(priceData) {
         return;
     }
 
-    // If no price data, hide the section
-    if (!priceData || !priceData.price) {
-        console.log('No price data, hiding section');
+    // If no price data or price is 0/null, hide the section
+    if (!priceData || !priceData.price || priceData.price === 0) {
+        console.log('No valid price data, hiding section');
         pricingSection.style.display = 'none';
         return;
     }
 
     // Show pricing section
     pricingSection.style.display = 'block';
-    console.log('Showing pricing section');
+    console.log('Showing pricing section with price:', priceData.price);
 
     // Format price with thousand separator
     const formatPrice = (price) => {
@@ -129,6 +129,7 @@ function updatePricingDisplay(priceData) {
     // Update current price
     if (priceCurrent) {
         priceCurrent.textContent = formatPrice(priceData.price);
+        console.log('Set current price to:', priceCurrent.textContent);
     }
 
     // Update original price and discount badge
@@ -137,6 +138,7 @@ function updatePricingDisplay(priceData) {
         if (priceOriginal) {
             priceOriginal.textContent = formatPrice(priceData.originalPrice);
             priceOriginal.style.display = 'block';
+            console.log('Set original price to:', priceOriginal.textContent);
         }
 
         if (discountBadge) {
@@ -147,6 +149,7 @@ function updatePricingDisplay(priceData) {
                 discountPercent.textContent = `-${discount}%`;
             }
             discountBadge.style.display = 'flex';
+            console.log('Set discount to:', discount + '%');
         }
     } else {
         // No discount
@@ -156,6 +159,7 @@ function updatePricingDisplay(priceData) {
         if (discountBadge) {
             discountBadge.style.display = 'none';
         }
+        console.log('No discount, hiding original price and badge');
     }
 }
 

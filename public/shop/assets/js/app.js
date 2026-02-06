@@ -5,6 +5,8 @@
 import { loadCommonPartials } from './shared/partials-loader.js';
 import { HomePage } from './pages/home.page.js';
 import './shared/utils/image-preview.js'; // Import image preview utility
+import { checkAndSaveReferralFromURL } from './shared/utils/ctv-tracking.js'; // Import CTV tracking
+import './shared/components/ctv-debug-panel.js'; // Import CTV debug panel
 
 /**
  * Application Entry Point
@@ -21,6 +23,9 @@ class App {
         console.log('🚀 Initializing Vòng Đầu Tam Shop...');
         
         try {
+            // Check and save CTV referral from URL (if exists)
+            await checkAndSaveReferralFromURL();
+            
             // Detect current page
             const page = this.detectPage();
             

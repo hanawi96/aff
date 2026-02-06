@@ -45,26 +45,50 @@ export async function createOrder(data, env, corsHeaders) {
         let finalCommissionRate = 0;
         let ctvPhone = null;
 
-        if (data.referralCode && data.referralCode.trim() !== '') {
-            // Kiểm tra xem referral code có tồn tại không
-            const ctvData = await env.DB.prepare(`
-                SELECT referral_code, commission_rate, phone FROM ctv WHERE referral_code = ?
-            `).bind(data.referralCode.trim()).first();
-
-            if (ctvData) {
-                validReferralCode = ctvData.referral_code;
-                ctvPhone = ctvData.phone;
-                finalCommissionRate = ctvData.commission_rate || 0.1;
-                // Commission calculated on product value ONLY (not including shipping, not including discount)
-                finalCommission = Math.round(productTotal * finalCommissionRate);
-                console.log(`💰 Commission calculated:`, {
+        // Ưu tiên sử dụng data từ frontend (đã tính sẵn)
+        if (data.referral_code || data.referralCode) {
+            const refCode = data.referral_code || data.referralCode;
+            
+            // Nếu frontend đã gửi commission và commission_rate, sử dụng luôn
+            if (data.commission !== undefined && data.commission_rate !== undefined) {
+                validReferralCode = refCode.trim();
+                finalCommission = data.commission;
+                finalCommissionRate = data.commission_rate;
+                ctvPhone = data.ctv_phone || null;
+                
+                console.log(`💰 Using commission from frontend:`, {
                     referralCode: validReferralCode,
-                    productValue: productTotal,
                     rate: finalCommissionRate,
-                    commission: finalCommission
+                    commission: finalCommission,
+                    ctvPhone: ctvPhone
                 });
             } else {
-                console.warn('⚠️ Referral code không tồn tại:', data.referralCode);
+                // Fallback: Validate và tính commission ở backend
+                const ctvData = await env.DB.prepare(`
+                    SELECT referral_code, commission_rate, phone FROM ctv WHERE referral_code = ?
+                `).bind(refCode.trim()).first();
+
+                if (ctvData) {
+                    validReferralCode = ctvData.referral_code;
+                    ctvPhone = ctvData.phone;
+                    finalCommissionRate = ctvData.commission_rate || 0.1;
+                    
+                    // Tính hoa hồng: (total_amount - shipping_fee) × commission_rate
+                    const shippingFee = data.shipping_fee || data.shippingFee || 0;
+                    const revenue = totalAmountNumber - shippingFee;
+                    finalCommission = Math.round(revenue * finalCommissionRate);
+                    
+                    console.log(`💰 Commission calculated at backend:`, {
+                        referralCode: validReferralCode,
+                        totalAmount: totalAmountNumber,
+                        shippingFee: shippingFee,
+                        revenue: revenue,
+                        rate: finalCommissionRate,
+                        commission: finalCommission
+                    });
+                } else {
+                    console.warn('⚠️ Referral code không tồn tại:', refCode);
+                }
             }
         }
 

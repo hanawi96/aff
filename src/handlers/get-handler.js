@@ -9,6 +9,7 @@ import { handleVerifySession } from '../auth/index.js';
 import { 
     getAllCTV, 
     verifyCTVCode, 
+    validateReferralCode,
     getCollaboratorInfo
 } from '../services/ctv/ctv-service.js';
 
@@ -165,6 +166,10 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'verifyCTV':
             const verifyCode = url.searchParams.get('code');
             return await verifyCTVCode(verifyCode, env, corsHeaders);
+
+        case 'validateReferral':
+            const refCode = url.searchParams.get('ref');
+            return await validateReferralCode(refCode, env, corsHeaders);
 
         case 'getAllProducts':
             return await getAllProducts(env, corsHeaders);
