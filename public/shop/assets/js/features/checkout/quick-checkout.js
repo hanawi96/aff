@@ -2416,6 +2416,39 @@ export class QuickCheckout {
             }
         });
     }
+
+    /**
+     * Scroll to cross-sell section
+     */
+    scrollToCrossSellSection() {
+        const crossSellContainer = document.getElementById('crossSellProducts');
+        const modalBody = document.querySelector('.quick-checkout-body');
+        const modalHeader = document.querySelector('.quick-checkout-header');
+        
+        if (crossSellContainer && modalBody) {
+            // Calculate header height (sticky header)
+            const headerHeight = modalHeader ? modalHeader.offsetHeight : 0;
+            
+            // Scroll within modal body, accounting for sticky header
+            const containerTop = crossSellContainer.offsetTop;
+            const scrollOffset = containerTop - headerHeight - 20; // 20px extra padding
+            
+            modalBody.scrollTo({
+                top: scrollOffset,
+                behavior: 'smooth'
+            });
+            
+            // Add highlight effect
+            crossSellContainer.style.transition = 'all 0.3s ease';
+            crossSellContainer.style.transform = 'scale(1.02)';
+            crossSellContainer.style.filter = 'brightness(1.05)';
+            
+            setTimeout(() => {
+                crossSellContainer.style.transform = 'scale(1)';
+                crossSellContainer.style.filter = '';
+            }, 600);
+        }
+    }
 }
 
 

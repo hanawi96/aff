@@ -920,6 +920,29 @@ const cart = {
         // TODO: Implement quick view modal
     },
 
+    // Scroll to bundle section
+    scrollToBundleSection: () => {
+        const bundleSection = document.getElementById('bundleOfferSection');
+        if (bundleSection && !bundleSection.classList.contains('hidden')) {
+            bundleSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center'
+            });
+            
+            // Add highlight effect
+            bundleSection.style.transition = 'all 0.3s ease';
+            bundleSection.style.transform = 'scale(1.02)';
+            bundleSection.style.boxShadow = '0 8px 30px rgba(244, 162, 97, 0.3)';
+            
+            setTimeout(() => {
+                bundleSection.style.transform = 'scale(1)';
+                bundleSection.style.boxShadow = '';
+            }, 600);
+        } else {
+            utils.showToast('Phần bó dâu tằm chưa sẵn sàng', 'info');
+        }
+    },
+
     // Update summary
     updateSummary: () => {
         // Calculate subtotal
