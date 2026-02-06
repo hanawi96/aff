@@ -386,7 +386,16 @@ async function loadCurrentTaxRate() {
         const data = await response.json();
         
         if (data.success) {
-            const taxPercent = (data.taxRate * 100).toFixed(1);
+            // Fix: If taxRate > 1, it's already in percentage format (e.g., 5 means 5%)
+            // If taxRate <= 1, it's in decimal format (e.g., 0.05 means 5%)
+            let taxPercent;
+            if (data.taxRate > 1) {
+                // Already in percentage format
+                taxPercent = data.taxRate.toFixed(1);
+            } else {
+                // Convert from decimal to percentage
+                taxPercent = (data.taxRate * 100).toFixed(1);
+            }
             
             // Hide skeleton and show real content
             const skeleton = document.getElementById('currentTaxRateSkeleton');
@@ -406,7 +415,9 @@ async function loadCurrentTaxRate() {
                 summaryEl.classList.remove('hidden');
             }
             
-            updateTaxExample(data.taxRate);
+            // Convert back to decimal for calculation if needed
+            const taxRateDecimal = data.taxRate > 1 ? data.taxRate / 100 : data.taxRate;
+            updateTaxExample(taxRateDecimal);
         }
     } catch (error) {
         console.error('Error loading tax rate:', error);
@@ -417,7 +428,14 @@ async function loadCurrentTaxRate() {
 function updateTaxExample(taxRate) {
     const revenue = 130000; // Example: 100k product + 30k ship
     const tax = Math.round(revenue * taxRate);
-    const taxPercent = (taxRate * 100).toFixed(1);
+    
+    // Fix: If taxRate > 1, it's already in percentage format
+    let taxPercent;
+    if (taxRate > 1) {
+        taxPercent = taxRate.toFixed(1);
+    } else {
+        taxPercent = (taxRate * 100).toFixed(1);
+    }
     
     // Hide skeleton and show real content
     const skeleton = document.getElementById('taxExampleSkeleton');
