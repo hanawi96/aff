@@ -139,46 +139,30 @@ export class FlashSaleActions {
     }
     
     /**
-     * Preview product image
+     * Preview product image - delegates to global previewProductImage with full data
      */
-    previewImage(imageUrl, productName) {
-        const modal = document.getElementById('imagePreviewModal');
-        const img = document.getElementById('imagePreviewImg');
-        const title = document.getElementById('imagePreviewTitle');
-        
-        if (modal && img && title) {
-            img.src = imageUrl;
-            img.alt = productName;
-            title.textContent = productName;
-            modal.classList.add('active');
-            
-            // Close on click outside
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    window.closeImagePreview();
-                }
-            };
-            
-            // Close on ESC key
-            document.addEventListener('keydown', this.handleEscKey);
+    previewImage(imageUrl, productName, productId) {
+        const product = this.findProduct(productId);
+        if (!product) {
+            console.error('Flash sale product not found:', productId);
+            return;
         }
-    }
-    
-    /**
-     * Handle ESC key press
-     */
-    handleEscKey(e) {
-        if (e.key === 'Escape') {
-            window.closeImagePreview();
+        
+        // Calculate discount percentage
+        const discount = Math.round(((product.original_price - product.flash_price) / product.original_price) * 100);
+        
+        // Use global previewProductImage function with full price data
+        if (window.previewProductImage) {
+            window.previewProductImage(
+                imageUrl,
+                productName,
+                productId,
+                {
+                    price: product.flash_price,
+                    originalPrice: product.original_price,
+                    discountPercent: discount
+                }
+            );
         }
     }
 }
-
-// Global function to close image preview
-window.closeImagePreview = function() {
-    const modal = document.getElementById('imagePreviewModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.removeEventListener('keydown', FlashSaleActions.prototype.handleEscKey);
-    }
-};
