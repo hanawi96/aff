@@ -1,4 +1,5 @@
 import { jsonResponse } from '../../utils/response.js';
+import { sendOrderNotification } from '../notifications/telegram-service.js';
 
 // Create new order - Main order creation function
 export async function createOrder(data, env, corsHeaders) {
@@ -440,7 +441,31 @@ export async function createOrder(data, env, corsHeaders) {
             }
         }
 
-        // 2. Lưu vào Google Sheets (gọi Google Apps Script)
+        // 2. Gửi thông báo Telegram (async, không chờ)
+        // Fire-and-forget: Không chờ response để tăng tốc độ tạo đơn
+        const telegramPromise = sendOrderNotification({
+            orderId: data.orderId,
+            orderDate: data.orderDate || new Date().getTime(),
+            customer: {
+                name: data.customer.name,
+                phone: data.customer.phone,
+                address: data.customer.address || '',
+                notes: data.customer.notes || ''
+            },
+            cart: data.cart,
+            total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
+            paymentMethod: data.paymentMethod || 'cod',
+            referralCode: validReferralCode || '',
+            referralCommission: finalCommission || 0,
+            referralPartner: data.referralPartner || ''
+        }, env);
+
+        // Use waitUntil to ensure notification completes in background
+        if (env.ctx && env.ctx.waitUntil) {
+            env.ctx.waitUntil(telegramPromise);
+        }
+
+        // 3. Lưu vào Google Sheets (gọi Google Apps Script)
         // Fire-and-forget: Không chờ response để tăng tốc độ tạo đơn
         const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
         if (googleScriptUrl) {

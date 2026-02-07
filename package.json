@@ -16,7 +16,8 @@
     "db:replicas": "turso db replicas list vdt-yendev96",
     "migrate:sheets": "node database/migrate-from-sheets.js",
     "logs": "wrangler tail",
-    "test": "echo 'No tests yet'"
+    "test": "echo 'No tests yet'",
+    "test:telegram": "node test-telegram-notification.js"
   },
   "keywords": [
     "referral",

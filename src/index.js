@@ -7,6 +7,7 @@ import { jsonResponse } from './utils/response.js';
 import { handleGet } from './handlers/get-handler.js';
 import { handlePost, handlePostWithAction } from './handlers/post-handler.js';
 import { handleShopRoutes } from '../public/shop/api/routes.js';
+import { handleTelegramWebhook } from './services/notifications/telegram-commands.js';
 
 export default {
     async fetch(request, env, ctx) {
@@ -31,6 +32,12 @@ export default {
             // Route to Shop API (public - no auth)
             if (path.startsWith('/api/shop/') || path.match(/^\/api\/products\/\d+\/favorite$/)) {
                 return await handleShopRoutes(request, env, corsHeaders);
+            }
+
+            // Telegram Webhook Handler
+            if (path === '/api/telegram/webhook' && request.method === 'POST') {
+                const update = await request.json();
+                return await handleTelegramWebhook(update, env);
             }
 
             // Route handling for admin/legacy
