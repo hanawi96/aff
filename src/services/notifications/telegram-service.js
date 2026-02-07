@@ -20,6 +20,26 @@ export async function sendOrderNotification(orderData, env) {
         // Tạo nội dung tin nhắn
         const message = createTelegramMessage(orderData);
 
+        // Tạo inline keyboard với quick actions (không dùng tel: và sms: vì Telegram không hỗ trợ)
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '🔍 Xem Chi Tiết', callback_data: 'view_order_' + orderData.orderId }
+                ],
+                [
+                    { text: '📋 Lịch Sử Khách', callback_data: 'view_customer_' + orderData.customer.phone },
+                    { text: '📅 Đơn Hôm Nay', callback_data: 'orders_today' }
+                ]
+            ]
+        };
+
+        // Add CTV button if order has referral code
+        if (orderData.referralCode && orderData.referralCode.trim() !== "") {
+            keyboard.inline_keyboard.splice(1, 0, [
+                { text: '👤 Xem CTV', callback_data: 'view_ctv_' + orderData.referralCode }
+            ]);
+        }
+
         // Gửi tin nhắn qua Telegram API
         const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
@@ -30,7 +50,8 @@ export async function sendOrderNotification(orderData, env) {
                 chat_id: env.TELEGRAM_CHAT_ID,
                 text: message,
                 parse_mode: 'HTML',
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
+                reply_markup: keyboard
             })
         });
 

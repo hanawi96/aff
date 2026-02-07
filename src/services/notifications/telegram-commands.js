@@ -3,6 +3,8 @@
  * Xử lý các lệnh admin từ Telegram
  */
 
+import { sendDailyReport } from './daily-report.js';
+
 // Vietnam timezone offset (UTC+7)
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -89,11 +91,20 @@ export async function handleTelegramWebhook(update, env) {
             return new Response('OK', { status: 200 });
         }
 
+        // Tự động nhận diện mã CTV (bắt đầu bằng CTV)
+        const ctvRegex = /^CTV\d{6}$/i;
+        if (text && ctvRegex.test(text.trim())) {
+            console.log('� Auto-detect CTV code:', text);
+            await findCTVInfo(chatId, text.trim().toUpperCase(), env);
+            return new Response('OK', { status: 200 });
+        }
+
         // Tự động nhận diện số điện thoại (10 số bắt đầu bằng 0)
         const phoneRegex = /^0\d{9}$/;
         if (text && phoneRegex.test(text.trim())) {
             console.log('📞 Auto-detect phone number:', text);
-            await findCustomerHistory(chatId, text.trim(), env);
+            // Tìm cả khách hàng và CTV
+            await findByPhone(chatId, text.trim(), env);
             return new Response('OK', { status: 200 });
         }
 
@@ -145,6 +156,9 @@ async function handleCallbackQuery(callbackQuery, env) {
             case 'menu_orders':
                 await showOrdersMenu(chatId, messageId, env);
                 break;
+            case 'menu_ctv':
+                await showCTVMenu(chatId, messageId, env);
+                break;
             case 'menu_search':
                 await showSearchMenu(chatId, messageId, env);
                 break;
@@ -181,8 +195,44 @@ async function handleCallbackQuery(callbackQuery, env) {
             case 'orders_stats':
                 await sendStatistics(chatId, env);
                 break;
+            // CTV Menu callbacks
+            case 'ctv_overview':
+                await sendCTVOverview(chatId, env);
+                break;
+            case 'ctv_top':
+                await sendTopCTV(chatId, env);
+                break;
+            case 'ctv_new':
+                await sendNewCTV(chatId, env);
+                break;
+            case 'ctv_inactive':
+                await sendInactiveCTV(chatId, env);
+                break;
+            case 'ctv_commission':
+                await sendCTVCommission(chatId, env);
+                break;
+            case 'ctv_search':
+                await showCTVSearchMenu(chatId, messageId, env);
+                break;
+            case 'ctv_back':
+                await showCTVMenu(chatId, messageId, env);
+                break;
             default:
-                await sendTelegramMessage(chatId, "❌ Lệnh không hợp lệ", env);
+                // Handle dynamic callbacks like view_ctv_CTV100004
+                if (data.startsWith('view_ctv_')) {
+                    const ctvCode = data.replace('view_ctv_', '');
+                    await findCTVInfo(chatId, ctvCode, env);
+                } else if (data.startsWith('view_customer_')) {
+                    const phone = data.replace('view_customer_', '');
+                    await findCustomerHistory(chatId, phone, env);
+                } else if (data.startsWith('view_order_')) {
+                    const orderId = data.replace('view_order_', '');
+                    await findOrder(chatId, orderId, env);
+                } else if (data === 'customer_vip_info') {
+                    await sendTelegramMessage(chatId, "🌟 <b>KHÁCH HÀNG VIP</b>\n\nKhách hàng này đã mua từ 3 đơn hàng trở lên!\n\n💡 Nên chăm sóc đặc biệt và ưu đãi để giữ chân khách hàng.", env);
+                } else {
+                    await sendTelegramMessage(chatId, "❌ Lệnh không hợp lệ", env);
+                }
         }
     } catch (error) {
         console.error('❌ Error handling callback:', error);
@@ -220,24 +270,29 @@ async function handleAdminCommand(chatId, command, env) {
                 await showMainMenu(chatId, null, env);
                 break;
 
+            // Shortcuts - Thống kê nhanh ⭐⭐⭐
+            case '/t':
             case '/today':
                 await sendTodayOrders(chatId, env);
                 break;
 
-            case '/stats':
-                await sendStatistics(chatId, env);
+            case '/y':
+            case '/yesterday':
+                await sendYesterdayRevenue(chatId, env);
                 break;
 
+            case '/w':
             case '/week':
                 await sendWeeklyStats(chatId, env);
                 break;
 
+            case '/m':
             case '/month':
                 await sendMonthlyStats(chatId, env);
                 break;
 
-            case '/yesterday':
-                await sendYesterdayRevenue(chatId, env);
+            case '/stats':
+                await sendStatistics(chatId, env);
                 break;
 
             case '/7days':
@@ -282,6 +337,10 @@ async function handleAdminCommand(chatId, command, env) {
                 }
                 break;
 
+            case '/report':
+                await sendManualDailyReport(chatId, env);
+                break;
+
             default:
                 await sendTelegramMessage(chatId, `❌ Lệnh không hợp lệ: "${cmd}"\nGõ /help để xem danh sách lệnh.`, env);
         }
@@ -299,6 +358,12 @@ async function sendHelpMessage(chatId, env) {
     const helpText = `
 🤖 <b>LỆNH ADMIN - Vòng Dâu Tằm By Ánh</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⭐⭐⭐ <b>THỐNG KÊ NHANH (SHORTCUTS):</b>
+/t - Hôm nay
+/y - Hôm qua
+/w - Tuần này
+/m - Tháng này
 
 📱 <b>MENU NHANH:</b>
 /menu - Mở menu với buttons
@@ -321,9 +386,13 @@ async function sendHelpMessage(chatId, env) {
 /customer 0123456789 - Lịch sử khách hàng
 /phone 0123456789 - Tìm theo SĐT
 
+📊 <b>BÁO CÁO:</b>
+/report - Báo cáo cuối ngày (test)
+
 💡 <b>MẸO:</b> 
 • Dùng /menu để truy cập nhanh bằng buttons
 • Gõ số điện thoại trực tiếp (10 số) để tìm khách hàng
+• Dùng shortcuts /t /y /w /m để xem thống kê nhanh nhất!
     `;
 
     await sendTelegramMessage(chatId, helpText, env);
@@ -347,6 +416,7 @@ Chọn chức năng bên dưới:
                 { text: '📦 Đơn Hàng', callback_data: 'menu_orders' }
             ],
             [
+                { text: '� CTV', callback_data: 'menu_ctv' },
                 { text: '🔍 Tìm Kiếm', callback_data: 'menu_search' }
             ]
         ]
@@ -507,7 +577,20 @@ async function sendTodayOrders(chatId, env) {
 
         message += `💡 Gõ <code>/find [mã đơn]</code> để xem chi tiết`;
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add action buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '📦 Đơn Gần Nhất', callback_data: 'orders_recent' },
+                    { text: '📊 Thống Kê', callback_data: 'orders_stats' }
+                ],
+                [
+                    { text: '💰 Doanh Thu Hôm Qua', callback_data: 'revenue_yesterday' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in sendTodayOrders:', error);
@@ -553,7 +636,24 @@ async function sendStatistics(chatId, env) {
         message += `💰 Tổng doanh thu: <b>${totalRevenue.toLocaleString('vi-VN')}đ</b>\n\n`;
         message += `📊 Trung bình: <b>${avgRevenue.toLocaleString('vi-VN')}đ</b>/đơn`;
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add navigation buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '📅 Hôm Nay', callback_data: 'orders_today' },
+                    { text: '📅 Hôm Qua', callback_data: 'revenue_yesterday' }
+                ],
+                [
+                    { text: '📆 Tuần Này', callback_data: 'revenue_week' },
+                    { text: '📆 Tháng Này', callback_data: 'revenue_month' }
+                ],
+                [
+                    { text: '📦 Đơn Gần Nhất', callback_data: 'orders_recent' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in sendStatistics:', error);
@@ -593,7 +693,20 @@ async function sendWeeklyStats(chatId, env) {
         message += `📊 Trung bình: <b>${avgRevenue.toLocaleString('vi-VN')}đ</b>/đơn\n\n`;
         message += `💡 Gõ <code>/today</code> để xem chi tiết hôm nay`;
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add comparison buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '📅 Hôm Nay', callback_data: 'orders_today' },
+                    { text: '📆 Tháng Này', callback_data: 'revenue_month' }
+                ],
+                [
+                    { text: '📊 Thống Kê', callback_data: 'orders_stats' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in sendWeeklyStats:', error);
@@ -632,7 +745,20 @@ async function sendMonthlyStats(chatId, env) {
         message += `📊 Trung bình: <b>${avgRevenue.toLocaleString('vi-VN')}đ</b>/đơn\n\n`;
         message += `💡 Gõ <code>/week</code> để xem thống kê tuần`;
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add comparison buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '📅 Hôm Nay', callback_data: 'orders_today' },
+                    { text: '📆 Tuần Này', callback_data: 'revenue_week' }
+                ],
+                [
+                    { text: '📊 Thống Kê', callback_data: 'orders_stats' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in sendMonthlyStats:', error);
@@ -675,7 +801,22 @@ async function sendRecentOrders(chatId, env) {
         });
 
         message += `💡 Gõ <code>/find [mã đơn]</code> để xem chi tiết`;
-        await sendTelegramMessage(chatId, message, env);
+
+        // Add quick action buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '🔍 Xem Đơn #1', callback_data: 'view_order_' + orders[0].order_id },
+                    { text: '🔍 Xem Đơn #2', callback_data: 'view_order_' + orders[1].order_id }
+                ],
+                [
+                    { text: '📊 Thống Kê', callback_data: 'orders_stats' },
+                    { text: '📅 Hôm Nay', callback_data: 'orders_today' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in sendRecentOrders:', error);
@@ -725,10 +866,28 @@ async function findOrder(chatId, orderId, env) {
             message += `\n💬 <b>Ghi chú:</b> <i>${order.notes}</i>\n`;
         }
 
-        message += `\n🔧 <b>HÀNH ĐỘNG:</b>\n`;
-        message += `/customer ${order.customer_phone} - Xem lịch sử khách này`;
+        if (order.referral_code) {
+            message += `\n👥 <b>CTV:</b> <code>${order.referral_code}</code>\n`;
+        }
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add action buttons (không dùng tel: vì Telegram không hỗ trợ)
+        const keyboard = {
+            inline_keyboard: []
+        };
+
+        // Add CTV button if order has referral code
+        if (order.referral_code) {
+            keyboard.inline_keyboard.push([
+                { text: '👤 Xem CTV', callback_data: 'view_ctv_' + order.referral_code }
+            ]);
+        }
+
+        // Add customer history button
+        keyboard.inline_keyboard.push([
+            { text: '📋 Lịch Sử Khách', callback_data: 'view_customer_' + order.customer_phone }
+        ]);
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in findOrder:', error);
@@ -760,13 +919,21 @@ async function findCustomerHistory(chatId, phone, env) {
             SELECT customer_name FROM orders WHERE customer_phone LIKE ? LIMIT 1
         `).bind(`%${phone}%`).first();
 
+        // Check if customer is VIP (3+ orders)
+        const isVIP = orders.length >= 3;
+
         let message = `👤 <b>LỊCH SỬ KHÁCH HÀNG</b>\n`;
         message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
         message += `📞 SĐT: <code>${phone}</code>\n`;
         message += `👤 Tên: <b>${firstOrder?.customer_name || 'N/A'}</b>\n`;
         message += `📦 Tổng đơn hàng: <b>${orders.length}</b>\n`;
-        message += `💰 Tổng chi tiêu: <b>${totalSpent.toLocaleString('vi-VN')}đ</b>\n\n`;
-        message += `📋 <b>DANH SÁCH ĐƠN HÀNG:</b>\n`;
+        message += `💰 Tổng chi tiêu: <b>${totalSpent.toLocaleString('vi-VN')}đ</b>\n`;
+        
+        if (isVIP) {
+            message += `\n🌟 <b>KHÁCH HÀNG VIP</b> - Đã mua ${orders.length} lần!\n`;
+        }
+        
+        message += `\n📋 <b>DANH SÁCH ĐƠN HÀNG:</b>\n`;
 
         orders.slice(0, 5).forEach((order, index) => {
             const orderDate = new Date(order.created_at_unix);
@@ -778,11 +945,31 @@ async function findCustomerHistory(chatId, phone, env) {
             message += `... và ${orders.length - 5} đơn hàng khác\n`;
         }
 
-        if (orders.length >= 3) {
-            message += `\n🌟 <b>KHÁCH HÀNG VIP</b> - Đã mua ${orders.length} lần!`;
+        // Add action buttons (không dùng tel: và sms: vì Telegram không hỗ trợ)
+        const keyboard = {
+            inline_keyboard: []
+        };
+
+        // Add view order buttons if there are orders
+        if (orders.length >= 2) {
+            keyboard.inline_keyboard.push([
+                { text: '� Xem Đơn #1', callback_data: 'view_order_' + orders[0].order_id },
+                { text: '🔍 Xem Đơn #2', callback_data: 'view_order_' + orders[1].order_id }
+            ]);
+        } else if (orders.length === 1) {
+            keyboard.inline_keyboard.push([
+                { text: '🔍 Xem Đơn #1', callback_data: 'view_order_' + orders[0].order_id }
+            ]);
         }
 
-        await sendTelegramMessage(chatId, message, env);
+        // Add VIP badge button if applicable
+        if (isVIP) {
+            keyboard.inline_keyboard.push([
+                { text: '🌟 Khách VIP', callback_data: 'customer_vip_info' }
+            ]);
+        }
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
 
     } catch (error) {
         console.error('❌ Error in findCustomerHistory:', error);
@@ -979,7 +1166,11 @@ async function sendTelegramMessage(chatId, message, env) {
  */
 async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
     try {
-        await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        console.log('📤 Sending message with keyboard to:', chatId);
+        console.log('📝 Message length:', message.length);
+        console.log('⌨️ Keyboard:', JSON.stringify(keyboard));
+        
+        const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -992,8 +1183,17 @@ async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
                 disable_web_page_preview: true
             })
         });
+        
+        const result = await response.json();
+        console.log('✅ Telegram API response:', result.ok ? 'Success' : 'Failed');
+        if (!result.ok) {
+            console.error('❌ Telegram API error:', result);
+        }
+        
+        return result;
     } catch (error) {
         console.error('❌ Error sending message with keyboard:', error);
+        throw error;
     }
 }
 
@@ -1026,5 +1226,558 @@ async function editTelegramMessage(chatId, messageId, message, keyboard, env) {
         }
     } catch (error) {
         console.error('❌ Error editing message:', error);
+    }
+}
+
+/**
+ * Gửi báo cáo cuối ngày thủ công (test)
+ */
+async function sendManualDailyReport(chatId, env) {
+    try {
+        await sendTelegramMessage(chatId, "⏳ Đang tạo báo cáo...", env);
+        await sendDailyReport(env);
+    } catch (error) {
+        console.error('❌ Error sending manual report:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * ============================================
+ * CTV MENU & FUNCTIONS
+ * ============================================
+ */
+
+/**
+ * Hiển thị menu CTV
+ */
+async function showCTVMenu(chatId, messageId, env) {
+    const text = `
+👥 <b>QUẢN LÝ CTV</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chọn chức năng:
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '📊 Tổng Quan', callback_data: 'ctv_overview' }
+            ],
+            [
+                { text: '🏆 Top CTV', callback_data: 'ctv_top' },
+                { text: '🆕 CTV Mới', callback_data: 'ctv_new' }
+            ],
+            [
+                { text: '⚠️ Không Hoạt Động', callback_data: 'ctv_inactive' }
+            ],
+            [
+                { text: '💰 Hoa Hồng Tháng Này', callback_data: 'ctv_commission' }
+            ],
+            [
+                { text: '🔍 Tìm CTV', callback_data: 'ctv_search' }
+            ],
+            [
+                { text: '◀️ Quay Lại', callback_data: 'menu_back' }
+            ]
+        ]
+    };
+
+    await editTelegramMessage(chatId, messageId, text, keyboard, env);
+}
+
+/**
+ * Hiển thị menu tìm kiếm CTV
+ */
+async function showCTVSearchMenu(chatId, messageId, env) {
+    const text = `
+🔍 <b>TÌM KIẾM CTV</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>Gõ để tìm kiếm:</b>
+
+📝 <b>Mã CTV:</b>
+<code>CTV100004</code>
+
+📞 <b>Số điện thoại:</b>
+<code>0901234504</code>
+
+💡 Bot sẽ tự động nhận diện!
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '◀️ Quay Lại Menu CTV', callback_data: 'ctv_back' }
+            ]
+        ]
+    };
+
+    await editTelegramMessage(chatId, messageId, text, keyboard, env);
+}
+
+/**
+ * Gửi tổng quan CTV
+ */
+async function sendCTVOverview(chatId, env) {
+    try {
+        const vnNow = getVNTime();
+        const startOfMonth = getVNStartOfMonth(vnNow);
+
+        // Get all CTV
+        const { results: allCTV } = await env.DB.prepare(`
+            SELECT referral_code, full_name, created_at_unix FROM ctv
+        `).all();
+
+        // Get CTV with orders
+        const { results: ctvWithOrders } = await env.DB.prepare(`
+            SELECT DISTINCT referral_code FROM orders 
+            WHERE referral_code IS NOT NULL AND referral_code != ''
+        `).all();
+
+        // Get new CTV this month
+        const newCTVThisMonth = allCTV.filter(ctv => ctv.created_at_unix >= startOfMonth).length;
+
+        // Get total commission
+        const totalCommission = await env.DB.prepare(`
+            SELECT SUM(commission) as total FROM orders 
+            WHERE referral_code IS NOT NULL AND referral_code != ''
+        `).first();
+
+        // Get top 3 CTV
+        const { results: topCTV } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                c.full_name,
+                COUNT(*) as order_count,
+                SUM(o.total_amount) as total_revenue,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            LEFT JOIN ctv c ON o.referral_code = c.referral_code
+            WHERE o.referral_code IS NOT NULL AND o.referral_code != ''
+            GROUP BY o.referral_code, c.full_name
+            ORDER BY total_revenue DESC
+            LIMIT 3
+        `).all();
+
+        const activeCTV = ctvWithOrders.length;
+        const inactiveCTV = allCTV.length - activeCTV;
+        const activePercent = allCTV.length > 0 ? ((activeCTV / allCTV.length) * 100).toFixed(1) : 0;
+
+        let message = `👥 <b>THỐNG KÊ CTV</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        
+        message += `📊 <b>TỔNG QUAN:</b>\n`;
+        message += `• Tổng CTV: <b>${allCTV.length}</b>\n`;
+        message += `• Đang hoạt động: <b>${activeCTV}</b> (${activePercent}%)\n`;
+        message += `• Mới tháng này: <b>${newCTVThisMonth}</b>\n`;
+        message += `• Tổng hoa hồng: <b>${(totalCommission.total || 0).toLocaleString('vi-VN')}đ</b>\n\n`;
+
+        if (topCTV.length > 0) {
+            message += `🏆 <b>TOP 3 CTV XUẤT SẮC:</b>\n`;
+            topCTV.forEach((ctv, index) => {
+                message += `${index + 1}. ${ctv.referral_code} - ${ctv.full_name || 'N/A'}\n`;
+                message += `   📦 ${ctv.order_count} đơn | 💰 ${ctv.total_revenue.toLocaleString('vi-VN')}đ\n`;
+            });
+            message += `\n`;
+        }
+
+        if (inactiveCTV > 0) {
+            message += `⚠️ <b>CTV chưa có đơn:</b> ${inactiveCTV} (${(100 - parseFloat(activePercent)).toFixed(1)}%)\n\n`;
+        }
+
+        message += `💡 Gõ mã CTV hoặc SĐT để xem chi tiết`;
+
+        // Add inline buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '🏆 Top CTV', callback_data: 'ctv_top' },
+                    { text: '🆕 CTV Mới', callback_data: 'ctv_new' }
+                ],
+                [
+                    { text: '💰 Hoa Hồng', callback_data: 'ctv_commission' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
+
+    } catch (error) {
+        console.error('❌ Error in sendCTVOverview:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Gửi top CTV
+ */
+async function sendTopCTV(chatId, env) {
+    try {
+        const { results: topCTV } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                c.full_name,
+                c.phone,
+                COUNT(*) as order_count,
+                SUM(o.total_amount) as total_revenue,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            LEFT JOIN ctv c ON o.referral_code = c.referral_code
+            WHERE o.referral_code IS NOT NULL AND o.referral_code != ''
+            GROUP BY o.referral_code, c.full_name, c.phone
+            ORDER BY total_revenue DESC
+            LIMIT 10
+        `).all();
+
+        if (topCTV.length === 0) {
+            await sendTelegramMessage(chatId, "📊 Chưa có CTV nào có đơn hàng", env);
+            return;
+        }
+
+        let message = `🏆 <b>TOP 10 CTV XUẤT SẮC</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+        topCTV.forEach((ctv, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            message += `${medal} <b>${ctv.referral_code}</b>\n`;
+            message += `   👤 ${ctv.full_name || 'N/A'} - 📞 ${ctv.phone || 'N/A'}\n`;
+            message += `   📦 ${ctv.order_count} đơn | 💰 ${ctv.total_revenue.toLocaleString('vi-VN')}đ\n`;
+            message += `   🎁 Hoa hồng: ${ctv.total_commission.toLocaleString('vi-VN')}đ\n\n`;
+        });
+
+        message += `💡 Gõ <code>${topCTV[0].referral_code}</code> để xem chi tiết`;
+
+        // Add quick action buttons
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '👤 Xem #1: ' + topCTV[0].referral_code, callback_data: 'view_ctv_' + topCTV[0].referral_code }
+                ],
+                [
+                    { text: '📊 Tổng Quan', callback_data: 'ctv_overview' },
+                    { text: '💰 Hoa Hồng', callback_data: 'ctv_commission' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
+
+    } catch (error) {
+        console.error('❌ Error in sendTopCTV:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Gửi danh sách CTV mới
+ */
+async function sendNewCTV(chatId, env) {
+    try {
+        const vnNow = getVNTime();
+        const startOfMonth = getVNStartOfMonth(vnNow);
+
+        const { results: newCTV } = await env.DB.prepare(`
+            SELECT 
+                c.referral_code,
+                c.full_name,
+                c.phone,
+                c.city,
+                c.created_at_unix,
+                COUNT(o.id) as order_count
+            FROM ctv c
+            LEFT JOIN orders o ON c.referral_code = o.referral_code
+            WHERE c.created_at_unix >= ?
+            GROUP BY c.referral_code, c.full_name, c.phone, c.city, c.created_at_unix
+            ORDER BY c.created_at_unix DESC
+        `).bind(startOfMonth).all();
+
+        if (newCTV.length === 0) {
+            await sendTelegramMessage(chatId, "🆕 Chưa có CTV mới tháng này", env);
+            return;
+        }
+
+        const monthStr = `${vnNow.getUTCMonth() + 1}/${vnNow.getUTCFullYear()}`;
+
+        let message = `🆕 <b>CTV MỚI THÁNG ${monthStr}</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        message += `📊 Tổng: <b>${newCTV.length} CTV</b>\n\n`;
+
+        newCTV.slice(0, 10).forEach((ctv, index) => {
+            const hasOrders = ctv.order_count > 0;
+            const status = hasOrders ? '✅' : '⏳';
+            const createdDate = new Date(ctv.created_at_unix + VN_OFFSET_MS);
+            const dateStr = createdDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+            message += `${index + 1}. ${status} <b>${ctv.referral_code}</b>\n`;
+            message += `   👤 ${ctv.full_name} - 📞 ${ctv.phone}\n`;
+            message += `   📍 ${ctv.city || 'N/A'} | 📅 ${dateStr}\n`;
+            if (hasOrders) {
+                message += `   📦 Đã có ${ctv.order_count} đơn hàng\n`;
+            }
+            message += `\n`;
+        });
+
+        if (newCTV.length > 10) {
+            message += `... và ${newCTV.length - 10} CTV khác\n\n`;
+        }
+
+        const withOrders = newCTV.filter(c => c.order_count > 0).length;
+        message += `✅ Đã có đơn: ${withOrders}/${newCTV.length}`;
+
+        await sendTelegramMessage(chatId, message, env);
+
+    } catch (error) {
+        console.error('❌ Error in sendNewCTV:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Gửi danh sách CTV không hoạt động
+ */
+async function sendInactiveCTV(chatId, env) {
+    try {
+        const { results: inactiveCTV } = await env.DB.prepare(`
+            SELECT 
+                c.referral_code,
+                c.full_name,
+                c.phone,
+                c.city,
+                c.created_at_unix
+            FROM ctv c
+            LEFT JOIN orders o ON c.referral_code = o.referral_code
+            WHERE o.id IS NULL
+            ORDER BY c.created_at_unix DESC
+            LIMIT 20
+        `).all();
+
+        if (inactiveCTV.length === 0) {
+            await sendTelegramMessage(chatId, "✅ Tất cả CTV đều đã có đơn hàng!", env);
+            return;
+        }
+
+        let message = `⚠️ <b>CTV CHƯA CÓ ĐƠN HÀNG</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        message += `📊 Tổng: <b>${inactiveCTV.length} CTV</b>\n\n`;
+
+        inactiveCTV.slice(0, 15).forEach((ctv, index) => {
+            const createdDate = new Date(ctv.created_at_unix + VN_OFFSET_MS);
+            const dateStr = createdDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+            message += `${index + 1}. <b>${ctv.referral_code}</b>\n`;
+            message += `   👤 ${ctv.full_name} - 📞 ${ctv.phone}\n`;
+            message += `   📍 ${ctv.city || 'N/A'} | 📅 Đăng ký: ${dateStr}\n\n`;
+        });
+
+        if (inactiveCTV.length > 15) {
+            message += `... và ${inactiveCTV.length - 15} CTV khác\n\n`;
+        }
+
+        message += `💡 <b>Gợi ý:</b> Liên hệ động viên các CTV này`;
+
+        await sendTelegramMessage(chatId, message, env);
+
+    } catch (error) {
+        console.error('❌ Error in sendInactiveCTV:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Gửi thống kê hoa hồng tháng này
+ */
+async function sendCTVCommission(chatId, env) {
+    try {
+        const vnNow = getVNTime();
+        const startOfMonth = getVNStartOfMonth(vnNow);
+
+        const { results: commissionData } = await env.DB.prepare(`
+            SELECT 
+                o.referral_code,
+                c.full_name,
+                c.phone,
+                c.bank_account_number,
+                c.bank_name,
+                COUNT(*) as order_count,
+                SUM(o.total_amount) as total_revenue,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            LEFT JOIN ctv c ON o.referral_code = c.referral_code
+            WHERE o.referral_code IS NOT NULL 
+              AND o.referral_code != ''
+              AND o.created_at_unix >= ?
+            GROUP BY o.referral_code, c.full_name, c.phone, c.bank_account_number, c.bank_name
+            ORDER BY total_commission DESC
+        `).bind(startOfMonth).all();
+
+        if (commissionData.length === 0) {
+            const monthStr = `${vnNow.getUTCMonth() + 1}/${vnNow.getUTCFullYear()}`;
+            await sendTelegramMessage(chatId, `💰 Chưa có hoa hồng nào tháng ${monthStr}`, env);
+            return;
+        }
+
+        const totalCommission = commissionData.reduce((sum, c) => sum + c.total_commission, 0);
+        const monthStr = `${vnNow.getUTCMonth() + 1}/${vnNow.getUTCFullYear()}`;
+
+        let message = `💰 <b>HOA HỒNG THÁNG ${monthStr}</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        message += `📊 <b>TỔNG QUAN:</b>\n`;
+        message += `• Tổng hoa hồng: <b>${totalCommission.toLocaleString('vi-VN')}đ</b>\n`;
+        message += `• Số CTV: <b>${commissionData.length}</b>\n\n`;
+
+        message += `📋 <b>CHI TIẾT:</b>\n`;
+        commissionData.forEach((ctv, index) => {
+            message += `${index + 1}. <b>${ctv.referral_code}</b> - ${ctv.full_name || 'N/A'}\n`;
+            message += `   📞 ${ctv.phone || 'N/A'}\n`;
+            if (ctv.bank_account_number && ctv.bank_name) {
+                message += `   🏦 ${ctv.bank_name} - ${ctv.bank_account_number}\n`;
+            }
+            message += `   📦 ${ctv.order_count} đơn | 💰 ${ctv.total_revenue.toLocaleString('vi-VN')}đ\n`;
+            message += `   🎁 <b>Hoa hồng: ${ctv.total_commission.toLocaleString('vi-VN')}đ</b>\n\n`;
+        });
+
+        message += `💡 Dùng thông tin này để thanh toán hoa hồng`;
+
+        await sendTelegramMessage(chatId, message, env);
+
+    } catch (error) {
+        console.error('❌ Error in sendCTVCommission:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Tìm thông tin CTV theo mã
+ */
+async function findCTVInfo(chatId, ctvCode, env) {
+    try {
+        // Get CTV info
+        const ctv = await env.DB.prepare(`
+            SELECT * FROM ctv WHERE referral_code = ?
+        `).bind(ctvCode).first();
+
+        if (!ctv) {
+            await sendTelegramMessage(chatId, `❌ Không tìm thấy CTV với mã <code>${ctvCode}</code>`, env);
+            return;
+        }
+
+        // Get order stats
+        const orderStats = await env.DB.prepare(`
+            SELECT 
+                COUNT(*) as total_orders,
+                SUM(total_amount) as total_revenue,
+                SUM(commission) as total_commission
+            FROM orders
+            WHERE referral_code = ?
+        `).bind(ctvCode).first();
+
+        // Get recent orders
+        const { results: recentOrders } = await env.DB.prepare(`
+            SELECT 
+                order_id,
+                customer_name,
+                total_amount,
+                commission,
+                created_at_unix
+            FROM orders
+            WHERE referral_code = ?
+            ORDER BY created_at_unix DESC
+            LIMIT 5
+        `).bind(ctvCode).all();
+
+        const createdDate = new Date(ctv.created_at_unix + VN_OFFSET_MS);
+        const dateStr = createdDate.toLocaleDateString('vi-VN');
+
+        let message = `👤 <b>THÔNG TIN CTV</b>\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        
+        message += `📋 <b>CƠ BẢN:</b>\n`;
+        message += `• Tên: <b>${ctv.full_name}</b>\n`;
+        message += `• SĐT: <code>${ctv.phone}</code>\n`;
+        if (ctv.email) message += `• Email: ${ctv.email}\n`;
+        if (ctv.city) message += `• Địa chỉ: ${ctv.city}\n`;
+        message += `• Đăng ký: ${dateStr}\n\n`;
+
+        message += `🔗 <b>MÃ GIỚI THIỆU:</b>\n`;
+        message += `• Code: <code>${ctv.referral_code}</code>\n`;
+        message += `• Link: shopvd.store/?ref=${ctv.referral_code}\n`;
+        if (ctv.custom_slug) {
+            message += `• Slug: shopvd.store/?ref=${ctv.custom_slug}\n`;
+        }
+        message += `• Commission: ${(ctv.commission_rate * 100).toFixed(0)}%\n\n`;
+
+        if (ctv.bank_account_number && ctv.bank_name) {
+            message += `🏦 <b>NGÂN HÀNG:</b>\n`;
+            message += `• ${ctv.bank_name}\n`;
+            message += `• STK: <code>${ctv.bank_account_number}</code>\n\n`;
+        }
+
+        message += `📊 <b>THỐNG KÊ:</b>\n`;
+        message += `• Tổng đơn: <b>${orderStats.total_orders || 0}</b>\n`;
+        message += `• Doanh thu: <b>${(orderStats.total_revenue || 0).toLocaleString('vi-VN')}đ</b>\n`;
+        message += `• Hoa hồng: <b>${(orderStats.total_commission || 0).toLocaleString('vi-VN')}đ</b>\n`;
+
+        if (recentOrders.length > 0) {
+            message += `\n📦 <b>ĐƠN HÀNG GẦN NHẤT:</b>\n`;
+            recentOrders.forEach((order, index) => {
+                const orderDate = new Date(order.created_at_unix + VN_OFFSET_MS);
+                const orderDateStr = orderDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                message += `${index + 1}. <code>${order.order_id}</code> - ${order.total_amount.toLocaleString('vi-VN')}đ (${orderDateStr})\n`;
+            });
+        }
+
+        // Add inline buttons with actions (không dùng tel: và sms: vì Telegram không hỗ trợ)
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '📦 Xem Tất Cả Đơn', url: `https://shopvd.store/admin/?ctv=${ctvCode}` }
+                ],
+                [
+                    { text: '🏆 Top CTV', callback_data: 'ctv_top' },
+                    { text: '� Menu CTV', callback_data: 'menu_ctv' }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(chatId, message, keyboard, env);
+
+    } catch (error) {
+        console.error('❌ Error in findCTVInfo:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
+    }
+}
+
+/**
+ * Tìm theo số điện thoại (cả khách hàng và CTV)
+ */
+async function findByPhone(chatId, phone, env) {
+    try {
+        console.log('🔍 findByPhone called with:', phone);
+        
+        // Normalize phone number
+        const cleanPhone = phone.trim();
+        
+        // Tìm CTV trước
+        const ctv = await env.DB.prepare(`
+            SELECT referral_code, full_name FROM ctv 
+            WHERE phone = ? OR phone = ? OR phone = ?
+        `).bind(cleanPhone, '0' + cleanPhone, cleanPhone.replace(/^0/, '')).first();
+
+        console.log('👥 CTV search result:', ctv ? 'Found' : 'Not found');
+
+        if (ctv) {
+            // Nếu là CTV, hiển thị thông tin CTV
+            console.log('✅ Found CTV, showing CTV info');
+            await findCTVInfo(chatId, ctv.referral_code, env);
+        } else {
+            // Nếu không phải CTV, tìm lịch sử khách hàng
+            console.log('👤 Not CTV, searching customer history');
+            await findCustomerHistory(chatId, cleanPhone, env);
+        }
+
+    } catch (error) {
+        console.error('❌ Error in findByPhone:', error);
+        await sendTelegramMessage(chatId, `❌ Lỗi: ${error.message}`, env);
     }
 }

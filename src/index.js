@@ -8,6 +8,7 @@ import { handleGet } from './handlers/get-handler.js';
 import { handlePost, handlePostWithAction } from './handlers/post-handler.js';
 import { handleShopRoutes } from '../public/shop/api/routes.js';
 import { handleTelegramWebhook } from './services/notifications/telegram-commands.js';
+import { sendDailyReport } from './services/notifications/daily-report.js';
 
 export default {
     async fetch(request, env, ctx) {
@@ -61,4 +62,16 @@ export default {
             }, 500, corsHeaders);
         }
     },
+
+    // Cron trigger for daily report at 21:00 Vietnam time (14:00 UTC)
+    async scheduled(event, env, ctx) {
+        console.log('⏰ Cron triggered:', new Date().toISOString());
+        
+        // Initialize database
+        const DB = initTurso(env);
+        env.DB = DB;
+        
+        // Send daily report
+        await sendDailyReport(env);
+    }
 };

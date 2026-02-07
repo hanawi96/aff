@@ -16,6 +16,12 @@ TELEGRAM_BOT_TOKEN = "7585519498:AAFHt6QMqI-zfVVnbQW1E_fxzQ1kNUsiEQU"
 TELEGRAM_CHAT_ID = "5816975483"
 
 # ============================================
+# Cron Triggers
+# ============================================
+[triggers]
+crons = ["0 14 * * *"]  # Daily at 14:00 UTC (21:00 Vietnam time)
+
+# ============================================
 # R2 Storage Configuration
 # ============================================
 [[r2_buckets]]
