@@ -31,7 +31,7 @@ async function setupWebhook() {
             },
             body: JSON.stringify({
                 url: WEBHOOK_URL,
-                allowed_updates: ['message']
+                allowed_updates: ['message', 'callback_query']
             })
         });
 

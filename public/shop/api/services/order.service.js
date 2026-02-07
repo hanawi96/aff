@@ -2,6 +2,8 @@
 // SHOP ORDER SERVICE - Business logic for shop orders
 // ============================================
 
+import { sendOrderNotification } from '../../../../src/services/notifications/telegram-service.js';
+
 /**
  * Shop Order Service
  * Handles order creation from public shop (no auth required)
@@ -110,6 +112,31 @@ export class ShopOrderService {
         // Record discount usage if applicable
         if (data.discount_id && (data.discountCode || data.discount_code)) {
             await this.recordDiscountUsage(data, orderId, totalAmountNumber, discountAmount, orderDate, env);
+        }
+
+        // Send Telegram notification (async, non-blocking)
+        const telegramPromise = sendOrderNotification({
+            orderId: orderId,
+            orderDate: orderDate,
+            customer: {
+                name: data.customer.name,
+                phone: data.customer.phone,
+                address: data.address,
+                notes: data.notes || data.customer.notes || ''
+            },
+            cart: data.cart,
+            total: typeof totalAmountNumber === 'number' 
+                ? `${totalAmountNumber.toLocaleString('vi-VN')}đ` 
+                : totalAmountNumber,
+            paymentMethod: data.paymentMethod || data.payment_method || 'cod',
+            referralCode: data.referral_code || data.referralCode || '',
+            referralCommission: data.commission || 0,
+            referralPartner: data.referral_partner || ''
+        }, env);
+
+        // Use waitUntil if available
+        if (env.ctx && env.ctx.waitUntil) {
+            env.ctx.waitUntil(telegramPromise);
         }
 
         return {

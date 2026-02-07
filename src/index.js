@@ -31,7 +31,7 @@ export default {
 
             // Route to Shop API (public - no auth)
             if (path.startsWith('/api/shop/') || path.match(/^\/api\/products\/\d+\/favorite$/)) {
-                return await handleShopRoutes(request, env, corsHeaders);
+                return await handleShopRoutes(request, env, corsHeaders, ctx);
             }
 
             // Telegram Webhook Handler

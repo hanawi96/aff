@@ -11,7 +11,12 @@ import { jsonResponse } from '../../../src/utils/response.js';
  * Handle all shop API routes
  * Base path: /api/shop/*
  */
-export async function handleShopRoutes(request, env, corsHeaders) {
+export async function handleShopRoutes(request, env, corsHeaders, ctx) {
+    // Add ctx to env for waitUntil support
+    if (ctx) {
+        env.ctx = ctx;
+    }
+    
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;

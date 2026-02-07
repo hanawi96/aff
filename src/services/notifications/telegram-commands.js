@@ -66,6 +66,14 @@ function getVNStartOfWeek(vnDate) {
  */
 export async function handleTelegramWebhook(update, env) {
     try {
+        console.log('📨 Webhook received:', JSON.stringify(update).substring(0, 200));
+        
+        // Handle callback query (button clicks)
+        if (update.callback_query) {
+            console.log('🔘 Callback query:', update.callback_query.data);
+            return await handleCallbackQuery(update.callback_query, env);
+        }
+
         if (!update.message) {
             return new Response('OK', { status: 200 });
         }
@@ -74,8 +82,18 @@ export async function handleTelegramWebhook(update, env) {
         const text = update.message.text;
         const from = update.message.from;
 
+        console.log('💬 Message from:', chatId, 'text:', text);
+
         // Bỏ qua tin nhắn từ bot
         if (from.is_bot) {
+            return new Response('OK', { status: 200 });
+        }
+
+        // Tự động nhận diện số điện thoại (10 số bắt đầu bằng 0)
+        const phoneRegex = /^0\d{9}$/;
+        if (text && phoneRegex.test(text.trim())) {
+            console.log('📞 Auto-detect phone number:', text);
+            await findCustomerHistory(chatId, text.trim(), env);
             return new Response('OK', { status: 200 });
         }
 
@@ -102,6 +120,88 @@ export async function handleTelegramWebhook(update, env) {
 }
 
 /**
+ * Xử lý callback query từ inline buttons
+ */
+async function handleCallbackQuery(callbackQuery, env) {
+    const chatId = callbackQuery.message.chat.id;
+    const data = callbackQuery.data;
+    const messageId = callbackQuery.message.message_id;
+
+    try {
+        // Answer callback query ngay để tắt loading
+        await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                callback_query_id: callbackQuery.id
+            })
+        });
+
+        // Xử lý theo data
+        switch (data) {
+            case 'menu_revenue':
+                await showRevenueMenu(chatId, messageId, env);
+                break;
+            case 'menu_orders':
+                await showOrdersMenu(chatId, messageId, env);
+                break;
+            case 'menu_search':
+                await showSearchMenu(chatId, messageId, env);
+                break;
+            case 'menu_back':
+                await showMainMenu(chatId, messageId, env);
+                break;
+            case 'revenue_today':
+                await sendTodayOrders(chatId, env);
+                break;
+            case 'revenue_yesterday':
+                await sendYesterdayRevenue(chatId, env);
+                break;
+            case 'revenue_week':
+                await sendWeeklyStats(chatId, env);
+                break;
+            case 'revenue_month':
+                await sendMonthlyStats(chatId, env);
+                break;
+            case 'revenue_7days':
+                await sendLast7DaysRevenue(chatId, env);
+                break;
+            case 'revenue_30days':
+                await sendLast30DaysRevenue(chatId, env);
+                break;
+            case 'revenue_overview':
+                await sendRevenueQuickView(chatId, env);
+                break;
+            case 'orders_today':
+                await sendTodayOrders(chatId, env);
+                break;
+            case 'orders_recent':
+                await sendRecentOrders(chatId, env);
+                break;
+            case 'orders_stats':
+                await sendStatistics(chatId, env);
+                break;
+            default:
+                await sendTelegramMessage(chatId, "❌ Lệnh không hợp lệ", env);
+        }
+    } catch (error) {
+        console.error('❌ Error handling callback:', error);
+        // Answer callback với error message
+        await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                callback_query_id: callbackQuery.id,
+                text: '❌ Có lỗi xảy ra',
+                show_alert: true
+            })
+        });
+    }
+
+    return new Response('OK', { status: 200 });
+}
+
+/**
  * Xử lý các lệnh admin
  */
 async function handleAdminCommand(chatId, command, env) {
@@ -114,6 +214,10 @@ async function handleAdminCommand(chatId, command, env) {
             case '/start':
             case '/help':
                 await sendHelpMessage(chatId, env);
+                break;
+
+            case '/menu':
+                await showMainMenu(chatId, null, env);
                 break;
 
             case '/today':
@@ -170,6 +274,14 @@ async function handleAdminCommand(chatId, command, env) {
                 }
                 break;
 
+            case '/phone':
+                if (parts[1]) {
+                    await findCustomerHistory(chatId, parts[1], env);
+                } else {
+                    await sendTelegramMessage(chatId, "❌ Vui lòng nhập số điện thoại\nVí dụ: /phone 0123456789", env);
+                }
+                break;
+
             default:
                 await sendTelegramMessage(chatId, `❌ Lệnh không hợp lệ: "${cmd}"\nGõ /help để xem danh sách lệnh.`, env);
         }
@@ -188,6 +300,9 @@ async function sendHelpMessage(chatId, env) {
 🤖 <b>LỆNH ADMIN - Vòng Dâu Tằm By Ánh</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+📱 <b>MENU NHANH:</b>
+/menu - Mở menu với buttons
+
 📊 <b>XEM ĐƠN HÀNG:</b>
 /today - Đơn hàng hôm nay
 /yesterday - Doanh thu hôm qua
@@ -204,11 +319,147 @@ async function sendHelpMessage(chatId, env) {
 🔍 <b>TÌM KIẾM:</b>
 /find VDT001 - Chi tiết đơn hàng
 /customer 0123456789 - Lịch sử khách hàng
+/phone 0123456789 - Tìm theo SĐT
 
-💡 <b>MẸO:</b> Gõ lệnh bất kỳ để quản lý shop nhanh chóng!
+💡 <b>MẸO:</b> 
+• Dùng /menu để truy cập nhanh bằng buttons
+• Gõ số điện thoại trực tiếp (10 số) để tìm khách hàng
     `;
 
     await sendTelegramMessage(chatId, helpText, env);
+}
+
+/**
+ * Hiển thị menu chính
+ */
+async function showMainMenu(chatId, messageId, env) {
+    const text = `
+🏪 <b>MENU QUẢN LÝ SHOP</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chọn chức năng bên dưới:
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '💰 Doanh Thu', callback_data: 'menu_revenue' },
+                { text: '📦 Đơn Hàng', callback_data: 'menu_orders' }
+            ],
+            [
+                { text: '🔍 Tìm Kiếm', callback_data: 'menu_search' }
+            ]
+        ]
+    };
+
+    if (messageId) {
+        // Edit existing message
+        await editTelegramMessage(chatId, messageId, text, keyboard, env);
+    } else {
+        // Send new message
+        await sendTelegramMessageWithKeyboard(chatId, text, keyboard, env);
+    }
+}
+
+/**
+ * Hiển thị menu doanh thu
+ */
+async function showRevenueMenu(chatId, messageId, env) {
+    const text = `
+💰 <b>MENU DOANH THU</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chọn khoảng thời gian:
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '📊 Tổng Quan', callback_data: 'revenue_overview' }
+            ],
+            [
+                { text: '📅 Hôm Nay', callback_data: 'revenue_today' },
+                { text: '📅 Hôm Qua', callback_data: 'revenue_yesterday' }
+            ],
+            [
+                { text: '📆 7 Ngày', callback_data: 'revenue_7days' },
+                { text: '📆 30 Ngày', callback_data: 'revenue_30days' }
+            ],
+            [
+                { text: '📈 Tuần Này', callback_data: 'revenue_week' },
+                { text: '📈 Tháng Này', callback_data: 'revenue_month' }
+            ],
+            [
+                { text: '◀️ Quay Lại', callback_data: 'menu_back' }
+            ]
+        ]
+    };
+
+    await editTelegramMessage(chatId, messageId, text, keyboard, env);
+}
+
+/**
+ * Hiển thị menu đơn hàng
+ */
+async function showOrdersMenu(chatId, messageId, env) {
+    const text = `
+📦 <b>MENU ĐƠN HÀNG</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Chọn chức năng:
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '📅 Hôm Nay', callback_data: 'orders_today' }
+            ],
+            [
+                { text: '📋 10 Đơn Gần Nhất', callback_data: 'orders_recent' }
+            ],
+            [
+                { text: '📊 Thống Kê', callback_data: 'orders_stats' }
+            ],
+            [
+                { text: '◀️ Quay Lại', callback_data: 'menu_back' }
+            ]
+        ]
+    };
+
+    await editTelegramMessage(chatId, messageId, text, keyboard, env);
+}
+
+/**
+ * Hiển thị menu tìm kiếm
+ */
+async function showSearchMenu(chatId, messageId, env) {
+    const text = `
+🔍 <b>MENU TÌM KIẾM</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>Tìm đơn hàng:</b>
+<code>/find VDT001</code>
+
+<b>Tìm khách hàng:</b>
+Gõ số điện thoại trực tiếp:
+<code>0123456789</code>
+
+Hoặc dùng lệnh:
+<code>/customer 0123456789</code>
+<code>/phone 0123456789</code>
+
+💡 <b>Mẹo:</b> Chỉ cần gõ số điện thoại (10 số) là bot tự động tìm!
+    `;
+
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '◀️ Quay Lại', callback_data: 'menu_back' }
+            ]
+        ]
+    };
+
+    await editTelegramMessage(chatId, messageId, text, keyboard, env);
 }
 
 /**
@@ -720,5 +971,60 @@ async function sendTelegramMessage(chatId, message, env) {
         });
     } catch (error) {
         console.error('❌ Error sending Telegram message:', error);
+    }
+}
+
+/**
+ * Gửi tin nhắn với inline keyboard
+ */
+async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
+    try {
+        await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: keyboard,
+                disable_web_page_preview: true
+            })
+        });
+    } catch (error) {
+        console.error('❌ Error sending message with keyboard:', error);
+    }
+}
+
+/**
+ * Edit tin nhắn với inline keyboard
+ */
+async function editTelegramMessage(chatId, messageId, message, keyboard, env) {
+    try {
+        console.log('✏️ Editing message:', messageId);
+        const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                message_id: messageId,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: keyboard,
+                disable_web_page_preview: true
+            })
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+            console.error('❌ Edit message error:', result);
+        } else {
+            console.log('✅ Message edited successfully');
+        }
+    } catch (error) {
+        console.error('❌ Error editing message:', error);
     }
 }
