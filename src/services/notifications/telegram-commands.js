@@ -150,6 +150,9 @@ async function handleCallbackQuery(callbackQuery, env) {
 
         // Xử lý theo data
         switch (data) {
+            case 'main_menu':
+                await showMainMenu(chatId, messageId, env);
+                break;
             case 'menu_revenue':
                 await showRevenueMenu(chatId, messageId, env);
                 break;
@@ -1140,10 +1143,19 @@ async function sendRevenueQuickView(chatId, env) {
 }
 
 /**
- * Gửi tin nhắn Telegram
+ * Gửi tin nhắn Telegram với Menu button
  */
 async function sendTelegramMessage(chatId, message, env) {
     try {
+        // Tự động thêm Menu button cho mọi tin nhắn
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '🏠 Menu', callback_data: 'main_menu' }
+                ]
+            ]
+        };
+        
         await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: {
@@ -1153,12 +1165,29 @@ async function sendTelegramMessage(chatId, message, env) {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'HTML',
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
+                reply_markup: keyboard
             })
         });
     } catch (error) {
         console.error('❌ Error sending Telegram message:', error);
     }
+}
+
+/**
+ * Thêm Menu button vào keyboard
+ */
+function addMenuButton(keyboard) {
+    if (!keyboard.inline_keyboard) {
+        keyboard.inline_keyboard = [];
+    }
+    
+    // Thêm Menu button ở cuối
+    keyboard.inline_keyboard.push([
+        { text: '🏠 Menu', callback_data: 'main_menu' }
+    ]);
+    
+    return keyboard;
 }
 
 /**
@@ -1168,7 +1197,10 @@ async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
     try {
         console.log('📤 Sending message with keyboard to:', chatId);
         console.log('📝 Message length:', message.length);
-        console.log('⌨️ Keyboard:', JSON.stringify(keyboard));
+        
+        // Tự động thêm Menu button vào mọi keyboard
+        const keyboardWithMenu = addMenuButton(keyboard);
+        console.log('⌨️ Keyboard:', JSON.stringify(keyboardWithMenu));
         
         const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
@@ -1179,7 +1211,7 @@ async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'HTML',
-                reply_markup: keyboard,
+                reply_markup: keyboardWithMenu,
                 disable_web_page_preview: true
             })
         });
@@ -1203,6 +1235,10 @@ async function sendTelegramMessageWithKeyboard(chatId, message, keyboard, env) {
 async function editTelegramMessage(chatId, messageId, message, keyboard, env) {
     try {
         console.log('✏️ Editing message:', messageId);
+        
+        // Tự động thêm Menu button vào mọi keyboard
+        const keyboardWithMenu = addMenuButton(keyboard);
+        
         const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`, {
             method: 'POST',
             headers: {
@@ -1213,7 +1249,7 @@ async function editTelegramMessage(chatId, messageId, message, keyboard, env) {
                 message_id: messageId,
                 text: message,
                 parse_mode: 'HTML',
-                reply_markup: keyboard,
+                reply_markup: keyboardWithMenu,
                 disable_web_page_preview: true
             })
         });

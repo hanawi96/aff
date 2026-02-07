@@ -29,13 +29,16 @@ export async function sendOrderNotification(orderData, env) {
                 [
                     { text: '📋 Lịch Sử Khách', callback_data: 'view_customer_' + orderData.customer.phone },
                     { text: '📅 Đơn Hôm Nay', callback_data: 'orders_today' }
+                ],
+                [
+                    { text: '🏠 Menu', callback_data: 'main_menu' }
                 ]
             ]
         };
 
         // Add CTV button if order has referral code
         if (orderData.referralCode && orderData.referralCode.trim() !== "") {
-            keyboard.inline_keyboard.splice(1, 0, [
+            keyboard.inline_keyboard.splice(2, 0, [
                 { text: '👤 Xem CTV', callback_data: 'view_ctv_' + orderData.referralCode }
             ]);
         }

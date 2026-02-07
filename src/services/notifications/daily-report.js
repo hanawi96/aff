@@ -193,6 +193,15 @@ function createDailyReportMessage(data) {
  */
 async function sendTelegramMessage(chatId, message, env) {
     try {
+        // Tự động thêm Menu button
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '🏠 Menu', callback_data: 'main_menu' }
+                ]
+            ]
+        };
+        
         await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: {
@@ -202,7 +211,8 @@ async function sendTelegramMessage(chatId, message, env) {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'HTML',
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
+                reply_markup: keyboard
             })
         });
     } catch (error) {
