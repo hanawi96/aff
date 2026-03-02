@@ -1,0 +1,211 @@
+/* Feedback Carousel Styles - Optimized for Mobile */
+
+.feedback-carousel-container {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.feedback-carousel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.feedback-slide {
+    display: none;
+    width: 100%;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.feedback-slide.active {
+    display: block;
+}
+
+.feedback-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 24px;
+    object-fit: contain;
+    max-height: 600px;
+    background: #f8f8f8;
+}
+
+/* Lazy loading placeholder */
+.feedback-image.lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.feedback-image.lazy.loaded {
+    opacity: 1;
+}
+
+/* Navigation Arrows */
+.feedback-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(244, 162, 97, 0.3);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feedback-nav:hover {
+    background: #f4a261;
+    border-color: #f4a261;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.feedback-nav:hover svg {
+    color: white;
+}
+
+.feedback-nav svg {
+    width: 24px;
+    height: 24px;
+    color: #f4a261;
+    transition: color 0.3s ease;
+}
+
+.feedback-prev {
+    left: -60px;
+}
+
+.feedback-next {
+    right: -60px;
+}
+
+/* Mobile adjustments for arrows */
+@media (max-width: 768px) {
+    .feedback-prev {
+        left: -10px;
+    }
+    
+    .feedback-next {
+        right: -10px;
+    }
+    
+    .feedback-nav {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .feedback-nav svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* Dots Indicator */
+.feedback-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.feedback-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(244, 162, 97, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.feedback-dot:hover {
+    background: rgba(244, 162, 97, 0.6);
+    transform: scale(1.2);
+}
+
+.feedback-dot.active {
+    background: #f4a261;
+    width: 32px;
+    border-radius: 5px;
+    border-color: #f4a261;
+}
+
+/* Fade animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Touch swipe indicator */
+.feedback-carousel-container::after {
+    content: '← Vuốt để xem →';
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 14px;
+    color: #999;
+    font-weight: 500;
+}
+
+@media (min-width: 768px) {
+    .feedback-carousel-container::after {
+        display: none;
+    }
+}
+
+/* Loading skeleton */
+.feedback-image.lazy:not(.loaded) {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    min-height: 400px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .feedback-carousel-container {
+        padding: 0 10px;
+    }
+    
+    .feedback-carousel {
+        border-radius: 16px;
+    }
+    
+    .feedback-image {
+        border-radius: 16px;
+        max-height: 500px;
+    }
+}
