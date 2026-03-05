@@ -785,8 +785,8 @@ function showAddProductModal() {
                                         <input type="text" id="productPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                             placeholder="179.000"
-                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
-                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
+                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
@@ -809,8 +809,8 @@ function showAddProductModal() {
                                         <input type="text" id="productCostPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                             placeholder="89.500"
-                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
-                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
+                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
@@ -983,10 +983,10 @@ function setMarkupPreset(value) {
 
 // Highlight active preset button
 function highlightActivePresetButton(value) {
-    // Remove highlight from all buttons
+    // Remove highlight from all buttons and restore hover effects
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'ring-2', 'ring-indigo-300');
-        btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700');
+        btn.classList.add('bg-white', 'border-gray-300', 'text-gray-700', 'hover:bg-gray-50', 'hover:border-purple-300');
     });
     
     // Add highlight to active button
@@ -998,7 +998,7 @@ function highlightActivePresetButton(value) {
         document.querySelectorAll('.preset-btn[data-markup]').forEach(btn => {
             const btnValue = parseFloat(btn.dataset.markup);
             if (Math.abs(currentValue - btnValue) < 0.01) {
-                btn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700');
+                btn.classList.remove('bg-white', 'border-gray-300', 'text-gray-700', 'hover:bg-gray-50', 'hover:border-purple-300');
                 btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'ring-2', 'ring-indigo-300');
             }
         });
@@ -1094,6 +1094,47 @@ function updatePriceHint(materialCount = 0) {
         priceHint.textContent = `💡 Hệ số ×${markupValue.toFixed(1)} (Lãi ${profit}%)`;
     } else {
         priceHint.textContent = `💡 Nhập hệ số markup`;
+    }
+}
+
+// Update markup multiplier when user changes selling price or cost price manually
+function updateMarkupFromPrices() {
+    const markupInput = document.getElementById('markupMultiplier');
+    const priceInput = document.getElementById('productPrice');
+    const costPriceInput = document.getElementById('productCostPrice');
+    
+    // Chỉ cập nhật nếu tất cả các input tồn tại
+    if (!markupInput || !priceInput || !costPriceInput) return;
+    
+    // Lấy giá trị hiện tại
+    const sellingPrice = parseFormattedNumber(priceInput.value);
+    const costPrice = parseFormattedNumber(costPriceInput.value);
+    
+    // Kiểm tra giá trị hợp lệ
+    if (!sellingPrice || !costPrice || costPrice <= 0) {
+        return;
+    }
+    
+    // Tính hệ số markup = giá bán / giá vốn
+    const calculatedMarkup = sellingPrice / costPrice;
+    
+    // Chỉ cập nhật nếu hệ số hợp lệ (>= 1.0)
+    if (calculatedMarkup >= 1.0 && calculatedMarkup <= 10.0) {
+        // Làm tròn đến 1 chữ số thập phân
+        const roundedMarkup = Math.round(calculatedMarkup * 10) / 10;
+        markupInput.value = roundedMarkup.toFixed(1);
+        
+        // Highlight matching preset button
+        highlightActivePresetButton(roundedMarkup);
+        
+        // Update price hint
+        updatePriceHint();
+        
+        // Visual feedback
+        markupInput.classList.add('bg-blue-50', 'border-blue-300');
+        setTimeout(() => {
+            markupInput.classList.remove('bg-blue-50', 'border-blue-300');
+        }, 300);
     }
 }
 
@@ -1773,8 +1814,8 @@ async function editProduct(productId) {
                                             <input type="text" id="productPrice" required value="${formatNumber(product.price)}"
                                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                                 placeholder="179.000"
-                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
-                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
+                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                     </div>
@@ -1797,8 +1838,8 @@ async function editProduct(productId) {
                                             <input type="text" id="productCostPrice" required value="${formatNumber(product.cost_price || 0)}"
                                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                                 placeholder="89.500"
-                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit()"
-                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); }, 0)">
+                                                oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                             <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                         </div>
                                     </div>
