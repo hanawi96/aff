@@ -214,6 +214,97 @@ async function loadProducts() {
     }
 }
 
+// Reload products while keeping current page
+async function reloadProductsKeepPage() {
+    try {
+        showLoading();
+
+        const response = await fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            allProducts = data.products || [];
+
+            console.log('📦 Reloaded products (keeping page):', allProducts.length);
+
+            // Re-apply current filters without resetting page
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const searchTerm = searchInput?.value || '';
+            const categoryId = categoryFilter?.value || '';
+            
+            // Don't reset currentPage here - keep it as is
+            currentFilters.searchTerm = searchTerm.trim();
+            currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+            
+            let results = [...allProducts];
+
+            // Apply category filter - Support multi-category products
+            if (currentFilters.categoryId) {
+                results = results.filter(product => {
+                    // Check if product has multiple categories (new system)
+                    if (product.category_ids && product.category_ids.length > 0) {
+                        return product.category_ids.includes(currentFilters.categoryId);
+                    }
+                    // Fallback to single category (old system)
+                    return product.category_id === currentFilters.categoryId;
+                });
+            }
+
+            // Apply search filter
+            if (currentFilters.searchTerm) {
+                const normalizedSearch = currentFilters.searchTerm.toLowerCase();
+                results = results.filter(product => {
+                    if (product.name && product.name.toLowerCase().includes(normalizedSearch)) return true;
+                    if (product.sku && product.sku.toLowerCase().includes(normalizedSearch)) return true;
+                    if (!isNaN(normalizedSearch)) {
+                        const searchPrice = parseFloat(normalizedSearch);
+                        if (product.price === searchPrice || product.cost_price === searchPrice) return true;
+                    }
+                    return false;
+                });
+            }
+
+            // Apply sorting
+            if (currentSort.field) {
+                results.sort((a, b) => {
+                    let aVal, bVal;
+
+                    switch (currentSort.field) {
+                        case 'price':
+                            aVal = a.price || 0;
+                            bVal = b.price || 0;
+                            break;
+                        case 'margin':
+                            aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
+                            bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
+                            break;
+                        case 'profit':
+                            aVal = (a.price || 0) - (a.cost_price || 0);
+                            bVal = (b.price || 0) - (b.cost_price || 0);
+                            break;
+                        default:
+                            return 0;
+                    }
+
+                    return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                });
+            }
+
+            filteredProducts = results;
+            renderProducts();
+            
+            hideLoading();
+        } else {
+            throw new Error(data.error || 'Failed to reload products');
+        }
+    } catch (error) {
+        console.error('❌ Error reloading products:', error);
+        hideLoading();
+        showError('Không thể tải lại danh sách sản phẩm');
+    }
+}
+
 
 // Toggle filters panel
 function toggleFilters() {
@@ -727,47 +818,92 @@ function showAddProductModal() {
                         
                         <!-- Markup Selector (shown when auto-pricing is enabled) -->
                         <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                ⚙️ Hệ số markup
-                            </label>
-                            
-                            <!-- Input + Preset Buttons on same line -->
-                            <div class="flex items-center gap-2">
-                                <!-- Custom Input -->
-                                <div class="relative w-24 flex-shrink-0">
-                                    <input type="number" 
-                                        id="markupMultiplier" 
-                                        step="0.1" 
-                                        min="1.0" 
-                                        max="10.0"
-                                        value="2.5"
-                                        oninput="updateSellingPriceFromMarkup()"
-                                        class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
-                                    <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                            <!-- Pricing Method Toggle -->
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    ⚙️ Phương thức tính giá
+                                </label>
+                                <div class="flex bg-white rounded-lg p-1 border border-purple-200">
+                                    <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
+                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all bg-purple-600 text-white">
+                                        Theo hệ số markup
+                                    </button>
+                                    <button type="button" id="profitMethodBtn" onclick="setPricingMethod('profit')"
+                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-purple-600">
+                                        Theo lãi mong muốn
+                                    </button>
                                 </div>
+                            </div>
+                            
+                            <!-- Markup Method Container -->
+                            <div id="markupMethodContainer">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    📊 Hệ số markup
+                                </label>
                                 
-                                <!-- Preset Buttons -->
-                                <div class="flex flex-wrap gap-2 flex-1">
-                                    <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
-                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                        ×2.0
-                                    </button>
-                                    <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
-                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                        ×2.5
-                                    </button>
-                                    <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
-                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                        ×3.0
-                                    </button>
-                                    <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
-                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                        ×3.5
-                                    </button>
-                                    <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
-                                        class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                        ×4.0
-                                    </button>
+                                <!-- Input + Preset Buttons on same line -->
+                                <div class="flex items-center gap-2">
+                                    <!-- Custom Input -->
+                                    <div class="relative w-24 flex-shrink-0">
+                                        <input type="number" 
+                                            id="markupMultiplier" 
+                                            step="0.1" 
+                                            min="1.0" 
+                                            max="10.0"
+                                            value="2.5"
+                                            oninput="updateSellingPriceFromMarkup()"
+                                            class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
+                                        <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                                    </div>
+                                    
+                                    <!-- Preset Buttons -->
+                                    <div class="flex flex-wrap gap-2 flex-1">
+                                        <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×2.0
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×2.5
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×3.0
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×3.5
+                                        </button>
+                                        <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
+                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                            ×4.0
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Profit Method Container -->
+                            <div id="profitMethodContainer" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    💰 Lãi mong muốn
+                                </label>
+                                
+                                <div class="flex items-center gap-2">
+                                    <!-- Profit Input -->
+                                    <div class="relative flex-1">
+                                        <input type="text" 
+                                            id="targetProfit" 
+                                            placeholder="120.000"
+                                            oninput="autoFormatNumberInput(this); updateSellingPriceFromProfit()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); updateSellingPriceFromProfit(); }, 0)"
+                                            class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold">
+                                        <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">đ</span>
+                                    </div>
+                                    
+                                    <!-- Calculated Markup Display -->
+                                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border">
+                                        Hệ số: <span id="calculatedMarkup" class="font-semibold text-purple-600">-</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1133,6 +1269,9 @@ function updateMarkupFromPrices() {
             markupInput.classList.remove('bg-blue-50', 'border-blue-300');
         }, 300);
     }
+    
+    // If using profit method, update target profit
+    updateTargetProfitFromPrices();
 }
 
 // Close product modal
@@ -1335,6 +1474,13 @@ async function saveProduct(productId = null) {
     const description = document.getElementById('productDescription')?.value.trim();
     const image_url = document.getElementById('productImageURL')?.value.trim();
     
+    // Get pricing method and target profit
+    const pricing_method = currentPricingMethod || 'markup';
+    const targetProfitInput = document.getElementById('targetProfit');
+    const target_profit = (pricing_method === 'profit' && targetProfitInput) 
+        ? parseFormattedNumber(targetProfitInput.value) || null 
+        : null;
+    
     // Get markup_multiplier from input (number)
     const markupInput = document.getElementById('markupMultiplier');
     const markupValue = markupInput ? parseFloat(markupInput.value) : null;
@@ -1392,7 +1538,9 @@ async function saveProduct(productId = null) {
         purchases: purchases || 0,
         sku: sku || null,
         description: description || null,
-        image_url: image_url || null
+        image_url: image_url || null,
+        pricing_method: pricing_method,
+        target_profit: target_profit
     };
 
     if (productId) {
@@ -1438,7 +1586,7 @@ async function saveProduct(productId = null) {
             
             showToast(productId ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới', 'success');
             closeProductModal();
-            await loadProducts();
+            await reloadProductsKeepPage();
         } else {
             throw new Error(data.error || 'Không thể lưu sản phẩm');
         }
@@ -1756,47 +1904,93 @@ async function editProduct(productId) {
                             
                             <!-- Markup Selector (shown when auto-pricing is enabled) -->
                             <div id="markupSelectorContainer" class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    ⚙️ Hệ số markup
-                                </label>
-                                
-                                <!-- Input + Preset Buttons on same line -->
-                                <div class="flex items-center gap-2">
-                                    <!-- Custom Input -->
-                                    <div class="relative w-24 flex-shrink-0">
-                                        <input type="number" 
-                                            id="markupMultiplier" 
-                                            step="0.1" 
-                                            min="1.0" 
-                                            max="10.0"
-                                            value="${product.markup_multiplier || 2.5}"
-                                            oninput="updateSellingPriceFromMarkup()"
-                                            class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
-                                        <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                                <!-- Pricing Method Toggle -->
+                                <div class="mb-3">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        ⚙️ Phương thức tính giá
+                                    </label>
+                                    <div class="flex bg-white rounded-lg p-1 border border-purple-200">
+                                        <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
+                                            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${(product.pricing_method || 'markup') === 'markup' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600'}">
+                                            Theo hệ số markup
+                                        </button>
+                                        <button type="button" id="profitMethodBtn" onclick="setPricingMethod('profit')"
+                                            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${(product.pricing_method || 'markup') === 'profit' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600'}">
+                                            Theo lãi mong muốn
+                                        </button>
                                     </div>
+                                </div>
+                                
+                                <!-- Markup Method Container -->
+                                <div id="markupMethodContainer" ${(product.pricing_method || 'markup') === 'profit' ? 'class="hidden"' : ''}>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        📊 Hệ số markup
+                                    </label>
                                     
-                                    <!-- Preset Buttons -->
-                                    <div class="flex flex-wrap gap-2 flex-1">
-                                        <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
-                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                            ×2.0
-                                        </button>
-                                        <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
-                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                            ×2.5
-                                        </button>
-                                        <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
-                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                            ×3.0
-                                        </button>
-                                        <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
-                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                            ×3.5
-                                        </button>
-                                        <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
-                                            class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
-                                            ×4.0
-                                        </button>
+                                    <!-- Input + Preset Buttons on same line -->
+                                    <div class="flex items-center gap-2">
+                                        <!-- Custom Input -->
+                                        <div class="relative w-24 flex-shrink-0">
+                                            <input type="number" 
+                                                id="markupMultiplier" 
+                                                step="0.1" 
+                                                min="1.0" 
+                                                max="10.0"
+                                                value="${product.markup_multiplier || 2.5}"
+                                                oninput="updateSellingPriceFromMarkup()"
+                                                class="w-full px-3 py-2 pr-7 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold text-center">
+                                            <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">×</span>
+                                        </div>
+                                        
+                                        <!-- Preset Buttons -->
+                                        <div class="flex flex-wrap gap-2 flex-1">
+                                            <button type="button" onclick="setMarkupPreset(2.0)" data-markup="2.0"
+                                                class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                                ×2.0
+                                            </button>
+                                            <button type="button" onclick="setMarkupPreset(2.5)" data-markup="2.5"
+                                                class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                                ×2.5
+                                            </button>
+                                            <button type="button" onclick="setMarkupPreset(3.0)" data-markup="3.0"
+                                                class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                                ×3.0
+                                            </button>
+                                            <button type="button" onclick="setMarkupPreset(3.5)" data-markup="3.5"
+                                                class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                                ×3.5
+                                            </button>
+                                            <button type="button" onclick="setMarkupPreset(4.0)" data-markup="4.0"
+                                                class="preset-btn px-3 py-2 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all">
+                                                ×4.0
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Profit Method Container -->
+                                <div id="profitMethodContainer" ${(product.pricing_method || 'markup') === 'markup' ? 'class="hidden"' : ''}>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        💰 Lãi mong muốn
+                                    </label>
+                                    
+                                    <div class="flex items-center gap-2">
+                                        <!-- Profit Input -->
+                                        <div class="relative flex-1">
+                                            <input type="text" 
+                                                id="targetProfit" 
+                                                placeholder="120.000"
+                                                value="${product.target_profit ? formatNumber(product.target_profit) : ''}"
+                                                oninput="autoFormatNumberInput(this); updateSellingPriceFromProfit()"
+                                                onpaste="setTimeout(() => { autoFormatNumberInput(this); updateSellingPriceFromProfit(); }, 0)"
+                                                class="w-full px-3 py-2 pr-8 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base font-semibold">
+                                            <span class="absolute right-2 top-2.5 text-gray-500 font-medium text-sm">đ</span>
+                                        </div>
+                                        
+                                        <!-- Calculated Markup Display -->
+                                        <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border">
+                                            Hệ số: <span id="calculatedMarkup" class="font-semibold text-purple-600">-</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2003,7 +2197,11 @@ async function editProduct(productId) {
         await checkProductPriceOutdated(product);
 
         // Calculate profit on load
-        setTimeout(() => calculateExpectedProfit(), 100);
+        setTimeout(() => {
+            calculateExpectedProfit();
+            // Initialize pricing method
+            initializePricingMethod(product);
+        }, 100);
 
     } catch (error) {
         console.error('Error loading product:', error);
@@ -2070,7 +2268,7 @@ async function deleteProduct(productId) {
 
         if (data.success) {
             showToast('Đã xóa sản phẩm', 'success');
-            loadProducts();
+            reloadProductsKeepPage();
         } else {
             throw new Error(data.error || 'Không thể xóa sản phẩm');
         }
@@ -2533,7 +2731,7 @@ async function bulkDeleteProducts() {
         }
 
         clearSelection();
-        await loadProducts();
+        await reloadProductsKeepPage();
 
         if (failCount === 0) {
             showToast(`Đã xóa thành công ${successCount} sản phẩm`, 'success');
@@ -2707,7 +2905,7 @@ async function applyBulkStockUpdate() {
         }
 
         clearSelection();
-        await loadProducts();
+        await reloadProductsKeepPage();
 
         if (failCount === 0) {
             showToast(`Đã cập nhật tồn kho thành công cho ${successCount} sản phẩm`, 'success');
@@ -3106,7 +3304,7 @@ async function executeQuickRecalculate() {
             showToast(`Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
             
             // Reload products to show new prices
-            await loadProducts();
+            await reloadProductsKeepPage();
             
         } else {
             throw new Error(data.error || 'Không thể cập nhật giá');
@@ -3249,5 +3447,120 @@ function applyNewPrices() {
         if (typeof calculateExpectedProfit === 'function') {
             setTimeout(() => calculateExpectedProfit(), 100);
         }
+    }
+}
+
+// ============================================
+// PRICING METHOD FUNCTIONS
+// ============================================
+
+// Current pricing method ('markup' or 'profit')
+let currentPricingMethod = 'markup';
+
+// Set pricing method
+function setPricingMethod(method) {
+    currentPricingMethod = method;
+    
+    const markupBtn = document.getElementById('markupMethodBtn');
+    const profitBtn = document.getElementById('profitMethodBtn');
+    const markupContainer = document.getElementById('markupMethodContainer');
+    const profitContainer = document.getElementById('profitMethodContainer');
+    
+    if (method === 'markup') {
+        // Show markup method
+        markupBtn.className = 'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all bg-purple-600 text-white';
+        profitBtn.className = 'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-purple-600';
+        markupContainer.classList.remove('hidden');
+        profitContainer.classList.add('hidden');
+        
+        // Update price from markup
+        updateSellingPriceFromMarkup();
+    } else {
+        // Show profit method
+        profitBtn.className = 'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all bg-purple-600 text-white';
+        markupBtn.className = 'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-purple-600';
+        profitContainer.classList.remove('hidden');
+        markupContainer.classList.add('hidden');
+        
+        // Update price from profit
+        updateSellingPriceFromProfit();
+    }
+}
+
+// Update selling price from target profit
+function updateSellingPriceFromProfit() {
+    const targetProfitInput = document.getElementById('targetProfit');
+    const costPriceInput = document.getElementById('productCostPrice');
+    const priceInput = document.getElementById('productPrice');
+    const calculatedMarkupSpan = document.getElementById('calculatedMarkup');
+    
+    if (!targetProfitInput || !costPriceInput || !priceInput) return;
+    
+    const targetProfit = parseFormattedNumber(targetProfitInput.value) || 0;
+    const costPrice = parseFormattedNumber(costPriceInput.value) || 0;
+    
+    if (costPrice > 0 && targetProfit > 0) {
+        // Calculate selling price: cost + profit
+        const sellingPrice = costPrice + targetProfit;
+        
+        // Update price input
+        priceInput.value = formatNumber(sellingPrice);
+        
+        // Calculate and display markup multiplier
+        const markup = sellingPrice / costPrice;
+        calculatedMarkupSpan.textContent = `×${markup.toFixed(2)}`;
+        
+        // Update profit display
+        calculateExpectedProfit();
+    } else {
+        calculatedMarkupSpan.textContent = '-';
+    }
+}
+
+// Update target profit when cost price or selling price changes (reverse calculation)
+function updateTargetProfitFromPrices() {
+    if (currentPricingMethod !== 'profit') return;
+    
+    const targetProfitInput = document.getElementById('targetProfit');
+    const costPriceInput = document.getElementById('productCostPrice');
+    const priceInput = document.getElementById('productPrice');
+    
+    if (!targetProfitInput || !costPriceInput || !priceInput) return;
+    
+    const costPrice = parseFormattedNumber(costPriceInput.value) || 0;
+    const sellingPrice = parseFormattedNumber(priceInput.value) || 0;
+    
+    if (costPrice > 0 && sellingPrice > costPrice) {
+        const profit = sellingPrice - costPrice;
+        targetProfitInput.value = formatNumber(profit);
+        
+        // Update calculated markup
+        const calculatedMarkupSpan = document.getElementById('calculatedMarkup');
+        const markup = sellingPrice / costPrice;
+        calculatedMarkupSpan.textContent = `×${markup.toFixed(2)}`;
+    }
+}
+
+// Initialize pricing method when modal opens
+function initializePricingMethod(product) {
+    const method = product?.pricing_method || 'markup';
+    currentPricingMethod = method;
+    
+    // Set the correct method
+    setPricingMethod(method);
+    
+    // If profit method and has target_profit, populate the field
+    if (method === 'profit' && product?.target_profit) {
+        const targetProfitInput = document.getElementById('targetProfit');
+        if (targetProfitInput) {
+            targetProfitInput.value = formatNumber(product.target_profit);
+        }
+    }
+    
+    // Update calculated values
+    if (method === 'profit') {
+        updateSellingPriceFromProfit();
+    } else {
+        updateSellingPriceFromMarkup();
     }
 }

@@ -180,8 +180,8 @@ export async function createProduct(data, env, corsHeaders) {
 
         // Insert product
         const result = await env.DB.prepare(`
-            INSERT INTO products (name, price, original_price, cost_price, markup_multiplier, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO products (name, price, original_price, cost_price, markup_multiplier, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active, pricing_method, target_profit)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             price,
@@ -195,7 +195,9 @@ export async function createProduct(data, env, corsHeaders) {
             data.sku || null,
             data.description || null,
             data.image_url || null,
-            data.is_active !== undefined ? data.is_active : 1
+            data.is_active !== undefined ? data.is_active : 1,
+            data.pricing_method || 'markup',
+            data.target_profit ? parseFloat(data.target_profit) : null
         ).run();
 
         const productId = result.meta.last_row_id;
@@ -342,6 +344,14 @@ export async function updateProduct(data, env, corsHeaders) {
         if (data.is_active !== undefined) {
             updates.push('is_active = ?');
             values.push(data.is_active ? 1 : 0);
+        }
+        if (data.pricing_method !== undefined) {
+            updates.push('pricing_method = ?');
+            values.push(data.pricing_method || 'markup');
+        }
+        if (data.target_profit !== undefined) {
+            updates.push('target_profit = ?');
+            values.push(data.target_profit ? parseFloat(data.target_profit) : null);
         }
 
         if (updates.length === 0) {

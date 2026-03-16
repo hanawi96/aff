@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pricing Method Feature</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🧪 Test Pricing Method Feature</h1>
+        
+        <div class="bg-white rounded-lg p-6 shadow-lg">
+            <h2 class="text-lg font-semibold mb-4">Tính năng mới đã được thêm:</h2>
+            
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✅</span>
+                    <span>Database: Thêm cột <code class="bg-gray-100 px-2 py-1 rounded">pricing_method</code> và <code class="bg-gray-100 px-2 py-1 rounded">target_profit</code></span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✅</span>
+                    <span>Frontend: Thêm toggle switch để chọn phương thức tính giá</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✅</span>
+                    <span>Logic: Tính giá bán theo lãi mong muốn</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✅</span>
+                    <span>API: Cập nhật backend để lưu thông tin mới</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✅</span>
+                    <span>Tương thích ngược: Sản phẩm cũ vẫn hoạt động bình thường</span>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold text-blue-800 mb-2">🎯 Cách sử dụng:</h3>
+                <ol class="list-decimal list-inside space-y-1 text-blue-700">
+                    <li>Vào trang quản lý sản phẩm: <code>/admin/products.html</code></li>
+                    <li>Thêm mới hoặc chỉnh sửa sản phẩm</li>
+                    <li>Trong phần "Giá cả", chọn "Theo lãi mong muốn"</li>
+                    <li>Nhập số tiền lãi mong muốn (VD: 120.000đ)</li>
+                    <li>Hệ thống sẽ tự tính giá bán = Giá vốn + Lãi mong muốn</li>
+                    <li>Lưu sản phẩm</li>
+                </ol>
+            </div>
+            
+            <div class="mt-6 p-4 bg-green-50 rounded-lg">
+                <h3 class="font-semibold text-green-800 mb-2">💡 Ví dụ:</h3>
+                <div class="text-green-700">
+                    <p><strong>Giá vốn:</strong> 80.000đ</p>
+                    <p><strong>Lãi mong muốn:</strong> 120.000đ</p>
+                    <p><strong>→ Giá bán:</strong> 200.000đ (80.000 + 120.000)</p>
+                    <p><strong>→ Hệ số markup:</strong> ×2.5 (200.000 ÷ 80.000)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <a href="/admin/products.html" 
+               class="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                🚀 Thử nghiệm ngay
+            </a>
+        </div>
+    </div>
+</body>
+</html>
