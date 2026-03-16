@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Material Quantity Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Test Material Quantity Fix</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">✅ Fixed Issues</h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span>Input số lượng nguyên liệu chỉ cho phép số nguyên (step="1", min="1")</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span>Các hàm xử lý số lượng đã được cập nhật để luôn trả về số nguyên</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span>Hiển thị số lượng trong UI đã được làm tròn</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span>Tính toán thành tiền sử dụng số lượng nguyên</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">🔧 Changes Made</h2>
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-blue-800 mb-2">1. Input Fields Updated</h3>
+                    <div class="text-sm text-blue-700 space-y-1">
+                        <p>• Changed <code>step="0.1"</code> to <code>step="1"</code></p>
+                        <p>• Changed <code>min="0.1"</code> to <code>min="1"</code></p>
+                        <p>• Updated both main formula and modal inputs</p>
+                    </div>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-800 mb-2">2. Functions Updated</h3>
+                    <div class="text-sm text-green-700 space-y-1">
+                        <p>• <code>updateMaterialQuantity()</code> - Uses Math.round() and Math.max(1, ...)</p>
+                        <p>• <code>incrementMaterialQuantity()</code> - Ensures integer values</p>
+                        <p>• <code>decrementMaterialQuantity()</code> - Minimum value is 1</p>
+                        <p>• <code>updateTempQuantity()</code> - Modal quantity handling</p>
+                        <p>• <code>incrementTempQuantity()</code> - Modal increment</p>
+                        <p>• <code>decrementTempQuantity()</code> - Modal decrement</p>
+                    </div>
+                </div>
+                
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-purple-800 mb-2">3. Display Logic Updated</h3>
+                    <div class="text-sm text-purple-700 space-y-1">
+                        <p>• All quantity displays use Math.round()</p>
+                        <p>• Subtotal calculations use integer quantities</p>
+                        <p>• Total cost calculation uses integer quantities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">📋 Testing Instructions</h2>
+            <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">1</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Mở trang quản lý sản phẩm</p>
+                        <p class="text-sm text-gray-600">Truy cập http://localhost:5500/admin/products.html</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">2</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Thêm hoặc chỉnh sửa sản phẩm</p>
+                        <p class="text-sm text-gray-600">Nhấn "Thêm sản phẩm" hoặc chỉnh sửa sản phẩm có sẵn</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">3</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Mở modal "Chọn nguyên liệu"</p>
+                        <p class="text-sm text-gray-600">Nhấn nút "Thêm nguyên liệu" trong phần công thức nguyên liệu</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">4</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Kiểm tra input số lượng</p>
+                        <p class="text-sm text-gray-600">Chọn nguyên liệu và thử nhập số thập phân - chỉ nên cho phép số nguyên</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">5</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Kiểm tra nút tăng/giảm</p>
+                        <p class="text-sm text-gray-600">Sử dụng nút + và - để thay đổi số lượng, đảm bảo luôn là số nguyên</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

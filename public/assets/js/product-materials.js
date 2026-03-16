@@ -101,7 +101,7 @@ function renderMaterialsFormula() {
             ${selectedMaterials.map((material, index) => {
         const materialInfo = allMaterialsForProduct.find(m => m.item_name === material.material_name);
         const unitPrice = materialInfo?.item_cost || 0;
-        const subtotal = (material.quantity || 0) * unitPrice;
+        const subtotal = Math.round(material.quantity || 0) * unitPrice;
         const displayName = materialInfo?.display_name || formatMaterialName(material.material_name);
 
         return `
@@ -137,9 +137,9 @@ function renderMaterialsFormula() {
                         
                         <input type="number" 
                             id="material-qty-${index}"
-                            value="${material.quantity || 0}" 
-                            min="0" 
-                            step="0.1"
+                            value="${Math.round(material.quantity) || 0}" 
+                            min="1" 
+                            step="1"
                             onchange="updateMaterialQuantity(${index}, this.value)"
                             class="w-20 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-center font-bold">
                         
@@ -164,7 +164,7 @@ function renderMaterialsFormula() {
                     <div class="flex items-center justify-between">
                         <div>
                             <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Thành tiền</label>
-                            <span class="text-xs text-gray-600">${formatCurrency(unitPrice)} × ${material.quantity || 0}</span>
+                            <span class="text-xs text-gray-600">${formatCurrency(unitPrice)} × ${Math.round(material.quantity) || 0}</span>
                         </div>
                         <span class="font-bold text-base text-indigo-600">${formatCurrency(subtotal)}</span>
                     </div>
@@ -254,7 +254,7 @@ async function showAddMaterialModal() {
                             const isSelected = tempSelectedMaterials.some(m => m.material_name === material.item_name);
                             const selectedMaterial = tempSelectedMaterials.find(m => m.material_name === material.item_name);
                             const quantity = selectedMaterial?.quantity || 1;
-                            const subtotal = quantity * material.item_cost;
+                            const subtotal = Math.round(quantity) * material.item_cost;
                             
                             return `
                                 <div class="border border-gray-200 rounded-xl overflow-hidden transition-all ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:border-indigo-300'}">
@@ -291,9 +291,9 @@ async function showAddMaterialModal() {
                                             
                                             <input type="number" 
                                                 id="temp-qty-${escapeHtml(material.item_name)}"
-                                                value="${quantity}" 
-                                                min="0.1" 
-                                                step="0.1"
+                                                value="${Math.round(quantity)}" 
+                                                min="1" 
+                                                step="1"
                                                 onchange="updateTempQuantity('${escapeHtml(material.item_name)}', this.value)"
                                                 class="w-16 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs text-center font-semibold">
                                             
@@ -435,7 +435,7 @@ function updateModalSelectionUI(materialName) {
                 const material = tempSelectedMaterials.find(m => m.material_name === materialName);
                 const materialInfo = allMaterialsForProduct.find(m => m.item_name === materialName);
                 if (material && materialInfo) {
-                    const subtotal = material.quantity * materialInfo.item_cost;
+                    const subtotal = Math.round(material.quantity) * materialInfo.item_cost;
                     const subtotalHTML = `<p class="text-xs font-bold text-indigo-600" id="subtotal-${materialName}">${formatCurrency(subtotal)}</p>`;
                     if (!priceContainer.querySelector(`#subtotal-${materialName}`)) {
                         priceContainer.insertAdjacentHTML('beforeend', subtotalHTML);
@@ -493,7 +493,7 @@ function updateSelectedCount() {
 function updateTempQuantity(materialName, quantity) {
     const material = tempSelectedMaterials.find(m => m.material_name === materialName);
     if (material) {
-        material.quantity = parseFloat(quantity) || 0.1;
+        material.quantity = Math.max(1, Math.round(parseFloat(quantity))) || 1;
         updateTempSubtotal(materialName);
     }
 }
@@ -502,7 +502,7 @@ function updateTempQuantity(materialName, quantity) {
 function incrementTempQuantity(materialName) {
     const material = tempSelectedMaterials.find(m => m.material_name === materialName);
     if (material) {
-        material.quantity = (parseFloat(material.quantity) || 0) + 1;
+        material.quantity = Math.round(parseFloat(material.quantity) || 0) + 1;
         const input = document.getElementById(`temp-qty-${materialName}`);
         if (input) input.value = material.quantity;
         updateTempSubtotal(materialName);
@@ -513,7 +513,7 @@ function incrementTempQuantity(materialName) {
 function decrementTempQuantity(materialName) {
     const material = tempSelectedMaterials.find(m => m.material_name === materialName);
     if (material) {
-        material.quantity = Math.max(0.1, (parseFloat(material.quantity) || 1) - 1);
+        material.quantity = Math.max(1, Math.round(parseFloat(material.quantity) || 1) - 1);
         const input = document.getElementById(`temp-qty-${materialName}`);
         if (input) input.value = material.quantity;
         updateTempSubtotal(materialName);
@@ -527,7 +527,7 @@ function updateTempSubtotal(materialName) {
     const materialInfo = allMaterialsForProduct.find(m => m.item_name === materialName);
     
     if (material && materialInfo) {
-        const subtotal = material.quantity * materialInfo.item_cost;
+        const subtotal = Math.round(material.quantity) * materialInfo.item_cost;
         const subtotalElement = document.getElementById(`subtotal-${materialName}`);
         if (subtotalElement) {
             subtotalElement.textContent = formatCurrency(subtotal);
@@ -572,21 +572,21 @@ function removeMaterial(index) {
 
 // Update material quantity
 function updateMaterialQuantity(index, quantity) {
-    selectedMaterials[index].quantity = parseFloat(quantity) || 0;
+    selectedMaterials[index].quantity = Math.max(1, Math.round(parseFloat(quantity))) || 1;
     renderMaterialsFormula();
     calculateTotalCost();
 }
 
 // Increment material quantity
 function incrementMaterialQuantity(index) {
-    selectedMaterials[index].quantity = (parseFloat(selectedMaterials[index].quantity) || 0) + 1;
+    selectedMaterials[index].quantity = Math.round(parseFloat(selectedMaterials[index].quantity) || 0) + 1;
     renderMaterialsFormula();
     calculateTotalCost();
 }
 
 // Decrement material quantity
 function decrementMaterialQuantity(index) {
-    selectedMaterials[index].quantity = Math.max(0, (parseFloat(selectedMaterials[index].quantity) || 0) - 1);
+    selectedMaterials[index].quantity = Math.max(1, Math.round(parseFloat(selectedMaterials[index].quantity) || 1) - 1);
     renderMaterialsFormula();
     calculateTotalCost();
 }
@@ -605,7 +605,7 @@ function calculateTotalCost() {
     for (const material of selectedMaterials) {
         const materialInfo = allMaterialsForProduct.find(m => m.item_name === material.material_name);
         if (materialInfo) {
-            total += (material.quantity || 0) * materialInfo.item_cost;
+            total += Math.round(material.quantity || 0) * materialInfo.item_cost;
         }
     }
 
