@@ -461,7 +461,8 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
     try {
         // Get all products that have materials
         const { results: productsWithMaterials } = await env.DB.prepare(`
-            SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price
+            SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
+                   p.pricing_method, p.target_profit
             FROM products p
             INNER JOIN product_materials pm ON p.id = pm.product_id
             WHERE p.is_active = 1
@@ -499,24 +500,43 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                 // Round to 2 decimal places
                 newCostPrice = Math.round(newCostPrice * 100) / 100;
 
-                // Calculate new selling price based on markup
+                // Calculate new selling price based on pricing method
                 let newPrice;
+                let newMarkup;
                 const materialCount = materials.length;
+                const pricingMethod = product.pricing_method || 'markup';
 
-                if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
-                    // Use saved markup multiplier
-                    newPrice = newCostPrice * product.markup_multiplier;
+                // Debug logging
+                console.log(`🔍 Product ${product.id} (${product.name}):`, {
+                    pricingMethod,
+                    target_profit: product.target_profit,
+                    markup_multiplier: product.markup_multiplier,
+                    old_cost_price: product.old_cost_price,
+                    newCostPrice
+                });
+
+                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && product.target_profit > 0) {
+                    // Use target profit method: price = cost + profit
+                    newPrice = newCostPrice + product.target_profit;
+                    newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
+                    console.log(`💰 Using profit method: ${newCostPrice} + ${product.target_profit} = ${newPrice}`);
                 } else {
-                    // Use auto markup based on material count
-                    let autoMarkup;
-                    if (materialCount <= 3) {
-                        autoMarkup = 2.5;
-                    } else if (materialCount <= 6) {
-                        autoMarkup = 3.0;
+                    // Use markup method: price = cost × markup
+                    if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
+                        // Use saved markup multiplier
+                        newMarkup = product.markup_multiplier;
                     } else {
-                        autoMarkup = 3.5;
+                        // Use auto markup based on material count
+                        if (materialCount <= 3) {
+                            newMarkup = 2.5;
+                        } else if (materialCount <= 6) {
+                            newMarkup = 3.0;
+                        } else {
+                            newMarkup = 3.5;
+                        }
                     }
-                    newPrice = newCostPrice * autoMarkup;
+                    newPrice = newCostPrice * newMarkup;
+                    console.log(`📊 Using markup method: ${newCostPrice} × ${newMarkup} = ${newPrice}`);
                 }
 
                 // Smart rounding
@@ -532,11 +552,12 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
 
                 // Only update if prices changed
                 if (newCostPrice !== product.old_cost_price || newPrice !== product.old_price) {
+                    // Update product with new prices and calculated markup
                     await env.DB.prepare(`
                         UPDATE products
-                        SET cost_price = ?, price = ?
+                        SET cost_price = ?, price = ?, markup_multiplier = ?
                         WHERE id = ?
-                    `).bind(newCostPrice, newPrice, product.id).run();
+                    `).bind(newCostPrice, newPrice, newMarkup, product.id).run();
 
                     updatedCount++;
                     updates.push({
@@ -546,7 +567,9 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                         new_cost_price: newCostPrice,
                         old_price: product.old_price,
                         new_price: newPrice,
-                        markup: product.markup_multiplier || 'auto'
+                        pricing_method: pricingMethod,
+                        markup: newMarkup,
+                        target_profit: product.target_profit
                     });
                 } else {
                     skippedCount++;

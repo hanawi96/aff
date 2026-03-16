@@ -870,8 +870,12 @@ async function recalculateAllPrices() {
                             <span><strong>Giá nguyên liệu hiện tại</strong> (đã cập nhật)</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span><strong>Hệ số markup</strong> đã lưu của từng sản phẩm</span>
+                            <svg class="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Hệ số markup</strong> (cho sản phẩm dùng phương thức markup)</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Lãi mong muốn</strong> (cho sản phẩm dùng phương thức lãi cố định)</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -883,9 +887,10 @@ async function recalculateAllPrices() {
                     <div class="flex items-start gap-2">
                         <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-yellow-800">Lưu ý</p>
+                            <p class="text-sm font-medium text-yellow-800">Logic cập nhật</p>
                             <p class="text-xs text-yellow-700 mt-1">
-                                • Chỉ cập nhật sản phẩm có <strong>hệ số markup</strong> đã lưu<br>
+                                • <strong>Phương thức markup:</strong> Giá bán = Giá vốn mới × Hệ số markup<br>
+                                • <strong>Phương thức lãi cố định:</strong> Giá bán = Giá vốn mới + Lãi mong muốn (giữ nguyên lãi)<br>
                                 • Sản phẩm không có công thức nguyên liệu sẽ bị bỏ qua<br>
                                 • Giá bán sẽ được làm tròn thông minh
                             </p>
