@@ -4,6 +4,7 @@ import { jsonResponse } from '../utils/response.js';
 
 // Auth
 import { handleLogin, handleLogout, handleChangePassword } from '../auth/index.js';
+import { handleCreateUser, handleGetAllUsers } from '../auth/user-management.js';
 
 // CTV
 import { 
@@ -189,6 +190,10 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await handleLogout(request, env, corsHeaders);
         case 'changePassword':
             return await handleChangePassword(data, request, env, corsHeaders);
+        case 'createUser':
+            return await handleCreateUser(data, request, env, corsHeaders);
+        case 'getAllUsers':
+            return await handleGetAllUsers(request, env, corsHeaders);
         case 'getPackagingConfig':
             return await getPackagingConfig(env, corsHeaders);
         case 'updatePackagingConfig':
@@ -426,6 +431,10 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await deleteMaterialCategory(data, env, corsHeaders);
             case 'reorderMaterialCategories':
                 return await reorderMaterialCategories(data, env, corsHeaders);
+            case 'createUser':
+                return await handleCreateUser(data, request, env, corsHeaders);
+            case 'getAllUsers':
+                return await handleGetAllUsers(request, env, corsHeaders);
             default:
                 return jsonResponse({
                     success: false,

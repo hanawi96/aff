@@ -4,6 +4,7 @@ import { jsonResponse } from '../utils/response.js';
 
 // Auth
 import { handleVerifySession } from '../auth/index.js';
+import { handleGetAllUsers } from '../auth/user-management.js';
 
 // CTV
 import { 
@@ -128,6 +129,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
     switch (action) {
         case 'verifySession':
             return await handleVerifySession(request, env, corsHeaders);
+
+        case 'getAllUsers':
+            return await handleGetAllUsers(request, env, corsHeaders);
 
         case 'getAllCTV':
             return await getAllCTV(env, corsHeaders);

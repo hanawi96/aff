@@ -364,7 +364,6 @@ function renderProducts() {
     updateStats();
 
     if (filteredProducts.length === 0) {
-        console.log('📭 No products to display');
         grid.innerHTML = '';
         showEmptyState();
         hidePagination();
@@ -376,17 +375,6 @@ function renderProducts() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const pageProducts = filteredProducts.slice(startIndex, endIndex);
-
-    console.log(`📦 [RENDER] Rendering ${pageProducts.length} products (page ${currentPage}/${totalPages})`);
-    console.log(`🔍 [RENDER] Sample products data:`, 
-        pageProducts.slice(0, 2).map(p => ({ 
-            id: p.id, 
-            name: p.name, 
-            markup: p.markup_multiplier,
-            price: p.price,
-            cost_price: p.cost_price
-        }))
-    );
 
     // Render products for current page
     grid.innerHTML = pageProducts.map(product => createProductCard(product)).join('');
@@ -452,13 +440,6 @@ function setViewMode(mode) {
 
 // Create product card HTML
 function createProductCard(product) {
-    console.log(`🎨 [CREATE CARD] Creating card for product ${product.id}:`, {
-        name: product.name,
-        markup: product.markup_multiplier,
-        price: product.price,
-        cost_price: product.cost_price
-    });
-    
     const price = formatCurrency(product.price || 0);
     const originalPrice = product.original_price ? formatCurrency(product.original_price) : null;
     const hasOriginalPrice = originalPrice && product.original_price > 0;
@@ -2909,8 +2890,6 @@ async function applyBulkMarkupUpdate() {
     const inputValue = document.getElementById('bulkMarkupValue').value;
     const value = parseFloat(inputValue);
 
-    console.log('🔧 [BULK MARKUP] Starting bulk update:', { method, value, selectedCount: selectedProductIds.size });
-
     if (isNaN(value) || value <= 0) {
         showToast('Vui lòng nhập giá trị hợp lệ', 'warning');
         return;
@@ -2938,17 +2917,7 @@ async function applyBulkMarkupUpdate() {
         for (const productId of selectedProductIds) {
             try {
                 const product = allProducts.find(p => p.id === productId);
-                if (!product) {
-                    console.warn(`⚠️ [BULK MARKUP] Product ${productId} not found in allProducts`);
-                    continue;
-                }
-
-                console.log(`📦 [BULK MARKUP] Processing product ${productId}:`, {
-                    name: product.name,
-                    oldMarkup: product.markup_multiplier,
-                    oldPrice: product.price,
-                    costPrice: product.cost_price
-                });
+                if (!product) continue;
 
                 const currentCostPrice = product.cost_price || 0;
                 const currentMarkup = product.markup_multiplier || 2.5;
@@ -2976,12 +2945,6 @@ async function applyBulkMarkupUpdate() {
                 // Calculate new original price: original_price = price + 20,000
                 const newOriginalPrice = newPrice + 20000;
 
-                console.log(`✏️ [BULK MARKUP] Calculated new values:`, {
-                    newMarkup,
-                    newPrice,
-                    newOriginalPrice
-                });
-
                 // Update product via API
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
@@ -2997,28 +2960,10 @@ async function applyBulkMarkupUpdate() {
 
                 const data = await response.json();
                 if (data.success) {
-                    console.log(`✅ [BULK MARKUP] API success for product ${productId}`);
-                    
                     // Update local data immediately for instant UI update
-                    const oldValues = {
-                        markup: product.markup_multiplier,
-                        price: product.price,
-                        original_price: product.original_price
-                    };
-                    
                     product.markup_multiplier = newMarkup;
                     product.price = newPrice;
                     product.original_price = newOriginalPrice;
-                    
-                    console.log(`🔄 [BULK MARKUP] Local data updated:`, {
-                        productId,
-                        before: oldValues,
-                        after: {
-                            markup: product.markup_multiplier,
-                            price: product.price,
-                            original_price: product.original_price
-                        }
-                    });
                     
                     successCount++;
                     
@@ -3031,30 +2976,18 @@ async function applyBulkMarkupUpdate() {
                     );
                 } else {
                     failCount++;
-                    console.error(`❌ [BULK MARKUP] API failed for product ${productId}:`, data.error);
+                    console.error(`Failed to update product ${productId}:`, data.error);
                 }
             } catch (error) {
                 failCount++;
-                console.error(`❌ [BULK MARKUP] Error updating product ${productId}:`, error);
+                console.error(`Error updating product ${productId}:`, error);
             }
         }
 
-        console.log(`📊 [BULK MARKUP] Update complete:`, { successCount, failCount });
-        console.log(`🔍 [BULK MARKUP] allProducts sample after update:`, 
-            allProducts.slice(0, 3).map(p => ({ 
-                id: p.id, 
-                name: p.name, 
-                markup: p.markup_multiplier,
-                price: p.price 
-            }))
-        );
-
         clearSelection();
         
-        console.log(`🎨 [BULK MARKUP] Calling searchAndSort() to update filteredProducts...`);
         // Re-filter and render products with updated data
         searchAndSort();
-        console.log(`✅ [BULK MARKUP] searchAndSort() completed`);
 
         // Update final toast with result
         if (failCount === 0) {
@@ -3063,7 +2996,7 @@ async function applyBulkMarkupUpdate() {
             showToast(`Đã cập nhật ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning', 4000, 'bulk-markup-update');
         }
     } catch (error) {
-        console.error('❌ [BULK MARKUP] Fatal error:', error);
+        console.error('Error bulk updating markup:', error);
         showToast('Không thể cập nhật hệ số lãi: ' + error.message, 'error', 5000, 'bulk-markup-update');
     }
 }
