@@ -1,7 +1,14 @@
 // Configuration file - ĐÃ CẤU HÌNH
 const CONFIG = {
-    // API URL - Production (đang hoạt động)
-    API_URL: 'https://ctv-api.yendev96.workers.dev',
+    // API URL - Tự động phát hiện môi trường
+    API_URL: (() => {
+        // Nếu đang chạy local (port 5500 hoặc localhost)
+        if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://127.0.0.1:8787';
+        }
+        // Production
+        return 'https://ctv-api.yendev96.workers.dev';
+    })(),
     
     // Google Sheets ID
     CTV_SPREADSHEET_ID: '1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI',
