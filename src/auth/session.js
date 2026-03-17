@@ -9,14 +9,23 @@ function generateSessionToken() {
 
 // Helper: Verify session token
 export async function verifySession(request, env) {
+    console.log('🔍 [VERIFY] Starting session verification...');
+    
     const authHeader = request.headers.get('Authorization');
+    console.log('   Auth header:', authHeader ? 'EXISTS' : 'MISSING');
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('❌ [VERIFY] Invalid or missing Authorization header');
         return null;
     }
 
     const token = authHeader.substring(7);
+    console.log('   Token extracted:', token.substring(0, 8) + '...');
+    
     const now = Math.floor(Date.now() / 1000);
+    console.log('   Current timestamp:', now, '(' + new Date(now * 1000).toISOString() + ')');
 
+    console.log('🔍 [VERIFY] Querying database for session...');
     const result = await env.DB.prepare(`
         SELECT s.*, u.id as user_id, u.username, u.full_name, u.role
         FROM sessions s
@@ -24,21 +33,33 @@ export async function verifySession(request, env) {
         WHERE s.id = ? AND s.expires_at > ? AND u.is_active = 1
     `).bind(token, now).first();
 
+    console.log('📦 [VERIFY] Database query result:', result ? 'SESSION_FOUND' : 'SESSION_NOT_FOUND');
+    if (result) {
+        console.log('   User ID:', result.user_id);
+        console.log('   Username:', result.username);
+        console.log('   Session expires at:', new Date(result.expires_at * 1000).toISOString());
+        console.log('   Session valid:', result.expires_at > now);
+    }
+
     return result;
 }
 
 // Verify session endpoint
 export async function handleVerifySession(request, env, corsHeaders) {
+    console.log('🔐 [VERIFY_ENDPOINT] Starting session verification endpoint...');
+    
     const session = await verifySession(request, env);
 
     if (!session) {
+        console.log('❌ [VERIFY_ENDPOINT] Session verification failed');
         return jsonResponse({
             success: false,
             error: 'Session không hợp lệ hoặc đã hết hạn'
         }, 401, corsHeaders);
     }
 
-    return jsonResponse({
+    console.log('✅ [VERIFY_ENDPOINT] Session verification successful');
+    const responseData = {
         success: true,
         user: {
             id: session.user_id,
@@ -46,7 +67,10 @@ export async function handleVerifySession(request, env, corsHeaders) {
             full_name: session.full_name,
             role: session.role
         }
-    }, 200, corsHeaders);
+    };
+    
+    console.log('   Response data:', responseData);
+    return jsonResponse(responseData, 200, corsHeaders);
 }
 
 // Logout endpoint

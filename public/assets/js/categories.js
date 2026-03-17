@@ -63,10 +63,16 @@ async function saveCategory(categoryData) {
         const isEdit = !!categoryData.id;
         const action = isEdit ? 'updateCategory' : 'createCategory';
         
-        const response = await fetch(`${API_URL}?action=${action}`, {
+        // Add action to the data payload
+        const payload = {
+            action: action,
+            ...categoryData
+        };
+        
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(categoryData)
+            body: JSON.stringify(payload)
         });
         
         const data = await response.json();
@@ -88,10 +94,13 @@ async function deleteCategory(id, name) {
     if (!confirm(`Bạn có chắc muốn xóa danh mục "${name}"?`)) return;
     
     try {
-        const response = await fetch(`${API_URL}?action=deleteCategory`, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
+            body: JSON.stringify({ 
+                action: 'deleteCategory',
+                id: id 
+            })
         });
         
         const data = await response.json();
@@ -363,7 +372,7 @@ function showSuccess(message) {
 }
 
 function logout() {
-    localStorage.removeItem('sessionId');
+    localStorage.removeItem('session_token');
     window.location.href = '../login.html';
 }
 
@@ -425,10 +434,11 @@ async function reorderCategory(categoryId, direction) {
     
     try {
         // Send request to server (in background)
-        const response = await fetch(`${API_URL}?action=reorderCategories`, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
+                action: 'reorderCategories',
                 category_id: parseInt(categoryId),
                 direction: direction
             })

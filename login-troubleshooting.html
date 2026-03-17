@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Troubleshooting</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        input, button { padding: 10px; margin: 5px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        .debug { background: #f8f9fa; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+        .credentials { background: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Login Troubleshooting Tool</h1>
+    
+    <div class="credentials">
+        <h3>✅ Confirmed Working Credentials:</h3>
+        <strong>Username:</strong> admin<br>
+        <strong>Password:</strong> admin123
+    </div>
+    
+    <div class="section info">
+        <h3>🔍 System Information</h3>
+        <div id="systemInfo"></div>
+    </div>
+    
+    <div class="section">
+        <h3>🧪 Test Login</h3>
+        <form id="testForm">
+            <div>
+                <label>Username:</label><br>
+                <input type="text" id="username" value="admin" style="width: 200px;">
+            </div>
+            <div>
+                <label>Password:</label><br>
+                <input type="password" id="password" value="admin123" style="width: 200px;">
+                <button type="button" onclick="togglePassword()">👁️</button>
+            </div>
+            <div>
+                <button type="submit">🚀 Test Login</button>
+                <button type="button" onclick="clearCache()">🗑️ Clear Cache</button>
+            </div>
+        </form>
+        <div id="testResult"></div>
+    </div>
+    
+    <div class="section">
+        <h3>📊 Connection Tests</h3>
+        <button onclick="testLocalAPI()">Test Local API</button>
+        <button onclick="testProdAPI()">Test Production API</button>
+        <div id="connectionResult"></div>
+    </div>
+    
+    <div class="section">
+        <h3>🔧 Troubleshooting Steps</h3>
+        <ol>
+            <li><strong>Clear Browser Cache:</strong> Press Ctrl+Shift+Delete and clear all data</li>
+            <li><strong>Try Incognito Mode:</strong> Open login page in private/incognito window</li>
+            <li><strong>Check Network Tab:</strong> Open DevTools (F12) → Network tab → Try login</li>
+            <li><strong>Verify Credentials:</strong> Make sure you're using exactly "admin" and "admin123"</li>
+            <li><strong>Check Local Server:</strong> Ensure wrangler dev is running on port 8787</li>
+        </ol>
+    </div>
+    
+    <div id="debugLog" class="debug"></div>
+    
+    <script>
+        const LOCAL_API = 'http://localhost:8787';
+        const PROD_API = 'https://ctv-api.yendev96.workers.dev';
+        
+        // Determine API URL
+        const API_URL = (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? LOCAL_API : PROD_API;
+        
+        function log(message) {
+            const debugLog = document.getElementById('debugLog');
+            debugLog.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+        
+        // Display system info
+        document.getElementById('systemInfo').innerHTML = `
+            <strong>Current URL:</strong> ${window.location.href}<br>
+            <strong>Hostname:</strong> ${window.location.hostname}<br>
+            <strong>Port:</strong> ${window.location.port}<br>
+            <strong>API URL:</strong> ${API_URL}<br>
+            <strong>User Agent:</strong> ${navigator.userAgent}<br>
+            <strong>Local Storage:</strong> ${localStorage.getItem('session_token') ? 'Has session token' : 'No session token'}
+        `;
+        
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            passwordField.type = passwordField.type === 'password' ? 'text' : 'password';
+        }
+        
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Cache cleared');
+            alert('Cache cleared! Try logging in again.');
+        }
+        
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('testResult');
+            
+            log(`🔐 Testing login with username: "${username}", password length: ${password.length}`);
+            
+            resultDiv.innerHTML = '<div class="info">Testing login...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                log(`📡 Response status: ${response.status}`);
+                
+                const data = await response.json();
+                log(`📦 Response data: ${JSON.stringify(data)}`);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ LOGIN SUCCESSFUL!</h4>
+                            <strong>Session Token:</strong> ${data.sessionToken}<br>
+                            <strong>User:</strong> ${data.user.username} (${data.user.full_name})<br>
+                            <strong>Role:</strong> ${data.user.role}<br><br>
+                            <em>You can now use these credentials in the main login page!</em>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ LOGIN FAILED</h4>
+                            <strong>Error:</strong> ${data.error}<br><br>
+                            <strong>Possible causes:</strong>
+                            <ul>
+                                <li>Wrong username or password</li>
+                                <li>User account is disabled</li>
+                                <li>Database connection issue</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ NETWORK ERROR</h4>
+                        <strong>Error:</strong> ${error.message}<br><br>
+                        <strong>Possible causes:</strong>
+                        <ul>
+                            <li>Local development server not running</li>
+                            <li>CORS issues</li>
+                            <li>Network connectivity problems</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        });
+        
+        async function testLocalAPI() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<div class="info">Testing local API...</div>';
+            
+            try {
+                const response = await fetch(`${LOCAL_API}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success">✅ Local API is working!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="warning">⚠️ Local API responded but login failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Local API not accessible: ${error.message}</div>`;
+            }
+        }
+        
+        async function testProdAPI() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<div class="info">Testing production API...</div>';
+            
+            try {
+                const response = await fetch(`${PROD_API}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success">✅ Production API is working!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="warning">⚠️ Production API responded but login failed: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Production API not accessible: ${error.message}</div>`;
+            }
+        }
+        
+        log('🚀 Troubleshooting tool loaded');
+    </script>
+</body>
+</html>

@@ -227,7 +227,7 @@
             API_URL: (() => {
                 // Nếu đang chạy local (port 5500 hoặc localhost)
                 if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    return 'http://localhost:8787';
+                    return 'http://127.0.0.1:8787';
                 }
                 // Production
                 return 'https://ctv-api.yendev96.workers.dev';

@@ -47,6 +47,14 @@ import { getProductCategories } from '../services/products/product-categories.js
 // Address Learning
 import { searchLearning, getLearningStats } from '../services/address-learning/address-learning-service.js';
 
+// Featured Products
+import {
+    getFeaturedProducts,
+    getFeaturedProductsForAdmin,
+    getFeaturedStats,
+    clearFeaturedCache
+} from '../services/featured/featured-service.js';
+
 // Materials
 import { getAllMaterials, getProductMaterials, getAllMaterialCategories } from '../services/materials/material-service.js';
 
@@ -126,8 +134,11 @@ import {
 } from '../services/payments/payment-service.js';
 
 export async function handleGet(action, url, request, env, corsHeaders) {
+    console.log('📥 [GET] Handling GET request with action:', action);
+    
     switch (action) {
         case 'verifySession':
+            console.log('🔐 [GET] Routing to verifySession handler...');
             return await handleVerifySession(request, env, corsHeaders);
 
         case 'getAllUsers':
@@ -220,6 +231,18 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             } catch (e) {
                 return jsonResponse({ success: false, error: e.message }, 500, corsHeaders);
             }
+
+        case 'getFeaturedProducts':
+            return await getFeaturedProducts(env, corsHeaders);
+
+        case 'getFeaturedProductsForAdmin':
+            return await getFeaturedProductsForAdmin(env, corsHeaders);
+
+        case 'getFeaturedStats':
+            return await getFeaturedStats(env, corsHeaders);
+
+        case 'clearFeaturedCache':
+            return await clearFeaturedCache(env, corsHeaders);
 
         case 'checkOutdatedProducts':
             return await checkOutdatedProducts(env, corsHeaders);

@@ -202,6 +202,38 @@ export class HomePage {
         });
         console.log('✅ HomePage: ProductGrid initialized');
         
+        // Featured Carousel - Initialize if container exists
+        const featuredContainer = document.getElementById('featuredCarousel');
+        if (featuredContainer) {
+            console.log('🎠 Found featured carousel container, initializing...');
+            // Import and initialize FeaturedCarousel
+            import('../components/featured-carousel.js').then(() => {
+                console.log('📦 Featured carousel module loaded');
+                if (window.FeaturedCarousel) {
+                    console.log('🎠 Creating FeaturedCarousel instance...');
+                    this.featuredCarousel = new window.FeaturedCarousel('featuredCarousel', {
+                        autoPlay: true,
+                        autoPlayDelay: 5000,
+                        showDots: true,
+                        showArrows: true,
+                        itemsPerView: {
+                            mobile: 1,
+                            tablet: 2,
+                            desktop: 4
+                        }
+                    });
+                    window.featuredCarousel = this.featuredCarousel;
+                    console.log('✅ HomePage: FeaturedCarousel initialized successfully');
+                } else {
+                    console.error('❌ HomePage: FeaturedCarousel class not available after import');
+                }
+            }).catch(error => {
+                console.error('❌ HomePage: Error loading FeaturedCarousel module:', error);
+            });
+        } else {
+            console.warn('⚠️ HomePage: Featured carousel container (#featuredCarousel) not found in DOM');
+        }
+        
         // Baby Weight Modal
         this.babyWeightModal = new BabyWeightModal();
         console.log('✅ HomePage: BabyWeightModal initialized');
@@ -353,7 +385,12 @@ export class HomePage {
     renderProducts() {
         // Chỉ cần set products, ProductGrid sẽ tự xử lý
         const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
-        this.productGrid.setAllProducts(productsToRender);
+        
+        if (this.productGrid) {
+            this.productGrid.setAllProducts(productsToRender);
+        } else {
+            console.error('❌ ProductGrid not initialized!');
+        }
     }
     
     /**

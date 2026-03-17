@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Featured Carousel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="public/shop/assets/css/featured-carousel.css">
+    <style>
+        body {
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="text-2xl font-bold mb-4">Test Featured Carousel</h1>
+        
+        <div class="debug-info">
+            <div>API URL: <span id="apiUrl"></span></div>
+            <div>Status: <span id="status">Initializing...</span></div>
+            <div>Products Count: <span id="productsCount">0</span></div>
+            <div>Error: <span id="error">None</span></div>
+        </div>
+        
+        <!-- Featured Carousel Container -->
+        <div id="featuredCarousel" class="mb-8"></div>
+        
+        <div class="mt-8">
+            <button onclick="testAPI()" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">Test API</button>
+            <button onclick="refreshCarousel()" class="bg-green-500 text-white px-4 py-2 rounded mr-2">Refresh Carousel</button>
+            <button onclick="showDebugInfo()" class="bg-yellow-500 text-white px-4 py-2 rounded">Show Debug</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import featured carousel
+        import('./public/shop/assets/js/components/featured-carousel.js').then(() => {
+            console.log('✅ Featured carousel script loaded');
+            initializeCarousel();
+        }).catch(error => {
+            console.error('❌ Error loading featured carousel:', error);
+            document.getElementById('error').textContent = error.message;
+        });
+        
+        let carousel = null;
+        
+        function initializeCarousel() {
+            try {
+                document.getElementById('status').textContent = 'Initializing carousel...';
+                
+                if (window.FeaturedCarousel) {
+                    carousel = new window.FeaturedCarousel('featuredCarousel', {
+                        autoPlay: false, // Disable for testing
+                        showDots: true,
+                        showArrows: true
+                    });
+                    
+                    window.featuredCarousel = carousel;
+                    document.getElementById('status').textContent = 'Carousel initialized';
+                    console.log('✅ Carousel initialized:', carousel);
+                } else {
+                    throw new Error('FeaturedCarousel class not available');
+                }
+            } catch (error) {
+                console.error('❌ Error initializing carousel:', error);
+                document.getElementById('error').textContent = error.message;
+                document.getElementById('status').textContent = 'Error initializing';
+            }
+        }
+        
+        async function testAPI() {
+            try {
+                document.getElementById('status').textContent = 'Testing API...';
+                
+                const apiUrl = (() => {
+                    if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        return 'http://127.0.0.1:8787';
+                    }
+                    return 'https://ctv-api.yendev96.workers.dev';
+                })();
+                
+                document.getElementById('apiUrl').textContent = apiUrl;
+                
+                const response = await fetch(`${apiUrl}?action=getFeaturedProducts`);
+                const data = await response.json();
+                
+                console.log('📦 API Response:', data);
+                
+                if (data.success && data.products) {
+                    document.getElementById('productsCount').textContent = data.products.length;
+                    document.getElementById('status').textContent = `API OK - ${data.products.length} products`;
+                    document.getElementById('error').textContent = 'None';
+                } else {
+                    throw new Error(data.error || 'API returned no products');
+                }
+                
+            } catch (error) {
+                console.error('❌ API Test Error:', error);
+                document.getElementById('error').textContent = error.message;
+                document.getElementById('status').textContent = 'API Error';
+            }
+        }
+        
+        function refreshCarousel() {
+            if (carousel) {
+                carousel.refresh();
+                document.getElementById('status').textContent = 'Carousel refreshed';
+            } else {
+                document.getElementById('error').textContent = 'Carousel not initialized';
+            }
+        }
+        
+        function showDebugInfo() {
+            console.log('🔍 Debug Info:');
+            console.log('   Carousel:', carousel);
+            console.log('   Container:', document.getElementById('featuredCarousel'));
+            console.log('   Window.FeaturedCarousel:', window.FeaturedCarousel);
+            console.log('   Window.featuredCarousel:', window.featuredCarousel);
+            
+            if (carousel) {
+                console.log('   Carousel state:', carousel.state);
+                console.log('   Carousel elements:', carousel.elements);
+            }
+        }
+        
+        // Expose functions globally for button clicks
+        window.testAPI = testAPI;
+        window.refreshCarousel = refreshCarousel;
+        window.showDebugInfo = showDebugInfo;
+        
+        // Auto-test API on load
+        setTimeout(testAPI, 1000);
+    </script>
+</body>
+</html>

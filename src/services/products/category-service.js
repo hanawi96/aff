@@ -76,14 +76,41 @@ export async function createCategory(data, env, corsHeaders) {
 
         // Check if name already exists
         const existing = await env.DB.prepare(`
-            SELECT id FROM categories WHERE name = ?
+            SELECT id, is_active FROM categories WHERE name = ?
         `).bind(data.name).first();
 
         if (existing) {
-            return jsonResponse({
-                success: false,
-                error: 'Category name already exists'
-            }, 400, corsHeaders);
+            // Convert is_active to boolean for reliable comparison
+            const isActive = Boolean(existing.is_active);
+            
+            if (isActive) {
+                // Category is active, cannot create duplicate
+                return jsonResponse({
+                    success: false,
+                    error: 'Category name already exists'
+                }, 400, corsHeaders);
+            } else {
+                // Category exists but is inactive (soft deleted), reactivate it
+                const now = Math.floor(Date.now() / 1000);
+                await env.DB.prepare(`
+                    UPDATE categories
+                    SET description = ?, icon = ?, color = ?, display_order = ?, is_active = 1, updated_at_unix = ?
+                    WHERE id = ?
+                `).bind(
+                    data.description || null,
+                    data.icon || null,
+                    data.color || null,
+                    data.display_order || 0,
+                    now,
+                    existing.id
+                ).run();
+
+                return jsonResponse({
+                    success: true,
+                    categoryId: existing.id,
+                    message: 'Category reactivated successfully'
+                }, 200, corsHeaders);
+            }
         }
 
         // Get current unix timestamp (in seconds)
@@ -104,9 +131,11 @@ export async function createCategory(data, env, corsHeaders) {
             now
         ).run();
 
+        const categoryId = result.lastInsertRowid || result.meta?.last_row_id;
+
         return jsonResponse({
             success: true,
-            categoryId: result.meta.last_row_id,
+            categoryId: categoryId,
             message: 'Category created successfully'
         }, 200, corsHeaders);
 
@@ -144,7 +173,7 @@ export async function updateCategory(data, env, corsHeaders) {
         // Check name uniqueness if changing
         if (data.name) {
             const nameCheck = await env.DB.prepare(`
-                SELECT id FROM categories WHERE name = ? AND id != ?
+                SELECT id FROM categories WHERE name = ? AND id != ? AND is_active = 1
             `).bind(data.name, data.id).first();
 
             if (nameCheck) {

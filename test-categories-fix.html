@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Categories Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Test Categories API Fix</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">✅ Fixed Issues</h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>API URL Fixed:</strong> Moved action from query parameter to POST body</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Create Category:</strong> Now sends action in request body</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Delete Category:</strong> Fixed API call format</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Reorder Categories:</strong> Fixed API call format</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">🔧 What Was Fixed</h2>
+            <div class="space-y-4">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-red-800 mb-2">❌ Before (Causing 400 Error)</h3>
+                    <pre class="text-sm text-red-700 bg-red-100 p-2 rounded overflow-x-auto"><code>// Wrong: Action in URL query parameter
+const response = await fetch(`${API_URL}?action=createCategory`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categoryData)  // Missing action in body
+});</code></pre>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-800 mb-2">✅ After (Fixed)</h3>
+                    <pre class="text-sm text-green-700 bg-green-100 p-2 rounded overflow-x-auto"><code>// Correct: Action in POST body
+const payload = {
+    action: 'createCategory',
+    ...categoryData
+};
+
+const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)  // Action included in body
+});</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">🧪 Test API Calls</h2>
+            <div class="space-y-4">
+                <div class="flex gap-3">
+                    <button onclick="testCreateCategory()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Test Create Category
+                    </button>
+                    <button onclick="testLoadCategories()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Test Load Categories
+                    </button>
+                </div>
+                <div id="testResults" class="mt-4 p-4 bg-gray-50 rounded-lg min-h-[100px]">
+                    <p class="text-gray-500">Click buttons above to test API calls...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">📋 Testing Instructions</h2>
+            <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">1</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Open Categories Management Page</p>
+                        <p class="text-sm text-gray-600">Go to http://localhost:5500/admin/categories.html</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">2</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Test Create New Category</p>
+                        <p class="text-sm text-gray-600">Click "Thêm danh mục mới" and fill in the form</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">3</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Verify No 400 Error</p>
+                        <p class="text-sm text-gray-600">Check browser console - should not see 400 status error</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-white text-sm font-bold">4</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">Test Other Functions</p>
+                        <p class="text-sm text-gray-600">Try editing, deleting, and reordering categories</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://ctv-api.yendev96.workers.dev';
+
+        async function testCreateCategory() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="text-blue-600">Testing create category...</p>';
+
+            try {
+                const testData = {
+                    action: 'createCategory',
+                    name: 'Test Category ' + Date.now(),
+                    description: 'Test category created from test page',
+                    display_order: 0,
+                    is_active: 1
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Create Category Success!</p>
+                            <p class="text-sm mt-1">Category ID: ${data.categoryId}</p>
+                            <p class="text-sm">Message: ${data.message}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Create Category Failed</p>
+                            <p class="text-sm mt-1">Status: ${response.status}</p>
+                            <p class="text-sm">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testLoadCategories() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="text-blue-600">Testing load categories...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getAllCategories`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Load Categories Success!</p>
+                            <p class="text-sm mt-1">Found ${data.categories?.length || 0} categories</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Load Categories Failed</p>
+                            <p class="text-sm mt-1">Status: ${response.status}</p>
+                            <p class="text-sm">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Create Category API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Test Create Category API</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">✅ Fixed Backend Issue</h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Database Access:</strong> Fixed result.meta.last_row_id → result.lastInsertRowid</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Categories Table:</strong> Verified table exists with correct schema</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>API Format:</strong> Fixed frontend to send action in POST body</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">🧪 Test Create Category</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                        <input type="text" id="categoryName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Test Category">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <input type="text" id="categoryDescription" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Test description">
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="testCreateCategory()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Test Create Category
+                    </button>
+                    <button onclick="testLoadCategories()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Test Load Categories
+                    </button>
+                </div>
+                <div id="testResults" class="mt-4 p-4 bg-gray-50 rounded-lg min-h-[100px]">
+                    <p class="text-gray-500">Click buttons above to test API calls...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">🔧 What Was Fixed</h2>
+            <div class="space-y-4">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-red-800 mb-2">❌ Before (500 Error)</h3>
+                    <pre class="text-sm text-red-700 bg-red-100 p-2 rounded overflow-x-auto"><code>// Backend was trying to access:
+categoryId: result.meta.last_row_id  // ← undefined
+
+// But Turso returns:
+result.lastInsertRowid  // ← actual property</code></pre>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-800 mb-2">✅ After (Fixed)</h3>
+                    <pre class="text-sm text-green-700 bg-green-100 p-2 rounded overflow-x-auto"><code>// Fixed backend to use correct property:
+categoryId: result.lastInsertRowid  // ✅ Works with Turso</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://ctv-api.yendev96.workers.dev';
+
+        async function testCreateCategory() {
+            const resultsDiv = document.getElementById('testResults');
+            const name = document.getElementById('categoryName').value || 'Test Category ' + Date.now();
+            const description = document.getElementById('categoryDescription').value || 'Test description';
+            
+            resultsDiv.innerHTML = '<p class="text-blue-600">Testing create category...</p>';
+
+            try {
+                const testData = {
+                    action: 'createCategory',
+                    name: name,
+                    description: description,
+                    display_order: 0,
+                    is_active: 1
+                };
+
+                console.log('📤 Sending:', testData);
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                console.log('📡 Response status:', response.status);
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+
+                if (response.ok && data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Create Category Success!</p>
+                            <p class="text-sm mt-1">Category ID: ${data.categoryId}</p>
+                            <p class="text-sm">Message: ${data.message}</p>
+                            <p class="text-sm">Name: ${name}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Create Category Failed</p>
+                            <p class="text-sm mt-1">Status: ${response.status}</p>
+                            <p class="text-sm">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testLoadCategories() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="text-blue-600">Testing load categories...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getAllCategories`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const categories = data.categories || [];
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Load Categories Success!</p>
+                            <p class="text-sm mt-1">Found ${categories.length} categories</p>
+                            <div class="mt-2 text-xs">
+                                ${categories.slice(0, 5).map(cat => `<div>• ${cat.name} (ID: ${cat.id})</div>`).join('')}
+                                ${categories.length > 5 ? `<div>... and ${categories.length - 5} more</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Load Categories Failed</p>
+                            <p class="text-sm mt-1">Status: ${response.status}</p>
+                            <p class="text-sm">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-fill with timestamp for unique names
+        document.getElementById('categoryName').value = 'Test Category ' + Date.now();
+    </script>
+</body>
+</html>

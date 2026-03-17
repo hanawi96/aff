@@ -5,6 +5,7 @@
 import { createShopOrder, getShopProducts } from './handlers/orders.js';
 import { getActiveProducts, addProductFavorite, removeProductFavorite, getMostFavorited } from './handlers/products.js';
 import { registerCTV } from './handlers/ctv.js';
+import { getFeaturedProducts } from '../../../src/services/featured/featured-service.js';
 import { jsonResponse } from '../../../src/utils/response.js';
 
 /**
@@ -30,6 +31,11 @@ export async function handleShopRoutes(request, env, corsHeaders, ctx) {
         // GET /api/shop/products - Get active products
         if (path === '/api/shop/products' && method === 'GET') {
             return await getActiveProducts(request, env, corsHeaders);
+        }
+
+        // GET /api/shop/featured-products - Get featured products (siêu nhanh)
+        if (path === '/api/shop/featured-products' && method === 'GET') {
+            return await getFeaturedProducts(env, corsHeaders);
         }
 
         // POST /api/shop/ctv/register - Register CTV from shop

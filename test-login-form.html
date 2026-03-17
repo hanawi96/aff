@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin: 10px 0; }
+        input { padding: 10px; margin: 5px; width: 200px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+        .debug { background: #f5f5f5; padding: 10px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Test Login Form</h1>
+    
+    <div class="debug">
+        <strong>Debug Info:</strong><br>
+        Current URL: <span id="currentUrl"></span><br>
+        API URL: <span id="apiUrl"></span><br>
+        Port: <span id="port"></span><br>
+        Hostname: <span id="hostname"></span>
+    </div>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label><br>
+            <input type="text" id="username" value="admin" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label><br>
+            <input type="password" id="password" value="admin123" required>
+        </div>
+        <div class="form-group">
+            <button type="submit">Login</button>
+        </div>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        // Configuration - exact same as login.html
+        const CONFIG = {
+            API_URL: (() => {
+                // Nếu đang chạy local (port 5500 hoặc localhost)
+                if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return 'http://localhost:8787';
+                }
+                // Production
+                return 'https://ctv-api.yendev96.workers.dev';
+            })()
+        };
+        
+        // Display debug info
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('apiUrl').textContent = CONFIG.API_URL;
+        document.getElementById('port').textContent = window.location.port;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        
+        const loginForm = document.getElementById('loginForm');
+        const resultDiv = document.getElementById('result');
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<div>Logging in...</div>';
+            
+            try {
+                console.log('🔐 Making login request...');
+                console.log('   URL:', `${CONFIG.API_URL}?action=login`);
+                console.log('   Username:', username);
+                console.log('   Password length:', password.length);
+                
+                const response = await fetch(`${CONFIG.API_URL}?action=login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ LOGIN SUCCESS!</strong><br>
+                            Session Token: ${data.sessionToken}<br>
+                            User: ${data.user.username} (${data.user.full_name})<br>
+                            Role: ${data.user.role}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ LOGIN FAILED!</strong><br>
+                            Error: ${data.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ NETWORK ERROR!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        });
+        
+        // Auto-submit for testing
+        setTimeout(() => {
+            console.log('🚀 Auto-submitting form for testing...');
+            loginForm.dispatchEvent(new Event('submit'));
+        }, 1000);
+    </script>
+</body>
+</html>

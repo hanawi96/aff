@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Category Soft Delete Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Test Category Soft Delete Fix</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">✅ Fixed Issues</h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Smart Reactivation:</strong> Recreating deleted category now reactivates it instead of error</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Active-Only Check:</strong> Name uniqueness only checked for active categories</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <span><strong>Data Optimization:</strong> Prevents duplicate records in database</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">🧪 Test Scenario</h2>
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-blue-800 mb-2">Test Steps:</h3>
+                    <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                        <li>Create category "mix charm ngựa 2026"</li>
+                        <li>Delete the category (soft delete - sets is_active = 0)</li>
+                        <li>Try to create the same category name again</li>
+                        <li>Should reactivate the existing record instead of error</li>
+                    </ol>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Test Category Name</label>
+                        <input type="text" id="testCategoryName" value="mix charm ngựa 2026" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <input type="text" id="testCategoryDesc" value="Test category for soft delete" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 flex-wrap">
+                    <button onclick="step1CreateCategory()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Step 1: Create Category
+                    </button>
+                    <button onclick="step2DeleteCategory()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        Step 2: Delete Category
+                    </button>
+                    <button onclick="step3RecreateCategory()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Step 3: Recreate Category
+                    </button>
+                    <button onclick="checkCategoryStatus()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Check Status
+                    </button>
+                </div>
+                
+                <div id="testResults" class="mt-4 p-4 bg-gray-50 rounded-lg min-h-[100px]">
+                    <p class="text-gray-500">Click buttons above to test the scenario...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">🔧 What Was Fixed</h2>
+            <div class="space-y-4">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-red-800 mb-2">❌ Before (Error on Recreate)</h3>
+                    <pre class="text-sm text-red-700 bg-red-100 p-2 rounded overflow-x-auto"><code>// Create category: "mix charm ngựa 2026" ✅
+// Delete category: soft delete (is_active = 0) ✅  
+// Recreate same name: ❌ "Category name already exists"
+
+// Problem: Check ignored is_active status
+SELECT id FROM categories WHERE name = ?</code></pre>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-800 mb-2">✅ After (Smart Reactivation)</h3>
+                    <pre class="text-sm text-green-700 bg-green-100 p-2 rounded overflow-x-auto"><code>// Create category: "mix charm ngựa 2026" ✅
+// Delete category: soft delete (is_active = 0) ✅  
+// Recreate same name: ✅ Reactivates existing record
+
+// Solution: Check is_active and reactivate if needed
+SELECT id, is_active FROM categories WHERE name = ?
+IF exists AND is_active = 0 THEN reactivate
+ELSE IF exists AND is_active = 1 THEN error
+ELSE create new</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://ctv-api.yendev96.workers.dev';
+        let currentCategoryId = null;
+
+        async function step1CreateCategory() {
+            const resultsDiv = document.getElementById('testResults');
+            const name = document.getElementById('testCategoryName').value;
+            const description = document.getElementById('testCategoryDesc').value;
+            
+            resultsDiv.innerHTML = '<p class="text-blue-600">Step 1: Creating category...</p>';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'createCategory',
+                        name: name,
+                        description: description,
+                        display_order: 0,
+                        is_active: 1
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    currentCategoryId = data.categoryId;
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Step 1 Success: Category Created</p>
+                            <p class="text-sm mt-1">Category ID: ${data.categoryId}</p>
+                            <p class="text-sm">Name: ${name}</p>
+                            <p class="text-sm">Ready for Step 2: Delete</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Step 1 Failed</p>
+                            <p class="text-sm mt-1">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Step 1 Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function step2DeleteCategory() {
+            if (!currentCategoryId) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="text-yellow-600">
+                        <p class="font-semibold">⚠️ Please run Step 1 first</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="text-blue-600">Step 2: Deleting category...</p>';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteCategory',
+                        id: currentCategoryId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Step 2 Success: Category Deleted (Soft Delete)</p>
+                            <p class="text-sm mt-1">Category ID ${currentCategoryId} is now inactive</p>
+                            <p class="text-sm">Ready for Step 3: Recreate</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Step 2 Failed</p>
+                            <p class="text-sm mt-1">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Step 2 Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function step3RecreateCategory() {
+            const resultsDiv = document.getElementById('testResults');
+            const name = document.getElementById('testCategoryName').value;
+            const description = document.getElementById('testCategoryDesc').value + ' (Recreated)';
+            
+            resultsDiv.innerHTML = '<p class="text-blue-600">Step 3: Recreating category with same name...</p>';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'createCategory',
+                        name: name,
+                        description: description,
+                        display_order: 0,
+                        is_active: 1
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const isReactivated = data.message.includes('reactivated');
+                    resultsDiv.innerHTML = `
+                        <div class="text-green-600">
+                            <p class="font-semibold">✅ Step 3 Success: ${isReactivated ? 'Category Reactivated' : 'Category Created'}</p>
+                            <p class="text-sm mt-1">Category ID: ${data.categoryId}</p>
+                            <p class="text-sm">Message: ${data.message}</p>
+                            <p class="text-sm font-semibold ${isReactivated ? 'text-green-700' : 'text-blue-700'}">
+                                ${isReactivated ? '🎉 REACTIVATION WORKED!' : '📝 New category created'}
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Step 3 Failed</p>
+                            <p class="text-sm mt-1">Error: ${data.error || 'Unknown error'}</p>
+                            <p class="text-sm">This should NOT happen with the fix!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Step 3 Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkCategoryStatus() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="text-blue-600">Checking category status...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getAllCategories`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const testName = document.getElementById('testCategoryName').value;
+                    const categories = data.categories || [];
+                    const matchingCategories = categories.filter(cat => cat.name === testName);
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="text-blue-600">
+                            <p class="font-semibold">📊 Category Status Check</p>
+                            <p class="text-sm mt-1">Total categories: ${categories.length}</p>
+                            <p class="text-sm">Matching "${testName}": ${matchingCategories.length}</p>
+                            ${matchingCategories.length > 0 ? `
+                                <div class="mt-2 text-xs bg-blue-100 p-2 rounded">
+                                    ${matchingCategories.map(cat => 
+                                        `<div>ID: ${cat.id}, Active: ${cat.is_active ? 'Yes' : 'No'}, Desc: ${cat.description}</div>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <p class="font-semibold">❌ Status Check Failed</p>
+                            <p class="text-sm mt-1">Error: ${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <p class="font-semibold">❌ Status Check Network Error</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

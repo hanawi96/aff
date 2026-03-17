@@ -149,11 +149,26 @@ import {
     reorderMaterialCategories
 } from '../services/materials/material-service.js';
 
+// Featured Products
+import {
+    getFeaturedProducts,
+    addFeaturedProduct,
+    addMultipleFeaturedProducts,
+    removeFeaturedProduct,
+    reorderFeaturedProducts,
+    getFeaturedStats,
+    clearFeaturedCache
+} from '../services/featured/featured-service.js';
+
 // ============================================
 // POST WITH ACTION (Query String)
 // ============================================
 
 export async function handlePostWithAction(action, request, env, corsHeaders) {
+    console.log('📡 [POST_ACTION] Handling POST request with action:', action);
+    console.log('   Request method:', request.method);
+    console.log('   Content-Type:', request.headers.get('Content-Type'));
+    
     // Special handling for uploadImage (multipart form data)
     if (action === 'uploadImage') {
         const formData = await request.formData();
@@ -174,17 +189,22 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
     // Read JSON body for other actions
     let data;
     try {
+        console.log('📦 [POST_ACTION] Reading JSON body...');
         data = await request.json();
+        console.log('   JSON parsed successfully:', !!data);
+        console.log('   Data keys:', Object.keys(data || {}));
     } catch (error) {
-        console.error('Error parsing JSON body:', error);
+        console.error('❌ [POST_ACTION] Error parsing JSON body:', error);
         return jsonResponse({
             success: false,
             error: 'Invalid JSON body: ' + error.message
         }, 400, corsHeaders);
     }
 
+    console.log('🔀 [POST_ACTION] Routing to action handler:', action);
     switch (action) {
         case 'login':
+            console.log('🔐 [POST_ACTION] Routing to login handler...');
             return await handleLogin(data, request, env, corsHeaders);
         case 'logout':
             return await handleLogout(request, env, corsHeaders);
@@ -284,6 +304,22 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
         // Categories
         case 'reorderCategories':
             return await reorderCategories(data, env, corsHeaders);
+        
+        // Featured Products
+        case 'getFeaturedProducts':
+            return await getFeaturedProducts(env, corsHeaders);
+        case 'addFeaturedProduct':
+            return await addFeaturedProduct(data, env, corsHeaders);
+        case 'addMultipleFeaturedProducts':
+            return await addMultipleFeaturedProducts(data, env, corsHeaders);
+        case 'removeFeaturedProduct':
+            return await removeFeaturedProduct(data, env, corsHeaders);
+        case 'reorderFeaturedProducts':
+            return await reorderFeaturedProducts(data, env, corsHeaders);
+        case 'getFeaturedStats':
+            return await getFeaturedStats(env, corsHeaders);
+        case 'clearFeaturedCache':
+            return await clearFeaturedCache(env, corsHeaders);
         
         default:
             return jsonResponse({
@@ -435,6 +471,21 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await handleCreateUser(data, request, env, corsHeaders);
             case 'getAllUsers':
                 return await handleGetAllUsers(request, env, corsHeaders);
+            
+            // Featured Products
+            case 'addFeaturedProduct':
+                return await addFeaturedProduct(data, env, corsHeaders);
+            case 'addMultipleFeaturedProducts':
+                return await addMultipleFeaturedProducts(data, env, corsHeaders);
+            case 'removeFeaturedProduct':
+                return await removeFeaturedProduct(data, env, corsHeaders);
+            case 'reorderFeaturedProducts':
+                return await reorderFeaturedProducts(data, env, corsHeaders);
+            case 'getFeaturedStats':
+                return await getFeaturedStats(env, corsHeaders);
+            case 'clearFeaturedCache':
+                return await clearFeaturedCache(env, corsHeaders);
+                
             default:
                 return jsonResponse({
                     success: false,

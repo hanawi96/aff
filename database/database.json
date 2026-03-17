@@ -4,6 +4,10 @@
     "sql": "CREATE TABLE ctv (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  full_name TEXT NOT NULL,\r\n  phone TEXT NOT NULL,\r\n  email TEXT,\r\n  city TEXT,\r\n  age TEXT,\r\n  experience TEXT,\r\n  motivation TEXT,\r\n  referral_code TEXT UNIQUE NOT NULL,\r\n  status TEXT DEFAULT 'Mới',\r\n  commission_rate REAL DEFAULT 0.1, bank_account_number TEXT, bank_name TEXT, created_at_unix INTEGER, updated_at_unix INTEGER, slug_change_count INTEGER DEFAULT 0, custom_slug TEXT, slug_updated_at_unix INTEGER)"
   },
   {
+    "name": "sqlite_sequence",
+    "sql": "CREATE TABLE sqlite_sequence(name,seq)"
+  },
+  {
     "name": "categories",
     "sql": "CREATE TABLE categories (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL UNIQUE,\r\n    description TEXT,\r\n    icon TEXT,\r\n    color TEXT,\r\n    display_order INTEGER DEFAULT 0,\r\n    is_active INTEGER DEFAULT 1,\r\n    created_at TEXT DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at TEXT DEFAULT CURRENT_TIMESTAMP\r\n, created_at_unix INTEGER, updated_at_unix INTEGER)"
   },
@@ -17,7 +21,7 @@
   },
   {
     "name": "products",
-    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0\r\n, markup_multiplier REAL DEFAULT NULL)"
+    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0\r\n, markup_multiplier REAL DEFAULT NULL, is_handmade INTEGER DEFAULT 0, is_chemical_free INTEGER DEFAULT 0, favorites_count INTEGER DEFAULT 0, pricing_method TEXT DEFAULT 'markup' CHECK (pricing_method IN ('markup', 'profit')), target_profit REAL DEFAULT NULL)"
   },
   {
     "name": "commission_payments",

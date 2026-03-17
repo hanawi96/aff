@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="styles.css?v=4">
     <link rel="stylesheet" href="assets/css/home.css?v=1">
     <link rel="stylesheet" href="assets/css/feedback-carousel.css">
+    <link rel="stylesheet" href="assets/css/featured-carousel.css">
 </head>
 <body class="bg-warm">
     <!-- Inline script to prevent FOUC - Must run BEFORE HTML renders -->
@@ -748,6 +749,13 @@
         <div class="container mx-auto px-4 relative">
             <!-- Section Header - Handmade Style -->
             <div class="text-center mb-12">
+                <!-- Featured Products Section -->
+                <div class="mb-16">
+                    <!-- Featured Products Carousel -->
+                    <div id="featuredCarousel" class="mb-8"></div>
+                </div>
+
+                <!-- Most Loved Products Section -->
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2" id="productsSectionTitle">
                     Sản phẩm được
                 </h2>
@@ -2264,5 +2272,6 @@
     <script type="module" src="assets/js/app.js"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script src="assets/js/feedback-carousel.js"></script>
+    <script src="assets/js/components/featured-carousel.js"></script>
 </body>
 </html>
