@@ -577,6 +577,152 @@ export async function addMultipleFeaturedProducts(data, env, corsHeaders) {
     }
 }
 
+// ➖ Xóa nhiều sản phẩm khỏi featured cùng lúc
+export async function removeMultipleFeaturedProducts(data, env, corsHeaders) {
+    try {
+        console.log('🗑️ [FEATURED] Removing multiple products:', data);
+        const { product_ids } = data;
+
+        if (!Array.isArray(product_ids) || product_ids.length === 0) {
+            console.log('❌ [FEATURED] Invalid product_ids:', product_ids);
+            return jsonResponse({
+                success: false,
+                error: 'Product IDs array is required'
+            }, 400, corsHeaders);
+        }
+
+        console.log('📦 [FEATURED] Processing product IDs for removal:', product_ids);
+
+        // Kiểm tra sản phẩm có trong featured không
+        let products = [];
+        
+        for (const productId of product_ids) {
+            console.log('🔍 [FEATURED] Checking featured product:', productId, typeof productId);
+            
+            // Đảm bảo productId là number
+            const numericId = parseInt(productId);
+            if (isNaN(numericId)) {
+                console.log('❌ [FEATURED] Invalid product ID:', productId);
+                continue;
+            }
+            
+            try {
+                const product = await env.DB.prepare(`
+                    SELECT id, name, is_featured, featured_order FROM products 
+                    WHERE id = ${numericId} AND is_active = 1
+                `).first();
+                
+                if (product) {
+                    console.log('✅ [FEATURED] Product found:', product);
+                    products.push(product);
+                } else {
+                    console.log('❌ [FEATURED] Product not found or inactive:', numericId);
+                }
+            } catch (error) {
+                console.error('❌ [FEATURED] Query error for product', numericId, ':', error);
+            }
+        }
+
+        if (products.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy sản phẩm nào để xóa'
+            }, 400, corsHeaders);
+        }
+
+        // Lọc ra sản phẩm đang featured
+        const featuredProducts = products.filter(p => p.is_featured);
+        console.log('🗑️ [FEATURED] Featured products to remove:', featuredProducts.length);
+        
+        if (featuredProducts.length === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Không có sản phẩm nào trong danh sách nổi bật'
+            }, 400, corsHeaders);
+        }
+
+        console.log('💾 [FEATURED] Executing individual removals...');
+        
+        // Xóa từng sản phẩm khỏi featured
+        for (const product of featuredProducts) {
+            const numericId = parseInt(product.id);
+            
+            console.log(`🗑️ [FEATURED] Removing product ${numericId} from featured`);
+            
+            try {
+                await env.DB.prepare(`
+                    UPDATE products 
+                    SET is_featured = 0, 
+                        featured_order = NULL, 
+                        featured_at_unix = NULL
+                    WHERE id = ${numericId}
+                `).run();
+                
+                console.log(`✅ [FEATURED] Removed product ${numericId}`);
+            } catch (error) {
+                console.error(`❌ [FEATURED] Failed to remove product ${numericId}:`, error);
+                throw error;
+            }
+        }
+
+        // Cập nhật lại featured_order cho các sản phẩm còn lại
+        console.log('🔄 [FEATURED] Reordering remaining featured products...');
+        
+        try {
+            // Lấy tất cả sản phẩm featured còn lại, sắp xếp theo order cũ
+            const { results: remainingProducts } = await env.DB.prepare(`
+                SELECT id, featured_order FROM products 
+                WHERE is_featured = 1 
+                ORDER BY featured_order ASC
+            `).all();
+
+            // Cập nhật lại order từ 1, 2, 3...
+            for (let i = 0; i < remainingProducts.length; i++) {
+                const product = remainingProducts[i];
+                const newOrder = i + 1;
+                
+                await env.DB.prepare(`
+                    UPDATE products 
+                    SET featured_order = ${newOrder}
+                    WHERE id = ${product.id}
+                `).run();
+            }
+            
+            console.log(`✅ [FEATURED] Reordered ${remainingProducts.length} remaining products`);
+        } catch (error) {
+            console.error('❌ [FEATURED] Failed to reorder products:', error);
+            // Không throw error vì việc xóa đã thành công
+        }
+
+        // Clear cache
+        clearCache('featured');
+        console.log('🗑️ [FEATURED] Cache cleared');
+
+        const skippedCount = products.length - featuredProducts.length;
+        let message = `Đã xóa ${featuredProducts.length} sản phẩm khỏi nổi bật`;
+        if (skippedCount > 0) {
+            message += ` (${skippedCount} sản phẩm không có trong danh sách)`;
+        }
+
+        console.log('✅ [FEATURED] Bulk removal success:', message);
+
+        return jsonResponse({
+            success: true,
+            message,
+            removed_count: featuredProducts.length,
+            skipped_count: skippedCount,
+            total_requested: product_ids.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('❌ [FEATURED] Error removing multiple featured products:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // 🗑️ Clear cache manually (Admin utility)
 export async function clearFeaturedCache(env, corsHeaders) {
     try {

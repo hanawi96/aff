@@ -155,6 +155,7 @@ import {
     addFeaturedProduct,
     addMultipleFeaturedProducts,
     removeFeaturedProduct,
+    removeMultipleFeaturedProducts,
     reorderFeaturedProducts,
     getFeaturedStats,
     clearFeaturedCache
@@ -314,6 +315,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await addMultipleFeaturedProducts(data, env, corsHeaders);
         case 'removeFeaturedProduct':
             return await removeFeaturedProduct(data, env, corsHeaders);
+        case 'removeMultipleFeaturedProducts':
+            return await removeMultipleFeaturedProducts(data, env, corsHeaders);
         case 'reorderFeaturedProducts':
             return await reorderFeaturedProducts(data, env, corsHeaders);
         case 'getFeaturedStats':
@@ -479,6 +482,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await addMultipleFeaturedProducts(data, env, corsHeaders);
             case 'removeFeaturedProduct':
                 return await removeFeaturedProduct(data, env, corsHeaders);
+            case 'removeMultipleFeaturedProducts':
+                return await removeMultipleFeaturedProducts(data, env, corsHeaders);
             case 'reorderFeaturedProducts':
                 return await reorderFeaturedProducts(data, env, corsHeaders);
             case 'getFeaturedStats':

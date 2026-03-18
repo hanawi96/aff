@@ -22,7 +22,8 @@ let state = {
     filteredAvailable: [],
     categories: [],
     selectedCategory: 'all',
-    selectedProducts: [], // Array để track sản phẩm đã chọn
+    selectedProducts: [], // Array để track sản phẩm đã chọn trong modal
+    selectedFeaturedProducts: [], // Array để track sản phẩm featured đã chọn để bulk action
     isLoading: false,
     sortable: null,
     searchTimeout: null
@@ -41,6 +42,13 @@ async function initializeApp() {
     try {
         // Setup event listeners
         setupEventListeners();
+        
+        // Initialize bulk action bar state
+        const bulkActionBar = document.getElementById('bulkActionBar');
+        if (bulkActionBar) {
+            bulkActionBar.classList.add('hidden');
+            bulkActionBar.classList.remove('show');
+        }
         
         // Load initial data
         await loadFeaturedData();
@@ -135,16 +143,19 @@ function renderFeaturedProducts() {
     const container = document.getElementById('featuredList');
     const emptyState = document.getElementById('featuredEmpty');
     const addProductBtn = document.getElementById('addProductBtn');
+    const selectAllContainer = document.getElementById('selectAllContainer');
     
     if (state.featuredProducts.length === 0) {
         container.innerHTML = '';
         emptyState.classList.remove('hidden');
         addProductBtn.classList.add('hidden');
+        if (selectAllContainer) selectAllContainer.style.display = 'none';
         return;
     }
     
     emptyState.classList.add('hidden');
     addProductBtn.classList.remove('hidden');
+    if (selectAllContainer) selectAllContainer.style.display = 'flex';
     
     // Render featured products
     const fragment = document.createDocumentFragment();
@@ -159,15 +170,29 @@ function renderFeaturedProducts() {
     
     // Initialize sortable
     initializeSortable();
+    
+    // Update bulk action UI
+    updateBulkActionUI();
 }
 
 function createFeaturedProductElement(product, index) {
     const div = document.createElement('div');
-    div.className = 'product-card bg-white border border-gray-200 rounded-xl p-4 cursor-move hover:shadow-md transition-all duration-200';
+    const isSelected = state.selectedFeaturedProducts.includes(product.id);
+    
+    div.className = `product-card bg-white border rounded-xl p-4 cursor-move hover:shadow-md transition-all duration-200 ${
+        isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-gray-200'
+    }`;
     div.dataset.productId = product.id;
     
     div.innerHTML = `
         <div class="flex items-center space-x-4">
+            <!-- Bulk Selection Checkbox -->
+            <div class="flex-shrink-0">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                       class="w-4 h-4 text-admin-primary border-gray-300 rounded focus:ring-admin-primary focus:ring-2"
+                       onclick="event.stopPropagation(); toggleFeaturedProductSelection(${product.id});">
+            </div>
+            
             <!-- Drag Handle -->
             <div class="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -566,6 +591,143 @@ function updateOrderNumbers() {
 }
 
 // ============================================
+// BULK ACTIONS FOR FEATURED PRODUCTS
+// ============================================
+function toggleFeaturedProductSelection(productId) {
+    console.log('🔄 Toggling selection for product:', productId);
+    const index = state.selectedFeaturedProducts.indexOf(productId);
+    
+    if (index > -1) {
+        // Bỏ chọn
+        state.selectedFeaturedProducts.splice(index, 1);
+        console.log('❌ Deselected product:', productId);
+    } else {
+        // Chọn
+        state.selectedFeaturedProducts.push(productId);
+        console.log('✅ Selected product:', productId);
+    }
+    
+    console.log('📊 Current selection:', state.selectedFeaturedProducts);
+    
+    // Update UI
+    updateBulkActionUI();
+    renderFeaturedProducts(); // Re-render để update checkbox states
+}
+
+function selectAllFeaturedProducts() {
+    state.selectedFeaturedProducts = [...state.featuredProducts.map(p => p.id)];
+    updateBulkActionUI();
+    renderFeaturedProducts();
+}
+
+function deselectAllFeaturedProducts() {
+    state.selectedFeaturedProducts = [];
+    updateBulkActionUI();
+    renderFeaturedProducts();
+}
+
+function updateBulkActionUI() {
+    const count = state.selectedFeaturedProducts.length;
+    const totalCount = state.featuredProducts.length;
+    
+    console.log('🔄 Updating bulk action UI:', { count, totalCount, selected: state.selectedFeaturedProducts });
+    
+    // Update bulk action bar visibility
+    const bulkActionBar = document.getElementById('bulkActionBar');
+    const mainContent = document.querySelector('main');
+    
+    if (bulkActionBar) {
+        if (count > 0) {
+            console.log('✅ Showing bulk action bar');
+            bulkActionBar.classList.remove('hidden');
+            bulkActionBar.classList.add('show');
+            
+            // Add padding to main content to prevent overlap
+            if (mainContent) {
+                mainContent.classList.add('main-content-with-bulk-bar');
+            }
+            
+            const selectedCountElement = bulkActionBar.querySelector('#selectedCount');
+            if (selectedCountElement) {
+                selectedCountElement.textContent = count;
+            }
+        } else {
+            console.log('❌ Hiding bulk action bar');
+            bulkActionBar.classList.remove('show');
+            bulkActionBar.classList.add('hidden');
+            
+            // Remove padding from main content
+            if (mainContent) {
+                mainContent.classList.remove('main-content-with-bulk-bar');
+            }
+        }
+    } else {
+        console.error('❌ Bulk action bar element not found');
+    }
+    
+    // Update select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        if (count === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (count === totalCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+}
+
+async function bulkRemoveFeaturedProducts() {
+    if (state.selectedFeaturedProducts.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 sản phẩm để xóa', 'warning');
+        return;
+    }
+    
+    const count = state.selectedFeaturedProducts.length;
+    if (!confirm(`Bạn có chắc muốn xóa ${count} sản phẩm khỏi danh sách nổi bật?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=removeMultipleFeaturedProducts`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+            },
+            body: JSON.stringify({ product_ids: state.selectedFeaturedProducts })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            
+            // Clear featured products cache for shop page
+            localStorage.removeItem('featured_products_cache');
+            console.log('🗑️ Cleared featured products cache');
+            
+            // Reset selection
+            state.selectedFeaturedProducts = [];
+            updateBulkActionUI();
+            
+            // Reload data
+            await loadFeaturedData();
+        } else {
+            throw new Error(data.error);
+        }
+        
+    } catch (error) {
+        console.error('❌ Bulk remove featured failed:', error);
+        showToast('Lỗi xóa sản phẩm: ' + error.message, 'error');
+    }
+}
+
+// ============================================
 // MULTI-SELECT FUNCTIONALITY
 // ============================================
 function toggleProductSelection(productId) {
@@ -834,6 +996,16 @@ function showToast(message, type = 'info', duration = 4000) {
     }, duration);
 }
 
+function handleSelectAllChange() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    
+    if (selectAllCheckbox.checked) {
+        selectAllFeaturedProducts();
+    } else {
+        deselectAllFeaturedProducts();
+    }
+}
+
 // ============================================
 // GLOBAL FUNCTIONS
 // ============================================
@@ -844,4 +1016,9 @@ window.removeFeaturedProduct = removeFeaturedProduct;
 window.selectCategory = selectCategory;
 window.toggleProductSelection = toggleProductSelection;
 window.addSelectedProducts = addSelectedProducts;
+window.toggleFeaturedProductSelection = toggleFeaturedProductSelection;
+window.selectAllFeaturedProducts = selectAllFeaturedProducts;
+window.deselectAllFeaturedProducts = deselectAllFeaturedProducts;
+window.bulkRemoveFeaturedProducts = bulkRemoveFeaturedProducts;
+window.handleSelectAllChange = handleSelectAllChange;
 window.logout = logout;

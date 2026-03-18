@@ -81,6 +81,55 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
+        /* Bulk Action Bar Styles */
+        #bulkActionBar {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        #bulkActionBar.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        #bulkActionBar.hidden {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        
+        /* Pulse animation for selection indicator */
+        .selection-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Mobile responsive for bulk action bar */
+        @media (max-width: 1024px) {
+            #bulkActionBar {
+                left: 0 !important;
+            }
+        }
+        
+        /* Add bottom padding to main content when bulk action bar is visible */
+        .main-content-with-bulk-bar {
+            padding-bottom: 100px;
+            transition: padding-bottom 0.3s ease;
+        }
+        
+        /* Hover effects for bulk action buttons */
+        .bulk-action-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .bulk-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -311,6 +360,33 @@
                         
                         <!-- Featured products list -->
                         <div id="featuredList" class="space-y-3"></div>
+                    </div>
+                    
+                    <!-- Bulk Action Bar - Sticky Bottom -->
+                    <div id="bulkActionBar" class="hidden fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+                        <div class="px-6 py-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-2 h-2 bg-admin-primary rounded-full selection-indicator"></div>
+                                    <span class="text-sm font-medium text-gray-900">
+                                        Đã chọn <span id="selectedCount" class="text-admin-primary font-semibold">0</span> sản phẩm
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button onclick="deselectAllFeaturedProducts()" 
+                                            class="bulk-action-btn px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium">
+                                        Bỏ chọn tất cả
+                                    </button>
+                                    <button onclick="bulkRemoveFeaturedProducts()" 
+                                            class="bulk-action-btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center space-x-2 shadow-sm">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Xóa khỏi nổi bật</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
