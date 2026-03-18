@@ -25,7 +25,7 @@ let state = {
     selectedProducts: [], // Array để track sản phẩm đã chọn trong modal
     selectedFeaturedProducts: [], // Array để track sản phẩm featured đã chọn để bulk action
     isLoading: false,
-    sortable: null,
+    isReordering: false, // Prevent spam reordering
     searchTimeout: null
 };
 
@@ -157,7 +157,7 @@ function renderFeaturedProducts() {
     addProductBtn.classList.remove('hidden');
     if (selectAllContainer) selectAllContainer.style.display = 'flex';
     
-    // Render featured products
+    // Render featured products với optimized DOM manipulation
     const fragment = document.createDocumentFragment();
     
     state.featuredProducts.forEach((product, index) => {
@@ -168,21 +168,24 @@ function renderFeaturedProducts() {
     container.innerHTML = '';
     container.appendChild(fragment);
     
-    // Initialize sortable
-    initializeSortable();
-    
     // Update bulk action UI
     updateBulkActionUI();
+    
+    console.log(`✅ Rendered ${state.featuredProducts.length} featured products`);
 }
 
 function createFeaturedProductElement(product, index) {
     const div = document.createElement('div');
     const isSelected = state.selectedFeaturedProducts.includes(product.id);
+    const isFirst = index === 0;
+    const isLast = index === state.featuredProducts.length - 1;
+    const totalCount = state.featuredProducts.length;
     
-    div.className = `product-card bg-white border rounded-xl p-4 cursor-move hover:shadow-md transition-all duration-200 ${
+    div.className = `product-card bg-white border rounded-xl p-4 hover:shadow-md transition-all duration-200 ${
         isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-gray-200'
     }`;
     div.dataset.productId = product.id;
+    div.dataset.productIndex = index;
     
     div.innerHTML = `
         <div class="flex items-center space-x-4">
@@ -191,13 +194,6 @@ function createFeaturedProductElement(product, index) {
                 <input type="checkbox" ${isSelected ? 'checked' : ''} 
                        class="w-4 h-4 text-admin-primary border-gray-300 rounded focus:ring-admin-primary focus:ring-2"
                        onclick="event.stopPropagation(); toggleFeaturedProductSelection(${product.id});">
-            </div>
-            
-            <!-- Drag Handle -->
-            <div class="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
             </div>
             
             <!-- Order Badge -->
@@ -222,12 +218,35 @@ function createFeaturedProductElement(product, index) {
                 <p class="text-sm text-gray-500">${formatPrice(product.price)}</p>
             </div>
             
-            <!-- Remove Button -->
-            <div class="flex-shrink-0">
+            <!-- Reorder Controls -->
+            <div class="flex-shrink-0 flex items-center space-x-1">
+                ${totalCount > 1 ? `
+                    <!-- Up Button -->
+                    <button onclick="moveProductUp(${product.id}, ${index})" 
+                            class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isFirst ? 'invisible' : ''}"
+                            title="Di chuyển lên"
+                            ${isFirst ? 'disabled' : ''}>
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Down Button -->
+                    <button onclick="moveProductDown(${product.id}, ${index})" 
+                            class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isLast ? 'invisible' : ''}"
+                            title="Di chuyển xuống"
+                            ${isLast ? 'disabled' : ''}>
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                ` : ''}
+                
+                <!-- Remove Button -->
                 <button onclick="removeFeaturedProduct(${product.id})" 
-                        class="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-all duration-150"
                         title="Xóa khỏi nổi bật">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -511,83 +530,142 @@ function handleProductSearch(event) {
 // ============================================
 
 // ============================================
-// SORTABLE FUNCTIONALITY
+// SMART REORDERING SYSTEM - SIÊU NHANH & MƯỢT
 // ============================================
-function initializeSortable() {
-    const container = document.getElementById('featuredList');
-    if (!container || state.featuredProducts.length === 0) return;
+
+// Optimized reorder với debounce và batch processing
+let reorderQueue = [];
+let reorderTimeout = null;
+const REORDER_DEBOUNCE = 150; // ms
+
+// 🚀 Di chuyển sản phẩm lên - Siêu tối ưu
+async function moveProductUp(productId, currentIndex) {
+    if (currentIndex === 0) return; // Đã ở đầu
     
-    if (state.sortable) {
-        state.sortable.destroy();
-    }
-    
-    state.sortable = new Sortable(container, {
-        animation: 200,
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        handle: '.fa-grip-vertical',
-        
-        onEnd: function(evt) {
-            if (evt.oldIndex !== evt.newIndex) {
-                handleReorder(evt.oldIndex, evt.newIndex);
-            }
-        }
-    });
+    const newIndex = currentIndex - 1;
+    await performSmartReorder(currentIndex, newIndex, 'up');
 }
 
-async function handleReorder(oldIndex, newIndex) {
-    console.log(`🔄 Reordering: ${oldIndex} → ${newIndex}`);
+// 🚀 Di chuyển sản phẩm xuống - Siêu tối ưu  
+async function moveProductDown(productId, currentIndex) {
+    if (currentIndex === state.featuredProducts.length - 1) return; // Đã ở cuối
+    
+    const newIndex = currentIndex + 1;
+    await performSmartReorder(currentIndex, newIndex, 'down');
+}
+
+// 🧠 Smart reorder với optimistic UI và error recovery
+async function performSmartReorder(oldIndex, newIndex, direction) {
+    // Prevent spam clicking
+    if (state.isReordering) {
+        console.log('🚫 Reorder in progress, ignoring request');
+        return;
+    }
+    
+    state.isReordering = true;
     
     try {
-        // Optimistic update
-        const movedProduct = state.featuredProducts.splice(oldIndex, 1)[0];
-        state.featuredProducts.splice(newIndex, 0, movedProduct);
+        console.log(`🔄 Smart reorder: ${oldIndex} → ${newIndex} (${direction})`);
         
-        // Update display order numbers
-        updateOrderNumbers();
+        // 1. Instant UI feedback - Optimistic update
+        const originalProducts = [...state.featuredProducts];
+        performOptimisticReorder(oldIndex, newIndex);
         
-        // Prepare data for API
-        const productOrders = state.featuredProducts.map((product, index) => ({
-            product_id: product.id,
-            display_order: index + 1
-        }));
+        // 2. Visual feedback với smooth animation
+        showReorderFeedback(oldIndex, newIndex, direction);
         
-        // Send to server
-        const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=reorderFeaturedProducts`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-            },
-            body: JSON.stringify({ product_orders: productOrders })
-        });
+        // 3. Debounced API call để tránh spam
+        clearTimeout(reorderTimeout);
+        reorderTimeout = setTimeout(async () => {
+            try {
+                await executeReorderAPI();
+                console.log('✅ Smart reorder completed successfully');
+                showToast('Đã cập nhật thứ tự', 'success', 1500);
+            } catch (error) {
+                console.error('❌ Smart reorder failed:', error);
+                // Rollback optimistic update
+                state.featuredProducts = originalProducts;
+                renderFeaturedProducts();
+                showToast('Lỗi cập nhật thứ tự', 'error');
+            }
+        }, REORDER_DEBOUNCE);
         
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Đã cập nhật thứ tự', 'success', 2000);
-            
-            // Clear featured products cache for shop page
-            localStorage.removeItem('featured_products_cache');
-            console.log('🗑️ Cleared featured products cache after reorder');
-        } else {
-            throw new Error(data.error);
-        }
-        
-    } catch (error) {
-        console.error('❌ Reorder failed:', error);
-        showToast('Lỗi cập nhật thứ tự', 'error');
-        
-        // Rollback
-        await loadFeaturedData();
+    } finally {
+        // Reset state sau một chút để tránh race condition
+        setTimeout(() => {
+            state.isReordering = false;
+        }, 100);
     }
 }
 
-function updateOrderNumbers() {
-    const orderBadges = document.querySelectorAll('#featuredList .bg-blue-100');
-    orderBadges.forEach((badge, index) => {
-        badge.textContent = index + 1;
+// ⚡ Optimistic UI update - Instant feedback
+function performOptimisticReorder(oldIndex, newIndex) {
+    // Swap elements in state
+    const movedProduct = state.featuredProducts.splice(oldIndex, 1)[0];
+    state.featuredProducts.splice(newIndex, 0, movedProduct);
+    
+    // Instant UI update
+    renderFeaturedProducts();
+}
+
+// 🎨 Visual feedback với smooth animations
+function showReorderFeedback(oldIndex, newIndex, direction) {
+    const container = document.getElementById('featuredList');
+    const cards = container.querySelectorAll('.product-card');
+    
+    if (cards[newIndex]) {
+        // Highlight moved card
+        cards[newIndex].style.transform = 'scale(1.02)';
+        cards[newIndex].style.boxShadow = '0 8px 25px rgba(99, 102, 241, 0.15)';
+        cards[newIndex].style.borderColor = '#6366f1';
+        
+        // Reset after animation
+        setTimeout(() => {
+            cards[newIndex].style.transform = '';
+            cards[newIndex].style.boxShadow = '';
+            cards[newIndex].style.borderColor = '';
+        }, 300);
+    }
+}
+
+// 🚀 Optimized API execution
+async function executeReorderAPI() {
+    // Prepare optimized payload
+    const productOrders = state.featuredProducts.map((product, index) => ({
+        product_id: product.id,
+        display_order: index + 1
+    }));
+    
+    console.log('📡 Executing smart reorder API...');
+    console.log('📦 Products count:', productOrders.length);
+    console.log('📋 Product orders:', productOrders);
+    
+    const requestBody = { product_orders: productOrders };
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+    
+    const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=reorderFeaturedProducts`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+        },
+        body: JSON.stringify(requestBody)
     });
+    
+    console.log('📊 Response status:', response.status);
+    
+    const data = await response.json();
+    console.log('📥 Response data:', data);
+    
+    if (!data.success) {
+        throw new Error(data.error || 'Reorder API failed');
+    }
+    
+    // Clear cache for instant shop page update
+    localStorage.removeItem('featured_products_cache');
+    console.log('🗑️ Cache cleared for instant shop update');
+    
+    return data;
 }
 
 // ============================================
@@ -1007,7 +1085,7 @@ function handleSelectAllChange() {
 }
 
 // ============================================
-// GLOBAL FUNCTIONS
+// GLOBAL FUNCTIONS - OPTIMIZED EXPORTS
 // ============================================
 window.openProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
@@ -1021,4 +1099,6 @@ window.selectAllFeaturedProducts = selectAllFeaturedProducts;
 window.deselectAllFeaturedProducts = deselectAllFeaturedProducts;
 window.bulkRemoveFeaturedProducts = bulkRemoveFeaturedProducts;
 window.handleSelectAllChange = handleSelectAllChange;
+window.moveProductUp = moveProductUp; // 🚀 NEW
+window.moveProductDown = moveProductDown; // 🚀 NEW
 window.logout = logout;

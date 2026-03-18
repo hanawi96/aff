@@ -6,7 +6,6 @@
     <title>Quản lý Sản phẩm Nổi bật - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/css/admin.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -61,17 +60,6 @@
             transform: scale(1.02);
         }
 
-        /* Sortable styles */
-        .sortable-ghost {
-            opacity: 0.4;
-            background: #f3f4f6;
-        }
-        
-        .sortable-chosen {
-            transform: scale(1.02);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-
         /* Product card hover */
         .product-card {
             transition: all 0.2s ease;
@@ -80,6 +68,53 @@
         .product-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        /* Reorder button optimizations */
+        .reorder-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+        }
+        
+        .reorder-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
+        
+        .reorder-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .reorder-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Smooth reorder animations */
+        .product-card.reordering {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 10;
+        }
+        
+        .product-card.moving-up {
+            animation: moveUp 0.3s ease-out;
+        }
+        
+        .product-card.moving-down {
+            animation: moveDown 0.3s ease-out;
+        }
+        
+        @keyframes moveUp {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px) scale(1.02); }
+            100% { transform: translateY(0); }
+        }
+        
+        @keyframes moveDown {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(10px) scale(1.02); }
+            100% { transform: translateY(0); }
         }
         /* Bulk Action Bar Styles */
         #bulkActionBar {
@@ -326,8 +361,11 @@
                                 Sản phẩm Nổi bật
                             </h3>
                             <div class="flex items-center space-x-3">
-                                <div class="text-sm text-gray-500">
-                                    Kéo thả để sắp xếp thứ tự hiển thị
+                                <div class="text-sm text-gray-500 flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                    </svg>
+                                    <span>Dùng nút ↑↓ để sắp xếp thứ tự</span>
                                 </div>
                                 <button id="addProductBtn" onclick="openProductModal()" 
                                         class="hidden px-3 py-1.5 bg-admin-primary text-white rounded-lg hover:bg-admin-primary/90 transition-all duration-200 font-medium text-sm flex items-center space-x-1 shadow-sm hover:shadow-md">

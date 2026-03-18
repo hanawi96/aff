@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Featured Products Reorder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .reorder-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+        }
+        
+        .reorder-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
+        
+        .reorder-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .product-card.moving-up {
+            animation: moveUp 0.3s ease-out;
+        }
+        
+        .product-card.moving-down {
+            animation: moveDown 0.3s ease-out;
+        }
+        
+        @keyframes moveUp {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px) scale(1.02); }
+            100% { transform: translateY(0); }
+        }
+        
+        @keyframes moveDown {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(10px) scale(1.02); }
+            100% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Test Featured Products Reorder</h1>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                Sản phẩm Nổi bật
+                <span class="ml-2 text-sm text-gray-500">Dùng nút ↑↓ để sắp xếp</span>
+            </h2>
+            
+            <div id="productList" class="space-y-3">
+                <!-- Products will be rendered here -->
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h3 class="font-semibold text-blue-900 mb-2">Test Instructions:</h3>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• Click nút ↑ để di chuyển sản phẩm lên</li>
+                <li>• Click nút ↓ để di chuyển sản phẩm xuống</li>
+                <li>• Nút sẽ ẩn khi ở vị trí đầu/cuối</li>
+                <li>• Animation mượt mà khi di chuyển</li>
+                <li>• Responsive trên mobile</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for testing
+        let products = [
+            { id: 1, name: "Vòng tròn cổ điển dây đỏ", price: 150000, image_url: "/assets/images/product_img/vong_tron_co_dien_day_do.webp" },
+            { id: 2, name: "Vòng tròn cổ điển dây hồng", price: 150000, image_url: "/assets/images/product_img/vong_tron_co_dien_day_hong.webp" },
+            { id: 3, name: "Vòng tròn cổ điển dây vàng", price: 150000, image_url: "/assets/images/product_img/vong_tron_co_dien_day_vang.webp" },
+            { id: 4, name: "Vòng tròn cổ điển dây xanh", price: 150000, image_url: "/assets/images/product_img/vong_tron_co_dien_day_xanh.webp" },
+            { id: 5, name: "Vòng tròn cổ điển dây tím", price: 150000, image_url: "/assets/images/product_img/vong_tron_co_dien_day_tim.webp" }
+        ];
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(price);
+        }
+
+        function createProductElement(product, index) {
+            const isFirst = index === 0;
+            const isLast = index === products.length - 1;
+            const totalCount = products.length;
+            
+            return `
+                <div class="product-card bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200" data-product-id="${product.id}">
+                    <div class="flex items-center space-x-4">
+                        <!-- Order Badge -->
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white text-sm font-semibold rounded-full">
+                                ${index + 1}
+                            </span>
+                        </div>
+                        
+                        <!-- Product Image -->
+                        <div class="flex-shrink-0">
+                            <img src="${product.image_url}" 
+                                 alt="${product.name}"
+                                 class="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                                 loading="lazy"
+                                 onerror="this.src='/assets/images/no-image.jpg'">
+                        </div>
+                        
+                        <!-- Product Info -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-medium text-gray-900 truncate">${product.name}</h3>
+                            <p class="text-sm text-gray-500">${formatPrice(product.price)}</p>
+                        </div>
+                        
+                        <!-- Reorder Controls -->
+                        <div class="flex-shrink-0 flex items-center space-x-1">
+                            ${totalCount > 1 ? `
+                                <!-- Up Button -->
+                                <button onclick="moveProductUp(${index})" 
+                                        class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isFirst ? 'invisible' : ''}"
+                                        title="Di chuyển lên"
+                                        ${isFirst ? 'disabled' : ''}>
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                    </svg>
+                                </button>
+                                
+                                <!-- Down Button -->
+                                <button onclick="moveProductDown(${index})" 
+                                        class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isLast ? 'invisible' : ''}"
+                                        title="Di chuyển xuống"
+                                        ${isLast ? 'disabled' : ''}>
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                            ` : ''}
+                            
+                            <!-- Remove Button -->
+                            <button onclick="removeProduct(${index})" 
+                                    class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-all duration-150"
+                                    title="Xóa khỏi nổi bật">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('productList');
+            const html = products.map((product, index) => createProductElement(product, index)).join('');
+            container.innerHTML = html;
+        }
+
+        function moveProductUp(currentIndex) {
+            if (currentIndex === 0) return;
+            
+            const newIndex = currentIndex - 1;
+            performMove(currentIndex, newIndex, 'up');
+        }
+
+        function moveProductDown(currentIndex) {
+            if (currentIndex === products.length - 1) return;
+            
+            const newIndex = currentIndex + 1;
+            performMove(currentIndex, newIndex, 'down');
+        }
+
+        function performMove(oldIndex, newIndex, direction) {
+            // Visual feedback
+            const cards = document.querySelectorAll('.product-card');
+            if (cards[oldIndex]) {
+                cards[oldIndex].classList.add(`moving-${direction}`);
+                setTimeout(() => {
+                    cards[oldIndex].classList.remove(`moving-${direction}`);
+                }, 300);
+            }
+            
+            // Update data
+            const movedProduct = products.splice(oldIndex, 1)[0];
+            products.splice(newIndex, 0, movedProduct);
+            
+            // Re-render
+            setTimeout(() => {
+                renderProducts();
+                console.log(`Moved product from ${oldIndex} to ${newIndex}`);
+            }, 150);
+        }
+
+        function removeProduct(index) {
+            if (confirm('Xóa sản phẩm này khỏi danh sách nổi bật?')) {
+                products.splice(index, 1);
+                renderProducts();
+                console.log(`Removed product at index ${index}`);
+            }
+        }
+
+        // Initial render
+        renderProducts();
+        
+        console.log('🚀 Featured Products Reorder Test Ready!');
+        console.log('📦 Products:', products.length);
+    </script>
+</body>
+</html>

@@ -261,11 +261,11 @@ export async function addFeaturedProduct(data, env, corsHeaders) {
         // Cập nhật sản phẩm thành featured
         await env.DB.prepare(`
             UPDATE products 
-            SET is_featured = 1, 
+            SET is_featured = ?, 
                 featured_order = ?, 
                 featured_at_unix = ?
             WHERE id = ?
-        `).bind(max_order + 1, now, product_id).run();
+        `).bind(1, max_order + 1, now, product_id).run();
 
         // Clear cache
         clearCache('featured');
@@ -346,28 +346,57 @@ export async function removeFeaturedProduct(data, env, corsHeaders) {
 // 🔄 Sắp xếp lại thứ tự featured products
 export async function reorderFeaturedProducts(data, env, corsHeaders) {
     try {
+        console.log('🔄 [REORDER] Starting reorder with data:', data);
         const { product_orders } = data;
 
         if (!Array.isArray(product_orders) || product_orders.length === 0) {
+            console.log('❌ [REORDER] Invalid product_orders:', product_orders);
             return jsonResponse({
                 success: false,
                 error: 'Product orders array is required'
             }, 400, corsHeaders);
         }
 
-        // Sử dụng transaction để đảm bảo data integrity
-        await env.DB.batch(
-            product_orders.map((item, index) => 
-                env.DB.prepare(`
+        console.log('📦 [REORDER] Processing', product_orders.length, 'products');
+        
+        // Validate data structure
+        for (const item of product_orders) {
+            if (!item.product_id || !item.display_order) {
+                console.log('❌ [REORDER] Invalid item structure:', item);
+                return jsonResponse({
+                    success: false,
+                    error: 'Each item must have product_id and display_order'
+                }, 400, corsHeaders);
+            }
+        }
+
+        // Sử dụng individual updates thay vì batch để debug dễ hơn
+        console.log('💾 [REORDER] Executing individual updates...');
+        
+        for (let i = 0; i < product_orders.length; i++) {
+            const item = product_orders[i];
+            const productId = parseInt(item.product_id);
+            const displayOrder = parseInt(item.display_order);
+            
+            console.log(`🔄 [REORDER] Updating product ${productId} to order ${displayOrder}`);
+            
+            try {
+                const result = await env.DB.prepare(`
                     UPDATE products 
                     SET featured_order = ?
                     WHERE id = ? AND is_featured = 1
-                `).bind(index + 1, item.product_id)
-            )
-        );
+                `).bind(displayOrder, productId).run();
+                
+                console.log(`✅ [REORDER] Updated product ${productId}, changes: ${result.changes}`);
+            } catch (error) {
+                console.error(`❌ [REORDER] Failed to update product ${productId}:`, error);
+                throw error;
+            }
+        }
 
         // Clear cache
         clearCache('featured');
+        console.log('🗑️ [REORDER] Cache cleared');
 
         return jsonResponse({
             success: true,
@@ -376,7 +405,7 @@ export async function reorderFeaturedProducts(data, env, corsHeaders) {
         }, 200, corsHeaders);
 
     } catch (error) {
-        console.error('Error reordering featured products:', error);
+        console.error('❌ [REORDER] Error reordering featured products:', error);
         return jsonResponse({
             success: false,
             error: error.message
@@ -465,8 +494,8 @@ export async function addMultipleFeaturedProducts(data, env, corsHeaders) {
             try {
                 const product = await env.DB.prepare(`
                     SELECT id, name, is_featured FROM products 
-                    WHERE id = ${numericId} AND is_active = 1
-                `).first();
+                    WHERE id = ? AND is_active = 1
+                `).bind(numericId).first();
                 
                 if (product) {
                     console.log('✅ [FEATURED] Product found:', product);
@@ -535,11 +564,11 @@ export async function addMultipleFeaturedProducts(data, env, corsHeaders) {
             try {
                 await env.DB.prepare(`
                     UPDATE products 
-                    SET is_featured = 1, 
-                        featured_order = ${newOrder}, 
-                        featured_at_unix = ${now}
-                    WHERE id = ${numericId}
-                `).run();
+                    SET is_featured = ?, 
+                        featured_order = ?, 
+                        featured_at_unix = ?
+                    WHERE id = ?
+                `).bind(1, newOrder, now, numericId).run();
                 
                 console.log(`✅ [FEATURED] Updated product ${numericId}`);
             } catch (error) {
@@ -609,8 +638,8 @@ export async function removeMultipleFeaturedProducts(data, env, corsHeaders) {
             try {
                 const product = await env.DB.prepare(`
                     SELECT id, name, is_featured, featured_order FROM products 
-                    WHERE id = ${numericId} AND is_active = 1
-                `).first();
+                    WHERE id = ? AND is_active = 1
+                `).bind(numericId).first();
                 
                 if (product) {
                     console.log('✅ [FEATURED] Product found:', product);
@@ -655,8 +684,8 @@ export async function removeMultipleFeaturedProducts(data, env, corsHeaders) {
                     SET is_featured = 0, 
                         featured_order = NULL, 
                         featured_at_unix = NULL
-                    WHERE id = ${numericId}
-                `).run();
+                    WHERE id = ?
+                `).bind(numericId).run();
                 
                 console.log(`✅ [FEATURED] Removed product ${numericId}`);
             } catch (error) {
@@ -683,9 +712,9 @@ export async function removeMultipleFeaturedProducts(data, env, corsHeaders) {
                 
                 await env.DB.prepare(`
                     UPDATE products 
-                    SET featured_order = ${newOrder}
-                    WHERE id = ${product.id}
-                `).run();
+                    SET featured_order = ?
+                    WHERE id = ?
+                `).bind(newOrder, product.id).run();
             }
             
             console.log(`✅ [FEATURED] Reordered ${remainingProducts.length} remaining products`);

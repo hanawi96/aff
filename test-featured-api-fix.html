@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Featured API - Fixed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Test Featured API - Fixed Version</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Test Add Featured -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Test Add Featured</h2>
+                <div class="space-y-3">
+                    <input type="number" id="addProductId" placeholder="Product ID" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <button onclick="testAddFeatured()" class="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                        Add to Featured
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Test Remove Featured -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Test Remove Featured</h2>
+                <div class="space-y-3">
+                    <input type="number" id="removeProductId" placeholder="Product ID" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <button onclick="testRemoveFeatured()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                        Remove from Featured
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Reorder -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Test Reorder</h2>
+            <div class="space-y-3">
+                <textarea id="reorderData" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder='[{"product_id": 1, "display_order": 1}, {"product_id": 2, "display_order": 2}]'></textarea>
+                <button onclick="testReorder()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Test Reorder
+                </button>
+                <button onclick="loadSampleData()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                    Load Sample Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="getFeaturedProducts()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">
+                    Get Featured Products
+                </button>
+                <button onclick="clearLogs()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                    Clear Logs
+                </button>
+            </div>
+        </div>
+        
+        <!-- Logs -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Logs</h2>
+            <div id="logs" class="bg-gray-900 text-green-400 p-4 rounded text-sm h-96 overflow-y-auto font-mono"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8787';
+        
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400',
+                success: 'text-blue-400'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = colors[type] || 'text-green-400';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        async function testAddFeatured() {
+            const productId = document.getElementById('addProductId').value;
+            if (!productId) {
+                log('❌ Please enter Product ID', 'error');
+                return;
+            }
+            
+            log(`🔄 Adding product ${productId} to featured...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}?action=addFeaturedProduct`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('session_token') || 'test-token'}`
+                    },
+                    body: JSON.stringify({ product_id: parseInt(productId) })
+                });
+                
+                const data = await response.json();
+                log(`📥 Response: ${JSON.stringify(data, null, 2)}`, data.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRemoveFeatured() {
+            const productId = document.getElementById('removeProductId').value;
+            if (!productId) {
+                log('❌ Please enter Product ID', 'error');
+                return;
+            }
+            
+            log(`🔄 Removing product ${productId} from featured...`, 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}?action=removeFeaturedProduct`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('session_token') || 'test-token'}`
+                    },
+                    body: JSON.stringify({ product_id: parseInt(productId) })
+                });
+                
+                const data = await response.json();
+                log(`📥 Response: ${JSON.stringify(data, null, 2)}`, data.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testReorder() {
+            const reorderDataText = document.getElementById('reorderData').value;
+            if (!reorderDataText) {
+                log('❌ Please enter reorder data', 'error');
+                return;
+            }
+            
+            try {
+                const productOrders = JSON.parse(reorderDataText);
+                log(`🔄 Testing reorder with ${productOrders.length} products...`, 'info');
+                log(`📤 Data: ${JSON.stringify(productOrders, null, 2)}`, 'info');
+                
+                const response = await fetch(`${API_URL}?action=reorderFeaturedProducts`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('session_token') || 'test-token'}`
+                    },
+                    body: JSON.stringify({ product_orders: productOrders })
+                });
+                
+                const data = await response.json();
+                log(`📥 Response: ${JSON.stringify(data, null, 2)}`, data.success ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getFeaturedProducts() {
+            log('📋 Getting featured products...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}?action=getFeaturedProductsForAdmin`, {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Bearer ${localStorage.getItem('session_token') || 'test-token'}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`✅ Featured products count: ${data.featured_products.length}`, 'success');
+                    data.featured_products.forEach((product, index) => {
+                        log(`  ${index + 1}. ${product.name} (ID: ${product.id}, Order: ${product.featured_order})`, 'info');
+                    });
+                } else {
+                    log(`❌ Failed: ${data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function loadSampleData() {
+            const sampleData = [
+                { "product_id": 1, "display_order": 1 },
+                { "product_id": 2, "display_order": 2 },
+                { "product_id": 3, "display_order": 3 }
+            ];
+            
+            document.getElementById('reorderData').value = JSON.stringify(sampleData, null, 2);
+            log('📋 Sample data loaded', 'info');
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', () => {
+            log('🚀 Test page loaded - Fixed version', 'success');
+            getFeaturedProducts();
+        });
+    </script>
+</body>
+</html>
