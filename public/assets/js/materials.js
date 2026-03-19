@@ -406,6 +406,7 @@ async function saveMaterial(oldItemName = null) {
             showToast(oldItemName ? 'Đã cập nhật nguyên liệu' : 'Đã thêm nguyên liệu mới', 'success');
             closeMaterialModal();
             await loadMaterials();
+            applyOutdatedProductsBadge(data.affected_products || 0);
             
             if (oldItemName && data.affected_products > 0) {
                 showToast(`Đã cập nhật giá vốn cho ${data.affected_products} sản phẩm`, 'info');
@@ -772,6 +773,10 @@ async function saveQuickEdit(itemName) {
             } else {
                 showToast('✅ Đã cập nhật giá', 'success');
             }
+
+            // Update badge immediately for the just-changed material,
+            // then sync with server-calculated global outdated count in background.
+            applyOutdatedProductsBadge(data.affected_products || 0);
             
             // Update stats
             updateStats();
@@ -1513,14 +1518,28 @@ async function checkOutdatedProducts() {
         const response = await fetch(`${CONFIG.API_URL}?action=checkOutdatedProducts&timestamp=${Date.now()}`);
         const data = await response.json();
 
-        if (data.success && data.outdated_count > 0) {
-            const badge = document.getElementById('outdatedProductsBadge');
-            if (badge) {
-                badge.textContent = data.outdated_count;
-                badge.classList.remove('hidden');
-            }
+        if (data.success) {
+            applyOutdatedProductsBadge(data.outdated_count || 0, false);
         }
     } catch (error) {
         console.error('Error checking outdated products:', error);
+    }
+}
+
+function applyOutdatedProductsBadge(count, syncWithServer = true) {
+    const badge = document.getElementById('outdatedProductsBadge');
+    if (!badge) return;
+
+    const safeCount = Number(count || 0);
+    if (safeCount > 0) {
+        badge.textContent = safeCount;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+
+    // Ensure 100% correctness: quick UI update first, exact server sync right after.
+    if (syncWithServer) {
+        setTimeout(() => checkOutdatedProducts(), 0);
     }
 }

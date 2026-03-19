@@ -490,16 +490,19 @@ export async function updateMaterial(data, env, corsHeaders) {
                 WHERE material_name = ?
             `).bind(newItemName, oldItemName).run();
             
-            // Count affected products
-            const { results: affected } = await env.DB.prepare(`
-                SELECT COUNT(DISTINCT product_id) as count
-                FROM product_materials
-                WHERE material_name = ?
-            `).bind(newItemName).all();
-
-            affectedCount = affected[0]?.count || 0;
-            console.log('✅ Updated', affectedCount, 'product references');
+            console.log('✅ Updated product_materials references');
         }
+
+        // Always count affected products for the final material key.
+        // This is used by frontend to update the "outdated products" badge immediately.
+        const { results: affected } = await env.DB.prepare(`
+            SELECT COUNT(DISTINCT product_id) as count
+            FROM product_materials
+            WHERE material_name = ?
+        `).bind(newItemName).all();
+
+        affectedCount = Number(affected[0]?.count || 0);
+        console.log('📊 Affected products for material change:', affectedCount);
 
         return jsonResponse({
             success: true,
