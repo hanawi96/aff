@@ -770,6 +770,18 @@ async function bulkRemoveFeaturedProducts() {
         return;
     }
     
+    // Disable bulk action button to prevent double-click
+    const bulkRemoveBtn = document.querySelector('button[onclick="bulkRemoveFeaturedProducts()"]');
+    if (bulkRemoveBtn) {
+        bulkRemoveBtn.disabled = true;
+        bulkRemoveBtn.innerHTML = `
+            <svg class="w-4 h-4 animate-spin inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Đang xóa...</span>
+        `;
+    }
+    
     try {
         const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=removeMultipleFeaturedProducts`, {
             method: 'POST',
@@ -783,7 +795,7 @@ async function bulkRemoveFeaturedProducts() {
         const data = await response.json();
         
         if (data.success) {
-            showToast(data.message, 'success');
+            showToast(`✅ ${data.message}`, 'success', 3000);
             
             // Clear featured products cache for shop page
             localStorage.removeItem('featured_products_cache');
@@ -801,7 +813,18 @@ async function bulkRemoveFeaturedProducts() {
         
     } catch (error) {
         console.error('❌ Bulk remove featured failed:', error);
-        showToast('Lỗi xóa sản phẩm: ' + error.message, 'error');
+        showToast(`❌ Lỗi xóa sản phẩm: ${error.message}`, 'error');
+    } finally {
+        // Re-enable bulk action button
+        if (bulkRemoveBtn) {
+            bulkRemoveBtn.disabled = false;
+            bulkRemoveBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Xóa khỏi nổi bật</span>
+            `;
+        }
     }
 }
 
@@ -847,6 +870,20 @@ async function addSelectedProducts() {
         return;
     }
     
+    const count = state.selectedProducts.length;
+    
+    // Disable add button to prevent double-click
+    const addBtn = document.getElementById('addSelectedBtn');
+    if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.innerHTML = `
+            <svg class="w-4 h-4 animate-spin inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Đang thêm...
+        `;
+    }
+    
     try {
         const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=addMultipleFeaturedProducts`, {
             method: 'POST',
@@ -860,7 +897,7 @@ async function addSelectedProducts() {
         const data = await response.json();
         
         if (data.success) {
-            showToast(data.message, 'success');
+            showToast(`✅ ${data.message}`, 'success');
             
             // Clear featured products cache for shop page
             localStorage.removeItem('featured_products_cache');
@@ -879,7 +916,13 @@ async function addSelectedProducts() {
         
     } catch (error) {
         console.error('❌ Add multiple featured failed:', error);
-        showToast('Lỗi thêm sản phẩm: ' + error.message, 'error');
+        showToast(`❌ Lỗi thêm sản phẩm: ${error.message}`, 'error');
+    } finally {
+        // Re-enable add button
+        if (addBtn) {
+            addBtn.disabled = false;
+            addBtn.textContent = `Thêm ${count} sản phẩm`;
+        }
     }
 }
 
@@ -936,6 +979,17 @@ async function removeFeaturedProduct(productId) {
         return;
     }
     
+    // Find and disable the remove button to prevent double-click
+    const removeBtn = document.querySelector(`button[onclick="removeFeaturedProduct(${productId})"]`);
+    if (removeBtn) {
+        removeBtn.disabled = true;
+        removeBtn.innerHTML = `
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        `;
+    }
+    
     try {
         const response = await fetch(`${FEATURED_CONFIG.API_URL}?action=removeFeaturedProduct`, {
             method: 'POST',
@@ -949,7 +1003,7 @@ async function removeFeaturedProduct(productId) {
         const data = await response.json();
         
         if (data.success) {
-            showToast('Đã xóa khỏi nổi bật', 'success');
+            showToast('✅ Đã xóa khỏi nổi bật', 'success');
             
             // Clear featured products cache for shop page
             localStorage.removeItem('featured_products_cache');
@@ -963,7 +1017,17 @@ async function removeFeaturedProduct(productId) {
         
     } catch (error) {
         console.error('❌ Remove featured failed:', error);
-        showToast('Lỗi xóa sản phẩm: ' + error.message, 'error');
+        showToast(`❌ Lỗi xóa sản phẩm: ${error.message}`, 'error');
+    } finally {
+        // Re-enable button (will be replaced when data reloads, but good practice)
+        if (removeBtn) {
+            removeBtn.disabled = false;
+            removeBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            `;
+        }
     }
 }
 

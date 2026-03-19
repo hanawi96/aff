@@ -40,11 +40,7 @@ function loadFiltersFromURL() {
     // Get category from URL
     const categoryId = urlParams.get('category');
     if (categoryId) {
-        const categoryFilter = document.getElementById('categoryFilter');
-        if (categoryFilter) {
-            categoryFilter.value = categoryId;
-            currentFilters.categoryId = parseInt(categoryId);
-        }
+        currentFilters.categoryId = parseInt(categoryId);
     }
     
     // Get search term from URL
@@ -92,10 +88,7 @@ function setupEventListeners() {
         searchInput.addEventListener('input', debounce(searchAndSort, 300));
     }
     
-    const categoryFilter = document.getElementById('categoryFilter');
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', searchAndSort);
-    }
+    // Note: Category filter is now handled by button clicks, no need for change listener
     
     // Handle browser back/forward buttons
     window.addEventListener('popstate', function(event) {
@@ -175,16 +168,72 @@ async function loadCategories() {
     }
 }
 
-// Populate category filter dropdown
+// Populate category filter buttons
 function populateCategoryFilter() {
-    const categoryFilter = document.getElementById('categoryFilter');
-    if (!categoryFilter) return;
+    const container = document.getElementById('categoryFilterButtons');
+    if (!container) return;
 
-    const options = allCategories
-        .map(cat => `<option value="${cat.id}">${cat.name} (${cat.product_count || 0})</option>`)
-        .join('');
+    // Clear existing buttons
+    container.innerHTML = '';
+
+    // Create "Tất cả" button
+    const allButton = createCategoryButton('', 'Tất cả', allProducts.length, true);
+    container.appendChild(allButton);
+
+    // Create category buttons
+    allCategories.forEach(category => {
+        const button = createCategoryButton(category.id, category.name, category.product_count || 0, false);
+        container.appendChild(button);
+    });
+}
+
+// Create individual category button
+function createCategoryButton(categoryId, name, count, isAll = false) {
+    const button = document.createElement('button');
+    const isActive = currentFilters.categoryId == categoryId || (isAll && !currentFilters.categoryId);
     
-    categoryFilter.innerHTML = `<option value="">Tất cả danh mục</option>${options}`;
+    button.className = `category-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+        isActive 
+            ? 'active bg-admin-primary text-white shadow-md' 
+            : 'bg-white text-gray-700 hover:text-admin-primary hover:bg-admin-primary/5 border border-gray-200 hover:border-admin-primary/20'
+    }`;
+    
+    button.onclick = () => selectCategoryFilter(categoryId);
+    
+    // Icon for "Tất cả"
+    const icon = isAll ? `
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2h10a2 2 0 012 2v2M7 7V6a1 1 0 011-1h8a1 1 0 011 1v1" />
+        </svg>
+    ` : `
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+    `;
+    
+    button.innerHTML = `
+        ${icon}
+        <span>${name}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full ${
+            isActive 
+                ? 'bg-white/20 text-white' 
+                : 'bg-gray-100 text-gray-600'
+        }">${count}</span>
+    `;
+    
+    return button;
+}
+
+// Select category filter
+function selectCategoryFilter(categoryId) {
+    // Update filter state
+    currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+    
+    // Update button styles
+    populateCategoryFilter();
+    
+    // Apply filter
+    searchAndSort();
 }
 
 // Load all products
@@ -365,14 +414,12 @@ function updateSortBadge() {
 // Search and sort (combined)
 function searchAndSort(skipURLUpdate = false) {
     const searchInput = document.getElementById('searchInput');
-    const categoryFilter = document.getElementById('categoryFilter');
     const searchTerm = searchInput?.value || '';
-    const categoryId = categoryFilter?.value || '';
     
     currentPage = 1;
 
     currentFilters.searchTerm = searchTerm.trim();
-    currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+    // categoryId is already set by selectCategoryFilter function
     
     // Update URL with current filters (skip if called from loadProducts on initial load)
     if (!skipURLUpdate) {
@@ -594,7 +641,19 @@ function createProductCard(product) {
             <!-- Product Info -->
             <div class="p-4">
                 <div class="flex items-start justify-between mb-2">
-                    <h3 class="text-base font-semibold text-gray-900 line-clamp-2 flex-1" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</h3>
+                    <div class="flex-1 flex items-center gap-2 group">
+                        <h3 class="product-name text-base font-semibold text-gray-900 line-clamp-2 cursor-pointer hover:text-admin-primary transition-colors flex-1" 
+                            title="Click để chỉnh sửa tên sản phẩm"
+                            onclick="startEditProductName(${product.id}, this)"
+                            data-product-id="${product.id}"
+                            data-original-name="${escapeHtml(product.name)}">${escapeHtml(product.name)}</h3>
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onclick="startEditProductName(${product.id}, this.previousElementSibling)">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400 hover:text-admin-primary">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                            </svg>
+                        </div>
+                        <div class="edit-name-tooltip">Click để chỉnh sửa</div>
+                    </div>
                 </div>
                 
                 <div class="flex items-center gap-2 mb-3 flex-wrap" id="categories-${product.id}">
@@ -775,12 +834,22 @@ function showAddProductModal() {
                                 <div class="relative w-28 h-28 bg-white rounded-xl border-2 border-purple-200 overflow-hidden shadow-sm group">
                                     <img id="imagePreview" src="" alt="Preview" class="w-full h-full object-cover">
                                     <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                                        <button type="button" onclick="clearImagePreview()" 
-                                            class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                        <div class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 flex gap-1">
+                                            <button type="button" onclick="openImageInNewTab()" 
+                                                class="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 shadow-lg" 
+                                                title="Mở ảnh trong tab mới">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" onclick="clearImagePreview()" 
+                                                class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 shadow-lg"
+                                                title="Xóa ảnh">
+                                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -806,6 +875,33 @@ function showAddProductModal() {
                                     </div>
                                     <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                                 </label>
+                                
+                                <!-- URL Input Section -->
+                                <div id="imageUrlSection" class="hidden mt-3">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        🔗 Hoặc nhập URL ảnh
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="productImageURLInput" placeholder="https://example.com/image.jpg"
+                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                            onchange="handleImageURLChange(this.value)"
+                                            onpaste="setTimeout(() => handleImageURLChange(this.value), 100)">
+                                        <button type="button" onclick="testImageURL()"
+                                            class="px-3 py-2 text-blue-500 hover:text-blue-700 border border-gray-300 rounded-lg hover:border-blue-300 transition-colors"
+                                            title="Test URL">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7l10 10M17 7l-10 10" />
+                                            </svg>
+                                        </button>
+                                        <button type="button" onclick="clearImagePreview()"
+                                            class="px-3 py-2 text-gray-500 hover:text-red-500 border border-gray-300 rounded-lg hover:border-red-300 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 <input type="hidden" id="productImageURL">
                             </div>
                         </div>
@@ -1296,54 +1392,122 @@ async function handleImageUpload(input) {
     const file = input.files[0];
     if (!file) return;
     
+    console.log('📤 Starting image upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+    });
+    
     // Validate file type
     if (!file.type.startsWith('image/')) {
-        showToast('Vui lòng chọn file ảnh', 'warning');
+        showToast('❌ Vui lòng chọn file ảnh (JPG, PNG, WEBP)', 'error');
+        input.value = ''; // Reset input
         return;
     }
     
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-        showToast('Kích thước ảnh không được vượt quá 5MB', 'warning');
+        showToast('❌ Kích thước ảnh không được vượt quá 5MB', 'error');
+        input.value = ''; // Reset input
         return;
     }
     
-    try {
-        // Show loading
-        const urlInput = document.getElementById('productImageURL');
-        const originalValue = urlInput.value;
+    // Show loading state
+    const urlInput = document.getElementById('productImageURL');
+    const originalValue = urlInput?.value || '';
+    
+    if (urlInput) {
         urlInput.value = 'Đang upload...';
         urlInput.disabled = true;
-        
+    }
+    
+    // Show loading toast
+    const loadingToast = { message: '📤 Đang upload ảnh...', type: 'info' };
+    showToast(loadingToast.message, loadingToast.type, 0); // Persistent toast
+    
+    try {
         // Create form data
         const formData = new FormData();
         formData.append('image', file);
         formData.append('filename', file.name);
         
+        console.log('📤 Sending upload request...');
+        
         // Upload to R2
         const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+            },
             body: formData
         });
         
-        const data = await response.json();
+        console.log('📥 Upload response status:', response.status);
         
-        if (data.success) {
-            urlInput.value = data.url;
-            updateImagePreview(data.url);
-            showToast('Upload ảnh thành công!', 'success');
-        } else {
-            urlInput.value = originalValue;
-            showToast('Lỗi upload: ' + (data.error || 'Unknown error'), 'error');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
+        const data = await response.json();
+        console.log('📥 Upload response data:', data);
+        
+        // Hide loading toast by clearing all info toasts
+        toastManager.toasts.filter(t => t.type === 'info').forEach(t => toastManager.remove(t));
+        
+        if (data.success && data.url) {
+            console.log('✅ Upload successful, URL:', data.url);
+            
+            if (urlInput) {
+                urlInput.value = data.url;
+            }
+            
+            // Update preview
+            updateImagePreview(data.url);
+            
+            // Success message with development mode info
+            if (data.url.includes('.r2.dev')) {
+                showToast('✅ Upload thành công! (Dev mode: Preview có thể không hiển thị)', 'success');
+            } else {
+                showToast('✅ Upload ảnh thành công!', 'success');
+            }
+            
+        } else {
+            throw new Error(data.error || 'Upload failed - no URL returned');
+        }
+        
     } catch (error) {
-        console.error('Error uploading image:', error);
-        showToast('Lỗi upload ảnh', 'error');
-        urlInput.value = originalValue;
+        console.error('❌ Error uploading image:', error);
+        
+        // Hide loading toast by clearing all info toasts
+        toastManager.toasts.filter(t => t.type === 'info').forEach(t => toastManager.remove(t));
+        
+        // Restore original value
+        if (urlInput) {
+            urlInput.value = originalValue;
+        }
+        
+        // Show error message
+        let errorMessage = 'Lỗi upload ảnh';
+        if (error.message.includes('HTTP 413')) {
+            errorMessage = 'File quá lớn (>5MB)';
+        } else if (error.message.includes('HTTP 400')) {
+            errorMessage = 'File không hợp lệ';
+        } else if (error.message.includes('HTTP 401')) {
+            errorMessage = 'Không có quyền upload';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage = 'Lỗi kết nối mạng';
+        } else {
+            errorMessage = `Lỗi upload: ${error.message}`;
+        }
+        
+        showToast(`❌ ${errorMessage}`, 'error');
+        
     } finally {
-        urlInput.disabled = false;
-        // Reset file input
-        input.value = '';
+        // Re-enable input and reset file input
+        if (urlInput) {
+            urlInput.disabled = false;
+        }
+        input.value = ''; // Reset file input
     }
 }
 
@@ -1352,37 +1516,106 @@ function updateImagePreview(url) {
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
     const urlSection = document.getElementById('imageUrlSection');
+    const visibleInput = document.getElementById('productImageURLInput');
+    const hiddenInput = document.getElementById('productImageURL');
     
     if (!container || !preview) return;
     
     if (url && url.trim()) {
-        // Encode URL to handle spaces
-        const encodedUrl = encodeURI(url);
+        // Clear any previous error handlers
+        preview.onerror = null;
+        preview.onload = null;
+        
+        // Add loading state
+        preview.style.opacity = '0.5';
+        
+        // Sync inputs
+        if (hiddenInput) hiddenInput.value = url.trim();
+        if (visibleInput && visibleInput.value !== url.trim()) {
+            visibleInput.value = url.trim();
+        }
+        
+        // Handle successful load
+        preview.onload = function() {
+            this.style.opacity = '1';
+            this.style.padding = '';
+            this.style.backgroundColor = '';
+            console.log('✅ Image loaded successfully:', url);
+        };
+        
+        // Handle load error
+        preview.onerror = function() {
+            console.error('❌ Failed to load image:', url);
+            const encodedUrl = encodeURI(url.trim());
+            console.error('❌ Encoded URL:', encodedUrl);
+            
+            // Try alternative loading methods
+            tryAlternativeImageLoad(this, url, encodedUrl);
+        };
+        
+        // Set the source (this will trigger onload or onerror)
+        const encodedUrl = encodeURI(url.trim());
         preview.src = encodedUrl;
+        
+        // Show container and URL section
         container.classList.remove('hidden');
         if (urlSection) {
             urlSection.classList.remove('hidden');
         }
+        
+        console.log('🖼️ Loading image preview:', encodedUrl);
     } else {
+        // Clear everything
         container.classList.add('hidden');
         if (urlSection) {
             urlSection.classList.add('hidden');
         }
+        if (hiddenInput) hiddenInput.value = '';
+        if (visibleInput) visibleInput.value = '';
         preview.src = '';
+        preview.style.opacity = '1';
+        preview.style.padding = '';
+        preview.style.backgroundColor = '';
     }
 }
 
 // Clear image preview
 function clearImagePreview() {
-    const urlInput = document.getElementById('productImageURL');
+    const hiddenInput = document.getElementById('productImageURL');
+    const visibleInput = document.getElementById('productImageURLInput');
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
     const urlSection = document.getElementById('imageUrlSection');
     
-    if (urlInput) urlInput.value = '';
+    if (hiddenInput) hiddenInput.value = '';
+    if (visibleInput) visibleInput.value = '';
     if (container) container.classList.add('hidden');
-    if (preview) preview.src = '';
+    if (preview) {
+        preview.src = '';
+        preview.style.opacity = '1';
+        preview.style.padding = '';
+        preview.style.backgroundColor = '';
+    }
     if (urlSection) urlSection.classList.add('hidden');
+    
+    console.log('🗑️ Image preview cleared');
+}
+
+// Open image in new tab (helpful for CORS issues)
+function openImageInNewTab() {
+    const hiddenInput = document.getElementById('productImageURL');
+    const visibleInput = document.getElementById('productImageURLInput');
+    
+    // Get URL from either input
+    const url = hiddenInput?.value || visibleInput?.value;
+    
+    if (url && url.trim()) {
+        console.log('🔗 Opening image in new tab:', url.trim());
+        window.open(url.trim(), '_blank');
+        showToast('🔗 Đã mở ảnh trong tab mới', 'info', 3000);
+    } else {
+        showToast('⚠️ Không có URL ảnh để mở', 'warning');
+    }
 }
 
 // Load categories inline (checkbox list)
@@ -1890,12 +2123,22 @@ async function editProduct(productId) {
                                     <div class="relative w-28 h-28 bg-white rounded-xl border-2 border-purple-200 overflow-hidden shadow-sm group">
                                         <img id="imagePreview" src="${escapeHtml(product.image_url || '')}" alt="Preview" class="w-full h-full object-cover">
                                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                                            <button type="button" onclick="clearImagePreview()" 
-                                                class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
+                                            <div class="opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 flex gap-1">
+                                                <button type="button" onclick="openImageInNewTab()" 
+                                                    class="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 shadow-lg" 
+                                                    title="Mở ảnh trong tab mới">
+                                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
+                                                </button>
+                                                <button type="button" onclick="clearImagePreview()" 
+                                                    class="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 shadow-lg"
+                                                    title="Xóa ảnh">
+                                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1921,6 +2164,34 @@ async function editProduct(productId) {
                                         </div>
                                         <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                                     </label>
+                                    
+                                    <!-- URL Input Section -->
+                                    <div id="imageUrlSection" class="${product.image_url ? '' : 'hidden'} mt-3">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            🔗 Hoặc nhập URL ảnh
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="productImageURLInput" placeholder="https://example.com/image.jpg"
+                                                value="${escapeHtml(product.image_url || '')}"
+                                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                                onchange="handleImageURLChange(this.value)"
+                                                onpaste="setTimeout(() => handleImageURLChange(this.value), 100)">
+                                            <button type="button" onclick="testImageURL()"
+                                                class="px-3 py-2 text-blue-500 hover:text-blue-700 border border-gray-300 rounded-lg hover:border-blue-300 transition-colors"
+                                                title="Test URL">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7l10 10M17 7l-10 10" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" onclick="clearImagePreview()"
+                                                class="px-3 py-2 text-gray-500 hover:text-red-500 border border-gray-300 rounded-lg hover:border-red-300 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
                                     <input type="hidden" id="productImageURL" value="${escapeHtml(product.image_url || '')}">
                                 </div>
                             </div>
@@ -3900,3 +4171,535 @@ async function applyBulkProfitUpdate() {
         showToast('Không thể cập nhật giá: ' + error.message, 'error', 5000, 'bulk-profit-update');
     }
 }
+
+// Export functions for global access
+window.selectCategoryFilter = selectCategoryFilter;
+
+// ============================================
+// QUICK EDIT PRODUCT NAME - OPTIMISTIC UI
+// ============================================
+
+let editingProductId = null;
+let originalProductName = null;
+
+// Start editing product name
+function startEditProductName(productId, element) {
+    // Prevent multiple edits
+    if (editingProductId) {
+        return;
+    }
+    
+    editingProductId = productId;
+    originalProductName = element.textContent.trim();
+    
+    // Create input element
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = originalProductName;
+    input.className = 'product-name-editing';
+    input.maxLength = 255;
+    
+    // Replace the entire container with input
+    const container = element.closest('.group');
+    const parent = container.parentElement;
+    parent.replaceChild(input, container);
+    
+    // Focus and select all text
+    input.focus();
+    input.select();
+    
+    // Handle save on Enter
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveProductNameEdit(productId, input);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelProductNameEdit(productId, input);
+        }
+    });
+    
+    // Handle save on blur (click outside)
+    input.addEventListener('blur', () => {
+        // Small delay to allow click events to process
+        setTimeout(() => {
+            if (editingProductId === productId) {
+                saveProductNameEdit(productId, input);
+            }
+        }, 100);
+    });
+    
+    console.log(`🖊️ Started editing product ${productId}: "${originalProductName}"`);
+}
+
+// Save product name edit with Optimistic UI
+async function saveProductNameEdit(productId, input) {
+    const newName = input.value.trim();
+    
+    // Validate name
+    if (!newName) {
+        showToast('Tên sản phẩm không được để trống', 'error');
+        input.focus();
+        return;
+    }
+    
+    if (newName === originalProductName) {
+        // No change, just cancel
+        cancelProductNameEdit(productId, input);
+        return;
+    }
+    
+    console.log(`💾 Saving product name: ${originalProductName} → ${newName}`);
+    
+    // 1. OPTIMISTIC UPDATE - Update UI immediately
+    const productCard = input.closest('.bg-white');
+    const newContainer = createProductNameElement(productId, newName);
+    input.parentElement.replaceChild(newContainer, input);
+    
+    // Update local data
+    const product = allProducts.find(p => p.id === productId);
+    if (product) {
+        product.name = newName;
+    }
+    const filteredProduct = filteredProducts.find(p => p.id === productId);
+    if (filteredProduct) {
+        filteredProduct.name = newName;
+    }
+    
+    // Show saving state
+    const h3 = newContainer.querySelector('h3');
+    h3.classList.add('product-name-saving');
+    const savingIndicator = document.createElement('div');
+    savingIndicator.className = 'absolute -top-1 -right-1 w-4 h-4 z-20';
+    savingIndicator.innerHTML = `
+        <svg class="w-4 h-4 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+    `;
+    newContainer.appendChild(savingIndicator);
+    
+    // Reset editing state
+    editingProductId = null;
+    originalProductName = null;
+    
+    try {
+        // 2. API CALL - Save to server
+        const response = await fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+            },
+            body: JSON.stringify({
+                action: 'updateProduct',
+                id: productId,
+                name: newName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 3. SUCCESS - Remove saving indicator and show success
+            savingIndicator.remove();
+            h3.classList.remove('product-name-saving');
+            
+            // Brief success indication
+            h3.style.backgroundColor = '#dcfce7';
+            setTimeout(() => {
+                h3.style.backgroundColor = '';
+            }, 1000);
+            
+            console.log(`✅ Product name saved successfully: ${newName}`);
+            showToast('✅ Đã cập nhật tên sản phẩm', 'success', 2000);
+            
+        } else {
+            throw new Error(data.error || 'Failed to update product name');
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to save product name:', error);
+        
+        // 4. ERROR RECOVERY - Revert optimistic update
+        savingIndicator.remove();
+        h3.classList.remove('product-name-saving');
+        
+        // Revert to original name
+        const revertedContainer = createProductNameElement(productId, originalProductName);
+        newContainer.parentElement.replaceChild(revertedContainer, newContainer);
+        
+        // Revert local data
+        if (product) {
+            product.name = originalProductName;
+        }
+        if (filteredProduct) {
+            filteredProduct.name = originalProductName;
+        }
+        
+        // Show error with retry option
+        showToast(`❌ Lỗi cập nhật tên: ${error.message}`, 'error', 5000);
+        
+        // Add error styling briefly
+        const revertedH3 = revertedContainer.querySelector('h3');
+        revertedH3.style.backgroundColor = '#fef2f2';
+        revertedH3.style.borderColor = '#ef4444';
+        setTimeout(() => {
+            revertedH3.style.backgroundColor = '';
+            revertedH3.style.borderColor = '';
+        }, 2000);
+    }
+}
+
+// Cancel product name edit
+function cancelProductNameEdit(productId, input) {
+    console.log(`❌ Cancelled editing product ${productId}`);
+    
+    // Create original container element
+    const originalContainer = createProductNameElement(productId, originalProductName);
+    input.parentElement.replaceChild(originalContainer, input);
+    
+    // Reset editing state
+    editingProductId = null;
+    originalProductName = null;
+}
+
+// Create product name element
+function createProductNameElement(productId, name) {
+    const container = document.createElement('div');
+    container.className = 'flex-1 flex items-center gap-2 group';
+    
+    const h3 = document.createElement('h3');
+    h3.className = 'product-name text-base font-semibold text-gray-900 line-clamp-2 cursor-pointer hover:text-admin-primary transition-colors flex-1';
+    h3.title = 'Click để chỉnh sửa tên sản phẩm';
+    h3.textContent = name;
+    h3.setAttribute('data-product-id', productId);
+    h3.setAttribute('data-original-name', name);
+    h3.onclick = () => startEditProductName(productId, h3);
+    
+    const editIcon = document.createElement('div');
+    editIcon.className = 'opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer';
+    editIcon.onclick = () => startEditProductName(productId, h3);
+    editIcon.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400 hover:text-admin-primary">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+        </svg>
+    `;
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'edit-name-tooltip';
+    tooltip.textContent = 'Click để chỉnh sửa';
+    
+    container.appendChild(h3);
+    container.appendChild(editIcon);
+    container.appendChild(tooltip);
+    
+    return container;
+}
+
+// Enhanced toast function for better UX
+function showToast(message, type = 'info', duration = 4000) {
+    // Remove existing toasts of the same type
+    const existingToasts = document.querySelectorAll(`.toast-${type}`);
+    existingToasts.forEach(toast => toast.remove());
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-${type} fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 transform translate-x-full transition-transform duration-300`;
+    
+    const colors = {
+        success: 'bg-green-500 text-white',
+        error: 'bg-red-500 text-white',
+        warning: 'bg-yellow-500 text-white',
+        info: 'bg-blue-500 text-white'
+    };
+    
+    toast.className += ` ${colors[type]}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    toast.innerHTML = `
+        <span class="text-lg">${icons[type]}</span>
+        <span class="font-medium">${message}</span>
+        <button onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-gray-200 font-bold">×</button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Slide in
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(full)';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// Export functions for global access
+window.startEditProductName = startEditProductName;
+// Handle manual URL input change
+function handleImageURLChange(url) {
+    const hiddenInput = document.getElementById('productImageURL');
+    const visibleInput = document.getElementById('productImageURLInput');
+    
+    if (!url || !url.trim()) {
+        clearImagePreview();
+        return;
+    }
+    
+    // Update hidden input
+    if (hiddenInput) {
+        hiddenInput.value = url.trim();
+    }
+    
+    // Update preview
+    updateImagePreview(url.trim());
+    
+    console.log('🔗 Manual URL input changed:', url.trim());
+}
+
+// Show URL input section
+function showImageUrlSection() {
+    const urlSection = document.getElementById('imageUrlSection');
+    if (urlSection) {
+        urlSection.classList.remove('hidden');
+    }
+}
+
+// Hide URL input section  
+function hideImageUrlSection() {
+    const urlSection = document.getElementById('imageUrlSection');
+    if (urlSection) {
+        urlSection.classList.add('hidden');
+    }
+}
+
+// Export functions for global access
+window.handleImageURLChange = handleImageURLChange;
+window.showImageUrlSection = showImageUrlSection;
+window.hideImageUrlSection = hideImageUrlSection;
+// Try alternative methods to load image
+async function tryAlternativeImageLoad(imgElement, originalUrl, encodedUrl) {
+    console.log('🔄 Trying alternative image loading methods for CORS issue...');
+    
+    // Method 1: Try direct image loading without CORS (most likely to work)
+    console.log('🔄 Method 1: Direct image loading without CORS...');
+    const img1 = new Image();
+    
+    const method1Promise = new Promise((resolve, reject) => {
+        img1.onload = function() {
+            console.log('✅ Method 1 success: Direct image loading works');
+            resolve(this);
+        };
+        img1.onerror = function() {
+            console.log('❌ Method 1 failed: Direct image loading');
+            reject(new Error('Direct image loading failed'));
+        };
+        
+        // Timeout after 3 seconds (faster)
+        setTimeout(() => {
+            reject(new Error('Method 1 timeout'));
+        }, 3000);
+    });
+    
+    img1.src = encodedUrl;
+    
+    try {
+        const successImg = await method1Promise;
+        imgElement.src = successImg.src;
+        imgElement.style.opacity = '1';
+        imgElement.style.padding = '';
+        imgElement.style.backgroundColor = '';
+        showToast('✅ Đã load ảnh thành công', 'success');
+        return;
+    } catch (error) {
+        console.log('❌ Method 1 failed:', error.message);
+    }
+    
+    // Method 2: Try with crossOrigin anonymous
+    console.log('🔄 Method 2: Direct image loading with CORS...');
+    const img2 = new Image();
+    img2.crossOrigin = 'anonymous';
+    
+    const method2Promise = new Promise((resolve, reject) => {
+        img2.onload = function() {
+            console.log('✅ Method 2 success: Direct image loading with CORS works');
+            resolve(this);
+        };
+        img2.onerror = function() {
+            console.log('❌ Method 2 failed: Direct image loading with CORS');
+            reject(new Error('Direct image loading with CORS failed'));
+        };
+        
+        // Timeout after 3 seconds
+        setTimeout(() => {
+            reject(new Error('Method 2 timeout'));
+        }, 3000);
+    });
+    
+    img2.src = encodedUrl;
+    
+    try {
+        const successImg = await method2Promise;
+        imgElement.src = successImg.src;
+        imgElement.crossOrigin = 'anonymous';
+        imgElement.style.opacity = '1';
+        imgElement.style.padding = '';
+        imgElement.style.backgroundColor = '';
+        showToast('✅ Đã load ảnh thành công (bypass CORS)', 'success');
+        return;
+    } catch (error) {
+        console.log('❌ Method 2 failed:', error.message);
+    }
+    
+    // All methods failed - show CORS error
+    showFinalCORSError(originalUrl);
+}
+
+function showFinalCORSError(url) {
+    console.error('❌ All image loading methods failed due to CORS policy');
+    
+    const imgElement = document.getElementById('imagePreview');
+    if (imgElement) {
+        // Check if we're in development mode
+        const isDevelopment = window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // Create a more informative placeholder with preview option
+        const placeholderSvg = `
+            <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="150" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="8,4"/>
+                <circle cx="100" cy="50" r="15" fill="#10b981"/>
+                <path d="M92 50L98 56L108 46" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="100" y="80" text-anchor="middle" fill="#10b981" font-family="Arial" font-size="12" font-weight="bold">Upload thanh cong!</text>
+                <text x="100" y="95" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="10">${isDevelopment ? 'Dev mode: R2 simulation' : 'CORS Policy Error'}</text>
+                <text x="100" y="110" text-anchor="middle" fill="#3b82f6" font-family="Arial" font-size="10" style="cursor:pointer">Click de xem anh</text>
+                <text x="100" y="125" text-anchor="middle" fill="#6b7280" font-family="Arial" font-size="8">${isDevelopment ? 'Preview khong kha dung trong dev' : 'Anh da duoc luu thanh cong'}</text>
+            </svg>
+        `;
+        
+        imgElement.style.opacity = '1';
+        // Use encodeURIComponent instead of btoa for Unicode safety
+        imgElement.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(placeholderSvg);
+        imgElement.style.padding = '10px';
+        imgElement.style.backgroundColor = '#f8fafc';
+        imgElement.style.border = '2px dashed #10b981';
+        imgElement.style.borderRadius = '8px';
+        imgElement.style.cursor = 'pointer';
+        
+        // Add click handler to open image
+        imgElement.onclick = () => window.open(url, '_blank');
+        
+        // Add hover effect
+        imgElement.onmouseenter = () => {
+            imgElement.style.backgroundColor = '#f0fdf4';
+            imgElement.style.borderColor = '#059669';
+        };
+        imgElement.onmouseleave = () => {
+            imgElement.style.backgroundColor = '#f8fafc';
+            imgElement.style.borderColor = '#10b981';
+        };
+    }
+    
+    // Show concise success message with action
+    const isDevelopment = window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDevelopment) {
+        showToast('✅ Upload thành công! Click ảnh để xem (Dev mode: Preview không khả dụng)', 'success', 6000);
+    } else {
+        showToast('✅ Upload thành công! Click ảnh để xem (CORS issue)', 'success', 6000);
+    }
+    
+    console.log('💡 CORS Solution needed: Configure R2 bucket CORS settings');
+    console.log('💡 R2 CORS config:', {
+        AllowedOrigins: ['*'],
+        AllowedMethods: ['GET', 'HEAD'],
+        AllowedHeaders: ['*'],
+        MaxAgeSeconds: 3600
+    });
+}
+
+// Export function for global access
+window.tryAlternativeImageLoad = tryAlternativeImageLoad;
+// Test image URL function
+async function testImageURL() {
+    const input = document.getElementById('productImageURLInput');
+    const url = input?.value?.trim();
+    
+    if (!url) {
+        showToast('Vui lòng nhập URL ảnh để test', 'warning');
+        return;
+    }
+    
+    console.log('🧪 Testing image URL:', url);
+    showToast('🧪 Đang test URL...', 'info', 2000);
+    
+    try {
+        // Test 1: HEAD request
+        console.log('🧪 Test 1: HEAD request...');
+        const headResponse = await fetch(url, { method: 'HEAD' });
+        console.log('📊 HEAD response:', {
+            status: headResponse.status,
+            statusText: headResponse.statusText,
+            headers: Object.fromEntries(headResponse.headers.entries())
+        });
+        
+        if (!headResponse.ok) {
+            throw new Error(`HEAD request failed: ${headResponse.status} ${headResponse.statusText}`);
+        }
+        
+        // Test 2: Try to load as image
+        console.log('🧪 Test 2: Image load test...');
+        const testImg = new Image();
+        
+        const imageLoadPromise = new Promise((resolve, reject) => {
+            testImg.onload = () => {
+                console.log('✅ Image loaded successfully:', {
+                    width: testImg.naturalWidth,
+                    height: testImg.naturalHeight,
+                    src: testImg.src
+                });
+                resolve({
+                    width: testImg.naturalWidth,
+                    height: testImg.naturalHeight
+                });
+            };
+            
+            testImg.onerror = () => {
+                console.error('❌ Image failed to load');
+                reject(new Error('Image failed to load'));
+            };
+            
+            // Set timeout for image loading
+            setTimeout(() => {
+                reject(new Error('Image load timeout (10s)'));
+            }, 10000);
+        });
+        
+        testImg.src = url;
+        const imageInfo = await imageLoadPromise;
+        
+        // Success
+        showToast(`✅ URL hợp lệ! Kích thước: ${imageInfo.width}x${imageInfo.height}px`, 'success', 5000);
+        
+        // Auto-update preview
+        handleImageURLChange(url);
+        
+    } catch (error) {
+        console.error('❌ URL test failed:', error);
+        showToast(`❌ URL không hợp lệ: ${error.message}`, 'error', 8000);
+        
+        // Suggest opening in new tab
+        const openInNewTab = confirm(`URL test thất bại: ${error.message}\n\nBạn có muốn mở URL này trong tab mới để kiểm tra thủ công không?`);
+        if (openInNewTab) {
+            window.open(url, '_blank');
+        }
+    }
+}
+
+// Export function for global access
+window.testImageURL = testImageURL;

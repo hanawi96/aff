@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Upload Test</title>
+    <script src="public/assets/js/config.js"></script>
+</head>
+<body>
+    <h1>Simple Upload Test</h1>
+    
+    <div style="margin: 20px 0;">
+        <h3>Step 1: Login</h3>
+        <button onclick="login()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px;">Login as Admin</button>
+        <div id="loginStatus"></div>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <h3>Step 2: Upload Image</h3>
+        <input type="file" id="imageFile" accept="image/*" style="margin: 10px 0;">
+        <br>
+        <button onclick="uploadImage()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 4px;">Upload Image</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('session_token');
+
+        async function login() {
+            try {
+                document.getElementById('loginStatus').innerHTML = '🔄 Logging in...';
+                
+                const response = await fetch(`${CONFIG.API_URL}?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+
+                const data = await response.json();
+                console.log('Login response:', data);
+
+                if (data.success) {
+                    token = data.token || data.sessionToken;
+                    localStorage.setItem('session_token', token);
+                    document.getElementById('loginStatus').innerHTML = `✅ Login successful! Token: ${token.substring(0, 20)}...`;
+                } else {
+                    document.getElementById('loginStatus').innerHTML = `❌ Login failed: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('loginStatus').innerHTML = `❌ Login error: ${error.message}`;
+            }
+        }
+
+        async function uploadImage() {
+            const file = document.getElementById('imageFile').files[0];
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+
+            if (!token) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                document.getElementById('uploadStatus').innerHTML = '🔄 Uploading...';
+                
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('filename', file.name);
+
+                console.log('Uploading file:', {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    token: token.substring(0, 20) + '...'
+                });
+
+                const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                console.log('Upload response status:', response.status);
+                console.log('Upload response headers:', [...response.headers.entries()]);
+
+                const data = await response.json();
+                console.log('Upload response data:', data);
+
+                if (data.success) {
+                    document.getElementById('uploadStatus').innerHTML = `
+                        ✅ Upload successful!<br>
+                        URL: <a href="${data.url}" target="_blank">${data.url}</a><br>
+                        Filename: ${data.filename}
+                    `;
+                } else {
+                    document.getElementById('uploadStatus').innerHTML = `❌ Upload failed: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                document.getElementById('uploadStatus').innerHTML = `❌ Upload error: ${error.message}`;
+            }
+        }
+
+        // Auto-login if token exists
+        if (token) {
+            document.getElementById('loginStatus').innerHTML = `✅ Already logged in with token: ${token.substring(0, 20)}...`;
+        }
+    </script>
+</body>
+</html>

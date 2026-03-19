@@ -189,6 +189,38 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getAllProducts':
             return await getAllProducts(env, corsHeaders);
 
+        case 'getR2Image': {
+            const objectKey = url.searchParams.get('key');
+            if (!objectKey) {
+                return jsonResponse({ success: false, error: 'Missing key parameter' }, 400, corsHeaders);
+            }
+
+            try {
+                const decodedKey = decodeURIComponent(objectKey);
+                const object = await env.R2_BUCKET.get(decodedKey);
+
+                if (!object) {
+                    return jsonResponse({ success: false, error: 'Image not found' }, 404, corsHeaders);
+                }
+
+                const headers = new Headers(corsHeaders);
+                headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+                headers.set('Cache-Control', object.httpMetadata?.cacheControl || 'public, max-age=31536000');
+                headers.set('ETag', object.httpEtag);
+
+                return new Response(object.body, {
+                    status: 200,
+                    headers
+                });
+            } catch (error) {
+                console.error('❌ [GET] Failed to read R2 image:', error);
+                return jsonResponse({
+                    success: false,
+                    error: 'Failed to fetch image'
+                }, 500, corsHeaders);
+            }
+        }
+
         case 'getProductsByNames':
             // Get products by names for duplicate order
             const names = url.searchParams.get('names');

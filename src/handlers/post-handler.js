@@ -172,19 +172,61 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
     
     // Special handling for uploadImage (multipart form data)
     if (action === 'uploadImage') {
-        const formData = await request.formData();
-        const file = formData.get('image');
-        const filename = formData.get('filename') || file?.name || 'image.jpg';
-        
-        if (!file) {
+        try {
+            console.log('📤 Processing image upload...');
+            
+            const formData = await request.formData();
+            const file = formData.get('image');
+            const filename = formData.get('filename') || file?.name || 'image.jpg';
+            
+            console.log('📋 Upload details:', {
+                hasFile: !!file,
+                filename,
+                fileSize: file?.size,
+                fileType: file?.type
+            });
+            
+            if (!file) {
+                console.error('❌ No image file provided in form data');
+                return jsonResponse({
+                    success: false,
+                    error: 'No image file provided'
+                }, 400, corsHeaders);
+            }
+            
+            // Validate file type
+            if (!file.type || !file.type.startsWith('image/')) {
+                console.error('❌ Invalid file type:', file.type);
+                return jsonResponse({
+                    success: false,
+                    error: 'File must be an image (JPG, PNG, WEBP, etc.)'
+                }, 400, corsHeaders);
+            }
+            
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                console.error('❌ File too large:', file.size);
+                return jsonResponse({
+                    success: false,
+                    error: 'File size must be less than 5MB'
+                }, 400, corsHeaders);
+            }
+            
+            console.log('✅ File validation passed, uploading to R2...');
+            const requestOrigin = new URL(request.url).origin + '/';
+            const result = await uploadImage(env, file, filename, requestOrigin);
+            
+            console.log('📤 Upload result:', result);
+            
+            return jsonResponse(result, result.success ? 200 : 500, corsHeaders);
+            
+        } catch (error) {
+            console.error('❌ Error processing image upload:', error);
             return jsonResponse({
                 success: false,
-                error: 'No image file provided'
-            }, 400, corsHeaders);
+                error: `Upload processing failed: ${error.message}`
+            }, 500, corsHeaders);
         }
-        
-        const result = await uploadImage(env, file, filename);
-        return jsonResponse(result, result.success ? 200 : 500, corsHeaders);
     }
     
     // Read JSON body for other actions

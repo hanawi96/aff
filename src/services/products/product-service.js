@@ -259,10 +259,14 @@ export async function updateProduct(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // If updating image_url, delete old image from R2
-        if (data.image_url !== undefined && existing.image_url && existing.image_url !== data.image_url) {
-            await deleteImageByUrl(env, existing.image_url);
-        }
+        // Track old image for deferred deletion.
+        // Important: only delete after product update succeeds.
+        const shouldDeleteOldImage = (
+            data.image_url !== undefined &&
+            existing.image_url &&
+            existing.image_url !== data.image_url
+        );
+        const oldImageToDelete = shouldDeleteOldImage ? existing.image_url : null;
 
         // Validate price if provided
         if (data.price !== undefined) {
@@ -391,6 +395,17 @@ export async function updateProduct(data, env, corsHeaders) {
                         VALUES (?, ?, ?, ?)
                     `).bind(data.id, categoryId, isPrimary, i).run();
                 }
+            }
+        }
+
+        // Delete old image only after DB update succeeded.
+        // This ensures "upload only" never deletes old image, and "save" controls replacement.
+        if (oldImageToDelete) {
+            try {
+                await deleteImageByUrl(env, oldImageToDelete);
+            } catch (deleteError) {
+                // Do not fail product update if cleanup fails.
+                console.warn('⚠️ Failed to delete old product image:', deleteError);
             }
         }
 

@@ -15,9 +15,29 @@ function sanitizeFilename(filename) {
     return `${sanitized}.${ext}`;
 }
 
-// Upload image to R2
-export async function uploadImage(env, file, filename) {
+export async function uploadImage(env, file, filename, requestOrigin = null) {
     try {
+        console.log('📤 Starting image upload process:', {
+            filename,
+            size: file.size,
+            type: file.type
+        });
+
+        // Validate file
+        if (!file) {
+            throw new Error('No file provided');
+        }
+
+        // Validate file type
+        if (!file.type || !file.type.startsWith('image/')) {
+            throw new Error('File must be an image');
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('File size must be less than 5MB');
+        }
+
         // Sanitize original filename
         const sanitizedName = sanitizeFilename(filename);
         
@@ -27,15 +47,30 @@ export async function uploadImage(env, file, filename) {
         const baseName = sanitizedName.substring(0, sanitizedName.lastIndexOf('.'));
         const uniqueFilename = `products/${timestamp}-${baseName}-${Math.random().toString(36).substring(7)}.${ext}`;
         
+        console.log('📝 Generated filename:', uniqueFilename);
+        
         // Upload to R2
         await env.R2_BUCKET.put(uniqueFilename, file, {
             httpMetadata: {
-                contentType: file.type || 'image/jpeg'
+                contentType: file.type || 'image/jpeg',
+                cacheControl: 'public, max-age=31536000' // 1 year cache
             }
         });
         
-        // Return public URL
-        const publicUrl = `https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/${uniqueFilename}`;
+        console.log('☁️ File uploaded to R2 successfully');
+        
+        // Return URL via Worker proxy to avoid browser CORS issues on direct R2 preview.
+        // Falls back to public R2 domain if request origin is unavailable.
+        const publicUrl = requestOrigin
+            ? `${requestOrigin}?action=getR2Image&key=${encodeURIComponent(uniqueFilename)}`
+            : `https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/${uniqueFilename}`;
+        
+        console.log('✅ Image uploaded successfully:', {
+            filename: uniqueFilename,
+            url: publicUrl,
+            size: file.size,
+            type: file.type
+        });
         
         return {
             success: true,
@@ -43,10 +78,10 @@ export async function uploadImage(env, file, filename) {
             filename: uniqueFilename
         };
     } catch (error) {
-        console.error('Error uploading image:', error);
+        console.error('❌ Error uploading image:', error);
         return {
             success: false,
-            error: error.message
+            error: error.message || 'Upload failed'
         };
     }
 }
@@ -78,6 +113,18 @@ export function extractR2Filename(imageUrl) {
         if (parts.length > 1) {
             // Decode URL to handle encoded characters (%20, etc.)
             return decodeURIComponent(parts[1]);
+        }
+    }
+
+    // Support worker-proxy URL format:
+    // https://<worker-domain>/?action=getR2Image&key=products%2F123-abc.jpg
+    if (imageUrl.includes('action=getR2Image') && imageUrl.includes('key=')) {
+        try {
+            const url = new URL(imageUrl);
+            const key = url.searchParams.get('key');
+            if (key) return decodeURIComponent(key);
+        } catch (error) {
+            console.warn('Unable to parse proxy image URL:', error);
         }
     }
     

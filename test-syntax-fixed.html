@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Syntax Fixed</title>
+    <script src="public/assets/js/config.js"></script>
+    <script src="public/assets/js/toast-manager.js"></script>
+</head>
+<body>
+    <h1>✅ Test Syntax Fixed</h1>
+    <p>Nếu bạn thấy trang này load mà không có lỗi JavaScript, nghĩa là syntax đã được sửa thành công!</p>
+    
+    <div>
+        <h3>Test Upload (cần login trước)</h3>
+        <input type="file" id="testFile" accept="image/*">
+        <button onclick="testUpload()">Test Upload</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        console.log('✅ JavaScript loaded successfully - no syntax errors!');
+        
+        async function testUpload() {
+            const file = document.getElementById('testFile').files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            
+            const token = localStorage.getItem('session_token');
+            if (!token) {
+                alert('Please login first at /public/login.html');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('filename', file.name);
+                
+                const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h4>Result:</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                if (data.success) {
+                    console.log('✅ Upload test successful!');
+                } else {
+                    console.error('❌ Upload test failed:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Upload test error:', error);
+                document.getElementById('result').innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

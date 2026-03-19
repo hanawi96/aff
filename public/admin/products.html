@@ -60,6 +60,91 @@
         .hover-scale:hover {
             transform: scale(1.02);
         }
+
+        /* Category Filter Buttons */
+        #categoryFilterButtons {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        #categoryFilterButtons::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        #categoryFilterButtons::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 2px;
+        }
+        
+        #categoryFilterButtons::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        
+        #categoryFilterButtons::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Category button animations */
+        .category-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .category-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-btn.active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Quick Edit Product Name */
+        .product-name-editing {
+            background: #fff;
+            border: 2px solid #6366f1;
+            border-radius: 6px;
+            padding: 4px 8px;
+            outline: none;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            width: 100%;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .product-name-saving {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .product-name-error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+        
+        .edit-name-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 10;
+            margin-bottom: 4px;
+        }
+        
+        .group:hover .edit-name-tooltip {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -292,11 +377,10 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-col gap-4">
                     <!-- Top Row: Search & View Toggle -->
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <!-- Search & Category Filter -->
-                        <div class="flex-1 flex gap-3 max-w-2xl">
-                            <!-- Search -->
-                            <div class="flex-1">
+                    <div class="flex flex-col gap-4">
+                        <!-- Search Bar -->
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div class="flex-1 max-w-md">
                                 <div class="relative">
                                     <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, SKU..."
                                         class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
@@ -307,26 +391,31 @@
                                     </svg>
                                 </div>
                             </div>
-                            
-                            <!-- Category Filter -->
-                            <div class="w-56">
-                                <select id="categoryFilter" 
-                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent bg-white">
-                                    <option value="">Tất cả danh mục</option>
-                                </select>
+
+                            <!-- Filter Toggle -->
+                            <div class="flex items-center gap-3">
+                                <button id="filterToggleBtn" onclick="toggleFilters()"
+                                    class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all font-medium flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                    </svg>
+                                    <span>Bộ lọc</span>
+                                    <span id="filterBadge" class="hidden px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full font-bold">0</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Filter Toggle -->
-                        <div class="flex items-center gap-3">
-                            <button id="filterToggleBtn" onclick="toggleFilters()"
-                                class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all font-medium flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        <!-- Category Filter Buttons -->
+                        <div class="border-t border-gray-200 pt-4">
+                            <div class="flex items-center gap-3 mb-3">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                 </svg>
-                                <span>Bộ lọc</span>
-                                <span id="filterBadge" class="hidden px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full font-bold">0</span>
-                            </button>
+                                <span class="text-sm font-medium text-gray-700">Danh mục sản phẩm:</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2" id="categoryFilterButtons">
+                                <!-- Category buttons will be loaded here -->
+                            </div>
                         </div>
                     </div>
 

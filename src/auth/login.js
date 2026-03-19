@@ -76,7 +76,8 @@ export async function handleLogin(data, request, env, corsHeaders) {
 
         const responseData = {
             success: true,
-            sessionToken,
+            token: sessionToken,  // Changed from sessionToken to token for frontend compatibility
+            sessionToken,         // Keep both for backward compatibility
             user: {
                 id: user.id,
                 username: user.username,

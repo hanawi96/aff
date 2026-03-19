@@ -4,7 +4,7 @@
 
     // Configuration
     const CONFIG = {
-        API_URL: window.location.port === '5500' ? 'http://localhost:8787' : ''
+        API_URL: window.location.port === '5500' ? 'http://127.0.0.1:8787' : ''
     };
 
     // Helper function to get correct login path
