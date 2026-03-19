@@ -1,6 +1,20 @@
 import { jsonResponse } from '../../utils/response.js';
 import { deleteImageByUrl } from '../upload/image-upload.js';
 
+function smartRoundPrice(price) {
+    if (price < 10000) return Math.round(price / 1000) * 1000;
+    if (price < 100000) return Math.round(price / 1000) * 1000;
+    if (price < 500000) return Math.round(price / 5000) * 5000;
+    return Math.round(price / 10000) * 10000;
+}
+
+function smartRoundPriceUp(price) {
+    if (price < 10000) return Math.ceil(price / 1000) * 1000;
+    if (price < 100000) return Math.ceil(price / 1000) * 1000;
+    if (price < 500000) return Math.ceil(price / 5000) * 5000;
+    return Math.ceil(price / 10000) * 10000;
+}
+
 // Get all products (OPTIMIZED - No N+1 queries)
 export async function getAllProducts(env, corsHeaders) {
     try {
@@ -164,6 +178,32 @@ export async function createProduct(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Require at least one category
+        const hasValidCategoryIds = Array.isArray(data.category_ids) && data.category_ids.length > 0;
+        const hasValidSingleCategory = data.category_id !== undefined && data.category_id !== null && data.category_id !== '';
+        if (!hasValidCategoryIds && !hasValidSingleCategory) {
+            return jsonResponse({
+                success: false,
+                error: 'At least one category is required'
+            }, 400, corsHeaders);
+        }
+
+        // Check duplicate product name (case-insensitive) among active products
+        const normalizedName = String(data.name).trim();
+        const duplicateByName = await env.DB.prepare(`
+            SELECT id FROM products
+            WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
+              AND is_active = 1
+            LIMIT 1
+        `).bind(normalizedName).first();
+
+        if (duplicateByName) {
+            return jsonResponse({
+                success: false,
+                error: 'Product name already exists'
+            }, 400, corsHeaders);
+        }
+
         // Check if SKU already exists (if provided)
         if (data.sku) {
             const existing = await env.DB.prepare(`
@@ -183,7 +223,7 @@ export async function createProduct(data, env, corsHeaders) {
             INSERT INTO products (name, price, original_price, cost_price, markup_multiplier, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active, pricing_method, target_profit)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
-            data.name,
+            normalizedName,
             price,
             data.original_price ? parseFloat(data.original_price) : null,
             data.cost_price !== undefined ? parseFloat(data.cost_price) : 0,
@@ -257,6 +297,32 @@ export async function updateProduct(data, env, corsHeaders) {
                 success: false,
                 error: 'Product not found'
             }, 404, corsHeaders);
+        }
+
+        // Require at least one category for updates
+        // If category_ids is provided, it must not be empty.
+        if (data.category_ids !== undefined) {
+            if (!Array.isArray(data.category_ids) || data.category_ids.length === 0) {
+                return jsonResponse({
+                    success: false,
+                    error: 'At least one category is required'
+                }, 400, corsHeaders);
+            }
+        } else {
+            // No category_ids in payload: ensure product still has at least one linked category.
+            const categoryCountResult = await env.DB.prepare(`
+                SELECT COUNT(*) as total
+                FROM product_categories
+                WHERE product_id = ?
+            `).bind(data.id).first();
+
+            const categoryCount = Number(categoryCountResult?.total || 0);
+            if (categoryCount === 0) {
+                return jsonResponse({
+                    success: false,
+                    error: 'At least one category is required'
+                }, 400, corsHeaders);
+            }
         }
 
         // Track old image for deferred deletion.
@@ -435,7 +501,7 @@ export async function deleteProduct(data, env, corsHeaders) {
 
         // Check if product exists and get image URL
         const existing = await env.DB.prepare(`
-            SELECT id, image_url FROM products WHERE id = ?
+            SELECT id, image_url, is_active FROM products WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -445,17 +511,29 @@ export async function deleteProduct(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // Delete image from R2 if exists
-        if (existing.image_url) {
-            await deleteImageByUrl(env, existing.image_url);
+        // Idempotent behavior: already deleted is treated as success
+        if (Number(existing.is_active) === 0) {
+            return jsonResponse({
+                success: true,
+                message: 'Product already deleted'
+            }, 200, corsHeaders);
         }
 
-        // Soft delete (set is_active = 0)
+        // Soft delete first (schema no longer has updated_at column)
         await env.DB.prepare(`
             UPDATE products
-            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            SET is_active = 0
             WHERE id = ?
         `).bind(data.id).run();
+
+        // Cleanup image after DB update (best effort only)
+        if (existing.image_url) {
+            try {
+                await deleteImageByUrl(env, existing.image_url);
+            } catch (deleteError) {
+                console.warn('⚠️ Failed to delete product image after soft delete:', deleteError);
+            }
+        }
 
         return jsonResponse({
             success: true,
@@ -520,6 +598,7 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                 let newMarkup;
                 const materialCount = materials.length;
                 const pricingMethod = product.pricing_method || 'markup';
+                const targetProfit = Number(product.target_profit || 0);
 
                 // Debug logging
                 console.log(`🔍 Product ${product.id} (${product.name}):`, {
@@ -530,11 +609,13 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                     newCostPrice
                 });
 
-                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && product.target_profit > 0) {
-                    // Use target profit method: price = cost + profit
-                    newPrice = newCostPrice + product.target_profit;
+                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
+                    // Use target profit method: price = cost + target profit
+                    // Round UP to avoid dropping below desired profit because of rounding step.
+                    const minimumPrice = newCostPrice + targetProfit;
+                    newPrice = smartRoundPriceUp(minimumPrice);
                     newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
-                    console.log(`💰 Using profit method: ${newCostPrice} + ${product.target_profit} = ${newPrice}`);
+                    console.log(`💰 Using profit method: ${newCostPrice} + ${targetProfit} => rounded up ${newPrice}`);
                 } else {
                     // Use markup method: price = cost × markup
                     if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
@@ -552,17 +633,7 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                     }
                     newPrice = newCostPrice * newMarkup;
                     console.log(`📊 Using markup method: ${newCostPrice} × ${newMarkup} = ${newPrice}`);
-                }
-
-                // Smart rounding
-                if (newPrice < 10000) {
-                    newPrice = Math.round(newPrice / 1000) * 1000;
-                } else if (newPrice < 100000) {
-                    newPrice = Math.round(newPrice / 1000) * 1000;
-                } else if (newPrice < 500000) {
-                    newPrice = Math.round(newPrice / 5000) * 5000;
-                } else {
-                    newPrice = Math.round(newPrice / 10000) * 10000;
+                    newPrice = smartRoundPrice(newPrice);
                 }
 
                 // Only update if prices changed
@@ -620,7 +691,13 @@ export async function checkOutdatedProducts(env, corsHeaders) {
     try {
         // Get all products that have materials
         const { results: productsWithMaterials } = await env.DB.prepare(`
-            SELECT DISTINCT p.id, p.markup_multiplier, p.price as current_price, p.cost_price as current_cost_price
+            SELECT DISTINCT 
+                p.id,
+                p.markup_multiplier,
+                p.pricing_method,
+                p.target_profit,
+                p.price as current_price,
+                p.cost_price as current_cost_price
             FROM products p
             INNER JOIN product_materials pm ON p.id = pm.product_id
             WHERE p.is_active = 1
@@ -646,40 +723,33 @@ export async function checkOutdatedProducts(env, corsHeaders) {
                 }
                 expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
 
-                // Calculate expected selling price
+                // Calculate expected selling price based on product pricing method
                 let expectedPrice;
                 const materialCount = materials.length;
+                const pricingMethod = product.pricing_method || 'markup';
+                const targetProfit = Number(product.target_profit || 0);
 
-                if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
-                    expectedPrice = expectedCostPrice * product.markup_multiplier;
+                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
+                    const minimumPrice = expectedCostPrice + targetProfit;
+                    expectedPrice = smartRoundPriceUp(minimumPrice);
                 } else {
-                    let autoMarkup;
-                    if (materialCount <= 3) {
-                        autoMarkup = 2.5;
-                    } else if (materialCount <= 6) {
-                        autoMarkup = 3.0;
-                    } else {
-                        autoMarkup = 3.5;
+                    let markupToUse = product.markup_multiplier;
+                    if (markupToUse === null || markupToUse === undefined) {
+                        if (materialCount <= 3) {
+                            markupToUse = 2.5;
+                        } else if (materialCount <= 6) {
+                            markupToUse = 3.0;
+                        } else {
+                            markupToUse = 3.5;
+                        }
                     }
-                    expectedPrice = expectedCostPrice * autoMarkup;
-                }
-
-                // Smart rounding
-                if (expectedPrice < 10000) {
-                    expectedPrice = Math.round(expectedPrice / 1000) * 1000;
-                } else if (expectedPrice < 100000) {
-                    expectedPrice = Math.round(expectedPrice / 1000) * 1000;
-                } else if (expectedPrice < 500000) {
-                    expectedPrice = Math.round(expectedPrice / 5000) * 5000;
-                } else {
-                    expectedPrice = Math.round(expectedPrice / 10000) * 10000;
+                    expectedPrice = smartRoundPrice(expectedCostPrice * markupToUse);
                 }
 
                 // Check if prices are different
                 if (expectedCostPrice !== product.current_cost_price || expectedPrice !== product.current_price) {
                     outdatedCount++;
                 }
-
             } catch (error) {
                 console.error(`Error checking product ${product.id}:`, error);
             }

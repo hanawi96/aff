@@ -5,6 +5,9 @@ let allCategories = [];
 let viewMode = 'grid'; // 'grid' or 'list'
 let currentPage = 1;
 const itemsPerPage = 10;
+let pendingImageFile = null;
+let pendingImagePreviewUrl = null;
+let pinnedProductId = null;
 
 // Filter state
 let currentFilters = {
@@ -228,6 +231,7 @@ function createCategoryButton(categoryId, name, count, isAll = false) {
 function selectCategoryFilter(categoryId) {
     // Update filter state
     currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
+    pinnedProductId = null;
     
     // Update button styles
     populateCategoryFilter();
@@ -278,13 +282,10 @@ async function reloadProductsKeepPage() {
 
             // Re-apply current filters without resetting page
             const searchInput = document.getElementById('searchInput');
-            const categoryFilter = document.getElementById('categoryFilter');
             const searchTerm = searchInput?.value || '';
-            const categoryId = categoryFilter?.value || '';
             
             // Don't reset currentPage here - keep it as is
             currentFilters.searchTerm = searchTerm.trim();
-            currentFilters.categoryId = categoryId ? parseInt(categoryId) : null;
             
             let results = [...allProducts];
 
@@ -478,6 +479,16 @@ function searchAndSort(skipURLUpdate = false) {
 
             return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
         });
+    }
+
+    // Pin newly created product to top once (after filtering/sorting).
+    if (pinnedProductId) {
+        const pinnedIndex = results.findIndex(p => Number(p.id) === Number(pinnedProductId));
+        if (pinnedIndex > 0) {
+            const [pinned] = results.splice(pinnedIndex, 1);
+            results.unshift(pinned);
+        }
+        pinnedProductId = null;
     }
 
     filteredProducts = results;
@@ -1344,6 +1355,19 @@ function updateMarkupFromPrices() {
     // Chỉ cập nhật nếu tất cả các input tồn tại
     if (!markupInput || !priceInput || !costPriceInput) return;
     
+    // In profit mode:
+    // - editing cost should keep target profit fixed and recalc selling price
+    // - editing selling price should update target profit (reverse mode)
+    if (currentPricingMethod === 'profit') {
+        const activeId = document.activeElement?.id;
+        if (activeId === 'productCostPrice') {
+            updateSellingPriceFromProfit();
+        } else if (activeId === 'productPrice') {
+            updateTargetProfitFromPrices();
+        }
+        return;
+    }
+
     // Lấy giá trị hiện tại
     const sellingPrice = parseFormattedNumber(priceInput.value);
     const costPrice = parseFormattedNumber(costPriceInput.value);
@@ -1381,6 +1405,7 @@ function updateMarkupFromPrices() {
 
 // Close product modal
 function closeProductModal() {
+    resetPendingImageSelection();
     const modal = document.getElementById('productModal');
     if (modal) {
         modal.remove();
@@ -1392,7 +1417,7 @@ async function handleImageUpload(input) {
     const file = input.files[0];
     if (!file) return;
     
-    console.log('📤 Starting image upload:', {
+    console.log('🖼️ Selected image file:', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type
@@ -1412,103 +1437,34 @@ async function handleImageUpload(input) {
         return;
     }
     
-    // Show loading state
-    const urlInput = document.getElementById('productImageURL');
-    const originalValue = urlInput?.value || '';
-    
-    if (urlInput) {
-        urlInput.value = 'Đang upload...';
-        urlInput.disabled = true;
+    // Keep selected file in memory and preview locally.
+    resetPendingImageSelection();
+    pendingImageFile = file;
+    pendingImagePreviewUrl = URL.createObjectURL(file);
+
+    const visibleInput = document.getElementById('productImageURLInput');
+    const container = document.getElementById('imagePreviewContainer');
+    const preview = document.getElementById('imagePreview');
+    const urlSection = document.getElementById('imageUrlSection');
+    if (visibleInput) {
+        visibleInput.value = `Đã chọn file: ${file.name} (sẽ upload khi bấm Lưu)`;
     }
-    
-    // Show loading toast
-    const loadingToast = { message: '📤 Đang upload ảnh...', type: 'info' };
-    showToast(loadingToast.message, loadingToast.type, 0); // Persistent toast
-    
-    try {
-        // Create form data
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('filename', file.name);
-        
-        console.log('📤 Sending upload request...');
-        
-        // Upload to R2
-        const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-            },
-            body: formData
-        });
-        
-        console.log('📥 Upload response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('📥 Upload response data:', data);
-        
-        // Hide loading toast by clearing all info toasts
-        toastManager.toasts.filter(t => t.type === 'info').forEach(t => toastManager.remove(t));
-        
-        if (data.success && data.url) {
-            console.log('✅ Upload successful, URL:', data.url);
-            
-            if (urlInput) {
-                urlInput.value = data.url;
-            }
-            
-            // Update preview
-            updateImagePreview(data.url);
-            
-            // Success message with development mode info
-            if (data.url.includes('.r2.dev')) {
-                showToast('✅ Upload thành công! (Dev mode: Preview có thể không hiển thị)', 'success');
-            } else {
-                showToast('✅ Upload ảnh thành công!', 'success');
-            }
-            
-        } else {
-            throw new Error(data.error || 'Upload failed - no URL returned');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error uploading image:', error);
-        
-        // Hide loading toast by clearing all info toasts
-        toastManager.toasts.filter(t => t.type === 'info').forEach(t => toastManager.remove(t));
-        
-        // Restore original value
-        if (urlInput) {
-            urlInput.value = originalValue;
-        }
-        
-        // Show error message
-        let errorMessage = 'Lỗi upload ảnh';
-        if (error.message.includes('HTTP 413')) {
-            errorMessage = 'File quá lớn (>5MB)';
-        } else if (error.message.includes('HTTP 400')) {
-            errorMessage = 'File không hợp lệ';
-        } else if (error.message.includes('HTTP 401')) {
-            errorMessage = 'Không có quyền upload';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
-            errorMessage = 'Lỗi kết nối mạng';
-        } else {
-            errorMessage = `Lỗi upload: ${error.message}`;
-        }
-        
-        showToast(`❌ ${errorMessage}`, 'error');
-        
-    } finally {
-        // Re-enable input and reset file input
-        if (urlInput) {
-            urlInput.disabled = false;
-        }
-        input.value = ''; // Reset file input
+
+    if (preview && container) {
+        preview.onerror = null;
+        preview.onload = null;
+        preview.style.opacity = '1';
+        preview.style.padding = '';
+        preview.style.backgroundColor = '';
+        preview.src = pendingImagePreviewUrl;
+        container.classList.remove('hidden');
     }
+    if (urlSection) {
+        urlSection.classList.remove('hidden');
+    }
+
+    input.value = '';
+    showToast('🖼️ Đã chọn ảnh. Ảnh sẽ được upload khi bấm Lưu', 'info');
 }
 
 // Update image preview
@@ -1581,6 +1537,7 @@ function updateImagePreview(url) {
 
 // Clear image preview
 function clearImagePreview() {
+    resetPendingImageSelection();
     const hiddenInput = document.getElementById('productImageURL');
     const visibleInput = document.getElementById('productImageURLInput');
     const container = document.getElementById('imagePreviewContainer');
@@ -1714,7 +1671,7 @@ async function saveProduct(productId = null) {
     const purchases = parseFormattedNumber(document.getElementById('productPurchases')?.value);
     const sku = document.getElementById('productSKU')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
-    const image_url = document.getElementById('productImageURL')?.value.trim();
+    let image_url = document.getElementById('productImageURL')?.value.trim();
     
     // Get pricing method and target profit
     const pricing_method = currentPricingMethod || 'markup';
@@ -1757,6 +1714,20 @@ async function saveProduct(productId = null) {
         return;
     }
 
+    if (!productId) {
+        const normalizedName = name.toLowerCase().trim();
+        const duplicateName = allProducts.some(product =>
+            Number(product.is_active) !== 0 &&
+            String(product.name || '').toLowerCase().trim() === normalizedName
+        );
+
+        if (duplicateName) {
+            showToast('Tên sản phẩm bị trùng, vui lòng nhập tên khác', 'warning');
+            document.getElementById('productName')?.focus();
+            return;
+        }
+    }
+
     if (!price || price <= 0) {
         showToast('Vui lòng nhập giá hợp lệ', 'warning');
         document.getElementById('productPrice')?.focus();
@@ -1766,6 +1737,12 @@ async function saveProduct(productId = null) {
     if (isNaN(costPrice) || costPrice < 0) {
         showToast('Vui lòng nhập giá vốn hợp lệ', 'warning');
         document.getElementById('productCostPrice')?.focus();
+        return;
+    }
+
+    if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 danh mục cho sản phẩm', 'warning');
+        document.getElementById('categoryCheckboxList')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
 
@@ -1808,6 +1785,25 @@ async function saveProduct(productId = null) {
             saveBtn.disabled = true;
             saveBtn.textContent = 'Đang lưu...';
         }
+
+        // Upload selected image only when user confirms by clicking Save.
+        if (pendingImageFile) {
+            if (saveBtn) {
+                saveBtn.textContent = 'Đang upload ảnh...';
+            }
+            image_url = await uploadImageToR2(pendingImageFile);
+            const hiddenInput = document.getElementById('productImageURL');
+            const visibleInput = document.getElementById('productImageURLInput');
+            if (hiddenInput) hiddenInput.value = image_url;
+            if (visibleInput) visibleInput.value = image_url;
+            resetPendingImageSelection();
+
+            if (saveBtn) {
+                saveBtn.textContent = 'Đang lưu...';
+            }
+        }
+
+        productData.image_url = image_url || null;
 
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
@@ -1854,7 +1850,22 @@ async function saveProduct(productId = null) {
                     localProduct.image_url = image_url;
                 }
             }
-            
+
+            // For newly created products:
+            // - switch to the first selected category
+            // - clear search
+            // - pin new product to top on first render
+            if (!productId && categoryIds.length > 0) {
+                currentFilters.categoryId = parseInt(categoryIds[0]);
+                currentFilters.searchTerm = '';
+                currentPage = 1;
+                pinnedProductId = savedProductId;
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = '';
+                populateCategoryFilter();
+                updateURL();
+            }
+
             showToast(productId ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới', 'success');
             closeProductModal();
             await reloadProductsKeepPage();
@@ -3881,8 +3892,8 @@ function updateSellingPriceFromProfit() {
     const targetProfit = parseFormattedNumber(targetProfitInput.value) || 0;
     const costPrice = parseFormattedNumber(costPriceInput.value) || 0;
     
-    if (costPrice > 0 && targetProfit > 0) {
-        // Calculate selling price: cost + profit
+    if (costPrice > 0 && targetProfit >= 0) {
+        // Calculate selling price: cost + desired profit (absolute amount)
         const sellingPrice = costPrice + targetProfit;
         
         // Update price input
@@ -4445,6 +4456,7 @@ function showToast(message, type = 'info', duration = 4000) {
 window.startEditProductName = startEditProductName;
 // Handle manual URL input change
 function handleImageURLChange(url) {
+    resetPendingImageSelection();
     const hiddenInput = document.getElementById('productImageURL');
     const visibleInput = document.getElementById('productImageURLInput');
     
@@ -4484,6 +4496,40 @@ function hideImageUrlSection() {
 window.handleImageURLChange = handleImageURLChange;
 window.showImageUrlSection = showImageUrlSection;
 window.hideImageUrlSection = hideImageUrlSection;
+
+function resetPendingImageSelection() {
+    pendingImageFile = null;
+    if (pendingImagePreviewUrl) {
+        URL.revokeObjectURL(pendingImagePreviewUrl);
+        pendingImagePreviewUrl = null;
+    }
+}
+
+async function uploadImageToR2(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('filename', file.name);
+
+    const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.success || !data.url) {
+        throw new Error(data.error || 'Upload failed - no URL returned');
+    }
+
+    return data.url;
+}
+
 // Try alternative methods to load image
 async function tryAlternativeImageLoad(imgElement, originalUrl, encodedUrl) {
     console.log('🔄 Trying alternative image loading methods for CORS issue...');
