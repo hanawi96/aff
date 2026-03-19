@@ -3,9 +3,15 @@
     'use strict';
 
     // Configuration
-    const CONFIG = {
-        API_URL: window.location.port === '5500' ? 'http://127.0.0.1:8787' : ''
-    };
+    // Use global CONFIG from config.js to keep API endpoint consistent
+    // across local and Cloudflare Pages environments.
+    const API_URL = (
+        window.CONFIG && window.CONFIG.API_URL
+    ) || (
+        (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://127.0.0.1:8787'
+            : 'https://ctv-api.yendev96.workers.dev'
+    );
 
     // Helper function to get correct login path
     function getLoginPath() {
@@ -29,7 +35,7 @@
     
     console.log('🔐 Auth check starting...');
     console.log('   Session token:', sessionToken ? 'EXISTS' : 'MISSING');
-    console.log('   API URL:', CONFIG.API_URL);
+    console.log('   API URL:', API_URL);
     
     if (!sessionToken) {
         console.log('❌ No token, redirecting to login');
@@ -40,7 +46,7 @@
 
     // Verify session with server
     console.log('🔍 Verifying session with server...');
-    fetch(`${CONFIG.API_URL}?action=verifySession`, {
+    fetch(`${API_URL}?action=verifySession`, {
         headers: {
             'Authorization': `Bearer ${sessionToken}`
         }
@@ -116,7 +122,7 @@
         const sessionToken = localStorage.getItem('session_token');
         
         try {
-            await fetch(`${CONFIG.API_URL}?action=logout`, {
+            await fetch(`${API_URL}?action=logout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
