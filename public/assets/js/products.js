@@ -252,6 +252,9 @@ async function loadProducts() {
             allProducts = data.products || [];
 
             console.log('📦 Loaded products:', allProducts.length);
+            // Refresh category preset counts (especially "Tất cả")
+            // after products data is available.
+            populateCategoryFilter();
 
             // Re-apply current filters (skip URL update to avoid duplicate history entries)
             searchAndSort(true);
@@ -279,6 +282,8 @@ async function reloadProductsKeepPage() {
             allProducts = data.products || [];
 
             console.log('📦 Reloaded products (keeping page):', allProducts.length);
+            // Keep category counters in sync with latest product list.
+            populateCategoryFilter();
 
             // Re-apply current filters without resetting page
             const searchInput = document.getElementById('searchInput');
