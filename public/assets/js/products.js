@@ -1531,14 +1531,21 @@ async function loadCategoriesInline() {
     if (!container) return;
     
     try {
-        const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`);
-        const data = await response.json();
-        
-        if (data.success && data.categories && data.categories.length > 0) {
+        let categories = Array.isArray(allCategories) ? allCategories : [];
+        if (!categories.length) {
+            const response = await fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`);
+            const data = await response.json();
+            if (data.success && Array.isArray(data.categories)) {
+                categories = data.categories;
+                allCategories = categories;
+            }
+        }
+
+        if (categories.length > 0) {
             // Render categories in 2 columns
             container.innerHTML = `
                 <div class="grid grid-cols-2 gap-3">
-                    ${data.categories.map(cat => `
+                    ${categories.map(cat => `
                         <label class="flex items-center gap-2 p-2.5 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 cursor-pointer transition-all">
                             <input type="checkbox" 
                                    class="category-checkbox w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" 
@@ -2420,22 +2427,20 @@ async function editProduct(productId) {
             });
         }
 
-        // Load categories inline
-        await loadCategoriesInline();
-        
-        // Set selected categories after loading
-        if (product.category_ids && product.category_ids.length > 0) {
-            setSelectedCategoryIds(product.category_ids);
-        } else if (product.category_id) {
-            // Fallback for old data
-            setSelectedCategoryIds([product.category_id]);
-        }
-
-        // Load materials formula for this product
-        await loadProductFormula(productId);
-
-        // Check if product price is outdated
-        await checkProductPriceOutdated(product);
+        // Load heavy data in parallel to improve edit modal responsiveness.
+        await Promise.all([
+            (async () => {
+                await loadCategoriesInline();
+                if (product.category_ids && product.category_ids.length > 0) {
+                    setSelectedCategoryIds(product.category_ids);
+                } else if (product.category_id) {
+                    // Fallback for old data
+                    setSelectedCategoryIds([product.category_id]);
+                }
+            })(),
+            loadProductFormula(productId),
+            checkProductPriceOutdated(product)
+        ]);
 
         // Calculate profit on load
         setTimeout(() => {
