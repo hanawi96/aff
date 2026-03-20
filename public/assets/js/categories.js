@@ -13,6 +13,7 @@ const API_URL = (
 let allCategories = [];
 let filteredCategories = [];
 let currentCategory = null;
+let currentStatusFilter = '';
 
 // ============================================
 // INITIALIZATION
@@ -28,9 +29,15 @@ function setupEventListeners() {
         searchInput.addEventListener('input', debounce(filterCategories, 300));
     }
 
-    const filterStatus = document.getElementById('filterStatus');
-    if (filterStatus) {
-        filterStatus.addEventListener('change', filterCategories);
+    const presetButtons = document.querySelectorAll('.status-preset-btn');
+    if (presetButtons.length > 0) {
+        presetButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentStatusFilter = button.dataset.status || '';
+                updateStatusPresetUI();
+                filterCategories();
+            });
+        });
     }
 
     const categoryForm = document.getElementById('categoryForm');
@@ -47,7 +54,7 @@ async function loadCategories() {
     try {
         showLoading();
         
-        const response = await fetch(`${API_URL}?action=getAllCategories`);
+        const response = await fetch(`${API_URL}?action=getAllCategoriesAdmin`);
         const data = await response.json();
         
         if (data.success) {
@@ -254,7 +261,7 @@ function getStatusBadge(isActive) {
 
 function filterCategories() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('filterStatus').value;
+    const statusFilter = currentStatusFilter;
     
     filteredCategories = allCategories.filter(category => {
         const matchesSearch = category.name.toLowerCase().includes(searchTerm) ||
@@ -271,6 +278,17 @@ function filterCategories() {
     });
     
     renderCategories();
+}
+
+function updateStatusPresetUI() {
+    const presetButtons = document.querySelectorAll('.status-preset-btn');
+    presetButtons.forEach(button => {
+        const isActive = (button.dataset.status || '') === currentStatusFilter;
+        button.classList.toggle('bg-indigo-600', isActive);
+        button.classList.toggle('text-white', isActive);
+        button.classList.toggle('text-gray-600', !isActive);
+        button.classList.toggle('hover:bg-gray-100', !isActive);
+    });
 }
 
 // ============================================

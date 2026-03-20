@@ -89,6 +89,34 @@ export async function getAllCategories(env, corsHeaders) {
     }
 }
 
+// Get all categories for admin page (include active + inactive)
+export async function getAllCategoriesAdmin(env, corsHeaders) {
+    try {
+        const { results: categories } = await env.DB.prepare(`
+            SELECT 
+                c.*,
+                COUNT(DISTINCT pc.product_id) as product_count
+            FROM categories c
+            LEFT JOIN product_categories pc ON c.id = pc.category_id
+            LEFT JOIN products p ON pc.product_id = p.id AND p.is_active = 1
+            GROUP BY c.id
+            ORDER BY c.display_order ASC, c.name ASC
+        `).all();
+
+        return jsonResponse({
+            success: true,
+            categories: categories
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting admin categories:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Get single category by ID
 export async function getCategory(categoryId, env, corsHeaders) {
     try {

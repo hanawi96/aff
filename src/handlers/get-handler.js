@@ -38,6 +38,7 @@ import {
 // Categories
 import { 
     getAllCategories, 
+    getAllCategoriesAdmin,
     getCategory 
 } from '../services/products/category-service.js';
 
@@ -293,6 +294,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getAllCategories':
             return await getAllCategories(env, corsHeaders);
+        
+        case 'getAllCategoriesAdmin':
+            return await getAllCategoriesAdmin(env, corsHeaders);
 
         case 'getCategory':
             const categoryId = url.searchParams.get('id');

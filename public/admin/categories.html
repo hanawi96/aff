@@ -137,14 +137,20 @@
 
                     <!-- Actions -->
                     <div class="mb-6 flex justify-between items-center">
-                        <div class="flex gap-3">
+                        <div class="flex gap-3 items-center">
                             <input type="text" id="searchInput" placeholder="Tìm kiếm danh mục..." 
                                 class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <select id="filterStatus" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="active">Hoạt động</option>
-                                <option value="inactive">Tạm dừng</option>
-                            </select>
+                            <div id="statusPresetFilter" class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1">
+                                <button type="button" data-status="" class="status-preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white">
+                                    Tất cả
+                                </button>
+                                <button type="button" data-status="active" class="status-preset-btn px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100">
+                                    Hoạt động
+                                </button>
+                                <button type="button" data-status="inactive" class="status-preset-btn px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100">
+                                    Tạm dừng
+                                </button>
+                            </div>
                         </div>
                         <button onclick="showAddCategoryModal()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
                             + Thêm danh mục
