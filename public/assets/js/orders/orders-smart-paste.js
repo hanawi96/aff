@@ -962,6 +962,39 @@ async function parseAddress(addressText) {
     const normalizedForDict = removeVietnameseTones(processedAddress).toLowerCase();
     console.log(`  📝 Normalized for dict: "${normalizedForDict}"`);
     
+    // Context-aware guard:
+    // Detect explicit province mentions in user text so we don't force
+    // ambiguous district aliases to a wrong province (e.g. "Bình Thạnh" -> TP.HCM)
+    // when the address already mentions another province.
+    const explicitProvincesInText = new Set();
+    for (const province of vietnamAddressData) {
+        if (!province || !province.Name) continue;
+        
+        const normalizedProvinceName = removeVietnameseTones(province.Name)
+            .toLowerCase()
+            .replace(/^(tinh|thanh pho|tp)\s+/, '')
+            .trim();
+        
+        if (!normalizedProvinceName) continue;
+        
+        // Match full province token by word boundaries to avoid false positives.
+        const provinceRegex = new RegExp(`\\b${normalizedProvinceName}\\b`, 'i');
+        if (provinceRegex.test(normalizedForDict)) {
+            explicitProvincesInText.add(province.Name);
+        }
+    }
+    
+    // Known ambiguous district aliases that appear in multiple provinces.
+    // These should not be auto-forced to a fixed province when text
+    // already contains another explicit province hint.
+    const ambiguousDistrictAliases = new Set([
+        'binh thanh',
+        'tan binh',
+        'phu nhuan',
+        'tan phu',
+        'thanh pho'
+    ]);
+    
     // CRITICAL: Sort dictionary entries by pattern length (longest first)
     // This ensures "Bắc Tân Uyên" is checked BEFORE "Tân Uyên"
     const sortedDistrictEntries = Object.entries(districtAbbreviations).sort((a, b) => {
@@ -985,6 +1018,19 @@ async function parseAddress(addressText) {
         for (const pattern of allPatterns) {
             // CRITICAL FIX: Normalize pattern to match normalizedForDict (no tones)
             const normalizedPattern = removeVietnameseTones(pattern).toLowerCase();
+            
+            // Skip ambiguous forced mappings when explicit province context conflicts.
+            if (ambiguousDistrictAliases.has(normalizedPattern) && explicitProvincesInText.size > 0) {
+                const mappedProvince = provinceHintMapName(info.province);
+                const hasSameProvince = Array.from(explicitProvincesInText).some(p => {
+                    return removeVietnameseTones(p).toLowerCase() === removeVietnameseTones(mappedProvince).toLowerCase();
+                });
+                
+                if (!hasSameProvince) {
+                    console.log(`  ⏭️ Skip ambiguous dictionary pattern "${pattern}" due to explicit province context mismatch`);
+                    continue;
+                }
+            }
             
             // SMART CONTEXT CHECK: If pattern is ambiguous (like "tt"), check what comes after
             // "tt easup" → "thị trấn Ea Súp" (NOT "Huyện Thủ Thừa")
@@ -1126,6 +1172,22 @@ async function parseAddress(addressText) {
     } else {
         // Dictionary was applied - update addressText with the expanded district name
         addressText = processedAddress;
+    }
+
+    // Normalize dictionary province labels for robust comparison above.
+    function provinceHintMapName(hint) {
+        const map = {
+            'TP.HCM': 'Thành phố Hồ Chí Minh',
+            'TPHCM': 'Thành phố Hồ Chí Minh',
+            'HCM': 'Thành phố Hồ Chí Minh',
+            'Sài Gòn': 'Thành phố Hồ Chí Minh',
+            'TP.HN': 'Thành phố Hà Nội',
+            'TPHN': 'Thành phố Hà Nội',
+            'HN': 'Thành phố Hà Nội',
+            'TP.ĐN': 'Thành phố Đà Nẵng',
+            'ĐN': 'Thành phố Đà Nẵng'
+        };
+        return map[hint] || hint;
     }
     
     // CRITICAL: Sync processedAddress with addressText (after landmark extraction)

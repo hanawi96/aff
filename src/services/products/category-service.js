@@ -1,5 +1,65 @@
 import { jsonResponse } from '../../utils/response.js';
 
+function parseDisplayOrderInput(rawValue) {
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+        return { hasExplicitValue: false, value: null };
+    }
+
+    const parsed = Number(rawValue);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+        return { hasExplicitValue: true, invalid: true, value: null };
+    }
+
+    return { hasExplicitValue: true, invalid: false, value: parsed };
+}
+
+async function getActiveCategoryCount(env) {
+    const row = await env.DB.prepare(`
+        SELECT COUNT(*) AS count
+        FROM categories
+        WHERE is_active = 1
+    `).first();
+    return Number(row?.count ?? 0);
+}
+
+function clampDisplayOrder(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+async function shiftOrdersForInsert(env, fromOrder, now) {
+    await env.DB.prepare(`
+        UPDATE categories
+        SET display_order = display_order + 1, updated_at_unix = ?
+        WHERE is_active = 1 AND display_order >= ?
+    `).bind(now, fromOrder).run();
+}
+
+async function moveCategoryOrder(env, categoryId, oldOrder, newOrder, now) {
+    if (newOrder === oldOrder) return;
+
+    if (newOrder > oldOrder) {
+        // Move down: pull others up
+        await env.DB.prepare(`
+            UPDATE categories
+            SET display_order = display_order - 1, updated_at_unix = ?
+            WHERE is_active = 1
+              AND id != ?
+              AND display_order > ?
+              AND display_order <= ?
+        `).bind(now, categoryId, oldOrder, newOrder).run();
+    } else {
+        // Move up: push others down
+        await env.DB.prepare(`
+            UPDATE categories
+            SET display_order = display_order + 1, updated_at_unix = ?
+            WHERE is_active = 1
+              AND id != ?
+              AND display_order >= ?
+              AND display_order < ?
+        `).bind(now, categoryId, newOrder, oldOrder).run();
+    }
+}
+
 // Get all categories
 export async function getAllCategories(env, corsHeaders) {
     try {
@@ -73,6 +133,11 @@ export async function createCategory(data, env, corsHeaders) {
                 error: 'Category name is required'
             }, 400, corsHeaders);
         }
+        
+        const activeCount = await getActiveCategoryCount(env);
+        // Product requirement: new categories are always appended at the end.
+        // Ignore any incoming display_order during create to avoid manual ordering.
+        const resolvedDisplayOrder = activeCount;
 
         // Check if name already exists
         const existing = await env.DB.prepare(`
@@ -92,6 +157,7 @@ export async function createCategory(data, env, corsHeaders) {
             } else {
                 // Category exists but is inactive (soft deleted), reactivate it
                 const now = Math.floor(Date.now() / 1000);
+                await shiftOrdersForInsert(env, resolvedDisplayOrder, now);
                 await env.DB.prepare(`
                     UPDATE categories
                     SET description = ?, icon = ?, color = ?, display_order = ?, is_active = 1, updated_at_unix = ?
@@ -100,7 +166,7 @@ export async function createCategory(data, env, corsHeaders) {
                     data.description || null,
                     data.icon || null,
                     data.color || null,
-                    data.display_order || 0,
+                    resolvedDisplayOrder,
                     now,
                     existing.id
                 ).run();
@@ -115,6 +181,7 @@ export async function createCategory(data, env, corsHeaders) {
 
         // Get current unix timestamp (in seconds)
         const now = Math.floor(Date.now() / 1000);
+        await shiftOrdersForInsert(env, resolvedDisplayOrder, now);
 
         // Insert category
         const result = await env.DB.prepare(`
@@ -125,7 +192,7 @@ export async function createCategory(data, env, corsHeaders) {
             data.description || null,
             data.icon || null,
             data.color || null,
-            data.display_order || 0,
+            resolvedDisplayOrder,
             data.is_active !== undefined ? data.is_active : 1,
             now,
             now
@@ -160,7 +227,7 @@ export async function updateCategory(data, env, corsHeaders) {
 
         // Check if category exists
         const existing = await env.DB.prepare(`
-            SELECT id FROM categories WHERE id = ?
+            SELECT id, is_active, display_order FROM categories WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -182,6 +249,29 @@ export async function updateCategory(data, env, corsHeaders) {
                     error: 'Category name already exists'
                 }, 400, corsHeaders);
             }
+        }
+
+        const displayOrderInput = parseDisplayOrderInput(data.display_order);
+        if (displayOrderInput.invalid) {
+            return jsonResponse({
+                success: false,
+                error: 'Display order must be a non-negative integer'
+            }, 400, corsHeaders);
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const isActiveAfterUpdate = data.is_active !== undefined
+            ? Boolean(data.is_active)
+            : Boolean(existing.is_active);
+
+        if (displayOrderInput.hasExplicitValue && isActiveAfterUpdate && Boolean(existing.is_active)) {
+            const activeCount = await getActiveCategoryCount(env);
+            const maxOrder = Math.max(0, activeCount - 1);
+            const desiredOrder = clampDisplayOrder(displayOrderInput.value, 0, maxOrder);
+            const oldOrder = Number(existing.display_order ?? 0);
+
+            await moveCategoryOrder(env, data.id, oldOrder, desiredOrder, now);
+            data.display_order = desiredOrder;
         }
 
         // Build update query
@@ -215,7 +305,7 @@ export async function updateCategory(data, env, corsHeaders) {
 
         updates.push('updated_at = CURRENT_TIMESTAMP');
         updates.push('updated_at_unix = ?');
-        values.push(Math.floor(Date.now() / 1000));
+        values.push(now);
 
         if (updates.length === 2) {
             return jsonResponse({

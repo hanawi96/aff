@@ -1,7 +1,13 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = 'https://ctv-api.yendev96.workers.dev';
+const API_URL = (
+    window.CONFIG && window.CONFIG.API_URL
+) || (
+    (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://127.0.0.1:8787'
+        : 'https://ctv-api.yendev96.workers.dev'
+);
 
 // State
 let allCategories = [];
@@ -277,7 +283,19 @@ function showAddCategoryModal() {
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryActive').checked = true;
-    document.getElementById('categoryOrder').value = 0;
+    const orderGroup = document.getElementById('categoryOrderGroup');
+    const orderHint = document.getElementById('categoryOrderHint');
+    const orderInput = document.getElementById('categoryOrder');
+    if (orderGroup) orderGroup.classList.add('hidden');
+    orderInput.value = '';
+    orderInput.disabled = true;
+    orderInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    if (orderHint) orderHint.classList.remove('hidden');
+    // Some browsers may restore previous numeric value in modal forms.
+    // Force-clear again on next frame to avoid showing stale "0".
+    requestAnimationFrame(() => {
+        orderInput.value = '';
+    });
     document.getElementById('categoryModal').classList.remove('hidden');
 }
 
@@ -291,7 +309,14 @@ function editCategory(id) {
     document.getElementById('categoryId').value = category.id;
     document.getElementById('categoryName').value = category.name;
     document.getElementById('categoryDescription').value = category.description || '';
-    document.getElementById('categoryOrder').value = category.display_order || 0;
+    const orderGroup = document.getElementById('categoryOrderGroup');
+    const orderHint = document.getElementById('categoryOrderHint');
+    const orderInput = document.getElementById('categoryOrder');
+    if (orderGroup) orderGroup.classList.remove('hidden');
+    orderInput.disabled = false;
+    orderInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    orderInput.value = category.display_order ?? 0;
+    if (orderHint) orderHint.classList.add('hidden');
     document.getElementById('categoryActive').checked = category.is_active;
     
     document.getElementById('categoryModal').classList.remove('hidden');
@@ -305,11 +330,26 @@ function closeCategoryModal() {
 function handleFormSubmit(event) {
     event.preventDefault();
     
+    const isEdit = !!document.getElementById('categoryId').value;
+    const orderInput = document.getElementById('categoryOrder').value.trim();
+    let parsedDisplayOrder;
+    
+    if (isEdit && orderInput !== '') {
+        const numericOrder = Number(orderInput);
+        
+        if (!Number.isInteger(numericOrder) || numericOrder < 0) {
+            showError('Thứ tự hiển thị phải là số nguyên >= 0');
+            return;
+        }
+        
+        parsedDisplayOrder = numericOrder;
+    }
+    
     const categoryData = {
         id: document.getElementById('categoryId').value || undefined,
         name: document.getElementById('categoryName').value,
         description: document.getElementById('categoryDescription').value || null,
-        display_order: parseInt(document.getElementById('categoryOrder').value) || 0,
+        display_order: isEdit ? parsedDisplayOrder : undefined,
         is_active: document.getElementById('categoryActive').checked ? 1 : 0
     };
     
@@ -433,18 +473,26 @@ async function reorderCategory(categoryId, direction) {
     renderCategories();
     
     try {
+        const payload = {
+            action: 'reorderCategories',
+            category_id: parseInt(categoryId),
+            direction: direction
+        };
+
         // Send request to server (in background)
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                action: 'reorderCategories',
-                category_id: parseInt(categoryId),
-                direction: direction
-            })
+            body: JSON.stringify(payload)
         });
-        
-        const data = await response.json();
+
+        const rawResponse = await response.text();
+        let data = null;
+        try {
+            data = JSON.parse(rawResponse);
+        } catch (parseError) {
+            throw parseError;
+        }
         
         if (data.success) {
             // Success - reload to sync with server

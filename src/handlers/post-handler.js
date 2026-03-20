@@ -473,6 +473,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateCategory(data, env, corsHeaders);
             case 'deleteCategory':
                 return await deleteCategory(data, env, corsHeaders);
+            case 'reorderCategories':
+                return await reorderCategories(data, env, corsHeaders);
             case 'createDiscount':
                 return await createDiscount(data, env, corsHeaders);
             case 'createQuickDiscount':
