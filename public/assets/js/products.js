@@ -8,6 +8,8 @@ const itemsPerPage = 10;
 let pendingImageFile = null;
 let pendingImagePreviewUrl = null;
 let pinnedProductId = null;
+let editingProductStockId = null;
+let originalProductStockValue = null;
 
 // Filter state
 let currentFilters = {
@@ -734,12 +736,9 @@ function createProductCard(product) {
                         </div>
                         <div class="flex items-center justify-between pt-1 border-t border-gray-100">
                             <span class="text-sm font-semibold text-gray-700">Lãi ròng:</span>
-                            <div class="flex flex-col items-end">
+                            <div class="text-right">
                                 <span class="text-base font-bold ${(product.price - product.cost_price) > 0 ? 'text-emerald-600' : 'text-red-600'}">
-                                    ${formatCurrency(product.price - product.cost_price)}
-                                </span>
-                                <span class="text-xs ${(product.price - product.cost_price) > 0 ? 'text-emerald-500' : 'text-red-500'}">
-                                    ${product.price > 0 ? Math.round(((product.price - product.cost_price) / product.price) * 100) : 0}% margin
+                                    ${formatCurrency(product.price - product.cost_price)} (${product.price > 0 ? Math.round(((product.price - product.cost_price) / product.price) * 100) : 0}% margin)
                                 </span>
                             </div>
                         </div>
@@ -747,16 +746,28 @@ function createProductCard(product) {
                     ${product.stock_quantity !== undefined ? `
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">Tồn kho:</span>
-                            <span class="text-sm font-medium ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}">
-                                ${product.stock_quantity > 0 ? product.stock_quantity : 'Hết hàng'}
-                            </span>
+                            <div class="flex items-center gap-1.5 group">
+                                <span class="text-sm font-medium ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'} cursor-pointer"
+                                    title="Click để chỉnh sửa tồn kho"
+                                    onclick="startEditProductStock(${product.id}, this)"
+                                    data-product-id="${product.id}"
+                                    data-original-stock="${product.stock_quantity}">
+                                    ${product.stock_quantity > 0 ? `${product.stock_quantity} SP` : 'Hết hàng'}
+                                </span>
+                                <div class="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    onclick="startEditProductStock(${product.id}, this.previousElementSibling)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-gray-400 hover:text-admin-primary">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     ` : ''}
                     ${product.purchases !== undefined && product.purchases !== null ? `
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">Đã bán:</span>
                             <div class="flex items-center gap-1">
-                                <span class="text-sm font-bold text-orange-600">🔥 ${product.purchases}</span>
+                                <span class="text-sm font-bold text-orange-600">${product.purchases}</span>
                                 <span class="text-xs text-gray-500">sản phẩm</span>
                             </div>
                         </div>
@@ -4287,6 +4298,117 @@ async function saveProductNameEdit(productId, input) {
     }
 }
 
+// Start editing product stock inline
+function startEditProductStock(productId, element) {
+    if (editingProductStockId && editingProductStockId !== productId) {
+        cancelProductStockEdit();
+    }
+
+    if (editingProductStockId === productId) return;
+
+    const stockText = element.closest('span') || element;
+    const currentStock = stockText.textContent.trim() === 'Hết hàng'
+        ? 0
+        : parseInt(stockText.textContent.trim(), 10) || 0;
+
+    editingProductStockId = productId;
+    originalProductStockValue = currentStock;
+
+    const stockContainer = stockText.parentElement;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    input.value = currentStock;
+    input.className = 'w-20 px-2 py-0.5 text-sm border border-indigo-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
+    input.dataset.productId = productId;
+
+    stockContainer.replaceChild(input, stockText);
+    input.focus();
+    input.select();
+
+    const finishEdit = () => saveProductStockEdit(productId, input);
+
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEdit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelProductStockEdit();
+        }
+    });
+}
+
+function cancelProductStockEdit() {
+    if (!editingProductStockId) return;
+
+    const input = document.querySelector(`input[data-product-id="${editingProductStockId}"]`);
+    if (!input) {
+        editingProductStockId = null;
+        originalProductStockValue = null;
+        return;
+    }
+
+    const stockContainer = input.parentElement;
+    const stockSpan = document.createElement('span');
+    const stockValue = Number(originalProductStockValue || 0);
+    stockSpan.className = `text-sm font-medium ${stockValue > 0 ? 'text-green-600' : 'text-red-600'} cursor-pointer`;
+    stockSpan.title = 'Click để chỉnh sửa tồn kho';
+    stockSpan.setAttribute('data-product-id', editingProductStockId);
+    stockSpan.setAttribute('data-original-stock', stockValue);
+    stockSpan.onclick = () => startEditProductStock(editingProductStockId, stockSpan);
+    stockSpan.textContent = stockValue > 0 ? `${stockValue} SP` : 'Hết hàng';
+
+    stockContainer.replaceChild(stockSpan, input);
+    editingProductStockId = null;
+    originalProductStockValue = null;
+}
+
+async function saveProductStockEdit(productId, input) {
+    if (!input || !editingProductStockId) return;
+
+    const newStock = Math.max(0, parseInt(input.value, 10) || 0);
+
+    // No change: restore quickly without network call
+    if (newStock === Number(originalProductStockValue || 0)) {
+        cancelProductStockEdit();
+        return;
+    }
+
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateProduct',
+                id: productId,
+                stock_quantity: newStock
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Không thể cập nhật tồn kho');
+        }
+
+        // Update local cache then re-render
+        const localProduct = allProducts.find(p => p.id === productId);
+        if (localProduct) localProduct.stock_quantity = newStock;
+        filteredProducts = [...allProducts];
+        searchAndSort();
+        showToast('Đã cập nhật tồn kho', 'success');
+    } catch (error) {
+        console.error('Error updating stock inline:', error);
+        showToast(error.message || 'Lỗi cập nhật tồn kho', 'error');
+        cancelProductStockEdit();
+    } finally {
+        editingProductStockId = null;
+        originalProductStockValue = null;
+    }
+}
+
 // Cancel product name edit
 function cancelProductNameEdit(productId, input) {
     console.log(`❌ Cancelled editing product ${productId}`);
@@ -4334,52 +4456,56 @@ function createProductNameElement(productId, name) {
 }
 
 // Enhanced toast function for better UX
-function showToast(message, type = 'info', duration = 4000) {
-    // Remove existing toasts of the same type
-    const existingToasts = document.querySelectorAll(`.toast-${type}`);
-    existingToasts.forEach(toast => toast.remove());
-    
+function showToast(message, type = 'info', duration = 4000, toastId = null) {
+    // Keep toast behavior simple + stable:
+    // - If toastId is provided, update/replace only that toast
+    // - Otherwise keep a single default toast
+    const resolvedId = toastId ? `productsSimpleToast-${toastId}` : 'productsSimpleToast';
+    const existing = document.getElementById(resolvedId);
+    if (existing) existing.remove();
+
+    // For non-ID toasts, remove previous default to avoid stacking/flicker.
+    if (!toastId) {
+        document.querySelectorAll('[id^="productsSimpleToast-"]').forEach(el => el.remove());
+    }
+
     const toast = document.createElement('div');
-    toast.className = `toast-${type} fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 transform translate-x-full transition-transform duration-300`;
-    
+    toast.id = resolvedId;
+    toast.className = 'fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 text-white';
+
     const colors = {
-        success: 'bg-green-500 text-white',
-        error: 'bg-red-500 text-white',
-        warning: 'bg-yellow-500 text-white',
-        info: 'bg-blue-500 text-white'
+        success: 'bg-green-600',
+        error: 'bg-red-600',
+        warning: 'bg-amber-500',
+        info: 'bg-blue-600'
     };
-    
-    toast.className += ` ${colors[type]}`;
-    
     const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
+        success: '✓',
+        error: '✕',
+        warning: '!',
+        info: 'i'
     };
-    
+
+    toast.className += ` ${colors[type] || colors.info}`;
     toast.innerHTML = `
-        <span class="text-lg">${icons[type]}</span>
+        <span class="font-bold">${icons[type] || icons.info}</span>
         <span class="font-medium">${message}</span>
-        <button onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-gray-200 font-bold">×</button>
     `;
-    
+
     document.body.appendChild(toast);
-    
-    // Slide in
-    setTimeout(() => {
-        toast.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Auto remove
-    setTimeout(() => {
-        toast.style.transform = 'translateX(full)';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
+
+    // duration <= 0 => persistent toast (for loading/progress)
+    if (duration > 0) {
+        setTimeout(() => {
+            const current = document.getElementById(resolvedId);
+            if (current) current.remove();
+        }, duration);
+    }
 }
 
 // Export functions for global access
 window.startEditProductName = startEditProductName;
+window.startEditProductStock = startEditProductStock;
 
 function resetPendingImageSelection() {
     pendingImageFile = null;
