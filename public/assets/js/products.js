@@ -1565,15 +1565,10 @@ async function loadCategoriesInline() {
                                    data-icon="${cat.icon || '📦'}"
                                    data-color="${cat.color || '#9333ea'}">
                             <span class="flex items-center gap-1.5 text-sm">
-                                <span>${cat.icon || '📦'}</span>
                                 <span class="font-medium text-gray-700">${cat.name}</span>
                             </span>
                         </label>
                     `).join('')}
-                </div>
-                <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
-                    <span class="text-xs text-gray-500">Chọn 1 hoặc nhiều danh mục</span>
-                    <span class="text-xs font-semibold text-purple-600" id="selectedCategoryCount">Đã chọn: 0</span>
                 </div>
             `;
             
@@ -2034,6 +2029,31 @@ function autoFormatNumberInput(inputElement) {
 
 // Edit product
 async function editProduct(productId) {
+    // Open modal shell immediately for instant feedback
+    closeProductModal();
+    const modal = document.createElement('div');
+    modal.id = 'productModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">Chỉnh sửa sản phẩm</h3>
+                <button onclick="closeProductModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 bg-gray-50 flex items-center justify-center p-8">
+                <div class="flex items-center gap-3 text-gray-600">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                    <span>Đang tải thông tin sản phẩm...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=getProduct&id=${productId}`);
         const data = await response.json();
@@ -2043,12 +2063,11 @@ async function editProduct(productId) {
         }
 
         const product = data.product;
+        if (!document.body.contains(modal)) {
+            return; // User closed modal while data was loading
+        }
 
-        // Show modal with product data
-        const modal = document.createElement('div');
-        modal.id = 'productModal';
-        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-
+        // Replace loading shell with full modal content
         modal.innerHTML = `
             <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
                 <!-- Header -->
@@ -2422,8 +2441,6 @@ async function editProduct(productId) {
                 </div>
             </div>
         `;
-
-        document.body.appendChild(modal);
 
         // Highlight current markup preset button
         const currentMarkup = product.markup_multiplier;
