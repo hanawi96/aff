@@ -3,8 +3,8 @@ let allCTVData = [];
 let filteredCTVData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
-let sortOrder = 'desc'; // 'desc' = mới nhất trước, 'asc' = cũ nhất trước, 'none' = không sắp xếp
-let commissionSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
+let sortOrder = 'none'; // Default off (date sort)
+let commissionSortOrder = 'desc'; // Default: tổng hoa hồng cao nhất trước
 let rateSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 let currentTimeFilter = 'all'; // Time filter state
 
@@ -77,7 +77,7 @@ async function loadCTVData() {
             allCTVData = data.ctvList || [];
             filteredCTVData = [...allCTVData];
             
-            // Apply default sorting (newest first)
+            // Apply default sorting (highest total commission first)
             applySorting();
             updateSortIcon();
             updateCommissionSortIcon();

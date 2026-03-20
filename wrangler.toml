@@ -15,6 +15,9 @@ TURSO_AUTH_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE
 TELEGRAM_BOT_TOKEN = "7585519498:AAFHt6QMqI-zfVVnbQW1E_fxzQ1kNUsiEQU"
 TELEGRAM_CHAT_ID = "5816975483"
 
+# Google Apps Script Web App (order-handler.js) - used to write orders into Google Sheets
+GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpWx4DNxjYdDcoLfFepYMfE9ugj2YkAH678k_4OaqMQFPrcFPtnm_RCD54fqSz-sugtA/exec"
+
 # ============================================
 # Cron Triggers
 # ============================================

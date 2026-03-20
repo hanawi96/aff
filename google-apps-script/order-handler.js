@@ -7,20 +7,12 @@
 
 // ==================== CẤU HÌNH ====================
 // CẤU HÌNH FILE GOOGLE SHEETS
-const MAIN_SHEET_ID = "1XNdGOYAVYa4BdZFEVZicMLbX8nJ3J--2HPJjltD9r-k"; // ID file Google Sheets chính
-const SHEET_NAME = "DS ĐƠN HÀNG"; // Tên sheet đơn hàng
-
-// CẤU HÌNH TELEGRAM BOT THÔNG BÁO
-const TELEGRAM_BOT_TOKEN = "7585519498:AAFHt6QMqI-zfVVnbQW1E_fxzQ1kNUsiEQU";
-const TELEGRAM_CHAT_ID = "5816975483";           // Chat ID của Yên Nguyễn
-const SECRET_KEY = "VDT_SECRET_2025_ANHIEN";     // Secret key để bảo mật
+const MAIN_SHEET_ID = "1fezE-k8xQ7aqJuBwtyj9P5hAWUdi9nqJAfF1d9MAi8c"; // ID file Google Sheets chính
+const SHEET_NAME = "ĐƠN VDT TỪ WEB"; // Tên sheet đơn hàng
 
 // CẤU HÌNH FILE DANH SÁCH CTV
 const CTV_SHEET_ID = "1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI";
 const CTV_SHEET_NAME = "DS CTV";
-
-// Lưu trữ message ID đã xử lý để tránh duplicate
-const PROCESSED_MESSAGES = new Set();
 
 // Định nghĩa cột headers - Tối ưu hóa cho dễ đọc
 const HEADERS = [
@@ -45,15 +37,20 @@ const HEADERS = [
 function doPost(e) {
   try {
     const requestData = JSON.parse(e.postData.contents);
+    Logger.log('🧾 doPost received payload: ' + JSON.stringify({
+      hasOrder: !!requestData?.orderId,
+      orderId: requestData?.orderId || null
+    }));
 
-    // Kiểm tra xem đây là webhook từ Telegram hay đơn hàng từ website
-    if (requestData.message || requestData.update_id) {
-      // Đây là webhook từ Telegram
-      return handleTelegramWebhook(requestData);
-    } else {
-      // Đây là đơn hàng từ website
+    // Chỉ xử lý đơn hàng từ website
+    if (requestData && requestData.orderId) {
       return handleOrderFromWebsite(requestData);
     }
+
+    return createJsonResponse({
+      result: 'error',
+      message: 'Invalid request (missing orderId)'
+    });
 
   } catch (error) {
     Logger.log(`❌ LỖI XỬ LÝ REQUEST: ${error.message}`);
@@ -73,10 +70,6 @@ function handleOrderFromWebsite(orderData) {
     validateOrderData(orderData);
     addOrderToSheet(sheet, orderData);
 
-    if (orderData.telegramNotification === SECRET_KEY) {
-      sendTelegramNotification(orderData);
-    }
-
     sendEmailNotification(orderData);
 
     return createJsonResponse({
@@ -89,7 +82,7 @@ function handleOrderFromWebsite(orderData) {
     });
 
   } catch (error) {
-    Logger.log(`❌ Lỗi: ${error.message}`);
+    Logger.log(`❌ Lỗi xử lý đơn hàng: ${error.message}; orderId=${orderData?.orderId || 'UNKNOWN'}`);
     return createJsonResponse({
       result: 'error',
       message: `Lỗi xử lý đơn hàng: ${error.message}`
@@ -360,99 +353,7 @@ function createJsonResponse(data) {
 /**
  * Gửi thông báo Telegram đơn hàng mới
  */
-function sendTelegramNotification(orderData) {
-  try {
-    if (TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE" || TELEGRAM_CHAT_ID === "YOUR_CHAT_ID_HERE") {
-      return;
-    }
-
-    // Tạo nội dung tin nhắn
-    const message = createTelegramMessage(orderData);
-
-    // Gửi tin nhắn qua Telegram API
-    const response = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      payload: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true
-      })
-    });
-
-  } catch (error) {
-    // Không throw error để không ảnh hưởng đến việc lưu đơn hàng
-  }
-}
-
-/**
- * Tạo nội dung tin nhắn Telegram
- */
-function createTelegramMessage(orderData) {
-  // Header
-  let message = `🔔 <b>ĐƠN HÀNG MỚI</b>\n`;
-  message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  // Thông tin đơn hàng
-  message += `📋 <b>THÔNG TIN ĐƠN HÀNG</b>\n`;
-  message += `🆔 Mã đơn: <code>${orderData.orderId}</code>\n`;
-  message += `📅 Thời gian: ${new Date(orderData.orderDate).toLocaleString('vi-VN')}\n`;
-  message += `💰 <b>Tổng tiền: ${orderData.total}</b>\n`;
-  message += `💳 Thanh toán: ${getPaymentMethodText(orderData.paymentMethod).replace(/🏦|💰/g, '')}\n\n`;
-
-  // Thông tin khách hàng
-  message += `👤 <b>KHÁCH HÀNG</b>\n`;
-  message += `📝 Tên: ${orderData.customer.name}\n`;
-  message += `📞 SĐT: <code>${orderData.customer.phone}</code>\n`;
-  message += `📍 Địa chỉ: ${orderData.customer.address}\n`;
-  if (orderData.customer.notes && orderData.customer.notes.trim()) {
-    message += `💬 Ghi chú: <i>${orderData.customer.notes.trim()}</i>\n`;
-  }
-  message += `\n`;
-
-  // Chi tiết sản phẩm
-  message += `🛍️ <b>CHI TIẾT SẢN PHẨM</b>\n`;
-  orderData.cart.forEach((item, index) => {
-    message += `${index + 1}. <b>${item.name}</b>\n`;
-    message += `   • SL: ${item.quantity}`;
-
-    if (item.weight && item.weight !== 'Không có') {
-      message += ` | Cân nặng: ${item.weight}`;
-    }
-    message += `\n`;
-
-    if (item.notes && item.notes.trim()) {
-      message += `   📝 <i>${item.notes.trim()}</i>\n`;
-    }
-
-    if (index < orderData.cart.length - 1) {
-      message += `\n`;
-    }
-  });
-
-  // Thông tin referral (nếu có)
-  if (orderData.referralCode && orderData.referralCode.trim() !== "") {
-    // Lấy tên CTV thực tế từ sheet
-    const ctvInfo = getCTVInfoByReferralCode(orderData.referralCode);
-    const partnerName = ctvInfo ? ctvInfo.name : orderData.referralPartner || 'N/A';
-
-    message += `\n🤝 <b>REFERRAL</b>\n`;
-    message += `📋 Mã: <code>${orderData.referralCode}</code>\n`;
-    message += `👤 Partner: ${partnerName}\n`;
-    if (orderData.referralCommission && orderData.referralCommission > 0) {
-      message += `💰 Hoa hồng: <b>${orderData.referralCommission.toLocaleString('vi-VN')}đ</b>\n`;
-    }
-  }
-
-  // Footer
-  message += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  message += `🏪 <i>Vòng Dâu Tằm By Ánh</i>`;
-
-  return message;
-}
+// NOTE: Phần gửi Telegram cho đơn hàng đã được tắt để tránh trùng lặp.
 
 /**
  * Gửi email thông báo đơn hàng mới
@@ -783,15 +684,18 @@ function createCTVEmailHtmlBody(orderData, ctvInfo) {
   return html;
 }
 
-// ==================== TELEGRAM BOT ADMIN COMMANDS ====================
+function doGet(e) {
+  return ContentService.createTextOutput("Order handler is running");
+}
 
+// ==================== Telegram bot admin commands removed ====================
 /**
  * Xử lý GET request (webhook từ Telegram)
  */
 function doGet(e) {
   try {
     // Trả về response đơn giản cho GET request
-    return ContentService.createTextOutput("Telegram Bot is running!");
+    return ContentService.createTextOutput("Order handler is running");
   } catch (error) {
     return ContentService.createTextOutput("Error: " + error.message);
   }
@@ -801,41 +705,8 @@ function doGet(e) {
  * Xử lý tin nhắn từ Telegram
  */
 function handleTelegramWebhook(update) {
-  try {
-    if (update.message) {
-      const chatId = update.message.chat.id;
-      const text = update.message.text;
-      const from = update.message.from;
-      const messageId = update.message.message_id;
-
-      const messageKey = `${chatId}_${messageId}`;
-      if (PROCESSED_MESSAGES.has(messageKey)) {
-        return ContentService.createTextOutput("OK");
-      }
-
-      PROCESSED_MESSAGES.add(messageKey);
-
-      if (from.is_bot) {
-        return ContentService.createTextOutput("OK");
-      }
-
-      if (!text || !text.startsWith('/')) {
-        return ContentService.createTextOutput("OK");
-      }
-
-      // Chỉ xử lý tin nhắn từ admin (Chat ID của bạn)
-      if (chatId.toString() === TELEGRAM_CHAT_ID) {
-        handleAdminCommand(chatId, text);
-      } else {
-        // Tin nhắn từ người khác
-        sendTelegramMessage(chatId, "❌ Bạn không có quyền sử dụng bot này.");
-      }
-    }
-
-    return ContentService.createTextOutput("OK");
-  } catch (error) {
-    return ContentService.createTextOutput("ERROR");
-  }
+  // Telegram webhook/commands are disabled. We only process orders now.
+  return ContentService.createTextOutput("OK");
 }
 
 /**
@@ -914,19 +785,8 @@ function handleAdminCommand(chatId, command) {
  * Gửi tin nhắn Telegram đơn giản
  */
 function sendTelegramMessage(chatId, message) {
-  try {
-    UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      payload: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch (error) {
-    // Silent fail
-  }
+  // Disabled: Telegram messaging removed from this Apps Script.
+  return;
 }
 
 /**
