@@ -102,22 +102,17 @@ export class HomePage {
     
     /**
      * Load critical above-the-fold content FIRST
-     * Priority: ALL Products (for filtering) + Flash Sales
+     * Priority: Products only (main browsing content)
      */
     async loadCriticalContent() {
-        // Load ALL products và flash sales song song
-        const [allProducts, flashSales] = await Promise.all([
-            apiService.getAllProducts(), // Load TẤT CẢ ngay từ đầu
-            apiService.getActiveFlashSales()
-        ]);
+        // Load ALL products first for fastest meaningful render
+        const allProducts = await apiService.getAllProducts();
         
         this.allProducts = allProducts;
         this.products = allProducts; // Sync để tương thích
-        this.flashSales = flashSales;
         
         console.log('✅ Critical content loaded:', {
-            products: allProducts.length,
-            flashSales: flashSales.length
+            products: allProducts.length
         });
     }
     
@@ -127,10 +122,29 @@ export class HomePage {
     async loadRemainingContent() {
         // Load categories (not critical, can wait)
         setTimeout(async () => {
-            this.categories = await apiService.getAllCategories();
-            this.renderCategories();
-            this.hideCategoriesSkeleton();
+            try {
+                this.categories = await apiService.getAllCategories();
+                this.renderCategories();
+            } catch (error) {
+                console.warn('Categories load failed:', error);
+            } finally {
+                this.hideCategoriesSkeleton();
+            }
         }, 100);
+
+        // Load flash sales after primary content is shown.
+        setTimeout(async () => {
+            try {
+                this.flashSales = await apiService.getActiveFlashSales();
+                this.initializeFlashSaleComponentsIfNeeded();
+                this.renderFlashSales();
+            } catch (error) {
+                console.warn('Flash sales load failed:', error);
+                this.hideFlashSaleSection();
+            } finally {
+                this.hideFlashSaleSkeleton();
+            }
+        }, 150);
         
         // Không cần load products nữa vì đã load hết ở loadCriticalContent
     }
@@ -159,12 +173,10 @@ export class HomePage {
         // Initialize components for critical content
         this.initializeCriticalComponents();
         
-        // Render critical content - Có đủ dữ liệu rồi, render ngay!
-        this.renderFlashSales();
+        // Render products immediately - primary user intent on shop page
         this.renderProducts();
         
-        // Hide skeleton
-        this.hideFlashSaleSkeleton();
+        // Hide products skeleton first for fastest visual completion
         this.hideProductsSkeleton();
     }
     
@@ -247,13 +259,7 @@ export class HomePage {
         // Flash Sale Components - DISABLED (using vertical scroll instead)
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
         if (activeFlashSale && activeFlashSale.products) {
-            // this.flashSaleCarousel = new FlashSaleCarousel('flashSaleProducts');
-            this.flashSaleActions = new FlashSaleActions(this.flashSales);
-            this.flashSaleActions.setBabyWeightModal(this.babyWeightModal);
-            this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
-            
-            window.flashSaleActions = this.flashSaleActions;
-            console.log('✅ HomePage: FlashSale components initialized and linked to BabyWeightModal');
+            this.initializeFlashSaleComponentsIfNeeded();
         }
         
         // Quick Checkout
@@ -283,6 +289,21 @@ export class HomePage {
         console.log('✅ HomePage: Helper functions exposed (generateBuyNowLink, copyBuyNowLink)');
         
         console.log('🎉 HomePage: All critical components initialized successfully');
+    }
+
+    initializeFlashSaleComponentsIfNeeded() {
+        const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
+        if (!activeFlashSale || !activeFlashSale.products) return;
+
+        if (!this.flashSaleActions) {
+            this.flashSaleActions = new FlashSaleActions(this.flashSales);
+            this.flashSaleActions.setBabyWeightModal(this.babyWeightModal);
+            window.flashSaleActions = this.flashSaleActions;
+        }
+
+        // Always refresh timer with latest active sale payload
+        this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
+        console.log('✅ HomePage: FlashSale components initialized/refreshed');
     }
     
     /**

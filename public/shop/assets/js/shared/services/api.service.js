@@ -7,6 +7,7 @@ import { CONFIG } from '../constants/config.js';
 class ApiService {
     constructor() {
         this.baseURL = CONFIG.API_BASE_URL;
+        this.storageKey = 'shop_api_cache_v1';
         // Cache for API responses
         this.cache = {
             products: null,
@@ -15,6 +16,7 @@ class ApiService {
             timestamp: {}
         };
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+        this.hydrateCacheFromSession();
     }
     
     /**
@@ -33,6 +35,34 @@ class ApiService {
     setCache(key, data) {
         this.cache[key] = data;
         this.cache.timestamp[key] = Date.now();
+        this.persistCacheToSession();
+    }
+
+    hydrateCacheFromSession() {
+        try {
+            const raw = sessionStorage.getItem(this.storageKey);
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return;
+
+            this.cache = {
+                products: parsed.products || null,
+                categories: parsed.categories || null,
+                flashSales: parsed.flashSales || null,
+                timestamp: parsed.timestamp || {}
+            };
+        } catch (error) {
+            console.warn('Failed to hydrate API cache from sessionStorage:', error);
+        }
+    }
+
+    persistCacheToSession() {
+        try {
+            sessionStorage.setItem(this.storageKey, JSON.stringify(this.cache));
+        } catch (error) {
+            // Ignore quota / private mode errors
+        }
     }
     
     async get(endpoint, params = {}) {
@@ -107,6 +137,8 @@ class ApiService {
             };
             console.log('🗑️ Cleared all cache');
         }
+
+        this.persistCacheToSession();
     }
     
     /**
@@ -159,27 +191,21 @@ class ApiService {
         
         console.log('🌐 Fetching flash sales from API');
         const data = await this.get('/get', { action: 'getActiveFlashSales' });
-        console.log('🔥 Flash sales API response:', data);
         
         const salesArray = data.flashSales || data || [];
-        console.log('🔥 Flash sales array:', salesArray);
-        
-        // Load products for each flash sale
-        for (let flashSale of salesArray) {
-            console.log('🔥 Loading products for flash sale:', flashSale.id);
+
+        // Load products for each flash sale in parallel to reduce total wait time.
+        await Promise.all(salesArray.map(async (flashSale) => {
             const productsData = await this.get('/get', {
                 action: 'getFlashSaleProducts',
                 flashSaleId: flashSale.id
             });
-            console.log('🔥 Products data:', productsData);
             flashSale.products = productsData.products || productsData || [];
-            console.log('🔥 Flash sale products loaded:', flashSale.products.length);
-        }
+        }));
         
         // Cache the result
         this.setCache('flashSales', salesArray);
-        
-        console.log('🔥 Final flash sales with products:', salesArray);
+
         return salesArray;
     }
     
@@ -191,18 +217,6 @@ class ApiService {
         });
     }
     
-    /**
-     * Clear cache (useful for testing or after updates)
-     */
-    clearCache() {
-        this.cache = {
-            products: null,
-            categories: null,
-            flashSales: null,
-            timestamp: {}
-        };
-        console.log('🗑️ Cache cleared');
-    }
 }
 
 // Export singleton instance

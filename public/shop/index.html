@@ -39,31 +39,9 @@
     <link rel="stylesheet" href="assets/css/home.css?v=1">
     <link rel="stylesheet" href="assets/css/feedback-carousel.css">
     <link rel="stylesheet" href="assets/css/featured-carousel.css">
+    <link rel="stylesheet" href="cart.css">
 </head>
 <body class="bg-warm">
-    <!-- Inline script to prevent FOUC - Must run BEFORE HTML renders -->
-    <script>
-        // Marquee config - Change enabled to true/false
-        window.MARQUEE_ENABLED = false; // ← CHANGE THIS TO ENABLE/DISABLE
-        
-        // Apply immediately to prevent flash
-        if (!window.MARQUEE_ENABLED) {
-            document.documentElement.classList.add('marquee-disabled');
-        }
-    </script>
-    
-    <!-- Marquee Banner - Announcement -->
-    <div class="marquee-banner">
-        <div class="marquee-content">
-            <span class="marquee-text">
-                🎁 Mua thêm bó dâu tằm để được miễn phí ship 🚚 Cam kết dâu tằm thật 100% 🎁 Tuyển cộng tác viên bán vòng dâu tằm hoa hồng 10% 🚚 Tất cả đều được mix bạc thật 100% 🎁 Nhận hàng các mẹ kiểm tra thoải mái 🚚
-            </span>
-            <span class="marquee-text" aria-hidden="true">
-                🎁 Mua thêm bó dâu tằm để được miễn phí ship 🚚 Cam kết dâu tằm thật 100% 🎁 Tuyển cộng tác viên bán vòng dâu tằm hoa hồng 10% 🚚 Tất cả đều được mix bạc thật 100% 🎁 Nhận hàng các mẹ kiểm tra thoải mái 🚚
-            </span>
-        </div>
-    </div>
-    
     <!-- Header - Handmade Style -->
     <header class="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b-2 border-primary/20">
         <div class="container mx-auto px-4">
@@ -699,8 +677,6 @@
     </section>
 
     <!-- Enhanced Flash Sale Styles - Handmade Warm -->
-<!-- Import Bundle Offer CSS from cart.css -->
-    <link rel="stylesheet" href="cart.css">
 
     <!-- Categories - Handmade Style -->
     <section class="py-12 md:py-16 bg-white">
@@ -2275,8 +2251,7 @@
     </div>
     
     <script type="module" src="assets/js/app.js"></script>
-    <script src="assets/js/faq-modal.js"></script>
-    <script src="assets/js/feedback-carousel.js"></script>
-    <script src="assets/js/components/featured-carousel.js"></script>
+    <script defer src="assets/js/faq-modal.js"></script>
+    <script defer src="assets/js/feedback-carousel.js"></script>
 </body>
 </html>

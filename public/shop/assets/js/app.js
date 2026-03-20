@@ -6,7 +6,6 @@ import { loadCommonPartials } from './shared/partials-loader.js';
 import { HomePage } from './pages/home.page.js';
 import './shared/utils/image-preview.js'; // Import image preview utility
 import { checkAndSaveReferralFromURL } from './shared/utils/ctv-tracking.js'; // Import CTV tracking
-import './shared/components/ctv-debug-panel.js'; // Import CTV debug panel
 
 /**
  * Application Entry Point
@@ -23,8 +22,10 @@ class App {
         console.log('🚀 Initializing Vòng Đầu Tam Shop...');
         
         try {
-            // Check and save CTV referral from URL (if exists)
-            await checkAndSaveReferralFromURL();
+            // Run referral tracking in background to avoid blocking initial render.
+            checkAndSaveReferralFromURL().catch((error) => {
+                console.warn('Referral tracking init failed (non-blocking):', error);
+            });
             
             // Detect current page
             const page = this.detectPage();
@@ -37,6 +38,12 @@ class App {
             // Initialize appropriate page
             switch (page) {
                 case 'home':
+                    // Load debug panel only when explicitly requested.
+                    if (new URLSearchParams(window.location.search).get('ctvdebug') === '1') {
+                        import('./shared/components/ctv-debug-panel.js').catch((error) => {
+                            console.warn('CTV debug panel load failed:', error);
+                        });
+                    }
                     this.currentPage = new HomePage();
                     await this.currentPage.init();
                     break;
