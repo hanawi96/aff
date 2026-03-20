@@ -40,10 +40,9 @@ function setupEventListeners() {
         });
     }
 
-    const categoryForm = document.getElementById('categoryForm');
-    if (categoryForm) {
-        categoryForm.addEventListener('submit', handleFormSubmit);
-    }
+    // NOTE:
+    // category form already uses inline onsubmit="handleFormSubmit(event)" in categories.html.
+    // Avoid attaching another submit listener here to prevent duplicate requests.
 }
 
 // ============================================
@@ -60,6 +59,11 @@ async function loadCategories() {
         if (data.success) {
             allCategories = data.categories || [];
             filteredCategories = [...allCategories];
+            const activeOrders = allCategories
+                .filter(c => c.is_active)
+                .map(c => ({ id: c.id, name: c.name, display_order: c.display_order }))
+                .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+            console.log('📋 [categories] active display_order list:', activeOrders);
             updateStats();
             renderCategories();
         } else {
@@ -81,6 +85,7 @@ async function saveCategory(categoryData) {
             action: action,
             ...categoryData
         };
+        console.log('📤 [categories] save payload:', payload);
         
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -89,6 +94,7 @@ async function saveCategory(categoryData) {
         });
         
         const data = await response.json();
+        console.log('📥 [categories] save response:', data);
         
         if (data.success) {
             showSuccess(isEdit ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục mới thành công!');
@@ -151,11 +157,16 @@ function renderCategories() {
     emptyState.classList.add('hidden');
     categoriesTable.classList.remove('hidden');
     
-    tbody.innerHTML = filteredCategories.map((category, index) => {
+    const activeOrderedIds = filteredCategories
+        .filter(c => c.is_active)
+        .map(c => c.id);
+
+    tbody.innerHTML = filteredCategories.map((category) => {
         const isActive = category.is_active;
         const productCount = category.product_count || 0;
-        const canMoveUp = index > 0;
-        const canMoveDown = index < filteredCategories.length - 1;
+        const activeIndex = activeOrderedIds.indexOf(category.id);
+        const canMoveUp = isActive && activeIndex > 0;
+        const canMoveDown = isActive && activeIndex !== -1 && activeIndex < activeOrderedIds.length - 1;
         
         return `
             <tr class="hover:bg-gray-50 transition-colors">
@@ -199,27 +210,29 @@ function renderCategories() {
                 </td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <!-- Move Up Button -->
-                        <button 
-                            onclick="moveCategoryUp(${category.id})" 
-                            ${!canMoveUp ? 'disabled' : ''} 
-                            class="p-2 rounded-lg transition-all ${canMoveUp ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
-                            title="Di chuyển lên">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" />
-                            </svg>
-                        </button>
-                        
-                        <!-- Move Down Button -->
-                        <button 
-                            onclick="moveCategoryDown(${category.id})" 
-                            ${!canMoveDown ? 'disabled' : ''} 
-                            class="p-2 rounded-lg transition-all ${canMoveDown ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
-                            title="Di chuyển xuống">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
+                        <div class="flex flex-col items-center gap-1">
+                            <!-- Move Up Button -->
+                            <button 
+                                onclick="moveCategoryUp(${category.id})" 
+                                ${!canMoveUp ? 'disabled' : ''} 
+                                class="p-1.5 rounded-lg transition-all ${canMoveUp ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
+                                title="Di chuyển lên">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+                                </svg>
+                            </button>
+                            
+                            <!-- Move Down Button -->
+                            <button 
+                                onclick="moveCategoryDown(${category.id})" 
+                                ${!canMoveDown ? 'disabled' : ''} 
+                                class="p-1.5 rounded-lg transition-all ${canMoveDown ? 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700' : 'text-gray-300 cursor-not-allowed'}" 
+                                title="Di chuyển xuống">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                                </svg>
+                            </button>
+                        </div>
                         
                         <!-- Divider -->
                         <div class="w-px h-6 bg-gray-200 mx-1"></div>
@@ -496,48 +509,11 @@ async function moveCategoryDown(categoryId) {
 }
 
 async function reorderCategory(categoryId, direction) {
-    // Find current category index in filteredCategories
-    const currentIndex = filteredCategories.findIndex(c => c.id === categoryId);
-    if (currentIndex === -1) return;
-    
-    // Calculate target index
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
-    // Check bounds
-    if (targetIndex < 0 || targetIndex >= filteredCategories.length) {
+    const category = allCategories.find(c => c.id === categoryId);
+    if (!category || !category.is_active) {
+        showError('Chỉ có thể di chuyển danh mục đang hoạt động');
         return;
     }
-    
-    // OPTIMISTIC UPDATE: Backup and swap categories immediately
-    const backupFiltered = [...filteredCategories];
-    const backupAll = [...allCategories];
-    
-    // Get target category ID BEFORE swapping
-    const targetCategoryId = filteredCategories[targetIndex].id;
-    
-    // Swap in filteredCategories
-    const temp = filteredCategories[currentIndex];
-    filteredCategories[currentIndex] = filteredCategories[targetIndex];
-    filteredCategories[targetIndex] = temp;
-    
-    // Update display_order values
-    filteredCategories[currentIndex].display_order = currentIndex;
-    filteredCategories[targetIndex].display_order = targetIndex;
-    
-    // Also update in allCategories
-    const allCurrentIndex = allCategories.findIndex(c => c.id === categoryId);
-    const allTargetIndex = allCategories.findIndex(c => c.id === targetCategoryId);
-    
-    if (allCurrentIndex !== -1 && allTargetIndex !== -1) {
-        const tempAll = allCategories[allCurrentIndex];
-        allCategories[allCurrentIndex] = allCategories[allTargetIndex];
-        allCategories[allTargetIndex] = tempAll;
-        allCategories[allCurrentIndex].display_order = allCurrentIndex;
-        allCategories[allTargetIndex].display_order = allTargetIndex;
-    }
-    
-    // Re-render UI immediately (optimistic)
-    renderCategories();
     
     try {
         const payload = {
@@ -561,20 +537,14 @@ async function reorderCategory(categoryId, direction) {
             throw parseError;
         }
         
-        if (data.success) {
-            // Success - reload to sync with server
-            await loadCategories();
-        } else {
+        if (!data.success) {
             throw new Error(data.error || 'Không thể sắp xếp lại');
         }
+
+        // Always reload from server source of truth (no optimistic reordering)
+        await loadCategories();
     } catch (error) {
         console.error('❌ Error reordering category:', error);
-        
-        // ROLLBACK: Restore backup on error
-        filteredCategories = backupFiltered;
-        allCategories = backupAll;
-        renderCategories();
-        
-        showError('Không thể thay đổi vị trí. Đã hoàn tác.');
+        showError(error.message || 'Không thể thay đổi vị trí.');
     }
 }

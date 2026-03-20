@@ -22,6 +22,15 @@ async function getActiveCategoryCount(env) {
     return Number(row?.count ?? 0);
 }
 
+async function getMaxActiveDisplayOrder(env) {
+    const row = await env.DB.prepare(`
+        SELECT MAX(display_order) AS max_order
+        FROM categories
+        WHERE is_active = 1
+    `).first();
+    return Number(row?.max_order ?? -1);
+}
+
 function clampDisplayOrder(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
@@ -162,10 +171,15 @@ export async function createCategory(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
         
-        const activeCount = await getActiveCategoryCount(env);
         // Product requirement: new categories are always appended at the end.
-        // Ignore any incoming display_order during create to avoid manual ordering.
-        const resolvedDisplayOrder = activeCount;
+        // Use max(display_order) + 1 to avoid duplicate positions when data has gaps/misalignment.
+        const maxDisplayOrder = await getMaxActiveDisplayOrder(env);
+        const resolvedDisplayOrder = maxDisplayOrder + 1;
+        console.log('🧩 [createCategory] computed display order', {
+            name: data.name,
+            maxDisplayOrder,
+            resolvedDisplayOrder
+        });
 
         // Check if name already exists
         const existing = await env.DB.prepare(`
@@ -229,6 +243,21 @@ export async function createCategory(data, env, corsHeaders) {
         ).run();
 
         const categoryId = result.lastInsertRowid || result.meta?.last_row_id;
+        const inserted = await env.DB.prepare(`
+            SELECT id, name, display_order, is_active, is_featured
+            FROM categories
+            WHERE id = ?
+        `).bind(categoryId).first();
+        console.log('✅ [createCategory] inserted category', inserted);
+
+        const { results: topOrders } = await env.DB.prepare(`
+            SELECT id, name, display_order
+            FROM categories
+            WHERE is_active = 1
+            ORDER BY display_order DESC, id DESC
+            LIMIT 5
+        `).all();
+        console.log('📊 [createCategory] top active category orders', topOrders);
 
         return jsonResponse({
             success: true,
@@ -392,9 +421,13 @@ export async function deleteCategory(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // Check if category has products
+        // Check if category has active products (uses product_categories junction table)
         const { count } = await env.DB.prepare(`
-            SELECT COUNT(*) as count FROM products WHERE category_id = ? AND is_active = 1
+            SELECT COUNT(DISTINCT p.id) AS count
+            FROM product_categories pc
+            INNER JOIN products p ON p.id = pc.product_id
+            WHERE pc.category_id = ?
+              AND p.is_active = 1
         `).bind(data.id).first();
 
         if (count > 0) {
