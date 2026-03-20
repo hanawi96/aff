@@ -647,7 +647,9 @@ function createProductCard(product) {
             </div>
             
             <!-- Product Image -->
-            <div class="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center overflow-hidden relative">
+            <div class="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                title="Click để sửa sản phẩm"
+                onclick="editProduct(${product.id})">
                 <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<svg class=\\'w-20 h-20 text-purple-300\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4\\' /></svg>'">
                 ${hasDiscount ? `
                     <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
@@ -2846,10 +2848,23 @@ function updateBulkActionsUI() {
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCount = document.getElementById('selectedCount');
     const totalCount = document.getElementById('totalCount');
+    const selectCurrentPageLabel = document.getElementById('selectCurrentPageLabel');
+    const selectCurrentPageBtn = document.getElementById('selectCurrentPageBtn');
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageProducts = filteredProducts.slice(startIndex, endIndex);
+    const allPageSelected = pageProducts.length > 0 && pageProducts.every(p => selectedProductIds.has(p.id));
 
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
         if (totalCount) totalCount.textContent = total;
+        if (selectCurrentPageLabel) {
+            selectCurrentPageLabel.textContent = allPageSelected ? 'Bỏ chọn' : 'Chọn trang này';
+        }
+        if (selectCurrentPageBtn) {
+            selectCurrentPageBtn.title = allPageSelected ? 'Bỏ chọn các sản phẩm trong trang này' : 'Chọn tất cả sản phẩm trong trang này';
+        }
         if (bulkActionsBar) {
             bulkActionsBar.classList.remove('hidden');
             bulkActionsBar.style.opacity = '0';
@@ -2862,6 +2877,12 @@ function updateBulkActionsUI() {
             });
         }
     } else {
+        if (selectCurrentPageLabel) {
+            selectCurrentPageLabel.textContent = 'Chọn trang này';
+        }
+        if (selectCurrentPageBtn) {
+            selectCurrentPageBtn.title = 'Chọn tất cả sản phẩm trong trang này';
+        }
         if (bulkActionsBar) {
             bulkActionsBar.style.opacity = '0';
             bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
