@@ -25,6 +25,33 @@ export class ShopOrderService {
         const shippingFee = data.shippingFee || data.shipping_fee || 0;
         const discountAmount = data.discountAmount || data.discount_amount || 0;
 
+        // Validate CTV referral & compute commission server-side (never trust frontend payload)
+        const inputReferralCode = (data.referral_code || data.referralCode || '').trim();
+        let validReferralCode = null;
+        let finalCommission = 0;
+        let finalCommissionRate = 0;
+        let ctvPhone = null;
+
+        if (inputReferralCode) {
+            const ctvData = await env.DB.prepare(`
+                SELECT referral_code, commission_rate, phone, status
+                FROM ctv
+                WHERE referral_code = ? OR custom_slug = ?
+                LIMIT 1
+            `).bind(inputReferralCode, inputReferralCode).first();
+
+            const isStatusValid = ctvData?.status === 'Mới' || ctvData?.status === 'Đang hoạt động';
+            if (ctvData && isStatusValid) {
+                validReferralCode = ctvData.referral_code;
+                ctvPhone = ctvData.phone || null;
+                finalCommissionRate = ctvData.commission_rate || 0.1;
+
+                // Commission formula: (total_amount - shipping_fee) × commission_rate
+                const revenue = totalAmountNumber - shippingFee;
+                finalCommission = Math.round(revenue * finalCommissionRate);
+            }
+        }
+
         // Get shipping cost from config
         let shippingCost = 0;
         try {
@@ -94,10 +121,10 @@ export class ShopOrderService {
             discountAmount,
             orderDate,
             0, // is_priority
-            data.referral_code || data.referralCode || null,
-            data.commission || 0,
-            data.commission_rate || 0,
-            data.ctv_phone || null,
+            validReferralCode,
+            finalCommission,
+            finalCommissionRate,
+            ctvPhone,
             packagingDetails.total_cost,
             JSON.stringify(packagingDetails),
             taxData.amount,
@@ -129,8 +156,8 @@ export class ShopOrderService {
                 ? `${totalAmountNumber.toLocaleString('vi-VN')}đ` 
                 : totalAmountNumber,
             paymentMethod: data.paymentMethod || data.payment_method || 'cod',
-            referralCode: data.referral_code || data.referralCode || '',
-            referralCommission: data.commission || 0,
+            referralCode: validReferralCode || '',
+            referralCommission: finalCommission || 0,
             referralPartner: data.referral_partner || ''
         }, env);
 

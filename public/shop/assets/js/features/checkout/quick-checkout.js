@@ -1386,6 +1386,56 @@ export class QuickCheckout {
         if (orderItemCount) {
             orderItemCount.textContent = `(${totalItemCount} sp)`;
         }
+
+        // Update order item list (names + quantities)
+        const orderItemsList = document.getElementById('orderItemsList');
+        if (orderItemsList) {
+            const grouped = new Map();
+
+            // Main product
+            if (this.product?.id != null) {
+                grouped.set(this.product.id, {
+                    id: this.product.id,
+                    name: this.product.name || 'Sản phẩm',
+                    qty: this.quantity
+                });
+            } else {
+                grouped.set('main', {
+                    id: 'main',
+                    name: this.product?.name || 'Sản phẩm',
+                    qty: this.quantity
+                });
+            }
+
+            // Cross-sell products
+            this.selectedCrossSells.forEach(item => {
+                const prod = this.crossSellProducts?.find(p => p.id === item.id);
+                if (!prod) return;
+
+                if (grouped.has(prod.id)) {
+                    grouped.get(prod.id).qty += item.quantity || 1;
+                } else {
+                    grouped.set(prod.id, {
+                        id: prod.id,
+                        name: prod.name || 'Sản phẩm',
+                        qty: item.quantity || 1
+                    });
+                }
+            });
+
+            const chipsHtml = Array.from(grouped.values())
+                .map(i => {
+                    const safeName = escapeHtml(i.name);
+                    const safeQty = (i.qty || 0);
+                    return '<span class="order-item-chip">' +
+                        safeName +
+                        ' <span class="order-item-qty">x' + safeQty + '</span>' +
+                    '</span>';
+                })
+                .join('');
+
+            orderItemsList.innerHTML = chipsHtml;
+        }
         
         // Calculate shipping (free if any cross-sell selected or discount is freeship)
         const hasFreeShipping = this.selectedCrossSells.length > 0 || 
@@ -1562,11 +1612,11 @@ export class QuickCheckout {
             discountInput.value = this.appliedDiscount.code;
             discountInput.classList.add('has-discount');
             discountBtnText.textContent = 'Đổi mã';
-            
-            const discountText = discountService.formatDiscountText(this.appliedDiscount);
+
+            // Hide "Đã áp dụng" message below input (we already show it in code list)
             if (discountResult) {
-                discountResult.innerHTML = '<div class="discount-success">✓ Đã áp dụng mã <strong>' + this.appliedDiscount.code + '</strong> - ' + discountText + '</div>';
-                discountResult.style.display = 'block';
+                discountResult.style.display = 'none';
+                discountResult.innerHTML = '';
             }
         } else {
             discountInput.value = '';

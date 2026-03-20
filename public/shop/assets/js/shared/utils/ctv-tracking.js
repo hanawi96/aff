@@ -3,11 +3,13 @@
  * Quản lý cookie tracking cho hệ thống cộng tác viên
  */
 
+import { CONFIG } from '../constants/config.js';
+
 const CTV_COOKIE_NAME = 'vdt_ctv_ref';
 const CTV_COOKIE_DAYS = 7;
 
-// API Base URL - use port 8787 if running on Live Server
-const API_BASE_URL = window.location.port === '5500' ? 'http://localhost:8787' : '';
+const CTV_INFO_CACHE_KEY = 'vdt_ctv_ref_info_v1';
+const API_BASE_URL = CONFIG.API_BASE_URL;
 
 /**
  * Lưu referral code vào cookie
@@ -66,7 +68,8 @@ export function clearCTVCookie() {
 export async function checkAndSaveReferralFromURL() {
     console.log('🔍 [CTV Tracking] Checking URL for referral...');
     const urlParams = new URLSearchParams(window.location.search);
-    const refParam = urlParams.get('ref');
+    const refParamRaw = urlParams.get('ref');
+    const refParam = refParamRaw ? refParamRaw.trim() : null;
     
     console.log('🔗 [CTV Tracking] URL params:', window.location.search);
     console.log('📋 [CTV Tracking] Ref param:', refParam);
@@ -97,6 +100,22 @@ export async function checkAndSaveReferralFromURL() {
         if (data.success && data.ctv) {
             // Lưu referral code vào cookie (ghi đè nếu đã có)
             setCTVCookie(data.ctv.referralCode);
+
+            // Cache additional CTV info to avoid re-validating on checkout
+            try {
+                localStorage.setItem(
+                    CTV_INFO_CACHE_KEY,
+                    JSON.stringify({
+                        referralCode: data.ctv.referralCode,
+                        commissionRate: data.ctv.commissionRate,
+                        ctvPhone: data.ctv.phone,
+                        ctvName: data.ctv.name,
+                        storedAt: Date.now()
+                    })
+                );
+            } catch (e) {
+                // ignore localStorage errors (private mode / disabled)
+            }
             
             console.log('✅ [CTV Tracking] CTV validated and saved:', {
                 name: data.ctv.name,
@@ -129,6 +148,24 @@ export async function getCTVInfoForOrder() {
     if (!referralCode) {
         console.log('❌ [CTV Tracking] No referral code in cookie');
         return null;
+    }
+
+    // Try localStorage cache first (avoid 2nd API validateReferral call)
+    try {
+        const cachedRaw = localStorage.getItem(CTV_INFO_CACHE_KEY);
+        if (cachedRaw) {
+            const cached = JSON.parse(cachedRaw);
+            if (cached?.referralCode === referralCode && cached?.commissionRate !== undefined) {
+                return {
+                    referralCode: cached.referralCode,
+                    commissionRate: cached.commissionRate,
+                    ctvPhone: cached.ctvPhone || null,
+                    ctvName: cached.ctvName || ''
+                };
+            }
+        }
+    } catch (e) {
+        // ignore cache parse errors
     }
     
     try {

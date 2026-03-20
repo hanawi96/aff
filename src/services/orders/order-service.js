@@ -40,56 +40,32 @@ export async function createOrder(data, env, corsHeaders) {
             return sum + (price * qty);
         }, 0);
 
-        // Validate và lấy thông tin CTV
+        // Validate và lấy thông tin CTV (backend luôn tính để tránh sai lệch từ frontend)
         let validReferralCode = null;
         let finalCommission = 0;
         let finalCommissionRate = 0;
         let ctvPhone = null;
 
-        // Ưu tiên sử dụng data từ frontend (đã tính sẵn)
-        if (data.referral_code || data.referralCode) {
-            const refCode = data.referral_code || data.referralCode;
-            
-            // Nếu frontend đã gửi commission và commission_rate, sử dụng luôn
-            if (data.commission !== undefined && data.commission_rate !== undefined) {
-                validReferralCode = refCode.trim();
-                finalCommission = data.commission;
-                finalCommissionRate = data.commission_rate;
-                ctvPhone = data.ctv_phone || null;
-                
-                console.log(`💰 Using commission from frontend:`, {
-                    referralCode: validReferralCode,
-                    rate: finalCommissionRate,
-                    commission: finalCommission,
-                    ctvPhone: ctvPhone
-                });
-            } else {
-                // Fallback: Validate và tính commission ở backend
-                const ctvData = await env.DB.prepare(`
-                    SELECT referral_code, commission_rate, phone FROM ctv WHERE referral_code = ?
-                `).bind(refCode.trim()).first();
+        const refCode = (data.referral_code || data.referralCode || '').trim();
+        if (refCode) {
+            // Một số luồng có thể gửi referral_code hoặc custom_slug
+            const ctvData = await env.DB.prepare(`
+                SELECT referral_code, commission_rate, phone, status
+                FROM ctv
+                WHERE referral_code = ? OR custom_slug = ?
+                LIMIT 1
+            `).bind(refCode, refCode).first();
 
-                if (ctvData) {
-                    validReferralCode = ctvData.referral_code;
-                    ctvPhone = ctvData.phone;
-                    finalCommissionRate = ctvData.commission_rate || 0.1;
-                    
-                    // Tính hoa hồng: (total_amount - shipping_fee) × commission_rate
-                    const shippingFee = data.shipping_fee || data.shippingFee || 0;
-                    const revenue = totalAmountNumber - shippingFee;
-                    finalCommission = Math.round(revenue * finalCommissionRate);
-                    
-                    console.log(`💰 Commission calculated at backend:`, {
-                        referralCode: validReferralCode,
-                        totalAmount: totalAmountNumber,
-                        shippingFee: shippingFee,
-                        revenue: revenue,
-                        rate: finalCommissionRate,
-                        commission: finalCommission
-                    });
-                } else {
-                    console.warn('⚠️ Referral code không tồn tại:', refCode);
-                }
+            const isStatusValid = ctvData?.status === 'Mới' || ctvData?.status === 'Đang hoạt động';
+            if (ctvData && isStatusValid) {
+                validReferralCode = ctvData.referral_code;
+                ctvPhone = ctvData.phone || null;
+                finalCommissionRate = ctvData.commission_rate || 0.1;
+
+                // Tính hoa hồng: (total_amount - shipping_fee) × commission_rate
+                const shippingFee = data.shipping_fee || data.shippingFee || 0;
+                const revenue = totalAmountNumber - shippingFee;
+                finalCommission = Math.round(revenue * finalCommissionRate);
             }
         }
 
@@ -482,8 +458,8 @@ export async function createOrder(data, env, corsHeaders) {
                 cart: data.cart,
                 total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
                 paymentMethod: data.paymentMethod || 'cod',
-                // Gửi referralCode từ frontend (không validate) để Google Sheets luôn nhận được
-                referralCode: data.referralCode || '',
+                // Đồng bộ referralCode sau khi đã validate tại backend
+                referralCode: validReferralCode || '',
                 // Commission đã validate từ database
                 referralCommission: finalCommission || 0,
                 referralPartner: data.referralPartner || '',
