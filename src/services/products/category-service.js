@@ -437,17 +437,15 @@ export async function deleteCategory(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Soft delete
-        const now = Math.floor(Date.now() / 1000);
+        // Hard delete when category has no active products
         await env.DB.prepare(`
-            UPDATE categories
-            SET is_active = 0, updated_at = CURRENT_TIMESTAMP, updated_at_unix = ?
+            DELETE FROM categories
             WHERE id = ?
-        `).bind(now, data.id).run();
+        `).bind(data.id).run();
 
         return jsonResponse({
             success: true,
-            message: 'Category deleted successfully'
+            message: 'Category permanently deleted successfully'
         }, 200, corsHeaders);
 
     } catch (error) {

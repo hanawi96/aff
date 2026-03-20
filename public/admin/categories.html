@@ -225,27 +225,30 @@
                         placeholder="Mô tả chi tiết về danh mục..."></textarea>
                 </div>
 
-                <!-- Thứ tự hiển thị -->
-                <div id="categoryOrderGroup" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Thứ tự hiển thị</label>
-                    <input type="number" id="categoryOrder" value="" min="0" placeholder="Để trống để tự động xếp cuối" autocomplete="off"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
-                    <p id="categoryOrderHint" class="mt-2 text-xs text-gray-500 hidden">
-                        Danh mục mới sẽ tự động được thêm vào cuối danh sách.
-                    </p>
-                </div>
-
                 <!-- Trạng thái -->
-                <div class="flex items-center gap-6">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="categoryActive" checked
-                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
-                        <span class="text-sm font-medium text-gray-700">Kích hoạt</span>
+                <div class="space-y-4">
+                    <label for="categoryActive" class="flex items-center justify-between gap-4 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">Kích hoạt</p>
+                            <p class="text-xs text-gray-500">Danh mục hiển thị trên shop khi bật</p>
+                        </div>
+                        <div class="relative inline-flex items-center">
+                            <input type="checkbox" id="categoryActive" checked class="peer sr-only">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                        </div>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="categoryFeatured"
-                            class="w-4 h-4 text-amber-500 border-gray-300 rounded focus:ring-2 focus:ring-amber-400">
-                        <span class="text-sm font-medium text-gray-700">Danh mục nổi bật (badge Phổ biến)</span>
+
+                    <label for="categoryFeatured" class="flex items-center justify-between gap-4 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">Danh mục nổi bật</p>
+                            <p class="text-xs text-gray-500">Hiển thị badge “Phổ biến” ngoài trang chủ</p>
+                        </div>
+                        <div class="relative inline-flex items-center">
+                            <input type="checkbox" id="categoryFeatured" class="peer sr-only">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-amber-500 transition-colors"></div>
+                            <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                        </div>
                     </label>
                 </div>
 
