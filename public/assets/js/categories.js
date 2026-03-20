@@ -179,6 +179,15 @@ function renderCategories() {
                         ${category.display_order || 0}
                     </span>
                 </td>
+                <td class="px-6 py-4 text-center">
+                    ${category.is_featured ? `
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                            Phổ biến
+                        </span>
+                    ` : `
+                        <span class="text-xs text-gray-400">-</span>
+                    `}
+                </td>
                 <td class="px-6 py-4">
                     <div class="text-sm">
                         <div class="font-medium text-gray-900">${formatDateTime(category.created_at_unix)}</div>
@@ -214,6 +223,15 @@ function renderCategories() {
                         
                         <!-- Divider -->
                         <div class="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <!-- Toggle Featured -->
+                        <button onclick="toggleFeaturedCategory(${category.id}, ${category.is_featured ? 1 : 0}, '${category.name.replace(/'/g, "\\'")}')" 
+                            class="text-amber-600 hover:text-amber-700 transition-colors p-2 hover:bg-amber-50 rounded-lg" 
+                            title="${category.is_featured ? 'Tắt nổi bật' : 'Bật nổi bật'}">
+                            <svg class="w-5 h-5" fill="${category.is_featured ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        </button>
                         
                         <!-- Edit Button -->
                         <button onclick="editCategory(${category.id})" 
@@ -301,6 +319,7 @@ function showAddCategoryModal() {
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryActive').checked = true;
+    document.getElementById('categoryFeatured').checked = false;
     const orderGroup = document.getElementById('categoryOrderGroup');
     const orderHint = document.getElementById('categoryOrderHint');
     const orderInput = document.getElementById('categoryOrder');
@@ -336,6 +355,7 @@ function editCategory(id) {
     orderInput.value = category.display_order ?? 0;
     if (orderHint) orderHint.classList.add('hidden');
     document.getElementById('categoryActive').checked = category.is_active;
+    document.getElementById('categoryFeatured').checked = !!category.is_featured;
     
     document.getElementById('categoryModal').classList.remove('hidden');
 }
@@ -368,10 +388,39 @@ function handleFormSubmit(event) {
         name: document.getElementById('categoryName').value,
         description: document.getElementById('categoryDescription').value || null,
         display_order: isEdit ? parsedDisplayOrder : undefined,
-        is_active: document.getElementById('categoryActive').checked ? 1 : 0
+        is_active: document.getElementById('categoryActive').checked ? 1 : 0,
+        is_featured: document.getElementById('categoryFeatured').checked ? 1 : 0
     };
     
     saveCategory(categoryData);
+}
+
+async function toggleFeaturedCategory(id, currentFeatured, name) {
+    const nextFeatured = currentFeatured ? 0 : 1;
+    const actionText = nextFeatured ? 'bật nổi bật' : 'tắt nổi bật';
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateCategory',
+                id,
+                is_featured: nextFeatured
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showSuccess(`Đã ${actionText} cho danh mục "${name}"`);
+            loadCategories();
+        } else {
+            showError(data.error || `Không thể ${actionText}`);
+        }
+    } catch (error) {
+        console.error('Error toggling featured category:', error);
+        showError(`Lỗi khi ${actionText}`);
+    }
 }
 
 // ============================================

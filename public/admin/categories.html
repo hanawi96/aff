@@ -178,6 +178,7 @@
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mô tả</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Số sản phẩm</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Thứ tự</th>
+                                    <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Nổi bật</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ngày tạo</th>
                                     <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
                                     <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
@@ -235,11 +236,16 @@
                 </div>
 
                 <!-- Trạng thái -->
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="categoryActive" checked
                             class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
                         <span class="text-sm font-medium text-gray-700">Kích hoạt</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="categoryFeatured"
+                            class="w-4 h-4 text-amber-500 border-gray-300 rounded focus:ring-2 focus:ring-amber-400">
+                        <span class="text-sm font-medium text-gray-700">Danh mục nổi bật (badge Phổ biến)</span>
                     </label>
                 </div>
 

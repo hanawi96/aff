@@ -11,6 +11,10 @@ import { CONFIG, CATEGORY_IMAGES } from '../../shared/constants/config.js';
  * @returns {string} HTML string
  */
 export function createCategoryCard(category) {
+    const popularBadge = category.is_featured === 1 || category.is_featured === true
+        ? '<span class="category-chip-badge">Phổ biến</span>'
+        : '';
+
     return `
         <button class="category-chip" onclick="window.categoryActions.filterByCategory(${category.id})" data-category-id="${category.id}">
             <span class="category-chip-icon">
@@ -19,6 +23,7 @@ export function createCategoryCard(category) {
                 </svg>
             </span>
             <span class="category-chip-name">${escapeHtml(category.name)}</span>
+            ${popularBadge}
         </button>
     `;
 }

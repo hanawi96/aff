@@ -188,13 +188,14 @@ export async function createCategory(data, env, corsHeaders) {
                 await shiftOrdersForInsert(env, resolvedDisplayOrder, now);
                 await env.DB.prepare(`
                     UPDATE categories
-                    SET description = ?, icon = ?, color = ?, display_order = ?, is_active = 1, updated_at_unix = ?
+                    SET description = ?, icon = ?, color = ?, display_order = ?, is_active = 1, is_featured = ?, updated_at_unix = ?
                     WHERE id = ?
                 `).bind(
                     data.description || null,
                     data.icon || null,
                     data.color || null,
                     resolvedDisplayOrder,
+                    data.is_featured ? 1 : 0,
                     now,
                     existing.id
                 ).run();
@@ -213,8 +214,8 @@ export async function createCategory(data, env, corsHeaders) {
 
         // Insert category
         const result = await env.DB.prepare(`
-            INSERT INTO categories (name, description, icon, color, display_order, is_active, created_at_unix, updated_at_unix)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO categories (name, description, icon, color, display_order, is_active, is_featured, created_at_unix, updated_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             data.description || null,
@@ -222,6 +223,7 @@ export async function createCategory(data, env, corsHeaders) {
             data.color || null,
             resolvedDisplayOrder,
             data.is_active !== undefined ? data.is_active : 1,
+            data.is_featured ? 1 : 0,
             now,
             now
         ).run();
@@ -329,6 +331,10 @@ export async function updateCategory(data, env, corsHeaders) {
         if (data.is_active !== undefined) {
             updates.push('is_active = ?');
             values.push(data.is_active ? 1 : 0);
+        }
+        if (data.is_featured !== undefined) {
+            updates.push('is_featured = ?');
+            values.push(data.is_featured ? 1 : 0);
         }
 
         updates.push('updated_at = CURRENT_TIMESTAMP');
