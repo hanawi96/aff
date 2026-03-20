@@ -980,42 +980,95 @@ export class QuickCheckout {
         const newTotal = this.product.price + surcharge;
         const newTotalFormatted = formatPrice(newTotal);
         
-        const message = `
-            <div style="text-align: left; line-height: 1.6;">
-                <p style="margin-bottom: 1rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; color: #f39c12;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>
-                    <strong>Cân nặng ${weightKg}kg vượt quá 15kg</strong>
-                </p>
-                <p style="margin-bottom: 1rem; color: #666;">
-                    Do làm size lớn hơn cần nhiều nguyên liệu hơn, giá sản phẩm sẽ tăng thêm <strong style="color: #e74c3c;">15%</strong>
-                </p>
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>Giá gốc:</span>
-                        <span>${formatPrice(this.product.price)}</span>
+        const originalFormatted = formatPrice(this.product.price);
+
+        // Avoid stacking multiple modals
+        const existing = document.getElementById('quickCheckoutBabyWeightSurchargeConfirmOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'quickCheckoutBabyWeightSurchargeConfirmOverlay';
+        overlay.className = 'modal-overlay';
+        overlay.style.zIndex = '11000';
+        overlay.style.padding = '1rem';
+        overlay.innerHTML = `
+            <div class="modal-content baby-surcharge-confirm-modal" style="max-width: 440px;">
+                <div class="baby-surcharge-confirm-header">
+                    <div class="baby-surcharge-confirm-header-left">
+                        <div class="baby-surcharge-confirm-icon" aria-hidden="true">⚠️</div>
+                        <div>
+                            <div class="baby-surcharge-confirm-title">Xác nhận phụ phí</div>
+                            <div class="baby-surcharge-confirm-subtitle">
+                                Cân nặng <strong>${weightKg}kg</strong> vượt quá 15kg
+                            </div>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #f39c12;">
-                        <span>Phụ phí (+15%):</span>
-                        <strong>+${surchargeFormatted}</strong>
+                    <button type="button" aria-label="Đóng" id="quickCheckoutBabyWeightSurchargeConfirmCloseBtn"
+                        class="baby-surcharge-confirm-close-btn">×</button>
+                </div>
+
+                <div class="baby-surcharge-confirm-body">
+                    <div class="baby-surcharge-confirm-price-card">
+                        <div class="baby-surcharge-confirm-row">
+                            <span class="baby-surcharge-confirm-label">Giá gốc</span>
+                            <strong class="baby-surcharge-confirm-value">${originalFormatted}</strong>
+                        </div>
+                        <div class="baby-surcharge-confirm-row baby-surcharge-confirm-row-warning">
+                            <span>Phụ phí (+15%)</span>
+                            <strong class="baby-surcharge-confirm-value baby-surcharge-confirm-fee">+${surchargeFormatted}</strong>
+                        </div>
+                        <div class="baby-surcharge-confirm-row baby-surcharge-confirm-row-total">
+                            <span class="baby-surcharge-confirm-label">Giá mới</span>
+                            <strong class="baby-surcharge-confirm-value baby-surcharge-confirm-total">${newTotalFormatted}</strong>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 2px solid #e0e0e0;">
-                        <strong>Giá mới:</strong>
-                        <strong style="color: #e74c3c; font-size: 1.1rem;">${newTotalFormatted}</strong>
+
+                    <div class="baby-surcharge-confirm-question">
+                        Bạn có đồng ý với mức giá này không?
+                    </div>
+
+                    <div class="baby-surcharge-confirm-note">
+                        </b>Lưu ý:</b> Giá bán gốc là dành cho các bé dưới 15kg, khi trên 15kg em sẽ phải sử dụng nhiều nguyên liệu như bạc, hổ phách, hạt dâu,...hơn để làm, vì vậy giá sẽ cao hơn 15% ạ
+                    </div>
+
+                    <div class="baby-surcharge-confirm-actions">
+                        <button type="button" id="quickCheckoutBabyWeightSurchargeConfirmCancelBtn"
+                            class="baby-surcharge-confirm-btn baby-surcharge-confirm-btn-secondary">Hủy</button>
+                        <button type="button" id="quickCheckoutBabyWeightSurchargeConfirmOkBtn"
+                            class="baby-surcharge-confirm-btn baby-surcharge-confirm-btn-primary">Đồng ý</button>
                     </div>
                 </div>
-                <p style="color: #666; font-size: 0.9rem;">
-                    Bạn có đồng ý với mức giá này không?
-                </p>
             </div>
         `;
-        
-        // Show confirmation using browser confirm (simple approach)
-        // You can replace this with a custom modal if needed
-        if (confirm(message.replace(/<[^>]*>/g, '\n').replace(/&nbsp;/g, ' '))) {
-            this.acceptCustomWeight(weightKg);
-        } else {
+
+        document.body.appendChild(overlay);
+
+        const cleanup = () => {
+            const el = document.getElementById('quickCheckoutBabyWeightSurchargeConfirmOverlay');
+            if (el) el.remove();
+        };
+
+        const okBtn = document.getElementById('quickCheckoutBabyWeightSurchargeConfirmOkBtn');
+        const cancelBtn = document.getElementById('quickCheckoutBabyWeightSurchargeConfirmCancelBtn');
+        const closeBtn = document.getElementById('quickCheckoutBabyWeightSurchargeConfirmCloseBtn');
+
+        const onCancel = () => {
+            cleanup();
             this.rejectCustomWeight();
-        }
+        };
+
+        const onOk = () => {
+            cleanup();
+            this.acceptCustomWeight(weightKg);
+        };
+
+        if (okBtn) okBtn.addEventListener('click', onOk);
+        if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+        if (closeBtn) closeBtn.addEventListener('click', onCancel);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) onCancel();
+        });
     }
     
     /**

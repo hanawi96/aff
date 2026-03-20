@@ -5701,7 +5701,7 @@ body {
 
 .baby-weight-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
 }
 
@@ -5757,6 +5757,186 @@ body {
     justify-content: center;
     gap: 0.5rem;
     color: #4a6fa5;
+}
+
+/* ============================================
+   Baby Weight - Surcharge Confirm Modal
+   (đẹp, gọn cho mẹ bỉm)
+   ============================================ */
+.baby-surcharge-confirm-modal {
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.baby-surcharge-confirm-header {
+    padding: 1.1rem 1.15rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    background: linear-gradient(135deg, rgba(255,247,237,0.95), rgba(254,240,255,0.55));
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.baby-surcharge-confirm-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.baby-surcharge-confirm-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(243, 156, 18, 0.12);
+    color: #f59e0b;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.baby-surcharge-confirm-title {
+    font-weight: 900;
+    color: #111827;
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+
+.baby-surcharge-confirm-subtitle {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 0.1rem;
+}
+
+.baby-surcharge-confirm-close-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(0,0,0,0.06);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #111827;
+}
+
+.baby-surcharge-confirm-close-btn:hover {
+    background: rgba(0,0,0,0.09);
+}
+
+.baby-surcharge-confirm-body {
+    padding: 1rem 1.15rem 1.1rem;
+}
+
+.baby-surcharge-confirm-price-card {
+    background: linear-gradient(135deg, rgba(255,247,237,1), rgba(255,255,255,1));
+    border: 1px solid rgba(243, 156, 18, 0.18);
+    border-radius: 14px;
+    padding: 0.95rem;
+    margin-bottom: 0.9rem;
+}
+
+.baby-surcharge-confirm-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.baby-surcharge-confirm-row:last-child {
+    margin-bottom: 0;
+}
+
+.baby-surcharge-confirm-row-warning {
+    color: #f59e0b;
+}
+
+.baby-surcharge-confirm-row-total {
+    padding-top: 0.55rem;
+    border-top: 1px dashed rgba(0,0,0,0.15);
+    margin-top: 0.55rem;
+}
+
+.baby-surcharge-confirm-label {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.baby-surcharge-confirm-value {
+    color: #111827;
+    font-weight: 900;
+}
+
+.baby-surcharge-confirm-fee {
+    color: #dc2626;
+}
+
+.baby-surcharge-confirm-total {
+    color: #dc2626;
+    font-size: 1.15rem;
+}
+
+.baby-surcharge-confirm-question {
+    color: #6b7280;
+    font-size: 0.98rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.baby-surcharge-confirm-note {
+    color: #6b7280;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.14);
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.baby-surcharge-confirm-actions {
+    display: flex;
+    gap: 0.7rem;
+    justify-content: flex-end;
+}
+
+.baby-surcharge-confirm-btn {
+    padding: 0.7rem 1.05rem;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.1);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.baby-surcharge-confirm-btn:active {
+    transform: translateY(1px);
+}
+
+.baby-surcharge-confirm-btn-secondary {
+    background: #fff;
+    color: #374151;
+    border-color: rgba(0,0,0,0.08);
+}
+
+.baby-surcharge-confirm-btn-secondary:hover {
+    background: rgba(0,0,0,0.03);
+}
+
+.baby-surcharge-confirm-btn-primary {
+    background: linear-gradient(135deg, #f59e0b, #fb7185);
+    border: none;
+    color: #fff;
+    box-shadow: 0 10px 25px rgba(251, 113, 133, 0.2);
+}
+
+.baby-surcharge-confirm-btn-primary:hover {
+    box-shadow: 0 12px 30px rgba(251, 113, 133, 0.25);
 }
 
 .weight-btn-custom:hover {

@@ -3861,6 +3861,11 @@ body {
     fill: white;
 }
 
+/* Only show kính icon, hide text for product preview */
+.image-zoom-hint span {
+    display: none;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -3956,6 +3961,11 @@ body {
     width: 18px;
     height: 18px;
     fill: #e76f51;
+}
+
+/* Hide "Vuốt xuống để đóng" hint (keep close button only) */
+.fullscreen-hint {
+    display: none !important;
 }
 
 @keyframes slideUpFade {
@@ -7362,5 +7372,177 @@ body {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* =========================================================
+   Product Detail Modal UI (image preview) - cleaner layout
+   Purpose: reduce "colorful" look, improve visual flow,
+   keep all content the same (JS still renders same data).
+   ========================================================= */
+
+.image-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.product-pricing-section {
+    background: #fff;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 1rem 1.25rem;
+}
+
+.price-current {
+    color: #e76f51;
+    text-shadow: none;
+    font-size: 1.75rem;
+}
+
+.price-current strong,
+.price-current b {
+    color: #e76f51;
+}
+
+.discount-badge {
+    background: #fff5f3;
+    color: #e76f51;
+    border: 1px solid #ffd6cc;
+    box-shadow: none;
+    animation: none;
+    font-weight: 700;
+}
+
+.discount-badge svg {
+    fill: #e76f51;
+    animation: none;
+}
+
+.image-preview-info .product-gender-info,
+.image-preview-info .product-commitment,
+.image-preview-info .product-beads-info,
+.image-preview-info .product-size-info,
+.image-preview-info .product-string-info,
+.image-preview-info .product-custom-contact {
+    margin: 0;
+    padding: 0.85rem 0.95rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    color: #111827;
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.image-preview-info .product-gender-info,
+.image-preview-info .product-commitment,
+.image-preview-info .product-beads-info,
+.image-preview-info .product-size-info,
+.image-preview-info .product-string-info,
+.image-preview-info .product-custom-contact {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.image-preview-info .product-gender-info svg,
+.image-preview-info .product-commitment svg,
+.image-preview-info .product-beads-info svg,
+.image-preview-info .product-size-info svg,
+.image-preview-info .product-string-info svg,
+.image-preview-info .product-custom-contact svg {
+    fill: #e76f51 !important;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.image-preview-info .product-gender-info strong,
+.image-preview-info .product-commitment strong,
+.image-preview-info .product-beads-info strong,
+.image-preview-info .product-size-info strong,
+.image-preview-info .product-string-info strong {
+    color: #e76f51;
+    font-weight: 800;
+}
+
+.product-string-info {
+    border-left: 4px solid #e76f51;
+    padding-left: 0.75rem;
+}
+
+.product-string-info.red-string,
+.product-string-info.rope-string {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    color: #111827;
+}
+
+.product-string-info.red-string svg,
+.product-string-info.rope-string svg {
+    fill: #e76f51 !important;
+}
+
+.product-string-info.red-string strong,
+.product-string-info.rope-string strong {
+    color: #e76f51;
+    font-weight: 800;
+}
+
+.product-custom-contact {
+    margin-top: 0;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+
+.image-preview-materials {
+    margin-top: 0;
+    padding: 0.85rem 0.95rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+}
+
+.materials-header {
+    margin-bottom: 0.65rem;
+    font-weight: 800;
+    font-size: 0.875rem;
+    color: #111827;
+}
+
+.materials-header svg {
+    width: 16px;
+    height: 16px;
+    fill: #e76f51;
+}
+
+.materials-list {
+    gap: 0.5rem;
+}
+
+.material-tag {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    color: #111827;
+}
+
+.material-tag:hover {
+    border-color: #e76f51;
+    background: #fff7f5;
+}
+
+.material-tag svg {
+    fill: #e76f51;
+}
+
+.material-name {
+    color: #111827;
+    font-weight: 650;
+}
+
+.material-quantity {
+    color: #6b7280;
 }
 

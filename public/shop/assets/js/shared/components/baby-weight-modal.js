@@ -57,6 +57,15 @@ export class BabyWeightModal {
         this.setupEventListeners();
         console.log('✅ BabyWeightModal: Initialized successfully');
     }
+
+    getModalElement() {
+        return document.getElementById('babyWeightModal');
+    }
+
+    getCustomWeightInputElement() {
+        const modal = this.getModalElement();
+        return modal ? modal.querySelector('#customWeightInput') : null;
+    }
     
     /**
      * Check if product needs baby weight selection
@@ -187,19 +196,23 @@ export class BabyWeightModal {
         
         // Reset selections
         document.querySelectorAll('.weight-btn').forEach(btn => btn.classList.remove('selected'));
-        const customInput = document.getElementById('customWeightInput');
+        const customInput = this.getCustomWeightInputElement();
+        const customSection = document.getElementById('babyWeightCustomSection');
         if (customInput) {
             customInput.value = '';
             customInput.placeholder = isAdult ? 'VD: 100' : 'VD: 18';
             customInput.min = isAdult ? '96' : '16';
             customInput.max = '120';
         }
+        if (customSection) {
+            customSection.classList.add('hidden');
+        }
         
         const confirmBtn = document.getElementById('confirmWeightBtn');
         if (confirmBtn) confirmBtn.disabled = true;
         
         // Show modal
-        const modal = document.getElementById('babyWeightModal');
+        const modal = this.getModalElement();
         if (!modal) {
             console.error('❌ BabyWeightModal: Modal element not found! #babyWeightModal');
             return;
@@ -264,7 +277,21 @@ export class BabyWeightModal {
      * Focus on custom input
      */
     focusCustomInput() {
-        const customInput = document.getElementById('customWeightInput');
+        const customInput = this.getCustomWeightInputElement();
+        const customSection = document.getElementById('babyWeightCustomSection');
+        const customButton = document.querySelector('#babyWeightOptions .weight-btn[data-custom="true"]');
+        
+        if (customSection) {
+            customSection.classList.remove('hidden');
+        }
+        
+        document.querySelectorAll('#babyWeightOptions .weight-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        if (customButton) {
+            customButton.classList.add('selected');
+        }
+        
         if (customInput) {
             customInput.focus();
             customInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -275,7 +302,10 @@ export class BabyWeightModal {
      * Close modal
      */
     close() {
-        document.getElementById('babyWeightModal').classList.add('hidden');
+        const modal = this.getModalElement();
+        if (modal) {
+            modal.classList.add('hidden');
+        }
         this.hideSurchargeInfo();
         this.currentProduct = null;
         this.selectedWeight = null;
@@ -287,6 +317,7 @@ export class BabyWeightModal {
      */
     selectWeight(weight) {
         this.selectedWeight = weight;
+        const customSection = document.getElementById('babyWeightCustomSection');
         
         // Update UI
         document.querySelectorAll('.weight-btn').forEach(btn => {
@@ -298,9 +329,12 @@ export class BabyWeightModal {
         });
         
         // Clear custom input
-        const customInput = document.getElementById('customWeightInput');
+        const customInput = this.getCustomWeightInputElement();
         if (customInput) {
             customInput.value = '';
+        }
+        if (customSection) {
+            customSection.classList.add('hidden');
         }
         
         // Extract weight number for surcharge calculation
@@ -443,7 +477,7 @@ export class BabyWeightModal {
      * Handle custom weight input
      */
     handleCustomInput(value) {
-        const weight = parseInt(value);
+        const weight = parseFloat(value);
         const isAdult = this.isAdultBracelet(this.currentProduct);
         
         // Validate based on product type
@@ -477,7 +511,7 @@ export class BabyWeightModal {
     /**
      * Confirm and add to cart
      */
-    confirm() {
+    async confirm() {
         if (!this.selectedWeight || !this.currentProduct) {
             return;
         }
@@ -503,6 +537,19 @@ export class BabyWeightModal {
         
         // Calculate surcharge
         const surcharge = this.calculateSurcharge(weightKg);
+        const isAdult = this.isAdultBracelet(this.currentProduct);
+        const needsSurchargeConfirm = isAdult
+            ? weightKg > this.ADULT_WEIGHT_THRESHOLD
+            : weightKg > this.BABY_WEIGHT_THRESHOLD;
+
+        // Keep add-to-cart flow consistent with "Mua ngay":
+        // show confirmation dialog before applying surcharge.
+        if (needsSurchargeConfirm && surcharge > 0) {
+            const confirmed = await this.showWeightSurchargeConfirmation(weightKg, surcharge, isAdult);
+            if (!confirmed) {
+                return;
+            }
+        }
         
         // Call callback with selected weight and surcharge
         if (this.callback) {
@@ -511,6 +558,115 @@ export class BabyWeightModal {
         
         // Close modal
         this.close();
+    }
+
+    showWeightSurchargeConfirmation(weightKg, surcharge, isAdult) {
+        const threshold = isAdult ? this.ADULT_WEIGHT_THRESHOLD : this.BABY_WEIGHT_THRESHOLD;
+        const surchargePercent = isAdult ? this.ADULT_SURCHARGE_PERCENT : this.BABY_SURCHARGE_PERCENT;
+        const surchargeFormatted = this.formatPrice(surcharge);
+        const newTotalFormatted = this.formatPrice((this.currentProduct?.price || 0) + surcharge);
+        const originalFormatted = this.formatPrice(this.currentProduct?.price || 0);
+
+        return new Promise((resolve) => {
+            // Avoid stacking multiple confirmation modals
+            const existing = document.getElementById('babyWeightSurchargeConfirmOverlay');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'babyWeightSurchargeConfirmOverlay';
+            overlay.className = 'modal-overlay';
+            overlay.style.zIndex = '11000'; // Make sure it's above everything
+            overlay.style.padding = '1rem';
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-content baby-surcharge-confirm-modal';
+            modal.style.maxWidth = '440px';
+            modal.innerHTML = `
+                <div class="baby-surcharge-confirm-header">
+                    <div class="baby-surcharge-confirm-header-left">
+                        <div class="baby-surcharge-confirm-icon" aria-hidden="true">
+                            ⚠️
+                        </div>
+                        <div>
+                            <div class="baby-surcharge-confirm-title">Xác nhận phụ phí</div>
+                            <div class="baby-surcharge-confirm-subtitle">
+                                Cân nặng <strong>${weightKg}kg</strong> vượt quá ${threshold}kg
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" aria-label="Đóng" id="babyWeightSurchargeConfirmCloseBtn" class="baby-surcharge-confirm-close-btn">
+                        ×
+                    </button>
+                </div>
+
+                <div class="baby-surcharge-confirm-body">
+                    <div class="baby-surcharge-confirm-price-card">
+                        <div class="baby-surcharge-confirm-row">
+                            <span class="baby-surcharge-confirm-label">Giá gốc</span>
+                            <strong class="baby-surcharge-confirm-value">${originalFormatted}</strong>
+                        </div>
+
+                        <div class="baby-surcharge-confirm-row baby-surcharge-confirm-row-warning">
+                            <span>Phụ phí (+${Math.round(surchargePercent * 100)}%)</span>
+                            <strong class="baby-surcharge-confirm-value baby-surcharge-confirm-fee">+${surchargeFormatted}</strong>
+                        </div>
+
+                        <div class="baby-surcharge-confirm-row baby-surcharge-confirm-row-total">
+                            <span class="baby-surcharge-confirm-label">Giá mới</span>
+                            <strong class="baby-surcharge-confirm-value baby-surcharge-confirm-total">${newTotalFormatted}</strong>
+                        </div>
+                    </div>
+
+                    <div class="baby-surcharge-confirm-question">
+                        Bạn có đồng ý với mức giá này không?
+                    </div>
+
+                    <div class="baby-surcharge-confirm-note">
+                        <b>Lưu ý:</b> Giá bán gốc là dành cho các bé dưới 15kg, khi trên 15kg em sẽ phải sử dụng nhiều nguyên liệu như bạc, hổ phách, hạt dâu,...hơn để làm, vì vậy giá sẽ cao hơn 15% ạ
+                    </div>
+
+                    <div class="baby-surcharge-confirm-actions">
+                        <button type="button" id="babyWeightSurchargeConfirmCancelBtn" class="baby-surcharge-confirm-btn baby-surcharge-confirm-btn-secondary">
+                            Hủy
+                        </button>
+                        <button type="button" id="babyWeightSurchargeConfirmOkBtn" class="baby-surcharge-confirm-btn baby-surcharge-confirm-btn-primary">
+                            Đồng ý
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            const cleanup = () => {
+                const el = document.getElementById('babyWeightSurchargeConfirmOverlay');
+                if (el) el.remove();
+            };
+
+            const okBtn = document.getElementById('babyWeightSurchargeConfirmOkBtn');
+            const cancelBtn = document.getElementById('babyWeightSurchargeConfirmCancelBtn');
+            const closeBtn = document.getElementById('babyWeightSurchargeConfirmCloseBtn');
+
+            const onCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            const onOk = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            if (okBtn) okBtn.onclick = onOk;
+            if (cancelBtn) cancelBtn.onclick = onCancel;
+            if (closeBtn) closeBtn.onclick = onCancel;
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) onCancel();
+            });
+        });
     }
     
     /**
@@ -532,7 +688,7 @@ export class BabyWeightModal {
         // Confirm button
         const confirmBtn = document.getElementById('confirmWeightBtn');
         if (confirmBtn) {
-            confirmBtn.onclick = () => this.confirm();
+            confirmBtn.onclick = async () => this.confirm();
         }
         
         // Weight buttons
@@ -541,13 +697,13 @@ export class BabyWeightModal {
         });
         
         // Custom input
-        const customInput = document.getElementById('customWeightInput');
+        const customInput = this.getCustomWeightInputElement();
         if (customInput) {
             customInput.oninput = (e) => this.handleCustomInput(e.target.value);
         }
         
         // Click outside to close
-        const modal = document.getElementById('babyWeightModal');
+        const modal = this.getModalElement();
         if (modal) {
             modal.onclick = (e) => {
                 if (e.target === modal) {
