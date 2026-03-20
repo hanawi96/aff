@@ -892,32 +892,6 @@ function showAddProductModal() {
                                     <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                                 </label>
                                 
-                                <!-- URL Input Section -->
-                                <div id="imageUrlSection" class="hidden mt-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        🔗 Hoặc nhập URL ảnh
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <input type="text" id="productImageURLInput" placeholder="https://example.com/image.jpg"
-                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                            onchange="handleImageURLChange(this.value)"
-                                            onpaste="setTimeout(() => handleImageURLChange(this.value), 100)">
-                                        <button type="button" onclick="testImageURL()"
-                                            class="px-3 py-2 text-blue-500 hover:text-blue-700 border border-gray-300 rounded-lg hover:border-blue-300 transition-colors"
-                                            title="Test URL">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7l10 10M17 7l-10 10" />
-                                            </svg>
-                                        </button>
-                                        <button type="button" onclick="clearImagePreview()"
-                                            class="px-3 py-2 text-gray-500 hover:text-red-500 border border-gray-300 rounded-lg hover:border-red-300 transition-colors">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                
                                 <input type="hidden" id="productImageURL">
                             </div>
                         </div>
@@ -1447,13 +1421,8 @@ async function handleImageUpload(input) {
     pendingImageFile = file;
     pendingImagePreviewUrl = URL.createObjectURL(file);
 
-    const visibleInput = document.getElementById('productImageURLInput');
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
-    const urlSection = document.getElementById('imageUrlSection');
-    if (visibleInput) {
-        visibleInput.value = `Đã chọn file: ${file.name} (sẽ upload khi bấm Lưu)`;
-    }
 
     if (preview && container) {
         preview.onerror = null;
@@ -1464,10 +1433,6 @@ async function handleImageUpload(input) {
         preview.src = pendingImagePreviewUrl;
         container.classList.remove('hidden');
     }
-    if (urlSection) {
-        urlSection.classList.remove('hidden');
-    }
-
     input.value = '';
     showToast('🖼️ Đã chọn ảnh. Ảnh sẽ được upload khi bấm Lưu', 'info');
 }
@@ -1476,8 +1441,6 @@ async function handleImageUpload(input) {
 function updateImagePreview(url) {
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
-    const urlSection = document.getElementById('imageUrlSection');
-    const visibleInput = document.getElementById('productImageURLInput');
     const hiddenInput = document.getElementById('productImageURL');
     
     if (!container || !preview) return;
@@ -1492,9 +1455,6 @@ function updateImagePreview(url) {
         
         // Sync inputs
         if (hiddenInput) hiddenInput.value = url.trim();
-        if (visibleInput && visibleInput.value !== url.trim()) {
-            visibleInput.value = url.trim();
-        }
         
         // Handle successful load
         preview.onload = function() {
@@ -1518,21 +1478,14 @@ function updateImagePreview(url) {
         const encodedUrl = encodeURI(url.trim());
         preview.src = encodedUrl;
         
-        // Show container and URL section
+        // Show container
         container.classList.remove('hidden');
-        if (urlSection) {
-            urlSection.classList.remove('hidden');
-        }
         
         console.log('🖼️ Loading image preview:', encodedUrl);
     } else {
         // Clear everything
         container.classList.add('hidden');
-        if (urlSection) {
-            urlSection.classList.add('hidden');
-        }
         if (hiddenInput) hiddenInput.value = '';
-        if (visibleInput) visibleInput.value = '';
         preview.src = '';
         preview.style.opacity = '1';
         preview.style.padding = '';
@@ -1544,13 +1497,10 @@ function updateImagePreview(url) {
 function clearImagePreview() {
     resetPendingImageSelection();
     const hiddenInput = document.getElementById('productImageURL');
-    const visibleInput = document.getElementById('productImageURLInput');
     const container = document.getElementById('imagePreviewContainer');
     const preview = document.getElementById('imagePreview');
-    const urlSection = document.getElementById('imageUrlSection');
     
     if (hiddenInput) hiddenInput.value = '';
-    if (visibleInput) visibleInput.value = '';
     if (container) container.classList.add('hidden');
     if (preview) {
         preview.src = '';
@@ -1558,18 +1508,13 @@ function clearImagePreview() {
         preview.style.padding = '';
         preview.style.backgroundColor = '';
     }
-    if (urlSection) urlSection.classList.add('hidden');
-    
     console.log('🗑️ Image preview cleared');
 }
 
 // Open image in new tab (helpful for CORS issues)
 function openImageInNewTab() {
     const hiddenInput = document.getElementById('productImageURL');
-    const visibleInput = document.getElementById('productImageURLInput');
-    
-    // Get URL from either input
-    const url = hiddenInput?.value || visibleInput?.value;
+    const url = hiddenInput?.value;
     
     if (url && url.trim()) {
         console.log('🔗 Opening image in new tab:', url.trim());
@@ -1798,9 +1743,7 @@ async function saveProduct(productId = null) {
             }
             image_url = await uploadImageToR2(pendingImageFile);
             const hiddenInput = document.getElementById('productImageURL');
-            const visibleInput = document.getElementById('productImageURLInput');
             if (hiddenInput) hiddenInput.value = image_url;
-            if (visibleInput) visibleInput.value = image_url;
             resetPendingImageSelection();
 
             if (saveBtn) {
@@ -2180,33 +2123,6 @@ async function editProduct(productId) {
                                         </div>
                                         <input type="file" id="productImageFile" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                                     </label>
-                                    
-                                    <!-- URL Input Section -->
-                                    <div id="imageUrlSection" class="${product.image_url ? '' : 'hidden'} mt-3">
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                                            🔗 Hoặc nhập URL ảnh
-                                        </label>
-                                        <div class="flex gap-2">
-                                            <input type="text" id="productImageURLInput" placeholder="https://example.com/image.jpg"
-                                                value="${escapeHtml(product.image_url || '')}"
-                                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                                onchange="handleImageURLChange(this.value)"
-                                                onpaste="setTimeout(() => handleImageURLChange(this.value), 100)">
-                                            <button type="button" onclick="testImageURL()"
-                                                class="px-3 py-2 text-blue-500 hover:text-blue-700 border border-gray-300 rounded-lg hover:border-blue-300 transition-colors"
-                                                title="Test URL">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7l10 10M17 7l-10 10" />
-                                                </svg>
-                                            </button>
-                                            <button type="button" onclick="clearImagePreview()"
-                                                class="px-3 py-2 text-gray-500 hover:text-red-500 border border-gray-300 rounded-lg hover:border-red-300 transition-colors">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
                                     
                                     <input type="hidden" id="productImageURL" value="${escapeHtml(product.image_url || '')}">
                                 </div>
@@ -4459,48 +4375,6 @@ function showToast(message, type = 'info', duration = 4000) {
 
 // Export functions for global access
 window.startEditProductName = startEditProductName;
-// Handle manual URL input change
-function handleImageURLChange(url) {
-    resetPendingImageSelection();
-    const hiddenInput = document.getElementById('productImageURL');
-    const visibleInput = document.getElementById('productImageURLInput');
-    
-    if (!url || !url.trim()) {
-        clearImagePreview();
-        return;
-    }
-    
-    // Update hidden input
-    if (hiddenInput) {
-        hiddenInput.value = url.trim();
-    }
-    
-    // Update preview
-    updateImagePreview(url.trim());
-    
-    console.log('🔗 Manual URL input changed:', url.trim());
-}
-
-// Show URL input section
-function showImageUrlSection() {
-    const urlSection = document.getElementById('imageUrlSection');
-    if (urlSection) {
-        urlSection.classList.remove('hidden');
-    }
-}
-
-// Hide URL input section  
-function hideImageUrlSection() {
-    const urlSection = document.getElementById('imageUrlSection');
-    if (urlSection) {
-        urlSection.classList.add('hidden');
-    }
-}
-
-// Export functions for global access
-window.handleImageURLChange = handleImageURLChange;
-window.showImageUrlSection = showImageUrlSection;
-window.hideImageUrlSection = hideImageUrlSection;
 
 function resetPendingImageSelection() {
     pendingImageFile = null;
@@ -4676,81 +4550,3 @@ function showFinalCORSError(url) {
 
 // Export function for global access
 window.tryAlternativeImageLoad = tryAlternativeImageLoad;
-// Test image URL function
-async function testImageURL() {
-    const input = document.getElementById('productImageURLInput');
-    const url = input?.value?.trim();
-    
-    if (!url) {
-        showToast('Vui lòng nhập URL ảnh để test', 'warning');
-        return;
-    }
-    
-    console.log('🧪 Testing image URL:', url);
-    showToast('🧪 Đang test URL...', 'info', 2000);
-    
-    try {
-        // Test 1: HEAD request
-        console.log('🧪 Test 1: HEAD request...');
-        const headResponse = await fetch(url, { method: 'HEAD' });
-        console.log('📊 HEAD response:', {
-            status: headResponse.status,
-            statusText: headResponse.statusText,
-            headers: Object.fromEntries(headResponse.headers.entries())
-        });
-        
-        if (!headResponse.ok) {
-            throw new Error(`HEAD request failed: ${headResponse.status} ${headResponse.statusText}`);
-        }
-        
-        // Test 2: Try to load as image
-        console.log('🧪 Test 2: Image load test...');
-        const testImg = new Image();
-        
-        const imageLoadPromise = new Promise((resolve, reject) => {
-            testImg.onload = () => {
-                console.log('✅ Image loaded successfully:', {
-                    width: testImg.naturalWidth,
-                    height: testImg.naturalHeight,
-                    src: testImg.src
-                });
-                resolve({
-                    width: testImg.naturalWidth,
-                    height: testImg.naturalHeight
-                });
-            };
-            
-            testImg.onerror = () => {
-                console.error('❌ Image failed to load');
-                reject(new Error('Image failed to load'));
-            };
-            
-            // Set timeout for image loading
-            setTimeout(() => {
-                reject(new Error('Image load timeout (10s)'));
-            }, 10000);
-        });
-        
-        testImg.src = url;
-        const imageInfo = await imageLoadPromise;
-        
-        // Success
-        showToast(`✅ URL hợp lệ! Kích thước: ${imageInfo.width}x${imageInfo.height}px`, 'success', 5000);
-        
-        // Auto-update preview
-        handleImageURLChange(url);
-        
-    } catch (error) {
-        console.error('❌ URL test failed:', error);
-        showToast(`❌ URL không hợp lệ: ${error.message}`, 'error', 8000);
-        
-        // Suggest opening in new tab
-        const openInNewTab = confirm(`URL test thất bại: ${error.message}\n\nBạn có muốn mở URL này trong tab mới để kiểm tra thủ công không?`);
-        if (openInNewTab) {
-            window.open(url, '_blank');
-        }
-    }
-}
-
-// Export function for global access
-window.testImageURL = testImageURL;
