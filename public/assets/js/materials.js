@@ -168,28 +168,28 @@ function createMaterialRow(material) {
     const displayName = material.display_name || formatMaterialName(material.item_name);
 
     return `
-        <tr class="hover:bg-gray-50 transition-colors group">
+        <tr class="transition-colors hover:bg-slate-50/80 group">
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
-                    <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center mr-3">
+                    <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100">
                         <svg class="w-5 h-5" viewBox="-10 -66 148 148">
                             <path d="M64-56c35 0 64 29 64 64S99 72 64 72 0 43 0 8s29-64 64-64z" fill="#9333ea"/>
                         </svg>
                     </div>
                     <div>
-                        <div class="text-sm font-medium text-gray-900">${escapeHtml(displayName)}</div>
-                        <div class="text-xs text-gray-500">${escapeHtml(material.item_name)}</div>
+                        <div class="text-sm font-medium text-slate-900">${escapeHtml(displayName)}</div>
+                        <div class="text-xs text-slate-500">${escapeHtml(material.item_name)}</div>
                     </div>
                 </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <code class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">${escapeHtml(material.item_name)}</code>
+                <code class="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">${escapeHtml(material.item_name)}</code>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right">
                 <div class="flex items-center justify-end gap-2">
-                    <span id="price-${escapeHtml(material.item_name)}" class="text-lg font-bold ${isTaxItem ? 'text-amber-600' : 'text-green-600'}">${price}</span>
+                    <span id="price-${escapeHtml(material.item_name)}" class="text-lg font-bold ${isTaxItem ? 'text-amber-600' : 'text-emerald-600'}">${price}</span>
                     <button onclick="quickEditPrice('${escapeHtml(material.item_name)}')" 
-                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" 
+                        class="rounded-lg p-1.5 text-indigo-600 opacity-0 transition-colors hover:bg-indigo-50 group-hover:opacity-100" 
                         title="Sửa giá nhanh">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -199,19 +199,19 @@ function createMaterialRow(material) {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
                 ${productCount > 0 ? `
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <span class="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-sm font-medium text-sky-800 ring-1 ring-sky-200/80">
                         ${productCount} sản phẩm
                     </span>
                 ` : `
-                    <span class="text-sm text-gray-400">Chưa dùng</span>
+                    <span class="text-sm text-slate-400">Chưa dùng</span>
                 `}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">
                 ${updatedAt}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
                 <div class="flex items-center justify-center gap-2">
-                    <button onclick="editMaterial('${escapeHtml(material.item_name)}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa">
+                    <button onclick="editMaterial('${escapeHtml(material.item_name)}')" class="rounded-lg p-2 text-indigo-600 transition-colors hover:bg-indigo-50" title="Sửa">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
                     ${productCount === 0 ? `
@@ -219,7 +219,7 @@ function createMaterialRow(material) {
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     ` : `
-                        <button disabled class="p-2 text-gray-300 cursor-not-allowed rounded-lg" title="Không thể xóa (đang được sử dụng)">
+                        <button disabled class="cursor-not-allowed rounded-lg p-2 text-slate-300" title="Không thể xóa (đang được sử dụng)">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     `}
@@ -295,7 +295,7 @@ function searchMaterials() {
 function showAddMaterialModal() {
     const modal = document.createElement('div');
     modal.id = 'materialModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     // Generate category options
     const categoryOptions = allCategories.map(cat => 
@@ -431,7 +431,7 @@ async function editMaterial(itemName) {
 
     const modal = document.createElement('div');
     modal.id = 'materialModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     const displayName = material.display_name || formatMaterialName(material.item_name);
 
@@ -508,7 +508,7 @@ async function editMaterial(itemName) {
 function confirmDeleteMaterial(itemName, displayName) {
     const modal = document.createElement('div');
     modal.id = 'confirmModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -856,7 +856,7 @@ async function recalculateAllPrices() {
     // Show confirmation dialog
     const modal = document.createElement('div');
     modal.id = 'confirmModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -947,7 +947,7 @@ async function executeRecalculateAllPrices() {
             // Show detailed success message
             const successModal = document.createElement('div');
             successModal.id = 'resultModal';
-            successModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+            successModal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
             successModal.innerHTML = `
                 <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -1033,13 +1033,13 @@ function switchTab(tabName, updateURL = true) {
     // Update tab buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active', 'border-indigo-600', 'text-indigo-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
+        btn.classList.add('border-transparent', 'text-slate-500');
     });
     
     const activeBtn = document.getElementById(`tab-${tabName}`);
     if (activeBtn) {
         activeBtn.classList.add('active', 'border-indigo-600', 'text-indigo-600');
-        activeBtn.classList.remove('border-transparent', 'text-gray-500');
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
     }
     
     // Update tab content
@@ -1218,7 +1218,7 @@ function createCategoryCard(category) {
 function showAddCategoryModal() {
     const modal = document.createElement('div');
     modal.id = 'categoryModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -1316,7 +1316,7 @@ async function editCategory(categoryId) {
 
     const modal = document.createElement('div');
     modal.id = 'categoryModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -1365,7 +1365,7 @@ async function editCategory(categoryId) {
 function confirmDeleteCategory(categoryId, displayName, materialCount) {
     const modal = document.createElement('div');
     modal.id = 'confirmModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">

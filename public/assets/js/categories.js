@@ -9,6 +9,20 @@ const API_URL = (
         : 'https://ctv-api.yendev96.workers.dev'
 );
 
+/** Backdrop modals: Tailwind `hidden` vs `flex` for centering */
+function openModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+}
+function closeModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+}
+
 // State
 let allCategories = [];
 let filteredCategories = [];
@@ -169,12 +183,12 @@ function renderCategories() {
         const canMoveDown = isActive && activeIndex !== -1 && activeIndex < activeOrderedIds.length - 1;
         
         return `
-            <tr class="hover:bg-gray-50 transition-colors">
+            <tr class="transition-colors hover:bg-slate-50/80">
                 <td class="px-6 py-4">
-                    <span class="font-medium text-gray-900">${category.name}</span>
+                    <span class="font-medium text-slate-900">${category.name}</span>
                 </td>
                 <td class="px-6 py-4">
-                    <span class="text-sm text-gray-600">${category.description || '-'}</span>
+                    <span class="text-sm text-slate-600">${category.description || '-'}</span>
                 </td>
                 <td class="px-6 py-4 text-center">
                     ${productCount > 0 ? `
@@ -281,9 +295,9 @@ function updateStats() {
 
 function getStatusBadge(isActive) {
     if (isActive) {
-        return '<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Hoạt động</span>';
+        return '<span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">Hoạt động</span>';
     }
-    return '<span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">Tạm dừng</span>';
+    return '<span class="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200/80">Tạm dừng</span>';
 }
 
 // ============================================
@@ -312,13 +326,12 @@ function filterCategories() {
 }
 
 function updateStatusPresetUI() {
-    const presetButtons = document.querySelectorAll('.status-preset-btn');
-    presetButtons.forEach(button => {
+    const activeCls = ['bg-indigo-600', 'text-white', 'font-semibold', 'shadow-sm', 'shadow-indigo-500/25', 'ring-1', 'ring-indigo-500/30'];
+    const inactiveCls = ['border', 'border-slate-100', 'bg-white', 'text-slate-600', 'font-medium', 'hover:bg-slate-50'];
+    document.querySelectorAll('.status-preset-btn').forEach(button => {
         const isActive = (button.dataset.status || '') === currentStatusFilter;
-        button.classList.toggle('bg-indigo-600', isActive);
-        button.classList.toggle('text-white', isActive);
-        button.classList.toggle('text-gray-600', !isActive);
-        button.classList.toggle('hover:bg-gray-100', !isActive);
+        activeCls.forEach(c => button.classList.toggle(c, isActive));
+        inactiveCls.forEach(c => button.classList.toggle(c, !isActive));
     });
 }
 
@@ -333,7 +346,7 @@ function showAddCategoryModal() {
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryActive').checked = true;
     document.getElementById('categoryFeatured').checked = false;
-    document.getElementById('categoryModal').classList.remove('hidden');
+    openModalOverlay('categoryModal');
 }
 
 function editCategory(id) {
@@ -349,11 +362,11 @@ function editCategory(id) {
     document.getElementById('categoryActive').checked = category.is_active;
     document.getElementById('categoryFeatured').checked = !!category.is_featured;
     
-    document.getElementById('categoryModal').classList.remove('hidden');
+    openModalOverlay('categoryModal');
 }
 
 function closeCategoryModal() {
-    document.getElementById('categoryModal').classList.add('hidden');
+    closeModalOverlay('categoryModal');
     currentCategory = null;
 }
 
