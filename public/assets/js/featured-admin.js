@@ -181,8 +181,8 @@ function createFeaturedProductElement(product, index) {
     const isLast = index === state.featuredProducts.length - 1;
     const totalCount = state.featuredProducts.length;
     
-    div.className = `product-card bg-white border rounded-xl p-4 hover:shadow-md transition-all duration-200 ${
-        isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-gray-200'
+    div.className = `product-card rounded-xl border bg-white p-4 transition-all duration-200 hover:shadow-md ${
+        isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-slate-200'
     }`;
     div.dataset.productId = product.id;
     div.dataset.productIndex = index;
@@ -223,7 +223,7 @@ function createFeaturedProductElement(product, index) {
                 ${totalCount > 1 ? `
                     <!-- Up Button -->
                     <button onclick="moveProductUp(${product.id}, ${index})" 
-                            class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isFirst ? 'invisible' : ''}"
+                            class="reorder-btn rounded-lg p-1.5 text-indigo-500 transition-all duration-150 hover:bg-indigo-50 hover:text-indigo-700 ${isFirst ? 'invisible' : ''}"
                             title="Di chuyển lên"
                             ${isFirst ? 'disabled' : ''}>
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -233,7 +233,7 @@ function createFeaturedProductElement(product, index) {
                     
                     <!-- Down Button -->
                     <button onclick="moveProductDown(${product.id}, ${index})" 
-                            class="reorder-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-all duration-150 ${isLast ? 'invisible' : ''}"
+                            class="reorder-btn rounded-lg p-1.5 text-indigo-500 transition-all duration-150 hover:bg-indigo-50 hover:text-indigo-700 ${isLast ? 'invisible' : ''}"
                             title="Di chuyển xuống"
                             ${isLast ? 'disabled' : ''}>
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -289,8 +289,8 @@ function createAvailableProductElement(product) {
     const div = document.createElement('div');
     const isSelected = state.selectedProducts.includes(product.id);
     
-    div.className = `border rounded-xl p-4 hover:border-admin-primary hover:shadow-md cursor-pointer transition-all duration-200 ${
-        isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-gray-200'
+    div.className = `cursor-pointer rounded-xl border p-4 transition-all duration-200 hover:border-admin-primary hover:shadow-md ${
+        isSelected ? 'border-admin-primary bg-admin-primary/5' : 'border-slate-200'
     }`;
     div.onclick = () => toggleProductSelection(product.id);
     
@@ -329,6 +329,7 @@ function createAvailableProductElement(product) {
 async function openProductModal() {
     const modal = document.getElementById('productModal');
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     
     // Reset selection
     state.selectedProducts = [];
@@ -355,6 +356,7 @@ async function openProductModal() {
 function closeProductModal() {
     const modal = document.getElementById('productModal');
     modal.classList.add('hidden');
+    modal.classList.remove('flex');
     
     // Clear search and reset filters
     document.getElementById('productSearch').value = '';
@@ -437,7 +439,7 @@ function createCategoryTab(categoryId, name, count) {
     button.className = `px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
         isActive 
             ? 'bg-admin-primary text-white shadow-md' 
-            : 'bg-white text-gray-700 hover:text-admin-primary hover:bg-admin-primary/5 border border-gray-200 hover:border-admin-primary/20'
+            : 'border border-slate-200 bg-white text-slate-700 hover:border-admin-primary/20 hover:bg-admin-primary/5 hover:text-admin-primary'
     }`;
     
     button.onclick = () => selectCategory(categoryId);
@@ -1153,6 +1155,7 @@ function handleSelectAllChange() {
 // ============================================
 window.openProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
+window.loadFeaturedData = loadFeaturedData;
 window.addFeaturedProduct = addFeaturedProduct;
 window.removeFeaturedProduct = removeFeaturedProduct;
 window.selectCategory = selectCategory;
