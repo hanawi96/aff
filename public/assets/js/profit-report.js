@@ -51,12 +51,10 @@ function switchChartTab(tab) {
     currentChartTab = tab;
     
     // Update tab buttons
+    const tabActive = 'chart-tab-btn group relative flex-1 px-4 py-3 text-center text-sm font-semibold transition-colors border-b-2 border-indigo-600 bg-white text-indigo-600 sm:px-6 sm:py-4';
+    const tabInactive = 'chart-tab-btn group relative flex-1 px-4 py-3 text-center text-sm font-semibold transition-colors border-b-2 border-transparent text-slate-500 hover:bg-white/80 hover:text-slate-800 sm:px-6 sm:py-4';
     document.querySelectorAll('.chart-tab-btn').forEach(btn => {
-        if (btn.dataset.tab === tab) {
-            btn.className = 'chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-indigo-600 text-indigo-600';
-        } else {
-            btn.className = 'chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
-        }
+        btn.className = btn.dataset.tab === tab ? tabActive : tabInactive;
     });
     
     // Update tab content
@@ -187,12 +185,8 @@ function showLoadingStates() {
 
 // Show chart
 function showChart() {
-    const chartSections = document.querySelectorAll('.bg-white.rounded-lg.border.border-gray-200.overflow-hidden.mb-6');
-    chartSections.forEach(section => {
-        if (section.querySelector('#revenueChart') || section.querySelector('#profitChart') || section.querySelector('#ordersChart')) {
-            section.style.display = 'block';
-        }
-    });
+    const el = document.getElementById('profitMainChartsSection');
+    if (el) el.style.display = 'block';
 }
 
 // Toggle sort column
@@ -367,7 +361,7 @@ let pieChart = null;
 function renderCostBreakdownTable(costs, overview) {
     const tbody = document.getElementById('costBreakdownTable');
     if (!costs || !overview) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">Không có dữ liệu</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Không có dữ liệu</td></tr>';
         return;
     }
 
@@ -603,6 +597,7 @@ function renderTopProductsTable() {
         const rank = index + 1;
         const profitMargin = product.profit_margin || 0;
         const profitColor = profitMargin > 50 ? 'text-emerald-600' : profitMargin > 30 ? 'text-green-600' : 'text-yellow-600';
+        const profitBadgeBg = profitMargin > 50 ? 'bg-emerald-100' : profitMargin > 30 ? 'bg-green-100' : 'bg-yellow-100';
 
         // Medal for top 3
         let rankDisplay = rank;
@@ -705,7 +700,9 @@ async function showProductDetail(productId) {
             document.getElementById('modalRecentOrders').innerHTML = ordersHtml;
 
             // Show modal
-            document.getElementById('productDetailModal').classList.remove('hidden');
+            const modalEl = document.getElementById('productDetailModal');
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('flex');
         } else {
             throw new Error(data.error || 'Failed to load product stats');
         }
@@ -717,7 +714,9 @@ async function showProductDetail(productId) {
 
 // Close product modal
 function closeProductModal() {
-    document.getElementById('productDetailModal').classList.add('hidden');
+    const modalEl = document.getElementById('productDetailModal');
+    modalEl.classList.add('hidden');
+    modalEl.classList.remove('flex');
 }
 
 // Skeleton loading functions - Simplified for better performance

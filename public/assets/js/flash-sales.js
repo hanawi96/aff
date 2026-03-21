@@ -21,6 +21,20 @@ let bulkSelectedProducts = new Set(); // Set of product IDs
 let bulkProductConfigs = new Map(); // productId -> {flashPrice, stockLimit, maxPerCustomer}
 let bulkVisibleProducts = []; // Currently visible/filtered products
 
+/** Backdrop modals: Tailwind `hidden` vs `flex` for centering */
+function openModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+}
+function closeModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadFlashSales();
@@ -331,14 +345,14 @@ function filterByStatus(status) {
     
     // Update button states
     document.querySelectorAll('[id^="filter-"]').forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-        btn.classList.add('border-gray-300', 'text-gray-700');
+        btn.classList.remove('border-indigo-600', 'bg-indigo-600', 'text-white', 'shadow-sm');
+        btn.classList.add('border-slate-100', 'bg-white', 'text-slate-600');
     });
-    
+
     const activeBtn = document.getElementById(`filter-${status}`);
     if (activeBtn) {
-        activeBtn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-        activeBtn.classList.remove('border-gray-300', 'text-gray-700');
+        activeBtn.classList.remove('border-slate-100', 'bg-white', 'text-slate-600');
+        activeBtn.classList.add('border-indigo-600', 'bg-indigo-600', 'text-white', 'shadow-sm');
     }
     
     renderFlashSales();
@@ -386,7 +400,7 @@ function hideLoading() {
 function showToast(message, type = 'success') {
     // Simple toast implementation
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 ${
+    toast.className = `fixed top-4 right-4 z-[200] rounded-lg px-6 py-3 font-medium text-white shadow-lg ${
         type === 'success' ? 'bg-green-500' : 'bg-red-500'
     }`;
     toast.textContent = message;
@@ -424,7 +438,7 @@ function showCreateFlashSaleModal() {
     document.querySelector('#createFlashSaleModal p').textContent = 'Tạo chương trình giảm giá có thời hạn';
     
     // Show modal
-    document.getElementById('createFlashSaleModal').classList.remove('hidden');
+    openModalOverlay('createFlashSaleModal');
     
     // Show step 1
     showStep(1);
@@ -445,7 +459,7 @@ function setTimePreset(hours) {
 }
 
 function closeCreateFlashSaleModal() {
-    document.getElementById('createFlashSaleModal').classList.add('hidden');
+    closeModalOverlay('createFlashSaleModal');
 }
 
 // Step Navigation
@@ -468,7 +482,7 @@ function showStep(step) {
     // Load data for step
     if (step === 2) {
         // Step 2: Hide main modal and open bulk add modal
-        document.getElementById('createFlashSaleModal').classList.add('hidden');
+        closeModalOverlay('createFlashSaleModal');
         
         // In edit mode, wait for products to load first
         if (currentEditingFlashSaleId) {
@@ -654,15 +668,15 @@ function showBulkAddModal() {
     document.getElementById('bulkCategoryFilter').addEventListener('change', renderBulkProductsList);
     
     // Show modal
-    document.getElementById('bulkAddProductsModal').classList.remove('hidden');
+    openModalOverlay('bulkAddProductsModal');
 }
 
 function closeBulkAddModal(returnToMainModal = true) {
-    document.getElementById('bulkAddProductsModal').classList.add('hidden');
+    closeModalOverlay('bulkAddProductsModal');
     
     // When closing bulk modal, optionally show main modal again at Step 1
     if (returnToMainModal) {
-        document.getElementById('createFlashSaleModal').classList.remove('hidden');
+        openModalOverlay('createFlashSaleModal');
         showStep(1);
     }
     
@@ -705,7 +719,7 @@ function showBulkAddModalWithExistingProducts() {
     document.getElementById('bulkCategoryFilter').addEventListener('change', renderBulkProductsList);
     
     // Show modal
-    document.getElementById('bulkAddProductsModal').classList.remove('hidden');
+    openModalOverlay('bulkAddProductsModal');
 }
 
 function renderBulkProductsList() {
@@ -1205,7 +1219,7 @@ async function submitFlashSaleFromBulkModal() {
         await submitFlashSale();
         
         // After successful submit, close bulk modal WITHOUT reopening main modal
-        document.getElementById('bulkAddProductsModal').classList.add('hidden');
+        closeModalOverlay('bulkAddProductsModal');
         bulkSelectedProducts.clear();
         bulkProductConfigs.clear();
         
@@ -1323,7 +1337,7 @@ function showPriceModal(product, currentData = null) {
     document.getElementById('priceError').classList.add('hidden');
     document.getElementById('discountPercentage').textContent = '';
     
-    document.getElementById('priceInputModal').classList.remove('hidden');
+    openModalOverlay('priceInputModal');
     
     // Focus input
     const input = document.getElementById('flashSalePriceInput');
@@ -1331,7 +1345,7 @@ function showPriceModal(product, currentData = null) {
 }
 
 function closePriceModal() {
-    document.getElementById('priceInputModal').classList.add('hidden');
+    closeModalOverlay('priceInputModal');
     
     // If product was not added (no price confirmed), uncheck it
     if (currentPriceProduct && !selectedProducts.has(currentPriceProduct.id)) {
@@ -1697,7 +1711,7 @@ function viewFlashSale(id) {
     loadFlashSaleProducts(id);
     
     // Show modal
-    document.getElementById('viewFlashSaleModal').classList.remove('hidden');
+    openModalOverlay('viewFlashSaleModal');
 }
 
 async function loadFlashSaleProducts(flashSaleId) {
@@ -1755,7 +1769,7 @@ async function loadFlashSaleProducts(flashSaleId) {
 }
 
 function closeViewModal() {
-    document.getElementById('viewFlashSaleModal').classList.add('hidden');
+    closeModalOverlay('viewFlashSaleModal');
 }
 
 function editFlashSale(id) {
@@ -1784,7 +1798,7 @@ function editFlashSale(id) {
     document.querySelector('#createFlashSaleModal p').textContent = 'Chỉnh sửa thông tin chương trình';
     
     // Show Step 1 modal
-    document.getElementById('createFlashSaleModal').classList.remove('hidden');
+    openModalOverlay('createFlashSaleModal');
     showStep(1);
     
     // Load products in background
@@ -1872,11 +1886,11 @@ function deleteFlashSale(id) {
     
     deleteFlashSaleId = id;
     document.getElementById('deleteFlashSaleName').textContent = flashSale.name;
-    document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    openModalOverlay('deleteConfirmModal');
 }
 
 function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    closeModalOverlay('deleteConfirmModal');
     deleteFlashSaleId = null;
 }
 

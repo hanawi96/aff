@@ -14,6 +14,19 @@ let selectedDiscountIds = new Set(); // Track selected discounts for bulk action
 let currentPage = 1;
 const itemsPerPage = 10;
 
+function openModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+}
+function closeModalOverlay(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -715,7 +728,7 @@ function generateUniqueCode(originalCode) {
 }
 
 function closeDiscountModal() {
-    document.getElementById('discountModal').classList.add('hidden');
+    closeModalOverlay('discountModal');
     currentDiscount = null;
 }
 
@@ -827,32 +840,35 @@ let currentStatusFilter = '';
 
 function filterByStatus(status) {
     currentStatusFilter = status;
-    
-    // Update button active states
+
     const buttons = document.querySelectorAll('.status-filter-btn');
+    const inactiveHovers = [
+        'hover:border-emerald-200/80', 'hover:text-emerald-700',
+        'hover:border-slate-300', 'hover:text-slate-800',
+        'hover:border-rose-200/80', 'hover:text-rose-700'
+    ];
+
     buttons.forEach(btn => {
         const btnStatus = btn.id.replace('status-', '');
-        if (btnStatus === status || (status === '' && btnStatus === 'all')) {
-            // Active state
-            btn.classList.remove('border-gray-300', 'text-gray-700', 'hover:border-green-500', 'hover:text-green-600', 'hover:bg-green-50', 'hover:border-gray-500', 'hover:text-gray-600', 'hover:bg-gray-50', 'hover:border-red-500', 'hover:text-red-600', 'hover:bg-red-50');
-            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+        const isActive = btnStatus === status || (status === '' && btnStatus === 'all');
+
+        inactiveHovers.forEach(c => btn.classList.remove(c));
+        btn.classList.remove('border-indigo-600', 'bg-indigo-600', 'text-white', 'shadow-sm', 'border-slate-100', 'bg-white', 'text-slate-600');
+
+        if (isActive) {
+            btn.classList.add('border-indigo-600', 'bg-indigo-600', 'text-white', 'shadow-sm');
         } else {
-            // Inactive state
-            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-            btn.classList.add('border-gray-300', 'text-gray-700');
-            
-            // Add specific hover colors based on button type
+            btn.classList.add('border-slate-100', 'bg-white', 'text-slate-600');
             if (btnStatus === 'active') {
-                btn.classList.add('hover:border-green-500', 'hover:text-green-600', 'hover:bg-green-50');
+                btn.classList.add('hover:border-emerald-200/80', 'hover:text-emerald-700');
             } else if (btnStatus === 'inactive') {
-                btn.classList.add('hover:border-gray-500', 'hover:text-gray-600', 'hover:bg-gray-50');
+                btn.classList.add('hover:border-slate-300', 'hover:text-slate-800');
             } else if (btnStatus === 'expired') {
-                btn.classList.add('hover:border-red-500', 'hover:text-red-600', 'hover:bg-red-50');
+                btn.classList.add('hover:border-rose-200/80', 'hover:text-rose-700');
             }
         }
     });
-    
-    // Apply filter
+
     filterDiscounts();
 }
 
@@ -1280,29 +1296,28 @@ async function bulkDelete() {
 
 function switchTab(tabName) {
     currentTab = tabName;
-    
-    // Update tab buttons
+
     const tabs = ['discounts', 'campaigns', 'usage'];
     tabs.forEach(tab => {
         const button = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
         const content = document.getElementById(`content${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-        
+        if (!button || !content) return;
+
         if (tab === tabName) {
-            button.classList.add('active', 'text-indigo-600', 'border-indigo-600', 'bg-gray-50');
-            button.classList.remove('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+            button.classList.add('active', 'border-b-2', 'border-indigo-600', 'text-indigo-600', 'bg-indigo-50/50');
+            button.classList.remove('border-transparent', 'text-slate-500', 'hover:bg-slate-50/80', 'hover:text-slate-800');
             content.classList.remove('hidden');
         } else {
-            button.classList.remove('active', 'text-indigo-600', 'border-indigo-600', 'bg-gray-50');
-            button.classList.add('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+            button.classList.remove('active', 'border-indigo-600', 'text-indigo-600', 'bg-indigo-50/50');
+            button.classList.add('border-b-2', 'border-transparent', 'text-slate-500', 'hover:bg-slate-50/80', 'hover:text-slate-800');
             content.classList.add('hidden');
         }
     });
-    
-    // Load data if needed
+
     if (tabName === 'usage' && allUsageHistory.length === 0) {
         loadUsageHistory();
     } else if (tabName === 'campaigns') {
-        loadEventDiscounts(); // Load event discounts
+        loadEventDiscounts();
     }
 }
 
@@ -1700,7 +1715,7 @@ async function regenerateQuickCode() {
 async function showQuickDiscountModal() {
     const modal = document.getElementById('quickDiscountModal');
     if (modal) {
-        modal.classList.remove('hidden');
+        openModalOverlay('quickDiscountModal');
         
         // Auto-generate code when opening modal
         const codeInput = document.getElementById('quickCode');
@@ -1746,7 +1761,7 @@ function updateRadioVisuals() {
 function closeQuickDiscountModal() {
     const modal = document.getElementById('quickDiscountModal');
     if (modal) {
-        modal.classList.add('hidden');
+        closeModalOverlay('quickDiscountModal');
         document.getElementById('quickDiscountForm').reset();
     }
 }
@@ -1943,7 +1958,7 @@ function showBulkExtendModal() {
     
     if (modal && countSpan) {
         countSpan.textContent = selectedDiscountIds.size;
-        modal.classList.remove('hidden');
+        openModalOverlay('bulkExtendModal');
         
         // Reset form
         selectedExtendDays = null;
@@ -1961,7 +1976,7 @@ function showBulkExtendModal() {
 function closeBulkExtendModal() {
     const modal = document.getElementById('bulkExtendModal');
     if (modal) {
-        modal.classList.add('hidden');
+        closeModalOverlay('bulkExtendModal');
         selectedExtendDays = null;
     }
 }

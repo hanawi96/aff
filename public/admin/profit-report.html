@@ -25,7 +25,7 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(8px);
             }
 
             to {
@@ -35,21 +35,28 @@
         }
 
         .fade-in {
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.35s ease-out;
         }
 
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out;
         }
 
-        /* Skeleton Loading Animation */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
+        .ctv-page-bg {
+            background-color: #f1f5f9;
+            background-image:
+                radial-gradient(ellipse 120% 80% at 100% -20%, rgba(99, 102, 241, 0.08), transparent 50%),
+                radial-gradient(ellipse 90% 60% at 0% 100%, rgba(14, 165, 233, 0.06), transparent 45%);
         }
 
-        @keyframes loading {
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: profit-skel 1.5s infinite;
+        }
+
+        @keyframes profit-skel {
             0% {
                 background-position: 200% 0;
             }
@@ -133,21 +140,27 @@
 
         .date-mode-tab.active {
             background: white;
-            color: #6366f1;
+            color: #4f46e5;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Period Filter Buttons - CSS-driven styling */
-        .period-btn {
-            background-color: #f3f4f6;
-            color: #374151;
+        /* Period pills — đồng bộ location-report + nút tùy chọn ngày */
+        .period-filter-container .period-btn {
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            background-color: #fff;
+            color: #475569;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
         }
 
-        .period-btn:hover {
-            background-color: #e5e7eb;
+        .period-filter-container .period-btn:hover {
+            border-color: #c7d2fe;
+            background-color: #eef2ff;
+            color: #4338ca;
         }
 
-        /* Active state based on data attribute */
         .period-filter-container[data-active="today"] .period-btn[data-period="today"],
         .period-filter-container[data-active="week"] .period-btn[data-period="week"],
         .period-filter-container[data-active="month"] .period-btn[data-period="month"],
@@ -155,8 +168,10 @@
         .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"],
         .period-filter-container[data-active="year"] .period-btn[data-period="year"],
         .period-filter-container[data-active="custom"] .period-btn[data-period="custom"] {
-            background-color: #6366f1;
-            color: white;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
         }
 
         .period-filter-container[data-active="today"] .period-btn[data-period="today"]:hover,
@@ -166,7 +181,7 @@
         .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"]:hover,
         .period-filter-container[data-active="year"] .period-btn[data-period="year"]:hover,
         .period-filter-container[data-active="custom"] .period-btn[data-period="custom"]:hover {
-            background-color: #4f46e5;
+            filter: brightness(1.05);
         }
     </style>
     <link rel="stylesheet" href="../assets/css/admin.css">
@@ -174,12 +189,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
-<body class="bg-gray-50">
+<body class="ctv-page-bg min-h-screen antialiased">
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
-        <div class="flex flex-col h-full">
+    <aside class="fixed left-0 top-0 z-50 h-full w-64 border-r border-slate-200 bg-white">
+        <div class="flex h-full flex-col">
             <!-- Logo -->
-            <div class="p-6 border-b border-gray-200">
+            <div class="border-b border-slate-200 p-6">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
                         <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,16 +203,16 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
-                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
+                        <h2 class="text-lg font-bold text-slate-900">Admin Panel</h2>
+                        <p class="text-xs text-slate-500">Quản lý hệ thống</p>
                     </div>
                 </div>
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <nav class="flex-1 space-y-1 overflow-y-auto p-4">
                 <a href="ctv.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -206,7 +221,7 @@
                 </a>
 
                 <a href="index.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -215,7 +230,7 @@
                 </a>
 
                 <a href="payments.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -224,7 +239,7 @@
                 </a>
 
                 <a href="products.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -232,32 +247,32 @@
                     <span>Sản phẩm</span>
                 </a>
                 <a href="featured-products.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                     <span>Sản phẩm nổi bật</span>
                 </a>
-                <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                <a href="materials.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                     <span>Nguyên liệu</span>
                 </a>
                 <a href="categories.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                     </svg>
                     <span>Danh mục</span>
                 </a>
                 <a href="discounts.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
                     <span>Mã giảm giá</span>
                 </a>
                 <a href="flash-sales.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -273,7 +288,7 @@
                 </a>
 
                 <a href="location-report.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -282,7 +297,7 @@
                 </a>
 
                 <a href="settings.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -293,7 +308,7 @@
                 </a>
 
                 <a href="customers.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -301,7 +316,7 @@
                     <span>Khách hàng</span>
                 </a>
                 <a href="users.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
+                    class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -310,7 +325,7 @@
                 </a>
             </nav>
             <!-- User Profile -->
-            <div class="mt-auto border-t border-gray-200 p-4">
+            <div class="mt-auto border-t border-slate-200 p-4">
                 <div class="flex items-center gap-3 mb-3">
                     <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
                         AD
@@ -331,231 +346,205 @@
             </aside>
 
     <!-- Main Content -->
-    <div class="ml-64">
-        <!-- Header -->
-        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <div class="ml-64 min-h-screen w-[calc(100%-16rem)] min-w-0 max-w-none">
+        <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 shadow-sm shadow-slate-900/5 backdrop-blur-md">
             <div class="px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <!-- Page Title -->
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900">Thống kê Sản phẩm</h2>
-                        <p class="text-sm text-gray-500">Phân tích chi tiết doanh số và lợi nhuận từng sản phẩm</p>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex items-center space-x-3">
-                        <!-- Time Filter -->
-                        <div class="period-filter-container flex items-center gap-2" data-active="week">
-                            <button onclick="changePeriod('today')" data-period="today"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                Hôm nay
-                            </button>
-                            <button onclick="changePeriod('week')" data-period="week"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                Tuần
-                            </button>
-                            <button onclick="changePeriod('month')" data-period="month"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                Tháng
-                            </button>
-                            <button onclick="changePeriod('quarter')" data-period="quarter"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                3 tháng
-                            </button>
-                            <button onclick="changePeriod('half-year')" data-period="half-year"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                6 tháng
-                            </button>
-                            <button onclick="changePeriod('year')" data-period="year"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                                Năm
-                            </button>
-                            
-                            <!-- Custom Date Picker Button -->
-                            <button onclick="showCustomDatePickerProfit(event)" 
-                                id="customDateBtnProfit"
-                                data-period="custom"
-                                class="period-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span id="customDateLabelProfit">Chọn ngày</span>
-                            </button>
-                        </div>
-                        
-                        <!-- Hidden inputs for custom date -->
-                        <input type="hidden" id="customDateStartProfit" value="">
-                        <input type="hidden" id="customDateEndProfit" value="">
-                        <button onclick="refreshData()"
-                            class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <div class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:py-0 sm:min-h-[4rem]">
+                    <div class="flex items-start gap-3">
+                        <div class="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-indigo-600 text-white shadow-md shadow-emerald-500/25 sm:flex">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 3.75c0-.621.504-1.125 1.125-1.125h2.25C20.496 2.625 21 3.129 21 3.75v16.5c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V3.75z" />
                             </svg>
-                        </button>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">Thống kê Sản phẩm</h2>
+                            <p class="text-sm text-slate-500">Phân tích chi tiết doanh số và lợi nhuận từng sản phẩm</p>
+                        </div>
                     </div>
+                    <button type="button" onclick="refreshData()" title="Làm mới dữ liệu"
+                        class="inline-flex h-10 w-10 shrink-0 items-center justify-center self-start rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 sm:self-center">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7m0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="px-6 lg:px-8 py-8">
+        <main class="w-full min-w-0 px-6 py-8 lg:px-8">
+
+        <div class="relative z-20 mb-6 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-900/5">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Khoảng thời gian</p>
+            <div class="period-filter-container flex flex-wrap gap-2" data-active="week">
+                <button type="button" onclick="changePeriod('today')" data-period="today" class="period-btn px-3 py-2 sm:px-4">Hôm nay</button>
+                <button type="button" onclick="changePeriod('week')" data-period="week" class="period-btn px-3 py-2 sm:px-4">Tuần</button>
+                <button type="button" onclick="changePeriod('month')" data-period="month" class="period-btn px-3 py-2 sm:px-4">Tháng</button>
+                <button type="button" onclick="changePeriod('quarter')" data-period="quarter" class="period-btn px-3 py-2 sm:px-4">3 tháng</button>
+                <button type="button" onclick="changePeriod('half-year')" data-period="half-year" class="period-btn px-3 py-2 sm:px-4">6 tháng</button>
+                <button type="button" onclick="changePeriod('year')" data-period="year" class="period-btn px-3 py-2 sm:px-4">Năm</button>
+                <button type="button" onclick="showCustomDatePickerProfit(event)" id="customDateBtnProfit" data-period="custom"
+                    class="period-btn inline-flex items-center gap-1.5 px-3 py-2 sm:px-4">
+                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span id="customDateLabelProfit">Chọn ngày</span>
+                </button>
+            </div>
+            <input type="hidden" id="customDateStartProfit" value="">
+            <input type="hidden" id="customDateEndProfit" value="">
+        </div>
 
         <!-- Summary Stats - 2 rows x 4 columns -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <!-- Row 1 -->
-            <!-- 1. Total Revenue -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-green-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Doanh thu</span>
-                    <div class="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-                        </svg>
+        <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Doanh thu</span>
+                        <div id="totalRevenue" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0đ</div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" /></svg>
                     </div>
                 </div>
-                <div id="totalRevenue" class="text-xl font-bold text-gray-900">0đ</div>
             </div>
 
-            <!-- 2. Total Costs -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-red-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Chi phí</span>
-                    <div class="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-rose-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Chi phí</span>
+                        <div id="totalAllCosts" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0đ</div>
+                        <div class="mt-1 text-xs text-slate-500"><span id="costBreakdown">TB: 0đ/đơn</span> · <span id="totalCost">Vốn: 0đ</span></div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md shadow-rose-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     </div>
                 </div>
-                <div id="totalAllCosts" class="text-xl font-bold text-gray-900">0đ</div>
-                <div class="text-xs text-gray-400 mt-1"><span id="costBreakdown">TB: 0đ/đơn</span> · <span id="totalCost">Vốn: 0đ</span></div>
             </div>
 
-            <!-- 3. Total Profit -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-emerald-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Lợi nhuận</span>
-                    <div class="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-teal-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Lợi nhuận</span>
+                        <div id="totalProfit" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0đ</div>
+                        <div class="mt-1 text-xs text-slate-500"><span id="avgProfit">TB: 0đ/đơn</span></div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md shadow-teal-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" /></svg>
                     </div>
                 </div>
-                <div id="totalProfit" class="text-xl font-bold text-gray-900">0đ</div>
-                <div class="text-xs text-gray-400 mt-1"><span id="avgProfit">TB: 0đ/đơn</span></div>
             </div>
 
-            <!-- 4. Profit Ratio -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-purple-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tỷ suất</span>
-                    <div class="w-7 h-7 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clip-rule="evenodd" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-violet-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tỷ suất</span>
+                        <div id="profitRatio" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0%</div>
+                        <div class="mt-1 text-xs text-slate-500">lợi nhuận/doanh thu</div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clip-rule="evenodd" /></svg>
                     </div>
                 </div>
-                <div id="profitRatio" class="text-xl font-bold text-gray-900">0%</div>
-                <div class="text-xs text-gray-400 mt-1">lợi nhuận/doanh thu</div>
             </div>
 
-            <!-- Row 2 -->
-            <!-- 5. Total Orders -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-indigo-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Đơn hàng</span>
-                    <div class="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đơn hàng</span>
+                        <div id="totalOrders" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0</div>
+                        <div class="mt-1 text-xs text-slate-500"><span id="avgOrderValue">TB: 0đ/đơn</span></div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" /></svg>
                     </div>
                 </div>
-                <div id="totalOrders" class="text-xl font-bold text-gray-900">0</div>
-                <div class="text-xs text-gray-400 mt-1"><span id="avgOrderValue">TB: 0đ/đơn</span></div>
             </div>
 
-            <!-- 6. Products Sold -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sản phẩm</span>
-                    <div class="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sky-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Sản phẩm</span>
+                        <div id="totalProductsSold" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0</div>
+                        <div class="mt-1 text-xs text-slate-500">sản phẩm đã bán</div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /></svg>
                     </div>
                 </div>
-                <div id="totalProductsSold" class="text-xl font-bold text-gray-900">0</div>
-                <div class="text-xs text-gray-400 mt-1">sản phẩm đã bán</div>
             </div>
 
-            <!-- 7. Unique Customers -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-pink-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Khách hàng</span>
-                    <div class="w-7 h-7 bg-pink-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-pink-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Khách hàng</span>
+                        <div id="uniqueCustomers" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0</div>
+                        <div class="mt-1 text-xs text-slate-500"><span>unique</span> · <span id="avgOrdersPerCustomer" class="font-semibold text-pink-600">0 đơn/KH</span></div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md shadow-pink-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
                     </div>
                 </div>
-                <div id="uniqueCustomers" class="text-xl font-bold text-gray-900">0</div>
-                <div class="text-xs mt-1"><span class="text-gray-400">unique</span> · <span id="avgOrdersPerCustomer" class="text-pink-600 font-semibold">0 đơn/KH</span></div>
             </div>
 
-            <!-- 8. Commission -->
-            <div class="stat-card bg-white rounded-lg border border-gray-200 p-4 hover:border-orange-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hoa hồng</span>
-                    <div class="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
-                        </svg>
+            <div class="stat-card group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/5 transition-shadow hover:shadow-md">
+                <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-500/10 blur-2xl"></div>
+                <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Hoa hồng</span>
+                        <div id="totalCommission" class="mt-2 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">0đ</div>
+                        <div class="mt-1 text-xs text-slate-500"><span id="commissionPercent">0% doanh thu</span></div>
+                    </div>
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/30">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" /></svg>
                     </div>
                 </div>
-                <div id="totalCommission" class="text-xl font-bold text-gray-900">0đ</div>
-                <div class="text-xs text-gray-400 mt-1"><span id="commissionPercent">0% doanh thu</span></div>
             </div>
         </div>
 
         <!-- Charts Section with Tabs -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+        <div id="profitMainChartsSection" class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
             <!-- Tab Navigation -->
-            <div class="border-b border-gray-200">
-                <nav class="flex -mb-px">
-                    <button onclick="switchChartTab('revenue')" 
+            <div class="border-b border-slate-200/80 bg-slate-50/50">
+                <nav class="-mb-px flex">
+                    <button type="button" onclick="switchChartTab('revenue')"
                         data-tab="revenue"
-                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-indigo-600 text-indigo-600">
+                        class="chart-tab-btn group relative flex-1 px-4 py-3 text-center text-sm font-semibold transition-colors border-b-2 border-indigo-600 bg-white text-indigo-600 sm:px-6 sm:py-4">
                         <div class="flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
                             <span>Doanh thu</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">So sánh với kỳ trước</p>
+                        <p class="mt-1 text-xs font-normal text-slate-500">So sánh với kỳ trước</p>
                     </button>
-                    <button onclick="switchChartTab('profit')" 
+                    <button type="button" onclick="switchChartTab('profit')"
                         data-tab="profit"
-                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        class="chart-tab-btn group relative flex-1 px-4 py-3 text-center text-sm font-semibold transition-colors border-b-2 border-transparent text-slate-500 hover:bg-white/80 hover:text-slate-800 sm:px-6 sm:py-4">
                         <div class="flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span>Lợi nhuận</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Phân tích lợi nhuận ròng</p>
+                        <p class="mt-1 text-xs font-normal text-slate-500">Phân tích lợi nhuận ròng</p>
                     </button>
-                    <button onclick="switchChartTab('orders')" 
+                    <button type="button" onclick="switchChartTab('orders')"
                         data-tab="orders"
-                        class="chart-tab-btn flex-1 group relative px-6 py-4 text-sm font-medium text-center transition-all hover:bg-gray-50 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        class="chart-tab-btn group relative flex-1 px-4 py-3 text-center text-sm font-semibold transition-colors border-b-2 border-transparent text-slate-500 hover:bg-white/80 hover:text-slate-800 sm:px-6 sm:py-4">
                         <div class="flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             <span>Đơn hàng</span>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Xu hướng theo thời gian</p>
+                        <p class="mt-1 text-xs font-normal text-slate-500">Xu hướng theo thời gian</p>
                     </button>
                 </nav>
             </div>
@@ -664,27 +653,27 @@
         </div>
 
         <!-- Cost Analysis Section - 2 Separate Boxes -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <!-- Box 1: Cost Breakdown Table -->
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-200">
-                    <h2 class="text-base font-semibold text-gray-900">Chi phí chi tiết</h2>
-                    <p class="text-xs text-gray-500 mt-1">Phân tích từng khoản chi</p>
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                <div class="border-b border-slate-200/80 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">Chi phí chi tiết</h2>
+                    <p class="mt-1 text-xs text-slate-500">Phân tích từng khoản chi</p>
                 </div>
                 <div class="p-5">
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">Loại</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">Số tiền</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">% Chi phí</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">% DT</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">TB/Đơn</th>
+                                <tr class="border-b border-slate-200">
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase text-slate-600">Loại</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">Số tiền</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">% Chi phí</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">% DT</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">TB/Đơn</th>
                                 </tr>
                             </thead>
-                            <tbody id="costBreakdownTable" class="divide-y divide-gray-100">
-                                <tr><td colspan="5" class="px-3 py-8 text-center"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div></td></tr>
+                            <tbody id="costBreakdownTable" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="px-3 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -692,16 +681,16 @@
             </div>
 
             <!-- Box 2: Pie Chart -->
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-200">
-                    <h2 class="text-base font-semibold text-gray-900">Biểu đồ cơ cấu</h2>
-                    <p class="text-xs text-gray-500 mt-1">Chi phí và lợi nhuận</p>
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                <div class="border-b border-slate-200/80 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">Biểu đồ cơ cấu</h2>
+                    <p class="mt-1 text-xs text-slate-500">Chi phí và lợi nhuận</p>
                 </div>
                 <div class="p-5">
-                    <div class="flex items-center justify-center bg-gray-50 rounded-lg p-3" style="min-height: 260px;">
+                    <div class="flex items-center justify-center rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/60" style="min-height: 260px;">
                         <canvas id="costPieChart"></canvas>
                     </div>
-                    <div class="mt-3 text-xs text-gray-500 text-center">
+                    <div class="mt-3 text-center text-xs text-slate-500">
                         💡 "Vật liệu đóng gói" gồm: túi, hộp, dây, thiệp, giấy
                     </div>
                 </div>
@@ -709,20 +698,20 @@
         </div>
 
         <!-- Top Products -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
-            <div class="px-5 py-4 border-b border-gray-200">
-                <h2 class="text-base font-semibold text-gray-900">Sản phẩm bán chạy</h2>
-                <p class="text-xs text-gray-500 mt-1">Xếp hạng theo số lượng đã bán</p>
+        <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+            <div class="border-b border-slate-200/80 px-5 py-4">
+                <h2 class="text-base font-semibold text-slate-900">Sản phẩm bán chạy</h2>
+                <p class="mt-1 text-xs text-slate-500">Xếp hạng theo số lượng đã bán</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-gray-50">
+                    <thead class="bg-slate-50/90">
                         <tr>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 Hạng</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                                 Sản phẩm</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 <button onclick="toggleSort('quantity')" class="flex items-center gap-1 mx-auto hover:text-indigo-600 transition-colors">
                                     <span>Đã bán</span>
                                     <svg id="sort-quantity" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -730,7 +719,7 @@
                                     </svg>
                                 </button>
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 <button onclick="toggleSort('revenue')" class="flex items-center gap-1 mx-auto hover:text-indigo-600 transition-colors">
                                     <span>Tổng giá SP</span>
                                     <svg id="sort-revenue" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -738,7 +727,7 @@
                                     </svg>
                                 </button>
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 <button onclick="toggleSort('cost')" class="flex items-center gap-1 mx-auto hover:text-indigo-600 transition-colors">
                                     <span>Giá vốn</span>
                                     <svg id="sort-cost" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -746,7 +735,7 @@
                                     </svg>
                                 </button>
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 <button onclick="toggleSort('profit')" class="flex items-center gap-1 mx-auto hover:text-indigo-600 transition-colors">
                                     <span>Lãi gộp</span>
                                     <svg id="sort-profit" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -754,7 +743,7 @@
                                     </svg>
                                 </button>
                             </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 <button onclick="toggleSort('margin')" class="flex items-center gap-1 mx-auto hover:text-indigo-600 transition-colors">
                                     <span>Tỷ suất</span>
                                     <svg id="sort-margin" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -763,7 +752,7 @@
                                 </button>
                             </th>
                             <th
-                                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                                 Thao tác</th>
                         </tr>
                     </thead>
@@ -785,10 +774,10 @@
 
         <!-- Product Detail Modal -->
         <div id="productDetailModal"
-            class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            class="fixed inset-0 z-[110] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+            <div class="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20">
                 <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4">
                     <div>
                         <h3 class="text-xl font-bold text-white">Chi tiết Sản phẩm</h3>
                         <p id="modalProductName" class="text-sm text-white/80 mt-1"></p>
@@ -853,9 +842,9 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-                    <button onclick="closeProductModal()"
-                        class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-all">
+                <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+                    <button type="button" onclick="closeProductModal()"
+                        class="rounded-xl border border-slate-200 bg-white px-6 py-2 font-medium text-slate-700 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
                         Đóng
                     </button>
                 </div>
