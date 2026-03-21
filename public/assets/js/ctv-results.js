@@ -1,18 +1,24 @@
 // CTV Results Page - Display orders for a specific CTV
 document.addEventListener('DOMContentLoaded', function () {
     const API_URL = CONFIG.API_URL;
+    const VALID_FILTERS = ['all', 'today', 'week', 'month', '3months', '6months'];
+    const VALID_SORTS = ['newest', 'oldest', 'commission_desc', 'revenue_desc'];
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeFromUrl = urlParams.get('code');
+    const filterFromUrl = urlParams.get('filter');
+    const pageFromUrl = parseInt(urlParams.get('page') || '1', 10);
+    const searchFromUrl = urlParams.get('q');
+    const sortFromUrl = urlParams.get('sort');
     
     // Pagination
-    let currentPage = 1;
+    let currentPage = Number.isFinite(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1;
     const itemsPerPage = 10;
     let allOrders = [];
     let filteredOrders = [];
     let currentReferralCode = '';
-    let currentFilter = 'all';
-
-    // Get code from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const codeFromUrl = urlParams.get('code');
+    let currentFilter = VALID_FILTERS.includes(filterFromUrl) ? filterFromUrl : 'all';
+    let currentSearchQuery = (searchFromUrl || '').trim().toLowerCase();
+    let currentSort = VALID_SORTS.includes(sortFromUrl) ? sortFromUrl : 'newest';
 
     if (!codeFromUrl) {
         // No code provided, redirect to search
@@ -20,10 +26,66 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Search controls
+    const orderSearchInput = document.getElementById('orderSearchInput');
+    const clearOrderSearchBtn = document.getElementById('clearOrderSearchBtn');
+    const orderSortSelect = document.getElementById('orderSortSelect');
+    const refreshDataBtn = document.getElementById('refreshDataBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const lastUpdatedAt = document.getElementById('lastUpdatedAt');
+
+    if (orderSearchInput) {
+        orderSearchInput.value = searchFromUrl || '';
+    }
+    if (orderSortSelect) {
+        orderSortSelect.value = currentSort;
+    }
+    toggleClearSearchButton();
+    if (orderSearchInput) {
+        orderSearchInput.addEventListener('input', function () {
+            currentSearchQuery = this.value.trim().toLowerCase();
+            currentPage = 1;
+            toggleClearSearchButton();
+            applyFilters();
+        });
+    }
+    if (clearOrderSearchBtn) {
+        clearOrderSearchBtn.addEventListener('click', function () {
+            currentSearchQuery = '';
+            if (orderSearchInput) orderSearchInput.value = '';
+            currentPage = 1;
+            toggleClearSearchButton();
+            applyFilters();
+        });
+    }
+    if (orderSortSelect) {
+        orderSortSelect.addEventListener('change', function () {
+            currentSort = this.value || 'newest';
+            currentPage = 1;
+            applyFilters();
+        });
+    }
+    if (refreshDataBtn) {
+        refreshDataBtn.addEventListener('click', function () {
+            loadOrderData(currentReferralCode || codeFromUrl, true);
+        });
+    }
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', function () {
+            exportOrdersAsCSV();
+        });
+    }
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', function () {
+            exportOrdersAsExcel();
+        });
+    }
+
     // Load data immediately
     loadOrderData(codeFromUrl);
 
-    async function loadOrderData(code) {
+    async function loadOrderData(code, preservePaging = false) {
         const isPhone = /^0?\d{9,10}$/.test(code);
         
         try {
@@ -37,8 +99,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.success && result.ctvInfo) {
                 // CTV exists - show info even if no orders
                 allOrders = result.orders || [];
-                filteredOrders = allOrders;
+                if (!preservePaging) {
+                    currentPage = Math.max(1, currentPage);
+                }
+                applyFilters();
                 currentReferralCode = result.referralCode || code;
+                showNormalSections();
+                updateLastUpdatedTime();
 
                 // Display CTV info
                 const ctvInfo = result.ctvInfo || {
@@ -71,8 +138,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Store data
             allOrders = result.orders;
-            filteredOrders = result.orders;
+            if (!preservePaging) {
+                currentPage = Math.max(1, currentPage);
+            }
+            applyFilters();
             currentReferralCode = result.referralCode || code;
+            showNormalSections();
+            updateLastUpdatedTime();
 
             // Display CTV info
             const ctvInfo = result.ctvInfo || {
@@ -95,9 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function showCTVNotFoundError(code, isPhone) {
-        const contentState = document.getElementById('contentState');
-        contentState.classList.remove('hidden');
-        contentState.innerHTML = `
+        hideNormalSections();
+        const errorStateContainer = document.getElementById('errorStateContainer');
+        errorStateContainer.classList.remove('hidden');
+        errorStateContainer.innerHTML = `
             <div class="max-w-2xl mx-auto text-center py-16">
                 <!-- Error Icon -->
                 <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center">
@@ -144,6 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         `;
+        updateURLState();
     }
 
     function displayCTVInfo(ctvInfo) {
@@ -162,6 +236,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayOrders() {
+        const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
         const totalOrders = filteredOrders.length;
         let totalRevenue = 0;
         let totalCommission = 0;
@@ -208,11 +286,280 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         updatePagination();
+        updateURLState();
+    }
+
+    function toggleClearSearchButton() {
+        if (!clearOrderSearchBtn) return;
+        clearOrderSearchBtn.classList.toggle('hidden', !currentSearchQuery);
+    }
+
+    function updateFilterButtonState(filter) {
+        document.getElementById('filterAllTime').classList.toggle('active', filter === 'all');
+        document.getElementById('filterToday').classList.toggle('active', filter === 'today');
+        document.getElementById('filterWeek').classList.toggle('active', filter === 'week');
+        document.getElementById('filterMonth').classList.toggle('active', filter === 'month');
+        document.getElementById('filter3Months').classList.toggle('active', filter === '3months');
+        document.getElementById('filter6Months').classList.toggle('active', filter === '6months');
+        const labels = {
+            all: 'Tất cả thời gian',
+            today: 'Hôm nay',
+            week: 'Tuần này',
+            month: 'Tháng này',
+            '3months': '3 tháng gần đây',
+            '6months': '6 tháng gần đây'
+        };
+        const mobileFilterLabel = document.getElementById('mobileFilterLabel');
+        if (mobileFilterLabel && labels[filter]) {
+            mobileFilterLabel.textContent = labels[filter];
+        }
+    }
+
+    function normalizePhoneForSearch(phoneValue) {
+        return (phoneValue || '').toString().replace(/[^\d]/g, '');
+    }
+
+    function getOrderTimestampValue(order) {
+        const raw = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
+        if (!raw) return 0;
+        if (typeof raw === 'number') return raw < 1e12 ? raw * 1000 : raw;
+        if (/^\d+$/.test(String(raw).trim())) {
+            const num = Number(raw);
+            return num < 1e12 ? num * 1000 : num;
+        }
+        const parsed = new Date(raw).getTime();
+        return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function sortOrders(orders) {
+        const sorted = [...orders];
+        sorted.sort((a, b) => {
+            const aAmount = parseAmount(a.total_amount || a.totalAmount);
+            const bAmount = parseAmount(b.total_amount || b.totalAmount);
+            const aCommission = a.commission || (aAmount * CONFIG.COMMISSION_RATE);
+            const bCommission = b.commission || (bAmount * CONFIG.COMMISSION_RATE);
+            const aTime = getOrderTimestampValue(a);
+            const bTime = getOrderTimestampValue(b);
+
+            switch (currentSort) {
+                case 'oldest':
+                    return aTime - bTime;
+                case 'commission_desc':
+                    return bCommission - aCommission || bTime - aTime;
+                case 'revenue_desc':
+                    return bAmount - aAmount || bTime - aTime;
+                case 'newest':
+                default:
+                    return bTime - aTime;
+            }
+        });
+        return sorted;
+    }
+
+    function applyFilters() {
+        // Calculate date ranges using Vietnam timezone
+        let startDate = null;
+
+        if (currentFilter === 'today') {
+            startDate = getVNStartOfToday();
+        } else if (currentFilter === 'week') {
+            startDate = getVNStartOfWeek();
+        } else if (currentFilter === 'month') {
+            startDate = getVNStartOfMonth();
+        } else if (currentFilter === '3months') {
+            const now = new Date();
+            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const [year, month] = vnDateStr.split('-');
+            const targetMonth = parseInt(month) - 3;
+            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+        } else if (currentFilter === '6months') {
+            const now = new Date();
+            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const [year, month] = vnDateStr.split('-');
+            const targetMonth = parseInt(month) - 6;
+            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
+            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
+            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
+        }
+
+        const queryPhone = normalizePhoneForSearch(currentSearchQuery);
+        const baseFilteredOrders = allOrders.filter(order => {
+            // Time filter
+            if (startDate) {
+                const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
+                const orderDate = new Date(timestamp);
+                if (orderDate < startDate) return false;
+            }
+
+            // Text search filter
+            if (!currentSearchQuery) return true;
+
+            const orderCode = (order.order_id || order.id || order.orderId || '').toString().toLowerCase();
+            const customerName = (order.customer_name || '').toString().toLowerCase();
+            const customerPhoneRaw = (order.customer_phone || '').toString().toLowerCase();
+            const customerPhoneDigits = normalizePhoneForSearch(order.customer_phone);
+
+            return (
+                orderCode.includes(currentSearchQuery) ||
+                customerName.includes(currentSearchQuery) ||
+                customerPhoneRaw.includes(currentSearchQuery) ||
+                (queryPhone && customerPhoneDigits.includes(queryPhone))
+            );
+        });
+
+        filteredOrders = sortOrders(baseFilteredOrders);
+
+        displayOrders();
+    }
+
+    function updateURLState() {
+        const params = new URLSearchParams();
+        params.set('code', currentReferralCode || codeFromUrl);
+        if (currentFilter !== 'all') params.set('filter', currentFilter);
+        if (currentPage > 1) params.set('page', String(currentPage));
+        if (currentSearchQuery) params.set('q', currentSearchQuery);
+        if (currentSort !== 'newest') params.set('sort', currentSort);
+        const nextUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', nextUrl);
+    }
+
+    function updateLastUpdatedTime() {
+        if (!lastUpdatedAt) return;
+        lastUpdatedAt.textContent = new Date().toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    function hideNormalSections() {
+        const ids = ['ctvInfoCard', 'dataActionsSection', 'filtersSection', 'searchSortSection', 'statsSection', 'ordersGrid', 'paginationContainer'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+    }
+
+    function showNormalSections() {
+        const ids = ['ctvInfoCard', 'dataActionsSection', 'filtersSection', 'searchSortSection', 'statsSection', 'ordersGrid'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden');
+        });
+        const errorStateContainer = document.getElementById('errorStateContainer');
+        if (errorStateContainer) {
+            errorStateContainer.classList.add('hidden');
+            errorStateContainer.innerHTML = '';
+        }
+    }
+
+    function getExportRows() {
+        return filteredOrders.map(order => {
+            const amount = parseAmount(order.total_amount || order.totalAmount);
+            const commission = order.commission || (amount * CONFIG.COMMISSION_RATE);
+            const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
+            return {
+                orderId: order.order_id || order.id || order.orderId || '',
+                date: formatDate(timestamp),
+                customerName: order.customer_name || '',
+                customerPhone: order.customer_phone || '',
+                revenue: amount,
+                commission,
+                status: order.status || ''
+            };
+        });
+    }
+
+    function exportOrdersAsCSV() {
+        const rows = getExportRows();
+        if (!rows.length) return;
+
+        const headers = ['Ma don', 'Ngay', 'Khach hang', 'So dien thoai', 'Doanh so', 'Hoa hong', 'Trang thai'];
+        const csvRows = [headers.join(',')];
+
+        rows.forEach(row => {
+            const values = [
+                row.orderId,
+                row.date,
+                row.customerName,
+                row.customerPhone,
+                row.revenue,
+                row.commission,
+                row.status
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+            csvRows.push(values.join(','));
+        });
+
+        const blob = new Blob(["\uFEFF" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const fileName = `ctv-orders-${currentReferralCode || codeFromUrl}.csv`;
+        triggerDownload(blob, fileName);
+    }
+
+    function exportOrdersAsExcel() {
+        const rows = getExportRows();
+        if (!rows.length) return;
+
+        const tableRows = rows.map(row => `
+            <tr>
+                <td>${escapeHtml(row.orderId)}</td>
+                <td>${escapeHtml(row.date)}</td>
+                <td>${escapeHtml(row.customerName)}</td>
+                <td>${escapeHtml(row.customerPhone)}</td>
+                <td>${row.revenue}</td>
+                <td>${row.commission}</td>
+                <td>${escapeHtml(row.status)}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+            <html>
+                <head><meta charset="UTF-8"></head>
+                <body>
+                    <table border="1">
+                        <tr>
+                            <th>Ma don</th>
+                            <th>Ngay</th>
+                            <th>Khach hang</th>
+                            <th>So dien thoai</th>
+                            <th>Doanh so</th>
+                            <th>Hoa hong</th>
+                            <th>Trang thai</th>
+                        </tr>
+                        ${tableRows}
+                    </table>
+                </body>
+            </html>
+        `;
+
+        const blob = new Blob(["\uFEFF" + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const fileName = `ctv-orders-${currentReferralCode || codeFromUrl}.xls`;
+        triggerDownload(blob, fileName);
+    }
+
+    function triggerDownload(blob, fileName) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     function createOrderCard(order) {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer transform hover:-translate-y-1';
+        card.className = 'bg-white rounded-2xl shadow-sm sm:shadow-md sm:hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer';
         
         const amount = parseAmount(order.total_amount || order.totalAmount);
         const commission = order.commission || (amount * CONFIG.COMMISSION_RATE);
@@ -247,8 +594,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     </svg>
                 </div>
 
+                <div class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-100 px-2.5 py-1">
+                    <span class="text-[11px] font-medium text-purple-600">Mã đơn:</span>
+                    <span class="text-xs font-bold text-purple-700">${order.order_id || '#' + orderId}</span>
+                </div>
+
                 <!-- Customer Info -->
-                <div class="bg-gray-50 rounded-xl p-2.5 mb-3 border border-gray-200">
+                <div class="bg-gray-50 rounded-xl p-3 mb-3 border border-gray-200">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
@@ -264,11 +616,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="grid grid-cols-2 gap-2">
                     <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
                         <div class="text-xs text-blue-700 mb-0.5">Tổng tiền</div>
-                        <div class="text-base font-bold text-blue-900">${formatCurrency(amount)}</div>
+                        <div class="text-sm sm:text-base font-bold text-blue-900 break-words">${formatCurrency(amount)}</div>
                     </div>
                     <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 border border-green-200">
                         <div class="text-xs text-green-700 mb-0.5">Hoa hồng</div>
-                        <div class="text-base font-bold text-green-900">${formatCurrency(commission)}</div>
+                        <div class="text-sm sm:text-base font-bold text-green-900 break-words">${formatCurrency(commission)}</div>
                     </div>
                 </div>
             </div>
@@ -440,59 +792,12 @@ document.addEventListener('DOMContentLoaded', function () {
         currentPage = 1;
 
         // Update active state for all filter buttons
-        document.getElementById('filterAllTime').classList.toggle('active', filter === 'all');
-        document.getElementById('filterToday').classList.toggle('active', filter === 'today');
-        document.getElementById('filterWeek').classList.toggle('active', filter === 'week');
-        document.getElementById('filterMonth').classList.toggle('active', filter === 'month');
-        document.getElementById('filter3Months').classList.toggle('active', filter === '3months');
-        document.getElementById('filter6Months').classList.toggle('active', filter === '6months');
+        updateFilterButtonState(filter);
 
-        // Calculate date ranges using Vietnam timezone
-        let startDate = null;
-
-        if (filter === 'today') {
-            // Today: from 00:00:00 VN time
-            startDate = getVNStartOfToday();
-        } else if (filter === 'week') {
-            // This week: from Monday 00:00:00 VN time
-            startDate = getVNStartOfWeek();
-        } else if (filter === 'month') {
-            // This month: from 1st day VN time
-            startDate = getVNStartOfMonth();
-        } else if (filter === '3months') {
-            // Last 3 months from start of month 3 months ago
-            const now = new Date();
-            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
-            const [year, month] = vnDateStr.split('-');
-            const targetMonth = parseInt(month) - 3;
-            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
-            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
-            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
-        } else if (filter === '6months') {
-            // Last 6 months from start of month 6 months ago
-            const now = new Date();
-            const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
-            const [year, month] = vnDateStr.split('-');
-            const targetMonth = parseInt(month) - 6;
-            const targetYear = targetMonth <= 0 ? parseInt(year) - 1 : parseInt(year);
-            const adjustedMonth = targetMonth <= 0 ? targetMonth + 12 : targetMonth;
-            startDate = new Date(`${targetYear}-${String(adjustedMonth).padStart(2, '0')}-01T00:00:00+07:00`);
-        }
-
-        // Apply filter
-        if (startDate) {
-            filteredOrders = allOrders.filter(order => {
-                const timestamp = order.created_at_unix || order.created_at || order.order_date || order.orderDate;
-                const orderDate = new Date(timestamp);
-                return orderDate >= startDate;
-            });
-        } else {
-            // 'all' - show all orders
-            filteredOrders = [...allOrders];
-        }
-
-        displayOrders();
+        applyFilters();
     };
+
+    updateFilterButtonState(currentFilter);
 
     // Order detail modal - Use data from allOrders (already loaded)
     window.showOrderDetail = function (orderId) {
