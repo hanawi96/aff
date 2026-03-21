@@ -229,10 +229,42 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!p.startsWith('0') && p.length === 9) p = '0' + p;
             return p.length >= 4 ? p.slice(0, -4) + '****' : '****';
         };
+        const parseJoinDateValue = (value) => {
+            if (value === null || value === undefined || value === '') return null;
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return new Date(value < 1e12 ? value * 1000 : value);
+            }
+            const str = String(value).trim();
+            if (/^\d+$/.test(str)) {
+                const n = parseInt(str, 10);
+                return new Date(n < 1e12 ? n * 1000 : n);
+            }
+            const d = new Date(value);
+            return Number.isNaN(d.getTime()) ? null : d;
+        };
+
+        const formatJoinDate = (value) => {
+            const d = parseJoinDateValue(value);
+            if (!d) return '-';
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        // Không trộn ?? với || trong cùng biểu thức (SyntaxError); bọc nhóm || trong ngoặc.
+        const joinDateRaw =
+            ctvInfo.created_at_unix ??
+            ctvInfo.createdAtUnix ??
+            (ctvInfo.joinDate ||
+                ctvInfo.join_date ||
+                ctvInfo.registrationDate ||
+                ctvInfo.registration_date ||
+                ctvInfo.createdAt ||
+                ctvInfo.created_at ||
+                null);
 
         document.getElementById('ctvName').textContent = capitalizeName(ctvInfo.name) || 'Cộng tác viên';
         document.getElementById('ctvPhone').textContent = maskPhone(ctvInfo.phone);
         document.getElementById('ctvCode').textContent = currentReferralCode || '-';
+        document.getElementById('ctvJoinDate').textContent = formatJoinDate(joinDateRaw);
     }
 
     function displayOrders() {

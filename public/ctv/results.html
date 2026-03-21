@@ -49,6 +49,13 @@
                             </svg>
                             <span id="ctvCode" class="text-white/90 text-sm font-mono font-bold">-</span>
                         </div>
+                        <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 border border-white/20">
+                            <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="text-white/80">Tham gia:</span>
+                            <span id="ctvJoinDate" class="text-white/95 font-semibold">-</span>
+                        </div>
                     </div>
                 </div>
                 <div class="hidden lg:block w-px h-16 bg-white/20"></div>
@@ -406,6 +413,19 @@
     </div>
 
     <style>
+        /* Enforce minimum text size for readability on mobile */
+        .text-xs,
+        .text-sm,
+        .text-\[10px\],
+        .text-\[11px\],
+        .text-\[12px\],
+        .text-\[13px\],
+        .text-\[14px\],
+        .text-\[15px\] {
+            font-size: 16px !important;
+            line-height: 1.5 !important;
+        }
+
         @keyframes slide-up {
             from {
                 transform: translateY(100%);

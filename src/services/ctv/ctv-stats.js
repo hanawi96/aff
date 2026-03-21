@@ -17,7 +17,8 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
                 phone,
                 city,
                 referral_code,
-                custom_slug
+                custom_slug,
+                created_at_unix
             FROM ctv
             WHERE UPPER(TRIM(referral_code)) = ?
         `).bind(normalizedCode).first();
@@ -38,7 +39,8 @@ export async function getCTVOrdersOptimized(referralCode, env, corsHeaders) {
         const ctvInfo = {
             name: ctv.full_name || 'CTV ' + referralCode,
             phone: ctv.phone || '****',
-            address: ctv.city || 'Chưa cập nhật'
+            address: ctv.city || 'Chưa cập nhật',
+            created_at_unix: ctv.created_at_unix ?? null
         };
 
         return jsonResponse({ 
@@ -73,7 +75,8 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
                 phone,
                 city,
                 referral_code,
-                custom_slug
+                custom_slug,
+                created_at_unix
             FROM ctv
             WHERE TRIM(phone) = ? OR TRIM(phone) = ? OR TRIM(phone) = ?
         `).bind(normalizedPhone, phoneWithout0, cleanPhone).first();
@@ -93,7 +96,8 @@ export async function getCTVOrdersByPhoneOptimized(phone, env, corsHeaders) {
         const ctvInfo = {
             name: ctv.full_name || 'Cộng tác viên',
             phone: ctv.phone || phone,
-            address: ctv.city || 'Chưa cập nhật'
+            address: ctv.city || 'Chưa cập nhật',
+            created_at_unix: ctv.created_at_unix ?? null
         };
 
         return jsonResponse({
