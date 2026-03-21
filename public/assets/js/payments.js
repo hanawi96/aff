@@ -272,7 +272,7 @@ function showPaymentModal(ctv, orders, totalCommission) {
     
     const modal = document.createElement('div');
     modal.id = 'paymentModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm';
     
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
@@ -629,10 +629,10 @@ function switchTab(tab) {
     const historyContent = document.getElementById('historyContent');
     
     if (tab === 'unpaid') {
-        tabUnpaid.classList.add('active', 'border-green-600', 'text-green-600', 'bg-green-50');
-        tabUnpaid.classList.remove('border-transparent', 'text-gray-500');
-        tabHistory.classList.remove('active', 'border-green-600', 'text-green-600', 'bg-green-50');
-        tabHistory.classList.add('border-transparent', 'text-gray-500');
+        tabUnpaid.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+        tabUnpaid.classList.remove('border-transparent', 'text-slate-500');
+        tabHistory.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+        tabHistory.classList.add('border-transparent', 'text-slate-500');
         
         unpaidContent.classList.remove('hidden');
         historyContent.classList.add('hidden');
@@ -646,10 +646,10 @@ function switchTab(tab) {
         };
         updateSummary(summary);
     } else {
-        tabHistory.classList.add('active', 'border-green-600', 'text-green-600', 'bg-green-50');
-        tabHistory.classList.remove('border-transparent', 'text-gray-500');
-        tabUnpaid.classList.remove('active', 'border-green-600', 'text-green-600', 'bg-green-50');
-        tabUnpaid.classList.add('border-transparent', 'text-gray-500');
+        tabHistory.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+        tabHistory.classList.remove('border-transparent', 'text-slate-500');
+        tabUnpaid.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+        tabUnpaid.classList.add('border-transparent', 'text-slate-500');
         
         historyContent.classList.remove('hidden');
         unpaidContent.classList.add('hidden');
