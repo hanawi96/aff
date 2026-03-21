@@ -371,7 +371,12 @@ function restoreState(state) {
 
 // Update breadcrumb UI
 function updateBreadcrumb() {
+    const breadcrumbRoot = document.getElementById('breadcrumb');
     if (currentLevel === 'province') {
+        if (breadcrumbRoot) {
+            breadcrumbRoot.classList.add('hidden');
+            breadcrumbRoot.classList.remove('flex');
+        }
         document.getElementById('breadcrumbArrow1').classList.add('hidden');
         document.getElementById('breadcrumbDistrict').classList.add('hidden');
         document.getElementById('breadcrumbArrow2').classList.add('hidden');
@@ -381,6 +386,10 @@ function updateBreadcrumb() {
         document.getElementById('tableSubtitle').textContent = 'Click vào tỉnh để xem chi tiết quận/huyện';
         document.getElementById('locationColumnName').textContent = 'Tỉnh/Thành phố';
     } else if (currentLevel === 'district') {
+        if (breadcrumbRoot) {
+            breadcrumbRoot.classList.remove('hidden');
+            breadcrumbRoot.classList.add('flex');
+        }
         document.getElementById('breadcrumbArrow1').classList.remove('hidden');
         document.getElementById('breadcrumbDistrict').classList.remove('hidden');
         document.getElementById('breadcrumbDistrict').textContent = currentProvinceName;
@@ -391,6 +400,10 @@ function updateBreadcrumb() {
         document.getElementById('tableSubtitle').textContent = 'Click vào quận để xem chi tiết phường/xã';
         document.getElementById('locationColumnName').textContent = 'Quận/Huyện';
     } else if (currentLevel === 'ward') {
+        if (breadcrumbRoot) {
+            breadcrumbRoot.classList.remove('hidden');
+            breadcrumbRoot.classList.add('flex');
+        }
         document.getElementById('breadcrumbArrow1').classList.remove('hidden');
         document.getElementById('breadcrumbDistrict').classList.remove('hidden');
         document.getElementById('breadcrumbDistrict').textContent = currentProvinceName;
@@ -401,6 +414,15 @@ function updateBreadcrumb() {
         document.getElementById('tableTitle').textContent = `Danh sách Phường/Xã - ${currentDistrictName}`;
         document.getElementById('tableSubtitle').textContent = 'Chi tiết theo phường/xã';
         document.getElementById('locationColumnName').textContent = 'Phường/Xã';
+    }
+}
+
+/** Breadcrumb: tên tỉnh — ở cấp phường thì về danh sách quận; ở cấp quận thì về danh sách tỉnh */
+function handleBreadcrumbProvinceClick() {
+    if (currentLevel === 'ward') {
+        goToLevel('district');
+    } else {
+        goToLevel('province');
     }
 }
 
@@ -604,9 +626,9 @@ function renderInsights() {
     const content = document.getElementById('insightsContent');
     
     if (insights.length > 0) {
-        content.innerHTML = insights.map(insight => 
+        content.innerHTML = insights.map(insight =>
             `<div class="flex items-start gap-2">
-                <span class="text-white/80">•</span>
+                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white/70"></span>
                 <span>${insight}</span>
             </div>`
         ).join('');
@@ -664,11 +686,11 @@ function showChange(elementId, current, previous) {
     const isNegative = growth < 0;
     
     if (Math.abs(growth) < 0.1) {
-        element.innerHTML = '<span class="text-gray-400">~</span>';
+        element.innerHTML = '<span class="text-slate-400">~</span>';
         return;
     }
     
-    const color = isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : 'text-gray-400';
+    const color = isPositive ? 'text-emerald-600' : isNegative ? 'text-rose-600' : 'text-slate-400';
     const arrow = isPositive ? '↑' : isNegative ? '↓' : '';
     element.innerHTML = `<span class="${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
 }
@@ -679,12 +701,12 @@ function renderLocationTable() {
     
     if (allLocationData.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="9" class="px-6 py-12 text-center">
-                <div class="flex flex-col items-center">
-                    <div class="text-6xl mb-4">📍</div>
-                    <p class="text-gray-500 text-lg">Chưa có dữ liệu</p>
-                    <p class="text-gray-400 text-sm mt-2">Thử chọn khoảng thời gian khác</p>
+            <tr><td colspan="9" class="px-6 py-16 text-center">
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">
+                    <svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-9 12.75-9 12.75S1.5 17.625 1.5 10.5a9 9 0 1118 0z" /></svg>
                 </div>
+                <p class="text-base font-semibold text-slate-800">Chưa có dữ liệu</p>
+                <p class="mt-2 text-sm text-slate-500">Thử chọn khoảng thời gian khác</p>
             </td></tr>
         `;
         return;
@@ -726,59 +748,59 @@ function renderLocationTable() {
              `onclick="drillDownToWard('${location.id}', '${escapeHtml(location.name)}')"`) : '';
 
         // Growth badge
-        let growthBadge = '<span class="text-gray-400 text-xs">-</span>';
+        let growthBadge = '<span class="text-xs text-slate-400">-</span>';
         if (Math.abs(growth) > 0.1) {
             const isPositive = growth > 0;
-            const color = isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+            const color = isPositive ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-800 ring-1 ring-rose-100';
             const arrow = isPositive ? '↑' : '↓';
-            growthBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
+            growthBadge = `<span class="inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
         }
 
         return `
-            <tr class="hover:bg-gray-50 transition-colors ${canDrillDown ? 'cursor-pointer' : ''}" ${drillDownAction}>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-2xl font-bold text-gray-900">${rankDisplay}</div>
+            <tr class="group transition-colors hover:bg-slate-50/90 ${canDrillDown ? 'cursor-pointer' : ''}" ${drillDownAction}>
+                <td class="whitespace-nowrap px-5 py-4 text-center">
+                    <div class="text-xl font-bold tabular-nums text-slate-900 sm:text-2xl">${rankDisplay}</div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-5 py-4">
                     <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">
+                        <div class="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-sm shadow-indigo-500/25">
                             ${location.name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">${escapeHtml(location.name)}</div>
-                            <div class="text-xs text-gray-500">${location.orders || 0} đơn hàng</div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-slate-900">${escapeHtml(location.name)}</div>
+                            <div class="text-xs text-slate-500">${location.orders || 0} đơn hàng</div>
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-sm font-bold text-gray-900">${formatNumber(location.orders || 0)}</div>
+                <td class="whitespace-nowrap px-5 py-4 text-center">
+                    <div class="text-sm font-bold tabular-nums text-slate-900">${formatNumber(location.orders || 0)}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-sm font-bold text-green-600">${formatCurrency(location.revenue || 0)}</div>
+                <td class="whitespace-nowrap px-5 py-4 text-center">
+                    <div class="text-sm font-bold tabular-nums text-emerald-700">${formatCurrency(location.revenue || 0)}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-sm font-medium text-purple-600">${formatNumber(location.customers || 0)}</div>
+                <td class="whitespace-nowrap px-5 py-4 text-center">
+                    <div class="text-sm font-semibold tabular-nums text-violet-700">${formatNumber(location.customers || 0)}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-sm font-medium text-orange-600">${formatCurrency(location.avgValue || 0)}</div>
+                <td class="whitespace-nowrap px-5 py-4 text-center">
+                    <div class="text-sm font-semibold tabular-nums text-amber-700">${formatCurrency(location.avgValue || 0)}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
+                <td class="whitespace-nowrap px-5 py-4 text-center">
                     <div class="flex justify-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${revenuePercent > 10 ? 'bg-green-100 text-green-800' : revenuePercent > 5 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                        <span class="inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-semibold ring-1 ${revenuePercent > 10 ? 'bg-emerald-50 text-emerald-800 ring-emerald-100' : revenuePercent > 5 ? 'bg-sky-50 text-sky-800 ring-sky-100' : 'bg-slate-100 text-slate-700 ring-slate-200/80'}">
                             ${revenuePercent.toFixed(1)}%
                         </span>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
+                <td class="whitespace-nowrap px-5 py-4 text-center">
                     ${growthBadge}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
+                <td class="whitespace-nowrap px-5 py-4 text-center">
                     ${canDrillDown ? `
-                        <button class="text-indigo-600 hover:text-indigo-900 font-medium text-sm flex items-center gap-1 mx-auto">
+                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 group-hover:text-violet-700">
                             Xem chi tiết
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-                    ` : '<span class="text-gray-400 text-xs">-</span>'}
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </span>
+                    ` : '<span class="text-xs text-slate-400">-</span>'}
                 </td>
             </tr>
         `;
@@ -977,11 +999,9 @@ function filterTable() {
 function showSkeletonLoading() {
     const tbody = document.getElementById('locationTableBody');
     tbody.innerHTML = `
-        <tr><td colspan="9" class="px-6 py-12 text-center">
-            <div class="flex flex-col items-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-                <p class="text-gray-500">Đang tải dữ liệu...</p>
-            </div>
+        <tr><td colspan="9" class="px-6 py-14 text-center">
+            <div class="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></div>
+            <p class="text-sm text-slate-500">Đang tải dữ liệu...</p>
         </td></tr>
     `;
 }
