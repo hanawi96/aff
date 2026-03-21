@@ -24,8 +24,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const isPhone = /^0?\d{9,10}$/.test(input);
             const code = isPhone ? input : input.toUpperCase();
             
-            // Always redirect to results page - let it handle empty state
-            window.location.href = `results.html?code=${encodeURIComponent(code)}`;
+            // Replace current history entry so browser Back from results returns to
+            // the page before search (e.g. trang chủ /ctv/) instead of search.html
+            window.location.replace(`results.html?code=${encodeURIComponent(code)}`);
         } catch (error) {
             setButtonLoading(false);
             showError('Có lỗi xảy ra khi kiểm tra dữ liệu. Vui lòng thử lại.');
