@@ -18,91 +18,109 @@
             }
         }
     </script>
+    <style>
+        .ctv-page-bg {
+            background-color: #f1f5f9;
+            background-image:
+                radial-gradient(ellipse 120% 80% at 100% -20%, rgba(99, 102, 241, 0.08), transparent 50%),
+                radial-gradient(ellipse 90% 60% at 0% 100%, rgba(16, 185, 129, 0.06), transparent 45%);
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: ctv-skel 1.5s infinite;
+        }
+        @keyframes ctv-skel {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="ctv-page-bg min-h-screen antialiased">
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
-        <div class="flex flex-col h-full">
-            <div class="p-6 border-b border-gray-200">
+    <aside class="fixed left-0 top-0 z-50 h-full w-64 border-r border-slate-200 bg-white">
+        <div class="flex h-full flex-col">
+            <div class="border-b border-slate-200 p-6">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
+                        <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
-                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
+                        <h2 class="text-lg font-bold text-slate-900">Admin Panel</h2>
+                        <p class="text-xs text-slate-500">Quản lý hệ thống</p>
                     </div>
                 </div>
             </div>
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-                <a href="ctv.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <nav class="flex-1 space-y-1 overflow-y-auto p-4">
+                <a href="ctv.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                     <span>Danh sách CTV</span>
                 </a>
-                <a href="index.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                <a href="index.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                     <span>Đơn hàng</span>
                 </a>
-                <a href="payments.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <a href="payments.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                     <span>Thanh toán CTV</span>
                 </a>
-                <a href="products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                <a href="products.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                     <span>Sản phẩm</span>
                 </a>
-                <a href="featured-products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                <a href="featured-products.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
                     <span>Sản phẩm nổi bật</span>
                 </a>
-                <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                <a href="materials.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                     <span>Nguyên liệu</span>
                 </a>
-                <a href="categories.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                <a href="categories.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
                     <span>Danh mục</span>
                 </a>
-                <a href="discounts.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                <a href="discounts.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                     <span>Mã giảm giá</span>
                 </a>
-                <a href="flash-sales.html"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                <a href="flash-sales.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     <span>Flash Sale</span>
                 </a>
-                <a href="profit-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                <a href="profit-report.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                     <span>Thống kê</span>
                 </a>
-                <a href="location-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <a href="location-report.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     <span>Địa lý</span>
                 </a>
-                <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <a href="settings.html" class="flex items-center space-x-3 rounded-xl bg-indigo-50 px-4 py-3 font-medium text-indigo-600 transition-all">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     <span>Cài đặt</span>
                 </a>
-                <a href="customers.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <a href="customers.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                     <span>Khách hàng</span>
                 </a>
+                <a href="users.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <span>Quản lý Admin</span>
+                </a>
             </nav>
-            <div class="mt-auto border-t border-gray-200 p-4">
-                <div class="flex items-center gap-3 mb-3">
-                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">AD</div>
-                    <div class="flex-1 min-w-0">
-                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
-                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
+            <div class="mt-auto border-t border-slate-200 p-4">
+                <div class="mb-3 flex items-center gap-3">
+                    <div id="userAvatar" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white shadow-lg">AD</div>
+                    <div class="min-w-0 flex-1">
+                        <p id="userFullName" class="truncate text-sm font-semibold text-slate-900">Administrator</p>
+                        <p id="userUsername" class="truncate text-xs text-slate-500">admin</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                <button type="button" onclick="logout()" class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-all hover:bg-red-100">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     <span>Đăng xuất</span>
                 </button>
             </div>
@@ -110,56 +128,69 @@
     </aside>
 
     <!-- Main Content -->
-    <div class="ml-64">
-        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-            <div class="px-8 py-6">
-                <h1 class="text-2xl font-bold text-gray-900">Cài đặt hệ thống</h1>
-                <p class="text-sm text-gray-600 mt-1">Quản lý phí vận chuyển, thuế và bảo mật</p>
+    <div class="ml-64 min-h-screen w-[calc(100%-16rem)] min-w-0 max-w-none">
+        <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 shadow-sm shadow-slate-900/5 backdrop-blur-md">
+            <div class="px-6 lg:px-8">
+                <div class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:py-5">
+                    <div class="flex items-start gap-3">
+                        <div class="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/25 sm:flex">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Cài đặt hệ thống</h1>
+                            <p class="mt-0.5 text-sm text-slate-500">Phí vận chuyển, thuế và bảo mật tài khoản</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <main class="p-8">
-            <div class="max-w-5xl mx-auto space-y-6">
-
+        <main class="w-full min-w-0 px-6 py-8 lg:px-8">
+            <div class="grid w-full items-stretch gap-6 xl:grid-cols-2">
                 <!-- Shipping Fees Card -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-5 border-b border-gray-200">
+                <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                    <div class="shrink-0 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/80 px-6 py-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                <svg class="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
+                                <svg class="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 8.25v-8.25M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                </svg>
                             </div>
                             <div>
-                                <h2 class="text-xl font-bold text-gray-900">Phí vận chuyển</h2>
-                                <p class="text-sm text-gray-600">Cấu hình phí ship khách trả và chi phí thực tế</p>
+                                <h2 class="text-lg font-bold text-slate-900">Phí vận chuyển</h2>
+                                <p class="text-sm text-slate-600">Phí khách trả và chi phí thực tế cho đơn vị vận chuyển</p>
                             </div>
                         </div>
                     </div>
-                    <form id="shippingForm" class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form id="shippingForm" class="flex min-h-0 flex-1 flex-col p-6">
+                        <div class="grid shrink-0 grid-cols-1 gap-6 md:grid-cols-2">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-900 mb-2">Phí ship khách trả</label>
+                                <label class="mb-2 block text-sm font-semibold text-slate-800">Phí ship khách trả</label>
                                 <div class="relative">
                                     <input type="number" id="customer_shipping_fee" min="0" step="1000" required
-                                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg font-semibold"
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-3 pl-4 pr-12 text-lg font-semibold text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                                         placeholder="30000">
-                                    <span class="absolute right-4 top-3.5 text-gray-500 font-semibold">đ</span>
+                                    <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-slate-500">đ</span>
                                 </div>
-                                <p class="text-xs text-gray-600 mt-2">Số tiền khách hàng phải trả (tính vào doanh thu)</p>
+                                <p class="mt-2 text-xs text-slate-500">Số tiền khách trả (tính vào doanh thu)</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-900 mb-2">Chi phí ship thực tế</label>
+                                <label class="mb-2 block text-sm font-semibold text-slate-800">Chi phí ship thực tế</label>
                                 <div class="relative">
                                     <input type="number" id="default_shipping_cost" min="0" step="1000" required
-                                        class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg font-semibold"
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-3 pl-4 pr-12 text-lg font-semibold text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                                         placeholder="25000">
-                                    <span class="absolute right-4 top-3.5 text-gray-500 font-semibold">đ</span>
+                                    <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-slate-500">đ</span>
                                 </div>
-                                <p class="text-xs text-gray-600 mt-2">Chi phí thực tế trả cho đơn vị vận chuyển</p>
+                                <p class="mt-2 text-xs text-slate-500">Chi phí thực tế trả cho đơn vị vận chuyển</p>
                             </div>
                         </div>
-                        <div class="mt-6 flex gap-3">
-                            <button type="submit" class="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-green-500/30 flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <div class="mt-auto shrink-0 border-t border-slate-100 pt-6">
+                            <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 font-semibold text-white shadow-md shadow-emerald-500/25 transition-all hover:shadow-lg hover:shadow-emerald-500/30">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                                 <span>Lưu cài đặt</span>
                             </button>
                         </div>
@@ -167,40 +198,52 @@
                 </div>
 
                 <!-- Tax Settings Card -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-5 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
+                <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                    <div class="shrink-0 border-b border-slate-100 bg-gradient-to-r from-amber-50/90 to-orange-50/80 px-6 py-5">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <svg class="w-7 h-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-amber-100">
+                                    <svg class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.537 12.088 11.868 12 11 12c-.868 0-1.798.122-2.606.365M18 10a6 6 0 10-12 0v6a6 6 0 006 6h6" />
+                                    </svg>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold text-gray-900">Thuế</h2>
-                                    <p class="text-sm text-gray-600">Quản lý tỷ lệ thuế áp dụng cho đơn hàng</p>
+                                    <h2 class="text-lg font-bold text-slate-900">Thuế</h2>
+                                    <p class="text-sm text-slate-600">Tỷ lệ thuế áp dụng cho đơn hàng mới</p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <div id="currentTaxRate" class="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">-</div>
-                                <p class="text-xs text-gray-500 mt-0.5">Trên tổng doanh thu</p>
+                            <div class="text-left sm:text-right">
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Hiện tại</p>
+                                <div id="currentTaxRateSkeleton" class="skeleton mt-2 inline-block h-9 w-24 rounded-lg"></div>
+                                <div id="currentTaxRate" class="hidden text-3xl font-bold tabular-nums tracking-tight text-transparent bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text">-</div>
+                                <p class="mt-0.5 text-xs text-slate-500">Trên tổng doanh thu</p>
                             </div>
                         </div>
                     </div>
-                    <div class="p-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-900 mb-3">Cập nhật tỷ lệ thuế mới</label>
-                            <div class="flex gap-3">
-                                <div class="flex-1">
+                    <div class="flex min-h-0 flex-1 flex-col p-6">
+                        <div class="shrink-0 space-y-4">
+                            <div id="taxExampleSkeleton" class="skeleton h-12 w-full rounded-xl"></div>
+                            <div id="taxExample" class="hidden flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3 text-sm text-amber-900"></div>
+                        </div>
+
+                        <!-- Chiếm phần giữa để khối cập nhật nằm sát đáy, thẳng hàng với nút Lưu bên Phí vận chuyển -->
+                        <div class="min-h-0 flex-1" aria-hidden="true"></div>
+
+                        <div class="shrink-0 border-t border-slate-100 pt-6">
+                            <label class="mb-3 block text-sm font-semibold text-slate-800">Cập nhật tỷ lệ thuế mới</label>
+                            <div class="flex flex-col gap-3 sm:flex-row">
+                                <div class="min-w-0 flex-1">
                                     <div class="relative">
                                         <input type="number" id="newTaxRate" min="0" max="100" step="0.1"
-                                            class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl text-lg font-semibold focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                            class="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-3 pl-4 pr-12 text-lg font-semibold text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                                             placeholder="1.5">
-                                        <span class="absolute right-4 top-3.5 text-gray-500 font-bold">%</span>
+                                        <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-500">%</span>
                                     </div>
-                                    <p class="text-xs text-gray-600 mt-2">Nhập tỷ lệ % (ví dụ: 1.5 cho 1.5%)</p>
+                                    <p class="mt-2 text-xs text-slate-500">Nhập % (ví dụ 1.5 cho 1,5%)</p>
                                 </div>
                                 <button type="button" onclick="updateTaxRate()"
-                                    class="px-6 h-[52px] bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-amber-500/30 flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    class="inline-flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 font-semibold text-white shadow-md shadow-amber-500/25 transition-all hover:shadow-lg hover:shadow-amber-500/30 sm:self-end">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7m0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                                     <span>Cập nhật</span>
                                 </button>
                             </div>
@@ -208,43 +251,47 @@
                     </div>
                 </div>
 
-                <!-- Change Password Card -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-red-50 to-pink-50 px-6 py-5 border-b border-gray-200">
+                <!-- Change Password Card — full width -->
+                <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 xl:col-span-2">
+                    <div class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/40 px-6 py-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                <svg class="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+                                <svg class="h-7 w-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                </svg>
                             </div>
                             <div>
-                                <h2 class="text-xl font-bold text-gray-900">Đổi mật khẩu</h2>
-                                <p class="text-sm text-gray-600">Cập nhật mật khẩu đăng nhập của bạn</p>
+                                <h2 class="text-lg font-bold text-slate-900">Đổi mật khẩu</h2>
+                                <p class="text-sm text-slate-600">Bảo vệ tài khoản quản trị</p>
                             </div>
                         </div>
                     </div>
-                    <form id="changePasswordForm" class="p-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-900 mb-2">Mật khẩu hiện tại</label>
-                            <input type="password" id="currentPassword" required
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                placeholder="Nhập mật khẩu hiện tại">
+                    <form id="changePasswordForm" class="grid gap-6 p-6 md:grid-cols-3">
+                        <div class="md:col-span-1">
+                            <label class="mb-2 block text-sm font-semibold text-slate-800">Mật khẩu hiện tại</label>
+                            <input type="password" id="currentPassword" required autocomplete="current-password"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                placeholder="••••••••">
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-900 mb-2">Mật khẩu mới</label>
-                            <input type="password" id="newPassword" required minlength="6"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        <div class="md:col-span-1">
+                            <label class="mb-2 block text-sm font-semibold text-slate-800">Mật khẩu mới</label>
+                            <input type="password" id="newPassword" required minlength="6" autocomplete="new-password"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 placeholder="Ít nhất 6 ký tự">
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-900 mb-2">Xác nhận mật khẩu mới</label>
-                            <input type="password" id="confirmPassword" required minlength="6"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                placeholder="Nhập lại mật khẩu mới">
+                        <div class="md:col-span-1">
+                            <label class="mb-2 block text-sm font-semibold text-slate-800">Xác nhận mật khẩu</label>
+                            <input type="password" id="confirmPassword" required minlength="6" autocomplete="new-password"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50/30 px-4 py-3 text-slate-900 transition-shadow placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                placeholder="Nhập lại mật khẩu">
                         </div>
-                        <button type="submit"
-                            class="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-red-500/30 flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            <span>Đổi mật khẩu</span>
-                        </button>
+                        <div class="md:col-span-3">
+                            <button type="submit" id="changePasswordBtn"
+                                class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 font-semibold text-white shadow-md shadow-indigo-500/25 transition-all hover:shadow-lg hover:shadow-indigo-500/30 md:w-auto md:min-w-[200px]">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span>Đổi mật khẩu</span>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

@@ -17,7 +17,7 @@ function setupEventListeners() {
     if (shippingForm) {
         shippingForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            saveShippingConfig();
+            saveShippingConfig(e);
         });
     }
 
@@ -264,11 +264,13 @@ async function savePackagingConfig() {
 }
 
 // Save shipping config (for shippingForm)
-async function saveShippingConfig() {
+async function saveShippingConfig(submitEvent) {
     try {
-        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const formEl = submitEvent && submitEvent.target ? submitEvent.target : document.getElementById('shippingForm');
+        const submitBtn = formEl && formEl.querySelector ? formEl.querySelector('button[type="submit"]') : null;
         const originalHTML = submitBtn.innerHTML;
         
+        if (!submitBtn) throw new Error('Không tìm thấy nút gửi form');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang lưu...</span>';
 
@@ -328,10 +330,11 @@ async function saveShippingConfig() {
         console.error('❌ Error saving shipping config:', error);
         showToast('❌ Không thể lưu cài đặt: ' + error.message, 'error');
         
-        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const formEl = submitEvent && submitEvent.target ? submitEvent.target : document.getElementById('shippingForm');
+        const submitBtn = formEl && formEl.querySelector ? formEl.querySelector('button[type="submit"]') : null;
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Lưu cài đặt</span>';
+            submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg><span>Lưu cài đặt</span>';
         }
     }
 }
@@ -514,6 +517,10 @@ async function handleChangePassword(e) {
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const btn = document.getElementById('changePasswordBtn');
+    if (!btn) {
+        console.error('changePasswordBtn not found');
+        return;
+    }
     
     // Validate
     if (newPassword !== confirmPassword) {
@@ -563,6 +570,6 @@ async function handleChangePassword(e) {
     } finally {
         // Re-enable button
         btn.disabled = false;
-        btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Đổi mật khẩu</span>';
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg><span>Đổi mật khẩu</span>';
     }
 }

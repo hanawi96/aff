@@ -168,50 +168,50 @@ function createCustomerRow(customer, index) {
         : 'Chưa có đơn';
 
     return `
-        <tr class="hover:bg-gray-50 transition-colors">
-            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${index}</td>
-            <td class="px-4 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                        <span class="text-white font-semibold text-sm">${getInitials(customer.name)}</span>
+        <tr class="hover:bg-slate-50/90 transition-colors group">
+            <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-400 font-medium tabular-nums">${index}</td>
+            <td class="px-5 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-sky-500/15 ring-2 ring-white">
+                        <span class="text-white font-bold text-xs">${getInitials(customer.name)}</span>
                     </div>
-                    <div class="ml-3">
-                        <div class="text-sm font-medium text-gray-900">${escapeHtml(customer.name)}</div>
-                        <div class="text-xs text-gray-500">${escapeHtml(customer.address || 'Chưa có địa chỉ')}</div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(customer.name)}</div>
+                        <div class="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-xs">${escapeHtml(customer.address || 'Chưa có địa chỉ')}</div>
                     </div>
                 </div>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900 font-mono">${escapeHtml(customer.phone)}</div>
+            <td class="px-5 py-4 whitespace-nowrap">
+                <span class="text-sm text-slate-800 font-mono tracking-tight">${escapeHtml(customer.phone)}</span>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap">
+            <td class="px-5 py-4 whitespace-nowrap">
                 ${segmentBadges[customer.segment] || segmentBadges['New']}
             </td>
-            <td class="px-4 py-4 whitespace-nowrap">
-                <div class="text-sm font-semibold text-gray-900">${customer.total_orders}</div>
+            <td class="px-5 py-4 whitespace-nowrap">
+                <span class="text-sm font-bold text-slate-900 tabular-nums">${customer.total_orders}</span>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap">
-                <div class="text-sm font-bold text-green-600">${formatCurrency(customer.total_spent)}</div>
-                <div class="text-xs text-gray-500">TB: ${formatCurrency(customer.avg_order_value)}</div>
+            <td class="px-5 py-4 whitespace-nowrap">
+                <div class="text-sm font-bold text-emerald-700 tabular-nums">${formatCurrency(customer.total_spent)}</div>
+                <div class="text-xs text-slate-400 mt-0.5">TB ${formatCurrency(customer.avg_order_value)}</div>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">${lastOrderText}</div>
+            <td class="px-5 py-4 whitespace-nowrap">
+                <span class="text-sm text-slate-600 tabular-nums">${lastOrderText}</span>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap text-center">
-                <div class="flex items-center justify-center gap-2">
-                    <button onclick="viewCustomerDetail('${escapeHtml(customer.phone)}')"
-                        class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
-                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <td class="px-5 py-4 whitespace-nowrap text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                    <button type="button" onclick="viewCustomerDetail('${escapeHtml(customer.phone)}')"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         Chi tiết
                     </button>
-                    <button onclick="confirmDeleteCustomer('${escapeHtml(customer.phone)}', '${escapeHtml(customer.name)}')"
-                        class="inline-flex items-center p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                    <button type="button" onclick="confirmDeleteCustomer('${escapeHtml(customer.phone)}', '${escapeHtml(customer.name)}')"
+                        class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                         title="Xóa khách hàng">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                         </svg>
                     </button>
                 </div>
@@ -243,7 +243,7 @@ async function viewCustomerDetail(phone) {
 function showCustomerModal(customer) {
     const modal = document.createElement('div');
     modal.id = 'customerModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4';
     
     const segmentBadges = {
         'VIP': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span>VIP</span>',
@@ -262,91 +262,88 @@ function showCustomerModal(customer) {
         ? formatDate(customer.first_order_date)
         : 'Chưa rõ';
 
+    const orders = Array.isArray(customer.orders) ? customer.orders : [];
+
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                            <span class="text-white font-bold text-2xl">${getInitials(customer.name)}</span>
+        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-sky-50 via-white to-indigo-50 px-6 py-5 border-b border-slate-100 shrink-0">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 ring-2 ring-white shrink-0">
+                            <span class="text-white font-bold text-lg">${getInitials(customer.name)}</span>
                         </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">${escapeHtml(customer.name)}</h2>
-                            <p class="text-white/80 text-sm font-mono">${escapeHtml(customer.phone)}</p>
+                        <div class="min-w-0">
+                            <h2 class="text-xl font-bold text-slate-900 truncate">${escapeHtml(customer.name)}</h2>
+                            <p class="text-sm text-slate-500 font-mono mt-0.5">${escapeHtml(customer.phone)}</p>
                         </div>
                     </div>
-                    <button onclick="closeCustomerModal()" class="text-white/80 hover:text-white">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <button type="button" onclick="closeCustomerModal()" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0" aria-label="Đóng">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
             </div>
             
-            <!-- Content -->
-            <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-blue-50 rounded-lg p-4">
-                        <p class="text-xs text-blue-600 font-medium mb-1">Phân khúc</p>
+            <div class="p-6 overflow-y-auto flex-1 min-h-0">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Phân khúc</p>
                         ${segmentBadges[customer.segment] || segmentBadges['New']}
                     </div>
-                    <div class="bg-green-50 rounded-lg p-4">
-                        <p class="text-xs text-green-600 font-medium mb-1">Tổng đơn</p>
-                        <p class="text-2xl font-bold text-green-900">${customer.total_orders}</p>
+                    <div class="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                        <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Tổng đơn</p>
+                        <p class="text-2xl font-bold text-emerald-900 tabular-nums">${customer.total_orders}</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-4">
-                        <p class="text-xs text-purple-600 font-medium mb-1">Tổng chi tiêu</p>
-                        <p class="text-lg font-bold text-purple-900">${formatCurrency(customer.total_spent)}</p>
+                    <div class="rounded-xl border border-violet-100 bg-violet-50/50 p-4">
+                        <p class="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">Tổng chi tiêu</p>
+                        <p class="text-lg font-bold text-violet-900 tabular-nums leading-tight">${formatCurrency(customer.total_spent)}</p>
                     </div>
-                    <div class="bg-orange-50 rounded-lg p-4">
-                        <p class="text-xs text-orange-600 font-medium mb-1">TB/đơn</p>
-                        <p class="text-lg font-bold text-orange-900">${formatCurrency(customer.avg_order_value)}</p>
+                    <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
+                        <p class="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-1">TB / đơn</p>
+                        <p class="text-lg font-bold text-amber-900 tabular-nums leading-tight">${formatCurrency(customer.avg_order_value)}</p>
                     </div>
                 </div>
 
-                <!-- Info -->
-                <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Thông tin</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Địa chỉ:</span>
-                            <span class="text-gray-900 font-medium">${escapeHtml(customer.address || 'Chưa có')}</span>
+                <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 mb-6">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Thông tin liên hệ</h3>
+                    <div class="space-y-2.5 text-sm">
+                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                            <span class="text-slate-500 shrink-0">Địa chỉ</span>
+                            <span class="text-slate-900 font-medium text-right sm:text-left">${escapeHtml(customer.address || 'Chưa có')}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Đơn gần nhất:</span>
-                            <span class="text-gray-900 font-medium">${lastOrderText}</span>
+                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                            <span class="text-slate-500 shrink-0">Đơn gần nhất</span>
+                            <span class="text-slate-900 font-medium tabular-nums">${lastOrderText}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Khách hàng từ:</span>
-                            <span class="text-gray-900 font-medium">${firstOrderText}</span>
+                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                            <span class="text-slate-500 shrink-0">Khách từ</span>
+                            <span class="text-slate-900 font-medium tabular-nums">${firstOrderText}</span>
                         </div>
                         ${customer.ctv_codes ? `
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">CTV giới thiệu:</span>
-                            <span class="text-gray-900 font-medium">${escapeHtml(customer.ctv_codes)}</span>
+                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                            <span class="text-slate-500 shrink-0">CTV giới thiệu</span>
+                            <span class="text-slate-900 font-medium">${escapeHtml(customer.ctv_codes)}</span>
                         </div>
                         ` : ''}
                     </div>
                 </div>
 
-                <!-- Order History -->
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Lịch sử đơn hàng (${customer.orders.length})</h3>
-                    <div class="space-y-3 max-h-96 overflow-y-auto">
-                        ${customer.orders.map(order => `
-                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center space-x-3">
-                                        <span class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_id)}</span>
+                    <h3 class="text-base font-bold text-slate-900 mb-3">Lịch sử đơn hàng <span class="text-slate-400 font-semibold">(${orders.length})</span></h3>
+                    <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                        ${orders.length === 0 ? '<p class="text-sm text-slate-500 py-8 text-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50">Chưa có đơn hàng trong lịch sử.</p>' : orders.map(order => `
+                            <div class="rounded-xl border border-slate-100 bg-white p-4 hover:border-slate-200 hover:shadow-sm transition-all">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-xs font-mono font-bold text-indigo-600">${escapeHtml(order.order_id)}</span>
                                         ${getStatusBadge(order.status)}
                                     </div>
-                                    <span class="text-lg font-bold text-green-600">${formatCurrency(order.total_amount)}</span>
+                                    <span class="text-base font-bold text-emerald-700 tabular-nums">${formatCurrency(order.total_amount)}</span>
                                 </div>
-                                <div class="flex items-center justify-between text-xs text-gray-500">
-                                    <span>${formatDate(order.created_at_unix)}</span>
-                                    ${order.referral_code ? `<span class="text-purple-600">CTV: ${escapeHtml(order.referral_code)}</span>` : ''}
+                                <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                                    <span class="tabular-nums">${formatDate(order.created_at_unix)}</span>
+                                    ${order.referral_code ? `<span class="text-violet-600 font-medium">CTV ${escapeHtml(order.referral_code)}</span>` : ''}
                                 </div>
                             </div>
                         `).join('')}
@@ -354,10 +351,9 @@ function showCustomerModal(customer) {
                 </div>
             </div>
             
-            <!-- Footer -->
-            <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-end gap-3">
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end shrink-0">
                 <button type="button" onclick="closeCustomerModal()"
-                    class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    class="px-5 py-2.5 text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold shadow-sm">
                     Đóng
                 </button>
             </div>
@@ -497,12 +493,12 @@ function toggleSegmentFilter(event) {
     }
 
     const segments = [
-        { value: 'all', label: 'Tất cả phân khúc', color: 'gray' },
-        { value: 'VIP', label: 'VIP (≥5 đơn)', color: 'yellow' },
-        { value: 'Regular', label: 'Regular (2-4 đơn)', color: 'green' },
-        { value: 'New', label: 'New (1 đơn)', color: 'blue' },
-        { value: 'At Risk', label: 'At Risk (>60 ngày)', color: 'orange' },
-        { value: 'Churned', label: 'Churned (>90 ngày)', color: 'gray' }
+        { value: 'all', label: 'Tất cả phân khúc', dotClass: 'bg-slate-400' },
+        { value: 'VIP', label: 'VIP (≥5 đơn)', dotClass: 'bg-yellow-500' },
+        { value: 'Regular', label: 'Regular (2-4 đơn)', dotClass: 'bg-emerald-500' },
+        { value: 'New', label: 'New (1 đơn)', dotClass: 'bg-sky-500' },
+        { value: 'At Risk', label: 'At Risk (>60 ngày)', dotClass: 'bg-orange-500' },
+        { value: 'Churned', label: 'Churned (>90 ngày)', dotClass: 'bg-slate-400' }
     ];
 
     const currentValue = document.getElementById('segmentFilter').value;
@@ -510,19 +506,20 @@ function toggleSegmentFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'segmentFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[240px] mt-1';
+    menu.className = 'segment-filter-menu absolute left-0 top-full bg-white rounded-xl shadow-xl shadow-slate-900/15 border border-slate-200 py-1 z-[200] min-w-[260px] mt-1.5 overflow-hidden';
     menu.style.left = '0';
     menu.style.top = '100%';
 
     menu.innerHTML = segments.map(s => `
         <button 
-            onclick="selectSegmentFilter('${s.value}', '${s.label}')"
-            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+            type="button"
+            onclick="selectSegmentFilter('${s.value}', '${s.label.replace(/'/g, "\\'")}')"
+            class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left text-sm ${s.value === currentValue ? 'bg-indigo-50/80' : ''}"
         >
-            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
-            <span class="text-base text-gray-700 flex-1">${s.label}</span>
+            <div class="w-2.5 h-2.5 rounded-full ${s.dotClass} flex-shrink-0 ring-2 ring-white shadow-sm"></div>
+            <span class="text-slate-700 flex-1 font-medium">${s.label}</span>
             ${s.value === currentValue ? `
-                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
             ` : ''}
@@ -555,40 +552,38 @@ function selectSegmentFilter(value, label) {
 function confirmDeleteCustomer(phone, name) {
     const modal = document.createElement('div');
     modal.id = 'confirmDeleteModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4';
 
     modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div class="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 rounded-t-xl">
-                <h3 class="text-lg font-bold text-white">Xác nhận xóa khách hàng</h3>
-            </div>
-            <div class="p-6">
-                <div class="flex items-start gap-4 mb-4">
-                    <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 max-w-md w-full overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-red-50/80 via-white to-rose-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center ring-1 ring-red-200/60 shrink-0">
+                        <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
                     </div>
-                    <div class="flex-1">
-                        <p class="text-gray-700 mb-2">Bạn có chắc chắn muốn xóa khách hàng:</p>
-                        <p class="font-bold text-gray-900 mb-1">${escapeHtml(name)}</p>
-                        <p class="text-sm text-gray-600 font-mono">${escapeHtml(phone)}</p>
-                    </div>
-                </div>
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p class="text-sm text-amber-800">
-                        <strong>⚠️ Lưu ý:</strong> Hành động này sẽ xóa vĩnh viễn thông tin khách hàng và không thể hoàn tác!
-                    </p>
+                    <h3 class="text-lg font-bold text-slate-900">Xóa khách hàng?</h3>
                 </div>
             </div>
-            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
-                <button onclick="closeConfirmDeleteModal()"
-                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+            <div class="p-6">
+                <p class="text-sm text-slate-600 mb-3">Hành động này không thể hoàn tác. Khách hàng sẽ bị gỡ khỏi danh sách.</p>
+                <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 mb-4">
+                    <p class="font-semibold text-slate-900">${escapeHtml(name)}</p>
+                    <p class="text-sm text-slate-500 font-mono mt-1">${escapeHtml(phone)}</p>
+                </div>
+                <div class="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3">
+                    <p class="text-xs text-amber-900 leading-relaxed">Lịch sử đơn hàng trong hệ thống có thể vẫn được giữ tùy cấu hình server — chỉ bản ghi khách hàng này bị xóa.</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeConfirmDeleteModal()"
+                    class="px-5 py-2.5 text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold">
                     Hủy
                 </button>
-                <button onclick="deleteCustomer('${escapeHtml(phone)}')"
-                    class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Xóa khách hàng
+                <button type="button" onclick="deleteCustomer('${escapeHtml(phone)}')"
+                    class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-semibold shadow-sm">
+                    Xóa vĩnh viễn
                 </button>
             </div>
         </div>

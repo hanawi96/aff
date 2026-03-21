@@ -122,11 +122,11 @@ function updateStats(stats) {
     const totalOrders = dataToUse.reduce((sum, ctv) => sum + (ctv.orderCount || 0), 0);
 
     // Update main stats - Remove skeleton and add text
-    updateStatElement('totalCTV', totalCTV, 'text-3xl font-bold text-gray-900');
-    updateStatElement('activeCTV', activeCTV, 'text-3xl font-bold text-green-600');
-    updateStatElement('newCTV', newCTV, 'text-3xl font-bold text-purple-600');
-    updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-3xl font-bold text-orange-600');
-    updateStatElement('totalOrders', totalOrders, 'text-3xl font-bold text-indigo-600');
+    updateStatElement('totalCTV', totalCTV, 'text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums mt-3');
+    updateStatElement('activeCTV', activeCTV, 'text-2xl sm:text-3xl font-bold text-emerald-700 tabular-nums mt-3');
+    updateStatElement('newCTV', newCTV, 'text-2xl sm:text-3xl font-bold text-violet-700 tabular-nums mt-3');
+    updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-lg sm:text-2xl font-bold text-amber-700 tabular-nums mt-3 break-all leading-tight');
+    updateStatElement('totalOrders', totalOrders, 'text-2xl sm:text-3xl font-bold text-sky-800 tabular-nums mt-3');
 
 }
 
@@ -135,7 +135,7 @@ function updateStatElement(elementId, value, className) {
     const element = document.getElementById(elementId);
     if (element) {
         // Remove skeleton classes
-        element.classList.remove('skeleton', 'h-10', 'w-16', 'w-24', 'rounded');
+        element.classList.remove('skeleton', 'h-9', 'h-10', 'w-16', 'w-20', 'w-24', 'w-28', 'rounded', 'rounded-lg', 'mt-2', 'mt-3');
         // Add text classes
         element.className = className;
         // Set value
@@ -181,11 +181,11 @@ function renderCTVTable() {
 // Create CTV row
 function createCTVRow(ctv, index) {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-gray-50 transition-colors fade-in';
+    tr.className = 'hover:bg-slate-50/90 transition-colors fade-in group';
 
     // STT with checkbox
     const tdIndex = document.createElement('td');
-    tdIndex.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+    tdIndex.className = 'px-5 py-4 whitespace-nowrap text-sm text-slate-400 font-medium tabular-nums';
     tdIndex.innerHTML = `
         <div class="flex items-center gap-3">
             <input type="checkbox" 
@@ -199,38 +199,36 @@ function createCTVRow(ctv, index) {
 
     // Thông tin CTV
     const tdInfo = document.createElement('td');
-    tdInfo.className = 'px-6 py-4 whitespace-nowrap';
+    tdInfo.className = 'px-5 py-4 whitespace-nowrap';
     tdInfo.innerHTML = `
-        <div class="flex items-center">
-            <div class="flex-shrink-0 h-10 w-10">
-                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold">
-                    ${getInitials(ctv.fullName)}
-                </div>
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-indigo-500/20 ring-2 ring-white shrink-0">
+                ${getInitials(ctv.fullName)}
             </div>
-            <div class="ml-4">
-                <div class="text-sm font-medium text-gray-900">${escapeHtml(ctv.fullName)}</div>
-                <div class="text-sm text-gray-500">${escapeHtml(ctv.city || 'Chưa cập nhật')}</div>
+            <div class="min-w-0">
+                <div class="text-sm font-semibold text-slate-900 truncate max-w-[180px] sm:max-w-xs">${escapeHtml(ctv.fullName)}</div>
+                <div class="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">${escapeHtml(ctv.city || 'Chưa cập nhật')}</div>
             </div>
         </div>
     `;
 
     // Liên hệ
     const tdContact = document.createElement('td');
-    tdContact.className = 'px-6 py-4 whitespace-nowrap';
+    tdContact.className = 'px-5 py-4 whitespace-nowrap';
     tdContact.innerHTML = `
-        <div class="text-sm text-gray-900">${escapeHtml(ctv.phone)}</div>
-        <div class="text-sm text-gray-500">${escapeHtml(ctv.email || 'Chưa có email')}</div>
+        <div class="text-sm text-slate-800 font-medium">${escapeHtml(ctv.phone)}</div>
+        <div class="text-xs text-slate-500 truncate max-w-[200px]">${escapeHtml(ctv.email || 'Chưa có email')}</div>
     `;
 
     // Mã CTV
     const tdCode = document.createElement('td');
-    tdCode.className = 'px-6 py-4 whitespace-nowrap';
+    tdCode.className = 'px-5 py-4 whitespace-nowrap';
     tdCode.innerHTML = `
         <div class="flex items-center gap-2">
-            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 font-mono">
+            <span class="px-2.5 py-1 inline-flex text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-800 font-mono ring-1 ring-indigo-100">
                 ${escapeHtml(ctv.referralCode)}
             </span>
-            <button onclick="copyToClipboard('${escapeHtml(ctv.referralCode)}')" class="text-gray-400 hover:text-gray-600">
+            <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.referralCode)}')" class="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors" title="Sao chép">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -240,14 +238,14 @@ function createCTVRow(ctv, index) {
 
     // Tỷ lệ hoa hồng
     const tdCommissionRate = document.createElement('td');
-    tdCommissionRate.className = 'px-6 py-4 whitespace-nowrap';
+    tdCommissionRate.className = 'px-5 py-4 whitespace-nowrap';
     const commissionRate = ctv.commissionRate || 0.1;
     const commissionPercent = (commissionRate * 100).toFixed(0);
     tdCommissionRate.innerHTML = `
         <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-green-600">${commissionPercent}%</span>
-            <button onclick="editCommission('${escapeHtml(ctv.referralCode)}', ${commissionRate})" 
-                class="text-gray-400 hover:text-blue-600 transition-colors" title="Chỉnh sửa">
+            <span class="text-sm font-bold text-emerald-700 tabular-nums">${commissionPercent}%</span>
+            <button type="button" onclick="editCommission('${escapeHtml(ctv.referralCode)}', ${commissionRate})" 
+                class="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-slate-100 transition-colors" title="Chỉnh sửa">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -257,23 +255,23 @@ function createCTVRow(ctv, index) {
 
     // Số đơn hàng
     const tdOrderCount = document.createElement('td');
-    tdOrderCount.className = 'px-6 py-4 whitespace-nowrap text-center';
+    tdOrderCount.className = 'px-5 py-4 whitespace-nowrap text-center';
     const orderCount = ctv.orderCount || 0;
     const hasOrders = orderCount > 0;
     tdOrderCount.innerHTML = `
-        <span class="inline-flex items-center justify-center px-3 py-1 text-sm font-bold rounded-full ${hasOrders ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-400'}">
+        <span class="inline-flex items-center justify-center min-w-[2rem] px-2.5 py-1 text-sm font-bold rounded-lg tabular-nums ${hasOrders ? 'bg-sky-50 text-sky-800 ring-1 ring-sky-100' : 'bg-slate-100 text-slate-400'}">
             ${orderCount}
         </span>
     `;
 
     // Tổng hoa hồng
     const tdTotalCommission = document.createElement('td');
-    tdTotalCommission.className = 'px-6 py-4 whitespace-nowrap';
+    tdTotalCommission.className = 'px-5 py-4 whitespace-nowrap';
     const totalCommission = ctv.totalCommission || 0;
     const hasCommission = totalCommission > 0;
     tdTotalCommission.innerHTML = `
         <div class="flex items-center gap-2">
-            <span class="text-sm font-bold ${hasCommission ? 'text-orange-600' : 'text-gray-400'}">
+            <span class="text-sm font-bold tabular-nums ${hasCommission ? 'text-amber-700' : 'text-slate-400'}">
                 ${formatCurrency(totalCommission)}
             </span>
         </div>
@@ -281,41 +279,41 @@ function createCTVRow(ctv, index) {
 
     // Trạng thái
     const tdStatus = document.createElement('td');
-    tdStatus.className = 'px-6 py-4 whitespace-nowrap';
+    tdStatus.className = 'px-5 py-4 whitespace-nowrap';
     const statusInfo = getStatusInfo(ctv);
     tdStatus.innerHTML = `
-        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.class}">
+        <span class="px-2.5 py-1 inline-flex text-xs font-semibold rounded-lg ring-1 ring-black/5 ${statusInfo.class}">
             ${statusInfo.text}
         </span>
     `;
 
     // Ngày đăng ký
     const tdDate = document.createElement('td');
-    tdDate.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+    tdDate.className = 'px-5 py-4 whitespace-nowrap text-sm text-slate-500 tabular-nums';
     tdDate.textContent = formatDate(ctv.timestamp);
 
     // Thao tác
     const tdActions = document.createElement('td');
-    tdActions.className = 'px-6 py-4 whitespace-nowrap text-center text-sm font-medium';
+    tdActions.className = 'px-5 py-4 whitespace-nowrap text-center text-sm font-medium';
     tdActions.innerHTML = `
-        <div class="flex items-center justify-center gap-2">
-            <button onclick="viewCTVDetail('${escapeHtml(ctv.referralCode)}')" 
-                class="text-admin-primary hover:text-admin-secondary transition-colors" title="Xem chi tiết">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <div class="flex items-center justify-center gap-1">
+            <button type="button" onclick="viewCTVDetail('${escapeHtml(ctv.referralCode)}')" 
+                class="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Xem chi tiết">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
-            <button onclick="editCTV('${escapeHtml(ctv.referralCode)}')" 
-                class="text-orange-600 hover:text-orange-700 transition-colors" title="Chỉnh sửa">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <button type="button" onclick="editCTV('${escapeHtml(ctv.referralCode)}')" 
+                class="p-2 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 transition-colors" title="Chỉnh sửa">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
             </button>
-            <button onclick="sendMessage('${escapeHtml(ctv.phone)}')" 
-                class="text-green-600 hover:text-green-700 transition-colors" title="Nhắn tin">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <button type="button" onclick="sendMessage('${escapeHtml(ctv.phone)}')" 
+                class="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" title="Nhắn tin">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                 </svg>
             </button>
         </div>
@@ -342,20 +340,20 @@ function getStatusInfo(ctv) {
     if (ctv.hasOrders) {
         return {
             text: 'Đang hoạt động',
-            class: 'bg-green-100 text-green-800'
+            class: 'bg-emerald-50 text-emerald-800 ring-emerald-100'
         };
     }
     
     if (status === 'Mới') {
         return {
             text: 'Mới',
-            class: 'bg-yellow-100 text-yellow-800'
+            class: 'bg-sky-50 text-sky-800 ring-sky-100'
         };
     }
     
     return {
         text: 'Chưa có đơn',
-        class: 'bg-gray-100 text-gray-800'
+        class: 'bg-slate-100 text-slate-600 ring-slate-200'
     };
 }
 
@@ -1022,13 +1020,13 @@ function renderPagination(totalPages) {
         return;
     }
 
-    let html = '<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">';
+    let html = '<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">';
     
     // Info text
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, filteredCTVData.length);
-    html += `<div class="text-sm text-gray-700">
-        Hiển thị <span class="font-medium">${startItem}</span> đến <span class="font-medium">${endItem}</span> trong tổng số <span class="font-medium">${filteredCTVData.length}</span> CTV
+    html += `<div class="text-sm text-slate-600">
+        Hiển thị <span class="font-semibold text-slate-900 tabular-nums">${startItem}</span>–<span class="font-semibold text-slate-900 tabular-nums">${endItem}</span> / <span class="font-semibold text-slate-900 tabular-nums">${filteredCTVData.length}</span> CTV
     </div>`;
     
     // Pagination buttons
@@ -1036,7 +1034,7 @@ function renderPagination(totalPages) {
     
     // Previous button
     html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} 
-        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors">
+        class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium ${currentPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-700 hover:bg-slate-50'} transition-colors">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -1052,30 +1050,30 @@ function renderPagination(totalPages) {
     }
     
     if (startPage > 1) {
-        html += `<button onclick="goToPage(1)" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">1</button>`;
+        html += `<button onclick="goToPage(1)" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">1</button>`;
         if (startPage > 2) {
-            html += '<span class="px-2 text-gray-500">...</span>';
+            html += '<span class="px-2 text-slate-400">...</span>';
         }
     }
     
     for (let i = startPage; i <= endPage; i++) {
         if (i === currentPage) {
-            html += `<button class="px-3 py-2 rounded-lg bg-admin-primary text-white text-sm font-medium">${i}</button>`;
+            html += `<button type="button" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold shadow-sm">${i}</button>`;
         } else {
-            html += `<button onclick="goToPage(${i})" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">${i}</button>`;
+            html += `<button type="button" onclick="goToPage(${i})" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">${i}</button>`;
         }
     }
     
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
-            html += '<span class="px-2 text-gray-500">...</span>';
+            html += '<span class="px-2 text-slate-400">...</span>';
         }
-        html += `<button onclick="goToPage(${totalPages})" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">${totalPages}</button>`;
+        html += `<button type="button" onclick="goToPage(${totalPages})" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">${totalPages}</button>`;
     }
     
     // Next button
     html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} 
-        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'} transition-colors">
+        class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium ${currentPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-700 hover:bg-slate-50'} transition-colors">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
@@ -1991,10 +1989,10 @@ function toggleCTVStatusFilter(event) {
     }
 
     const statuses = [
-        { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
-        { value: 'active', label: 'Đang hoạt động', color: 'green' },
-        { value: 'new', label: 'Mới', color: 'blue' },
-        { value: 'inactive', label: 'Không hoạt động', color: 'red' }
+        { value: 'all', label: 'Tất cả trạng thái', dotClass: 'bg-slate-400' },
+        { value: 'active', label: 'Đang hoạt động', dotClass: 'bg-emerald-500' },
+        { value: 'new', label: 'Mới', dotClass: 'bg-sky-500' },
+        { value: 'inactive', label: 'Không hoạt động', dotClass: 'bg-red-500' }
     ];
 
     const currentValue = document.getElementById('statusFilter').value;
@@ -2002,19 +2000,20 @@ function toggleCTVStatusFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'statusFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[220px] mt-1';
+    menu.className = 'absolute left-0 top-full bg-white rounded-xl shadow-xl shadow-slate-900/10 border border-slate-200 py-1 z-[200] min-w-[240px] mt-1.5 overflow-hidden';
     menu.style.left = '0';
     menu.style.top = '100%';
 
     menu.innerHTML = statuses.map(s => `
         <button 
-            onclick="selectCTVStatusFilter('${s.value}', '${s.label}')"
-            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+            type="button"
+            onclick="selectCTVStatusFilter('${s.value}', '${s.label.replace(/'/g, "\\'")}')"
+            class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left text-sm ${s.value === currentValue ? 'bg-indigo-50/80' : ''}"
         >
-            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
-            <span class="text-base text-gray-700 flex-1">${s.label}</span>
+            <div class="w-2.5 h-2.5 rounded-full ${s.dotClass} flex-shrink-0 ring-2 ring-white shadow-sm"></div>
+            <span class="text-slate-700 flex-1 font-medium">${s.label}</span>
             ${s.value === currentValue ? `
-                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
             ` : ''}
@@ -2316,12 +2315,15 @@ window.switchTopCTVMode = function(mode) {
     const revenueBtn = document.getElementById('topCTVRevenueBtn');
     const ordersBtn = document.getElementById('topCTVOrdersBtn');
     
+    const activeRev = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 transition-colors';
+    const inactive = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 bg-slate-100/80 hover:bg-slate-200/80 transition-colors';
+    const activeOrd = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-500/20 transition-colors';
     if (mode === 'revenue') {
-        revenueBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-700 transition-colors';
-        ordersBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors';
+        revenueBtn.className = activeRev;
+        ordersBtn.className = inactive;
     } else {
-        revenueBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 transition-colors';
-        ordersBtn.className = 'px-2.5 py-1 text-xs font-medium rounded-md bg-green-100 text-green-700 transition-colors';
+        revenueBtn.className = inactive;
+        ordersBtn.className = activeOrd;
     }
     
     updateTopCTVChart();
