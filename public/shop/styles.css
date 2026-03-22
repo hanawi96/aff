@@ -5446,6 +5446,14 @@ body {
     border-radius: 4px;
 }
 
+/* Dòng placeholder (rating / meta) — khớp layout thẻ SP thật */
+.skeleton-product-meta {
+    height: 14px;
+    width: 48%;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
 .skeleton-product-price {
     height: 24px;
     width: 60%;

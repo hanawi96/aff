@@ -28,6 +28,27 @@ class ApiService {
         if (!timestamp) return false;
         return (Date.now() - timestamp) < this.cacheTimeout;
     }
+
+    /**
+     * Catalog SP còn TTL — trả về mảng ngay (sync), không gọi mạng.
+     * Dùng cho paint tức thì (không chờ microtask của await).
+     */
+    getValidCachedProductsSync() {
+        if (!this.isCacheValid('products')) return null;
+        const list = this.cache.products;
+        if (!Array.isArray(list) || list.length === 0) return null;
+        return list;
+    }
+
+    /**
+     * Session còn mảng SP nhưng TTL hết — dùng stale-first paint, sau đó revalidate nền.
+     */
+    peekStaleProducts() {
+        if (this.isCacheValid('products')) return null;
+        const list = this.cache.products;
+        if (!Array.isArray(list) || list.length === 0) return null;
+        return list;
+    }
     
     /**
      * Set cache
@@ -118,6 +139,27 @@ class ApiService {
         this.setCache('products', activeProducts);
         
         return activeProducts;
+    }
+
+    /**
+     * Paginated products for shop home (same fields as getAllProducts, smaller per request).
+     * @param {number} page - 1-based
+     * @param {number} limit - max 100 on server
+     */
+    async getProductsPage(page = 1, limit = 16) {
+        const data = await this.get('/get', {
+            action: 'getProductsPage',
+            page: String(page),
+            limit: String(limit)
+        });
+        const products = (data.products || []).filter((p) => p.is_active === 1);
+        return {
+            products,
+            total: data.total ?? 0,
+            page: data.page ?? page,
+            limit: data.limit ?? limit,
+            hasMore: Boolean(data.hasMore)
+        };
     }
     
     /**

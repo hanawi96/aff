@@ -5,38 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vòng dâu tằm by Ánh - Bảo Vệ Con Yêu Bằng Tình Yêu Thủ Công</title>
     
-    <!-- Preconnect to external resources for faster loading -->
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <!-- Tailwind: build tĩnh (npm run build:css) → tailwind-built.css -->
+    <link rel="stylesheet" href="assets/css/tailwind-built.css?v=1">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- API + CDN ảnh: preconnect sớm → TLS/handshake nhanh hơn khi gọi fetch (production) -->
+    <link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
+    <link rel="dns-prefetch" href="https://ctv-api.yendev96.workers.dev">
+    <link rel="preconnect" href="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
     <link rel="stylesheet" href="assets/css/ctv-debug-panel.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#f4a261',
-                        secondary: '#e76f51',
-                        accent: '#e9c46a',
-                        warm: '#f8edeb',
-                        soft: '#fec89a',
-                    },
-                    fontFamily: {
-                        handwritten: ['Pacifico', 'cursive'],
-                        body: ['Quicksand', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="styles.css?v=4">
-    <link rel="stylesheet" href="assets/css/home.css?v=1">
+    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="assets/css/home.css?v=2">
     <link rel="stylesheet" href="assets/css/feedback-carousel.css">
     <link rel="stylesheet" href="assets/css/featured-carousel.css">
     <link rel="stylesheet" href="cart.css">
@@ -618,8 +601,8 @@
             </div>
         </div>
     </section>
-<!-- Flash Sale Section - Enhanced Version -->
-    <section class="py-8 md:py-12 flash-sale-enhanced" id="flash-sale">
+<!-- Flash Sale Section - Enhanced Version (ẩn mặc định; chỉ hiện khi API có flash sale + SP) -->
+    <section class="py-8 md:py-12 flash-sale-enhanced hidden" id="flash-sale" aria-hidden="true">
         <div class="container mx-auto px-4">
             <!-- Flash Sale Box - Enhanced -->
             <div class="flash-sale-box" id="flashSaleSection">
@@ -648,19 +631,8 @@
                     </div>
                 </div>
 
-                <!-- Products List -->
-                <div class="flash-sale-products-enhanced" id="flashSaleProducts">
-                    <!-- Flash sale products will be loaded here -->
-                    <!-- Loading skeleton -->
-                    <div class="flash-product-skeleton">
-                        <div class="skeleton-image"></div>
-                        <div class="skeleton-info">
-                            <div class="skeleton-line skeleton-title"></div>
-                            <div class="skeleton-line skeleton-price"></div>
-                            <div class="skeleton-line skeleton-progress"></div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Products List (nội dung gắn bởi home.page.js khi có flash sale) -->
+                <div class="flash-sale-products-enhanced" id="flashSaleProducts"></div>
 
                 <!-- Footer -->
                 <div class="flash-sale-footer-enhanced">
@@ -727,8 +699,27 @@
             <div class="text-center mb-12">
                 <!-- Featured Products Section -->
                 <div class="mb-16">
-                    <!-- Featured Products Carousel -->
-                    <div id="featuredCarousel" class="mb-8"></div>
+                    <!-- Sản phẩm nổi bật: skeleton hiển thị ngay khi load (trước khi JS featured-carousel chạy) -->
+                    <div id="featuredCarousel" class="mb-8" aria-busy="true" aria-live="polite" aria-label="Sản phẩm nổi bật">
+                        <div class="featured-products-grid featured-carousel-placeholder">
+                            <div class="text-center mb-8">
+                                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Sản phẩm</h2>
+                                <h3 class="font-handwritten text-primary text-4xl md:text-5xl mb-4">nổi bật</h3>
+                                <div class="flex items-center justify-center gap-2 my-6">
+                                    <div class="w-24 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.875rem; height: 0.875rem;"><path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" /></svg>
+                                    <div class="w-24 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
+                                </div>
+                                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed text-sm md:text-base">Những sản phẩm được chọn lọc đặc biệt, được nhiều mẹ tin dùng và yêu thích nhất</p>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 shop-skeleton-grid">
+                                <div class="skeleton-product-card skeleton-loading"><div class="skeleton-product-image"></div><div class="skeleton-product-info"><div class="skeleton skeleton-product-title"></div><div class="skeleton skeleton-product-meta"></div><div class="skeleton skeleton-product-price"></div><div class="skeleton skeleton-product-button"></div></div></div>
+                                <div class="skeleton-product-card skeleton-loading"><div class="skeleton-product-image"></div><div class="skeleton-product-info"><div class="skeleton skeleton-product-title"></div><div class="skeleton skeleton-product-meta"></div><div class="skeleton skeleton-product-price"></div><div class="skeleton skeleton-product-button"></div></div></div>
+                                <div class="skeleton-product-card skeleton-loading"><div class="skeleton-product-image"></div><div class="skeleton-product-info"><div class="skeleton skeleton-product-title"></div><div class="skeleton skeleton-product-meta"></div><div class="skeleton skeleton-product-price"></div><div class="skeleton skeleton-product-button"></div></div></div>
+                                <div class="skeleton-product-card skeleton-loading"><div class="skeleton-product-image"></div><div class="skeleton-product-info"><div class="skeleton skeleton-product-title"></div><div class="skeleton skeleton-product-meta"></div><div class="skeleton skeleton-product-price"></div><div class="skeleton skeleton-product-button"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Most Loved Products Section -->
@@ -788,68 +779,76 @@
             </div>
 
             <!-- Products Grid -->
-            <!-- Skeleton Loading -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6" id="productsSkeleton">
-                <div class="skeleton-product-card">
+            <!-- Skeleton Loading (lưới SP yêu thích nhất — shimmer + stagger trong home.css) -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6 shop-skeleton-grid" id="productsSkeleton" role="status" aria-busy="true" aria-label="Đang tải danh sách sản phẩm">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>
                 </div>
-                <div class="skeleton-product-card">
+                <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
                         <div class="skeleton skeleton-product-title"></div>
+                        <div class="skeleton skeleton-product-meta"></div>
                         <div class="skeleton skeleton-product-price"></div>
                         <div class="skeleton skeleton-product-button"></div>
                     </div>

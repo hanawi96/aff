@@ -1,0 +1,7 @@
+/**
+ * Tailwind source — build ra tailwind-built.css:
+ *   npm run build:css
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

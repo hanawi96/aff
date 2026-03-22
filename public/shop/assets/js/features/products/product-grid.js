@@ -25,15 +25,29 @@ export class ProductGrid {
     /**
      * Set all products (NGUỒN DỮ LIỆU CHÍNH)
      * Đây là method chính để set dữ liệu
+     * @param {object} [options]
+     * @param {boolean} [options.preserveExpandedView] - Khi API nối thêm SP ở nền: giữ số ô đang mở (Xem thêm), không reset về 16.
      */
-    setAllProducts(products) {
+    setAllProducts(products, options = {}) {
+        const preserveExpanded = options.preserveExpandedView === true;
+        const prevDisplayed = this.displayedCount;
+
         this.allProducts = products;
         this.products = products; // Sync để tương thích
-        
-        // Áp dụng lại filter hiện tại
+
+        // Áp dụng lại filter hiện tại (mặc định reset displayedCount → gây lỗi "Xem thêm" nếu không preserve)
         this.applyCurrentFilter();
-        
-        console.log('✅ All products set:', products.length);
+
+        if (preserveExpanded) {
+            this.displayedCount = Math.min(
+                Math.max(prevDisplayed, this.initialCount),
+                this.filteredProducts.length
+            );
+            this.render();
+            this.updateLoadMoreButton();
+        }
+
+        console.log('✅ All products set:', products.length, preserveExpanded ? '(giữ số ô đang xem)' : '');
     }
     
     /**
@@ -56,66 +70,6 @@ export class ProductGrid {
             this.displayedCount = this.initialCount; // Reset về initialCount (16)
             this.render();
         }
-    }
-    
-    /**
-     * Filter products
-     */
-    filter(filterType) {
-        this.currentFilter = filterType;
-        
-        // If searching, just re-sort search results
-        if (this.isSearching) {
-            this.applySortToSearchResults();
-            this.displayedCount = this.initialCount;
-            this.render();
-            console.log(`🔍 Re-sorted search results by "${filterType}"`);
-            return;
-        }
-        
-        // Normal filter logic (when not searching)
-        const sourceProducts = this.allProducts;
-        
-        if (!sourceProducts || sourceProducts.length === 0) {
-            console.warn('⚠️ No products to filter');
-            return;
-        }
-        
-        switch (filterType) {
-            case 'best-selling':
-                // Bán chạy: Sắp xếp theo số lượng đã bán (purchases)
-                this.filteredProducts = [...sourceProducts]
-                    .sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
-                break;
-            case 'favorite':
-                // Yêu thích: Sắp xếp theo số lượt yêu thích (favorites_count)
-                this.filteredProducts = [...sourceProducts]
-                    .sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0));
-                break;
-            case 'new':
-                // Mới nhất: Sắp xếp theo ID giảm dần
-                this.filteredProducts = [...sourceProducts]
-                    .sort((a, b) => (b.id || 0) - (a.id || 0));
-                break;
-            case 'popular':
-                // Giữ lại để tương thích ngược
-                this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);
-                break;
-            case 'sale':
-                // Giữ lại để tương thích ngược
-                this.filteredProducts = sourceProducts.filter(p => 
-                    p.original_price && p.original_price > p.price
-                );
-                break;
-            default:
-                this.filteredProducts = [...sourceProducts];
-        }
-        
-        // Reset về số lượng ban đầu
-        this.displayedCount = this.initialCount; // Reset về initialCount (16)
-        this.render();
-        
-        console.log(`🔍 Filter "${filterType}": ${this.filteredProducts.length} products`);
     }
     
     /**
@@ -352,7 +306,9 @@ export class ProductGrid {
      * Load more products
      */
     loadMore() {
-        this.displayedCount += this.itemsPerPage;
+        const next = this.displayedCount + this.itemsPerPage;
+        // Không vượt quá số SP sau filter (tránh displayedCount > length → không hiện thêm)
+        this.displayedCount = Math.min(next, this.filteredProducts.length);
         this.render();
     }
     

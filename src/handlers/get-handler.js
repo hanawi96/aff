@@ -30,6 +30,7 @@ import {
 // Products
 import { 
     getAllProducts,
+    getProductsPage,
     checkOutdatedProducts, 
     getProduct, 
     searchProducts 
@@ -189,6 +190,12 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getAllProducts':
             return await getAllProducts(env, corsHeaders);
+
+        case 'getProductsPage': {
+            const page = parseInt(url.searchParams.get('page') || '1', 10);
+            const limit = Math.min(parseInt(url.searchParams.get('limit') || '16', 10), 100);
+            return await getProductsPage(env, corsHeaders, page, limit);
+        }
 
         case 'getR2Image': {
             const objectKey = url.searchParams.get('key');

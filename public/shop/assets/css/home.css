@@ -1395,3 +1395,59 @@ body {
         padding: 0 1rem 1rem 3.5rem;
     }
 }
+
+/* ============================================ */
+/* SHOP — Skeleton grids (nổi bật + yêu thích nhất) */
+/* Shimmer stagger, viền nhẹ, reduced motion */
+/* ============================================ */
+
+.shop-skeleton-grid .skeleton-product-card {
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    transition: box-shadow 0.2s ease;
+}
+
+.shop-skeleton-grid .skeleton-product-card:hover {
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+/* Stagger shimmer — tối đa 8 ô (2 hàng × 4 cột) */
+.shop-skeleton-grid .skeleton-product-card:nth-child(1) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(1) .skeleton {
+    animation-delay: 0s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(2) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(2) .skeleton {
+    animation-delay: 0.07s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(3) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(3) .skeleton {
+    animation-delay: 0.14s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(4) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(4) .skeleton {
+    animation-delay: 0.21s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(5) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(5) .skeleton {
+    animation-delay: 0.28s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(6) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(6) .skeleton {
+    animation-delay: 0.35s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(7) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(7) .skeleton {
+    animation-delay: 0.42s;
+}
+.shop-skeleton-grid .skeleton-product-card:nth-child(8) .skeleton-product-image,
+.shop-skeleton-grid .skeleton-product-card:nth-child(8) .skeleton {
+    animation-delay: 0.49s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shop-skeleton-grid .skeleton-product-image,
+    .shop-skeleton-grid .skeleton {
+        animation: none !important;
+        opacity: 0.88;
+    }
+}

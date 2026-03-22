@@ -77,6 +77,96 @@ export async function getAllProducts(env, corsHeaders) {
     }
 }
 
+/**
+ * Shop home: paginated products (same shape as getAllProducts, smaller payload per request).
+ * ORDER BY name ASC — must match client merge order.
+ */
+export async function getProductsPage(env, corsHeaders, page = 1, limit = 16) {
+    try {
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 16), 100);
+        const offset = (pageNum - 1) * limitNum;
+
+        const countRow = await env.DB.prepare(`
+            SELECT COUNT(*) as cnt FROM products WHERE is_active = 1
+        `).first();
+        const total = countRow?.cnt ?? 0;
+
+        const { results: products } = await env.DB.prepare(`
+            SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.is_active = 1
+            ORDER BY name ASC
+            LIMIT ? OFFSET ?
+        `).bind(limitNum, offset).all();
+
+        if (!products.length) {
+            return jsonResponse({
+                success: true,
+                products: [],
+                total,
+                page: pageNum,
+                limit: limitNum,
+                hasMore: false
+            }, 200, corsHeaders);
+        }
+
+        const ids = products.map((p) => p.id);
+        const placeholders = ids.map(() => '?').join(',');
+        const { results: allProductCategories } = await env.DB.prepare(`
+            SELECT
+                pc.product_id,
+                c.id,
+                c.name,
+                c.icon,
+                c.color,
+                pc.is_primary,
+                pc.display_order
+            FROM product_categories pc
+            JOIN categories c ON pc.category_id = c.id
+            WHERE pc.product_id IN (${placeholders})
+            ORDER BY pc.product_id, pc.is_primary DESC, pc.display_order ASC
+        `).bind(...ids).all();
+
+        const categoriesByProduct = {};
+        for (const pc of allProductCategories) {
+            if (!categoriesByProduct[pc.product_id]) {
+                categoriesByProduct[pc.product_id] = [];
+            }
+            categoriesByProduct[pc.product_id].push({
+                id: pc.id,
+                name: pc.name,
+                icon: pc.icon,
+                color: pc.color,
+                is_primary: pc.is_primary
+            });
+        }
+
+        for (const product of products) {
+            product.categories = categoriesByProduct[product.id] || [];
+            product.category_ids = product.categories.map((c) => c.id);
+        }
+
+        const hasMore = offset + products.length < total;
+
+        return jsonResponse({
+            success: true,
+            products,
+            total,
+            page: pageNum,
+            limit: limitNum,
+            hasMore
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error getting products page:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
 // Get single product by ID
 export async function getProduct(productId, env, corsHeaders) {
     try {

@@ -69,13 +69,13 @@ class FeaturedCarousel {
                     </p>
                 </div>
                 
-                <!-- Loading State -->
-                <div id="loadingState" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                <!-- Loading State (cùng style với placeholder HTML trang chủ + shop-skeleton-grid) -->
+                <div id="loadingState" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 shop-skeleton-grid">
                     ${Array(4).fill(0).map(() => this.createSkeletonCard()).join('')}
                 </div>
                 
-                <!-- Products Grid -->
-                <div id="productsGrid" class="hidden grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                <!-- Products Grid (ID riêng — không dùng productsGrid để tránh trùng với lưới "yêu thích nhất" / load more) -->
+                <div id="featuredCarouselProductsGrid" class="hidden grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     <!-- Products will be inserted here -->
                 </div>
                 
@@ -91,19 +91,20 @@ class FeaturedCarousel {
         // Cache DOM elements
         this.elements = {
             loadingState: this.container.querySelector('#loadingState'),
-            productsGrid: this.container.querySelector('#productsGrid'),
+            productsGrid: this.container.querySelector('#featuredCarouselProductsGrid'),
             emptyState: this.container.querySelector('#emptyState')
         };
     }
     
     createSkeletonCard() {
         return `
-            <div class="bg-white rounded-xl shadow-sm border overflow-hidden animate-pulse">
-                <div class="aspect-square bg-gray-200"></div>
-                <div class="p-4 space-y-3">
-                    <div class="h-4 bg-gray-200 rounded"></div>
-                    <div class="h-3 bg-gray-200 rounded w-2/3"></div>
-                    <div class="h-5 bg-gray-200 rounded w-1/2"></div>
+            <div class="skeleton-product-card skeleton-loading">
+                <div class="skeleton-product-image"></div>
+                <div class="skeleton-product-info">
+                    <div class="skeleton skeleton-product-title"></div>
+                    <div class="skeleton skeleton-product-meta"></div>
+                    <div class="skeleton skeleton-product-price"></div>
+                    <div class="skeleton skeleton-product-button"></div>
                 </div>
             </div>
         `;
@@ -206,6 +207,9 @@ class FeaturedCarousel {
         
         // Show grid
         this.elements.productsGrid.classList.remove('hidden');
+        if (this.container) {
+            this.container.setAttribute('aria-busy', 'false');
+        }
         console.log('✅ Products rendered and grid shown');
         console.log('   Grid classes:', this.elements.productsGrid.className);
         console.log('   Grid visible:', this.elements.productsGrid.offsetWidth > 0 && this.elements.productsGrid.offsetHeight > 0);
@@ -354,6 +358,9 @@ class FeaturedCarousel {
         this.elements.loadingState.classList.add('hidden');
         this.elements.productsGrid.classList.add('hidden');
         this.elements.emptyState.classList.remove('hidden');
+        if (this.container) {
+            this.container.setAttribute('aria-busy', 'false');
+        }
     }
     
     handleResize() {

@@ -6,7 +6,7 @@ import { apiService } from '../shared/services/api.service.js';
 import { cartService } from '../shared/services/cart.service.js';
 import { ProductGrid, ProductActions } from '../features/products/index.js';
 import { renderCategories, CategoryActions } from '../features/categories/index.js';
-import { FlashSaleActions, FlashSaleTimer } from '../features/flash-sale/index.js';
+import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js';
 import { QuickCheckout } from '../features/checkout/index.js';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
@@ -32,6 +32,77 @@ export class HomePage {
         this.flashSaleActions = null;
         this.flashSaleTimer = null;
         this.quickCheckout = null;
+        /** @type {HTMLElement|null} */
+        this._shopPerfHudEl = null;
+        /** Tổng SP (ước lượng từ API) — dùng cho HUD */
+        this._shopProductsTotal = 0;
+        /** Sau paint: cần gọi getAllProducts(true) nền (session còn SP nhưng hết TTL) */
+        this._pendingStaleRevalidate = false;
+    }
+
+    /**
+     * Hiển thị HUD tải SP khi bật debug (không ảnh hưởng khách thường).
+     * Bật: thêm ?shopDebug=1 vào URL shop HOẶC localStorage.setItem('shopDebug','1')
+     */
+    isShopPerfDebugEnabled() {
+        try {
+            if (new URLSearchParams(window.location.search).get('shopDebug') === '1') return true;
+            if (localStorage.getItem('shopDebug') === '1') return true;
+        } catch (e) {
+            /* ignore */
+        }
+        return false;
+    }
+
+    ensureShopPerfHud() {
+        if (!this.isShopPerfDebugEnabled()) return;
+        if (this._shopPerfHudEl?.isConnected) return;
+
+        const wrap = document.createElement('div');
+        wrap.id = 'shop-perf-hud';
+        wrap.setAttribute('role', 'status');
+        wrap.setAttribute('aria-live', 'polite');
+        wrap.style.cssText = [
+            'position:fixed',
+            'bottom:12px',
+            'right:12px',
+            'z-index:99999',
+            'max-width:min(92vw,340px)',
+            'padding:10px 12px',
+            'border-radius:12px',
+            'font:12px/1.45 system-ui,Segoe UI,sans-serif',
+            'color:#0f172a',
+            'background:rgba(255,255,255,.96)',
+            'border:1px solid #e2e8f0',
+            'box-shadow:0 8px 30px rgba(15,23,42,.12)',
+            'pointer-events:none'
+        ].join(';');
+
+        wrap.innerHTML = `
+            <div style="font-weight:700;margin-bottom:6px;color:#334155">Shop · tải sản phẩm (debug)</div>
+            <div id="shop-perf-hud-body">Đang kiểm tra…</div>
+            <div style="margin-top:8px;font-size:10px;color:#64748b">Bật: <code>?shopDebug=1</code> hoặc <code>localStorage shopDebug=1</code> · Tắt: xóa param / <code>localStorage.removeItem('shopDebug')</code></div>
+        `;
+        document.body.appendChild(wrap);
+        this._shopPerfHudEl = wrap;
+    }
+
+    /**
+     * @param {'idle'|'loading'|'ok'|'warn'} state
+     */
+    setShopPerfHudBody(message, state = 'idle') {
+        if (!this.isShopPerfDebugEnabled()) return;
+        this.ensureShopPerfHud();
+        const body = this._shopPerfHudEl?.querySelector('#shop-perf-hud-body');
+        if (!body) return;
+        body.textContent = message;
+        const border = {
+            idle: '#e2e8f0',
+            loading: '#f59e0b',
+            ok: '#22c55e',
+            warn: '#ef4444'
+        }[state] || '#e2e8f0';
+        this._shopPerfHudEl.style.borderColor = border;
     }
     
     /**
@@ -103,16 +174,165 @@ export class HomePage {
     /**
      * Load critical above-the-fold content FIRST
      * Priority: Products only (main browsing content)
+     * - Cache còn TTL: đọc sync từ memory (không await) → paint nhanh nhất.
+     * - TTL hết nhưng session còn mảng SP: stale-first paint, không chờ mạng; làm mới nền sau showCriticalContent.
+     * - Lần đầu / không có session: trang 1 (16 SP) → phần còn lại nối ở background.
      */
     async loadCriticalContent() {
-        // Load ALL products first for fastest meaningful render
-        const allProducts = await apiService.getAllProducts();
-        
-        this.allProducts = allProducts;
-        this.products = allProducts; // Sync để tương thích
-        
-        console.log('✅ Critical content loaded:', {
-            products: allProducts.length
+        this.ensureShopPerfHud();
+
+        const syncFresh = apiService.getValidCachedProductsSync();
+        if (syncFresh) {
+            this.allProducts = syncFresh;
+            this.products = syncFresh;
+            this._shopProductsTotal = syncFresh.length;
+            this.setShopPerfHudBody(
+                `📦 Cache session: ${syncFresh.length} SP (sync, không chờ mạng).`,
+                'ok'
+            );
+            console.log('✅ Critical content from cache (sync):', { products: syncFresh.length });
+            return;
+        }
+
+        const stalePeek = apiService.peekStaleProducts();
+        if (stalePeek && stalePeek.length > 0) {
+            this.allProducts = stalePeek;
+            this.products = stalePeek;
+            this._shopProductsTotal = stalePeek.length;
+            this._pendingStaleRevalidate = true;
+            this.setShopPerfHudBody(
+                `📦 Stale-first: ${stalePeek.length} SP từ session (TTL hết) · làm mới nền sau paint…`,
+                'loading'
+            );
+            console.log('✅ Stale-first paint from session (revalidate pending):', {
+                products: stalePeek.length
+            });
+            return;
+        }
+
+        const PAGE_SIZE = 16;
+        const first = await apiService.getProductsPage(1, PAGE_SIZE);
+        this.allProducts = first.products;
+        this.products = first.products;
+        this._shopProductsTotal = first.total || first.products.length;
+
+        if (first.hasMore) {
+            this.setShopPerfHudBody(
+                `⚡ Tải nhanh (trang 1): ${first.products.length}/${this._shopProductsTotal} SP — đang nối phần còn lại ở nền…`,
+                'loading'
+            );
+            this.loadRemainingProductsInBackground(PAGE_SIZE);
+        } else {
+            apiService.setCache('products', this.allProducts);
+            this.setShopPerfHudBody(
+                `✅ Đã tải đủ ${this.allProducts.length} SP (một lần, không cần nối thêm).`,
+                'ok'
+            );
+        }
+
+        console.log('✅ Critical content loaded (first page):', {
+            pageCount: first.products.length,
+            total: first.total,
+            hasMore: first.hasMore
+        });
+    }
+
+    /**
+     * Nối các trang còn lại sau khi đã hiển thị trang đầu (không chặn first paint).
+     */
+    loadRemainingProductsInBackground(pageSize) {
+        const schedule =
+            typeof requestIdleCallback === 'function'
+                ? (cb) => requestIdleCallback(cb, { timeout: 4000 })
+                : (cb) => setTimeout(cb, 50);
+
+        schedule(async () => {
+            let page = 2;
+            try {
+                while (true) {
+                    const res = await apiService.getProductsPage(page, pageSize);
+                    if (!res.products.length) break;
+
+                    this.allProducts = [...this.allProducts, ...res.products];
+                    this.products = this.allProducts;
+
+                    if (this.productGrid) {
+                        this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
+                    }
+
+                    this.setShopPerfHudBody(
+                        `⏳ Đang nối: ${this.allProducts.length}/${this._shopProductsTotal || '?'} SP (API phân trang)…`,
+                        'loading'
+                    );
+
+                    if (!res.hasMore) break;
+                    page += 1;
+                }
+                apiService.setCache('products', this.allProducts);
+                this.setShopPerfHudBody(
+                    `✅ Hoàn tất: ${this.allProducts.length} SP đã đồng bộ · cache session đã lưu (5 phút).`,
+                    'ok'
+                );
+                console.log('✅ Full catalog merged in background:', this.allProducts.length);
+            } catch (err) {
+                console.warn('⚠️ Background product pages failed, falling back to getAllProducts:', err);
+                this.setShopPerfHudBody(
+                    '⚠️ Phân trang nền lỗi — đang fallback getAllProducts…',
+                    'warn'
+                );
+                try {
+                    this.allProducts = await apiService.getAllProducts(true);
+                    this.products = this.allProducts;
+                    if (this.productGrid) {
+                        this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
+                    }
+                    this._shopProductsTotal = this.allProducts.length;
+                    this.setShopPerfHudBody(
+                        `✅ Fallback OK: ${this.allProducts.length} SP (một request getAllProducts).`,
+                        'ok'
+                    );
+                } catch (e2) {
+                    console.error('❌ Fallback getAllProducts failed:', e2);
+                    this.setShopPerfHudBody('❌ Không tải được danh sách SP. Xem Console.', 'warn');
+                }
+            }
+        });
+    }
+
+    /**
+     * Sau stale-first: một request getAllProducts(true) cập nhật catalog + grid (tránh thay 100→16 SP tạm thời).
+     */
+    scheduleProductsRevalidateFromStale() {
+        const schedule =
+            typeof requestIdleCallback === 'function'
+                ? (cb) => requestIdleCallback(cb, { timeout: 5000 })
+                : (cb) => setTimeout(cb, 50);
+
+        schedule(async () => {
+            try {
+                console.log('🔄 Stale revalidate: getAllProducts(forceRefresh)…');
+                const fresh = await apiService.getAllProducts(true);
+                this.allProducts = fresh;
+                this.products = fresh;
+                this._shopProductsTotal = fresh.length;
+                if (this.productGrid) {
+                    this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
+                }
+                if (this.productActions) {
+                    this.productActions.setProducts(this.allProducts);
+                }
+                this.setShopPerfHudBody(
+                    `✅ Đã làm mới catalog: ${fresh.length} SP (stale-first).`,
+                    'ok'
+                );
+                console.log('✅ Stale revalidate done:', fresh.length);
+            } catch (err) {
+                console.warn('⚠️ Stale revalidate failed, giữ dữ liệu session:', err);
+                this.setShopPerfHudBody(
+                    `⚠️ Không làm mới được — vẫn dùng ${this.allProducts.length} SP từ session.`,
+                    'warn'
+                );
+            }
         });
     }
     
@@ -146,7 +366,7 @@ export class HomePage {
             }
         }, 150);
         
-        // Không cần load products nữa vì đã load hết ở loadCriticalContent
+        // Sản phẩm: trang đầu đã load ở loadCriticalContent; phần còn lại nối trong background
     }
     
     /**
@@ -323,58 +543,46 @@ export class HomePage {
     
     /**
      * Render flash sales
+     * Section #flash-sale mặc định ẩn trong HTML — chỉ hiện khi có CTKM + ít nhất 1 SP active (tránh skeleton rồi biến mất).
      */
     renderFlashSales() {
         console.log('🔥 Rendering flash sales:', this.flashSales);
         
-        // Check if we have any flash sales
         if (!this.flashSales || this.flashSales.length === 0) {
             console.warn('🔥 No flash sales data available');
             this.hideFlashSaleSection();
             return;
         }
         
-        // Carousel disabled - using vertical scroll layout instead
-        // Just render the products directly without carousel
         const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-        
         console.log('🔥 Active flash sale found:', activeFlashSale);
         
-        if (activeFlashSale && activeFlashSale.products && activeFlashSale.products.length > 0) {
-            console.log('🔥 Flash sale products:', activeFlashSale.products.length);
-            
-            // Show flash sale section
-            this.showFlashSaleSection();
-            
-            // Render products directly to container
-            const container = document.getElementById('flashSaleProducts');
-            if (container) {
-                console.log('🔥 Container found, rendering products...');
-                // Import createFlashSaleCard function
-                import('../features/flash-sale/flash-sale-card.js').then(module => {
-                    const { createFlashSaleCard } = module;
-                    const activeProducts = activeFlashSale.products.filter(p => p.is_active === 1);
-                    console.log('🔥 Active products to render:', activeProducts.length);
-                    
-                    if (activeProducts.length > 0) {
-                        container.innerHTML = activeProducts.map(createFlashSaleCard).join('');
-                    } else {
-                        console.warn('🔥 No active products in flash sale');
-                        this.hideFlashSaleSection();
-                    }
-                });
-            } else {
-                console.warn('🔥 Container #flashSaleProducts not found');
-                this.hideFlashSaleSection();
-            }
-            
-            // Start timer
-            if (this.flashSaleTimer) {
-                this.flashSaleTimer.start();
-            }
-        } else {
+        if (!activeFlashSale || !activeFlashSale.products || activeFlashSale.products.length === 0) {
             console.warn('🔥 No active flash sale or no products');
             this.hideFlashSaleSection();
+            return;
+        }
+        
+        const activeProducts = activeFlashSale.products.filter(p => p.is_active === 1);
+        if (activeProducts.length === 0) {
+            console.warn('🔥 No active products in flash sale');
+            this.hideFlashSaleSection();
+            return;
+        }
+        
+        const container = document.getElementById('flashSaleProducts');
+        if (!container) {
+            console.warn('🔥 Container #flashSaleProducts not found');
+            this.hideFlashSaleSection();
+            return;
+        }
+        
+        console.log('🔥 Active products to render:', activeProducts.length);
+        container.innerHTML = activeProducts.map(createFlashSaleCard).join('');
+        this.showFlashSaleSection();
+        
+        if (this.flashSaleTimer) {
+            this.flashSaleTimer.start();
         }
     }
     
@@ -384,7 +592,9 @@ export class HomePage {
     hideFlashSaleSection() {
         const section = document.getElementById('flash-sale');
         if (section) {
-            section.style.display = 'none';
+            section.classList.add('hidden');
+            section.setAttribute('aria-hidden', 'true');
+            section.style.removeProperty('display');
             console.log('🔥 Flash sale section hidden');
         }
     }
@@ -395,7 +605,9 @@ export class HomePage {
     showFlashSaleSection() {
         const section = document.getElementById('flash-sale');
         if (section) {
-            section.style.display = 'block';
+            section.classList.remove('hidden');
+            section.setAttribute('aria-hidden', 'false');
+            section.style.removeProperty('display');
             console.log('🔥 Flash sale section shown');
         }
     }
@@ -1214,6 +1426,7 @@ export class HomePage {
         const productsGrid = document.getElementById('productsGrid');
         if (productsSkeleton && productsGrid) {
             productsSkeleton.style.display = 'none';
+            productsSkeleton.setAttribute('aria-busy', 'false');
             productsGrid.classList.remove('hidden');
             productsGrid.classList.add('fade-in');
         }
