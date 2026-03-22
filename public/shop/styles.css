@@ -1355,19 +1355,31 @@ body {
     line-height: 1.6;
 }
 
-/* Benefits — tone ấm, tin cậy (mẹ bỉm sữa), không emoji */
+/* Benefits — tone ấm, tin cậy (mẹ bỉm sữa): bo góc mềm, viền chấm nhẹ */
 .benefits-section-mom .benefit-card-new {
     background: linear-gradient(165deg, #ffffff 0%, #fffdfb 48%, #fff8f3 100%);
-    border: 1px solid rgba(232, 180, 150, 0.35);
-    border-radius: 1.25rem;
+    border: 2px dashed rgba(244, 162, 97, 0.22);
+    border-radius: 1.5rem 2rem 1.35rem 2.15rem;
     padding: 1.75rem;
     display: flex;
     align-items: flex-start;
     gap: 1rem;
     transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
-    box-shadow: 0 4px 20px rgba(180, 120, 90, 0.07);
+    box-shadow: 0 6px 24px rgba(200, 140, 100, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.85);
     position: relative;
     overflow: hidden;
+}
+
+.benefits-section-mom .benefit-card-new:nth-child(3n + 1) {
+    border-radius: 1.65rem 1.45rem 2rem 1.55rem;
+}
+
+.benefits-section-mom .benefit-card-new:nth-child(3n + 2) {
+    border-radius: 1.45rem 1.85rem 1.5rem 2.1rem;
+}
+
+.benefits-section-mom .benefit-card-new:nth-child(3n) {
+    border-radius: 1.55rem 2.05rem 1.6rem 1.75rem;
 }
 
 .benefits-section-mom .benefit-card-new::before {
@@ -1382,8 +1394,8 @@ body {
 
 .benefits-section-mom .benefit-card-new:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 28px rgba(180, 120, 90, 0.12);
-    border-color: rgba(244, 162, 97, 0.45);
+    box-shadow: 0 12px 32px rgba(200, 140, 100, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    border-color: rgba(244, 162, 97, 0.38);
 }
 
 .benefits-section-mom .benefit-card-new:hover::before {
@@ -1401,7 +1413,7 @@ body {
 .benefit-title-new {
     font-size: 1.0625rem;
     font-weight: 600;
-    color: #3d4f5f;
+    color: #1f2937;
     line-height: 1.45;
     margin: 0;
     letter-spacing: -0.01em;
@@ -1409,7 +1421,7 @@ body {
 
 .benefit-desc-new {
     font-size: 0.9375rem;
-    color: #6b7c8a;
+    color: #6b7280;
     line-height: 1.65;
     margin: 0;
 }
@@ -1430,6 +1442,7 @@ body {
     aspect-ratio: 1 / 1;
     overflow: hidden;
     background: linear-gradient(145deg, #faf4ef 0%, #fff9f5 100%);
+    border-radius: 1.25rem 0.65rem 0.65rem 1.35rem;
 }
 
 .benefit-card-img {
@@ -1454,10 +1467,16 @@ body {
     padding: 1rem 1.15rem 1.15rem 0.85rem;
 }
 
+/* Khối CTA cuối section — bo mềm, bóng nhẹ (thay góc vuông cứng) */
+.benefits-section-mom .mom-soft-cta {
+    border-radius: 1.75rem 2.25rem 1.5rem 2rem;
+    box-shadow: 0 10px 36px rgba(200, 140, 100, 0.08), 0 4px 0 rgba(244, 162, 97, 0.12);
+}
+
 /* Mobile: 1 cột lưới + thẻ xếp dọc (ảnh trên, chữ dưới — dễ đọc, cân đối) */
 @media (max-width: 767px) {
     .benefits-section-mom .benefit-card-new {
-        border-radius: 1.125rem;
+        border-radius: 1.5rem 1.85rem 1.4rem 1.95rem;
     }
 
     .benefit-card-new.benefit-card-with-image {
@@ -1472,7 +1491,7 @@ body {
         min-width: 0;
         align-self: stretch;
         aspect-ratio: 1 / 1;
-        border-radius: 1rem 1rem 0 0;
+        border-radius: 1.35rem 1.35rem 1rem 1rem;
     }
 
     .benefit-card-body {
