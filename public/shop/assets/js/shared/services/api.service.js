@@ -16,6 +16,8 @@ class ApiService {
             timestamp: {}
         };
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+        /** true nếu getProductsPage không dùng được — chỉ phân trang client, tránh lặp fallback mỗi trang */
+        this._shopUseClientPagination = false;
         this.hydrateCacheFromSession();
     }
     
@@ -145,21 +147,57 @@ class ApiService {
      * Paginated products for shop home (same fields as getAllProducts, smaller per request).
      * @param {number} page - 1-based
      * @param {number} limit - max 100 on server
+     *
+     * Fallback: nếu API trả 400 (Worker cũ chưa có action getProductsPage) hoặc lỗi mạng —
+     * dùng getAllProducts + cắt trang phía client (ORDER BY name giống server).
      */
     async getProductsPage(page = 1, limit = 16) {
-        const data = await this.get('/get', {
-            action: 'getProductsPage',
-            page: String(page),
-            limit: String(limit)
-        });
-        const products = (data.products || []).filter((p) => p.is_active === 1);
-        return {
-            products,
-            total: data.total ?? 0,
-            page: data.page ?? page,
-            limit: data.limit ?? limit,
-            hasMore: Boolean(data.hasMore)
+        const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+        const limitNum = Math.min(Math.max(1, parseInt(String(limit), 10) || 16), 100);
+
+        const fallbackFromFullCatalog = async () => {
+            console.warn(
+                '📦 getProductsPage: fallback — getAllProducts + phân trang client (API không hỗ trợ getProductsPage hoặc lỗi)'
+            );
+            const all = await this.getAllProducts();
+            const sorted = [...all].sort((a, b) =>
+                String(a.name || '').localeCompare(String(b.name || ''), 'vi', { sensitivity: 'base' })
+            );
+            const total = sorted.length;
+            const offset = (pageNum - 1) * limitNum;
+            const products = sorted.slice(offset, offset + limitNum);
+            return {
+                products,
+                total,
+                page: pageNum,
+                limit: limitNum,
+                hasMore: offset + products.length < total
+            };
         };
+
+        if (this._shopUseClientPagination) {
+            return await fallbackFromFullCatalog();
+        }
+
+        try {
+            const data = await this.get('/get', {
+                action: 'getProductsPage',
+                page: String(pageNum),
+                limit: String(limitNum)
+            });
+            const products = (data.products || []).filter((p) => p.is_active === 1);
+            return {
+                products,
+                total: data.total ?? 0,
+                page: data.page ?? pageNum,
+                limit: data.limit ?? limitNum,
+                hasMore: Boolean(data.hasMore)
+            };
+        } catch (err) {
+            console.warn('getProductsPage request failed:', err?.message || err);
+            this._shopUseClientPagination = true;
+            return await fallbackFromFullCatalog();
+        }
     }
     
     /**

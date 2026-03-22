@@ -541,7 +541,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         default:
             return jsonResponse({
                 success: false,
-                error: 'Unknown action'
+                error: action
+                    ? `Unknown action: ${action}`
+                    : 'Missing action parameter (add ?action=... to the request)'
             }, 400, corsHeaders);
     }
 }
