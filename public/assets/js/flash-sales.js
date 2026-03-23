@@ -1827,7 +1827,7 @@ async function loadFlashSaleProductsForEdit(flashSaleId) {
                 }
             });
             
-            showToast(`✓ Đã tải ${selectedProducts.size} sản phẩm`, 'success');
+            // Không cần toast ở luồng chỉnh sửa; dữ liệu chỉ được nạp nền.
         }
     } catch (error) {
         console.error('Error loading flash sale products for edit:', error);

@@ -622,7 +622,6 @@ function editDiscount(id) {
     
     // Event fields
     document.getElementById('specialEvent').value = discount.special_event || '';
-    document.getElementById('eventIcon').value = discount.event_icon || '';
     document.getElementById('eventDate').value = discount.event_date || '';
     
     handleTypeChange();
@@ -795,7 +794,7 @@ async function handleFormSubmit(e) {
         combinable_with_other_discounts: 0,
         // Event fields (optional)
         special_event: document.getElementById('specialEvent').value.trim() || null,
-        event_icon: document.getElementById('eventIcon').value.trim() || null,
+        event_icon: null,
         event_date: document.getElementById('eventDate').value || null
     };
     
@@ -2497,10 +2496,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // EVENT PRESET HELPER
 // ============================================
 
-function setEventPreset(eventName, icon, date) {
+function setEventPreset(eventName, date) {
     // Cập nhật thông tin sự kiện
     document.getElementById('specialEvent').value = eventName;
-    document.getElementById('eventIcon').value = icon;
     document.getElementById('eventDate').value = date;
     
     // Tự động cập nhật ngày bắt đầu và ngày hết hạn dựa trên ngày sự kiện
