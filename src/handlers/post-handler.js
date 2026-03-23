@@ -4,7 +4,7 @@ import { jsonResponse } from '../utils/response.js';
 
 // Auth
 import { handleLogin, handleLogout, handleChangePassword } from '../auth/index.js';
-import { handleCreateUser, handleGetAllUsers } from '../auth/user-management.js';
+import { handleCreateUser, handleGetAllUsers, handleDeleteUser, handleBulkDeleteUsers } from '../auth/user-management.js';
 
 // CTV
 import { 
@@ -257,6 +257,10 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await handleCreateUser(data, request, env, corsHeaders);
         case 'getAllUsers':
             return await handleGetAllUsers(request, env, corsHeaders);
+        case 'deleteUser':
+            return await handleDeleteUser(data, request, env, corsHeaders);
+        case 'bulkDeleteUsers':
+            return await handleBulkDeleteUsers(data, request, env, corsHeaders);
         case 'getPackagingConfig':
             return await getPackagingConfig(env, corsHeaders);
         case 'updatePackagingConfig':
@@ -518,6 +522,10 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await handleCreateUser(data, request, env, corsHeaders);
             case 'getAllUsers':
                 return await handleGetAllUsers(request, env, corsHeaders);
+            case 'deleteUser':
+                return await handleDeleteUser(data, request, env, corsHeaders);
+            case 'bulkDeleteUsers':
+                return await handleBulkDeleteUsers(data, request, env, corsHeaders);
             
             // Featured Products
             case 'addFeaturedProduct':

@@ -204,6 +204,26 @@
                             autocomplete="off">
                     </div>
                 </div>
+                <div id="usersBulkActions" class="hidden px-6 py-3 border-b border-slate-100 bg-slate-50/70">
+                    <div class="flex items-center justify-between gap-4">
+                        <p class="text-sm text-slate-600">
+                            Đã chọn <span id="selectedAdminsCount" class="font-semibold text-slate-900">0</span> tài khoản
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="clearAdminSelection()"
+                                class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-white transition-colors">
+                                Bỏ chọn
+                            </button>
+                            <button type="button" onclick="bulkDeleteAdmins()"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Xóa đã chọn
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="loadingState" class="p-8">
                     <div class="space-y-3">
@@ -218,12 +238,16 @@
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="border-b border-slate-100 bg-slate-50/80">
+                                    <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">
+                                        <input type="checkbox" id="selectAllAdmins" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40" onchange="toggleSelectAllAdmins(this.checked)">
+                                    </th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider w-14">#</th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tài khoản</th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Họ tên</th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Vai trò</th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ngày tạo</th>
                                     <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Trạng thái</th>
+                                    <th class="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody id="adminsTableBody" class="divide-y divide-slate-100">
@@ -344,6 +368,7 @@
     <script>
         // Configuration
         let allAdmins = [];
+        const selectedAdminIds = new Set();
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -356,6 +381,16 @@
                 });
             }
         });
+
+        function getCurrentAdminId() {
+            try {
+                const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+                const id = Number(userInfo?.id || 0);
+                return Number.isNaN(id) ? 0 : id;
+            } catch (_) {
+                return 0;
+            }
+        }
 
         function getFilteredAdmins() {
             const q = (document.getElementById('adminSearchInput')?.value || '').trim().toLowerCase();
@@ -385,6 +420,10 @@
                 
                 if (data.success) {
                     allAdmins = data.users || [];
+                    const validIds = new Set(allAdmins.map(a => Number(a.id)));
+                    [...selectedAdminIds].forEach(id => {
+                        if (!validIds.has(Number(id))) selectedAdminIds.delete(Number(id));
+                    });
                     renderAdmins();
                 } else {
                     throw new Error(data.error || 'Failed to load admins');
@@ -411,20 +450,32 @@
             if (list.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="px-6 py-14 text-center">
+                        <td colspan="8" class="px-6 py-14 text-center">
                             <p class="text-slate-500 text-sm">Không tìm thấy tài khoản phù hợp. Thử từ khóa khác.</p>
                         </td>
                     </tr>
                 `;
                 showTable();
+                updateBulkActionsUI();
                 return;
             }
 
             tbody.innerHTML = list.map((admin, index) => {
                 const u = admin.username || '';
                 const initials = u.length >= 2 ? u.substring(0, 2).toUpperCase() : (u.charAt(0) || '?').toUpperCase();
+                const adminId = Number(admin.id);
+                const currentAdminId = getCurrentAdminId();
+                const isSelf = adminId === currentAdminId;
+                const isSelected = selectedAdminIds.has(adminId);
                 return `
                 <tr class="hover:bg-slate-50/80 transition-colors group">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox"
+                            class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40"
+                            ${isSelected ? 'checked' : ''}
+                            ${isSelf ? 'disabled title="Không thể tự xóa tài khoản đang đăng nhập"' : ''}
+                            onchange="toggleAdminSelection(${adminId}, this.checked)">
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-medium tabular-nums">${index + 1}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
@@ -452,11 +503,21 @@
                             Hoạt động
                         </span>
                     </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <button type="button" onclick="deleteAdmin(${adminId}, '${escapeHtml(admin.username)}')" 
+                            ${isSelf ? 'disabled title="Không thể tự xóa tài khoản đang đăng nhập"' : ''}
+                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
                 </tr>
             `;
             }).join('');
 
             showTable();
+            updateBulkActionsUI();
         }
 
         // Show/hide states
@@ -478,6 +539,54 @@
         function showEmptyState() {
             document.getElementById('emptyState').classList.remove('hidden');
             document.getElementById('tableContent').classList.add('hidden');
+            updateBulkActionsUI();
+        }
+
+        function updateBulkActionsUI() {
+            const bar = document.getElementById('usersBulkActions');
+            const countEl = document.getElementById('selectedAdminsCount');
+            const selectAll = document.getElementById('selectAllAdmins');
+            const list = getFilteredAdmins();
+            const currentAdminId = getCurrentAdminId();
+            const selectableIds = list
+                .map(a => Number(a.id))
+                .filter(id => id && id !== currentAdminId);
+            const selectedOnPage = selectableIds.filter(id => selectedAdminIds.has(id)).length;
+
+            if (countEl) countEl.textContent = selectedAdminIds.size;
+            if (bar) {
+                if (selectedAdminIds.size > 0) bar.classList.remove('hidden');
+                else bar.classList.add('hidden');
+            }
+            if (selectAll) {
+                selectAll.checked = selectableIds.length > 0 && selectedOnPage === selectableIds.length;
+                selectAll.indeterminate = selectedOnPage > 0 && selectedOnPage < selectableIds.length;
+            }
+        }
+
+        function toggleAdminSelection(adminId, checked) {
+            const id = Number(adminId);
+            if (!id) return;
+            if (checked) selectedAdminIds.add(id);
+            else selectedAdminIds.delete(id);
+            updateBulkActionsUI();
+        }
+
+        function toggleSelectAllAdmins(checked) {
+            const currentAdminId = getCurrentAdminId();
+            const ids = getFilteredAdmins()
+                .map(a => Number(a.id))
+                .filter(id => id && id !== currentAdminId);
+
+            if (checked) ids.forEach(id => selectedAdminIds.add(id));
+            else ids.forEach(id => selectedAdminIds.delete(id));
+
+            renderAdmins();
+        }
+
+        function clearAdminSelection() {
+            selectedAdminIds.clear();
+            renderAdmins();
         }
         // Modal functions
         function showAddAdminModal() {
@@ -574,6 +683,90 @@
                 // Reset button
                 createBtn.disabled = false;
                 createBtn.textContent = 'Tạo tài khoản';
+            }
+        }
+
+        async function deleteAdmin(adminId, username) {
+            const id = Number(adminId);
+            if (!id) return;
+            const currentAdminId = getCurrentAdminId();
+            if (id === currentAdminId) {
+                showToast('Không thể tự xóa tài khoản đang đăng nhập', 'warning');
+                return;
+            }
+
+            const ok = confirm(`Bạn có chắc muốn xóa admin "${username}"?\n\nHành động này sẽ vô hiệu hóa tài khoản và đăng xuất các phiên đang hoạt động.`);
+            if (!ok) return;
+
+            try {
+                const sessionToken = localStorage.getItem('session_token');
+                const response = await fetch(`${CONFIG.API_URL}?action=deleteUser`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
+                    },
+                    body: JSON.stringify({
+                        action: 'deleteUser',
+                        id
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Không thể xóa admin');
+                }
+
+                selectedAdminIds.delete(id);
+                showToast('Đã xóa admin thành công', 'success');
+                await loadAdmins();
+            } catch (error) {
+                console.error('Delete admin error:', error);
+                showToast(error.message || 'Lỗi xóa admin', 'error');
+            }
+        }
+
+        async function bulkDeleteAdmins() {
+            if (selectedAdminIds.size === 0) {
+                showToast('Vui lòng chọn ít nhất 1 tài khoản', 'warning');
+                return;
+            }
+
+            const ids = [...selectedAdminIds];
+            const ok = confirm(`Bạn có chắc muốn xóa ${ids.length} admin đã chọn?\n\nHành động này sẽ vô hiệu hóa các tài khoản và đăng xuất các phiên đang hoạt động.`);
+            if (!ok) return;
+
+            try {
+                const sessionToken = localStorage.getItem('session_token');
+                const response = await fetch(`${CONFIG.API_URL}?action=bulkDeleteUsers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
+                    },
+                    body: JSON.stringify({
+                        action: 'bulkDeleteUsers',
+                        ids
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Không thể xóa hàng loạt admin');
+                }
+
+                selectedAdminIds.clear();
+                const selfSkipped = Number(data.skipped_self || 0);
+                const deleted = Number(data.deleted_count || 0);
+                if (selfSkipped > 0) {
+                    showToast(`Đã xóa ${deleted} admin (bỏ qua ${selfSkipped} tài khoản của chính bạn)`, 'success');
+                } else {
+                    showToast(`Đã xóa ${deleted} admin thành công`, 'success');
+                }
+                await loadAdmins();
+            } catch (error) {
+                console.error('Bulk delete admins error:', error);
+                showToast(error.message || 'Lỗi xóa hàng loạt admin', 'error');
             }
         }
         // Utility functions
