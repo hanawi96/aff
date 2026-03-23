@@ -115,12 +115,20 @@ function renderMaterialsFormula() {
                         <h4 class="font-bold text-sm text-gray-900 truncate leading-tight">${escapeHtml(displayName)}</h4>
                         <code class="text-[10px] text-gray-400 font-mono leading-tight">${escapeHtml(material.material_name)}</code>
                     </div>
-                    <button type="button" onclick="removeMaterial(${index})" 
-                        class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0" title="Xóa">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                    <div class="flex items-center gap-0.5 flex-shrink-0">
+                        <button type="button" onclick="showReplaceMaterialModal(${index})" 
+                            class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Đổi nguyên liệu">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+                        <button type="button" onclick="removeMaterial(${index})" 
+                            class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Quantity Controls -->
@@ -207,6 +215,28 @@ async function showAddMaterialModal() {
                 notes: ''
             });
         });
+
+        // Nguyên liệu bắt buộc thêm: Dây đỏ (mã day_do, danh mục dây xỏ / dây)
+        const findDefaultRedString = () => {
+            const list = allMaterialsForProduct;
+            const bySlug = list.find(m => m.item_name === 'day_do');
+            if (bySlug) return bySlug;
+            return list.find(m => {
+                const dn = (m.display_name || '').trim().toLowerCase();
+                const cat = ((m.category_display_name || '') + ' ' + (m.category_name || '')).toLowerCase();
+                const isDayXo = cat.includes('dây xỏ') || cat.includes('day_xo');
+                return dn === 'dây đỏ' || (isDayXo && dn.includes('đỏ'));
+            });
+        };
+        const redString = findDefaultRedString();
+        if (redString && !tempSelectedMaterials.some(m => m.material_name === redString.item_name)) {
+            tempSelectedMaterials.push({
+                material_name: redString.item_name,
+                quantity: 1,
+                unit: 'sợi',
+                notes: ''
+            });
+        }
     }
 
     // Filter out already selected materials AND packaging costs (category "Khác")
@@ -377,6 +407,213 @@ function closeAddMaterialModal() {
     const modal = document.getElementById('addMaterialModal');
     if (modal) modal.remove();
     tempSelectedMaterials = [];
+}
+
+/** Index của dòng đang đổi nguyên liệu (modal thay thế) */
+let replaceMaterialTargetIndex = null;
+
+function closeReplaceMaterialModal() {
+    const modal = document.getElementById('replaceMaterialModal');
+    if (modal) modal.remove();
+    replaceMaterialTargetIndex = null;
+}
+
+/**
+ * Mở modal chọn nguyên liệu thay thế (giữ số lượng & đơn vị hiện tại).
+ */
+async function showReplaceMaterialModal(index) {
+    if (!allMaterialsForProduct || allMaterialsForProduct.length === 0) {
+        await loadMaterialsForProduct();
+    }
+
+    const current = selectedMaterials[index];
+    if (!current) return;
+
+    const addModal = document.getElementById('addMaterialModal');
+    if (addModal) addModal.remove();
+
+    replaceMaterialTargetIndex = index;
+
+    const formatCurrency = getFormatCurrency();
+    const escapeHtml = getEscapeHtml();
+    const currentInfo = allMaterialsForProduct.find(m => m.item_name === current.material_name);
+    const currentLabel = currentInfo?.display_name || formatMaterialName(current.material_name);
+
+    const otherNames = new Set(
+        selectedMaterials.map((m, i) => (i !== index ? m.material_name : null)).filter(Boolean)
+    );
+
+    const availableMaterials = allMaterialsForProduct.filter(m => m.category_name !== 'khac');
+
+    const groupedMaterials = {};
+    availableMaterials.forEach(material => {
+        const categoryName = material.category_display_name || 'Khác';
+        if (!groupedMaterials[categoryName]) {
+            groupedMaterials[categoryName] = {
+                icon: material.category_icon || '📦',
+                materials: []
+            };
+        }
+        groupedMaterials[categoryName].materials.push(material);
+    });
+
+    let materialsHTML = '';
+    if (Object.keys(groupedMaterials).length === 0) {
+        materialsHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <p class="text-sm font-medium">Không có nguyên liệu nào</p>
+            </div>
+        `;
+    } else {
+        Object.keys(groupedMaterials).forEach(categoryName => {
+            const group = groupedMaterials[categoryName];
+
+            materialsHTML += `
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-3 px-2">
+                        <span class="text-xl">${group.icon}</span>
+                        <span class="text-sm font-bold text-gray-700">${escapeHtml(categoryName)}</span>
+                        <span class="text-xs text-gray-500">(${group.materials.length})</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        ${group.materials.map(material => {
+                            const displayName = material.display_name || formatMaterialName(material.item_name);
+                            const isCurrent = material.item_name === current.material_name;
+                            const isBlocked = otherNames.has(material.item_name);
+                            const dataItemName = encodeURIComponent(material.item_name);
+
+                            if (isBlocked) {
+                                return `
+                                    <div class="border border-gray-200 rounded-xl p-3 opacity-50 cursor-not-allowed bg-gray-50" title="Đã dùng ở dòng khác trong công thức">
+                                        <div class="flex items-start gap-2">
+                                            <div class="w-5 h-5 rounded border-2 border-gray-200 flex-shrink-0 mt-0.5"></div>
+                                            <div class="min-w-0 flex-1">
+                                                <h4 class="font-semibold text-sm text-gray-500 truncate">${escapeHtml(displayName)}</h4>
+                                                <p class="text-xs text-gray-400 mt-0.5">${formatCurrency(material.item_cost)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
+                            return `
+                                <button type="button"
+                                    data-replace-material="${dataItemName}"
+                                    class="border border-gray-200 rounded-xl overflow-hidden text-left p-3 transition-all hover:border-indigo-400 hover:shadow-sm ${isCurrent ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-indigo-50/50'}">
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${isCurrent ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}">
+                                            ${isCurrent ? '<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>' : ''}
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <h4 class="font-semibold text-sm text-gray-900 truncate ${isCurrent ? 'text-indigo-800' : ''}">${escapeHtml(displayName)}</h4>
+                                            <p class="text-xs text-gray-500 mt-0.5">${formatCurrency(material.item_cost)}</p>
+                                            ${isCurrent ? '<p class="text-[10px] text-indigo-600 font-medium mt-1">Đang dùng</p>' : ''}
+                                        </div>
+                                    </div>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'replaceMaterialModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[75vh] overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Đổi nguyên liệu</h3>
+                        <p class="text-xs text-white/90 mt-0.5">Đang thay: <span class="font-semibold">${escapeHtml(currentLabel)}</span> — giữ nguyên số lượng &amp; đơn vị</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReplaceMaterialModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                ${materialsHTML}
+            </div>
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end">
+                <button type="button" onclick="closeReplaceMaterialModal()"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-replace-material]');
+        if (!btn || !modal.contains(btn)) return;
+        e.preventDefault();
+        const enc = btn.getAttribute('data-replace-material');
+        if (enc == null || enc === '') return;
+        try {
+            applyReplaceMaterial(decodeURIComponent(enc));
+        } catch (err) {
+            console.error('replace material click:', err);
+            getShowToast()('Không thể áp dụng nguyên liệu đã chọn', 'error');
+        }
+    });
+}
+
+function applyReplaceMaterial(newItemName) {
+    const showToast = getShowToast();
+    const idx = replaceMaterialTargetIndex;
+    if (idx === null || idx === undefined) return;
+
+    const current = selectedMaterials[idx];
+    if (!current) {
+        closeReplaceMaterialModal();
+        return;
+    }
+
+    if (newItemName === current.material_name) {
+        closeReplaceMaterialModal();
+        return;
+    }
+
+    const otherNames = new Set(
+        selectedMaterials.map((m, i) => (i !== idx ? m.material_name : null)).filter(Boolean)
+    );
+    if (otherNames.has(newItemName)) {
+        showToast('Nguyên liệu này đã có trong công thức (dòng khác). Chọn nguyên liệu khác.', 'warning');
+        return;
+    }
+
+    const newInfo = allMaterialsForProduct.find(m => m.item_name === newItemName);
+    if (!newInfo) {
+        showToast('Không tìm thấy nguyên liệu', 'error');
+        return;
+    }
+
+    selectedMaterials[idx] = {
+        material_name: newItemName,
+        quantity: current.quantity,
+        unit: current.unit,
+        notes: current.notes || ''
+    };
+
+    closeReplaceMaterialModal();
+    renderMaterialsFormula();
+    calculateTotalCost();
+
+    const displayName = newInfo.display_name || formatMaterialName(newItemName);
+    showToast(`Đã đổi thành ${displayName}`, 'success');
 }
 
 // Toggle material selection in modal
@@ -690,6 +927,8 @@ function formatMaterialName(itemName) {
         'day_tron': 'Dây trơn',
         'day_ngu_sac': 'Dây ngũ sắc',
         'day_vang': 'Dây vàng',
+        'day_do': 'Dây đỏ',
+        'day_cuoc': 'Dây cước',
         'charm_ran': 'Charm rắn',
         'charm_rong': 'Charm rồng',
         'charm_hoa_sen': 'Charm hoa sen',
@@ -709,6 +948,9 @@ function formatMaterialName(itemName) {
 window.loadProductFormula = loadProductFormula;
 window.showAddMaterialModal = showAddMaterialModal;
 window.closeAddMaterialModal = closeAddMaterialModal;
+window.showReplaceMaterialModal = showReplaceMaterialModal;
+window.closeReplaceMaterialModal = closeReplaceMaterialModal;
+window.applyReplaceMaterial = applyReplaceMaterial;
 window.toggleMaterialInModal = toggleMaterialInModal;
 window.updateTempQuantity = updateTempQuantity;
 window.incrementTempQuantity = incrementTempQuantity;

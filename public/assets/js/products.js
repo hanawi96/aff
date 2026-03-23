@@ -1183,8 +1183,8 @@ function showAddProductModal() {
                         class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                         Hủy
                     </button>
-                    <button type="button" onclick="saveProduct()"
-                        class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                    <button type="button" id="productSaveBtn" onclick="saveProduct()"
+                        class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium inline-flex items-center justify-center gap-2 min-w-[10rem]">
                         Lưu sản phẩm
                     </button>
                 </div>
@@ -1743,18 +1743,41 @@ async function saveProduct(productId = null) {
     // Debug: Log data being sent to server
     console.log('📤 Sending to server:', JSON.stringify(productData, null, 2));
 
+    const saveBtnLoadingHtml = (label) => `
+        <span class="inline-flex items-center justify-center gap-2">
+            <svg class="w-5 h-5 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>${label}</span>
+        </span>`;
+
+    const restoreProductSaveButton = (productId) => {
+        const btn = document.getElementById('productSaveBtn');
+        if (!btn) return;
+        btn.disabled = false;
+        btn.classList.remove('cursor-wait', 'opacity-90');
+        if (btn.dataset.originalHtml) {
+            btn.innerHTML = btn.dataset.originalHtml;
+            delete btn.dataset.originalHtml;
+        } else {
+            btn.textContent = productId ? 'Cập nhật' : 'Lưu sản phẩm';
+        }
+    };
+
     try {
-        // Disable save button to prevent double submission
-        const saveBtn = event?.target;
+        const saveBtn = document.getElementById('productSaveBtn');
         if (saveBtn) {
+            saveBtn.dataset.originalHtml = saveBtn.innerHTML;
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Đang lưu...';
+            saveBtn.classList.add('cursor-wait', 'opacity-90');
+            saveBtn.innerHTML = saveBtnLoadingHtml('Đang lưu...');
         }
 
         // Upload selected image only when user confirms by clicking Save.
         if (pendingImageFile) {
             if (saveBtn) {
-                saveBtn.textContent = 'Đang upload ảnh...';
+                saveBtn.innerHTML = saveBtnLoadingHtml('Đang upload ảnh...');
             }
             image_url = await uploadImageToR2(pendingImageFile);
             const hiddenInput = document.getElementById('productImageURL');
@@ -1762,7 +1785,7 @@ async function saveProduct(productId = null) {
             resetPendingImageSelection();
 
             if (saveBtn) {
-                saveBtn.textContent = 'Đang lưu...';
+                saveBtn.innerHTML = saveBtnLoadingHtml('Đang lưu...');
             }
         }
 
@@ -1838,13 +1861,7 @@ async function saveProduct(productId = null) {
     } catch (error) {
         console.error('Error saving product:', error);
         showToast('Lỗi: ' + error.message, 'error');
-
-        // Re-enable save button
-        const saveBtn = event?.target;
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = productId ? 'Cập nhật' : 'Lưu sản phẩm';
-        }
+        restoreProductSaveButton(productId);
     }
 }
 
@@ -2435,8 +2452,8 @@ async function editProduct(productId) {
                             class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                             Hủy
                         </button>
-                        <button type="button" onclick="saveProduct(${productId})"
-                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        <button type="button" id="productSaveBtn" onclick="saveProduct(${productId})"
+                            class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium inline-flex items-center justify-center gap-2 min-w-[10rem]">
                             Cập nhật
                         </button>
                     </div>
