@@ -572,7 +572,7 @@ function showAddDiscountModal() {
     document.getElementById('expiryDate').value = oneWeekLater.toISOString().split('T')[0];
     
     handleTypeChange();
-    document.getElementById('discountModal').classList.remove('hidden');
+    openModalOverlay('discountModal');
 }
 
 function editDiscount(id) {
@@ -626,7 +626,7 @@ function editDiscount(id) {
     document.getElementById('eventDate').value = discount.event_date || '';
     
     handleTypeChange();
-    document.getElementById('discountModal').classList.remove('hidden');
+    openModalOverlay('discountModal');
 }
 
 function duplicateDiscount(id) {
@@ -674,7 +674,7 @@ function duplicateDiscount(id) {
     document.getElementById('visible').checked = discount.visible;
     
     handleTypeChange();
-    document.getElementById('discountModal').classList.remove('hidden');
+    openModalOverlay('discountModal');
     
     // Highlight auto-adjusted fields
     setTimeout(() => {
