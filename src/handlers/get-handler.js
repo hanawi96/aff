@@ -32,6 +32,7 @@ import {
     getAllProducts,
     getProductsPage,
     checkOutdatedProducts, 
+    getOutdatedProductsDetails,
     getProduct, 
     searchProducts 
 } from '../services/products/product-service.js';
@@ -286,6 +287,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'checkOutdatedProducts':
             return await checkOutdatedProducts(env, corsHeaders);
+
+        case 'getOutdatedProductsDetails':
+            return await getOutdatedProductsDetails(env, corsHeaders);
 
         case 'getProduct':
             const productId = url.searchParams.get('id');

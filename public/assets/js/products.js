@@ -10,6 +10,7 @@ let pendingImagePreviewUrl = null;
 let pinnedProductId = null;
 let editingProductStockId = null;
 let originalProductStockValue = null;
+let outdatedProductsCache = null;
 
 // Filter state
 let currentFilters = {
@@ -265,6 +266,7 @@ async function loadProducts() {
 
         if (data.success) {
             allProducts = data.products || [];
+            outdatedProductsCache = null;
 
             console.log('📦 Loaded products:', allProducts.length);
             // Refresh category preset counts (especially "Tất cả")
@@ -295,6 +297,7 @@ async function reloadProductsKeepPage() {
 
         if (data.success) {
             allProducts = data.products || [];
+            outdatedProductsCache = null;
 
             console.log('📦 Reloaded products (keeping page):', allProducts.length);
             // Keep category counters in sync with latest product list.
@@ -3608,6 +3611,8 @@ async function checkOutdatedProducts() {
 
         if (data.success && data.outdated_count > 0) {
             showOutdatedNotification(data.outdated_count);
+        } else if (data.success) {
+            hideOutdatedNotification();
         }
     } catch (error) {
         console.error('Error checking outdated products:', error);
@@ -3628,6 +3633,158 @@ function hideOutdatedNotification() {
     const notification = document.getElementById('outdatedProductsNotification');
     if (notification) {
         notification.classList.add('hidden');
+    }
+}
+
+async function fetchOutdatedProductsDetails(forceRefresh = false) {
+    if (!forceRefresh && outdatedProductsCache && Array.isArray(outdatedProductsCache.products)) {
+        return outdatedProductsCache;
+    }
+
+    const response = await fetch(`${CONFIG.API_URL}?action=getOutdatedProductsDetails&timestamp=${Date.now()}`);
+    const data = await response.json();
+    if (!data.success) {
+        throw new Error(data.error || 'Không thể tải chi tiết sản phẩm');
+    }
+
+    outdatedProductsCache = data;
+    return data;
+}
+
+function closeOutdatedProductsDetailsModal() {
+    const modal = document.getElementById('outdatedProductsDetailsModal');
+    if (modal) modal.remove();
+}
+
+function renderOutdatedProductsDetails(container, products) {
+    if (!container) return;
+
+    if (!products || products.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12 text-gray-500">
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-7 4h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-sm font-medium">Hiện không có sản phẩm cần cập nhật</p>
+            </div>
+        `;
+        return;
+    }
+
+    const rows = products.map((product) => {
+        const priceDelta = Number(product.delta_price || 0);
+        const costDelta = Number(product.delta_cost_price || 0);
+        const priceDeltaClass = priceDelta >= 0 ? 'text-red-600' : 'text-green-600';
+        const costDeltaClass = costDelta >= 0 ? 'text-red-600' : 'text-green-600';
+        const priceDeltaText = `${priceDelta >= 0 ? '+' : ''}${formatCurrency(priceDelta)}`;
+        const costDeltaText = `${costDelta >= 0 ? '+' : ''}${formatCurrency(costDelta)}`;
+
+        return `
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="px-4 py-3">
+                    <div class="font-medium text-gray-900">${escapeHtml(product.name || `#${product.id}`)}</div>
+                    <div class="text-xs text-gray-500">ID: ${product.id}</div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-700">
+                    <div>${formatCurrency(product.current_price || 0)}</div>
+                    <div class="text-xs ${priceDeltaClass}">${priceDeltaText}</div>
+                </td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-900">${formatCurrency(product.expected_price || 0)}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">
+                    <div>${formatCurrency(product.current_cost_price || 0)}</div>
+                    <div class="text-xs ${costDeltaClass}">${costDeltaText}</div>
+                </td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-900">${formatCurrency(product.expected_cost_price || 0)}</td>
+                <td class="px-4 py-3 text-right">
+                    <button type="button" onclick="closeOutdatedProductsDetailsModal(); editProduct(${product.id})"
+                        class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Sửa
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold">Sản phẩm</th>
+                        <th class="px-4 py-3 text-left font-semibold">Giá hiện tại</th>
+                        <th class="px-4 py-3 text-left font-semibold">Giá đề xuất</th>
+                        <th class="px-4 py-3 text-left font-semibold">Giá vốn hiện tại</th>
+                        <th class="px-4 py-3 text-left font-semibold">Giá vốn đề xuất</th>
+                        <th class="px-4 py-3 text-right font-semibold">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+async function openOutdatedProductsDetailsModal() {
+    closeOutdatedProductsDetailsModal();
+
+    const modal = document.createElement('div');
+    modal.id = 'outdatedProductsDetailsModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[86vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-orange-50 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Sản phẩm cần cập nhật giá</h3>
+                    <p class="text-sm text-gray-600">Danh sách chi tiết theo giá nguyên liệu hiện tại</p>
+                </div>
+                <button onclick="closeOutdatedProductsDetailsModal()" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto" id="outdatedProductsDetailsContent">
+                <div class="flex items-center justify-center py-10 text-gray-500">
+                    <svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Đang tải danh sách...
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="quickRecalculatePrices(); closeOutdatedProductsDetailsModal();"
+                    class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                    Cập nhật tất cả ngay
+                </button>
+                <button type="button" onclick="closeOutdatedProductsDetailsModal()"
+                    class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const content = document.getElementById('outdatedProductsDetailsContent');
+    try {
+        const details = await fetchOutdatedProductsDetails();
+        renderOutdatedProductsDetails(content, details.products || []);
+    } catch (error) {
+        if (content) {
+            content.innerHTML = `
+                <div class="text-center py-10 text-red-600">
+                    <p class="font-medium">Không thể tải danh sách chi tiết</p>
+                    <p class="text-sm mt-1">${escapeHtml(error.message || 'Đã có lỗi xảy ra')}</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -3696,6 +3853,7 @@ async function executeQuickRecalculate() {
             
             // Hide notification banner
             hideOutdatedNotification();
+            outdatedProductsCache = null;
             
             // Show success message
             showToast(`Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
