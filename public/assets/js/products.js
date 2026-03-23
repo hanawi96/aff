@@ -178,16 +178,29 @@ function populateCategoryFilter() {
     const container = document.getElementById('categoryFilterButtons');
     if (!container) return;
 
+    const activeProducts = allProducts.filter(p => Number(p?.is_active ?? 1) !== 0);
+    const getCategoryCount = (categoryId) => {
+        const normalizedCategoryId = parseInt(categoryId);
+        if (isNaN(normalizedCategoryId)) return 0;
+
+        return activeProducts.filter(product => {
+            if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
+                return product.category_ids.some(id => parseInt(id) === normalizedCategoryId);
+            }
+            return parseInt(product.category_id) === normalizedCategoryId;
+        }).length;
+    };
+
     // Clear existing buttons
     container.innerHTML = '';
 
     // Create "Tất cả" button
-    const allButton = createCategoryButton('', 'Tất cả', allProducts.length, true);
+    const allButton = createCategoryButton('', 'Tất cả', activeProducts.length, true);
     container.appendChild(allButton);
 
     // Create category buttons
     allCategories.forEach(category => {
-        const button = createCategoryButton(category.id, category.name, category.product_count || 0, false);
+        const button = createCategoryButton(category.id, category.name, getCategoryCount(category.id), false);
         container.appendChild(button);
     });
 }
@@ -3026,7 +3039,7 @@ async function bulkDeleteProducts() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'deleteProduct',
-                        productId: productId
+                        id: productId
                     })
                 });
 

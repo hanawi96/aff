@@ -608,6 +608,14 @@ function applyReplaceMaterial(newItemName) {
         notes: current.notes || ''
     };
 
+    if (isDayXoCategoryMaterial(newInfo)) {
+        const dayXoSet = new Set(getDayXoMaterialItemNames());
+        selectedMaterials = selectedMaterials.filter(m => {
+            if (!dayXoSet.has(m.material_name)) return true;
+            return m.material_name === newItemName;
+        });
+    }
+
     closeReplaceMaterialModal();
     renderMaterialsFormula();
     calculateTotalCost();
@@ -616,25 +624,48 @@ function applyReplaceMaterial(newItemName) {
     showToast(`Đã đổi thành ${displayName}`, 'success');
 }
 
+/** Danh mục "dây xỏ": chỉ được chọn tối đa 1 nguyên liệu (radio-style). */
+function isDayXoCategoryMaterial(material) {
+    if (!material) return false;
+    const slug = (material.category_name || '').toLowerCase();
+    const label = (material.category_display_name || '').toLowerCase();
+    return slug === 'day_xo' || label.includes('dây xỏ') || label.includes('day xo');
+}
+
+function getDayXoMaterialItemNames() {
+    return allMaterialsForProduct
+        .filter(m => isDayXoCategoryMaterial(m))
+        .map(m => m.item_name);
+}
+
 // Toggle material selection in modal
 function toggleMaterialInModal(materialName) {
     const index = tempSelectedMaterials.findIndex(m => m.material_name === materialName);
-    
+    const materialInfo = allMaterialsForProduct.find(m => m.item_name === materialName);
+    const isDayXo = materialInfo && isDayXoCategoryMaterial(materialInfo);
+    const dayXoNames = isDayXo ? getDayXoMaterialItemNames() : [];
+
     if (index >= 0) {
-        // Deselect
         tempSelectedMaterials.splice(index, 1);
+        updateModalSelectionUI(materialName);
     } else {
-        // Select with default quantity
+        if (isDayXo && dayXoNames.length > 0) {
+            const dayXoSet = new Set(dayXoNames);
+            tempSelectedMaterials = tempSelectedMaterials.filter(m => !dayXoSet.has(m.material_name));
+        }
         tempSelectedMaterials.push({
             material_name: materialName,
             quantity: 1,
             unit: 'viên',
             notes: ''
         });
+        if (isDayXo && dayXoNames.length > 0) {
+            dayXoNames.forEach(name => updateModalSelectionUI(name));
+        } else {
+            updateModalSelectionUI(materialName);
+        }
     }
-    
-    // Update UI
-    updateModalSelectionUI(materialName);
+
     updateSelectedCount();
 }
 
@@ -780,10 +811,28 @@ function updateTempUnit(materialName, unit) {
     }
 }
 
+/** Giữ tối đa 1 dòng thuộc danh mục dây xỏ (bản ghi cuối trong danh sách được giữ). */
+function dedupeDayXoInMaterialList(list) {
+    const dayXoNames = getDayXoMaterialItemNames();
+    if (dayXoNames.length === 0) return list;
+    const set = new Set(dayXoNames);
+    let lastIdx = -1;
+    for (let i = list.length - 1; i >= 0; i--) {
+        if (set.has(list[i].material_name)) {
+            lastIdx = i;
+            break;
+        }
+    }
+    if (lastIdx < 0) return list;
+    const keepName = list[lastIdx].material_name;
+    return list.filter(m => !set.has(m.material_name) || m.material_name === keepName);
+}
+
 // Save temp materials to actual selection
 function saveTempMaterials() {
     const showToast = getShowToast();
-    
+
+    tempSelectedMaterials = dedupeDayXoInMaterialList(tempSelectedMaterials);
     selectedMaterials = JSON.parse(JSON.stringify(tempSelectedMaterials));
     
     closeAddMaterialModal();
