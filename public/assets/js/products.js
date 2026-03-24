@@ -26,6 +26,9 @@ let currentSort = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
+    // Read URL filters before first render to avoid active-button flicker.
+    loadFiltersFromURL({ applyNow: false });
+
     Promise.all([
         loadCategories(),
         loadProducts()
@@ -33,14 +36,12 @@ document.addEventListener('DOMContentLoaded', function () {
         setupEventListeners();
         setupKeyboardShortcuts();
         checkOutdatedProducts();
-        
-        // Load filters from URL
-        loadFiltersFromURL();
     });
 });
 
 // Load filters from URL parameters
-function loadFiltersFromURL() {
+function loadFiltersFromURL(options = {}) {
+    const applyNow = options.applyNow !== false;
     const urlParams = new URLSearchParams(window.location.search);
     
     // Get category from URL
@@ -60,7 +61,9 @@ function loadFiltersFromURL() {
     }
     
     // Apply filters if any exist
-    if (categoryId || searchTerm) {
+    if (applyNow && (categoryId || searchTerm)) {
+        // Re-render category buttons so active highlight matches URL filter
+        populateCategoryFilter();
         searchAndSort();
     }
 }
@@ -115,6 +118,7 @@ function setupEventListeners() {
             }
             
             // Re-apply filters
+            populateCategoryFilter();
             searchAndSort();
         } else {
             // No state, load from URL
@@ -3636,15 +3640,118 @@ function hideOutdatedNotification() {
     }
 }
 
+function hasMeaningfulDifference(a, b, epsilon = 0.01) {
+    const n1 = Number(a || 0);
+    const n2 = Number(b || 0);
+    return Math.abs(n1 - n2) > epsilon;
+}
+
+function smartRoundPrice(price) {
+    if (price < 10000) return Math.round(price / 1000) * 1000;
+    if (price < 100000) return Math.round(price / 1000) * 1000;
+    if (price < 500000) return Math.round(price / 5000) * 5000;
+    return Math.round(price / 10000) * 10000;
+}
+
+function smartRoundPriceUp(price) {
+    if (price < 10000) return Math.ceil(price / 1000) * 1000;
+    if (price < 100000) return Math.ceil(price / 1000) * 1000;
+    if (price < 500000) return Math.ceil(price / 5000) * 5000;
+    return Math.ceil(price / 10000) * 10000;
+}
+
+async function fetchOutdatedProductsDetailsLegacy() {
+    const products = Array.isArray(allProducts) ? allProducts : [];
+    if (!products.length) {
+        return { success: true, outdated_count: 0, products: [] };
+    }
+
+    const concurrency = 8;
+    const outdatedProducts = [];
+
+    for (let i = 0; i < products.length; i += concurrency) {
+        const chunk = products.slice(i, i + concurrency);
+        const chunkResults = await Promise.all(chunk.map(async (product) => {
+            try {
+                const res = await fetch(`${CONFIG.API_URL}?action=getProductMaterials&product_id=${product.id}&timestamp=${Date.now()}`);
+                const data = await res.json();
+                if (!data.success) return null;
+
+                const materials = Array.isArray(data.materials) ? data.materials : [];
+                if (!materials.length) return null;
+
+                let expectedCostPrice = 0;
+                for (const material of materials) {
+                    expectedCostPrice += Number(material.quantity || 0) * Number(material.item_cost || 0);
+                }
+                expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
+
+                const pricingMethod = product.pricing_method || 'markup';
+                const targetProfit = Number(product.target_profit || 0);
+                let expectedPrice;
+
+                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
+                    expectedPrice = smartRoundPriceUp(expectedCostPrice + targetProfit);
+                } else {
+                    let markupToUse = product.markup_multiplier;
+                    if (markupToUse === null || markupToUse === undefined) {
+                        if (materials.length <= 3) markupToUse = 2.5;
+                        else if (materials.length <= 6) markupToUse = 3.0;
+                        else markupToUse = 3.5;
+                    }
+                    expectedPrice = smartRoundPrice(expectedCostPrice * Number(markupToUse || 0));
+                }
+
+                if (hasMeaningfulDifference(expectedCostPrice, product.cost_price) ||
+                    hasMeaningfulDifference(expectedPrice, product.price)) {
+                    return {
+                        id: product.id,
+                        name: product.name,
+                        current_price: Number(product.price || 0),
+                        expected_price: expectedPrice,
+                        current_cost_price: Number(product.cost_price || 0),
+                        expected_cost_price: expectedCostPrice,
+                        delta_price: expectedPrice - Number(product.price || 0),
+                        delta_cost_price: expectedCostPrice - Number(product.cost_price || 0)
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.warn('Fallback outdated-check failed for product:', product?.id, error);
+                return null;
+            }
+        }));
+
+        for (const item of chunkResults) {
+            if (item) outdatedProducts.push(item);
+        }
+    }
+
+    outdatedProducts.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi'));
+    return { success: true, outdated_count: outdatedProducts.length, products: outdatedProducts };
+}
+
 async function fetchOutdatedProductsDetails(forceRefresh = false) {
     if (!forceRefresh && outdatedProductsCache && Array.isArray(outdatedProductsCache.products)) {
         return outdatedProductsCache;
     }
 
     const response = await fetch(`${CONFIG.API_URL}?action=getOutdatedProductsDetails&timestamp=${Date.now()}`);
-    const data = await response.json();
-    if (!data.success) {
-        throw new Error(data.error || 'Không thể tải chi tiết sản phẩm');
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        data = { success: false, error: `HTTP ${response.status}` };
+    }
+
+    const isUnknownAction = String(data?.error || '').toLowerCase().includes('unknown action');
+    if (!response.ok || !data.success) {
+        // Backward-compatible fallback for APIs that don't have getOutdatedProductsDetails yet.
+        if (response.status === 400 && isUnknownAction) {
+            data = await fetchOutdatedProductsDetailsLegacy();
+        } else {
+            throw new Error(data.error || 'Không thể tải chi tiết sản phẩm');
+        }
     }
 
     outdatedProductsCache = data;

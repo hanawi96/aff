@@ -1,13 +1,26 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = (
-    window.CONFIG && window.CONFIG.API_URL
-) || (
-    (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://127.0.0.1:8787'
-        : 'https://ctv-api.yendev96.workers.dev'
-);
+const LOCAL_API_URL = 'http://127.0.0.1:8787';
+const PROD_API_URL = 'https://ctv-api.yendev96.workers.dev';
+const API_URL = (window.CONFIG && window.CONFIG.API_URL) || PROD_API_URL;
+
+/**
+ * API fetch helper with smart fallback:
+ * - If preferred URL is local and connection fails, retry once via Workers.
+ */
+async function apiFetch(url, options = {}) {
+    try {
+        return await fetch(url, options);
+    } catch (error) {
+        const isUsingLocal = url.startsWith(LOCAL_API_URL);
+        if (!isUsingLocal) throw error;
+
+        const fallbackUrl = url.replace(LOCAL_API_URL, PROD_API_URL);
+        console.warn('⚠️ Local API unavailable, fallback to Workers:', fallbackUrl);
+        return fetch(fallbackUrl, options);
+    }
+}
 
 /** Backdrop modals: Tailwind `hidden` vs `flex` for centering */
 function openModalOverlay(modalId) {
@@ -67,7 +80,7 @@ async function loadCategories() {
     try {
         showLoading();
         
-        const response = await fetch(`${API_URL}?action=getAllCategoriesAdmin`);
+        const response = await apiFetch(`${API_URL}?action=getAllCategoriesAdmin`);
         const data = await response.json();
         
         if (data.success) {
@@ -101,7 +114,7 @@ async function saveCategory(categoryData) {
         };
         console.log('📤 [categories] save payload:', payload);
         
-        const response = await fetch(API_URL, {
+        const response = await apiFetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -127,7 +140,7 @@ async function deleteCategory(id, name) {
     if (!confirm(`Bạn có chắc muốn xóa danh mục "${name}"?`)) return;
     
     try {
-        const response = await fetch(API_URL, {
+        const response = await apiFetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -389,7 +402,7 @@ async function toggleFeaturedCategory(id, currentFeatured, name) {
     const actionText = nextFeatured ? 'bật nổi bật' : 'tắt nổi bật';
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await apiFetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -499,7 +512,7 @@ async function reorderCategory(categoryId, direction) {
         };
 
         // Send request to server (in background)
-        const response = await fetch(API_URL, {
+        const response = await apiFetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

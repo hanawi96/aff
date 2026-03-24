@@ -1,5 +1,23 @@
 import { jsonResponse } from '../../utils/response.js';
 
+async function ensureSystemMetaTable(env) {
+    await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS system_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    `).run();
+}
+
+async function setSystemMetaNumber(env, key, value) {
+    await ensureSystemMetaTable(env);
+    await env.DB.prepare(`
+        INSERT INTO system_meta (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).bind(key, String(Number(value || 0))).run();
+}
+
 // Get all material categories with material count
 export async function getAllMaterialCategories(env, corsHeaders) {
     try {
@@ -440,7 +458,7 @@ export async function updateMaterial(data, env, corsHeaders) {
 
         // Check if old material exists
         const existing = await env.DB.prepare(`
-            SELECT id FROM cost_config WHERE item_name = ?
+            SELECT id, item_cost FROM cost_config WHERE item_name = ?
         `).bind(oldItemName).first();
 
         if (!existing) {
@@ -466,15 +484,24 @@ export async function updateMaterial(data, env, corsHeaders) {
 
         // Update the material itself first
         console.log('🔄 Updating material...');
+        const nextItemCost = parseFloat(data.item_cost);
+        const oldItemCost = parseFloat(existing.item_cost || 0);
+        const priceChanged = Math.abs(nextItemCost - oldItemCost) > 0.000001;
+
         await env.DB.prepare(`
             UPDATE cost_config
-            SET item_name = ?, display_name = ?, item_cost = ?, category_id = ?, updated_at = CURRENT_TIMESTAMP
+            SET item_name = ?, 
+                display_name = ?, 
+                item_cost = ?, 
+                category_id = ?, 
+                updated_at = CASE WHEN ABS(item_cost - ?) > 0.000001 THEN CURRENT_TIMESTAMP ELSE updated_at END
             WHERE item_name = ?
         `).bind(
             newItemName,
             data.display_name || newItemName,
-            parseFloat(data.item_cost), 
+            nextItemCost,
             categoryId, 
+            nextItemCost,
             oldItemName
         ).run();
         
@@ -504,11 +531,16 @@ export async function updateMaterial(data, env, corsHeaders) {
         affectedCount = Number(affected[0]?.count || 0);
         console.log('📊 Affected products for material change:', affectedCount);
 
+        if (priceChanged) {
+            await setSystemMetaNumber(env, 'materials_last_price_update_unix', Math.floor(Date.now() / 1000));
+        }
+
         return jsonResponse({
             success: true,
             message: 'Material updated successfully',
             affected_products: affectedCount,
-            item_name_changed: oldItemName !== newItemName
+            item_name_changed: oldItemName !== newItemName,
+            price_changed: priceChanged
         }, 200, corsHeaders);
 
     } catch (error) {

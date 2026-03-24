@@ -21,6 +21,30 @@ function hasMeaningfulDifference(a, b, epsilon = 0.01) {
     return Math.abs(n1 - n2) > epsilon;
 }
 
+async function ensureSystemMetaTable(env) {
+    await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS system_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    `).run();
+}
+
+async function getSystemMetaNumber(env, key) {
+    await ensureSystemMetaTable(env);
+    const row = await env.DB.prepare(`SELECT value FROM system_meta WHERE key = ?`).bind(key).first();
+    return Number(row?.value || 0);
+}
+
+async function setSystemMetaNumber(env, key, value) {
+    await ensureSystemMetaTable(env);
+    await env.DB.prepare(`
+        INSERT INTO system_meta (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).bind(key, String(Number(value || 0))).run();
+}
+
 // Get all products (OPTIMIZED - No N+1 queries)
 export async function getAllProducts(env, corsHeaders) {
     try {
@@ -537,6 +561,24 @@ export async function updateProduct(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(...values).run();
 
+        const touchesPricing = (
+            data.price !== undefined ||
+            data.cost_price !== undefined ||
+            data.markup_multiplier !== undefined ||
+            data.pricing_method !== undefined ||
+            data.target_profit !== undefined
+        );
+
+        if (touchesPricing) {
+            // User has manually adjusted product pricing; treat this as an explicit
+            // sync point so outdated-material warning does not persist incorrectly.
+            await env.DB.prepare(`
+                UPDATE product_materials
+                SET updated_at_unix = CAST(strftime('%s', 'now') AS INTEGER)
+                WHERE product_id = ?
+            `).bind(data.id).run();
+        }
+
         // Handle multiple categories update if provided
         if (data.category_ids !== undefined) {
             const categoryIds = Array.isArray(data.category_ids) ? data.category_ids : [];
@@ -768,6 +810,8 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
             }
         }
 
+        await setSystemMetaNumber(env, 'products_last_recalculate_unix', Math.floor(Date.now() / 1000));
+
         return jsonResponse({
             success: true,
             message: `Successfully recalculated prices for ${updatedCount} products`,
@@ -790,6 +834,18 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
 // Check how many products have outdated prices (need recalculation)
 export async function checkOutdatedProducts(env, corsHeaders) {
     try {
+        const lastMaterialPriceUpdateUnix = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
+        const lastProductsRecalculateUnix = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
+
+        // No material price change since last recalc => no "outdated" warning.
+        if (!lastMaterialPriceUpdateUnix || lastMaterialPriceUpdateUnix <= lastProductsRecalculateUnix) {
+            return jsonResponse({
+                success: true,
+                outdated_count: 0,
+                total_products: 0
+            }, 200, corsHeaders);
+        }
+
         // Get all products that have materials
         const { results: productsWithMaterials } = await env.DB.prepare(`
             SELECT DISTINCT 
@@ -811,7 +867,12 @@ export async function checkOutdatedProducts(env, corsHeaders) {
             try {
                 // Get materials for this product
                 const { results: materials } = await env.DB.prepare(`
-                    SELECT pm.material_name, pm.quantity, m.item_cost
+                    SELECT 
+                        pm.material_name, 
+                        pm.quantity, 
+                        m.item_cost,
+                        pm.updated_at_unix as formula_updated_at_unix,
+                        CAST(strftime('%s', m.updated_at) AS INTEGER) as material_updated_at_unix
                     FROM product_materials pm
                     JOIN cost_config m ON pm.material_name = m.item_name
                     WHERE pm.product_id = ?
@@ -884,6 +945,17 @@ export async function checkOutdatedProducts(env, corsHeaders) {
 // Get detailed list of outdated products for admin quick inspection
 export async function getOutdatedProductsDetails(env, corsHeaders) {
     try {
+        const lastMaterialPriceUpdateUnix = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
+        const lastProductsRecalculateUnix = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
+
+        if (!lastMaterialPriceUpdateUnix || lastMaterialPriceUpdateUnix <= lastProductsRecalculateUnix) {
+            return jsonResponse({
+                success: true,
+                outdated_count: 0,
+                products: []
+            }, 200, corsHeaders);
+        }
+
         const { results: productsWithMaterials } = await env.DB.prepare(`
             SELECT DISTINCT 
                 p.id,
