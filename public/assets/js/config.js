@@ -2,11 +2,13 @@
 const CONFIG = {
     // API URL - Tự động phát hiện môi trường
     API_URL: (() => {
-        // Nếu đang chạy local (port 5500 hoặc localhost)
-        if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Local override for developers: set in console
+        // localStorage.setItem('force_local_api', '1')
+        const forceLocalApi = localStorage.getItem('force_local_api') === '1';
+        if (forceLocalApi) {
             return 'http://127.0.0.1:8787';
         }
-        // Production
+        // Default (including localhost) -> Workers API to avoid local connection refused
         return 'https://ctv-api.yendev96.workers.dev';
     })(),
     

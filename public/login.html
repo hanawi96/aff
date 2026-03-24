@@ -224,15 +224,49 @@
     <script>
         // Configuration
         const CONFIG = {
+            LOCAL_API_URL: 'http://127.0.0.1:8787',
+            PROD_API_URL: 'https://ctv-api.yendev96.workers.dev',
             API_URL: (() => {
-                // Nếu đang chạy local (port 5500 hoặc localhost)
-                if (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                // Chỉ dùng local API khi chủ động bật cờ dev
+                const forceLocalApi = localStorage.getItem('force_local_api') === '1';
+                if (forceLocalApi) {
                     return 'http://127.0.0.1:8787';
                 }
-                // Production
+                // Mặc định dùng Workers (kể cả localhost)
                 return 'https://ctv-api.yendev96.workers.dev';
             })()
         };
+
+        /**
+         * Gọi API xác thực với fallback thông minh:
+         * - Local: thử 127.0.0.1:8787 trước, nếu connection refused thì fallback qua Workers.
+         * - Production: gọi Workers bình thường.
+         */
+        async function fetchAuthWithFallback(action, options = {}) {
+            const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const forceLocalApi = localStorage.getItem('force_local_api') === '1';
+            const preferredBase = (isLocalHost && forceLocalApi) ? CONFIG.LOCAL_API_URL : CONFIG.PROD_API_URL;
+            const fallbackBase = CONFIG.PROD_API_URL;
+
+            const call = async (baseUrl) => {
+                const mergedOptions = {
+                    method: 'GET',
+                    ...options
+                };
+                return fetch(`${baseUrl}?action=${action}`, mergedOptions);
+            };
+
+            try {
+                return await call(preferredBase);
+            } catch (err) {
+                // Chỉ fallback khi lỗi kết nối local
+                const canFallback = isLocalHost && forceLocalApi && preferredBase !== fallbackBase;
+                if (!canFallback) throw err;
+
+                console.warn('⚠️ Local API unavailable, fallback to Workers:', err?.message || err);
+                return await call(fallbackBase);
+            }
+        }
 
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
@@ -254,7 +288,7 @@
             loginBtn.innerHTML = '<span class="spinner"></span><span>Đang xử lý...</span>';
             
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=login`, {
+                const response = await fetchAuthWithFallback('login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -311,7 +345,7 @@
         if (sessionToken) {
             console.log('🔐 Verifying existing session...');
             // Verify session
-            fetch(`${CONFIG.API_URL}?action=verifySession`, {
+            fetchAuthWithFallback('verifySession', {
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`
                 }

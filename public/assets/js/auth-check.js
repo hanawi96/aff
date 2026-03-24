@@ -8,9 +8,7 @@
     const API_URL = (
         window.CONFIG && window.CONFIG.API_URL
     ) || (
-        (window.location.port === '5500' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://127.0.0.1:8787'
-            : 'https://ctv-api.yendev96.workers.dev'
+        'https://ctv-api.yendev96.workers.dev'
     );
 
     // Helper function to get correct login path
