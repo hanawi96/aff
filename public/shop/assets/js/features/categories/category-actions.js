@@ -2,8 +2,6 @@
 // CATEGORY ACTIONS
 // ============================================
 
-import { scrollToElement } from '../../shared/utils/helpers.js';
-
 /**
  * Category Actions Handler
  */
@@ -21,10 +19,10 @@ export class CategoryActions {
         
         // Update active state
         this.updateActiveState(categoryId);
-        
-        // Scroll to products section
-        scrollToElement('#products');
-        
+
+        // Scroll runs in HomePage *after* ProductGrid re-renders (see filterByCategory), otherwise
+        // layout height changes mid-scroll and the viewport ends up near the wrong row.
+
         // Trigger filter callback
         if (this.onFilterCallback) {
             this.onFilterCallback(categoryId);

@@ -1004,19 +1004,39 @@ export class HomePage {
     }
     
     /**
-     * Smooth scroll to products section
+     * Smooth scroll to products section (search, etc.)
      */
     scrollToProducts() {
-        const productsSection = document.getElementById('products');
-        if (productsSection) {
-            // Use RAF for smooth 60fps scroll
+        this.scrollToProductsGrid();
+    }
+
+    /**
+     * Scroll to the main product grid so the first row is fully visible below the sticky header.
+     * Uses measured header height (not only CSS scroll-margin) so mobile isn't clipped.
+     * Must run after ProductGrid.render() so list height is final (avoids landing mid-list).
+     */
+    scrollToProductsGrid() {
+        requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                productsSection.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start'
-                });
+                const header = document.querySelector('body > header');
+                const headerHeight = header ? header.getBoundingClientRect().height : 0;
+                const gapPx = 14;
+
+                const scrollElementTopIntoView = (el) => {
+                    if (!el) return;
+                    const rect = el.getBoundingClientRect();
+                    const y = rect.top + window.scrollY - headerHeight - gapPx;
+                    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+                };
+
+                const grid = document.getElementById('productsGrid');
+                if (grid && !grid.classList.contains('hidden')) {
+                    scrollElementTopIntoView(grid);
+                    return;
+                }
+                scrollElementTopIntoView(document.getElementById('productsSectionTitle'));
             });
-        }
+        });
     }
     
     /**
@@ -1309,6 +1329,8 @@ export class HomePage {
         
         // Update URL with category
         this.updateCategoryURL(categoryId);
+
+        this.scrollToProductsGrid();
     }
     
     /**
@@ -1345,6 +1367,8 @@ export class HomePage {
         
         // Update URL with category
         this.updateCategoryURL(categoryId);
+
+        this.scrollToProductsGrid();
     }
     
     /**
