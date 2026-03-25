@@ -11,6 +11,7 @@ let pinnedProductId = null;
 let editingProductStockId = null;
 let originalProductStockValue = null;
 let outdatedProductsCache = null;
+let shouldShowMaterialOutdatedWarnings = null;
 
 // Filter state
 let currentFilters = {
@@ -271,6 +272,7 @@ async function loadProducts() {
         if (data.success) {
             allProducts = data.products || [];
             outdatedProductsCache = null;
+            shouldShowMaterialOutdatedWarnings = null;
 
             console.log('📦 Loaded products:', allProducts.length);
             // Refresh category preset counts (especially "Tất cả")
@@ -302,6 +304,7 @@ async function reloadProductsKeepPage() {
         if (data.success) {
             allProducts = data.products || [];
             outdatedProductsCache = null;
+            shouldShowMaterialOutdatedWarnings = null;
 
             console.log('📦 Reloaded products (keeping page):', allProducts.length);
             // Keep category counters in sync with latest product list.
@@ -3613,6 +3616,10 @@ async function checkOutdatedProducts() {
         const response = await fetch(`${CONFIG.API_URL}?action=checkOutdatedProducts&timestamp=${Date.now()}`);
         const data = await response.json();
 
+        if (data.success) {
+            shouldShowMaterialOutdatedWarnings = Number(data.outdated_count || 0) > 0;
+        }
+
         if (data.success && data.outdated_count > 0) {
             showOutdatedNotification(data.outdated_count);
         } else if (data.success) {
@@ -3621,6 +3628,27 @@ async function checkOutdatedProducts() {
     } catch (error) {
         console.error('Error checking outdated products:', error);
     }
+}
+
+async function canShowMaterialOutdatedWarning() {
+    if (typeof shouldShowMaterialOutdatedWarnings === 'boolean') {
+        return shouldShowMaterialOutdatedWarnings;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=checkOutdatedProducts&timestamp=${Date.now()}`);
+        const data = await response.json();
+        if (data.success) {
+            shouldShowMaterialOutdatedWarnings = Number(data.outdated_count || 0) > 0;
+            return shouldShowMaterialOutdatedWarnings;
+        }
+    } catch (error) {
+        console.warn('Cannot verify material outdated context:', error);
+    }
+
+    // Safe default: do not show warning if we cannot prove material price changed.
+    shouldShowMaterialOutdatedWarnings = false;
+    return false;
 }
 
 function showOutdatedNotification(count) {
@@ -3961,6 +3989,7 @@ async function executeQuickRecalculate() {
             // Hide notification banner
             hideOutdatedNotification();
             outdatedProductsCache = null;
+            shouldShowMaterialOutdatedWarnings = false;
             
             // Show success message
             showToast(`Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
@@ -3986,6 +4015,17 @@ async function executeQuickRecalculate() {
 
 // Check if product price is outdated compared to current material costs
 async function checkProductPriceOutdated(product) {
+    const warningBanner = document.getElementById('outdatedPriceWarning');
+    if (warningBanner) {
+        warningBanner.classList.add('hidden');
+    }
+
+    // System rule: warning only appears after material price changes.
+    const canShowWarning = await canShowMaterialOutdatedWarning();
+    if (!canShowWarning) {
+        return;
+    }
+
     // Only check if product has materials
     if (!selectedMaterials || selectedMaterials.length === 0) {
         return;
@@ -4039,7 +4079,6 @@ async function checkProductPriceOutdated(product) {
             Math.abs(expectedSellingPrice - currentSellingPrice) > 0.01) {
             
             // Show warning banner
-            const warningBanner = document.getElementById('outdatedPriceWarning');
             if (warningBanner) {
                 warningBanner.classList.remove('hidden');
                 

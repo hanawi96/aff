@@ -213,8 +213,7 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             }
             
             console.log('✅ File validation passed, uploading to R2...');
-            const requestOrigin = new URL(request.url).origin + '/';
-            const result = await uploadImage(env, file, filename, requestOrigin);
+            const result = await uploadImage(env, file, filename);
             
             console.log('📤 Upload result:', result);
             

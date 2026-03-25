@@ -15,7 +15,7 @@ function sanitizeFilename(filename) {
     return `${sanitized}.${ext}`;
 }
 
-export async function uploadImage(env, file, filename, requestOrigin = null) {
+export async function uploadImage(env, file, filename) {
     try {
         console.log('📤 Starting image upload process:', {
             filename,
@@ -59,11 +59,14 @@ export async function uploadImage(env, file, filename, requestOrigin = null) {
         
         console.log('☁️ File uploaded to R2 successfully');
         
-        // Return URL via Worker proxy to avoid browser CORS issues on direct R2 preview.
-        // Falls back to public R2 domain if request origin is unavailable.
-        const publicUrl = requestOrigin
-            ? `${requestOrigin}?action=getR2Image&key=${encodeURIComponent(uniqueFilename)}`
-            : `https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/${uniqueFilename}`;
+        // Prefer the R2 public (r2.dev or custom domain) URL so `image_url` in DB is a
+        // stable, shareable link. `<img src>` works without going through the Worker.
+        // Optional: set env.R2_PUBLIC_BASE_URL in wrangler (no trailing slash) to override.
+        const defaultPublicBase = 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
+        const base = (typeof env.R2_PUBLIC_BASE_URL === 'string' && env.R2_PUBLIC_BASE_URL.trim())
+            ? env.R2_PUBLIC_BASE_URL.trim().replace(/\/$/, '')
+            : defaultPublicBase;
+        const publicUrl = `${base}/${uniqueFilename}`;
         
         console.log('✅ Image uploaded successfully:', {
             filename: uniqueFilename,
