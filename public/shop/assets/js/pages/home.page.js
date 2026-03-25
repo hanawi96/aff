@@ -772,8 +772,8 @@ export class HomePage {
         const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
         const productsSectionDescription = document.getElementById('productsSectionDescription');
         
-        if (productsSectionTitle) productsSectionTitle.textContent = 'Sản phẩm được';
-        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'yêu thích nhất';
+        if (productsSectionTitle) productsSectionTitle.textContent = 'Khu vườn';
+        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'vòng dâu tằm';
         if (productsSectionDescription) productsSectionDescription.textContent = 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
     }
     
@@ -803,8 +803,8 @@ export class HomePage {
         const productsSectionDescription = document.getElementById('productsSectionDescription');
         
         // Store original titles
-        const originalTitle = productsSectionTitle ? productsSectionTitle.textContent : 'Sản phẩm được';
-        const originalSubtitle = productsSectionSubtitle ? productsSectionSubtitle.textContent : 'yêu thích nhất';
+        const originalTitle = productsSectionTitle ? productsSectionTitle.textContent : 'Khu vườn';
+        const originalSubtitle = productsSectionSubtitle ? productsSectionSubtitle.textContent : 'vòng dâu tằm';
         const originalDescription = productsSectionDescription ? productsSectionDescription.textContent : 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
         
         if (!searchContainer || !searchIconBtn || !searchInputWrapper || !searchInput || !searchSubmitBtn || !searchClearBtn) {
@@ -1356,8 +1356,8 @@ export class HomePage {
         const productsSectionSubtitle = document.getElementById('productsSectionSubtitle');
         const productsSectionDescription = document.getElementById('productsSectionDescription');
         
-        if (productsSectionTitle) productsSectionTitle.textContent = 'Sản phẩm được';
-        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'yêu thích nhất';
+        if (productsSectionTitle) productsSectionTitle.textContent = 'Khu vườn';
+        if (productsSectionSubtitle) productsSectionSubtitle.textContent = 'vòng dâu tằm';
         if (productsSectionDescription) productsSectionDescription.textContent = 'Những chiếc vòng được làm thủ công tỉ mỉ, mang đến sự an toàn và yêu thương cho bé yêu';
         
         // Apply category filter
