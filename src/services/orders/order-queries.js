@@ -11,11 +11,17 @@ export async function getOrdersByReferralCode(referralCode, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Get orders
+        // is_excluded: đồng bộ tab Thanh toán CTV (đơn bị loại HH vẫn hiện trong bảng, có cờ)
         const { results: orders } = await env.DB.prepare(`
-            SELECT * FROM orders
-            WHERE referral_code = ?
-            ORDER BY created_at_unix DESC
+            SELECT 
+                o.*,
+                COALESCE(
+                    (SELECT MAX(cpd.is_excluded) FROM commission_payment_details cpd WHERE cpd.order_id = o.id),
+                    0
+                ) AS is_excluded
+            FROM orders o
+            WHERE o.referral_code = ?
+            ORDER BY o.created_at_unix DESC
         `).bind(referralCode).all();
 
         // Get CTV info

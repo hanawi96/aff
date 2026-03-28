@@ -260,10 +260,15 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
         const orderStats = await env.DB.prepare(`
             SELECT 
                 COUNT(*) as total_orders,
-                SUM(total_amount) as total_revenue,
-                SUM(commission) as total_commission
-            FROM orders
-            WHERE referral_code = ?
+                SUM(o.total_amount) as total_revenue,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            WHERE o.referral_code = ?
+              AND o.status NOT IN ('Đã hủy', 'Hủy')
+              AND NOT EXISTS (
+                SELECT 1 FROM commission_payment_details cpd
+                WHERE cpd.order_id = o.id AND cpd.is_excluded = 1
+              )
         `).bind(referralCode).first();
 
         // Get recent orders (last 5) - use total_amount column
@@ -334,15 +339,21 @@ export async function getAllCTV(env, corsHeaders) {
 
         // Get order stats for each CTV - use total_amount column
         console.log('📋 Step 2: Fetching order stats...');
+        // Chỉ tính đơn còn hiệu lực cho HH: không hủy, không bị loại khỏi thanh toán (đồng bộ payments.html)
         const { results: orderStats } = await env.DB.prepare(`
             SELECT 
-                referral_code,
+                o.referral_code,
                 COUNT(*) as order_count,
-                SUM(total_amount) as total_revenue,
-                SUM(commission) as total_commission
-            FROM orders
-            WHERE referral_code IS NOT NULL AND referral_code != ''
-            GROUP BY referral_code
+                SUM(o.total_amount) as total_revenue,
+                SUM(o.commission) as total_commission
+            FROM orders o
+            WHERE o.referral_code IS NOT NULL AND o.referral_code != ''
+              AND o.status NOT IN ('Đã hủy', 'Hủy')
+              AND NOT EXISTS (
+                SELECT 1 FROM commission_payment_details cpd
+                WHERE cpd.order_id = o.id AND cpd.is_excluded = 1
+              )
+            GROUP BY o.referral_code
         `).all();
         
         console.log(`✅ Fetched stats for ${orderStats.length} referral codes`);

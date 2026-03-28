@@ -2,6 +2,16 @@
 let ctvData = null;
 let ordersData = [];
 
+/** Đồng bộ với Thanh toán CTV: chỉ đơn không hủy và HH không bị loại mới tính vào tổng */
+function ordersEligibleForCommissionStats(orders) {
+    return orders.filter(o => {
+        const st = o.status || '';
+        if (st === 'Đã hủy' || st === 'Hủy') return false;
+        if (Number(o.is_excluded) === 1) return false;
+        return true;
+    });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 CTV Detail Page initialized');
@@ -93,15 +103,15 @@ function displayCTVInfo() {
         document.getElementById('bankInfoButton').classList.remove('hidden');
     }
 
-    // Stats - Calculate from product_total + shipping_fee for accurate revenue
-    const totalOrders = ordersData.length;
-    const totalRevenue = ordersData.reduce((sum, order) => {
+    // Stats — cùng quy tắc với danh sách CTV / payments (bỏ đơn hủy + đơn HH đã loại)
+    const statsOrders = ordersEligibleForCommissionStats(ordersData);
+    const totalOrders = statsOrders.length;
+    const totalRevenue = statsOrders.reduce((sum, order) => {
         const productTotal = order.product_total || 0;
         const shippingFee = order.shipping_fee || 0;
         return sum + productTotal + shippingFee;
     }, 0);
-    const totalCommission = ordersData.reduce((sum, order) => {
-        // Recalculate commission based on current CTV commission_rate if available
+    const totalCommission = statsOrders.reduce((sum, order) => {
         if (order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
             const productTotal = order.product_total || 0;
             return sum + Math.round(productTotal * order.ctv_commission_rate);
@@ -144,8 +154,13 @@ function displayOrders() {
     `;
 
     ordersData.forEach((order, index) => {
+        const excluded = Number(order.is_excluded) === 1;
+        const rowClass = excluded ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-gray-50';
+        const exBadge = excluded
+            ? '<span class="ml-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-red-100 text-red-700 ring-1 ring-red-200">Đã loại HH</span>'
+            : '';
         html += `
-            <tr class="hover:bg-gray-50 transition-colors">
+            <tr class="transition-colors ${rowClass}">
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${index + 1}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-gray-900">${escapeHtml(order.order_id || 'N/A')}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -153,7 +168,7 @@ function displayOrders() {
                     <div class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">${formatCurrency(order.total_amount || 0)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">${formatCurrency(order.commission || 0)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">${formatCurrency(order.commission || 0)}${exBadge}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(order.created_at_unix || order.created_at || order.order_date)}</td>
             </tr>
         `;

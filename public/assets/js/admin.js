@@ -316,6 +316,12 @@ function createCTVRow(ctv, index) {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                 </svg>
             </button>
+            <button type="button" onclick="showDeleteCTVModal('${escapeHtml(ctv.referralCode)}')"
+                class="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" title="Xóa CTV">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+            </button>
         </div>
     `;
 
@@ -1695,6 +1701,129 @@ function sendBulkMessages() {
         delay += 500; // 500ms delay between each window
     });
 }
+
+// ============================================
+// DELETE CTV (SINGLE)
+// ============================================
+
+let _deleteTarget = null;
+
+function showDeleteCTVModal(referralCode) {
+    const ctv = allCTVData.find(c => c.referralCode === referralCode);
+    if (!ctv) return;
+
+    _deleteTarget = referralCode;
+
+    const modal = document.createElement('div');
+    modal.id = 'deleteCTVModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" style="animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1)">
+            <div class="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Xóa Cộng Tác Viên</h2>
+                        <p class="text-sm text-white/80">Hành động không thể hoàn tác</p>
+                    </div>
+                </div>
+                <button onclick="closeDeleteModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start gap-4 mb-5">
+                    <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold shadow-md shrink-0">
+                        ${getInitials(ctv.fullName)}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-semibold text-slate-900 truncate">${escapeHtml(ctv.fullName)}</p>
+                        <p class="text-sm text-slate-500 font-mono">${escapeHtml(ctv.referralCode)}</p>
+                        <p class="text-sm text-slate-500">${escapeHtml(ctv.phone)}</p>
+                    </div>
+                </div>
+
+                ${ctv.orderCount > 0 ? `
+                <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <p class="text-sm text-amber-800">CTV này có <strong>${ctv.orderCount} đơn hàng</strong> và <strong>${formatCurrency(ctv.totalCommission || 0)}</strong> hoa hồng. Dữ liệu đơn hàng sẽ được giữ lại.</p>
+                </div>` : `
+                <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                    <p class="text-sm text-red-800">CTV chưa có đơn hàng nào. Có thể xóa an toàn.</p>
+                </div>`}
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeDeleteModal()"
+                    class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors font-medium text-sm">
+                    Hủy
+                </button>
+                <button type="button" id="confirmDeleteBtn" onclick="confirmDeleteCTV()"
+                    class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:shadow-lg transition-all font-medium text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Xóa CTV
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function closeDeleteModal() {
+    _deleteTarget = null;
+    const modal = document.getElementById('deleteCTVModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.2s';
+        setTimeout(() => modal.remove(), 200);
+    }
+}
+
+async function confirmDeleteCTV() {
+    if (!_deleteTarget) return;
+
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+    try {
+        const res = await fetch(`${CONFIG.API_URL}?action=bulkDeleteCTV`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referralCodes: [_deleteTarget] })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            closeDeleteModal();
+
+            // Optimistic update — remove from both data arrays without reload
+            allCTVData = allCTVData.filter(c => c.referralCode !== _deleteTarget);
+            filteredCTVData = filteredCTVData.filter(c => c.referralCode !== _deleteTarget);
+            selectedCTVIds.delete(_deleteTarget);
+
+            renderCTVTable();
+            updateStats();
+            updateCharts();
+
+            showToast('Đã xóa CTV thành công', 'success');
+        } else {
+            throw new Error(result.error || 'Delete failed');
+        }
+    } catch (err) {
+        console.error('Delete CTV error:', err);
+        showToast('Không thể xóa CTV. Vui lòng thử lại.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Xóa CTV`;
+    }
+}
+
+// ============================================
+// BULK DELETE CTV
+// ============================================
 
 // Bulk delete CTV
 function bulkDeleteCTV() {
