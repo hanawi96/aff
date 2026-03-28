@@ -255,7 +255,7 @@
         </header>
 
         <main class="fade-in w-full min-w-0 px-6 py-8 lg:px-8">
-            <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm shadow-slate-900/5 sm:p-5">
+            <div class="mb-6 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm shadow-slate-900/5 sm:p-5">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div class="min-w-0 flex-1">
                         <div class="relative">
@@ -275,7 +275,7 @@
                         </div>
                     </div>
 
-                    <div class="relative" style="min-width: 180px;">
+                    <div class="relative z-20" style="min-width: 180px;">
                         <input type="hidden" id="statusFilter" value="all">
                         <button type="button" id="statusFilterBtn" onclick="toggleStatusFilter(event)"
                                 class="flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -330,9 +330,9 @@
                     <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sky-500/10 blur-2xl"></div>
                     <div class="relative flex items-start justify-between">
                         <div>
-                            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tổng CTV</p>
+                            <p id="summaryLabelCtv" class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tổng CTV</p>
                             <p id="totalCTV" class="mt-2 text-2xl font-bold tabular-nums text-slate-900">0</p>
-                            <p class="mt-1 text-xs text-slate-400">Có đơn chưa trả</p>
+                            <p id="summarySubCtv" class="mt-1 text-xs text-slate-400">Có đơn chưa trả</p>
                         </div>
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
@@ -343,9 +343,9 @@
                     <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl"></div>
                     <div class="relative flex items-start justify-between">
                         <div>
-                            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đơn hàng</p>
+                            <p id="summaryLabelOrders" class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đơn hàng</p>
                             <p id="totalOrders" class="mt-2 text-2xl font-bold tabular-nums text-slate-900">0</p>
-                            <p class="mt-1 text-xs text-slate-400">Chưa thanh toán</p>
+                            <p id="summarySubOrders" class="mt-1 text-xs text-slate-400">Chưa thanh toán</p>
                         </div>
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" /></svg>
@@ -356,9 +356,9 @@
                     <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-violet-500/10 blur-2xl"></div>
                     <div class="relative flex items-start justify-between">
                         <div>
-                            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Hoa hồng</p>
+                            <p id="summaryLabelCommission" class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Hoa hồng</p>
                             <p id="totalCommission" class="mt-2 text-2xl font-bold tabular-nums text-slate-900">0đ</p>
-                            <p class="mt-1 text-xs text-slate-400">Chưa thanh toán</p>
+                            <p id="summarySubCommission" class="mt-1 text-xs text-slate-400">Chưa thanh toán</p>
                         </div>
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" /></svg>
@@ -369,9 +369,9 @@
                     <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl"></div>
                     <div class="relative flex items-start justify-between">
                         <div>
-                            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đã chọn</p>
+                            <p id="summaryLabelSelected" class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Đã chọn</p>
                             <p id="selectedAmount" class="mt-2 text-2xl font-bold tabular-nums text-emerald-700">0đ</p>
-                            <p class="mt-1 text-xs text-slate-400">Sẵn sàng thanh toán</p>
+                            <p id="summarySubSelected" class="mt-1 text-xs text-slate-400">Sẵn sàng thanh toán</p>
                         </div>
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
@@ -400,6 +400,16 @@
                             </svg>
                             <span>Lịch sử thanh toán</span>
                             <span id="historyCount" class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-400 px-1.5 text-xs font-semibold text-white">-</span>
+                        </div>
+                    </button>
+                    <button type="button" id="tabExcluded" onclick="switchTab('excluded')"
+                        class="tab-button flex-1 border-b-2 border-transparent px-4 py-3.5 text-sm font-semibold text-slate-500 transition-all hover:bg-red-50/80 hover:text-red-700 sm:px-6">
+                        <div class="flex items-center justify-center gap-2">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            <span>Đã loại</span>
+                            <span id="excludedCount" class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">0</span>
                         </div>
                     </button>
                 </nav>
@@ -441,6 +451,60 @@
                         </svg>
                         <h3 class="mb-2 text-lg font-semibold text-slate-900">Chưa có lịch sử thanh toán</h3>
                         <p class="text-slate-500">Lịch sử thanh toán sẽ hiển thị ở đây</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="excludedContent" class="tab-content hidden">
+                <!-- Filter bar for excluded tab -->
+                <div class="mb-4 overflow-hidden rounded-xl border border-red-100 bg-red-50/60 p-4">
+                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span class="text-sm font-semibold text-red-700">Danh sách hoa hồng bị loại</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 lg:ml-auto">
+                            <!-- CTV Filter -->
+                            <select id="excludedCTVFilter" onchange="loadExcludedCommissions()"
+                                class="h-9 rounded-lg border border-red-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/20">
+                                <option value="">Tất cả CTV</option>
+                            </select>
+                            <!-- Status filter within excluded -->
+                            <select id="excludedStatusFilter" onchange="loadExcludedCommissions()"
+                                class="h-9 rounded-lg border border-red-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/20">
+                                <option value="excluded" selected>Đang bị loại</option>
+                                <option value="restored">Đã khôi phục (lịch sử)</option>
+                                <option value="all">Tất cả (đang loại + lịch sử)</option>
+                            </select>
+                            <button type="button" onclick="loadExcludedCommissions()"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Tải lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Excluded list container -->
+                <div id="excludedListContainer" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div id="excludedLoadingState" class="col-span-1 md:col-span-2 overflow-hidden rounded-2xl border border-slate-100 bg-white p-8 shadow-sm ring-1 ring-slate-900/5">
+                        <div class="space-y-4">
+                            <div class="skeleton h-20 rounded-xl"></div>
+                            <div class="skeleton h-20 rounded-xl"></div>
+                            <div class="skeleton h-20 rounded-xl"></div>
+                        </div>
+                    </div>
+
+                    <div id="excludedEmptyState" class="col-span-1 md:col-span-2 hidden overflow-hidden rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm ring-1 ring-slate-900/5">
+                        <svg class="mx-auto mb-4 h-16 w-16 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        <h3 class="mb-2 text-lg font-semibold text-slate-900">Chưa có hoa hồng nào bị loại</h3>
+                        <p class="text-slate-500">Danh sách hoa hồng bị loại sẽ hiển thị ở đây</p>
                     </div>
                 </div>
             </div>

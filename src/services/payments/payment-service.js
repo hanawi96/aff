@@ -111,25 +111,11 @@ export async function getCommissionsByMonth(month, env, corsHeaders) {
     }
 }
 
-/**
- * Get paid orders by month (for payment history)
- * GET ?action=getPaidOrdersByMonth&month=2025-11
- * Returns only the orders that have been paid
- */
-export async function getPaidOrdersByMonth(month, env, corsHeaders) {
-    try {
-        if (!month) {
-            return jsonResponse({
-                success: false,
-                error: 'Month parameter is required (format: YYYY-MM)'
-            }, 400, corsHeaders);
-        }
-
-        // Get all payment records for this month with CTV info
-        const { results: payments } = await env.DB.prepare(`
+const PAID_HISTORY_SELECT = `
             SELECT 
                 cp.id as payment_id,
                 cp.referral_code,
+                cp.month as commission_month,
                 cp.order_count,
                 cp.commission_amount,
                 cp.payment_date_unix,
@@ -142,14 +128,59 @@ export async function getPaidOrdersByMonth(month, env, corsHeaders) {
                 c.bank_name
             FROM commission_payments cp
             LEFT JOIN ctv c ON cp.referral_code = c.referral_code
+`;
+
+/**
+ * Get paid commission_payment rows (lịch sử thanh toán).
+ * - Default: GET ?action=getPaidOrdersByMonth&month=2025-11 (theo tháng kỳ hoa hồng)
+ * - Theo ngày thực trả: paymentStartMs & paymentEndMs (unix ms, inclusive)
+ * - Tất cả: allPaid=1 (giới hạn 8000 bản ghi mới nhất)
+ */
+export async function getPaidOrdersByMonth(month, env, corsHeaders, options = {}) {
+    try {
+        const { paymentStartMs, paymentEndMs, allPaid } = options;
+
+        let payments;
+
+        if (allPaid) {
+            const { results } = await env.DB.prepare(`
+                ${PAID_HISTORY_SELECT.trim()}
+            WHERE cp.status = 'paid'
+            ORDER BY cp.payment_date_unix DESC, cp.id DESC
+            LIMIT 8000
+            `).all();
+            payments = results;
+        } else if (paymentStartMs != null && paymentEndMs != null &&
+            Number.isFinite(paymentStartMs) && Number.isFinite(paymentEndMs)) {
+            const { results } = await env.DB.prepare(`
+                ${PAID_HISTORY_SELECT.trim()}
+            WHERE cp.status = 'paid'
+            AND cp.payment_date_unix IS NOT NULL
+            AND cp.payment_date_unix >= ?
+            AND cp.payment_date_unix <= ?
+            ORDER BY cp.payment_date_unix DESC, cp.id DESC
+            `).bind(paymentStartMs, paymentEndMs).all();
+            payments = results;
+        } else {
+            if (!month) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Month parameter is required (format: YYYY-MM), or pass paymentStartMs, paymentEndMs, or allPaid=1'
+                }, 400, corsHeaders);
+            }
+
+            const { results } = await env.DB.prepare(`
+                ${PAID_HISTORY_SELECT.trim()}
             WHERE cp.month = ?
             AND cp.status = 'paid'
             ORDER BY cp.payment_date_unix DESC, cp.id DESC
-        `).bind(month).all();
+            `).bind(month).all();
+            payments = results;
+        }
 
         return jsonResponse({
             success: true,
-            month: month,
+            month: month || null,
             payments: payments,
             summary: {
                 total_payments: payments.length,
@@ -385,7 +416,7 @@ export async function getUnpaidOrders(referralCode, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Get all orders that haven't been paid yet
+        // Chưa thanh toán: chưa có cpd, hoặc có cpd nhưng chưa nằm trong đợt commission_payments.status = 'paid'
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 o.id,
@@ -399,12 +430,23 @@ export async function getUnpaidOrders(referralCode, env, corsHeaders) {
                 o.status,
                 o.commission,
                 o.created_at_unix,
-                o.shipping_fee
+                o.shipping_fee,
+                cpd.is_excluded,
+                cpd.excluded_at_unix,
+                cpd.excluded_by,
+                cpd.exclude_reason
             FROM orders o
             LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            LEFT JOIN commission_payments cp ON cpd.payment_id = cp.id
             WHERE o.referral_code = ?
             AND o.status NOT IN ('Đã hủy', 'Hủy')
-            AND cpd.id IS NULL
+            AND (
+                cpd.id IS NULL
+                OR (
+                    cpd.is_excluded = 0
+                    AND (cp.id IS NULL OR cp.status IS NULL OR cp.status != 'paid')
+                )
+            )
             ORDER BY o.created_at_unix DESC
         `).bind(referralCode).all();
 
@@ -458,7 +500,7 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
             ORDER BY full_name ASC
         `).all();
 
-        // Get unpaid orders for this month
+        // Chưa thanh toán: chưa có cpd, hoặc cpd chưa gắn đợt thanh toán paid; đơn đã loại (is_excluded=1) không hiện đây
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 o.referral_code,
@@ -468,15 +510,26 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
                 o.customer_name,
                 o.commission,
                 o.status,
-                o.created_at_unix
+                o.created_at_unix,
+                cpd.is_excluded,
+                cpd.excluded_at_unix,
+                cpd.excluded_by,
+                cpd.exclude_reason
             FROM orders o
             LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            LEFT JOIN commission_payments cp ON cpd.payment_id = cp.id
             WHERE o.status NOT IN ('Đã hủy', 'Hủy')
             AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
             AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
             AND o.referral_code IS NOT NULL
             AND o.referral_code != ''
-            AND cpd.id IS NULL
+            AND (
+                cpd.id IS NULL
+                OR (
+                    cpd.is_excluded = 0
+                    AND (cp.id IS NULL OR cp.status IS NULL OR cp.status != 'paid')
+                )
+            )
             ORDER BY o.created_at_unix DESC
         `).bind(startDate, endDateStr).all();
 
@@ -664,6 +717,276 @@ export async function paySelectedOrders(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error paying selected orders:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// ============================================
+// EXCLUDE / RESTORE COMMISSION
+// ============================================
+
+/**
+ * Exclude an order's commission from payment (e.g. delivery failed)
+ * POST ?action=excludeOrderCommission
+ * Body: { orderId: number, reason?: string, adminUsername: string }
+ */
+export async function excludeOrderCommission(data, env, corsHeaders) {
+    try {
+        const { orderId, reason, adminUsername } = data;
+
+        if (!orderId) {
+            return jsonResponse({
+                success: false,
+                error: 'orderId là bắt buộc'
+            }, 400, corsHeaders);
+        }
+
+        // Lấy thông tin đơn hàng từ bảng orders
+        const orderInfo = await env.DB.prepare(`
+            SELECT id, referral_code, commission FROM orders WHERE id = ?
+        `).bind(orderId).first();
+
+        if (!orderInfo) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy đơn hàng'
+            }, 404, corsHeaders);
+        }
+
+        // Check if commission_payment_details record exists
+        const existing = await env.DB.prepare(`
+            SELECT id, is_excluded FROM commission_payment_details WHERE order_id = ?
+        `).bind(orderId).first();
+
+        const now = Date.now();
+
+        if (!existing) {
+            // Tạo dummy payment record (id=0) nếu chưa tồn tại — dùng làm sentinel cho đơn chưa thanh toán
+            await env.DB.prepare(`
+                INSERT OR IGNORE INTO commission_payments (id, referral_code, month, commission_amount, order_count, status, created_at_unix, updated_at_unix)
+                VALUES (0, '', 'pending', 0, 0, 'pending', 0, 0)
+            `).run();
+
+            const insertResult = await env.DB.prepare(`
+                INSERT INTO commission_payment_details (
+                    payment_id, order_id, commission_amount,
+                    is_excluded, excluded_at_unix, excluded_by, exclude_reason
+                ) VALUES (0, ?, ?, 1, ?, ?, ?)
+            `).bind(
+                orderId,
+                orderInfo.commission || 0,
+                now,
+                adminUsername || 'admin',
+                reason || ''
+            ).run();
+
+            if (!insertResult.success) {
+                console.error('❌ INSERT failed:', insertResult.error);
+                return jsonResponse({
+                    success: false,
+                    error: 'Không thể tạo bản ghi loại hoa hồng: ' + (insertResult.error || 'Unknown error')
+                }, 500, corsHeaders);
+            }
+        } else if (existing.is_excluded === 1) {
+            return jsonResponse({
+                success: false,
+                error: 'Hoa hồng này đã được loại khỏi thanh toán trước đó'
+            }, 400, corsHeaders);
+        } else {
+            // Đã có bản ghi (đã thanh toán) nhưng chưa bị loại → UPDATE
+            const updateResult = await env.DB.prepare(`
+                UPDATE commission_payment_details
+                SET is_excluded = 1,
+                    excluded_at_unix = ?,
+                    excluded_by = ?,
+                    exclude_reason = ?
+                WHERE order_id = ?
+            `).bind(now, adminUsername || 'admin', reason || '', orderId).run();
+
+            if (!updateResult.success) {
+                console.error('❌ UPDATE failed:', updateResult.error);
+                return jsonResponse({
+                    success: false,
+                    error: 'Không thể cập nhật hoa hồng: ' + (updateResult.error || 'Unknown error')
+                }, 500, corsHeaders);
+            }
+        }
+
+        console.log(`✅ Đã loại hoa hồng đơn ${orderId} khỏi thanh toán`);
+
+        return jsonResponse({
+            success: true,
+            message: `Đã loại đơn hàng khỏi danh sách thanh toán`,
+            orderId,
+            excludedAt: now,
+            excludedBy: adminUsername || 'admin'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error excluding commission:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Restore an excluded commission back to payment list
+ * POST ?action=restoreOrderCommission
+ * Body: { orderId: number, adminUsername: string }
+ */
+export async function restoreOrderCommission(data, env, corsHeaders) {
+    try {
+        const { orderId, adminUsername } = data;
+
+        if (!orderId) {
+            return jsonResponse({
+                success: false,
+                error: 'orderId là bắt buộc'
+            }, 400, corsHeaders);
+        }
+
+        const existing = await env.DB.prepare(`
+            SELECT id, is_excluded FROM commission_payment_details WHERE order_id = ?
+        `).bind(orderId).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy bản ghi hoa hồng cho đơn hàng này'
+            }, 404, corsHeaders);
+        }
+
+        if (existing.is_excluded === 0) {
+            return jsonResponse({
+                success: false,
+                error: 'Hoa hồng này không bị loại, không cần khôi phục'
+            }, 400, corsHeaders);
+        }
+
+        const now = Date.now();
+
+        const deleteResult = await env.DB.prepare(`
+            DELETE FROM commission_payment_details WHERE order_id = ?
+        `).bind(orderId).run();
+
+        if (!deleteResult.success) {
+            console.error('❌ DELETE failed:', deleteResult.error);
+            return jsonResponse({
+                success: false,
+                error: 'Không thể khôi phục hoa hồng: ' + (deleteResult.error || 'Unknown error')
+            }, 500, corsHeaders);
+        }
+
+        console.log(`✅ Đã khôi phục hoa hồng đơn ${orderId} vào danh sách thanh toán`);
+
+        return jsonResponse({
+            success: true,
+            message: `Đã khôi phục hoa hồng vào danh sách thanh toán`,
+            orderId
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error restoring commission:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Get all excluded commissions (for audit/admin view)
+ * GET ?action=getExcludedCommissions&month=2026-03
+ * GET ?action=getExcludedCommissions&month=2026-03&referralCode=CTV100001&status=all
+ * status: all | excluded | restored
+ */
+export async function getExcludedCommissions(month, referralCode, status, env, corsHeaders, rangeDates = null) {
+    try {
+        let startDate;
+        let endDateStr;
+
+        if (rangeDates && rangeDates.startDate && rangeDates.endDate) {
+            startDate = rangeDates.startDate;
+            endDateStr = rangeDates.endDate;
+        } else {
+            if (!month) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Month parameter is required (format: YYYY-MM), or pass startDate and endDate (YYYY-MM-DD)'
+                }, 400, corsHeaders);
+            }
+
+            const [year, monthNum] = month.split('-');
+            startDate = `${year}-${monthNum}-01`;
+            const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+            endDateStr = `${year}-${monthNum}-${endDate}`;
+        }
+
+        // Get list of CTVs for filter dropdown
+        const { results: ctvList } = await env.DB.prepare(`
+            SELECT referral_code, full_name
+            FROM ctv
+            WHERE status != 'Tạm ngưng'
+            ORDER BY full_name ASC
+        `).all();
+
+        // Mặc định: chỉ đơn đang bị loại (is_excluded = 1). Đã khôi phục không hiện trừ khi chọn filter lịch sử.
+        const statusNorm = (status && String(status).trim().toLowerCase()) || 'excluded';
+        let isExcludedFilter = '';
+        if (statusNorm === 'restored') {
+            isExcludedFilter = 'AND cpd.is_excluded = 0 AND cpd.restored_at_unix IS NOT NULL';
+        } else if (statusNorm === 'all') {
+            // audit: cả đang loại + đã khôi phục (bản ghi còn trong cpd)
+        } else {
+            isExcludedFilter = 'AND cpd.is_excluded = 1';
+        }
+
+        const referralFilter = referralCode ? 'AND o.referral_code = ?' : '';
+
+        const params = [startDate, endDateStr];
+        if (referralCode) params.push(referralCode);
+
+        const { results } = await env.DB.prepare(`
+            SELECT
+                cpd.*,
+                o.order_id as order_code,
+                o.customer_name,
+                o.created_at_unix as order_created_at,
+                o.referral_code,
+                c.full_name as ctv_name,
+                c.phone as ctv_phone
+            FROM commission_payment_details cpd
+            LEFT JOIN orders o ON cpd.order_id = o.id
+            LEFT JOIN ctv c ON o.referral_code = c.referral_code
+            WHERE DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
+            ${isExcludedFilter}
+            ${referralFilter}
+            ORDER BY COALESCE(cpd.excluded_at_unix, cpd.restored_at_unix) DESC
+        `).bind(...params).all();
+
+        return jsonResponse({
+            success: true,
+            month,
+            referralCode: referralCode || null,
+            status: statusNorm,
+            excludedCommissions: results,
+            ctvList,
+            summary: {
+                total: results.length,
+                totalExcluded: results.filter(r => r.is_excluded === 1).length,
+                totalRestored: results.filter(r => r.is_excluded === 0 && r.restored_at_unix).length,
+                totalAmount: results.reduce((sum, r) => sum + (r.commission_amount || 0), 0)
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting excluded commissions:', error);
         return jsonResponse({
             success: false,
             error: error.message

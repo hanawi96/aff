@@ -128,7 +128,9 @@ import { getProfitReport } from '../services/analytics/index.js';
 import {
     calculateCommissions,
     markCommissionAsPaid,
-    paySelectedOrders
+    paySelectedOrders,
+    excludeOrderCommission,
+    restoreOrderCommission
 } from '../services/payments/payment-service.js';
 
 // Upload
@@ -274,6 +276,10 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await markCommissionAsPaid(data, env, corsHeaders);
         case 'paySelectedOrders':
             return await paySelectedOrders(data, env, corsHeaders);
+        case 'excludeOrderCommission':
+            return await excludeOrderCommission(data, env, corsHeaders);
+        case 'restoreOrderCommission':
+            return await restoreOrderCommission(data, env, corsHeaders);
         case 'bulkDeleteCTV':
             return await bulkDeleteCTV(data, env, corsHeaders);
         case 'checkSlugAvailability':

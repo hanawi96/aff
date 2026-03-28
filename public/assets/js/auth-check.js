@@ -65,7 +65,10 @@
             console.log('✅ Session valid!');
             // Session valid, update user info
             localStorage.setItem('user_info', JSON.stringify(data.user));
-            
+
+            // Expose currentUser globally so other scripts can use it
+            window.currentUser = data.user;
+
             // Add logout button if not exists
             addLogoutButton();
         }

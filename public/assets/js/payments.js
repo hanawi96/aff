@@ -12,6 +12,15 @@ let currentFilters = {
     dateRange: null
 };
 
+/** YYYY-MM-DD theo lịch local (gửi API khoảng ngày — tab Đã loại) */
+function formatDateYMDLocal(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Payments V2 initialized');
@@ -22,12 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     currentMonth = `${year}-${month}`;
     
-    // Initialize filters with default period (thisMonth)
+    // Initialize filters with default period (thisMonth); runAfter syncs lịch sử + applyFilters (sau khi có dữ liệu)
     filterByPeriod('thisMonth');
     
-    // Load both tabs data immediately
     loadUnpaidOrders();
-    loadPaymentHistory();
+    updateExcludedBadge();
 });
 
 // Load unpaid orders
@@ -51,12 +59,13 @@ async function loadUnpaidOrders() {
         
         if (data.success) {
             allCommissions = data.commissions || [];
-            filteredCommissions = [...allCommissions];
-            
             console.log('✅ Loaded commissions:', allCommissions.length);
-            
-            updateSummary(data.summary);
-            renderCTVList();
+
+            // Áp dụng bộ lọc thời gian/trạng thái/tìm kiếm + cập nhật đúng tab đang mở
+            applyFilters();
+
+            updateExcludedBadge();
+
         } else {
             throw new Error(data.error || 'Failed to load data');
         }
@@ -70,13 +79,89 @@ async function loadUnpaidOrders() {
     }
 }
 
+/** Nhãn 4 ô summary theo tab (cùng một hàng, đổi nghĩa theo ngữ cảnh) */
+function applySummaryLabels(mode) {
+    const L = {
+        unpaid: {
+            ctvTitle: 'Tổng CTV',
+            ctvSub: 'Có đơn chưa trả',
+            ordersTitle: 'Đơn hàng',
+            ordersSub: 'Chưa thanh toán',
+            commTitle: 'Hoa hồng',
+            commSub: 'Chưa thanh toán',
+            selTitle: 'Đã chọn',
+            selSub: 'Sẵn sàng thanh toán'
+        },
+        excluded: {
+            ctvTitle: 'CTV bị ảnh hưởng',
+            ctvSub: 'Theo bộ lọc hiện tại',
+            ordersTitle: 'Đơn đã loại',
+            ordersSub: 'Không tính thanh toán',
+            commTitle: 'Hoa hồng đã loại',
+            commSub: 'Theo bộ lọc hiện tại',
+            selTitle: 'Đã chọn',
+            selSub: 'Không áp dụng ở tab này'
+        },
+        history: {
+            ctvTitle: 'Đợt thanh toán',
+            ctvSub: 'Theo ngày trả trong khoảng lọc',
+            ordersTitle: 'Đơn đã trả',
+            ordersSub: 'Tổng qua các đợt (đang lọc)',
+            commTitle: 'Đã thanh toán',
+            commSub: 'Tổng tiền đã chuyển',
+            selTitle: 'Đã chọn',
+            selSub: '—'
+        }
+    }[mode] || {
+        ctvTitle: 'Tổng CTV',
+        ctvSub: 'Có đơn chưa trả',
+        ordersTitle: 'Đơn hàng',
+        ordersSub: 'Chưa thanh toán',
+        commTitle: 'Hoa hồng',
+        commSub: 'Chưa thanh toán',
+        selTitle: 'Đã chọn',
+        selSub: 'Sẵn sàng thanh toán'
+    };
+
+    const set = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+    set('summaryLabelCtv', L.ctvTitle);
+    set('summarySubCtv', L.ctvSub);
+    set('summaryLabelOrders', L.ordersTitle);
+    set('summarySubOrders', L.ordersSub);
+    set('summaryLabelCommission', L.commTitle);
+    set('summarySubCommission', L.commSub);
+    set('summaryLabelSelected', L.selTitle);
+    set('summarySubSelected', L.selSub);
+}
+
 // Update summary
 function updateSummary(summary) {
+    applySummaryLabels('unpaid');
     document.getElementById('totalCTV').textContent = summary.total_ctv || 0;
     document.getElementById('totalOrders').textContent = summary.total_orders || 0;
     document.getElementById('totalCommission').textContent = formatCurrency(summary.total_commission || 0);
     document.getElementById('unpaidCount').textContent = summary.total_ctv || 0;
     updateSelectedAmount();
+}
+
+// Update excluded badge count on the tab
+async function updateExcludedBadge() {
+    const badge = document.getElementById('excludedCount');
+    if (!badge) return;
+
+    try {
+        const url = `${CONFIG.API_URL}?action=getExcludedCommissions&month=${currentMonth}&status=excluded&timestamp=${Date.now()}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success) {
+            badge.textContent = data.summary?.total || 0;
+        }
+    } catch {
+        // Silent fail - badge is just a hint
+    }
 }
 
 // Update selected amount
@@ -114,21 +199,36 @@ function renderCTVList() {
     existingCards.forEach(card => card.remove());
     
     filteredCommissions.forEach((ctv, index) => {
-        const allSelected = ctv.orders.every(o => selectedOrders.has(o.order_id));
-        const someSelected = ctv.orders.some(o => selectedOrders.has(o.order_id));
-        
+        // Only count non-excluded orders for selection
+        const activeOrders = ctv.orders.filter(o => o.is_excluded !== 1);
+        const excludedCount = ctv.orders.filter(o => o.is_excluded === 1).length;
+        const activeCommission = activeOrders.reduce((sum, o) => sum + (o.commission || 0), 0);
+
+        const allActiveSelected = activeOrders.length > 0 && activeOrders.every(o => selectedOrders.has(o.order_id));
+        const someSelected = activeOrders.some(o => selectedOrders.has(o.order_id));
+
+        const excludedBadge = excludedCount > 0 ? `
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                ${excludedCount} đơn đã loại
+            </span>
+        ` : '';
+
         const html = `
             <div class="ctv-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <!-- CTV Header -->
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                                 ${ctv.ctv_name.charAt(0)}
                             </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-900">${escapeHtml(ctv.ctv_name)}</h3>
-                                <div class="flex items-center gap-3 mt-1">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-lg font-bold text-gray-900">${escapeHtml(ctv.ctv_name)}</h3>
+                                    ${excludedBadge}
+                                </div>
+                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                     <span class="text-sm text-gray-600">
                                         <span class="font-mono font-semibold text-indigo-600">${escapeHtml(ctv.referral_code)}</span>
                                     </span>
@@ -137,25 +237,26 @@ function renderCTVList() {
                                 </div>
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right ml-3">
                             <p class="text-sm text-gray-600">Chưa thanh toán</p>
-                            <p class="text-2xl font-bold text-orange-600">${formatCurrency(ctv.commission_amount)}</p>
-                            <p class="text-sm text-gray-500 mt-1">${ctv.order_count} đơn hàng</p>
+                            <p class="text-2xl font-bold text-orange-600">${formatCurrency(activeCommission)}</p>
+                            <p class="text-sm text-gray-500 mt-1">${activeOrders.length} đơn hàng</p>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Orders List -->
                 <div class="p-6">
+                    ${activeOrders.length > 0 ? `
                     <div class="flex items-center justify-between mb-4">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" 
-                                   ${allSelected ? 'checked' : ''}
+                            <input type="checkbox"
+                                   ${allActiveSelected ? 'checked' : ''}
                                    onchange="toggleAllOrders('${ctv.referral_code}')"
                                    class="w-5 h-5 text-indigo-600 border-gray-300 rounded">
                             <span class="text-sm font-medium text-gray-700">Chọn tất cả</span>
                         </label>
-                        <button onclick="paySelectedCTV('${ctv.referral_code}')" 
+                        <button onclick="paySelectedCTV('${ctv.referral_code}')"
                                 class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg ${someSelected ? '' : 'opacity-50 cursor-not-allowed'}"
                                 ${someSelected ? '' : 'disabled'}>
                             <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -164,7 +265,12 @@ function renderCTVList() {
                             Thanh toán đã chọn
                         </button>
                     </div>
-                    
+                    ` : `
+                    <div class="mb-4 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <p class="text-sm text-red-600 font-medium text-center">Tất cả đơn hàng đã được loại khỏi thanh toán</p>
+                    </div>
+                    `}
+
                     <div class="space-y-2">
                         ${ctv.orders.map(order => createOrderRow(order, ctv.referral_code)).join('')}
                     </div>
@@ -180,22 +286,52 @@ function renderCTVList() {
 // Create order row
 function createOrderRow(order, referralCode) {
     const isSelected = selectedOrders.has(order.order_id);
+    const isExcluded = order.is_excluded === 1;
+
     // created_at_unix is already in milliseconds, no need to multiply by 1000
-    const timestamp = order.created_at_unix 
+    const timestamp = order.created_at_unix
         ? new Date(typeof order.created_at_unix === 'string' ? parseInt(order.created_at_unix) : order.created_at_unix)
         : new Date(order.created_at);
     const date = toVNShortDate(timestamp);
-    
+
+    // Format excluded info
+    const excludedBadge = isExcluded ? `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+            Đã loại
+        </span>
+    ` : '';
+
+    const excludedReason = isExcluded && order.exclude_reason ? `
+        <p class="text-xs text-red-500 mt-1">${escapeHtml(order.exclude_reason)}</p>
+    ` : '';
+
+    const excludedBy = isExcluded && order.excluded_by ? `
+        <p class="text-xs text-gray-400 mt-0.5">Bởi: ${escapeHtml(order.excluded_by)}</p>
+    ` : '';
+
     return `
-        <label class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer ${isSelected ? 'bg-indigo-50 border-indigo-300' : ''}">
-            <input type="checkbox" 
+        <div class="relative flex items-center gap-4 p-4 border rounded-xl transition-all ${isExcluded ? 'bg-red-50/50 border-red-200 opacity-80' : isSelected ? 'bg-indigo-50 border-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200 hover:shadow-sm'}">
+            ${!isExcluded ? `
+            <input type="checkbox"
                    ${isSelected ? 'checked' : ''}
                    onchange="toggleOrder(${order.order_id})"
-                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded">
-            <div class="flex-1 grid grid-cols-4 gap-4">
+                   class="w-5 h-5 text-indigo-600 border-gray-300 rounded flex-shrink-0">
+            ` : `
+            <div class="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                </svg>
+            </div>
+            `}
+            <div class="flex-1 grid grid-cols-5 gap-3 items-center">
                 <div>
-                    <p class="text-xs text-gray-500">Mã đơn</p>
-                    <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_code)}</p>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_code)}</p>
+                        ${excludedBadge}
+                    </div>
+                    ${excludedReason}
+                    ${excludedBy}
                 </div>
                 <div>
                     <p class="text-xs text-gray-500">Ngày đặt</p>
@@ -207,15 +343,48 @@ function createOrderRow(order, referralCode) {
                 </div>
                 <div class="text-right">
                     <p class="text-xs text-gray-500">Hoa hồng</p>
-                    <p class="text-sm font-bold text-orange-600">${formatCurrency(order.commission)}</p>
+                    <p class="text-sm font-bold ${isExcluded ? 'text-red-400 line-through' : 'text-orange-600'}">${formatCurrency(order.commission)}</p>
+                </div>
+                <div class="flex items-center justify-end gap-2">
+                    ${isExcluded ? `
+                    <button type="button"
+                            onclick="restoreCommission(${order.order_id}, '${escapeHtml(order.order_code)}')"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition-colors border border-emerald-200"
+                            title="Khôi phục hoa hồng">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Khôi phục
+                    </button>
+                    ` : `
+                    <button type="button"
+                            onclick="showExcludeModal(${order.order_id}, '${escapeHtml(order.order_code)}')"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+                            title="Loại khỏi thanh toán">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        Loại
+                    </button>
+                    `}
                 </div>
             </div>
-        </label>
+        </div>
     `;
 }
 
 // Toggle single order
 function toggleOrder(orderId) {
+    // Find the order to check if it's excluded
+    let order = null;
+    for (const ctv of allCommissions) {
+        order = ctv.orders.find(o => o.order_id === orderId);
+        if (order) break;
+    }
+    if (order && order.is_excluded === 1) {
+        showToast('Đơn hàng này đã bị loại khỏi thanh toán', 'warning');
+        return;
+    }
     if (selectedOrders.has(orderId)) {
         selectedOrders.delete(orderId);
     } else {
@@ -229,17 +398,17 @@ function toggleOrder(orderId) {
 function toggleAllOrders(referralCode) {
     const ctv = filteredCommissions.find(c => c.referral_code === referralCode);
     if (!ctv) return;
-    
-    const allSelected = ctv.orders.every(o => selectedOrders.has(o.order_id));
-    
-    if (allSelected) {
-        // Unselect all
-        ctv.orders.forEach(o => selectedOrders.delete(o.order_id));
+
+    // Only toggle non-excluded orders
+    const activeOrders = ctv.orders.filter(o => o.is_excluded !== 1);
+    const allActiveSelected = activeOrders.length > 0 && activeOrders.every(o => selectedOrders.has(o.order_id));
+
+    if (allActiveSelected) {
+        activeOrders.forEach(o => selectedOrders.delete(o.order_id));
     } else {
-        // Select all
-        ctv.orders.forEach(o => selectedOrders.add(o.order_id));
+        activeOrders.forEach(o => selectedOrders.add(o.order_id));
     }
-    
+
     updateSelectedAmount();
     renderCTVList();
 }
@@ -538,13 +707,6 @@ function updateSearchUI(searchTerm) {
     }
 }
 
-function clearSearch() {
-    const searchInput = document.getElementById('searchInput');
-    searchInput.value = '';
-    performSearch();
-    searchInput.focus();
-}
-
 // Load previous month (DEPRECATED - Use filterByPeriod('lastMonth') instead)
 function loadPreviousMonth() {
     // Redirect to new filter system
@@ -554,9 +716,13 @@ function loadPreviousMonth() {
 }
 
 // Refresh data
-function refreshData() {
+async function refreshData() {
     showToast('Đang tải lại dữ liệu...', 'info');
-    loadUnpaidOrders();
+    await loadUnpaidOrders();
+    await loadPaymentHistory();
+    if (currentTab === 'excluded') {
+        await loadExcludedCommissions();
+    }
 }
 
 // UI State functions
@@ -621,71 +787,84 @@ let paymentHistory = [];
 
 function switchTab(tab) {
     currentTab = tab;
-    
-    // Update tab buttons
+
     const tabUnpaid = document.getElementById('tabUnpaid');
     const tabHistory = document.getElementById('tabHistory');
+    const tabExcluded = document.getElementById('tabExcluded');
     const unpaidContent = document.getElementById('unpaidContent');
     const historyContent = document.getElementById('historyContent');
-    
-    if (tab === 'unpaid') {
-        tabUnpaid.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-        tabUnpaid.classList.remove('border-transparent', 'text-slate-500');
-        tabHistory.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-        tabHistory.classList.add('border-transparent', 'text-slate-500');
-        
-        unpaidContent.classList.remove('hidden');
-        historyContent.classList.add('hidden');
-        
-        // Update summary cards for unpaid tab
-        // Re-calculate from current allCommissions data
-        const summary = {
-            total_ctv: allCommissions.length,
-            total_orders: allCommissions.reduce((sum, ctv) => sum + ctv.order_count, 0),
-            total_commission: allCommissions.reduce((sum, ctv) => sum + ctv.commission_amount, 0)
-        };
-        updateSummary(summary);
-    } else {
-        tabHistory.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-        tabHistory.classList.remove('border-transparent', 'text-slate-500');
+    const excludedContent = document.getElementById('excludedContent');
+
+    // Ẩn cả 3 vùng nội dung — tránh tab "Đã loại" còn hiển thị khi chuyển tab khác
+    if (unpaidContent) unpaidContent.classList.add('hidden');
+    if (historyContent) historyContent.classList.add('hidden');
+    if (excludedContent) excludedContent.classList.add('hidden');
+
+    // Reset trạng thái nút tab (chỉ tab đang chọn mới active)
+    if (tabUnpaid) {
         tabUnpaid.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
         tabUnpaid.classList.add('border-transparent', 'text-slate-500');
-        
-        historyContent.classList.remove('hidden');
-        unpaidContent.classList.add('hidden');
-        
-        // Update summary cards for history tab
-        updateSummaryForHistory();
+    }
+    if (tabHistory) {
+        tabHistory.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+        tabHistory.classList.add('border-transparent', 'text-slate-500');
+    }
+    if (tabExcluded) {
+        tabExcluded.classList.remove('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
+        tabExcluded.classList.add('border-transparent', 'text-slate-500');
+    }
+
+    if (tab === 'unpaid') {
+        if (tabUnpaid) {
+            tabUnpaid.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+            tabUnpaid.classList.remove('border-transparent', 'text-slate-500');
+        }
+        if (unpaidContent) unpaidContent.classList.remove('hidden');
+
+        applyFilters();
+    } else if (tab === 'history') {
+        if (tabHistory) {
+            tabHistory.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
+            tabHistory.classList.remove('border-transparent', 'text-slate-500');
+        }
+        if (historyContent) historyContent.classList.remove('hidden');
+        renderHistoryFromFilters();
+    } else if (tab === 'excluded') {
+        if (tabExcluded) {
+            tabExcluded.classList.add('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
+            tabExcluded.classList.remove('border-transparent', 'text-slate-500');
+        }
+        if (excludedContent) excludedContent.classList.remove('hidden');
+
+        const sel = document.getElementById('selectedAmount');
+        if (sel) sel.textContent = '0đ';
+
+        loadExcludedCommissions();
     }
 }
 
-// Load Payment History
+// Load Payment History (theo ngày thực trả payment_date_unix, hoặc tất cả khi period = all)
 async function loadPaymentHistory() {
-    // Use currentMonth from global state
-    const month = currentMonth || new Date().toISOString().slice(0, 7);
-    
-    if (!month) {
-        showToast('Vui lòng chọn tháng', 'warning');
-        return;
-    }
-    
     try {
-        // Get all payment records for this month
-        const response = await fetch(`${CONFIG.API_URL}?action=getPaidOrdersByMonth&month=${month}&timestamp=${Date.now()}`);
+        const params = new URLSearchParams({
+            action: 'getPaidOrdersByMonth',
+            timestamp: Date.now()
+        });
+
+        if (currentFilters.period === 'all' || !currentFilters.dateRange) {
+            params.set('allPaid', '1');
+        } else {
+            const { startDate, endDate } = currentFilters.dateRange;
+            params.set('paymentStartMs', String(startDate.getTime()));
+            params.set('paymentEndMs', String(endDate.getTime()));
+        }
+
+        const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
         const data = await response.json();
-        
+
         if (data.success) {
             paymentHistory = data.payments || [];
-            
-            // Update history count badge
-            document.getElementById('historyCount').textContent = paymentHistory.length;
-            
-            // Update summary cards if currently on history tab
-            if (currentTab === 'history') {
-                updateSummaryForHistory();
-            }
-            
-            renderPaymentHistory(paymentHistory);
+            renderHistoryFromFilters();
         }
     } catch (error) {
         console.error('Error loading payment history:', error);
@@ -693,18 +872,56 @@ async function loadPaymentHistory() {
     }
 }
 
-// Update summary cards for history tab
-function updateSummaryForHistory() {
-    // Calculate stats from payment history
-    const totalAmount = paymentHistory.reduce((sum, p) => sum + (p.commission_amount || 0), 0);
-    const totalOrders = paymentHistory.reduce((sum, p) => sum + (p.order_count || 0), 0);
-    const totalCTV = paymentHistory.length;
-    
-    // Update the 4 summary cards
+/** Lọc lịch sử theo trạng thái + ô tìm kiếm (client) */
+function getFilteredPaymentHistoryForDisplay() {
+    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+
+    let list = paymentHistory;
+
+    if (statusFilter !== 'all') {
+        list = list.filter(p => (p.status || 'paid') === statusFilter);
+    }
+
+    if (searchTerm) {
+        list = list.filter(payment => {
+            const searchFields = [
+                payment.ctv_name?.toLowerCase() || '',
+                payment.referral_code?.toLowerCase() || '',
+                payment.phone || '',
+                payment.bank_name?.toLowerCase() || '',
+                payment.bank_account_number || '',
+                payment.payment_method?.toLowerCase() || '',
+                payment.note?.toLowerCase() || ''
+            ];
+            return searchFields.some(field => field.includes(searchTerm));
+        });
+    }
+
+    return list;
+}
+
+function updateSummaryForHistoryFiltered(list) {
+    applySummaryLabels('history');
+    const totalAmount = list.reduce((sum, p) => sum + (p.commission_amount || 0), 0);
+    const totalOrders = list.reduce((sum, p) => sum + (p.order_count || 0), 0);
+    const totalCTV = list.length;
+
     document.getElementById('totalCTV').textContent = totalCTV;
     document.getElementById('totalOrders').textContent = totalOrders;
     document.getElementById('totalCommission').textContent = formatCurrency(totalAmount);
-    document.getElementById('selectedAmount').textContent = '0đ'; // No selection in history tab
+    document.getElementById('selectedAmount').textContent = '0đ';
+}
+
+function renderHistoryFromFilters() {
+    const filtered = getFilteredPaymentHistoryForDisplay();
+    const badge = document.getElementById('historyCount');
+    if (badge) badge.textContent = filtered.length;
+
+    if (currentTab === 'history') {
+        renderPaymentHistory(filtered);
+        updateSummaryForHistoryFiltered(filtered);
+    }
 }
 
 // Render Payment History
@@ -850,35 +1067,19 @@ function filterHistory() {
 }
 
 function performHistorySearch() {
-    const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    
-    if (!searchTerm) {
-        renderPaymentHistory(paymentHistory);
-        return;
+    const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) {
+        if (searchTerm) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
     }
-    
-    const filtered = paymentHistory.filter(payment => {
-        const searchFields = [
-            payment.ctv_name?.toLowerCase() || '',
-            payment.referral_code?.toLowerCase() || '',
-            payment.phone || '',
-            payment.bank_name?.toLowerCase() || '',
-            payment.bank_account_number || '',
-            payment.payment_method?.toLowerCase() || '',
-            payment.note?.toLowerCase() || ''
-        ];
-        
-        return searchFields.some(field => field.includes(searchTerm));
-    });
-    
-    renderPaymentHistory(filtered);
-    
+    currentFilters.search = searchTerm;
+    renderHistoryFromFilters();
+
     if (searchTerm) {
-        const resultText = filtered.length === 0 
-            ? 'Không tìm thấy kết quả' 
-            : `Tìm thấy ${filtered.length} thanh toán`;
-        showToast(resultText, filtered.length === 0 ? 'warning' : 'info');
+        const n = getFilteredPaymentHistoryForDisplay().length;
+        const resultText = n === 0 ? 'Không tìm thấy kết quả' : `Tìm thấy ${n} thanh toán`;
+        showToast(resultText, n === 0 ? 'warning' : 'info');
     }
 }
 
@@ -969,13 +1170,29 @@ function filterByPeriod(period) {
     }
     
     currentFilters.dateRange = startDate && endDate ? { startDate, endDate } : null;
-    
+
     console.log('📅 Filter period:', period, {
         startDate: startDate ? startDate.toISOString() : 'null',
         endDate: endDate ? endDate.toISOString() : 'null'
     });
-    
-    applyFilters();
+
+    runAfterPeriodFilterChange();
+}
+
+/**
+ * Sau khi đổi khoảng thời gian: cập nhật đúng tab + luôn làm mới cache lịch sử (để sang tab Lịch sử không lệch bộ lọc).
+ */
+function runAfterPeriodFilterChange() {
+    if (currentTab === 'history') {
+        loadPaymentHistory();
+    } else if (currentTab === 'excluded') {
+        loadExcludedCommissions();
+    } else {
+        applyFilters();
+    }
+    if (currentTab !== 'history') {
+        loadPaymentHistory();
+    }
 }
 
 // Apply all filters
@@ -992,6 +1209,16 @@ function applyFilters() {
         clearBtn.classList.remove('hidden');
     } else {
         clearBtn.classList.add('hidden');
+    }
+
+    updateActiveFiltersDisplay();
+
+    if (currentTab === 'history') {
+        renderHistoryFromFilters();
+        return;
+    }
+    if (currentTab === 'excluded') {
+        return;
     }
     
     // Filter data - Create deep copy to avoid modifying original
@@ -1019,25 +1246,25 @@ function applyFilters() {
             if (ctv.orders && Array.isArray(ctv.orders)) {
                 const filteredOrders = ctv.orders.filter(order => {
                     totalOrdersChecked++;
-                    
+
                     // IMPORTANT: Use created_at_unix (milliseconds timestamp) if available
                     // Otherwise fallback to created_at (ISO string)
                     let orderDate;
                     if (order.created_at_unix) {
                         // created_at_unix is already in milliseconds, no need to multiply by 1000
-                        const timestamp = typeof order.created_at_unix === 'string' 
-                            ? parseInt(order.created_at_unix) 
+                        const timestamp = typeof order.created_at_unix === 'string'
+                            ? parseInt(order.created_at_unix)
                             : order.created_at_unix;
                         orderDate = new Date(timestamp);
                     } else {
                         // Fallback to ISO string
                         orderDate = new Date(order.created_at || order.payment_date);
                     }
-                    
+
                     const matches = orderDate >= startDate && orderDate <= endDate;
-                    
+
                     if (matches) totalOrdersMatched++;
-                    
+
                     // Debug log for first 5 orders
                     if (totalOrdersChecked <= 5) {
                         console.log(`  📦 Order ${order.order_id || order.order_code}:`, {
@@ -1052,15 +1279,18 @@ function applyFilters() {
                             'orderDate <= endDate': orderDate <= endDate
                         });
                     }
-                    
+
                     return matches;
                 });
-                
+
+                // Active orders = non-excluded only (for commission totals)
+                const activeOrders = filteredOrders.filter(o => o.is_excluded !== 1);
+
                 return {
                     ...ctv,
                     orders: filteredOrders,
-                    commission_amount: filteredOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
-                    order_count: filteredOrders.length
+                    commission_amount: activeOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
+                    order_count: activeOrders.length
                 };
             }
             return ctv;
@@ -1078,12 +1308,15 @@ function applyFilters() {
                     const orderStatus = order.payment_status || order.status || 'pending';
                     return orderStatus === statusFilter;
                 });
-                
+
+                // Active orders = non-excluded only (for commission totals)
+                const activeOrders = filteredOrders.filter(o => o.is_excluded !== 1);
+
                 return {
                     ...ctv,
                     orders: filteredOrders,
-                    commission_amount: filteredOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
-                    order_count: filteredOrders.length
+                    commission_amount: activeOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
+                    order_count: activeOrders.length
                 };
             }
             return ctv;
@@ -1110,7 +1343,7 @@ function applyFilters() {
         filtered: filteredCommissions.length,
         filters: currentFilters
     });
-    
+
     updateActiveFiltersDisplay();
     renderCTVList();
     updateFilteredSummary();
@@ -1198,10 +1431,18 @@ function updateActiveFiltersDisplay() {
 
 // Update summary with filtered data
 function updateFilteredSummary() {
+    applySummaryLabels('unpaid');
     const totalCTV = filteredCommissions.length;
-    const totalOrders = filteredCommissions.reduce((sum, ctv) => sum + (ctv.order_count || 0), 0);
-    const totalCommission = filteredCommissions.reduce((sum, ctv) => sum + (ctv.commission_amount || 0), 0);
-    
+    // Only count non-excluded orders
+    const totalOrders = filteredCommissions.reduce((sum, ctv) => {
+        const activeOrders = (ctv.orders || []).filter(o => o.is_excluded !== 1);
+        return sum + activeOrders.length;
+    }, 0);
+    const totalCommission = filteredCommissions.reduce((sum, ctv) => {
+        const activeOrders = (ctv.orders || []).filter(o => o.is_excluded !== 1);
+        return sum + activeOrders.reduce((s, o) => s + (o.commission || 0), 0);
+    }, 0);
+
     document.getElementById('totalCTV').textContent = totalCTV;
     document.getElementById('totalOrders').textContent = totalOrders;
     document.getElementById('totalCommission').textContent = formatCurrency(totalCommission);
@@ -1430,20 +1671,21 @@ function applyCustomDatePayments() {
     const month = String(startDateObj.getMonth() + 1).padStart(2, '0');
     const targetMonth = `${year}-${month}`;
     
-    // Only reload if different month
+    // Only reload unpaid API if commission month thay đổi
     if (currentMonth !== targetMonth) {
         currentMonth = targetMonth;
         showToast('Đang tải dữ liệu...', 'info');
-        
-        loadUnpaidOrders().then(() => {
-            applyFilters();
-            showToast('Đã áp dụng bộ lọc thời gian', 'success');
-        }).catch(() => {
-            showToast('Không thể tải dữ liệu', 'error');
-        });
+
+        loadUnpaidOrders()
+            .then(() => {
+                runAfterPeriodFilterChange();
+                showToast('Đã áp dụng bộ lọc thời gian', 'success');
+            })
+            .catch(() => {
+                showToast('Không thể tải dữ liệu', 'error');
+            });
     } else {
-        // Same month, just apply filter
-        applyFilters();
+        runAfterPeriodFilterChange();
         showToast('Đã áp dụng bộ lọc thời gian', 'success');
     }
     
@@ -1556,9 +1798,7 @@ function toggleStatusFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'statusFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 w-full mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
+    menu.className = 'absolute left-0 right-0 top-full z-[100] mt-1 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-xl';
 
     menu.innerHTML = statuses.map(s => {
         const colorClasses = {
@@ -1588,7 +1828,6 @@ function toggleStatusFilter(event) {
         </button>
     `}).join('');
 
-    button.style.position = 'relative';
     button.parentElement.appendChild(menu);
 
     // Close when clicking outside
@@ -1608,4 +1847,478 @@ function selectStatusFilter(value, label) {
     document.getElementById('statusFilterLabel').textContent = label;
     document.getElementById('statusFilterMenu')?.remove();
     applyFilters();
+}
+
+
+// ============================================
+// EXCLUDE / RESTORE COMMISSION MODAL
+// ============================================
+
+let excludeModal = null;
+
+/**
+ * Show modal to exclude a commission
+ */
+function showExcludeModal(orderId, orderCode) {
+    if (excludeModal) excludeModal.remove();
+
+    excludeModal = document.createElement('div');
+    excludeModal.id = 'excludeModal';
+    excludeModal.className = 'fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm';
+    excludeModal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden fade-in">
+            <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Loại khỏi thanh toán</h2>
+                        <p class="text-sm text-white/80">Mã đơn: ${escapeHtml(orderCode)}</p>
+                    </div>
+                </div>
+                <button onclick="closeExcludeModal()" class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <div class="mb-5 p-4 bg-red-50 rounded-xl border border-red-100">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-red-800">Hành động này sẽ loại hoa hồng đơn hàng này khỏi tổng thanh toán.</p>
+                            <p class="text-xs text-red-600 mt-1">Sử dụng khi đơn hàng giao không thành công, hoàn tiền, hoặc không hợp lệ.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Lý do loại
+                        <span class="text-gray-400 font-normal">(tùy chọn)</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button type="button" onclick="setExcludeReason('Giao không thành công')"
+                            class="reason-btn px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:border-red-300 hover:bg-red-50 transition-colors text-center">
+                            Giao không thành công
+                        </button>
+                        <button type="button" onclick="setExcludeReason('Khách hàng hoàn đơn')"
+                            class="reason-btn px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:border-red-300 hover:bg-red-50 transition-colors text-center">
+                            Khách hàng hoàn đơn
+                        </button>
+                        <button type="button" onclick="setExcludeReason('Đơn hàng không hợp lệ')"
+                            class="reason-btn px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:border-red-300 hover:bg-red-50 transition-colors text-center">
+                            Đơn không hợp lệ
+                        </button>
+                        <button type="button" onclick="setExcludeReason('Hoàn tiền')"
+                            class="reason-btn px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:border-red-300 hover:bg-red-50 transition-colors text-center">
+                            Hoàn tiền
+                        </button>
+                    </div>
+                    <textarea id="excludeReason" rows="2"
+                        placeholder="Nhập lý do khác (tùy chọn)"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-none transition-colors"></textarea>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="closeExcludeModal()"
+                        class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                        Hủy
+                    </button>
+                    <button type="button" onclick="confirmExclude(${orderId})"
+                        class="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                        <span id="excludeBtnContent">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                            Xác nhận loại
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(excludeModal);
+
+    excludeModal.addEventListener('click', function(e) {
+        if (e.target === excludeModal) closeExcludeModal();
+    });
+}
+
+function setExcludeReason(reason) {
+    document.getElementById('excludeReason').value = reason;
+    // Highlight selected button
+    document.querySelectorAll('.reason-btn').forEach(btn => {
+        btn.classList.remove('border-red-400', 'bg-red-50', 'text-red-700', 'font-semibold');
+        btn.classList.add('border-gray-200', 'text-gray-600');
+    });
+    event.target.classList.remove('border-gray-200', 'text-gray-600');
+    event.target.classList.add('border-red-400', 'bg-red-50', 'text-red-700', 'font-semibold');
+}
+
+function closeExcludeModal() {
+    if (excludeModal) {
+        excludeModal.remove();
+        excludeModal = null;
+    }
+}
+
+/**
+ * Confirm and submit exclude commission
+ */
+async function confirmExclude(orderId) {
+    const reason = document.getElementById('excludeReason').value.trim();
+    const btnContent = document.getElementById('excludeBtnContent');
+    const originalContent = btnContent.innerHTML;
+
+    btnContent.innerHTML = `
+        <svg class="w-4 h-4 inline mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Đang xử lý...
+    `;
+    btnContent.parentElement.disabled = true;
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=excludeOrderCommission`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                orderId,
+                reason,
+                adminUsername: window.currentUser?.username || 'admin'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`Đã loại hoa hồng khỏi danh sách thanh toán`, 'success');
+            closeExcludeModal();
+            setTimeout(() => {
+                loadUnpaidOrders();
+                updateExcludedBadge();
+            }, 500);
+        } else {
+            throw new Error(data.error || 'Không thể loại hoa hồng');
+        }
+    } catch (error) {
+        console.error('❌ Error excluding commission:', error);
+        showToast(error.message || 'Không thể loại hoa hồng', 'error');
+        btnContent.innerHTML = originalContent;
+        btnContent.parentElement.disabled = false;
+    }
+}
+
+/**
+ * Restore an excluded commission
+ */
+async function restoreCommission(orderId, orderCode) {
+    if (!confirm(`Khôi phục hoa hồng cho đơn "${orderCode}"?\nĐơn này sẽ trở lại danh sách thanh toán.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=restoreOrderCommission`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                orderId,
+                adminUsername: window.currentUser?.username || 'admin'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`Đã khôi phục hoa hồng cho đơn ${orderCode}`, 'success');
+            // Refresh appropriate tab
+            if (currentTab === 'excluded') {
+                loadExcludedCommissions();
+            } else {
+                setTimeout(() => loadUnpaidOrders(), 500);
+            }
+        } else {
+            throw new Error(data.error || 'Không thể khôi phục hoa hồng');
+        }
+    } catch (error) {
+        console.error('❌ Error restoring commission:', error);
+        showToast(error.message || 'Không thể khôi phục hoa hồng', 'error');
+    }
+}
+
+
+// ============================================
+// EXCLUDED COMMISSIONS TAB
+// ============================================
+
+let excludedData = [];
+let excludedCTVList = [];
+
+/**
+ * Load excluded commissions from API
+ */
+async function loadExcludedCommissions() {
+    const ctvFilter = document.getElementById('excludedCTVFilter')?.value || '';
+    const statusFilter = document.getElementById('excludedStatusFilter')?.value || 'excluded';
+
+    const loadingState = document.getElementById('excludedLoadingState');
+    const emptyState = document.getElementById('excludedEmptyState');
+    const container = document.getElementById('excludedListContainer');
+
+    if (loadingState) loadingState.classList.remove('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+    const existingCards = container?.querySelectorAll('.excl-card');
+    existingCards?.forEach(card => card.remove());
+
+    try {
+        let url = `${CONFIG.API_URL}?action=getExcludedCommissions&timestamp=${Date.now()}`;
+        if (currentFilters.dateRange) {
+            url += `&startDate=${encodeURIComponent(formatDateYMDLocal(currentFilters.dateRange.startDate))}`;
+            url += `&endDate=${encodeURIComponent(formatDateYMDLocal(currentFilters.dateRange.endDate))}`;
+        } else if (currentFilters.period === 'all') {
+            url += `&startDate=1970-01-01&endDate=${encodeURIComponent(formatDateYMDLocal(new Date()))}`;
+        } else {
+            url += `&month=${encodeURIComponent(currentMonth)}`;
+        }
+        if (ctvFilter) url += `&referralCode=${encodeURIComponent(ctvFilter)}`;
+        url += `&status=${encodeURIComponent(statusFilter)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+            excludedData = data.excludedCommissions || [];
+            excludedCTVList = data.ctvList || [];
+
+            // Populate CTV dropdown
+            populateExcludedCTVDropdown(data.ctvList || []);
+
+            // Update summary cards
+            updateExcludedSummary(data.summary);
+
+            // Update badge count
+            const exclCount = excludedData.filter(r => r.is_excluded === 1).length;
+            const badge = document.getElementById('excludedCount');
+            if (badge) badge.textContent = exclCount;
+
+            renderExcludedList();
+        } else {
+            throw new Error(data.error || 'Không thể tải danh sách');
+        }
+    } catch (error) {
+        console.error('❌ Error loading excluded commissions:', error);
+        showToast('Không thể tải danh sách hoa hồng đã loại', 'error');
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+            const h3 = emptyState.querySelector('h3');
+            const p = emptyState.querySelector('p');
+            if (h3) h3.textContent = 'Không thể tải dữ liệu';
+            if (p) p.textContent = error.message;
+        }
+    } finally {
+        if (loadingState) loadingState.classList.add('hidden');
+    }
+}
+
+/**
+ * Populate CTV dropdown in excluded tab
+ */
+function populateExcludedCTVDropdown(ctvList) {
+    const select = document.getElementById('excludedCTVFilter');
+    if (!select) return;
+
+    const currentValue = select.value;
+
+    select.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = 'Tất cả CTV';
+    select.appendChild(allOpt);
+
+    ctvList.forEach(ctv => {
+        const opt = document.createElement('option');
+        opt.value = ctv.referral_code;
+        opt.textContent = `${ctv.full_name} (${ctv.referral_code})`;
+        select.appendChild(opt);
+    });
+
+    if (currentValue && [...select.options].some(o => o.value === currentValue)) {
+        select.value = currentValue;
+    } else {
+        select.value = '';
+    }
+}
+
+/**
+ * Cập nhật 4 ô summary phía trên theo dữ liệu tab Đã loại (không dùng thêm hàng summary riêng)
+ */
+function updateExcludedSummary(summary) {
+    applySummaryLabels('excluded');
+    const total = summary || {};
+    const totalCount = total.total || 0;
+    const ctvCount = new Set((excludedData || []).map(r => r.referral_code).filter(Boolean)).size;
+
+    const elCtv = document.getElementById('totalCTV');
+    const elOrders = document.getElementById('totalOrders');
+    const elComm = document.getElementById('totalCommission');
+    const elSel = document.getElementById('selectedAmount');
+    if (elCtv) elCtv.textContent = ctvCount;
+    if (elOrders) elOrders.textContent = totalCount;
+    if (elComm) elComm.textContent = formatCurrency(total.totalAmount || 0);
+    if (elSel) elSel.textContent = '0đ';
+}
+
+/**
+ * Render the excluded commissions list
+ */
+function renderExcludedList() {
+    const container = document.getElementById('excludedListContainer');
+    const emptyState = document.getElementById('excludedEmptyState');
+    const loadingState = document.getElementById('excludedLoadingState');
+
+    if (loadingState) loadingState.classList.add('hidden');
+
+    // Remove existing cards
+    const existingCards = container?.querySelectorAll('.excl-card');
+    existingCards?.forEach(card => card.remove());
+
+    if (excludedData.length === 0) {
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+            const h3 = emptyState.querySelector('h3');
+            const p = emptyState.querySelector('p');
+            if (h3) h3.textContent = 'Chưa có hoa hồng nào bị loại';
+            if (p) p.textContent = 'Danh sách hoa hồng bị loại sẽ hiển thị ở đây';
+        }
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    // Group by CTV for cleaner display
+    const groupedByCTV = {};
+    excludedData.forEach(item => {
+        const key = item.referral_code || 'unknown';
+        if (!groupedByCTV[key]) {
+            groupedByCTV[key] = [];
+        }
+        groupedByCTV[key].push(item);
+    });
+
+    // Render each CTV group as a card
+    Object.entries(groupedByCTV).forEach(([referralCode, items]) => {
+        const firstItem = items[0];
+        const card = createExcludedCTVCard(referralCode, firstItem.ctv_name, firstItem.ctv_phone, items);
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Create a CTV group card for excluded tab
+ */
+function createExcludedCTVCard(referralCode, ctvName, ctvPhone, items) {
+    const card = document.createElement('div');
+    card.className = 'excl-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden';
+
+    const exclItems = items.filter(i => i.is_excluded === 1);
+    const restoredItems = items.filter(i => i.is_excluded === 0 && i.restored_at_unix);
+    const totalAmount = exclItems.reduce((s, i) => s + (i.commission_amount || 0), 0);
+
+    card.innerHTML = `
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 px-5 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-red-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        ${(ctvName || 'N').charAt(0)}
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-bold text-gray-900 truncate">${escapeHtml(ctvName || 'Không xác định')}</h4>
+                        <p class="text-xs text-gray-500">${escapeHtml(referralCode || '')}${ctvPhone ? ' • ' + escapeHtml(ctvPhone) : ''}</p>
+                    </div>
+                </div>
+                <div class="text-right ml-3 flex-shrink-0">
+                    <p class="text-lg font-bold text-red-600">${formatCurrency(totalAmount)}</p>
+                    <p class="text-xs text-gray-500">${exclItems.length} đơn đã loại${restoredItems.length > 0 ? `, ${restoredItems.length} đã khôi phục` : ''}</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 space-y-2">
+            ${items.map(item => createExcludedOrderRow(item)).join('')}
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Create a single row for excluded commission item
+ */
+function createExcludedOrderRow(item) {
+    const isExcluded = item.is_excluded === 1;
+    const isRestored = item.is_excluded === 0 && item.restored_at_unix;
+
+    const orderDate = item.order_created_at
+        ? toVNShortDate(new Date(
+            (typeof item.order_created_at === 'string' ? parseInt(item.order_created_at) : item.order_created_at)
+        ))
+        : 'N/A';
+
+    const actionTime = isRestored
+        ? toVNShortDate(new Date(item.restored_at_unix))
+        : toVNShortDate(new Date(item.excluded_at_unix));
+
+    const actionBy = isRestored ? item.restored_by : item.excluded_by;
+    const reason = item.exclude_reason || (isExcluded ? 'Không có lý do' : 'Khôi phục thành công');
+
+    const statusColor = isExcluded
+        ? { bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-700', text: 'text-red-600', muted: 'text-red-400' }
+        : { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-600', muted: 'text-emerald-400' };
+
+    return `
+        <div class="p-3 rounded-xl border ${statusColor.border} ${statusColor.bg}">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(item.order_code || '')}</p>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor.badge}">
+                            ${isExcluded ? `
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                Đã loại
+                            ` : `
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                Đã khôi phục
+                            `}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">${escapeHtml(item.customer_name || '')}</p>
+                    <p class="text-xs ${statusColor.muted} mt-1">
+                        ${isExcluded ? 'Loại' : 'Khôi phục'} lúc: ${actionTime}
+                        ${actionBy ? ` bởi ${escapeHtml(actionBy)}` : ''}
+                    </p>
+                    ${reason ? `<p class="text-xs ${statusColor.text} mt-0.5">${escapeHtml(reason)}</p>` : ''}
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-sm font-bold ${isExcluded ? 'text-red-500 line-through' : 'text-emerald-600'}">${formatCurrency(item.commission_amount)}</p>
+                    <p class="text-xs text-gray-400 mt-1">${orderDate}</p>
+                    ${isExcluded ? `
+                    <button type="button" onclick="restoreCommission(${item.order_id}, '${escapeHtml(item.order_code || '')}')"
+                        class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-emerald-200 text-emerald-600 text-xs font-semibold rounded-lg hover:bg-emerald-50 transition-colors shadow-sm">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Khôi phục
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
 }

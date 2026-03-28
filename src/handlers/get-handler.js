@@ -133,7 +133,8 @@ import {
     getPaidOrdersByMonth,
     getPaymentHistory,
     getUnpaidOrders,
-    getUnpaidOrdersByMonth
+    getUnpaidOrdersByMonth,
+    getExcludedCommissions
 } from '../services/payments/payment-service.js';
 
 export async function handleGet(action, url, request, env, corsHeaders) {
@@ -433,9 +434,19 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             const month = url.searchParams.get('month');
             return await getCommissionsByMonth(month, env, corsHeaders);
 
-        case 'getPaidOrdersByMonth':
+        case 'getPaidOrdersByMonth': {
             const paidMonth = url.searchParams.get('month');
-            return await getPaidOrdersByMonth(paidMonth, env, corsHeaders);
+            const allPaid = url.searchParams.get('allPaid') === '1';
+            const ps = url.searchParams.get('paymentStartMs');
+            const pe = url.searchParams.get('paymentEndMs');
+            const paymentStartMs = ps !== null && ps !== '' ? parseInt(ps, 10) : null;
+            const paymentEndMs = pe !== null && pe !== '' ? parseInt(pe, 10) : null;
+            return await getPaidOrdersByMonth(paidMonth, env, corsHeaders, {
+                allPaid,
+                paymentStartMs: Number.isFinite(paymentStartMs) ? paymentStartMs : null,
+                paymentEndMs: Number.isFinite(paymentEndMs) ? paymentEndMs : null
+            });
+        }
 
         case 'getLocationStats':
             const level = url.searchParams.get('level') || 'province';
@@ -466,6 +477,23 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getUnpaidOrdersByMonth':
             const unpaidMonth = url.searchParams.get('month');
             return await getUnpaidOrdersByMonth(unpaidMonth, env, corsHeaders);
+
+        case 'getExcludedCommissions': {
+            const excludedMonth = url.searchParams.get('month');
+            const excludedReferralCode = url.searchParams.get('referralCode') || null;
+            const excludedStatus = url.searchParams.get('status') || 'excluded';
+            const exStart = url.searchParams.get('startDate');
+            const exEnd = url.searchParams.get('endDate');
+            const rangeDates = exStart && exEnd ? { startDate: exStart, endDate: exEnd } : null;
+            return await getExcludedCommissions(
+                excludedMonth,
+                excludedReferralCode,
+                excludedStatus,
+                env,
+                corsHeaders,
+                rangeDates
+            );
+        }
 
         case 'validateDiscount':
             return await validateDiscount(url, env, corsHeaders);

@@ -1,28 +1,49 @@
-// Script to run database migrations
-// Usage: node database/run-migration.js <migration-file>
+// Run a specific migration directly
+import { createClient } from '@libsql/client';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const fs = require('fs');
-const path = require('path');
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Read migration file
-const migrationFile = process.argv[2] || 'database/migrations/003_normalize_order_status.sql';
-const migrationPath = path.join(process.cwd(), migrationFile);
-
-if (!fs.existsSync(migrationPath)) {
-    console.error('❌ Migration file not found:', migrationPath);
-    process.exit(1);
+function getEnvFromWrangler() {
+    const content = readFileSync(join(__dirname, '..', 'wrangler.toml'), 'utf8');
+    const urlMatch = content.match(/TURSO_DATABASE_URL\s*=\s*"([^"]+)"/);
+    const tokenMatch = content.match(/TURSO_AUTH_TOKEN\s*=\s*"([^"]+)"/);
+    if (!urlMatch || !tokenMatch) { console.error('❌ Không tìm thấy credentials'); process.exit(1); }
+    return { url: urlMatch[1], authToken: tokenMatch[1] };
 }
 
-const sql = fs.readFileSync(migrationPath, 'utf8');
+async function run() {
+    const { url, authToken } = getEnvFromWrangler();
+    console.log('🔌 Kết nối Turso...');
+    const client = createClient({ url, authToken });
 
-console.log('📄 Migration file:', migrationFile);
-console.log('📝 SQL to execute:');
-console.log('─'.repeat(50));
-console.log(sql);
-console.log('─'.repeat(50));
-console.log('\n⚠️  To run this migration on Cloudflare D1:');
-console.log('\n1. Run the following command:');
-console.log(`   npx wrangler d1 execute vdt --file=${migrationFile}`);
-console.log('\n2. Or run each SQL statement manually in D1 console');
-console.log('\nNote: This script shows the SQL but does not execute it.');
-console.log('You need to run it using wrangler CLI as shown above.');
+    const migrationFile = process.argv[2] || '067_add_restored_commission_fields.sql';
+    const path = join(__dirname, 'migrations', migrationFile);
+
+    console.log(`📄 Migration: ${migrationFile}`);
+    const sql = readFileSync(path, 'utf8');
+    const statements = sql.split(';').map(s => s.replace(/--.*$/gm, '').trim()).filter(s => s.length > 0);
+
+    for (const stmt of statements) {
+        console.log(`  ▶ ${stmt.substring(0, 80)}...`);
+        try {
+            await client.execute(stmt);
+            console.log('  ✅ OK');
+        } catch (error) {
+            if (error.message && (
+                error.message.includes('duplicate column name') ||
+                error.message.includes('duplicate index name')
+            )) {
+                console.log(`  ⚠️  Bỏ qua: ${error.message.split('\n')[0]}`);
+            } else {
+                console.error(`  ❌ ${error.message}`);
+            }
+        }
+    }
+
+    console.log('\n✅ Hoàn tất!');
+}
+
+run().catch(console.error);

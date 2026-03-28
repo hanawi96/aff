@@ -1997,6 +1997,8 @@ function toggleCTVStatusFilter(event) {
 
     const currentValue = document.getElementById('statusFilter').value;
     const button = event.currentTarget;
+    // Append menu beside the button (inside .relative wrapper), not inside <button> — browsers clip overflow on buttons.
+    const container = button.parentElement;
 
     const menu = document.createElement('div');
     menu.id = 'statusFilterMenu';
@@ -2020,13 +2022,12 @@ function toggleCTVStatusFilter(event) {
         </button>
     `).join('');
 
-    button.style.position = 'relative';
-    button.appendChild(menu);
+    container.appendChild(menu);
 
     // Close when clicking outside
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
-            if (!button.contains(e.target)) {
+            if (!container.contains(e.target)) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }
