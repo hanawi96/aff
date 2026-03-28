@@ -3191,16 +3191,56 @@ async function applyBulkStockUpdate() {
     }
 
     try {
-        showToast(`Đang cập nhật tồn kho cho ${selectedProductIds.size} sản phẩm...`, 'info');
-        closeBulkStockModal();
-
+        const totalCount = selectedProductIds.size;
+        let processedCount = 0;
         let successCount = 0;
         let failCount = 0;
+        /** @type {Array<{id:number, status?:number, error:string}>} */
+        const failedItems = [];
 
-        for (const productId of selectedProductIds) {
+        // Persistent toast (duration = 0) + fixed id so we can update progress continuously
+        showToast(
+            `Đang cập nhật tồn kho... (0/${totalCount})`,
+            'info',
+            0,
+            'bulk-stock-update'
+        );
+        closeBulkStockModal();
+
+        for (const rawProductId of selectedProductIds) {
+            processedCount++;
+
             try {
+                const productId = parseInt(String(rawProductId), 10);
+                if (!Number.isFinite(productId)) {
+                    failCount++;
+                    failedItems.push({ id: -1, error: `Invalid productId: ${String(rawProductId)}` });
+                    continue;
+                }
+
                 const product = allProducts.find(p => p.id === productId);
-                if (!product) continue;
+                if (!product) {
+                    failCount++;
+                    failedItems.push({ id: productId, error: 'Không tìm thấy sản phẩm trong danh sách hiện tại' });
+                    continue;
+                }
+
+                // Pre-check: API hiện tại yêu cầu sản phẩm phải có ít nhất 1 danh mục.
+                // Một số sản phẩm legacy có thể bị mất category link → sẽ luôn lỗi 400.
+                const hasAnyCategory =
+                    (Array.isArray(product.category_ids) && product.category_ids.length > 0) ||
+                    (Array.isArray(product.categories) && product.categories.length > 0) ||
+                    Boolean(product.category_id);
+
+                if (!hasAnyCategory) {
+                    failCount++;
+                    failedItems.push({
+                        id: productId,
+                        error: 'Sản phẩm chưa có danh mục (cần gán ít nhất 1 danh mục trước khi cập nhật)'
+                    });
+                    console.warn('⚠️ Skipped bulk stock update (missing category):', { productId });
+                    continue;
+                }
 
                 let newStock;
                 const currentStock = product.stock_quantity || 0;
@@ -3227,29 +3267,82 @@ async function applyBulkStockUpdate() {
                     })
                 });
 
-                const data = await response.json();
-                if (data.success) {
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    // Non-JSON response (still capture HTTP status)
+                }
+
+                if (!response.ok) {
+                    failCount++;
+                    const errMsg = (data && (data.error || data.message))
+                        ? String(data.error || data.message)
+                        : `HTTP ${response.status}`;
+                    failedItems.push({ id: productId, status: response.status, error: errMsg });
+                    console.error('❌ Bulk stock update failed:', { productId, status: response.status, error: errMsg, payload: data });
+                } else if (data && data.success) {
                     successCount++;
                 } else {
                     failCount++;
+                    const errMsg = data && (data.error || data.message)
+                        ? String(data.error || data.message)
+                        : 'API trả về success=false';
+                    failedItems.push({ id: productId, status: response.status, error: errMsg });
+                    console.error('❌ Bulk stock update failed (success=false):', { productId, status: response.status, error: errMsg, payload: data });
                 }
             } catch (error) {
                 failCount++;
                 console.error(`Error updating product ${productId}:`, error);
+                const productId = parseInt(String(rawProductId), 10);
+                failedItems.push({
+                    id: Number.isFinite(productId) ? productId : -1,
+                    error: error?.message ? String(error.message) : String(error)
+                });
             }
+
+            // Update progress toast after each product
+            showToast(
+                `Đang cập nhật tồn kho... (${processedCount}/${totalCount}) | OK: ${successCount} | Lỗi: ${failCount}`,
+                'info',
+                0,
+                'bulk-stock-update'
+            );
         }
 
         clearSelection();
         await reloadProductsKeepPage();
 
-        if (failCount === 0) {
-            showToast(`Đã cập nhật tồn kho thành công cho ${successCount} sản phẩm`, 'success');
-        } else {
-            showToast(`Đã cập nhật ${successCount} sản phẩm, thất bại ${failCount} sản phẩm`, 'warning');
+        // Final toast: keep it GREEN when flow completes.
+        // If there are failures, still show as success but include failure count in message
+        // (user requested stable green success completion toast).
+        const failedIdsPreview = failedItems
+            .slice(0, 5)
+            .map((x) => (x.id && x.id > 0 ? `#${x.id}` : '(id?)'))
+            .join(', ');
+
+        showToast(
+            failCount === 0
+                ? `Đã cập nhật tồn kho thành công cho ${successCount}/${totalCount} sản phẩm`
+                : `Đã cập nhật xong tồn kho: OK ${successCount}/${totalCount} · Lỗi ${failCount}${failedIdsPreview ? ` (${failedIdsPreview}${failedItems.length > 5 ? ', …' : ''})` : ''}`,
+            'success',
+            failCount === 0 ? 3000 : 6000,
+            'bulk-stock-update'
+        );
+
+        if (failedItems.length) {
+            console.groupCollapsed(`❌ Bulk stock update errors (${failedItems.length})`);
+            failedItems.forEach((f) => console.log(f));
+            console.groupEnd();
         }
     } catch (error) {
         console.error('Error bulk updating stock:', error);
-        showToast('Không thể cập nhật tồn kho: ' + error.message, 'error');
+        showToast(
+            'Không thể cập nhật tồn kho: ' + error.message,
+            'error',
+            5000,
+            'bulk-stock-update'
+        );
     }
 }
 
@@ -4851,16 +4944,34 @@ function showToast(message, type = 'info', duration = 4000, toastId = null) {
         warning: 'bg-amber-500',
         info: 'bg-blue-600'
     };
+    // Ensure spinner keyframes exist (no dependency on Tailwind)
+    if (!document.getElementById('productsSimpleToastSpinStyle')) {
+        const style = document.createElement('style');
+        style.id = 'productsSimpleToastSpinStyle';
+        style.textContent = `
+            @keyframes productsSimpleToastSpin { 
+                from { transform: rotate(0deg); } 
+                to { transform: rotate(360deg); } 
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     const icons = {
-        success: '✓',
-        error: '✕',
-        warning: '!',
-        info: 'i'
+        success: '<span aria-hidden="true">✓</span>',
+        error: '<span aria-hidden="true">✕</span>',
+        warning: '<span aria-hidden="true">!</span>',
+        info: `
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" style="animation: productsSimpleToastSpin 1s linear infinite">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"></circle>
+                <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.9"></path>
+            </svg>
+        `
     };
 
     toast.className += ` ${colors[type] || colors.info}`;
     toast.innerHTML = `
-        <span class="font-bold">${icons[type] || icons.info}</span>
+        <span class="font-bold flex items-center justify-center">${icons[type] || icons.info}</span>
         <span class="font-medium">${message}</span>
     `;
 

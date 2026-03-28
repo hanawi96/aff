@@ -3,52 +3,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('referralForm');
     const successMessage = document.getElementById('successMessage');
 
-    // Auto-fill demo data for testing (comment out in production)
-    const DEMO_MODE = CONFIG.DEMO_MODE;
-
-    if (DEMO_MODE) {
-        const demoData = {
-            fullName: 'Nguyễn Thị Yến',
-            phone: '0901234567',
-            email: 'nguyenyen@gmail.com',
-            city: 'Hà Nội',
-            age: '26-30',
-            bankAccountNumber: '0123456789',
-            bankName: 'Techcombank',
-            experience: '1-2 năm',
-            motivation: 'Tôi muốn có thêm thu nhập để chăm sóc gia đình và chia sẻ những sản phẩm tốt cho mẹ và bé.'
-        };
-
-        // Fill form with demo data
-        Object.keys(demoData).forEach(key => {
-            const input = form.querySelector(`[name="${key}"]`);
-            if (input) {
-                input.value = demoData[key];
-                // Add a visual indicator that this is demo data
-                input.style.backgroundColor = '#fffbeb'; // Light yellow
-            }
-        });
-
-        // Set bank name in hidden input and update display
-        const bankNameValue = document.getElementById('bankNameValue');
-        const bankSelectedText = document.getElementById('bankSelectedText');
-        if (bankNameValue && bankSelectedText) {
-            bankNameValue.value = 'Techcombank';
-            bankSelectedText.textContent = 'Techcombank - NHTMCP Ky thuong VN';
-            bankSelectedText.classList.remove('text-gray-500');
-            bankSelectedText.classList.add('text-gray-900');
-            document.getElementById('bankSelectButton').style.backgroundColor = '#fffbeb';
-        }
-
-        // Check the terms checkbox
-        const termsCheckbox = form.querySelector('#terms');
-        if (termsCheckbox) {
-            termsCheckbox.checked = true;
-        }
-
-        console.log('🧪 DEMO MODE: Form auto-filled with test data');
-    }
-
     // Form submission
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -211,6 +165,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Show success modal with referral information
     function showSuccessModal(refCode, refUrl, orderCheckUrl, fullName) {
+        const escapeHtml = (s) =>
+            String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        const displayName =
+            fullName && String(fullName).trim()
+                ? escapeHtml(String(fullName).trim())
+                : 'bạn';
+
         // Create modal overlay
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'successModal';
@@ -256,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         <!-- Subtitle -->
                         <p class="text-sm text-gray-600 mb-6">
-                            Cảm ơn <span class="font-semibold text-gray-800">${fullName.split(' ').slice(-1)[0]}</span>! Em sẽ liên hệ với chị ngay ạ ❤️
+                            Cảm ơn <span class="font-semibold text-gray-800">${displayName}</span>! Em sẽ liên hệ với chị ngay ạ ❤️
                         </p>
 
                         <!-- Referral Code - Simple Center Display -->

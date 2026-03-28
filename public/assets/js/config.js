@@ -27,10 +27,7 @@ const CONFIG = {
     },
     
     // Shop URL
-    SHOP_URL: 'https://shopvd.store',
-    
-    // Demo mode (set to false in production)
-    DEMO_MODE: true
+    SHOP_URL: 'https://shopvd.store'
 };
 
 // Export for use in other files

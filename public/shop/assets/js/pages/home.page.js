@@ -41,6 +41,41 @@ export class HomePage {
     }
 
     /**
+     * Normalize stock_quantity to a number.
+     * Returns:
+     * - number if parseable
+     * - null if stock is missing/invalid (so we don't hide unexpectedly)
+     */
+    getStockQty(product) {
+        if (!product) return null;
+
+        const raw = product.stock_quantity ?? product.stockQuantity;
+        if (raw === undefined || raw === null) return null;
+
+        // Handle strings like "0", " 0 ", or "12 SP"
+        const n =
+            typeof raw === 'string'
+                ? parseInt(raw.replace(/[^\d-]/g, ''), 10)
+                : Number(raw);
+
+        return Number.isFinite(n) ? n : null;
+    }
+
+    /**
+     * True if product should be shown for purchase (stock > 0).
+     * If stock is missing/invalid, keep showing to avoid false-negative.
+     */
+    isProductInStock(product) {
+        const qty = this.getStockQty(product);
+        return qty === null ? true : qty > 0;
+    }
+
+    filterInStockProducts(products) {
+        if (!Array.isArray(products)) return [];
+        return products.filter(p => this.isProductInStock(p));
+    }
+
+    /**
      * Hiển thị HUD tải SP khi bật debug (không ảnh hưởng khách thường).
      * Bật: thêm ?shopDebug=1 vào URL shop HOẶC localStorage.setItem('shopDebug','1')
      */
@@ -281,7 +316,8 @@ export class HomePage {
                     'warn'
                 );
                 try {
-                    this.allProducts = await apiService.getAllProducts(true);
+                    const fresh = await apiService.getAllProducts(true);
+                    this.allProducts = fresh;
                     this.products = this.allProducts;
                     if (this.productGrid) {
                         this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
@@ -398,6 +434,13 @@ export class HomePage {
         
         // Hide products skeleton first for fastest visual completion
         this.hideProductsSkeleton();
+
+        // If we rendered from stale session cache (TTL expired), revalidate in background
+        // so stock_quantity (and other fields) are refreshed quickly.
+        if (this._pendingStaleRevalidate) {
+            this._pendingStaleRevalidate = false;
+            this.scheduleProductsRevalidateFromStale();
+        }
     }
     
     /**
@@ -1494,16 +1537,25 @@ export class HomePage {
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return;
             }
+
+            // Block opening purchase flow for out-of-stock products
+            if (!this.isProductInStock(product)) {
+                alert('Sản phẩm hiện đã hết hàng.');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
             
             // Open quick checkout modal (URL already has ?buy=xxx, don't change it)
             if (window.quickCheckout) {
+                const qty = this.getStockQty(product);
+                const maxQuantity = qty === null ? 99 : Math.max(1, qty);
                 window.quickCheckout.open({
                     id: product.id,
                     name: product.name,
                     price: product.price,
                     originalPrice: product.original_price,
                     image: product.image_url || product.image,
-                    maxQuantity: 99,
+                    maxQuantity,
                     isFlashSale: false,
                     categories: product.categories || []
                 });

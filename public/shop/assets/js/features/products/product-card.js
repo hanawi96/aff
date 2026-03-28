@@ -19,6 +19,16 @@ export function createProductCard(product) {
     const savedAmount = product.original_price && product.original_price > product.price
         ? product.original_price - product.price
         : 0;
+
+    // Stock status
+    const rawStock = product.stock_quantity ?? product.stockQuantity;
+    const stockQty =
+        rawStock === undefined || rawStock === null
+            ? null
+            : (typeof rawStock === 'string'
+                ? parseInt(rawStock.replace(/[^\d-]/g, ''), 10)
+                : Number(rawStock));
+    const isOutOfStock = stockQty !== null && Number.isFinite(stockQty) && stockQty <= 0;
     
     // Check badges - only hide for "Bi, charm bạc" category (ID 24)
     // Other categories like "Hạt dâu tằm mài sẵn" and "Sản phẩm bán kèm" still show badges
@@ -53,8 +63,10 @@ export function createProductCard(product) {
     const heartClass = isFavorited ? 'fas' : 'far';
     const favoritedClass = isFavorited ? 'favorited' : '';
     
+    const shouldShowMarketingBadges = !isOutOfStock;
+
     return `
-        <div class="product-card" data-product-id="${product.id}">
+        <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper">
                 <div class="product-image-container">
                     <img src="${imageUrl}" 
@@ -64,10 +76,11 @@ export function createProductCard(product) {
                          onclick="window.previewProductImage('${imageUrl.replace(/'/g, "\\'")}', '${escapeHtml(product.name).replace(/'/g, "\\'")}', ${product.id}, {price: ${product.price}, originalPrice: ${product.original_price || product.price}, discountPercent: ${discount}})"
                          onerror="this.src='${CONFIG.DEFAULT_IMAGE}'">
                 </div>
-                ${discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
-                ${hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}
-                ${hasChemicalFreeBadge ? `<span class="product-badge chemical-free">Không hóa chất</span>` : ''}
-                ${hasSilverBadge ? `<span class="product-badge silver-guarantee"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" /></svg>Bạc thật 100%</span>` : ''}
+                ${isOutOfStock ? `<span class="product-badge out-of-stock">Hết hàng</span>` : ''}
+                ${shouldShowMarketingBadges && discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
+                ${shouldShowMarketingBadges && hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}
+                ${shouldShowMarketingBadges && hasChemicalFreeBadge ? `<span class="product-badge chemical-free">Không hóa chất</span>` : ''}
+                ${shouldShowMarketingBadges && hasSilverBadge ? `<span class="product-badge silver-guarantee"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" /></svg>Bạc thật 100%</span>` : ''}
                 <div class="product-favorites-section">
                     <button class="product-favorites-btn ${favoritedClass}" onclick="window.productActions.toggleFavorite(${product.id})" title="Yêu thích" data-product-id="${product.id}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${isFavorited ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5" style="width: 0.8rem; height: 0.8rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
@@ -98,11 +111,11 @@ export function createProductCard(product) {
                     ` : ''}
                 </div>
                 <div class="product-button-actions">
-                    <button class="bundle-btn-primary" onclick="window.productActions.buyNow(${product.id})">
+                    <button class="bundle-btn-primary" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''} onclick="window.productActions.buyNow(${product.id})" ${isOutOfStock ? 'title="Hết hàng"' : ''}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>
                         <span>Mua ngay</span>
                     </button>
-                    <button class="bundle-btn-cart" onclick="window.productActions.addToCart(${product.id})" title="Thêm vào giỏ hàng">
+                    <button class="bundle-btn-cart" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''} onclick="window.productActions.addToCart(${product.id})" title="${isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ hàng'}">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                     </button>
                 </div>

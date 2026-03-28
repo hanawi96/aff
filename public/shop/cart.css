@@ -4751,6 +4751,14 @@ body {
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
 }
 
+.bundle-btn-primary:disabled,
+.bundle-btn-cart:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 .bundle-btn-cart i {
     font-size: 1rem;
 }

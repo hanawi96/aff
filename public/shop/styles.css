@@ -1124,6 +1124,21 @@ body {
     font-weight: 700;
 }
 
+.product-badge.out-of-stock {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    top: 12px;
+    left: 12px;
+    right: auto;
+    bottom: auto;
+    box-shadow: 0 3px 10px rgba(107, 114, 128, 0.35);
+    font-weight: 800;
+}
+
+.product-card.out-of-stock .product-image {
+    filter: grayscale(0.15);
+    opacity: 0.85;
+}
+
 .product-favorites-section {
     position: absolute;
     top: 12px;

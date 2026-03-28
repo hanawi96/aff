@@ -419,25 +419,12 @@ export async function updateProduct(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        // Require at least one category for updates
-        // If category_ids is provided, it must not be empty.
+        // Category validation:
+        // - Only enforce "at least one category" when caller attempts to modify categories.
+        // - Allow partial updates (e.g. stock_quantity) even if the product currently has no category
+        //   so admin can fix inventory/fields first, then assign categories later.
         if (data.category_ids !== undefined) {
             if (!Array.isArray(data.category_ids) || data.category_ids.length === 0) {
-                return jsonResponse({
-                    success: false,
-                    error: 'At least one category is required'
-                }, 400, corsHeaders);
-            }
-        } else {
-            // No category_ids in payload: ensure product still has at least one linked category.
-            const categoryCountResult = await env.DB.prepare(`
-                SELECT COUNT(*) as total
-                FROM product_categories
-                WHERE product_id = ?
-            `).bind(data.id).first();
-
-            const categoryCount = Number(categoryCountResult?.total || 0);
-            if (categoryCount === 0) {
                 return jsonResponse({
                     success: false,
                     error: 'At least one category is required'

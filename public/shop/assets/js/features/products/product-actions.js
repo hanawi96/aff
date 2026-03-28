@@ -13,6 +13,29 @@ export class ProductActions {
         this.products = products;
         this.babyWeightModal = null;
     }
+
+    /**
+     * Normalize stock_quantity to number.
+     * Returns null if missing/invalid (so we don't accidentally block).
+     */
+    getStockQty(product) {
+        if (!product) return null;
+
+        const raw = product.stock_quantity ?? product.stockQuantity;
+        if (raw === undefined || raw === null) return null;
+
+        const n =
+            typeof raw === 'string'
+                ? parseInt(raw.replace(/[^\d-]/g, ''), 10)
+                : Number(raw);
+
+        return Number.isFinite(n) ? n : null;
+    }
+
+    isProductInStock(product) {
+        const qty = this.getStockQty(product);
+        return qty === null ? true : qty > 0;
+    }
     
     /**
      * Set baby weight modal instance
@@ -37,6 +60,12 @@ export class ProductActions {
         const product = this.products.find(p => p.id === productId);
         if (!product) {
             console.error('❌ ProductActions: Product not found:', productId);
+            return;
+        }
+
+        // Block out-of-stock products
+        if (!this.isProductInStock(product)) {
+            showToast('Sản phẩm hiện đã hết hàng.');
             return;
         }
         
@@ -109,6 +138,12 @@ export class ProductActions {
         const product = this.products.find(p => p.id === productId);
         if (!product) {
             console.error('Product not found:', productId);
+            return;
+        }
+
+        // Block out-of-stock products
+        if (!this.isProductInStock(product)) {
+            showToast('Sản phẩm hiện đã hết hàng.');
             return;
         }
         
