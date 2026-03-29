@@ -130,7 +130,9 @@ import {
     markCommissionAsPaid,
     paySelectedOrders,
     excludeOrderCommission,
-    restoreOrderCommission
+    restoreOrderCommission,
+    setCTVTargets,
+    payCTVTotalCommission
 } from '../services/payments/payment-service.js';
 
 // Upload
@@ -280,6 +282,10 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await excludeOrderCommission(data, env, corsHeaders);
         case 'restoreOrderCommission':
             return await restoreOrderCommission(data, env, corsHeaders);
+        case 'setCTVTargets':
+            return await setCTVTargets(data, env, corsHeaders);
+        case 'payCTVTotalCommission':
+            return await payCTVTotalCommission(data, env, corsHeaders);
         case 'bulkDeleteCTV':
             return await bulkDeleteCTV(data, env, corsHeaders);
         case 'checkSlugAvailability':

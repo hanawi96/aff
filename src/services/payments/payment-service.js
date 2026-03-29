@@ -993,3 +993,353 @@ export async function getExcludedCommissions(month, referralCode, status, env, c
         }, 500, corsHeaders);
     }
 }
+
+// ============================================
+// RANKING & TARGET SYSTEM
+// ============================================
+
+const DEFAULT_BONUS_PERCENT = 10;
+
+/**
+ * Get monthly ranking for all CTVs
+ * GET ?action=getCTVRanking&month=2026-03
+ */
+export async function getCTVRanking(month, env, corsHeaders) {
+    try {
+        if (!month) {
+            return jsonResponse({ success: false, error: 'Month is required (YYYY-MM)' }, 400, corsHeaders);
+        }
+
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+        const endDateStr = `${year}-${monthNum}-${endDate}`;
+
+        const { results: ctvList } = await env.DB.prepare(`
+            SELECT referral_code, full_name, phone, commission_rate, bank_account_number, bank_name
+            FROM ctv WHERE status != 'Tạm ngưng' ORDER BY full_name ASC
+        `).all();
+
+        const { results: revenueRows } = await env.DB.prepare(`
+            SELECT referral_code,
+                   SUM(total_amount) as revenue,
+                   COUNT(*) as order_count,
+                   SUM(commission) as base_commission
+            FROM orders
+            WHERE status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
+            AND referral_code IS NOT NULL AND referral_code != ''
+            GROUP BY referral_code
+        `).bind(startDate, endDateStr).all();
+
+        const revenueMap = {};
+        revenueRows.forEach(r => { revenueMap[r.referral_code] = r; });
+
+        const { results: targetRows } = await env.DB.prepare(`
+            SELECT referral_code, target_revenue, bonus_percent, note
+            FROM ctv_targets WHERE month = ?
+        `).bind(month).all();
+
+        const targetMap = {};
+        targetRows.forEach(r => { targetMap[r.referral_code] = r; });
+
+        const { results: unpaidRows } = await env.DB.prepare(`
+            SELECT o.referral_code, COUNT(*) as unpaid_count, SUM(o.commission) as unpaid_commission
+            FROM orders o
+            LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            LEFT JOIN commission_payments cp ON cpd.payment_id = cp.id
+            WHERE o.status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
+            AND o.referral_code IS NOT NULL AND o.referral_code != ''
+            AND (
+                cpd.id IS NULL
+                OR (cpd.is_excluded = 0 AND (cp.id IS NULL OR cp.status != 'paid'))
+            )
+            GROUP BY o.referral_code
+        `).bind(startDate, endDateStr).all();
+
+        const unpaidMap = {};
+        unpaidRows.forEach(r => { unpaidMap[r.referral_code] = r; });
+
+        const ranking = ctvList
+            .map(ctv => {
+                const rev = revenueMap[ctv.referral_code] || { revenue: 0, order_count: 0, base_commission: 0 };
+                const target = targetMap[ctv.referral_code];
+                const unpaid = unpaidMap[ctv.referral_code] || { unpaid_count: 0, unpaid_commission: 0 };
+
+                const revenue = Number(rev.revenue) || 0;
+                const baseCommission = Number(rev.base_commission) || 0;
+                const targetRevenue = target ? Number(target.target_revenue) : 0;
+                const bonusPercent = target ? Number(target.bonus_percent) : DEFAULT_BONUS_PERCENT;
+                const achievedPercent = targetRevenue > 0 ? Math.min(Math.round((revenue / targetRevenue) * 100), 999) : 0;
+                const metTarget = targetRevenue > 0 && revenue >= targetRevenue;
+                const bonusAmount = metTarget ? Math.round(baseCommission * bonusPercent / 100) : 0;
+                const totalCommission = baseCommission + bonusAmount;
+
+                return {
+                    referral_code: ctv.referral_code,
+                    ctv_name: ctv.full_name,
+                    phone: ctv.phone,
+                    bank_name: ctv.bank_name,
+                    bank_account_number: ctv.bank_account_number,
+                    order_count: Number(rev.order_count) || 0,
+                    revenue,
+                    base_commission: baseCommission,
+                    target_revenue: targetRevenue,
+                    bonus_percent: bonusPercent,
+                    achieved_percent: achievedPercent,
+                    met_target: metTarget,
+                    bonus_amount: bonusAmount,
+                    total_commission: totalCommission,
+                    unpaid_count: Number(unpaid.unpaid_count) || 0,
+                    unpaid_commission: Number(unpaid.unpaid_commission) || 0,
+                    has_target: !!target,
+                    target_note: target?.note || ''
+                };
+            })
+            .filter(c => c.order_count > 0)
+            .sort((a, b) => b.revenue - a.revenue);
+
+        ranking.forEach((c, i) => { c.rank = i + 1; });
+
+        const summary = {
+            total_ctv: ranking.length,
+            total_revenue: ranking.reduce((s, c) => s + c.revenue, 0),
+            total_base_commission: ranking.reduce((s, c) => s + c.base_commission, 0),
+            total_bonus: ranking.reduce((s, c) => s + c.bonus_amount, 0),
+            total_commission: ranking.reduce((s, c) => s + c.total_commission, 0),
+            met_target_count: ranking.filter(c => c.met_target).length,
+            missed_target_count: ranking.filter(c => c.target_revenue > 0 && !c.met_target).length,
+            no_target_count: ranking.filter(c => c.target_revenue === 0).length
+        };
+
+        return jsonResponse({ success: true, month, ranking, summary }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting CTV ranking:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Get targets for a month
+ * GET ?action=getCTVTargets&month=2026-03
+ */
+export async function getCTVTargets(month, env, corsHeaders) {
+    try {
+        if (!month) {
+            return jsonResponse({ success: false, error: 'Month is required (YYYY-MM)' }, 400, corsHeaders);
+        }
+
+        const { results: targets } = await env.DB.prepare(`
+            SELECT ct.referral_code, ct.target_revenue, ct.bonus_percent, ct.note,
+                   c.full_name as ctv_name
+            FROM ctv_targets ct
+            LEFT JOIN ctv c ON ct.referral_code = c.referral_code
+            WHERE ct.month = ? ORDER BY c.full_name ASC
+        `).bind(month).all();
+
+        return jsonResponse({ success: true, month, targets }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting CTV targets:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Set (upsert) target(s) for CTV(s) in a month
+ * POST ?action=setCTVTargets
+ * Body: { targets: [{ referralCode, targetRevenue, bonusPercent?, note? }], month: "2026-03" }
+ */
+export async function setCTVTargets(data, env, corsHeaders) {
+    try {
+        const { targets = [], month } = data;
+
+        if (!month) {
+            return jsonResponse({ success: false, error: 'Month is required' }, 400, corsHeaders);
+        }
+        if (!Array.isArray(targets) || targets.length === 0) {
+            return jsonResponse({ success: false, error: 'targets array is required' }, 400, corsHeaders);
+        }
+
+        let inserted = 0, updated = 0;
+        const now = Date.now();
+
+        for (const t of targets) {
+            const { referralCode, targetRevenue, bonusPercent = DEFAULT_BONUS_PERCENT, note = '' } = t;
+            if (!referralCode || targetRevenue == null) continue;
+
+            const existing = await env.DB.prepare(`
+                SELECT id FROM ctv_targets WHERE referral_code = ? AND month = ?
+            `).bind(referralCode, month).first();
+
+            if (existing) {
+                await env.DB.prepare(`
+                    UPDATE ctv_targets
+                    SET target_revenue = ?, bonus_percent = ?, note = ?, updated_at_unix = ?
+                    WHERE id = ?
+                `).bind(Number(targetRevenue), Number(bonusPercent), String(note), now, existing.id).run();
+                updated++;
+            } else {
+                await env.DB.prepare(`
+                    INSERT INTO ctv_targets (referral_code, month, target_revenue, bonus_percent, note, created_at_unix, updated_at_unix)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).bind(referralCode, month, Number(targetRevenue), Number(bonusPercent), String(note), now, now).run();
+                inserted++;
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Đã lưu chỉ tiêu: ${inserted} mới, ${updated} cập nhật`,
+            inserted, updated, total: targets.length
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error setting CTV targets:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/**
+ * Pay all unpaid orders for a CTV in a month (total commission with bonus)
+ * POST ?action=payCTVTotalCommission
+ * Body: { referralCode, month, paymentDate, paymentMethod, note }
+ */
+export async function payCTVTotalCommission(data, env, corsHeaders) {
+    try {
+        const { referralCode, month, paymentDate, paymentMethod, note } = data;
+
+        if (!referralCode || !month) {
+            return jsonResponse({ success: false, error: 'referralCode and month are required' }, 400, corsHeaders);
+        }
+        if (!/^\d{4}-\d{2}$/.test(month)) {
+            return jsonResponse({ success: false, error: 'Month must be YYYY-MM' }, 400, corsHeaders);
+        }
+
+        const ctv = await env.DB.prepare(`
+            SELECT full_name, phone FROM ctv WHERE referral_code = ?
+        `).bind(referralCode).first();
+
+        if (!ctv) {
+            return jsonResponse({ success: false, error: 'CTV not found' }, 404, corsHeaders);
+        }
+
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+        const endDateStr = `${year}-${monthNum}-${endDate}`;
+
+        const { results: revenueRow } = await env.DB.prepare(`
+            SELECT SUM(total_amount) as revenue, SUM(commission) as base_commission, COUNT(*) as order_count
+            FROM orders
+            WHERE status NOT IN ('Đã hủy', 'Hủy')
+            AND referral_code = ?
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
+        `).bind(referralCode, startDate, endDateStr).all();
+
+        const baseCommission = Number(revenueRow[0]?.base_commission) || 0;
+        const orderCount = Number(revenueRow[0]?.order_count) || 0;
+
+        if (orderCount === 0) {
+            return jsonResponse({ success: false, error: 'Không có đơn hàng nào trong tháng này' }, 400, corsHeaders);
+        }
+
+        const target = await env.DB.prepare(`
+            SELECT target_revenue, bonus_percent FROM ctv_targets WHERE referral_code = ? AND month = ?
+        `).bind(referralCode, month).first();
+
+        const targetRevenue = target ? Number(target.target_revenue) : 0;
+        const bonusPercent = target ? Number(target.bonus_percent) : DEFAULT_BONUS_PERCENT;
+        const revenue = Number(revenueRow[0]?.revenue) || 0;
+        const metTarget = targetRevenue > 0 && revenue >= targetRevenue;
+        const bonusAmount = metTarget ? Math.round(baseCommission * bonusPercent / 100) : 0;
+        const totalCommission = baseCommission + bonusAmount;
+
+        const { results: unpaidOrders } = await env.DB.prepare(`
+            SELECT o.id, o.order_id, o.commission
+            FROM orders o
+            LEFT JOIN commission_payment_details cpd ON o.id = cpd.order_id
+            LEFT JOIN commission_payments cp ON cpd.payment_id = cp.id
+            WHERE o.referral_code = ?
+            AND o.status NOT IN ('Đã hủy', 'Hủy')
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') >= DATE(?)
+            AND DATE(o.created_at_unix / 1000, 'unixepoch', 'localtime') <= DATE(?)
+            AND (
+                cpd.id IS NULL
+                OR (cpd.is_excluded = 0 AND (cp.id IS NULL OR cp.status != 'paid'))
+            )
+            ORDER BY o.created_at_unix ASC
+        `).bind(referralCode, startDate, endDateStr).all();
+
+        if (unpaidOrders.length === 0) {
+            return jsonResponse({ success: false, error: 'Không có đơn nào chưa thanh toán trong tháng này' }, 400, corsHeaders);
+        }
+
+        const alreadyPaid = await env.DB.prepare(`
+            SELECT id FROM commission_payments
+            WHERE referral_code = ? AND month = ? AND status = 'paid'
+        `).bind(referralCode, month).first();
+
+        if (alreadyPaid) {
+            return jsonResponse({ success: false, error: `Đã thanh toán tháng ${month} cho CTV này rồi` }, 400, corsHeaders);
+        }
+
+        const now = Date.now();
+        const paymentDateStr = paymentDate || new Date().toISOString().split('T')[0];
+        const paymentDateUnix = new Date(paymentDateStr + 'T00:00:00Z').getTime();
+
+        const paymentResult = await env.DB.prepare(`
+            INSERT INTO commission_payments (
+                referral_code, month, order_count, commission_amount,
+                bonus_amount, base_commission, target_revenue, bonus_percent, met_target,
+                status, payment_date, payment_date_unix, payment_method, note,
+                created_at_unix, updated_at_unix
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?)
+        `).bind(
+            referralCode, month, unpaidOrders.length, totalCommission,
+            bonusAmount, baseCommission, targetRevenue, bonusPercent, metTarget ? 1 : 0,
+            paymentDateStr, paymentDateUnix, paymentMethod || 'bank_transfer', note || '',
+            now, now
+        ).run();
+
+        const paymentId = paymentResult.meta.last_row_id;
+        const detailNow = Date.now();
+        for (const order of unpaidOrders) {
+            await env.DB.prepare(`
+                INSERT INTO commission_payment_details (payment_id, order_id, commission_amount, created_at_unix)
+                VALUES (?, ?, ?, ?)
+            `).bind(paymentId, order.id, order.commission, detailNow).run();
+        }
+
+        return jsonResponse({
+            success: true,
+            message: `Đã thanh toán ${unpaidOrders.length} đơn cho ${ctv.full_name}`,
+            payment: {
+                payment_id: paymentId,
+                referral_code: referralCode,
+                ctv_name: ctv.full_name,
+                month,
+                order_count: unpaidOrders.length,
+                revenue,
+                base_commission: baseCommission,
+                bonus_amount: bonusAmount,
+                total_commission: totalCommission,
+                target_revenue: targetRevenue,
+                met_target: metTarget,
+                bonus_percent: bonusPercent,
+                payment_date: paymentDateStr,
+                payment_method: paymentMethod || 'bank_transfer'
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error paying CTV total commission:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+

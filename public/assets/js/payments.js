@@ -3,6 +3,28 @@ let allCommissions = [];
 let filteredCommissions = [];
 let currentMonth = '';
 let selectedOrders = new Set();
+let rankingData = [];
+let rankingSummary = {};
+let currentRankingMonth = '';
+
+/**
+ * Tháng gửi API getCTVRanking (YYYY-MM) — khớp với bộ lọc thời gian phía trên:
+ * - Có khoảng ngày: lấy theo tháng của ngày bắt đầu (currentMonth)
+ * - "Tất cả" / không khoảng: tháng hiện tại theo giờ VN
+ */
+function getRankingApiMonth() {
+    if (currentFilters.period === 'all' || !currentFilters.dateRange) {
+        const vnDateStr = new Date().toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+        const [y, m] = vnDateStr.split('-');
+        return `${y}-${m}`;
+    }
+    if (currentMonth && /^\d{4}-\d{2}$/.test(currentMonth)) {
+        return currentMonth;
+    }
+    const vnDateStr = new Date().toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    const [y, m] = vnDateStr.split('-');
+    return `${y}-${m}`;
+}
 
 // Filter state
 let currentFilters = {
@@ -24,18 +46,34 @@ function formatDateYMDLocal(d) {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Payments V2 initialized');
-    
+
+    // Read tab from URL hash (e.g. #ranking), fall back to 'unpaid'
+    const hash = window.location.hash.replace('#', '');
+    const initialTab = VALID_TABS.has(hash) ? hash : 'unpaid';
+
     // Set default month
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     currentMonth = `${year}-${month}`;
-    
+
     // Initialize filters with default period (thisMonth); runAfter syncs lịch sử + applyFilters (sau khi có dữ liệu)
     filterByPeriod('thisMonth');
-    
+
+    // Switch to the tab from URL (this also sets window.location.hash)
+    switchTab(initialTab);
+
     loadUnpaidOrders();
     updateExcludedBadge();
+});
+
+// Listen for browser back/forward navigation
+window.addEventListener('hashchange', function() {
+    const hash = window.location.hash.replace('#', '');
+    const tab = VALID_TABS.has(hash) ? hash : 'unpaid';
+    if (tab !== currentTab) {
+        switchTab(tab);
+    }
 });
 
 // Load unpaid orders
@@ -140,6 +178,305 @@ function updateExcludedBadge() {
     const exclCount = allCommissions.reduce((sum, ctv) =>
         sum + (ctv.orders || []).filter(o => o.is_excluded === 1).length, 0);
     badge.textContent = exclCount;
+}
+
+// ============================================
+// RANKING TAB
+// ============================================
+
+function applyRankingSummaryLabels() {
+    const s = rankingSummary;
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    set('summaryLabelCtv', 'Tổng CTV');
+    set('summarySubCtv', 'Có đơn tháng');
+    set('summaryLabelOrders', 'CTV đạt CT');
+    set('summarySubOrders', 'Trong tháng');
+    set('summaryLabelCommission', 'Tổng thưởng');
+    set('summarySubCommission', 'Thưởng chỉ tiêu');
+    set('summaryLabelSelected', 'HH tổng');
+    set('summarySubSelected', 'Theo bộ lọc thời gian');
+    set('totalCTV', s.total_ctv || 0);
+    set('totalOrders', s.met_target_count || 0);
+    set('totalCommission', formatCurrency(s.total_bonus || 0));
+    set('selectedAmount', formatCurrency(s.total_commission || 0));
+}
+
+async function loadRanking() {
+    const month = getRankingApiMonth();
+    currentRankingMonth = month;
+
+    document.getElementById('rankingLoadingState')?.classList.remove('hidden');
+    document.getElementById('rankingEmptyState')?.classList.add('hidden');
+    document.getElementById('rankingTableWrapper')?.classList.add('hidden');
+
+    try {
+        const resp = await fetch(`${CONFIG.API_URL}?action=getCTVRanking&month=${month}&timestamp=${Date.now()}`);
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error);
+
+        rankingData = data.ranking || [];
+        rankingSummary = data.summary || {};
+
+        applyRankingSummaryLabels();
+        renderRankingTable();
+    } catch (err) {
+        console.error('❌ loadRanking error:', err);
+        showToast('Không thể tải bảng xếp hạng: ' + err.message, 'error');
+    } finally {
+        document.getElementById('rankingLoadingState')?.classList.add('hidden');
+    }
+}
+
+function renderRankingTable() {
+    const wrapper = document.getElementById('rankingTableWrapper');
+    const empty = document.getElementById('rankingEmptyState');
+    const tbody = document.getElementById('rankingTableBody');
+
+    wrapper?.classList.add('hidden');
+    empty?.classList.add('hidden');
+
+    if (rankingData.length === 0) {
+        empty?.classList.remove('hidden');
+        return;
+    }
+
+    wrapper?.classList.remove('hidden');
+    if (!tbody) return;
+
+    tbody.innerHTML = rankingData.map(c => {
+        const rankClass = c.rank === 1 ? 'bg-yellow-50 border-yellow-300 ring-1 ring-yellow-200'
+            : c.rank === 2 ? 'bg-slate-50 border-slate-200'
+            : c.rank === 3 ? 'bg-orange-50 border-orange-200'
+            : 'bg-white border-slate-100';
+        const rankBadge = c.rank <= 3
+            ? `<span class="inline-flex h-7 w-7 items-center justify-center rounded-full font-bold text-xs ${c.rank === 1 ? 'bg-yellow-400 text-yellow-900' : c.rank === 2 ? 'bg-slate-300 text-slate-700' : 'bg-orange-300 text-orange-900'}">${c.rank}</span>`
+            : `<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-500 text-xs">${c.rank}</span>`;
+        const metBadge = c.met_target
+            ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>Đạt CT</span>`
+            : c.target_revenue > 0
+            ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>Chưa đạt</span>`
+            : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium">Chưa set CT</span>`;
+        const pctColor = c.met_target ? 'text-emerald-600 font-bold' : c.achieved_percent >= 80 ? 'text-amber-600 font-semibold' : 'text-red-500 font-semibold';
+        const pctBar = c.target_revenue > 0
+            ? `<div class="mt-1 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all ${c.met_target ? 'bg-emerald-500' : 'bg-red-400'}" style="width:${Math.min(c.achieved_percent, 100)}%"></div></div>`
+            : '';
+        const bonusDisplay = c.bonus_amount > 0
+            ? `<span class="text-emerald-600 font-bold">+${formatCurrency(c.bonus_amount)}</span><span class="text-xs text-slate-400">(+${c.bonus_percent}%)</span>`
+            : `<span class="text-slate-300">—</span>`;
+
+        return `
+            <tr class="border ${rankClass} hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    ${rankBadge}
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            ${escapeHtml(c.ctv_name.charAt(0))}
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900 text-sm">${escapeHtml(c.ctv_name)}</p>
+                            <p class="text-xs text-slate-400">${escapeHtml(c.referral_code)}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <p class="font-bold text-slate-900 tabular-nums">${formatCurrency(c.revenue)}</p>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <p class="font-semibold text-slate-900 tabular-nums">${c.order_count}</p>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <p class="font-semibold text-slate-700 tabular-nums">${c.target_revenue > 0 ? formatCurrency(c.target_revenue) : '<span class="text-slate-300">—</span>'}</p>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <p class="${pctColor} tabular-nums text-sm">${c.target_revenue > 0 ? c.achieved_percent + '%' : '—'}</p>
+                    ${pctBar}
+                </td>
+                <td class="px-6 py-4 text-center">
+                    ${metBadge}
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex flex-col items-end gap-0.5">${bonusDisplay}</div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <p class="font-semibold text-slate-700 tabular-nums">${formatCurrency(c.base_commission)}</p>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <p class="font-bold text-violet-700 tabular-nums">${formatCurrency(c.total_commission)}</p>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ============================================
+// TARGET SETTING MODAL
+// ============================================
+
+let targetModalMonth = '';
+let targetModalAllCTV = [];
+
+/** Hiển thị số nguyên VND trong ô chỉ tiêu (vd. 20.000.000) */
+function formatTargetRevenueDisplay(num) {
+    const n = Number(num);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    return n.toLocaleString('vi-VN');
+}
+
+/** Đọc giá trị từ ô đã format (bỏ dấu .) */
+function parseTargetRevenueValue(str) {
+    return parseInt(String(str || '').replace(/\D/g, ''), 10) || 0;
+}
+
+function wireTargetRevenueInputs(container) {
+    container.querySelectorAll('input[id^="target_"]').forEach(inp => {
+        inp.addEventListener('input', function () {
+            const digits = this.value.replace(/\D/g, '');
+            if (digits === '') {
+                this.value = '';
+                return;
+            }
+            const n = parseInt(digits, 10);
+            if (!Number.isFinite(n)) {
+                this.value = '';
+                return;
+            }
+            const formatted = n.toLocaleString('vi-VN');
+            const len = formatted.length;
+            this.value = formatted;
+            requestAnimationFrame(() => this.setSelectionRange(len, len));
+        });
+    });
+}
+
+async function showTargetModal() {
+    targetModalMonth = getRankingApiMonth();
+
+    const modal = document.getElementById('targetModal');
+    const form = document.getElementById('targetModalForm');
+    const monthLabel = document.getElementById('targetModalMonth');
+    if (!modal || !form) return;
+
+    const [year, month] = targetModalMonth.split('-');
+    if (monthLabel) monthLabel.textContent = `Tháng ${parseInt(month)}/${year}`;
+
+    form.innerHTML = '<div class="text-center py-8 text-slate-500"><div class="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-2"></div>Đang tải...</div>';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    try {
+        const [rankingResp, targetsResp] = await Promise.all([
+            fetch(`${CONFIG.API_URL}?action=getCTVRanking&month=${targetModalMonth}&timestamp=${Date.now()}`),
+            fetch(`${CONFIG.API_URL}?action=getCTVTargets&month=${targetModalMonth}&timestamp=${Date.now()}`)
+        ]);
+        const [rankingData, targetsData] = await Promise.all([rankingResp.json(), targetsResp.json()]);
+
+        targetModalAllCTV = rankingData.ranking || [];
+        const existingTargets = {};
+        (targetsData.targets || []).forEach(t => { existingTargets[t.referral_code] = t; });
+
+        if (targetModalAllCTV.length === 0) {
+            form.innerHTML = '<p class="text-center text-slate-500 py-8">Không có CTV nào có đơn trong tháng này</p>';
+            return;
+        }
+
+        form.innerHTML = targetModalAllCTV.map(c => {
+            const saved = existingTargets[c.referral_code];
+            const savedRevenue = saved?.target_revenue || c.target_revenue || 0;
+            const savedBonus = saved?.bonus_percent || 10;
+            return `
+                <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition-colors">
+                    <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                        ${escapeHtml(c.ctv_name.charAt(0))}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(c.ctv_name)}</p>
+                        <p class="text-xs text-slate-400">${escapeHtml(c.referral_code)} • ${c.order_count} đơn</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <label class="text-xs text-slate-500 font-medium">CT (VNĐ):</label>
+                        <input type="text" inputmode="numeric" autocomplete="off" id="target_${escapeHtml(c.referral_code)}"
+                            value="${formatTargetRevenueDisplay(savedRevenue)}"
+                            placeholder="VD: 5.000.000"
+                            class="w-40 h-9 px-3 border border-slate-300 rounded-lg text-sm text-right focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-200">
+                        <label class="text-xs text-slate-500 font-medium">% Thưởng:</label>
+                        <input type="number" id="bonus_${escapeHtml(c.referral_code)}"
+                            value="${savedBonus}"
+                            min="0" max="100" step="1"
+                            class="w-20 h-9 px-3 border border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-200">
+                    </div>
+                </div>
+            `;
+        }).join('');
+        wireTargetRevenueInputs(form);
+    } catch (err) {
+        form.innerHTML = `<p class="text-center text-red-500 py-8">Lỗi tải dữ liệu: ${err.message}</p>`;
+    }
+}
+
+function closeTargetModal() {
+    const modal = document.getElementById('targetModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function applyToAll() {
+    const firstRevenue = '';
+    const firstBonus = '10';
+    const inputs = document.querySelectorAll('#targetModalForm input[id^="target_"]');
+    inputs.forEach(inp => {
+        const ref = inp.id.replace('target_', '');
+        const revenueInp = document.getElementById('target_' + ref);
+        const bonusInp = document.getElementById('bonus_' + ref);
+        if (revenueInp) revenueInp.value = firstRevenue;
+        if (bonusInp) bonusInp.value = firstBonus;
+    });
+    showToast('Đã đặt lại tất cả: chỉ tiêu trống, thưởng 10%', 'success');
+}
+
+async function saveTargets() {
+    const targets = [];
+    targetModalAllCTV.forEach(c => {
+        const revenueInp = document.getElementById('target_' + c.referral_code);
+        const bonusInp = document.getElementById('bonus_' + c.referral_code);
+        if (!revenueInp) return;
+        const revenue = parseTargetRevenueValue(revenueInp.value);
+        const bonus = parseFloat(bonusInp?.value || '10');
+        targets.push({
+            referralCode: c.referral_code,
+            targetRevenue: revenue,
+            bonusPercent: bonus,
+            note: ''
+        });
+    });
+
+    const validTargets = targets.filter(t => t.targetRevenue > 0);
+    if (validTargets.length === 0) {
+        showToast('Vui lòng nhập ít nhất 1 chỉ tiêu > 0', 'warning');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${CONFIG.API_URL}?action=setCTVTargets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                targets: validTargets,
+                month: targetModalMonth
+            })
+        });
+        const result = await resp.json();
+        if (!result.success) throw new Error(result.error);
+
+        showToast(result.message || `Đã lưu ${validTargets.length} chỉ tiêu`, 'success');
+        closeTargetModal();
+        loadRanking();
+    } catch (err) {
+        showToast('Lỗi lưu chỉ tiêu: ' + err.message, 'error');
+    }
 }
 
 // Update selected amount
@@ -658,6 +995,9 @@ async function refreshData() {
     if (currentTab === 'excluded') {
         await loadExcludedCommissions();
     }
+    if (currentTab === 'ranking') {
+        await loadRanking();
+    }
 }
 
 // UI State functions
@@ -735,20 +1075,29 @@ function copyToClipboard(text) {
 let currentTab = 'unpaid';
 let paymentHistory = [];
 
+const VALID_TABS = new Set(['unpaid', 'history', 'excluded', 'ranking']);
+
 function switchTab(tab) {
+    if (!tab || !VALID_TABS.has(tab)) tab = 'unpaid';
     currentTab = tab;
+
+    // Update URL hash without scrolling
+    history.replaceState(null, '', '#' + tab);
 
     const tabUnpaid = document.getElementById('tabUnpaid');
     const tabHistory = document.getElementById('tabHistory');
     const tabExcluded = document.getElementById('tabExcluded');
+    const tabRanking = document.getElementById('tabRanking');
     const unpaidContent = document.getElementById('unpaidContent');
     const historyContent = document.getElementById('historyContent');
     const excludedContent = document.getElementById('excludedContent');
+    const rankingContent = document.getElementById('rankingContent');
 
-    // Ẩn cả 3 vùng nội dung — tránh tab "Đã loại" còn hiển thị khi chuyển tab khác
+    // Ẩn cả 4 vùng nội dung — tránh tab trước (vd. Xếp hạng) còn hiển thị khi chuyển tab
     if (unpaidContent) unpaidContent.classList.add('hidden');
     if (historyContent) historyContent.classList.add('hidden');
     if (excludedContent) excludedContent.classList.add('hidden');
+    if (rankingContent) rankingContent.classList.add('hidden');
 
     // Reset trạng thái nút tab (chỉ tab đang chọn mới active)
     if (tabUnpaid) {
@@ -762,6 +1111,10 @@ function switchTab(tab) {
     if (tabExcluded) {
         tabExcluded.classList.remove('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
         tabExcluded.classList.add('border-transparent', 'text-slate-500');
+    }
+    if (tabRanking) {
+        tabRanking.classList.remove('active', 'border-amber-500', 'text-amber-700', 'bg-amber-50/50');
+        tabRanking.classList.add('border-transparent', 'text-slate-500');
     }
 
     if (tab === 'unpaid') {
@@ -790,6 +1143,14 @@ function switchTab(tab) {
         if (sel) sel.textContent = '0đ';
 
         loadExcludedCommissions();
+    } else if (tab === 'ranking') {
+        if (tabRanking) {
+            tabRanking.classList.remove('border-transparent', 'text-slate-500');
+            tabRanking.classList.add('active', 'border-amber-500', 'text-amber-700', 'bg-amber-50/50');
+        }
+        if (rankingContent) rankingContent.classList.remove('hidden');
+
+        loadRanking();
     }
 }
 
@@ -1111,8 +1472,14 @@ function runAfterPeriodFilterChange() {
         loadPaymentHistory();
     } else if (currentTab === 'excluded') {
         loadExcludedCommissions();
+    } else if (currentTab === 'ranking') {
+        loadRanking();
     } else {
         applyFilters();
+    }
+    // Badge tab "Lịch sử" cần số lượng theo khoảng thời gian — trước đây chỉ fetch khi đang mở tab Lịch sử nên badge mãi là "-"
+    if (currentTab !== 'history') {
+        void loadPaymentHistory();
     }
 }
 
@@ -1128,6 +1495,11 @@ function applyFilters() {
     updateActiveFiltersDisplay();
 
     if (currentTab === 'history') {
+        renderHistoryFromFilters();
+        return;
+    }
+
+    if (currentTab === 'ranking') {
         renderHistoryFromFilters();
         return;
     }
@@ -1257,11 +1629,13 @@ function applyFilters() {
     // Tab "Đã loại": vẫn phải tính filteredCommissions + badge "Chưa thanh toán" (trước đây return sớm → badge sai)
     if (currentTab === 'excluded') {
         updateUnpaidBadge();
+        renderHistoryFromFilters(); // badge tab Lịch sử theo search/status (đã có paymentHistory trong cache)
         return;
     }
 
     renderCTVList();
     updateFilteredSummary();
+    renderHistoryFromFilters();
 }
 
 // Update active filters display

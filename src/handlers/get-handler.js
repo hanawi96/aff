@@ -134,7 +134,9 @@ import {
     getPaymentHistory,
     getUnpaidOrders,
     getUnpaidOrdersByMonth,
-    getExcludedCommissions
+    getExcludedCommissions,
+    getCTVRanking,
+    getCTVTargets
 } from '../services/payments/payment-service.js';
 
 export async function handleGet(action, url, request, env, corsHeaders) {
@@ -493,6 +495,16 @@ export async function handleGet(action, url, request, env, corsHeaders) {
                 corsHeaders,
                 rangeDates
             );
+        }
+
+        case 'getCTVRanking': {
+            const rankingMonth = url.searchParams.get('month');
+            return await getCTVRanking(rankingMonth, env, corsHeaders);
+        }
+
+        case 'getCTVTargets': {
+            const targetMonth = url.searchParams.get('month');
+            return await getCTVTargets(targetMonth, env, corsHeaders);
         }
 
         case 'validateDiscount':

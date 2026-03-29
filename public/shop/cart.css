@@ -4252,6 +4252,29 @@ body {
     margin-bottom: 0.625rem;
 }
 
+/* Một hàng: danh mục (trái) + đánh giá (phải) — modal chi tiết SP */
+.product-detail-meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.625rem;
+}
+
+.product-detail-meta-row .product-detail-categories {
+    flex: 1;
+    min-width: 0;
+}
+
+.product-detail-meta-row .product-detail-rating {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.product-detail-sku-row {
+    margin-top: 0;
+}
+
 .product-detail-categories {
     display: flex;
     flex-wrap: wrap;
@@ -4288,6 +4311,11 @@ body {
 .product-detail-rating .star {
     width: 0.875rem;
     height: 0.875rem;
+}
+
+.product-detail-rating .rating-star-single {
+    width: 1rem;
+    height: 1rem;
 }
 
 .product-detail-rating .star.filled {
