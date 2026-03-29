@@ -494,7 +494,6 @@ body {
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
-    transition: all 0.3s ease;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -503,13 +502,11 @@ body {
 }
 
 .flash-sale-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 8px 24px rgba(244, 162, 97, 0.15);
-    border-color: rgba(244, 162, 97, 0.2);
+    /* All hover effects removed */
 }
 
 .flash-sale-card:active {
-    transform: translateY(-3px);
+    /* All active effects removed */
 }
 
 .flash-sale-card .product-image-wrapper {
@@ -1021,24 +1018,20 @@ body {
 .product-card {
     background: var(--white);
     border-radius: 20px;
-    overflow: hidden;
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.08);
-    transition: all 0.3s ease;
     cursor: pointer;
     border: 2px solid transparent;
 }
 
 .product-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 8px 24px rgba(244, 162, 97, 0.15);
-    border-color: rgba(244, 162, 97, 0.2);
+    /* All hover effects removed */
 }
 
 .product-image-wrapper {
     position: relative;
     padding-top: 100%;
-    overflow: hidden;
     background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
+    border-radius: 20px 20px 0 0;
 }
 
 .product-image-container {
@@ -1047,6 +1040,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    border-radius: 20px 20px 0 0;
 }
 
 .product-image {
@@ -1056,12 +1050,13 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: var(--transition);
     cursor: pointer;
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
 }
 
 .product-card:hover .product-image {
-    transform: scale(1.08);
+    /* No hover transform */
 }
 
 .product-badge {

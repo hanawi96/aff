@@ -155,6 +155,7 @@ export class HomePage {
             const searchParam = urlParams.get('search');
             const filterParam = urlParams.get('filter');
             const categoryParam = urlParams.get('category');
+            const productParam = urlParams.get('product');
             
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
@@ -198,6 +199,13 @@ export class HomePage {
                 setTimeout(() => {
                     this.filterByCategoryFromURL(categoryParam);
                 }, 500);
+            } else if (productParam) {
+                // Product detail modal from URL (shareable links)
+                setTimeout(() => {
+                    if (typeof window.openProductDetail === 'function') {
+                        window.openProductDetail(parseInt(productParam, 10));
+                    }
+                }, 800);
             }
             
         } catch (error) {
@@ -221,6 +229,7 @@ export class HomePage {
             this.allProducts = syncFresh;
             this.products = syncFresh;
             this._shopProductsTotal = syncFresh.length;
+            window.allProducts = syncFresh; // Expose for product detail modal URL sharing
             this.setShopPerfHudBody(
                 `📦 Cache session: ${syncFresh.length} SP (sync, không chờ mạng).`,
                 'ok'
@@ -234,6 +243,7 @@ export class HomePage {
             this.allProducts = stalePeek;
             this.products = stalePeek;
             this._shopProductsTotal = stalePeek.length;
+            window.allProducts = stalePeek; // Expose for product detail modal URL sharing
             this._pendingStaleRevalidate = true;
             this.setShopPerfHudBody(
                 `📦 Stale-first: ${stalePeek.length} SP từ session (TTL hết) · làm mới nền sau paint…`,
@@ -249,6 +259,7 @@ export class HomePage {
         const first = await apiService.getProductsPage(1, PAGE_SIZE);
         this.allProducts = first.products;
         this.products = first.products;
+        window.allProducts = this.allProducts; // Expose for product detail modal URL sharing
         this._shopProductsTotal = first.total || first.products.length;
 
         if (first.hasMore) {
@@ -290,6 +301,7 @@ export class HomePage {
 
                     this.allProducts = [...this.allProducts, ...res.products];
                     this.products = this.allProducts;
+                    window.allProducts = this.allProducts; // Keep synced for product detail modal
 
                     if (this.productGrid) {
                         this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
@@ -350,6 +362,7 @@ export class HomePage {
                 const fresh = await apiService.getAllProducts(true);
                 this.allProducts = fresh;
                 this.products = fresh;
+                window.allProducts = fresh; // Keep synced for product detail modal
                 this._shopProductsTotal = fresh.length;
                 if (this.productGrid) {
                     this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
