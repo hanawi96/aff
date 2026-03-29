@@ -1,6 +1,9 @@
 // Customers Management JavaScript
 let allCustomers = [];
 let filteredCustomers = [];
+let customerNotes = {}; // { phone: { content, updated_at, has_content } }
+let sortState = { column: null, direction: 'asc' };
+let pageState = { current: 1, size: 20 };
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -21,6 +24,14 @@ function setupEventListeners() {
     if (segmentFilter) {
         segmentFilter.addEventListener('change', filterBySegment);
     }
+
+    // Sortable column headers
+    document.querySelectorAll('.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            sortCustomers(col);
+        });
+    });
 }
 
 // Setup keyboard shortcuts
@@ -56,18 +67,19 @@ function debounce(func, wait) {
 async function loadCustomers() {
     try {
         showLoading();
-        
+
         const response = await fetch(`${CONFIG.API_URL}?action=getAllCustomers&timestamp=${Date.now()}`);
         const data = await response.json();
-        
+
         if (data.success) {
             allCustomers = data.customers || [];
             filteredCustomers = [...allCustomers];
             console.log('📊 Total customers loaded:', allCustomers.length);
-            console.log('📊 Customers data:', allCustomers);
             updateStats();
+            if (sortState.column) { applySort(); updateSortIcons(); }
             renderCustomers();
             hideLoading();
+            loadCustomerNotes();
         } else {
             throw new Error(data.error || 'Failed to load customers');
         }
@@ -78,23 +90,101 @@ async function loadCustomers() {
     }
 }
 
+// Load customer notes for all customers (batch)
+async function loadCustomerNotes() {
+    try {
+        const phones = allCustomers.map(c => c.phone).filter(Boolean);
+        if (phones.length === 0) return;
+
+        const response = await fetch(
+            `${CONFIG.API_URL}?action=getCustomerNotesBatch&phones=${encodeURIComponent(JSON.stringify(phones))}&timestamp=${Date.now()}`
+        );
+        const data = await response.json();
+
+        if (data.success && data.notes) {
+            customerNotes = data.notes;
+            // Refresh current page rows to show note indicators
+            renderCustomers();
+        }
+    } catch (error) {
+        console.error('❌ Error loading customer notes:', error);
+    }
+}
+
+// Export filtered customers to CSV — instant, no API call, uses data already loaded
+function exportCustomersCSV() {
+    if (filteredCustomers.length === 0) {
+        showToast('Không có dữ liệu để xuất', 'error');
+        return;
+    }
+
+    const headers = ['STT', 'Họ và tên', 'Số điện thoại', 'Địa chỉ', 'Phân khúc', 'Số đơn hàng', 'Tổng chi tiêu', 'TB / đơn', 'Đơn gần nhất', 'Khách từ', 'CTV giới thiệu', 'Ghi chú'];
+
+    const rows = filteredCustomers.map((c, i) => [
+        i + 1,
+        c.name || '',
+        c.phone || '',
+        c.address || '',
+        c.segment || '',
+        c.total_orders || 0,
+        c.total_spent || 0,
+        c.avg_order_value || 0,
+        c.last_order_date ? formatDate(c.last_order_date) : '',
+        c.first_order_date ? formatDate(c.first_order_date) : '',
+        c.ctv_codes || '',
+        customerNotes[c.phone]?.content || ''
+    ]);
+
+    // BOM for Excel UTF-8 compatibility (displays Vietnamese correctly)
+    const BOM = '\uFEFF';
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => {
+            const str = String(cell);
+            // Escape double quotes and wrap if contains comma, newline, or quote
+            return (str.includes(',') || str.includes('\n') || str.includes('"'))
+                ? `"${str.replace(/"/g, '""')}"`
+                : str;
+        }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    const now = new Date();
+    const dateStr = `${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}`;
+    link.href = url;
+    link.download = `danh-sach-khach-hang_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Đã xuất ${filteredCustomers.length} khách hàng`, 'success');
+}
+
 // Search customers
 async function searchCustomers() {
     const searchTerm = document.getElementById('searchInput')?.value || '';
-    
+
     if (!searchTerm.trim()) {
         filteredCustomers = [...allCustomers];
-        filterBySegment(); // Apply segment filter
+        pageState.current = 1;
+        if (sortState.column) { applySort(); updateSortIcons(); }
+        renderCustomers();
         return;
     }
-    
+
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=searchCustomers&q=${encodeURIComponent(searchTerm)}&timestamp=${Date.now()}`);
         const data = await response.json();
-        
+
         if (data.success) {
             filteredCustomers = data.customers || [];
-            filterBySegment(); // Apply segment filter
+            pageState.current = 1;
+            if (sortState.column) { applySort(); updateSortIcons(); }
+            renderCustomers();
         }
     } catch (error) {
         console.error('Error searching customers:', error);
@@ -104,14 +194,168 @@ async function searchCustomers() {
 // Filter by segment
 function filterBySegment() {
     const segment = document.getElementById('segmentFilter')?.value || 'all';
-    
+
     if (segment === 'all') {
+        filteredCustomers = [...allCustomers];
+    } else {
+        filteredCustomers = allCustomers.filter(customer => customer.segment === segment);
+    }
+
+    pageState.current = 1;
+
+    if (sortState.column) {
+        applySort();
+    } else {
         renderCustomers();
+    }
+}
+
+// Sort customers by column
+function sortCustomers(column) {
+    // Toggle direction if same column, else reset to 'asc'
+    if (sortState.column === column) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.column = column;
+        sortState.direction = column === 'name' || column === 'phone' || column === 'segment' || column === 'address' ? 'asc' : 'desc';
+    }
+
+    applySort();
+    updateSortIcons();
+    renderCustomers();
+}
+
+function applySort() {
+    const { column, direction } = sortState;
+    const dir = direction === 'asc' ? 1 : -1;
+
+    filteredCustomers.sort((a, b) => {
+        let valA = a[column];
+        let valB = b[column];
+
+        // Handle null/undefined
+        if (valA == null) valA = '';
+        if (valB == null) valB = '';
+
+        // Date columns — parse to timestamp for comparison
+        if (column === 'last_order_date' || column === 'first_order_date') {
+            valA = valA ? new Date(valA).getTime() : 0;
+            valB = valB ? new Date(valB).getTime() : 0;
+            return (valA - valB) * dir;
+        }
+
+        // Number columns
+        if (column === 'total_orders' || column === 'total_spent' || column === 'avg_order_value') {
+            return (Number(valA) - Number(valB)) * dir;
+        }
+
+        // String columns (case-insensitive)
+        return String(valA).localeCompare(String(valB), 'vi') * dir;
+    });
+}
+
+function updateSortIcons() {
+    document.querySelectorAll('.sortable-th').forEach(th => {
+        th.classList.remove('sorted', 'sorted-asc', 'sorted-desc');
+        const icons = th.querySelector('.sort-icon');
+        if (!icons) return;
+
+        if (th.dataset.sort === sortState.column) {
+            th.classList.add('sorted', `sorted-${sortState.direction}`);
+            // Show active arrow only
+            icons.innerHTML = sortState.direction === 'asc'
+                ? `<svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-indigo-500"><path d="M5 0L10 8H0L5 0Z"/></svg><svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-slate-300"><path d="M5 8L0 0H10L5 8Z"/></svg>`
+                : `<svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-slate-300"><path d="M5 0L10 8H0L5 0Z"/></svg><svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-indigo-500"><path d="M5 8L0 0H10L5 8Z"/></svg>`;
+        } else {
+            icons.innerHTML = `<svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-slate-300"><path d="M5 0L10 8H0L5 0Z"/></svg><svg width="10" height="8" viewBox="0 0 10 8" fill="currentColor" class="text-slate-300"><path d="M5 8L0 0H10L5 8Z"/></svg>`;
+        }
+    });
+}
+
+// Pagination — renders bar only, zero DOM overhead when not needed
+function renderPaginationBar(totalItems, totalPages) {
+    const existing = document.getElementById('paginationBar');
+    if (totalItems === 0) {
+        existing?.remove();
         return;
     }
-    
-    const filtered = filteredCustomers.filter(customer => customer.segment === segment);
-    renderCustomersFiltered(filtered);
+    if (!existing) return; // bar added via HTML, just update text
+
+    const { current, size } = pageState;
+    const start = (current - 1) * size + 1;
+    const end = Math.min(current * size, totalItems);
+
+    // Info text
+    const infoEl = existing.querySelector('#paginationInfo');
+    if (infoEl) infoEl.textContent = `${start}–${end} / ${totalItems.toLocaleString('vi')} khách`;
+
+    // Page size select
+    const selectEl = existing.querySelector('#pageSizeSelect');
+    if (selectEl) {
+        selectEl.value = size;
+        selectEl.onchange = () => {
+            pageState.size = Number(selectEl.value);
+            pageState.current = 1;
+            renderCustomersFiltered(filteredCustomers);
+        };
+    }
+
+    // Prev/Next buttons
+    const prevBtn = existing.querySelector('#prevPageBtn');
+    const nextBtn = existing.querySelector('#nextPageBtn');
+    if (prevBtn) {
+        prevBtn.disabled = current <= 1;
+        prevBtn.onclick = () => { pageState.current--; scrollToTable(); renderCustomersFiltered(filteredCustomers); };
+    }
+    if (nextBtn) {
+        nextBtn.disabled = current >= totalPages;
+        nextBtn.onclick = () => { pageState.current++; scrollToTable(); renderCustomersFiltered(filteredCustomers); };
+    }
+
+    // Page numbers
+    const pagesEl = existing.querySelector('#pageNumbers');
+    if (pagesEl) pagesEl.innerHTML = buildPageNumbers(current, totalPages);
+}
+
+function buildPageNumbers(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => pageBtn(i + 1, current)).join('');
+    }
+
+    const pages = [];
+    if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(pageBtn(i, current));
+        pages.push('<span class="px-2 text-slate-400">…</span>');
+        pages.push(pageBtn(total, current));
+    } else if (current >= total - 3) {
+        pages.push(pageBtn(1, current));
+        pages.push('<span class="px-2 text-slate-400">…</span>');
+        for (let i = total - 4; i <= total; i++) pages.push(pageBtn(i, current));
+    } else {
+        pages.push(pageBtn(1, current));
+        pages.push('<span class="px-2 text-slate-400">…</span>');
+        for (let i = current - 1; i <= current + 1; i++) pages.push(pageBtn(i, current));
+        pages.push('<span class="px-2 text-slate-400">…</span>');
+        pages.push(pageBtn(total, current));
+    }
+    return pages.join('');
+}
+
+function pageBtn(num, current) {
+    const active = num === current
+        ? 'bg-indigo-600 text-white shadow-sm'
+        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200';
+    return `<button onclick="goToPage(${num})" class="min-w-[36px] h-9 px-2 rounded-lg text-sm font-medium transition-all ${active}">${num}</button>`;
+}
+
+function goToPage(num) {
+    pageState.current = num;
+    scrollToTable();
+    renderCustomersFiltered(filteredCustomers);
+}
+
+function scrollToTable() {
+    document.getElementById('tableContent')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Update statistics
@@ -140,15 +384,22 @@ function renderCustomers() {
 
 function renderCustomersFiltered(customers) {
     const tbody = document.getElementById('customersTableBody');
-    
+
     if (!tbody) return;
-    
+
     if (customers.length === 0) {
         showEmptyState();
         return;
     }
-    
-    tbody.innerHTML = customers.map((customer, index) => createCustomerRow(customer, index + 1)).join('');
+
+    const totalPages = Math.ceil(customers.length / pageState.size);
+    if (pageState.current > totalPages) pageState.current = totalPages || 1;
+
+    const start = (pageState.current - 1) * pageState.size;
+    const pageData = customers.slice(start, start + pageState.size);
+
+    tbody.innerHTML = pageData.map((customer, i) => createCustomerRow(customer, start + i + 1)).join('');
+    renderPaginationBar(customers.length, totalPages);
     showTable();
 }
 
@@ -167,6 +418,14 @@ function createCustomerRow(customer, index) {
         ? formatDate(customer.last_order_date)
         : 'Chưa có đơn';
 
+    const phone = escapeHtml(customer.phone || '');
+    const cleanPhone = phone.replace(/[\s\-\.\/]+/g, '');
+    const zaloHref = `https://zalo.me/${cleanPhone}`;
+
+    const noteData = customerNotes[customer.phone];
+    const hasNote = noteData && noteData.has_content;
+    const notePreview = hasNote ? escapeHtml(noteData.content.substring(0, 40) + (noteData.content.length > 40 ? '…' : '')) : '';
+
     return `
         <tr class="hover:bg-slate-50/90 transition-colors group">
             <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-400 font-medium tabular-nums">${index}</td>
@@ -182,7 +441,7 @@ function createCustomerRow(customer, index) {
                 </div>
             </td>
             <td class="px-5 py-4 whitespace-nowrap">
-                <span class="text-sm text-slate-800 font-mono tracking-tight">${escapeHtml(customer.phone)}</span>
+                <span class="text-sm text-slate-800 font-mono tracking-tight">${phone}</span>
             </td>
             <td class="px-5 py-4 whitespace-nowrap">
                 ${segmentBadges[customer.segment] || segmentBadges['New']}
@@ -197,18 +456,38 @@ function createCustomerRow(customer, index) {
             <td class="px-5 py-4 whitespace-nowrap">
                 <span class="text-sm text-slate-600 tabular-nums">${lastOrderText}</span>
             </td>
+            <td class="px-5 py-4 max-w-[200px]">
+                ${hasNote ? `
+                <button type="button" onclick="openNoteModal('${phone}', '${escapeHtml(customer.name)}')"
+                    title="${notePreview}"
+                    class="text-left w-full truncate block text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg px-2.5 py-1.5 transition-colors border border-amber-100">
+                    ${notePreview}
+                </button>
+                ` : `
+                <button type="button" onclick="openNoteModal('${phone}', '${escapeHtml(customer.name)}')"
+                    title="Thêm ghi chú"
+                    class="text-left w-full text-xs text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg px-2.5 py-1.5 transition-colors">
+                    Chưa có
+                </button>
+                `}
+            </td>
             <td class="px-5 py-4 whitespace-nowrap text-center">
-                <div class="flex items-center justify-center gap-1.5">
-                    <button type="button" onclick="viewCustomerDetail('${escapeHtml(customer.phone)}')"
-                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold shadow-sm">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                    <a href="${zaloHref}" target="_blank" rel="noopener" title="Nhắn Zalo"
+                        class="inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-[#0068FF] hover:bg-blue-50 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                            <path fill-rule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97Z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <button type="button" onclick="viewCustomerDetail('${phone}')" title="Chi tiết" aria-label="Chi tiết"
+                        class="inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        Chi tiết
                     </button>
-                    <button type="button" onclick="confirmDeleteCustomer('${escapeHtml(customer.phone)}', '${escapeHtml(customer.name)}')"
-                        class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                    <button type="button" onclick="confirmDeleteCustomer('${phone}', '${escapeHtml(customer.name)}')"
+                        class="inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Xóa khách hàng">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -220,18 +499,31 @@ function createCustomerRow(customer, index) {
     `;
 }
 
+
 // View customer detail
 async function viewCustomerDetail(phone) {
     try {
         showToast('Đang tải...', 'info');
-        
-        const response = await fetch(`${CONFIG.API_URL}?action=getCustomerDetail&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            showCustomerModal(data.customer);
+
+        const [detailRes, noteRes] = await Promise.all([
+            fetch(`${CONFIG.API_URL}?action=getCustomerDetail&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`),
+            fetch(`${CONFIG.API_URL}?action=getCustomerNote&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`)
+        ]);
+
+        const [detailData, noteData] = await Promise.all([detailRes.json(), noteRes.json()]);
+
+        if (detailData.success) {
+            // Pre-populate note cache for this customer
+            if (noteData.success && noteData.note) {
+                customerNotes[phone] = {
+                    content: noteData.note.content || '',
+                    updated_at: noteData.note.updated_at,
+                    has_content: !!(noteData.note.content && noteData.note.content.trim())
+                };
+            }
+            showCustomerModal(detailData.customer);
         } else {
-            throw new Error(data.error || 'Không thể tải thông tin khách hàng');
+            throw new Error(detailData.error || 'Không thể tải thông tin khách hàng');
         }
     } catch (error) {
         console.error('Error loading customer detail:', error);
@@ -326,6 +618,22 @@ function showCustomerModal(customer) {
                             <span class="text-slate-900 font-medium">${escapeHtml(customer.ctv_codes)}</span>
                         </div>
                         ` : ''}
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-amber-100 bg-amber-50/30 p-4 mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-700">Ghi chú</h3>
+                        <button type="button" onclick="openNoteModalFromDetail('${phone}', '${escapeHtml(customer.name)}')"
+                            class="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                            ${customerNotes[customer.phone]?.has_content ? 'Sửa' : 'Thêm ghi chú'}
+                        </button>
+                    </div>
+                    <div id="detailNoteContent" class="text-sm text-slate-700 min-h-[40px]">
+                        ${customerNotes[customer.phone]?.has_content
+                            ? `<div class="bg-white/70 rounded-lg p-3 border border-amber-100">${escapeHtml(customerNotes[customer.phone].content).replace(/\n/g, '<br>')}</div>`
+                            : '<span class="text-slate-400 italic">Chưa có ghi chú nào</span>'
+                        }
                     </div>
                 </div>
 
@@ -626,5 +934,154 @@ async function deleteCustomer(phone) {
     } catch (error) {
         console.error('Error deleting customer:', error);
         showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+// ============================================================
+// Customer Notes Modal
+// ============================================================
+
+// Open note modal for a customer (called from table row)
+async function openNoteModal(phone, customerName) {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getCustomerNote&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            showNoteModal(phone, customerName, data.note?.content || '');
+        } else {
+            showNoteModal(phone, customerName, '');
+        }
+    } catch (error) {
+        console.error('Error loading note:', error);
+        showNoteModal(phone, customerName, '');
+    }
+}
+
+// Open note modal from detail view (uses local cache first)
+function openNoteModalFromDetail(phone, customerName) {
+    const cached = customerNotes[phone];
+    if (cached) {
+        showNoteModal(phone, customerName, cached.content || '');
+    } else {
+        openNoteModal(phone, customerName);
+    }
+}
+
+// Show note modal (create or edit)
+function showNoteModal(phone, customerName, currentContent) {
+    const existing = document.getElementById('noteModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'noteModal';
+    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4';
+    modal.onclick = function(e) {
+        if (e.target === modal) closeNoteModal();
+    };
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 w-full max-w-md">
+            <div class="px-6 py-5 border-b border-slate-100">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Ghi chú khách hàng</h2>
+                        <p class="text-sm text-slate-500 mt-0.5">${escapeHtml(customerName)}</p>
+                    </div>
+                    <button type="button" onclick="closeNoteModal()" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0" aria-label="Đóng">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <textarea id="noteContent" rows="6"
+                    placeholder="Nhập ghi chú cho khách hàng này..."
+                    class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-300 transition-colors bg-slate-50/50"
+                >${escapeHtml(currentContent)}</textarea>
+                <div id="noteError" class="hidden mt-2 text-sm text-red-600"></div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeNoteModal()"
+                    class="px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm">
+                    Hủy
+                </button>
+                <button type="button" id="saveNoteBtn" onclick="saveNote('${escapeHtml(phone)}')"
+                    class="px-5 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors text-sm font-semibold shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    Lưu ghi chú
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.getElementById('noteContent').focus();
+}
+
+// Close note modal
+function closeNoteModal() {
+    const modal = document.getElementById('noteModal');
+    if (modal) modal.remove();
+}
+
+// Save note for a customer
+async function saveNote(phone) {
+    const content = document.getElementById('noteContent').value;
+    const errorEl = document.getElementById('noteError');
+    const saveBtn = document.getElementById('saveNoteBtn');
+
+    if (errorEl) {
+        errorEl.classList.add('hidden');
+        errorEl.textContent = '';
+    }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Đang lưu…`;
+    }
+
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'saveCustomerNote',
+                phone: phone,
+                content: content
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update local cache
+            customerNotes[phone] = {
+                content: data.note.content,
+                updated_at: data.note.updated_at,
+                has_content: data.note.has_content
+            };
+
+            closeNoteModal();
+            renderCustomers();
+
+            const msg = content.trim() ? 'Đã lưu ghi chú' : 'Đã xóa ghi chú';
+            showToast(msg, 'success');
+        } else {
+            throw new Error(data.error || 'Không thể lưu ghi chú');
+        }
+    } catch (error) {
+        console.error('Error saving note:', error);
+        if (errorEl) {
+            errorEl.textContent = 'Lỗi: ' + error.message;
+            errorEl.classList.remove('hidden');
+        }
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Lưu ghi chú`;
+        }
     }
 }

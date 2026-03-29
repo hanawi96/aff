@@ -154,6 +154,9 @@ import {
     reorderMaterialCategories
 } from '../services/materials/material-service.js';
 
+// Customer Notes
+import { saveCustomerNote } from '../services/customers/customer-service.js';
+
 // Featured Products
 import {
     getFeaturedProducts,
@@ -636,7 +639,17 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await getFeaturedStats(env, corsHeaders);
             case 'clearFeaturedCache':
                 return await clearFeaturedCache(env, corsHeaders);
-                
+
+            // Customer Notes
+            case 'saveCustomerNote':
+                return await saveCustomerNote(
+                    data.phone,
+                    data.content,
+                    data.created_by || null,
+                    env,
+                    corsHeaders
+                );
+
             default:
                 return jsonResponse({
                     success: false,

@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
+        // Remove any previous inline error
+        const existingError = form.querySelector('.submit-error');
+        if (existingError) existingError.remove();
+
         const submitButton = form.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
 
@@ -88,7 +92,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error('Error:', error);
-            alert('Có lỗi xảy ra khi gửi form. Vui lòng thử lại sau!');
+            // Show inline error below button instead of blocking alert
+            const existingError = form.querySelector('.submit-error');
+            if (existingError) existingError.remove();
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'submit-error text-sm text-red-600 mt-2 text-center font-medium animate-[fadeIn_0.3s_ease-out]';
+            errorDiv.textContent = error.message || 'Có lỗi xảy ra khi gửi form. Vui lòng thử lại sau!';
+            submitButton.parentElement.appendChild(errorDiv);
         } finally {
             // Reset button
             submitButton.innerHTML = originalText;
@@ -180,206 +191,206 @@ document.addEventListener('DOMContentLoaded', function () {
         // Create modal overlay
         const modalOverlay = document.createElement('div');
         modalOverlay.id = 'successModal';
-        modalOverlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6';
-        modalOverlay.style.animation = 'fadeIn 0.3s ease-out';
-        modalOverlay.style.paddingTop = 'max(2rem, env(safe-area-inset-top))';
-        modalOverlay.style.paddingBottom = 'max(2rem, env(safe-area-inset-bottom))';
+        modalOverlay.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center';
 
-        // Simple and clean modal design for moms
-        modalOverlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full relative flex flex-col" style="animation: slideUp 0.4s ease-out; max-height: calc(100vh - 4rem); max-height: calc(100dvh - 4rem);">
-                
-                <!-- Sticky Header - Compact (Always visible) -->
-                <div id="stickyHeader" class="sticky top-0 z-20 bg-white border-b border-gray-200 px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between rounded-t-2xl transition-all duration-300" style="box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                        <div class="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-sm sm:text-base font-bold text-gray-800">Đăng ký thành công!</h3>
-                    </div>
-                    <button onclick="closeSuccessModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        // Backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'absolute inset-0 bg-black/50 backdrop-blur-sm';
+        backdrop.onclick = closeSuccessModal;
+        modalOverlay.appendChild(backdrop);
+
+        // Modal card
+        const card = document.createElement('div');
+        card.className = 'relative z-10 bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden';
+
+        // ====== HEADER ======
+        card.innerHTML = `
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
-                    </button>
-                </div>
-                
-                <!-- Scrollable Content Area -->
-                <div id="modalScrollArea" class="overflow-y-auto flex-1">
-                    <!-- Header - Full (Shows at top) -->
-                    <div id="fullHeader" class="pt-8 px-6 pb-6 text-center bg-white transition-all duration-300">
-                        <!-- Success Icon -->
-                        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        
-                        <!-- Title -->
-                        <h2 class="text-xl font-bold text-gray-800 mb-2">Đăng ký thành công!</h2>
-                        
-                        <!-- Subtitle -->
-                        <p class="text-sm text-gray-600 mb-6">
-                            Cảm ơn <span class="font-semibold text-gray-800">${displayName}</span>! Em sẽ liên hệ với chị ngay ạ ❤️
-                        </p>
-
-                        <!-- Referral Code - Simple Center Display -->
-                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-8 border border-purple-200/50 shadow-sm">
-                            <div class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-3">Mã Cộng Tác Viên</div>
-                            <div class="text-5xl font-bold text-purple-600 mb-5 tracking-widest font-mono">${refCode}</div>
-                            
-                            <!-- Copy Success Message -->
-                            <div id="copyCodeMessage" class="hidden mb-3 p-2 bg-green-100 text-green-700 text-sm rounded-lg flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>✓ Đã sao chép mã!</span>
-                            </div>
-                            
-                            <button onclick="copyRefCode('${refCode}')" 
-                                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 active:scale-95 transition-all shadow-md hover:shadow-lg">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
-                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
-                                </svg>
-                                Sao chép mã
-                            </button>
-                        </div>
                     </div>
+                    <h2 class="text-base font-bold text-slate-800">Đăng ký thành công!</h2>
+                </div>
+                <button onclick="closeSuccessModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
 
-                    <!-- Content -->
-                    <div class="px-6 pb-6">
+            <!-- ====== SCROLLABLE CONTENT ====== -->
+            <div class="flex-1 overflow-y-auto">
 
-                    <!-- Referral Link -->
-                    <div class="bg-mom-pink/10 rounded-xl p-4 mb-4">
-                        <label class="text-xs text-gray-600 font-medium flex items-center gap-1.5 mb-2">
-                            <svg class="w-4 h-4 text-pink-600" viewBox="0 0 24 24" fill="currentColor">
-                                <path fill-rule="evenodd" d="M19.902 4.098a3.75 3.75 0 0 0-5.304 0l-4.5 4.5a3.75 3.75 0 0 0 1.035 6.037.75.75 0 0 1-.646 1.353 5.25 5.25 0 0 1-1.449-8.45l4.5-4.5a5.25 5.25 0 1 1 7.424 7.424l-1.757 1.757a.75.75 0 1 1-1.06-1.06l1.757-1.757a3.75 3.75 0 0 0 0-5.304Zm-7.389 4.267a.75.75 0 0 1 1-.353 5.25 5.25 0 0 1 1.449 8.45l-4.5 4.5a5.25 5.25 0 1 1-7.424-7.424l1.757-1.757a.75.75 0 1 1 1.06 1.06l-1.757 1.757a3.75 3.75 0 1 0 5.304 5.304l4.5-4.5a3.75 3.75 0 0 0-1.035-6.037.75.75 0 0 1-.354-1Z" clip-rule="evenodd" />
-                            </svg>
-                            LINK GIỚI THIỆU CỦA BẠN
-                        </label>
-                        <div class="flex items-center space-x-2 bg-white rounded-lg p-3 mb-2">
-                            <input type="text" value="${refUrl}" readonly 
-                                class="flex-1 text-sm text-gray-700 bg-transparent outline-none min-w-0">
-                            <button onclick="copyRefUrl('${refUrl}')" 
-                                class="px-4 py-2 bg-pink-600 text-white rounded-lg text-sm hover:bg-pink-700 transition-colors font-bold flex-shrink-0 flex items-center gap-1 shadow-md">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
-                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
-                                </svg>
+                <!-- ====== HERO INTRO ====== -->
+                <div class="px-5 pt-6 pb-5 text-center">
+                    <p class="text-sm text-slate-600 mb-1">
+                        Cảm ơn <span class="font-semibold text-slate-800">${displayName}</span>, bạn đã trở thành Cộng Tác Viên!
+                    </p>
+                    <p class="text-xs text-slate-500">Hãy chia sẻ link bên dưới để bắt đầu kiếm hoa hồng nhé!</p>
+                </div>
+
+                <!-- ====== REFERRAL LINK — HERO SECTION ====== -->
+                <div class="px-5 pb-4">
+                    <div class="bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 rounded-2xl p-5 text-white shadow-xl shadow-rose-500/30">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 flex-shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>
+                            <p class="text-xs font-bold uppercase tracking-widest opacity-90">Link giới thiệu của bạn</p>
+                        </div>
+                        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3 mb-3 border border-white/30">
+                            <p id="refUrlDisplay" class="text-xs text-white/90 truncate font-mono">${refUrl}</p>
+                        </div>
+                        <div id="copyUrlMessage" class="hidden mb-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            Đã copy link giới thiệu!
+                        </div>
+                        <button onclick="copyRefUrl('${refUrl}')"
+                            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-rose-600 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+                            Sao chép &amp; chia sẻ ngay
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ====== REFERRAL CODE — SMALL SECONDARY ====== -->
+                <div class="px-5 pb-4">
+                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-slate-500 mb-0.5">Mã CTV</p>
+                            <p id="refCodeDisplay" class="text-base font-bold text-slate-700 font-mono select-all cursor-pointer">${refCode}</p>
+                        </div>
+                        <div class="flex-shrink-0 flex gap-2">
+                            <div id="copyCodeMessage" class="hidden">
+                                <span class="text-xs text-emerald-600 font-medium">✓ Đã copy!</span>
+                            </div>
+                            <button onclick="copyRefCode('${refCode}')"
+                                class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-semibold rounded-lg transition-colors">
                                 Copy
                             </button>
                         </div>
-                        <div id="copyMessage" class="hidden mb-3 p-2 bg-green-100 text-green-700 text-sm rounded-lg flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>✓ Đã copy link giới thiệu!</span>
-                        </div>
-                        
-                        <!-- Commission Calculator & Zalo Group Buttons -->
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="showCommissionModal()" 
-                                class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
-                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
-                                </svg>
-                                <span>Cách Tính Hoa Hồng</span>
-                            </button>
-                            <a href="https://zalo.me/g/vlyibe041" target="_blank"
-                                class="bg-blue-500 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-600 hover:shadow-xl transition-all flex items-center justify-center space-x-2 shadow-md">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/>
-                                </svg>
-                                <span>Nhóm Zalo</span>
-                            </a>
-                        </div>
-                        
-                        <!-- Contact Note -->
-                        <div class="mt-3 flex items-start gap-2 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                            </svg>
-                            <p class="text-xs text-gray-700 leading-relaxed">
-                                Có thắc mắc gì, vui lòng liên hệ với em Ánh qua Zalo: 
-                                <a href="https://zalo.me/0972483892" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-                                    0972.483.892
-                                </a> hoặc  <a href="https://zalo.me/0386190596" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-                                    0386.190.596
-                                </a> ạ
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Simple Info -->
-                    <div class="bg-blue-50 rounded-xl p-4 mb-4">
-                        <div class="space-y-3 text-sm text-gray-700">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
-                                <p>Chia sẻ link với bạn bè</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
-                                <p>Nhận 10% hoa hồng mỗi đơn</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
-                                <p>Khách mua trong vòng 7 ngày được tính hoa hồng</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></div>
-                                <p>Chúng tôi sẽ liên hệ trong 24h</p>
-                            </div>
-                        </div>
-                    </div>
-
                     </div>
                 </div>
-                
-                <!-- Footer - Sticky -->
-                <div class="p-3 sm:p-6 pt-2 sm:pt-4 border-t border-gray-100 bg-white rounded-b-2xl flex-shrink-0">
-                    <div class="grid grid-cols-2 gap-2 sm:gap-3">
-                        <a href="${refUrl}" target="_blank"
-                            class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-pink-700 hover:to-rose-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-1.5">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
-                            </svg>
-                            <span class="hidden sm:inline">Cửa Hàng</span>
-                            <span class="sm:hidden">Shop</span>
-                        </a>
-                        <a href="search.html" target="_blank"
-                            class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-1.5">
-                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
-                            </svg>
-                            <span class="hidden sm:inline">Kiểm tra đơn hàng</span>
-                            <span class="sm:hidden">Đơn hàng</span>
+
+                <!-- ====== QUICK STATS ====== -->
+                <div class="px-5 pb-4">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
+                            <div class="text-xl font-black text-orange-500 mb-0.5">12%</div>
+                            <div class="text-xs text-orange-600 font-medium">Hoa hồng</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
+                            <div class="text-xl font-black text-blue-500 mb-0.5">7</div>
+                            <div class="text-xs text-blue-600 font-medium">Ngày hiệu lực</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 text-center border border-emerald-100">
+                            <div class="text-xl font-black text-emerald-500 mb-0.5">24h</div>
+                            <div class="text-xs text-emerald-600 font-medium">Liên hệ lại</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== HOW IT WORKS ====== -->
+                <div class="px-5 pb-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 px-1">Cách hoạt động</p>
+                    <div class="space-y-2.5">
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-indigo-600">1</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">Chia sẻ link giới thiệu</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Gửi link cho bạn bè qua Zalo, Facebook, Tin nhắn...</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-indigo-600">2</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">Khách mua hàng</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Mỗi đơn hàng trong 7 ngày được ghi nhận cho bạn</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-indigo-600">3</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">Nhận hoa hồng</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Hoa hồng 10% được thanh toán vào cuối mỗi tháng</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== QUICK ACTIONS ====== -->
+                <div class="px-5 pb-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="showCommissionModal()"
+                            class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="text-sm font-semibold">Cách tính HH</span>
+                        </button>
+                        <a href="https://zalo.me/g/vlyibe041" target="_blank"
+                            class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/></svg>
+                            <span class="text-sm font-semibold">Nhóm Zalo</span>
                         </a>
                     </div>
+                </div>
+
+                <!-- ====== CONTACT ====== -->
+                <div class="px-5 pb-5">
+                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+                        <p class="text-xs font-semibold text-blue-600 mb-2">Liên hệ hỗ trợ</p>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Thắc mắc vui lòng nhắn Zalo:
+                            <a href="https://zalo.me/0972483892" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 ml-1">0972.483.892</a>
+                            hoặc
+                            <a href="https://zalo.me/0386190596" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700">0386.190.596</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== STICKY FOOTER ====== -->
+            <div class="flex-shrink-0 px-4 pb-4 pt-2 border-t border-slate-100 bg-white">
+                <div class="grid grid-cols-2 gap-2.5">
+                    <a href="${refUrl}" target="_blank"
+                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016 3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z"/></svg>
+                        <span>Mở cửa hàng</span>
+                    </a>
+                    <a href="search.html" target="_blank"
+                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                        <span>Kiểm tra đơn</span>
+                    </a>
                 </div>
             </div>
         `;
 
+        modalOverlay.appendChild(card);
         document.body.appendChild(modalOverlay);
 
-        // Add scroll handler for sticky header
-        const scrollArea = document.getElementById('modalScrollArea');
-        const stickyHeader = document.getElementById('stickyHeader');
-        const fullHeader = document.getElementById('fullHeader');
-        const fullHeaderCloseBtn = document.getElementById('fullHeaderCloseBtn');
-
-        // Sticky header is always visible, no scroll handler needed
-
-        // Add click outside to close
-        modalOverlay.addEventListener('click', function (e) {
-            if (e.target === modalOverlay) {
-                closeSuccessModal();
-            }
+        // Animation
+        modalOverlay.style.opacity = '0';
+        modalOverlay.style.transition = 'opacity 0.3s ease';
+        requestAnimationFrame(() => {
+            modalOverlay.style.opacity = '1';
         });
+
+        // Slide up animation for card on mobile
+        card.style.transform = 'translateY(100%)';
+        card.style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)';
+        if (window.innerWidth < 640) {
+            requestAnimationFrame(() => {
+                card.style.transform = 'translateY(0)';
+            });
+        }
+
+        // Click outside to close
+        backdrop.addEventListener('click', closeSuccessModal);
     }
 
     // Celebration animation
@@ -430,28 +441,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // Global functions for modal actions
     window.copyRefCode = function (code) {
         navigator.clipboard.writeText(code).then(() => {
-            // Hiển thị thông báo ngay phía trên button
             const message = document.getElementById('copyCodeMessage');
             if (message) {
                 message.classList.remove('hidden');
-                // Tự động ẩn sau 3 giây
-                setTimeout(() => {
-                    message.classList.add('hidden');
-                }, 3000);
+                setTimeout(() => message.classList.add('hidden'), 3000);
             }
         });
     };
 
     window.copyRefUrl = function (url) {
         navigator.clipboard.writeText(url).then(() => {
-            // Hiển thị thông báo ngay dưới button
-            const message = document.getElementById('copyMessage');
+            const message = document.getElementById('copyUrlMessage');
             if (message) {
                 message.classList.remove('hidden');
-                // Tự động ẩn sau 3 giây
-                setTimeout(() => {
-                    message.classList.add('hidden');
-                }, 3000);
+                setTimeout(() => message.classList.add('hidden'), 3000);
             }
         });
     };
@@ -464,7 +467,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.closeSuccessModal = function () {
         const modal = document.getElementById('successModal');
         if (modal) {
-            modal.remove();
+            modal.style.opacity = '0';
+            modal.style.transition = 'opacity 0.25s ease';
+            setTimeout(() => modal.remove(), 250);
         }
     };
 

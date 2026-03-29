@@ -278,3 +278,114 @@ export async function searchCustomers(query, env, corsHeaders) {
         }, 500, corsHeaders);
     }
 }
+
+// Get note for a customer
+export async function getCustomerNote(phone, env, corsHeaders) {
+    try {
+        if (!phone) {
+            return jsonResponse({ success: false, error: 'Số điện thoại là bắt buộc' }, 400, corsHeaders);
+        }
+
+        const note = await env.DB.prepare(`
+            SELECT id, phone, content, created_at, updated_at, created_by, updated_by
+            FROM customer_notes
+            WHERE phone = ?
+        `).bind(phone).first();
+
+        return jsonResponse({
+            success: true,
+            note: note || { phone, content: '' }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting customer note:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Get notes for multiple customers (batch - for table list)
+export async function getCustomerNotesBatch(phones, env, corsHeaders) {
+    try {
+        if (!phones || phones.length === 0) {
+            return jsonResponse({ success: true, notes: {} }, 200, corsHeaders);
+        }
+
+        const placeholders = phones.map(() => '?').join(',');
+        const { results } = await env.DB.prepare(`
+            SELECT phone, content, updated_at
+            FROM customer_notes
+            WHERE phone IN (${placeholders})
+        `).bind(...phones).all();
+
+        const notesMap = {};
+        for (const row of results) {
+            notesMap[row.phone] = {
+                content: row.content,
+                updated_at: row.updated_at,
+                has_content: row.content && row.content.trim().length > 0
+            };
+        }
+
+        return jsonResponse({
+            success: true,
+            notes: notesMap
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error getting customer notes batch:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+// Save (create or update) note for a customer
+export async function saveCustomerNote(phone, content, created_by, env, corsHeaders) {
+    try {
+        if (!phone) {
+            return jsonResponse({ success: false, error: 'Số điện thoại là bắt buộc' }, 400, corsHeaders);
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const trimmed = (content || '').trim();
+
+        // Check if note exists
+        const existing = await env.DB.prepare(`
+            SELECT id FROM customer_notes WHERE phone = ?
+        `).bind(phone).first();
+
+        if (existing) {
+            await env.DB.prepare(`
+                UPDATE customer_notes
+                SET content = ?, updated_at = ?, updated_by = ?
+                WHERE phone = ?
+            `).bind(trimmed, now, created_by || null, phone).run();
+        } else {
+            await env.DB.prepare(`
+                INSERT INTO customer_notes (phone, content, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).bind(phone, trimmed, now, now, created_by || null, created_by || null).run();
+        }
+
+        return jsonResponse({
+            success: true,
+            note: {
+                phone,
+                content: trimmed,
+                updated_at: now,
+                has_content: trimmed.length > 0
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error saving customer note:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}

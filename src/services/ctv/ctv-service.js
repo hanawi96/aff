@@ -18,13 +18,22 @@ export async function registerCTV(data, env, corsHeaders) {
         console.log('📥 Received CTV data:', JSON.stringify(data, null, 2));
         console.log('🏦 Bank Name:', data.bankName);
         console.log('💳 Bank Account:', data.bankAccountNumber);
-        
+
         // Validate
         if (!data.fullName || !data.phone) {
             return jsonResponse({
                 success: false,
                 error: 'Thiếu thông tin bắt buộc'
             }, 400, corsHeaders);
+        }
+
+        // Check for duplicate phone
+        const existing = await env.DB.prepare(`SELECT id FROM ctv WHERE phone = ?`).bind(data.phone).first();
+        if (existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Số điện thoại đã được đăng ký'
+            }, 409, corsHeaders);
         }
 
         // Generate referral code
@@ -81,41 +90,6 @@ export async function registerCTV(data, env, corsHeaders) {
         }
 
         console.log('✅ Saved to database:', referralCode);
-        
-        // Verify data was saved
-        const verify = await env.DB.prepare(`
-            SELECT bank_account_number, bank_name FROM ctv WHERE referral_code = ?
-        `).bind(referralCode).first();
-        console.log('🔍 Verification query result:', verify);
-
-        // 2. Lưu vào Google Sheets (gọi Google Apps Script)
-        try {
-            const sheetsData = {
-                ...data,
-                referralCode: referralCode,
-                commissionRate: commissionRate,
-                timestamp: new Date().getTime()
-            };
-
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
-
-            const sheetsResponse = await fetch(googleScriptUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(sheetsData)
-            });
-
-            if (sheetsResponse.ok) {
-                console.log('✅ Saved to Google Sheets');
-            } else {
-                console.warn('⚠️ Failed to save to Google Sheets, but database saved successfully');
-            }
-        } catch (sheetsError) {
-            console.error('⚠️ Google Sheets error:', sheetsError);
-            // Không throw error, vì database đã lưu thành công
-        }
 
         return jsonResponse({
             success: true,

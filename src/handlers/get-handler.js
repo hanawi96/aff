@@ -69,7 +69,9 @@ import {
     getAllCustomers, 
     checkCustomer, 
     getCustomerDetail, 
-    searchCustomers 
+    searchCustomers,
+    getCustomerNote,
+    getCustomerNotesBatch
 } from '../services/customers/customer-service.js';
 
 // Export History
@@ -352,6 +354,18 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'searchCustomers':
             const customerQuery = url.searchParams.get('q');
             return await searchCustomers(customerQuery, env, corsHeaders);
+
+        case 'getCustomerNote':
+            const notePhone = url.searchParams.get('phone');
+            return await getCustomerNote(notePhone, env, corsHeaders);
+
+        case 'getCustomerNotesBatch':
+            const notePhonesParam = url.searchParams.get('phones');
+            if (notePhonesParam) {
+                const notePhones = JSON.parse(notePhonesParam);
+                return await getCustomerNotesBatch(notePhones, env, corsHeaders);
+            }
+            return await getCustomerNotesBatch([], env, corsHeaders);
 
         case 'getPackagingConfig':
             return await getPackagingConfig(env, corsHeaders);
