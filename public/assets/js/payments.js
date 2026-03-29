@@ -56,7 +56,10 @@ async function loadUnpaidOrders() {
             // Áp dụng bộ lọc thời gian/trạng thái/tìm kiếm + cập nhật đúng tab đang mở
             applyFilters();
 
-            updateExcludedBadge();
+            // Cập nhật badge Đã loại từ summary API (không cần fetch lại)
+            const exclCount = data.summary?.total_excluded ?? 0;
+            const exclBadge = document.getElementById('excludedCount');
+            if (exclBadge) exclBadge.textContent = exclCount;
 
         } else {
             throw new Error(data.error || 'Failed to load data');
@@ -129,31 +132,14 @@ function applySummaryLabels(mode) {
     set('summarySubSelected', L.selSub);
 }
 
-// Update summary
-function updateSummary(summary) {
-    applySummaryLabels('unpaid');
-    document.getElementById('totalCTV').textContent = summary.total_ctv || 0;
-    document.getElementById('totalOrders').textContent = summary.total_orders || 0;
-    document.getElementById('totalCommission').textContent = formatCurrency(summary.total_commission || 0);
-    document.getElementById('unpaidCount').textContent = summary.total_ctv || 0;
-    updateSelectedAmount();
-}
 
-// Update excluded badge count on the tab
-async function updateExcludedBadge() {
+// Cập nhật badge Đã loại từ dữ liệu đã có (không cần fetch API)
+function updateExcludedBadge() {
     const badge = document.getElementById('excludedCount');
     if (!badge) return;
-
-    try {
-        const url = `${CONFIG.API_URL}?action=getExcludedCommissions&month=${currentMonth}&status=excluded&timestamp=${Date.now()}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success) {
-            badge.textContent = data.summary?.total || 0;
-        }
-    } catch {
-        // Silent fail - badge is just a hint
-    }
+    const exclCount = allCommissions.reduce((sum, ctv) =>
+        sum + (ctv.orders || []).filter(o => o.is_excluded === 1).length, 0);
+    badge.textContent = exclCount;
 }
 
 // Update selected amount
@@ -616,11 +602,11 @@ async function submitPayment(event) {
             // Remove paid orders from selected
             orderIds.forEach(id => selectedOrders.delete(id));
             
-            // Reload both tabs data
-            setTimeout(() => {
-                loadUnpaidOrders();
-                loadPaymentHistory(); // Also reload payment history to update count
-            }, 1000);
+            // Reload both tabs data sequentially to avoid race condition
+            await loadUnpaidOrders();
+            if (currentTab === 'history') {
+                await loadPaymentHistory();
+            }
         } else {
             throw new Error(data.error || 'Failed to process payment');
         }
@@ -1127,9 +1113,6 @@ function runAfterPeriodFilterChange() {
         loadExcludedCommissions();
     } else {
         applyFilters();
-    }
-    if (currentTab !== 'history') {
-        loadPaymentHistory();
     }
 }
 
@@ -1937,10 +1920,10 @@ async function confirmExclude(orderId) {
         if (data.success) {
             showToast(`Đã loại hoa hồng khỏi danh sách thanh toán`, 'success');
             closeExcludeModal();
-            setTimeout(() => {
-                loadUnpaidOrders();
-                updateExcludedBadge();
-            }, 500);
+            await loadUnpaidOrders();
+            if (currentTab === 'excluded') {
+                await loadExcludedCommissions();
+            }
         } else {
             throw new Error(data.error || 'Không thể loại hoa hồng');
         }
@@ -1974,9 +1957,8 @@ async function restoreCommission(orderId, orderCode) {
 
         if (data.success) {
             showToast(`Đã khôi phục hoa hồng cho đơn ${orderCode}`, 'success');
-            // Luôn tải lại danh sách chưa thanh toán — API mới có is_excluded đúng; chỉ gọi loadExcluded trước đây thì allCommissions vẫn cũ
+            // loadUnpaidOrders cập nhật cả hai badge; chỉ load excluded tab nếu đang ở tab đó
             await loadUnpaidOrders();
-            updateExcludedBadge();
             if (currentTab === 'excluded') {
                 await loadExcludedCommissions();
             }
