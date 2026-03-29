@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký Thành Công - CTV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            animation: fall 3s linear forwards;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-8 px-4">
+    <!-- Confetti container -->
+    <div id="confettiContainer"></div>
+
+    <div class="container mx-auto max-w-2xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                </div>
+                <h1 class="text-lg font-bold text-slate-800">Đăng ký thành công!</h1>
+            </div>
+            <a href="/" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 rounded-lg text-sm font-medium transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+
+            <!-- Hero Intro -->
+            <div class="px-5 pt-6 pb-5 text-center bg-gradient-to-br from-emerald-50 to-teal-50 border-b border-slate-100">
+                <p class="text-sm text-slate-600 mb-1">
+                    Cảm ơn <span id="displayName" class="font-semibold text-slate-800"></span>, bạn đã trở thành Cộng Tác Viên!
+                </p>
+                <p class="text-xs text-slate-500">Hãy chia sẻ link bên dưới để bắt đầu kiếm hoa hồng nhé!</p>
+            </div>
+
+            <!-- Referral Link — Hero Section -->
+            <div class="px-5 pt-6 pb-5">
+                <div class="bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 rounded-2xl p-5 text-white shadow-xl shadow-rose-500/30">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-5 h-5 flex-shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                        </svg>
+                        <p class="text-xs font-bold uppercase tracking-widest opacity-90">Link giới thiệu của bạn</p>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3 mb-3 border border-white/30">
+                        <p id="refUrlDisplay" class="text-xs text-white/90 truncate font-mono"></p>
+                    </div>
+                    <div id="copyUrlMessage" class="hidden mb-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Đã copy link giới thiệu!
+                    </div>
+                    <button id="copyUrlBtn"
+                        class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-rose-600 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/>
+                        </svg>
+                        Sao chép &amp; chia sẻ ngay
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="px-5 pb-5">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
+                        <div class="text-xl font-black text-orange-500 mb-0.5">12%</div>
+                        <div class="text-xs text-orange-600 font-medium">Hoa hồng</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
+                        <div class="text-xl font-black text-blue-500 mb-0.5">7</div>
+                        <div class="text-xs text-blue-600 font-medium">Ngày hiệu lực</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 text-center border border-emerald-100">
+                        <div class="text-xl font-black text-emerald-500 mb-0.5">24h</div>
+                        <div class="text-xs text-emerald-600 font-medium">Liên hệ lại</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="px-5 pb-5">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 px-1">Cách hoạt động</p>
+                <div class="space-y-2.5">
+                    <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                        <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-xs font-bold text-indigo-600">1</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">Chia sẻ link giới thiệu</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Gửi link cho bạn bè qua Zalo, Facebook, Tin nhắn...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                        <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-xs font-bold text-indigo-600">2</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">Khách mua hàng</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Mỗi đơn hàng trong 7 ngày được ghi nhận cho bạn</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                        <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-xs font-bold text-indigo-600">3</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">Nhận hoa hồng</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Hoa hồng 12% được thanh toán vào cuối mỗi tháng</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="px-5 pb-5">
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="commissionBtn"
+                        class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm font-semibold">Cách tính HH</span>
+                    </button>
+                    <a href="https://zalo.me/g/vlyibe041" target="_blank"
+                        class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/></svg>
+                        <span class="text-sm font-semibold">Nhóm Zalo</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="px-5 pb-5">
+                <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+                    <p class="text-xs font-semibold text-blue-600 mb-2">Liên hệ hỗ trợ</p>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Thắc mắc vui lòng nhắn Zalo:
+                        <a href="https://zalo.me/0972483892" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 ml-1">0972.483.892</a>
+                        hoặc
+                        <a href="https://zalo.me/0386190596" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700">0386.190.596</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Sticky Footer -->
+            <div class="px-5 pb-5 pt-2 border-t border-slate-100">
+                <div class="grid grid-cols-2 gap-2.5">
+                    <a id="openShopBtn" href="#"
+                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016 3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z"/>
+                        </svg>
+                        <span>Mở cửa hàng</span>
+                    </a>
+                    <a href="/"
+                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                        </svg>
+                        <span>Kiểm tra đơn</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commission Modal: inline position fixed so overlay works even if Tailwind utilities fail to apply -->
+    <div id="commissionBackdrop" class="bg-black/50 backdrop-blur-sm"
+        style="position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.15s ease;">
+    <div id="commissionModal" class="flex items-end sm:items-center justify-center"
+        style="position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 50; display: none;">
+        <div id="commissionContent" class="relative z-10 bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-800">Cách tính hoa hồng</h2>
+                </div>
+                <button id="closeCommissionBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto px-5 py-5">
+                <div class="space-y-4">
+                    <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                        <p class="text-sm font-semibold text-emerald-800 mb-3">📌 Công thức tính</p>
+                        <div class="bg-white/70 rounded-lg p-3 font-mono text-sm text-emerald-700">
+                            <p class="font-bold mb-1">Hoa hồng = Giá sản phẩm × <span class="text-emerald-600 text-base">12%</span></p>
+                            <p class="text-xs text-emerald-600/70 mt-1">(Không tính phí vận chuyển)</p>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <p class="text-sm font-semibold text-blue-800 mb-2">📋 Ví dụ thực tế</p>
+                        <div class="bg-white/70 rounded-lg p-3">
+                            <div class="flex justify-between text-sm text-slate-600 mb-1">
+                                <span>Giá sản phẩm:</span><span class="font-semibold text-slate-800">500.000đ</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-slate-600 mb-1">
+                                <span>Phí vận chuyển:</span><span class="text-slate-400">35.000đ</span>
+                            </div>
+                            <div class="border-t border-dashed border-slate-200 my-2"></div>
+                            <div class="flex justify-between text-sm font-semibold text-emerald-600">
+                                <span>Hoa hồng (12%):</span><span class="font-black">60.000đ</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                        <p class="text-sm font-semibold text-amber-800 mb-2">⏰ Thời hạn hiệu lực</p>
+                        <p class="text-xs text-amber-700 leading-relaxed">Link giới thiệu có hiệu lực trong <strong>7 ngày</strong>. Đơn hàng được tạo trong thời gian này sẽ được ghi nhận hoa hồng cho bạn.</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-sm font-semibold text-slate-800 mb-2">💰 Thanh toán</p>
+                        <p class="text-xs text-slate-600 leading-relaxed">Hoa hồng được thanh toán vào <strong>cuối mỗi tháng</strong> qua chuyển khoản ngân hàng đã đăng ký.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-shrink-0 px-5 pb-5 pt-2">
+                <a href="https://zalo.me/g/vlyibe041" target="_blank"
+                    class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/></svg>
+                    Tham gia nhóm Zalo
+                </a>
+                <button id="commissionCloseBtn"
+                    class="w-full mt-2 px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">
+                    Đã Hiểu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+        var CTV_SUCCESS_KEY = 'ctv_registration_success';
+
+        function loadSuccessPayload() {
+            try {
+                var raw = sessionStorage.getItem(CTV_SUCCESS_KEY);
+                if (raw) {
+                    var d = JSON.parse(raw);
+                    if (d && d.refCode && d.refUrl) {
+                        return {
+                            refCode: String(d.refCode),
+                            refUrl: String(d.refUrl),
+                            fullName: String(d.name || '')
+                        };
+                    }
+                }
+            } catch (e) {}
+
+            var params = new URLSearchParams(window.location.search);
+            var rc = params.get('refCode');
+            var ru = params.get('refUrl');
+            if (rc && ru) {
+                return {
+                    refCode: rc,
+                    refUrl: ru,
+                    fullName: params.get('name') || ''
+                };
+            }
+            return null;
+        }
+
+        var payload = loadSuccessPayload();
+
+        if (payload && window.location.search) {
+            try {
+                sessionStorage.setItem(CTV_SUCCESS_KEY, JSON.stringify({
+                    refCode: payload.refCode,
+                    refUrl: payload.refUrl,
+                    name: payload.fullName
+                }));
+            } catch (e) {}
+        }
+
+        if (!payload || !payload.refCode || !payload.refUrl) {
+            document.body.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center px-4">
+                    <div class="text-center">
+                        <p class="text-lg font-semibold text-slate-700 mb-2">Không tìm thấy thông tin</p>
+                        <a href="/ctv/register.html" class="text-sm text-blue-600 hover:underline">← Quay lại đăng ký</a>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Gọn URL: bỏ query / hash sau khi đã có dữ liệu
+        if (window.location.search || window.location.hash) {
+            try {
+                history.replaceState(null, '', window.location.pathname);
+            } catch (e) {}
+        }
+
+        var refUrl = payload.refUrl;
+        var fullName = payload.fullName;
+
+        document.getElementById('displayName').textContent = fullName;
+        document.getElementById('refUrlDisplay').textContent = refUrl;
+        document.getElementById('openShopBtn').href = refUrl;
+
+        // Copy referral URL
+        document.getElementById('copyUrlBtn').addEventListener('click', function() {
+            navigator.clipboard.writeText(refUrl).then(function() {
+                var msg = document.getElementById('copyUrlMessage');
+                msg.classList.remove('hidden');
+                setTimeout(function() { msg.classList.add('hidden'); }, 3000);
+            });
+        });
+
+        // Commission modal
+        function openCommissionModal() {
+            var modal = document.getElementById('commissionModal');
+            var backdrop = document.getElementById('commissionBackdrop');
+
+            backdrop.style.opacity = '0';
+            backdrop.style.pointerEvents = 'auto';
+            modal.style.display = 'flex';
+            requestAnimationFrame(function () {
+                backdrop.style.opacity = '1';
+            });
+
+            window.history.pushState({ modal: 'commission' }, '', window.location.pathname + window.location.search);
+        }
+
+        function closeCommissionModal() {
+            var modal = document.getElementById('commissionModal');
+            var backdrop = document.getElementById('commissionBackdrop');
+
+            backdrop.style.opacity = '0';
+            backdrop.style.pointerEvents = 'none';
+            modal.style.display = 'none';
+
+            if (window.history.state && window.history.state.modal === 'commission') {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
+
+        document.getElementById('commissionBtn').addEventListener('click', openCommissionModal);
+        document.getElementById('closeCommissionBtn').addEventListener('click', closeCommissionModal);
+        document.getElementById('commissionCloseBtn').addEventListener('click', closeCommissionModal);
+        document.getElementById('commissionBackdrop').addEventListener('click', closeCommissionModal);
+
+        // Handle browser back button for commission modal
+        window.addEventListener('popstate', function(e) {
+            if (e.state && e.state.modal === 'commission') {
+                openCommissionModal();
+            } else {
+                closeCommissionModal();
+            }
+        });
+
+        // Confetti celebration
+        function createCelebration() {
+            var colors = ['#f8b4cb', '#a8d8ea', '#d4a5d4'];
+            for (var i = 0; i < 50; i++) {
+                (function(index) {
+                    setTimeout(function() {
+                        var confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        var size = Math.random() * 8 + 6;
+                        confetti.style.width = size + 'px';
+                        confetti.style.height = size + 'px';
+                        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.left = (Math.random() * 100) + '%';
+                        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                        confetti.style.animation = 'fall ' + (Math.random() * 2 + 2) + 's linear forwards';
+                        document.getElementById('confettiContainer').appendChild(confetti);
+                        setTimeout(function() { confetti.remove(); }, 4000);
+                    }, index * 50);
+                })(i);
+            }
+        }
+
+        // Start celebration on load
+        window.addEventListener('load', function() {
+            createCelebration();
+        });
+        })();
+    </script>
+</body>
+
+</html>

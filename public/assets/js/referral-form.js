@@ -76,19 +76,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const refCode = result.referralCode;
             const refUrl = result.referralUrl;
-            const orderCheckUrl = result.orderCheckUrl; // ⭐ Nhận link tra cứu đơn hàng
 
             console.log('✓ Referral Code:', refCode);
             console.log('✓ Referral URL:', refUrl);
-            console.log('✓ Order Check URL:', orderCheckUrl);
             console.log('✓ Full Name:', data.fullName);
 
-            // Show success modal with referral code
-            console.log('Calling showSuccessModal with:', { refCode, refUrl, orderCheckUrl, fullName: data.fullName });
-            showSuccessModal(refCode, refUrl, orderCheckUrl, data.fullName);
-
-            // Add celebration animation
-            createCelebration();
+            // Lưu kết quả vào sessionStorage để URL success gọn (không dài query string)
+            var CTV_SUCCESS_KEY = 'ctv_registration_success';
+            try {
+                sessionStorage.setItem(CTV_SUCCESS_KEY, JSON.stringify({
+                    refCode: refCode,
+                    refUrl: refUrl,
+                    name: data.fullName || ''
+                }));
+                window.location.href = 'success.html';
+            } catch (storageErr) {
+                console.warn('sessionStorage không khả dụng, dùng query string:', storageErr);
+                var params = new URLSearchParams({
+                    refCode: refCode,
+                    refUrl: refUrl,
+                    name: data.fullName || ''
+                });
+                window.location.href = 'success.html?' + params.toString();
+            }
 
         } catch (error) {
             console.error('Error:', error);
@@ -174,304 +184,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Show success modal with referral information
-    function showSuccessModal(refCode, refUrl, orderCheckUrl, fullName) {
-        const escapeHtml = (s) =>
-            String(s ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        const displayName =
-            fullName && String(fullName).trim()
-                ? escapeHtml(String(fullName).trim())
-                : 'bạn';
-
-        // Create modal overlay
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'successModal';
-        modalOverlay.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center';
-
-        // Backdrop
-        const backdrop = document.createElement('div');
-        backdrop.className = 'absolute inset-0 bg-black/50 backdrop-blur-sm';
-        backdrop.onclick = closeSuccessModal;
-        modalOverlay.appendChild(backdrop);
-
-        // Modal card
-        const card = document.createElement('div');
-        card.className = 'relative z-10 bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden';
-
-        // ====== HEADER ======
-        card.innerHTML = `
-            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                    </div>
-                    <h2 class="text-base font-bold text-slate-800">Đăng ký thành công!</h2>
-                </div>
-                <button onclick="closeSuccessModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-
-            <!-- ====== SCROLLABLE CONTENT ====== -->
-            <div class="flex-1 overflow-y-auto">
-
-                <!-- ====== HERO INTRO ====== -->
-                <div class="px-5 pt-6 pb-5 text-center">
-                    <p class="text-sm text-slate-600 mb-1">
-                        Cảm ơn <span class="font-semibold text-slate-800">${displayName}</span>, bạn đã trở thành Cộng Tác Viên!
-                    </p>
-                    <p class="text-xs text-slate-500">Hãy chia sẻ link bên dưới để bắt đầu kiếm hoa hồng nhé!</p>
-                </div>
-
-                <!-- ====== REFERRAL LINK — HERO SECTION ====== -->
-                <div class="px-5 pb-4">
-                    <div class="bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 rounded-2xl p-5 text-white shadow-xl shadow-rose-500/30">
-                        <div class="flex items-center gap-2 mb-3">
-                            <svg class="w-5 h-5 flex-shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>
-                            <p class="text-xs font-bold uppercase tracking-widest opacity-90">Link giới thiệu của bạn</p>
-                        </div>
-                        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3 mb-3 border border-white/30">
-                            <p id="refUrlDisplay" class="text-xs text-white/90 truncate font-mono">${refUrl}</p>
-                        </div>
-                        <div id="copyUrlMessage" class="hidden mb-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium">
-                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            Đã copy link giới thiệu!
-                        </div>
-                        <button onclick="copyRefUrl('${refUrl}')"
-                            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-rose-600 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
-                            Sao chép &amp; chia sẻ ngay
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ====== REFERRAL CODE — SMALL SECONDARY ====== -->
-                <div class="px-5 pb-4">
-                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs text-slate-500 mb-0.5">Mã CTV</p>
-                            <p id="refCodeDisplay" class="text-base font-bold text-slate-700 font-mono select-all cursor-pointer">${refCode}</p>
-                        </div>
-                        <div class="flex-shrink-0 flex gap-2">
-                            <div id="copyCodeMessage" class="hidden">
-                                <span class="text-xs text-emerald-600 font-medium">✓ Đã copy!</span>
-                            </div>
-                            <button onclick="copyRefCode('${refCode}')"
-                                class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-semibold rounded-lg transition-colors">
-                                Copy
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ====== QUICK STATS ====== -->
-                <div class="px-5 pb-4">
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
-                            <div class="text-xl font-black text-orange-500 mb-0.5">12%</div>
-                            <div class="text-xs text-orange-600 font-medium">Hoa hồng</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
-                            <div class="text-xl font-black text-blue-500 mb-0.5">7</div>
-                            <div class="text-xs text-blue-600 font-medium">Ngày hiệu lực</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 text-center border border-emerald-100">
-                            <div class="text-xl font-black text-emerald-500 mb-0.5">24h</div>
-                            <div class="text-xs text-emerald-600 font-medium">Liên hệ lại</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ====== HOW IT WORKS ====== -->
-                <div class="px-5 pb-4">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 px-1">Cách hoạt động</p>
-                    <div class="space-y-2.5">
-                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
-                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-indigo-600">1</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-slate-800">Chia sẻ link giới thiệu</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Gửi link cho bạn bè qua Zalo, Facebook, Tin nhắn...</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
-                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-indigo-600">2</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-slate-800">Khách mua hàng</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Mỗi đơn hàng trong 7 ngày được ghi nhận cho bạn</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200">
-                            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-indigo-600">3</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-slate-800">Nhận hoa hồng</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Hoa hồng 10% được thanh toán vào cuối mỗi tháng</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ====== QUICK ACTIONS ====== -->
-                <div class="px-5 pb-4">
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="showCommissionModal()"
-                            class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span class="text-sm font-semibold">Cách tính HH</span>
-                        </button>
-                        <a href="https://zalo.me/g/vlyibe041" target="_blank"
-                            class="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z"/></svg>
-                            <span class="text-sm font-semibold">Nhóm Zalo</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- ====== CONTACT ====== -->
-                <div class="px-5 pb-5">
-                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
-                        <p class="text-xs font-semibold text-blue-600 mb-2">Liên hệ hỗ trợ</p>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Thắc mắc vui lòng nhắn Zalo:
-                            <a href="https://zalo.me/0972483892" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700 ml-1">0972.483.892</a>
-                            hoặc
-                            <a href="https://zalo.me/0386190596" target="_blank" class="font-semibold text-blue-600 hover:text-blue-700">0386.190.596</a>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ====== STICKY FOOTER ====== -->
-            <div class="flex-shrink-0 px-4 pb-4 pt-2 border-t border-slate-100 bg-white">
-                <div class="grid grid-cols-2 gap-2.5">
-                    <a href="${refUrl}" target="_blank"
-                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016 3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z"/></svg>
-                        <span>Mở cửa hàng</span>
-                    </a>
-                    <a href="/" target="_blank"
-                        class="flex items-center justify-center gap-1.5 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                        <span>Kiểm tra đơn</span>
-                    </a>
-                </div>
-            </div>
-        `;
-
-        modalOverlay.appendChild(card);
-        document.body.appendChild(modalOverlay);
-
-        // Animation
-        modalOverlay.style.opacity = '0';
-        modalOverlay.style.transition = 'opacity 0.3s ease';
-        requestAnimationFrame(() => {
-            modalOverlay.style.opacity = '1';
-        });
-
-        // Slide up animation for card on mobile
-        card.style.transform = 'translateY(100%)';
-        card.style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)';
-        if (window.innerWidth < 640) {
-            requestAnimationFrame(() => {
-                card.style.transform = 'translateY(0)';
-            });
-        }
-
-        // Click outside to close
-        backdrop.addEventListener('click', closeSuccessModal);
-    }
-
-    // Celebration animation
-    function createCelebration() {
-        const colors = ['#f8b4cb', '#a8d8ea', '#d4a5d4'];
-
-        for (let i = 0; i < 50; i++) {
-            setTimeout(() => {
-                const confetti = document.createElement('div');
-                confetti.style.position = 'fixed';
-                confetti.style.left = Math.random() * 100 + 'vw';
-                confetti.style.top = '-10px';
-                confetti.style.width = '10px';
-                confetti.style.height = '10px';
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                confetti.style.borderRadius = '50%';
-                confetti.style.pointerEvents = 'none';
-                confetti.style.zIndex = '9999';
-                confetti.style.animation = 'fall 3s linear forwards';
-
-                document.body.appendChild(confetti);
-
-                setTimeout(() => {
-                    confetti.remove();
-                }, 3000);
-            }, i * 50);
-        }
-    }
-
-    // Toast notification function
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[70] flex items-center gap-2';
-        toast.innerHTML = `
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-            </svg>
-            <span>${message}</span>
-        `;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => toast.remove(), 300);
-        }, 2500);
-    }
-
-    // Global functions for modal actions
-    window.copyRefCode = function (code) {
-        navigator.clipboard.writeText(code).then(() => {
-            const message = document.getElementById('copyCodeMessage');
-            if (message) {
-                message.classList.remove('hidden');
-                setTimeout(() => message.classList.add('hidden'), 3000);
-            }
-        });
-    };
-
-    window.copyRefUrl = function (url) {
-        navigator.clipboard.writeText(url).then(() => {
-            const message = document.getElementById('copyUrlMessage');
-            if (message) {
-                message.classList.remove('hidden');
-                setTimeout(() => message.classList.add('hidden'), 3000);
-            }
-        });
-    };
-
-    window.shareToFacebook = function (url) {
-        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        window.open(fbUrl, '_blank', 'width=600,height=400');
-    };
-
-    window.closeSuccessModal = function () {
-        const modal = document.getElementById('successModal');
-        if (modal) {
-            modal.style.opacity = '0';
-            modal.style.transition = 'opacity 0.25s ease';
-            setTimeout(() => modal.remove(), 250);
-        }
-    };
 
     window.showCommissionModal = function () {
         // Update URL with hash
@@ -484,10 +196,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const year = today.getFullYear();
         const currentDate = day + '/' + month + '/' + year;
 
-        // Create commission modal
+        // Create commission modal (inline fixed + inset so overlay is viewport-bound even if Tailwind misses)
         const commissionModal = document.createElement('div');
         commissionModal.id = 'commissionModal';
-        commissionModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 sm:p-6';
+        commissionModal.className = 'bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 sm:p-6';
+        commissionModal.style.position = 'fixed';
+        commissionModal.style.top = '0';
+        commissionModal.style.right = '0';
+        commissionModal.style.bottom = '0';
+        commissionModal.style.left = '0';
+        commissionModal.style.zIndex = '60';
         commissionModal.style.paddingTop = 'max(2rem, env(safe-area-inset-top))';
         commissionModal.style.paddingBottom = 'max(2rem, env(safe-area-inset-bottom))';
 
@@ -682,168 +400,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[60]';
-        toast.style.animation = 'slideInRight 0.3s ease-out';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease-out';
-            setTimeout(() => toast.remove(), 300);
-        }, 2000);
-    }
-
-    // Add CSS for animations
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fall {
-            0% {
-                transform: translateY(-100vh) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes bounce-slow {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-        
-        .animate-bounce-slow {
-            animation: bounce-slow 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.7;
-                transform: scale(1.1);
-            }
-        }
-        
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes drawCircle {
-            from {
-                stroke-dashoffset: 226;
-            }
-            to {
-                stroke-dashoffset: 0;
-            }
-        }
-        
-        @keyframes checkmark {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-        
-        /* Mobile modal optimization */
-        @supports (padding: max(0px)) {
-            .modal-safe-area {
-                padding-top: max(1rem, env(safe-area-inset-top));
-                padding-bottom: max(1rem, env(safe-area-inset-bottom));
-            }
-        }
-        
-        /* Smooth scrolling for modal content */
-        .modal-content-scroll {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-        }
-        
-        .modal-content-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        
-        .modal-content-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .modal-content-scroll::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 2px;
-        }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        @keyframes slideOutRight {
-            from {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-        }
-        
-        /* Spinner animation for loading button */
-        .fa-spin {
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    `;
-    document.head.appendChild(style);
-});
 
 // Hash routing for commission modal
 window.addEventListener('load', function () {
