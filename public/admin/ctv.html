@@ -651,6 +651,7 @@
                                             </svg>
                                         </button>
                                     </th>
+                                    <th class="px-5 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">QR</th>
                                     <th class="px-5 py-3.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">Thao tác</th>
                                 </tr>
                             </thead>
@@ -734,7 +735,7 @@
     <!-- Add CTV Modal -->
     <div id="addCTVModal"
         class="fixed inset-0 z-[110] flex hidden items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-        <div class="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/25">
+        <div class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/25">
             <!-- Header -->
             <div class="flex items-center justify-between gap-4 border-b border-white/10 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 px-6 py-4">
                 <div class="flex min-w-0 items-center gap-3">
@@ -1121,6 +1122,32 @@
                         </div>
                     </div>
 
+                    <!-- Ảnh QR Ngân hàng -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ảnh QR Ngân hàng
+                        </label>
+                        <div id="addQrDropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors">
+                            <input type="file" id="addQrInput" accept="image/*" class="hidden">
+                            <div id="addQrPlaceholder" class="text-gray-500">
+                                <i class="fas fa-qrcode text-2xl mb-1"></i>
+                                <p class="text-xs">Kéo thả ảnh QR hoặc <span class="text-indigo-500 font-medium">chọn file</span></p>
+                                <p class="text-[10px] mt-0.5 opacity-70">JPG, PNG, WEBP • Tối đa 5MB</p>
+                            </div>
+                            <div id="addQrPreview" class="hidden">
+                                <img id="addQrPreviewImg" src="" alt="QR Preview" class="max-h-32 mx-auto rounded-lg border border-gray-300">
+                                <button type="button" onclick="removeAddQrImage()"
+                                    class="mt-2 mx-auto flex items-center justify-center rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                                    title="Xóa ảnh" aria-label="Xóa ảnh">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
+                                        <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="addCtvQrUrl" name="qrImageUrl">
+                    </div>
+
                     <!-- Tỷ lệ hoa hồng -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -1352,8 +1379,185 @@
                 });
             }
         });
+
+        // ========== QR IMAGE UPLOAD FOR ADD MODAL ==========
+
+        const addQrDropZone = document.getElementById('addQrDropZone');
+        const addQrInput = document.getElementById('addQrInput');
+        const addQrPlaceholder = document.getElementById('addQrPlaceholder');
+        const addQrPreview = document.getElementById('addQrPreview');
+        const addQrPreviewImg = document.getElementById('addQrPreviewImg');
+        const addCtvQrUrl = document.getElementById('addCtvQrUrl');
+
+        if (addQrDropZone) {
+            // Click to select
+            addQrDropZone.addEventListener('click', () => addQrInput.click());
+
+            // Drag and drop
+            addQrDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                addQrDropZone.classList.add('border-indigo-400', 'bg-indigo-50');
+            });
+            addQrDropZone.addEventListener('dragleave', () => {
+                addQrDropZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+            });
+            addQrDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                addQrDropZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+                if (e.dataTransfer.files.length > 0) {
+                    addQrInput.files = e.dataTransfer.files;
+                    handleAddQrSelect();
+                }
+            });
+
+            // File input change
+            addQrInput.addEventListener('change', handleAddQrSelect);
+        }
+
+        function handleAddQrSelect() {
+            const file = addQrInput.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn file ảnh');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Ảnh QR không được vượt quá 5MB');
+                return;
+            }
+
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                addQrPreviewImg.src = e.target.result;
+                addQrPlaceholder.classList.add('hidden');
+                addQrPreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.removeAddQrImage = function () {
+            addQrInput.value = '';
+            addQrPreviewImg.src = '';
+            addQrPreview.classList.add('hidden');
+            addQrPlaceholder.classList.remove('hidden');
+            addCtvQrUrl.value = '';
+        };
+
+        // Intercept form submit to upload QR first
+        const addCTVForm = document.getElementById('addCTVForm');
+        if (addCTVForm) {
+            addCTVForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const file = addQrInput.files[0];
+                let qrUrl = addCtvQrUrl.value;
+
+                // Upload QR nếu có file mới
+                if (file && !qrUrl) {
+                    const base64 = await fileToBase64(file);
+                    const submitBtn = addCTVForm.querySelector('[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải ảnh...';
+
+                    try {
+                        const res = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                referralCode: 'TEMP_' + Date.now(),
+                                imageBase64: base64
+                            })
+                        });
+                        const result = await res.json();
+                        if (result.success) {
+                            qrUrl = result.qr_image_url;
+                            addCtvQrUrl.value = qrUrl;
+                        }
+                    } catch (err) {
+                        console.error('QR upload error:', err);
+                    }
+
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+
+                // Submit form data
+                const formData = new FormData(addCTVForm);
+                const data = {
+                    fullName: formData.get('fullName'),
+                    phone: formData.get('phone'),
+                    email: formData.get('email'),
+                    city: formData.get('city'),
+                    age: formData.get('age'),
+                    bankAccountNumber: formData.get('bankAccountNumber'),
+                    bankName: formData.get('bankName'),
+                    commissionRate: (parseFloat(formData.get('commissionRate')) || 10) / 100,
+                    status: formData.get('status'),
+                    qrImageUrl: qrUrl || null
+                };
+
+                const submitBtn = addCTVForm.querySelector('[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang xử lý...';
+
+                try {
+                    const res = await fetch(`${CONFIG.API_URL}/api/ctv/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+
+                    if (result.success) {
+                        closeAddCTVModal();
+                        removeAddQrImage();
+                        showToast('Thêm CTV thành công!', 'success');
+                        loadCTVData();
+                    } else {
+                        alert(result.error || 'Có lỗi xảy ra');
+                    }
+                } catch (err) {
+                    alert('Lỗi kết nối: ' + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
     </script>
     <script src="../assets/js/auth-check.js"></script>
+
+    <!-- QR Modal -->
+    <div id="qrModal" class="fixed inset-0 bg-black/50 hidden z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-gradient-to-r from-indigo-600 to-violet-600">
+                <h3 id="qrModalTitle" class="text-lg font-bold text-white truncate">QR Ngân Hàng</h3>
+                <button onclick="closeQrModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 text-center">
+                <img id="qrModalImg" src="" alt="QR Code" class="w-full max-w-xs mx-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                <a id="qrDownloadBtn" href="" download class="mt-4 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Tải xuống
+                </a>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

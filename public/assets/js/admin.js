@@ -292,6 +292,21 @@ function createCTVRow(ctv, index) {
     tdDate.className = 'px-5 py-4 whitespace-nowrap text-sm text-slate-500 tabular-nums';
     tdDate.textContent = formatDate(ctv.timestamp);
 
+    // QR — hiển thị thumbnail ảnh (không phụ thuộc Font Awesome; trang ctv.html không load FA)
+    const tdQr = document.createElement('td');
+    tdQr.className = 'px-5 py-4 whitespace-nowrap text-center';
+    const qrUrl = ctv.qrImageUrl || ctv.qr_image_url;
+    if (qrUrl) {
+        const safeSrc = escapeHtml(qrUrl);
+        tdQr.innerHTML = `
+            <button type="button" onclick="showQrModal(${JSON.stringify(qrUrl)}, ${JSON.stringify(ctv.fullName || '')})"
+                class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-emerald-200 bg-white shadow-sm hover:ring-2 hover:ring-emerald-400/50 transition overflow-hidden p-0.5" title="Xem QR">
+                <img src="${safeSrc}" alt="QR" class="w-full h-full object-cover rounded-md" width="40" height="40" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+            </button>`;
+    } else {
+        tdQr.innerHTML = `<span class="text-slate-300">—</span>`;
+    }
+
     // Thao tác
     const tdActions = document.createElement('td');
     tdActions.className = 'px-5 py-4 whitespace-nowrap text-center text-sm font-medium';
@@ -334,6 +349,7 @@ function createCTVRow(ctv, index) {
     tr.appendChild(tdTotalCommission);
     tr.appendChild(tdStatus);
     tr.appendChild(tdDate);
+    tr.appendChild(tdQr);
     tr.appendChild(tdActions);
 
     return tr;
@@ -758,6 +774,60 @@ function showEditModal(ctv) {
                         <input type="number" name="commissionRate" value="${((ctv.commissionRate || 0.1) * 100).toFixed(0)}" min="0" max="100" step="1"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
                     </div>
+
+                    <!-- Ảnh QR Ngân hàng -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Ảnh QR Ngân hàng</label>
+                        <input type="file" id="editQrInput" accept="image/*" class="hidden">
+                        <input type="hidden" id="editCtvQrUrl" value="${ctv.qrImageUrl || ''}">
+                        <input type="hidden" id="editQrChanged" value="false">
+
+                        ${ctv.qrImageUrl ? `
+                        <div id="editQrImageWrapper" class="relative group">
+                            <img id="editQrPreviewImg" src="${ctv.qrImageUrl}" alt="QR Preview"
+                                class="max-h-36 mx-auto rounded-xl border border-gray-200 shadow-sm transition-opacity">
+                            <!-- Overlay trên ảnh — hiện khi hover -->
+                            <div id="editQrOverlay" class="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 gap-3">
+                                <button type="button" onclick="document.getElementById('editQrInput').click()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-white text-slate-800 rounded-lg text-sm font-medium shadow hover:bg-slate-100 transition-colors"
+                                    title="Đổi ảnh QR">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4">
+                                        <path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" />
+                                    </svg>
+                                    Đổi ảnh
+                                </button>
+                                <button type="button" onclick="removeEditQrImage()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-white text-red-600 rounded-lg text-sm font-medium shadow hover:bg-red-50 transition-colors"
+                                    title="Xóa ảnh QR">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4">
+                                        <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Xóa
+                                </button>
+                            </div>
+                            <!-- Badge trạng thái ở góc -->
+                            <span id="editQrBadge" class="absolute top-2 right-2 hidden">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                    Đã chọn
+                                </span>
+                            </span>
+                        </div>
+                        ` : `
+                        <div id="editQrDropZone" onclick="document.getElementById('editQrInput').click()"
+                            class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all duration-200">
+                            <div class="flex flex-col items-center gap-2 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-10 opacity-60">
+                                    <path fill-rule="evenodd" d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15" clip-rule="evenodd"/>
+                                </svg>
+                                <p class="text-sm font-medium">Chưa có ảnh QR</p>
+                                <p class="text-xs opacity-70">JPG, PNG, WEBP • Tối đa 5MB</p>
+                            </div>
+                        </div>
+                        `}
+                    </div>
                 </div>
                 
                 <input type="hidden" name="referralCode" value="${escapeHtml(ctv.referralCode)}">
@@ -778,12 +848,98 @@ function showEditModal(ctv) {
     `;
     
     document.body.appendChild(modal);
-    
+
+    // Initialize QR upload for edit modal
+    initEditQrUpload();
+
     // Initialize searchable bank select
     initEditBankSelect();
-    
+
     // Handle form submit
     document.getElementById('editCTVForm').addEventListener('submit', handleEditCTVSubmit);
+}
+
+// Initialize QR upload for edit modal
+function initEditQrUpload() {
+    const qrInput = document.getElementById('editQrInput');
+    if (!qrInput) return;
+
+    // File input change — supports both clicking overlay and selecting file
+    qrInput.addEventListener('change', handleEditQrSelect);
+}
+
+function handleEditQrSelect() {
+    const qrInput = document.getElementById('editQrInput');
+    const previewImg = document.getElementById('editQrPreviewImg');
+    const wrapper = document.getElementById('editQrImageWrapper');
+
+    const file = qrInput.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh');
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Ảnh QR không được vượt quá 5MB');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (previewImg) {
+            previewImg.src = e.target.result;
+        }
+        // Hiện badge "Đã chọn" để biết có ảnh mới chưa lưu
+        const badge = document.getElementById('editQrBadge');
+        if (badge) badge.classList.remove('hidden');
+        // Đánh dấu đã đổi
+        const changedFlag = document.getElementById('editQrChanged');
+        if (changedFlag) changedFlag.value = 'true';
+    };
+    reader.readAsDataURL(file);
+}
+
+window.removeEditQrImage = function () {
+    const qrInput = document.getElementById('editQrInput');
+    const previewImg = document.getElementById('editQrPreviewImg');
+    const wrapper = document.getElementById('editQrImageWrapper');
+    const badge = document.getElementById('editQrBadge');
+    const changedFlag = document.getElementById('editQrChanged');
+    const qrUrl = document.getElementById('editCtvQrUrl');
+
+    if (qrInput) qrInput.value = '';
+    if (previewImg) previewImg.src = '';
+    if (badge) badge.classList.add('hidden');
+    if (changedFlag) changedFlag.value = 'true'; // đánh dấu đã xóa để server xử lý
+    if (qrUrl) qrUrl.value = '';
+
+    // Thay wrapper ảnh bằng dropzone placeholder
+    const label = wrapper?.parentElement?.querySelector('label');
+    if (wrapper && label) {
+        const dropZone = document.createElement('div');
+        dropZone.id = 'editQrDropZone';
+        dropZone.onclick = () => document.getElementById('editQrInput').click();
+        dropZone.className = 'border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all duration-200';
+        dropZone.innerHTML = `
+            <div class="flex flex-col items-center gap-2 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-10 opacity-60">
+                    <path fill-rule="evenodd" d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15" clip-rule="evenodd"/>
+                </svg>
+                <p class="text-sm font-medium">Chưa có ảnh QR</p>
+                <p class="text-xs opacity-70">JPG, PNG, WEBP • Tối đa 5MB</p>
+            </div>`;
+        wrapper.replaceWith(dropZone);
+    }
+};
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 // Initialize edit bank select functionality
@@ -955,10 +1111,60 @@ function initEditBankSelect() {
 // Handle edit form submit
 async function handleEditCTVSubmit(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
+    const referralCode = formData.get('referralCode');
+    const originalQrUrl = document.getElementById('editCtvQrUrl')?.value || '';
+    const qrChanged = document.getElementById('editQrChanged')?.value === 'true';
+    let qrUrl = originalQrUrl;
+
+    const submitBtn = document.querySelector('#editCTVModal button[type="submit"]');
+    if (!submitBtn) {
+        console.error('Submit button not found');
+        return;
+    }
+    const originalText = submitBtn.innerHTML;
+
+    // Upload QR nếu có file mới (user đã chọn ảnh)
+    const qrInput = document.getElementById('editQrInput');
+    if (qrChanged && qrInput && qrInput.files.length > 0) {
+        const file = qrInput.files[0];
+        if (!file.type.startsWith('image/')) {
+            alert('Vui lòng chọn file ảnh');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Ảnh QR không được vượt quá 5MB');
+            return;
+        }
+
+        // Hiện loading ngay từ lúc bắt đầu upload
+        submitBtn.innerHTML = `<svg class="animate-spin h-5 w-5 inline-block align-middle mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang cập nhật...`;
+        submitBtn.disabled = true;
+
+        const base64 = await fileToBase64(file);
+        const res = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referralCode, imageBase64: base64 })
+        });
+        const result = await res.json();
+        if (result.success) {
+            qrUrl = result.qr_image_url;
+        } else {
+            alert(result.error || 'Upload ảnh thất bại');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
+        }
+    } else if (qrChanged && !qrInput?.files?.length) {
+        // User đã bấm xóa → xóa QR
+        qrUrl = '';
+    }
+    // else: qrChanged === false → giữ nguyên qrUrl = originalQrUrl, không cần gửi lên server
+
     const data = {
-        referralCode: formData.get('referralCode'),
+        referralCode,
         fullName: formData.get('fullName'),
         phone: formData.get('phone'),
         email: formData.get('email'),
@@ -967,19 +1173,17 @@ async function handleEditCTVSubmit(e) {
         bankAccountNumber: formData.get('bankAccountNumber'),
         bankName: formData.get('bankName'),
         status: formData.get('status'),
-        commissionRate: parseFloat(formData.get('commissionRate')) / 100
+        commissionRate: parseFloat(formData.get('commissionRate')) / 100,
+        // Chỉ gửi qrImageUrl khi có thay đổi, tránh ghi đè không cần thiết
+        qrImageUrl: qrChanged ? (qrUrl || null) : undefined
     };
-    
-    const submitBtn = document.querySelector('#editCTVModal button[type="submit"]');
-    if (!submitBtn) {
-        console.error('Submit button not found');
-        return;
+
+    // Nếu chưa có loading (không upload ảnh), hiện loading ngay
+    if (!submitBtn.disabled) {
+        submitBtn.innerHTML = `<svg class="animate-spin h-5 w-5 inline-block align-middle mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang cập nhật...`;
+        submitBtn.disabled = true;
     }
-    
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-    submitBtn.disabled = true;
-    
+
     try {
         const response = await fetch(`${CONFIG.API_URL}/api/ctv/update`, {
             method: 'POST',
@@ -2069,9 +2273,9 @@ async function handleAddCTVSubmit(e) {
     
     const submitBtn = document.querySelector('#addCTVModal button[type="submit"]');
     if (!submitBtn) return;
-    
+
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    submitBtn.innerHTML = `<svg class="animate-spin h-5 w-5 inline-block align-middle mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang thêm...`;
     submitBtn.disabled = true;
     
     try {
@@ -2531,3 +2735,19 @@ function updateCharts() {
         updateRegistrationTrend();
     }
 }
+
+// QR Modal
+window.showQrModal = function(url, name) {
+    const modal = document.getElementById('qrModal');
+    if (!modal) return;
+    document.getElementById('qrModalImg').src = url;
+    document.getElementById('qrModalTitle').textContent = 'QR Ngân Hàng - ' + name;
+    document.getElementById('qrDownloadBtn').href = url;
+    document.getElementById('qrDownloadBtn').download = 'QR_' + (name || 'CTV') + '_' + Date.now() + '.jpg';
+    modal.classList.remove('hidden');
+};
+
+window.closeQrModal = function() {
+    const modal = document.getElementById('qrModal');
+    if (modal) modal.classList.add('hidden');
+};

@@ -1,6 +1,16 @@
 import { jsonResponse } from '../../utils/response.js';
 import { generateReferralCode } from '../../utils/referral-code.js';
 
+// Auto-migrate: thêm cột QR nếu chưa có (chạy 1 lần duy nhất mỗi lần request)
+export async function migrateCTVQrColumns(env) {
+    try {
+        await env.DB.prepare(`ALTER TABLE ctv ADD COLUMN qr_image_url TEXT`).run();
+    } catch (_) { /* column đã tồn tại */ }
+    try {
+        await env.DB.prepare(`ALTER TABLE ctv ADD COLUMN qr_image_updated_at_unix INTEGER`).run();
+    } catch (_) { /* column đã tồn tại */ }
+}
+
 // Đăng ký CTV mới - Lưu vào cả Turso Database và Google Sheets
 export async function registerCTV(data, env, corsHeaders) {
     try {
@@ -20,6 +30,9 @@ export async function registerCTV(data, env, corsHeaders) {
         // Generate referral code
         const referralCode = generateReferralCode();
 
+        // Auto-migrate: thêm cột QR nếu chưa có
+        await migrateCTVQrColumns(env);
+
         // Commission rate mặc định 10%, có thể custom khi đăng ký
         const commissionRate = data.commissionRate || 0.1;
 
@@ -34,15 +47,16 @@ export async function registerCTV(data, env, corsHeaders) {
             bankName: data.bankName || null,
             referralCode: referralCode,
             status: data.status || 'Mới',
-            commissionRate: commissionRate
+            commissionRate: commissionRate,
+            qrImageUrl: data.qrImageUrl || null
         });
-        
+
         // Get current timestamp in milliseconds (UTC)
         const now = Date.now();
-        
+
         const result = await env.DB.prepare(`
-            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate, created_at_unix, updated_at_unix)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ctv (full_name, phone, email, city, age, bank_account_number, bank_name, referral_code, status, commission_rate, created_at_unix, updated_at_unix, qr_image_url, qr_image_updated_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.fullName,
             data.phone,
@@ -55,7 +69,9 @@ export async function registerCTV(data, env, corsHeaders) {
             data.status || 'Mới',
             commissionRate,
             now,
-            now
+            now,
+            data.qrImageUrl || null,
+            data.qrImageUrl ? now : null
         ).run();
 
         console.log('📊 Insert result:', result);
@@ -230,9 +246,12 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Auto-migrate: thêm cột QR nếu chưa có
+        await migrateCTVQrColumns(env);
+
         // Get CTV info
         const collaborator = await env.DB.prepare(`
-            SELECT 
+            SELECT
                 id,
                 full_name as name,
                 phone,
@@ -243,6 +262,9 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
                 referral_code,
                 status,
                 commission_rate,
+                bank_account_number,
+                bank_name,
+                qr_image_url,
                 created_at,
                 updated_at
             FROM ctv
@@ -290,7 +312,9 @@ export async function getCollaboratorInfo(referralCode, env, corsHeaders) {
             success: true,
             collaborator: {
                 ...collaborator,
-                bank_info: null // Add bank info if available in your schema
+                bankAccountNumber: collaborator.bank_account_number,
+                bankName: collaborator.bank_name,
+                qrImageUrl: collaborator.qr_image_url || null
             },
             stats: {
                 totalOrders: orderStats.total_orders || 0,
@@ -314,10 +338,13 @@ export async function getAllCTV(env, corsHeaders) {
     try {
         console.log('🔍 getAllCTV called');
         
+        // Auto-migrate: thêm cột QR nếu chưa có
+        await migrateCTVQrColumns(env);
+
         // Get all CTV
         console.log('📋 Step 1: Fetching all CTV...');
         const { results: ctvList } = await env.DB.prepare(`
-            SELECT 
+            SELECT
                 id,
                 full_name,
                 phone,
@@ -330,7 +357,8 @@ export async function getAllCTV(env, corsHeaders) {
                 referral_code,
                 status,
                 commission_rate,
-                created_at_unix
+                created_at_unix,
+                qr_image_url
             FROM ctv
             ORDER BY created_at_unix DESC
         `).all();
@@ -402,7 +430,8 @@ export async function getAllCTV(env, corsHeaders) {
                 orderCount: stats.order_count,
                 totalRevenue: stats.total_revenue,
                 totalCommission: stats.total_commission,
-                todayCommission: todayCommission
+                todayCommission: todayCommission,
+                qrImageUrl: ctv.qr_image_url || null
             };
         });
 
@@ -449,25 +478,39 @@ export async function updateCTV(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        // Auto-migrate: thêm cột QR nếu chưa có
+        await migrateCTVQrColumns(env);
+
         // 1. Update trong Turso Database
+        // qrImageUrl = undefined → không thay đổi QR
+        // qrImageUrl = '' hoặc null → xóa QR
+        // qrImageUrl = string URL → cập nhật QR mới
+        const qrImageUrlChanged = data.qrImageUrl !== undefined;
+        const qrImageUrl = !qrImageUrlChanged ? null
+            : (data.qrImageUrl === '' ? null : data.qrImageUrl);
+
+        // Build dynamic UPDATE query — chỉ update QR khi có thay đổi
+        const setFields = [
+            'full_name = ?', 'phone = ?', 'email = ?', 'city = ?', 'age = ?',
+            'bank_account_number = ?', 'bank_name = ?', 'status = ?', 'commission_rate = ?',
+            'updated_at_unix = ?'
+        ];
+        const bindValues = [
+            data.fullName, data.phone, data.email || null, data.city || null, data.age || null,
+            data.bankAccountNumber || null, data.bankName || null, data.status || 'Mới',
+            data.commissionRate || 0.1, Date.now()
+        ];
+        if (qrImageUrlChanged) {
+            setFields.push('qr_image_url = ?', 'qr_image_updated_at_unix = ?');
+            bindValues.push(qrImageUrl, qrImageUrl ? Date.now() : null);
+        }
+        bindValues.push(data.referralCode);
+
         const result = await env.DB.prepare(`
-            UPDATE ctv 
-            SET full_name = ?, phone = ?, email = ?, city = ?, age = ?, 
-                bank_account_number = ?, bank_name = ?, status = ?, commission_rate = ?, updated_at_unix = ?
+            UPDATE ctv
+            SET ${setFields.join(', ')}
             WHERE referral_code = ?
-        `).bind(
-            data.fullName,
-            data.phone,
-            data.email || null,
-            data.city || null,
-            data.age || null,
-            data.bankAccountNumber || null,
-            data.bankName || null,
-            data.status || 'Mới',
-            data.commissionRate || 0.1,
-            Date.now(),
-            data.referralCode
-        ).run();
+        `).bind(...bindValues).run();
 
         if (result.meta && result.meta.changes === 0) {
             return jsonResponse({

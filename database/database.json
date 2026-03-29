@@ -1,7 +1,10 @@
 [
-  {
-    "name": "ctv",
-    "sql": "CREATE TABLE ctv (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  full_name TEXT NOT NULL,\r\n  phone TEXT NOT NULL,\r\n  email TEXT,\r\n  city TEXT,\r\n  age TEXT,\r\n  experience TEXT,\r\n  motivation TEXT,\r\n  referral_code TEXT UNIQUE NOT NULL,\r\n  status TEXT DEFAULT 'Mới',\r\n  commission_rate REAL DEFAULT 0.1, bank_account_number TEXT, bank_name TEXT, created_at_unix INTEGER, updated_at_unix INTEGER, slug_change_count INTEGER DEFAULT 0, custom_slug TEXT, slug_updated_at_unix INTEGER)"
+  "ctv": {
+    "sql": "CREATE TABLE ctv (\r\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n  full_name TEXT NOT NULL,\r\n  phone TEXT NOT NULL,\r\n  email TEXT,\r\n  city TEXT,\r\n  age TEXT,\r\n  experience TEXT,\r\n  motivation TEXT,\r\n  referral_code TEXT UNIQUE NOT NULL,\r\n  status TEXT DEFAULT 'Mới',\r\n  commission_rate REAL DEFAULT 0.1, bank_account_number TEXT, bank_name TEXT, created_at_unix INTEGER, updated_at_unix INTEGER, slug_change_count INTEGER DEFAULT 0, custom_slug TEXT, slug_updated_at_unix INTEGER, qr_image_url TEXT, qr_image_updated_at_unix INTEGER)",
+    "fields": {
+      "qr_image_url": "TEXT",
+      "qr_image_updated_at_unix": "INTEGER"
+    }
   },
   {
     "name": "sqlite_sequence",

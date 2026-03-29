@@ -494,7 +494,8 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
 
         // Get all CTVs
         const { results: ctvList } = await env.DB.prepare(`
-            SELECT referral_code, full_name, phone, commission_rate, bank_account_number, bank_name
+            SELECT referral_code, full_name, phone, commission_rate, bank_account_number, bank_name,
+                   qr_image_url
             FROM ctv
             WHERE status != 'Tạm ngưng'
             ORDER BY full_name ASC
@@ -560,6 +561,7 @@ export async function getUnpaidOrdersByMonth(month, env, corsHeaders) {
                 commission_rate: ctv.commission_rate,
                 bank_account_number: ctv.bank_account_number,
                 bank_name: ctv.bank_name,
+                qr_image_url: ctv.qr_image_url || null,
                 order_count: ctvData.order_count,
                 commission_amount: ctvData.total_commission,
                 orders: ctvData.orders

@@ -39,21 +39,27 @@ export async function uploadImage(env, file, filename) {
         }
 
         // Sanitize original filename
-        const sanitizedName = sanitizeFilename(filename);
-        
+        const sanitizedName = sanitizeFilename(filename || 'image');
+
         // Generate unique filename
         const timestamp = Date.now();
         const ext = sanitizedName.split('.').pop();
         const baseName = sanitizedName.substring(0, sanitizedName.lastIndexOf('.'));
-        const uniqueFilename = `products/${timestamp}-${baseName}-${Math.random().toString(36).substring(7)}.${ext}`;
-        
+        // Nếu filename đã chứa prefix (như "qr-ctv/xxx.jpg") thì dùng trực tiếp
+        const uniqueFilename = baseName.includes('/')
+            ? sanitizedName
+            : `${timestamp}-${baseName}-${Math.random().toString(36).substring(7)}.${ext}`;
+
         console.log('📝 Generated filename:', uniqueFilename);
-        
-        // Upload to R2
-        await env.R2_BUCKET.put(uniqueFilename, file, {
+
+        // Upload to R2 - support both File/Blob objects and raw buffers
+        const blob = file.buffer instanceof Uint8Array
+            ? new Blob([file.buffer], { type: file.type })
+            : file;
+        await env.R2_BUCKET.put(uniqueFilename, blob, {
             httpMetadata: {
                 contentType: file.type || 'image/jpeg',
-                cacheControl: 'public, max-age=31536000' // 1 year cache
+                cacheControl: 'public, max-age=31536000'
             }
         });
         

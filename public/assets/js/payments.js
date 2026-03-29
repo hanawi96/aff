@@ -748,18 +748,16 @@ async function paySelectedCTV(referralCode) {
 
 // Show payment modal
 function showPaymentModal(ctv, orders, totalCommission) {
-    // Debug: Log CTV data
-    console.log('💳 CTV Data:', JSON.stringify(ctv, null, 2));
-    console.log('🏦 Bank Name:', ctv.bank_name);
-    console.log('💰 Bank Account:', ctv.bank_account_number);
-    console.log('🔍 All CTV keys:', Object.keys(ctv));
-    
+    const qrBankUrl = (ctv.qr_image_url && String(ctv.qr_image_url).trim()) || '';
+    const hasQrBank = !!qrBankUrl;
+    const modalCardClass = hasQrBank ? 'max-w-3xl' : 'max-w-2xl';
+
     const modal = document.createElement('div');
     modal.id = 'paymentModal';
     modal.className = 'fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm';
     
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-2xl ${modalCardClass} w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -779,65 +777,63 @@ function showPaymentModal(ctv, orders, totalCommission) {
                 </button>
             </div>
             
-            <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                    <p class="text-sm text-gray-600">Thanh toán cho</p>
-                    <p class="text-lg font-bold text-gray-900">${escapeHtml(ctv.ctv_name)}</p>
-                    <p class="text-sm text-gray-600 mt-1">Mã: ${escapeHtml(ctv.referral_code)} • ${escapeHtml(ctv.phone)}</p>
-                    
-                    ${ctv.bank_account_number || ctv.bank_name ? `
-                        <div class="mt-3 pt-3 border-t border-green-200">
-                            <div class="flex items-center gap-2 mb-2">
-                                <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
-                                <span class="text-sm font-semibold text-gray-700">Thông tin ngân hàng</span>
-                            </div>
-                            <div class="bg-white rounded-lg p-3 space-y-2">
-                                ${ctv.bank_name ? `
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs text-gray-500">Ngân hàng:</span>
-                                        <span class="text-sm font-semibold text-gray-900">${escapeHtml(ctv.bank_name)}</span>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)] flex-1 min-h-0">
+                <div class="mb-6 rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50/95 p-4 sm:p-5 shadow-sm">
+                    <div class="flex flex-col gap-5 ${hasQrBank ? 'lg:flex-row lg:items-start lg:gap-6' : ''}">
+                        <div class="min-w-0 flex-1 space-y-3">
+                            <p class="text-sm text-gray-600">Thanh toán cho</p>
+                            <p class="text-lg font-bold text-gray-900">${escapeHtml(ctv.ctv_name)}</p>
+                            <p class="text-sm text-gray-600">Mã: ${escapeHtml(ctv.referral_code)} • ${escapeHtml(ctv.phone)}</p>
+                            
+                            ${ctv.bank_account_number || ctv.bank_name ? `
+                                <div class="mt-3 pt-3 border-t border-green-200/80">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                        <span class="text-sm font-semibold text-gray-700">Thông tin ngân hàng</span>
                                     </div>
-                                ` : ''}
-                                ${ctv.bank_account_number ? `
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs text-gray-500">Số tài khoản:</span>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm font-mono font-bold text-blue-600">${escapeHtml(ctv.bank_account_number)}</span>
-                                            <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.bank_account_number)}')" 
-                                                class="p-1 hover:bg-gray-100 rounded transition-colors" title="Sao chép">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                    <div class="bg-white/90 rounded-lg p-3 space-y-2 ring-1 ring-green-100/80">
+                                        ${ctv.bank_name ? `
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-xs text-gray-500 shrink-0">Ngân hàng:</span>
+                                                <span class="text-sm font-semibold text-gray-900 text-right">${escapeHtml(ctv.bank_name)}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${ctv.bank_account_number ? `
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-xs text-gray-500 shrink-0">Số tài khoản:</span>
+                                                <div class="flex items-center gap-2 min-w-0">
+                                                    <span class="text-sm font-mono font-bold text-blue-600 truncate">${escapeHtml(ctv.bank_account_number)}</span>
+                                                    <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.bank_account_number)}')" 
+                                                        class="p-1 hover:bg-gray-100 rounded transition-colors shrink-0" title="Sao chép">
+                                                        <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ` : ''}
                                     </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="mt-3 pt-3 border-t border-green-200">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600">${orders.length} đơn hàng</span>
-                            <span class="text-2xl font-bold text-green-600">${formatCurrency(totalCommission)}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Danh sách đơn hàng:</h3>
-                    <div class="space-y-2 max-h-48 overflow-y-auto">
-                        ${orders.map(order => `
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div>
-                                    <p class="text-sm font-mono font-semibold text-blue-600">${escapeHtml(order.order_code)}</p>
-                                    <p class="text-xs text-gray-500">${toVNShortDate(order.created_at_unix || order.created_at)}</p>
                                 </div>
-                                <p class="text-sm font-bold text-orange-600">${formatCurrency(order.commission)}</p>
+                            ` : ''}
+                            
+                            <div class="mt-3 pt-3 border-t border-green-200/80">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm text-gray-600">${orders.length} đơn hàng</span>
+                                    <span class="text-2xl font-bold text-green-600 tabular-nums">${formatCurrency(totalCommission)}</span>
+                                </div>
                             </div>
-                        `).join('')}
+                        </div>
+                        ${hasQrBank ? `
+                        <aside class="flex w-full shrink-0 flex-col items-center rounded-xl border border-emerald-200/90 bg-white p-3 shadow-sm ring-1 ring-black/[0.04] sm:w-auto sm:min-w-[11.5rem] lg:ml-0 lg:border-l lg:border-t-0 lg:border-emerald-200/90 lg:pl-6">
+                            <p class="mb-2 text-center text-[10px] font-semibold uppercase tracking-wider text-emerald-800">QR ngân hàng</p>
+                            <div class="rounded-lg bg-slate-50 p-2 ring-1 ring-slate-200/80">
+                                <img src="${escapeHtml(qrBankUrl)}" alt="QR chuyển khoản" class="h-36 w-36 sm:h-40 sm:w-40 object-contain" width="160" height="160" loading="eager" decoding="async" referrerpolicy="no-referrer" />
+                            </div>
+                            <p class="mt-2 max-w-[11rem] text-center text-[11px] leading-snug text-slate-500">Quét mã để chuyển khoản nhanh</p>
+                        </aside>
+                        ` : ''}
                     </div>
                 </div>
                 
