@@ -75,7 +75,7 @@ class App {
     detectPage() {
         const path = window.location.pathname;
         
-        if (path.includes('cart.html')) {
+        if (path.includes('shop/cart.html')) {
             return 'cart';
         } else if (path.includes('checkout.html')) {
             return 'checkout';

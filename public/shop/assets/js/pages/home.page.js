@@ -763,7 +763,7 @@ export class HomePage {
         const cartBtn = document.getElementById('cartBtn');
         if (cartBtn) {
             cartBtn.addEventListener('click', () => {
-                window.location.href = 'cart.html';
+                window.location.href = 'shop/cart.html';
             });
         }
         
@@ -1602,7 +1602,7 @@ export class HomePage {
                 console.error('Checkout data expired');
                 localStorage.removeItem('checkoutData');
                 alert('Dữ liệu giỏ hàng đã hết hạn. Vui lòng quay lại giỏ hàng.');
-                window.location.href = 'cart.html';
+                window.location.href = 'shop/cart.html';
                 return;
             }
             
