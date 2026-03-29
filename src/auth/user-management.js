@@ -14,7 +14,8 @@ export async function handleCreateUser(data, request, env, corsHeaders) {
     }
 
     try {
-        const { username, password, full_name } = data;
+        const { username: rawUsername, password, full_name } = data;
+        const username = String(rawUsername || '').trim();
 
         // Validation
         if (!username || !password || !full_name) {
@@ -24,10 +25,10 @@ export async function handleCreateUser(data, request, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        if (username.length < 3) {
+        if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
             return jsonResponse({
                 success: false,
-                error: 'Username phải có ít nhất 3 ký tự'
+                error: 'Tên đăng nhập không hợp lệ: dùng 3–32 ký tự, chỉ chữ Latin không dấu, số và dấu _'
             }, 400, corsHeaders);
         }
 
@@ -295,5 +296,97 @@ export async function handleBulkDeleteUsers(data, request, env, corsHeaders) {
             success: false,
             error: 'Lỗi xóa hàng loạt admin: ' + error.message
         }, 500, corsHeaders);
+    }
+}
+
+// Update existing admin user
+export async function handleUpdateUser(data, request, env, corsHeaders) {
+    const session = await verifySession(request, env);
+    if (!session) {
+        return jsonResponse({ success: false, error: 'Unauthorized' }, 401, corsHeaders);
+    }
+
+    try {
+        const targetId = parseInt(data?.id, 10);
+        if (!targetId || Number.isNaN(targetId)) {
+            return jsonResponse({ success: false, error: 'ID user không hợp lệ' }, 400, corsHeaders);
+        }
+
+        const { username: rawUsername, full_name, role, password } = data;
+        const username = String(rawUsername || '').trim();
+
+        if (!username || !full_name) {
+            return jsonResponse({ success: false, error: 'Username và họ tên là bắt buộc' }, 400, corsHeaders);
+        }
+
+        if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+            return jsonResponse({
+                success: false,
+                error: 'Tên đăng nhập không hợp lệ: dùng 3–32 ký tự, chỉ chữ Latin không dấu, số và dấu _'
+            }, 400, corsHeaders);
+        }
+
+        if (role && !['admin'].includes(role)) {
+            return jsonResponse({ success: false, error: 'Vai trò không hợp lệ' }, 400, corsHeaders);
+        }
+
+        if (password !== undefined && password !== null && password !== '') {
+            if (String(password).length < 6) {
+                return jsonResponse({ success: false, error: 'Mật khẩu phải có ít nhất 6 ký tự' }, 400, corsHeaders);
+            }
+        }
+
+        const target = await env.DB.prepare(`
+            SELECT id, username, is_active FROM users WHERE id = ?
+        `).bind(targetId).first();
+
+        if (!target) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy tài khoản' }, 404, corsHeaders);
+        }
+
+        if (Number(target.is_active) === 0) {
+            return jsonResponse({ success: false, error: 'Tài khoản đã bị vô hiệu hóa, không thể sửa' }, 400, corsHeaders);
+        }
+
+        if (username !== target.username) {
+            const conflict = await env.DB.prepare(`
+                SELECT id FROM users WHERE username = ? AND id != ?
+            `).bind(username, targetId).first();
+            if (conflict) {
+                return jsonResponse({ success: false, error: 'Username đã tồn tại, vui lòng chọn tên khác' }, 400, corsHeaders);
+            }
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+
+        if (password !== undefined && password !== null && password !== '') {
+            const passwordHash = await bcrypt.hash(String(password), 10);
+            await env.DB.prepare(`
+                UPDATE users
+                SET username = ?, full_name = ?, role = ?, password_hash = ?, updated_at = ?
+                WHERE id = ?
+            `).bind(username, full_name.trim(), role || 'admin', passwordHash, now, targetId).run();
+        } else {
+            await env.DB.prepare(`
+                UPDATE users
+                SET username = ?, full_name = ?, role = ?, updated_at = ?
+                WHERE id = ?
+            `).bind(username, full_name.trim(), role || 'admin', now, targetId).run();
+        }
+
+        return jsonResponse({
+            success: true,
+            message: 'Cập nhật tài khoản thành công',
+            user: {
+                id: targetId,
+                username,
+                full_name: full_name.trim(),
+                role: role || 'admin'
+            }
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Update user error:', error);
+        return jsonResponse({ success: false, error: 'Lỗi cập nhật admin: ' + error.message }, 500, corsHeaders);
     }
 }

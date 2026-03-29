@@ -304,8 +304,10 @@
                     </label>
                     <input type="text" id="adminUsername" required
                         class="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
-                        placeholder="vd: admin_phu" minlength="3" autocomplete="username">
-                    <p class="text-xs text-slate-400 mt-1.5">Tối thiểu 3 ký tự, không dùng khoảng trắng.</p>
+                        placeholder="vd: admin_phu" minlength="3" maxlength="32" autocomplete="username"
+                        title="Chữ Latin không dấu, số và _; 3–32 ký tự"
+                        pattern="[a-zA-Z0-9_]{3,32}">
+                    <p class="text-xs text-slate-400 mt-1.5">3–32 ký tự: chỉ chữ <span class="font-medium text-slate-500">a–z, A–Z</span>, số và dấu gạch dưới <span class="font-medium text-slate-500">_</span>. Không dấu tiếng Việt, khoảng trắng hay ký tự đặc biệt.</p>
                 </div>
                 
                 <div>
@@ -353,8 +355,85 @@
                         Hủy
                     </button>
                     <button type="submit" id="createAdminBtn"
-                        class="flex-1 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-semibold shadow-md shadow-slate-900/10">
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-semibold shadow-md shadow-slate-900/10">
                         Tạo tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Edit Admin Modal -->
+    <div id="editAdminModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/20 max-w-md w-full animate-slideUp border border-slate-200/80 overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-50 via-white to-violet-50 px-6 py-5 flex items-start justify-between gap-4 border-b border-slate-100">
+                <div class="flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Sửa quản trị viên</h3>
+                        <p class="text-sm text-slate-500 mt-0.5">Cập nhật thông tin tài khoản.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditAdminModal()" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 flex items-center justify-center transition-colors shrink-0" aria-label="Đóng">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form id="editAdminForm" class="p-6 space-y-5" onsubmit="event.preventDefault(); updateAdmin();">
+                <input type="hidden" id="editAdminId">
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                        Tên đăng nhập <span class="text-red-500 normal-case">*</span>
+                    </label>
+                    <input type="text" id="editAdminUsername" required
+                        class="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                        placeholder="vd: admin_phu" minlength="3" maxlength="32"
+                        title="Chữ Latin không dấu, số và _; 3–32 ký tự"
+                        pattern="[a-zA-Z0-9_]{3,32}">
+                    <p class="text-xs text-slate-400 mt-1.5">3–32 ký tự: chỉ chữ <span class="font-medium text-slate-500">a–z, A–Z</span>, số và dấu gạch dưới <span class="font-medium text-slate-500">_</span>. Không dấu tiếng Việt, khoảng trắng hay ký tự đặc biệt.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                        Họ và tên <span class="text-red-500 normal-case">*</span>
+                    </label>
+                    <input type="text" id="editAdminFullName" required
+                        class="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                        placeholder="Nguyễn Văn A" autocomplete="name">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                        Mật khẩu mới <span class="text-slate-400 font-normal normal-case">(tùy chọn)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="editAdminPassword"
+                            class="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl bg-slate-50/50 text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                            placeholder="Để trống nếu không đổi mật khẩu" minlength="6" autocomplete="new-password">
+                        <button type="button" onclick="toggleEditPasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Hiện mật khẩu">
+                            <svg id="editEyeIcon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1.5">Để trống nếu giữ nguyên mật khẩu cũ. Nếu nhập, tối thiểu 6 ký tự.</p>
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button type="button" onclick="closeEditAdminModal()"
+                        class="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold">
+                        Hủy
+                    </button>
+                    <button type="submit" id="updateAdminBtn"
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-sm font-semibold shadow-md shadow-slate-900/10">
+                        Lưu thay đổi
                     </button>
                 </div>
             </form>
@@ -380,7 +459,48 @@
                     renderAdmins();
                 });
             }
+            const adminUserEl = document.getElementById('adminUsername');
+            if (adminUserEl) {
+                adminUserEl.addEventListener('input', function() {
+                    if (imeComposing) return;
+                    const s = sanitizeAdminUsernameInput(this.value);
+                    if (s !== this.value) this.value = s;
+                });
+                adminUserEl.addEventListener('compositionstart', function() {
+                    imeComposing = true;
+                });
+                adminUserEl.addEventListener('compositionend', function() {
+                    imeComposing = false;
+                    const s = sanitizeAdminUsernameInput(this.value);
+                    if (s !== this.value) this.value = s;
+                });
+            }
+            const editUserEl = document.getElementById('editAdminUsername');
+            if (editUserEl) {
+                editUserEl.addEventListener('input', function() {
+                    if (imeComposing) return;
+                    const s = sanitizeAdminUsernameInput(this.value);
+                    if (s !== this.value) this.value = s;
+                });
+                editUserEl.addEventListener('compositionstart', function() {
+                    imeComposing = true;
+                });
+                editUserEl.addEventListener('compositionend', function() {
+                    imeComposing = false;
+                    const s = sanitizeAdminUsernameInput(this.value);
+                    if (s !== this.value) this.value = s;
+                });
+            }
         });
+
+        let imeComposing = false;
+
+        /** Chỉ giữ chữ Latin không dấu, số và _; tối đa 32 ký tự */
+        function sanitizeAdminUsernameInput(raw) {
+            return String(raw || '').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 32);
+        }
+
+        const ADMIN_USERNAME_REGEX = /^[a-zA-Z0-9_]{3,32}$/;
 
         function getCurrentAdminId() {
             try {
@@ -504,13 +624,21 @@
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <button type="button" onclick="deleteAdmin(${adminId}, '${escapeHtml(admin.username)}')" 
-                            ${isSelf ? 'disabled title="Không thể tự xóa tài khoản đang đăng nhập"' : ''}
-                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="button" onclick="showEditAdminModal(${adminId}, '${escapeHtml(admin.username)}', '${escapeHtml(admin.full_name || '')}', '${escapeHtml(admin.role || 'admin')}')"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button type="button" onclick="deleteAdmin(${adminId}, '${escapeHtml(admin.username)}')"
+                                ${isSelf ? 'disabled title="Không thể tự xóa tài khoản đang đăng nhập"' : ''}
+                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -599,6 +727,122 @@
             document.getElementById('addAdminForm').reset();
         }
 
+        // Edit Admin Modal
+        function showEditAdminModal(id, username, fullName, role) {
+            document.getElementById('editAdminId').value = id;
+            document.getElementById('editAdminUsername').value = username;
+            document.getElementById('editAdminFullName').value = fullName;
+            document.getElementById('editAdminPassword').value = '';
+            document.getElementById('editAdminModal').classList.remove('hidden');
+            document.getElementById('editAdminUsername').focus();
+        }
+
+        function closeEditAdminModal() {
+            document.getElementById('editAdminModal').classList.add('hidden');
+            document.getElementById('editAdminForm').reset();
+        }
+
+        function toggleEditPasswordVisibility() {
+            const passwordInput = document.getElementById('editAdminPassword');
+            const eyeIcon = document.getElementById('editEyeIcon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                `;
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                `;
+            }
+        }
+
+        // Update existing admin
+        async function updateAdmin() {
+            const id = Number(document.getElementById('editAdminId').value);
+            const usernameInput = document.getElementById('editAdminUsername');
+            const username = sanitizeAdminUsernameInput(usernameInput.value);
+            usernameInput.value = username;
+            const fullName = document.getElementById('editAdminFullName').value.trim();
+            const password = document.getElementById('editAdminPassword').value;
+            const updateBtn = document.getElementById('updateAdminBtn');
+
+            if (!id) {
+                showToast('ID tài khoản không hợp lệ', 'error');
+                return;
+            }
+
+            if (!username || !fullName) {
+                showToast('Tên đăng nhập và họ tên là bắt buộc', 'warning');
+                return;
+            }
+
+            if (!ADMIN_USERNAME_REGEX.test(username)) {
+                showToast('Tên đăng nhập: 3–32 ký tự, chỉ chữ a-z, A-Z, số và dấu _ (không dấu, không khoảng trắng).', 'warning');
+                return;
+            }
+
+            if (password && password.length < 6) {
+                showToast('Mật khẩu mới phải có ít nhất 6 ký tự', 'warning');
+                return;
+            }
+
+            updateBtn.disabled = true;
+            updateBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang lưu...
+            `;
+
+            try {
+                const sessionToken = localStorage.getItem('session_token');
+                const payload = {
+                    action: 'updateUser',
+                    id,
+                    username,
+                    full_name: fullName
+                };
+                if (password) payload.password = password;
+
+                const response = await fetch(`${CONFIG.API_URL}?action=updateUser`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Cập nhật tài khoản thành công!', 'success');
+                    closeEditAdminModal();
+                    loadAdmins();
+                    if (id === getCurrentAdminId() && data.user?.username) {
+                        const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+                        userInfo.username = data.user.username;
+                        localStorage.setItem('user_info', JSON.stringify(userInfo));
+                        const userUsernameEl = document.getElementById('userUsername');
+                        if (userUsernameEl) userUsernameEl.textContent = data.user.username;
+                    }
+                } else {
+                    showToast(data.error || 'Không thể cập nhật tài khoản', 'error');
+                }
+            } catch (error) {
+                console.error('Update admin error:', error);
+                showToast('Lỗi kết nối: ' + error.message, 'error');
+            } finally {
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Lưu thay đổi';
+            }
+        }
+
         // Toggle password visibility
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
@@ -620,7 +864,9 @@
 
         // Create new admin
         async function createAdmin() {
-            const username = document.getElementById('adminUsername').value.trim();
+            const usernameInput = document.getElementById('adminUsername');
+            const username = sanitizeAdminUsernameInput(usernameInput.value);
+            usernameInput.value = username;
             const fullName = document.getElementById('adminFullName').value.trim();
             const password = document.getElementById('adminPassword').value;
             const createBtn = document.getElementById('createAdminBtn');
@@ -631,8 +877,8 @@
                 return;
             }
 
-            if (username.length < 3) {
-                showToast('Username phải có ít nhất 3 ký tự', 'warning');
+            if (!ADMIN_USERNAME_REGEX.test(username)) {
+                showToast('Tên đăng nhập: 3–32 ký tự, chỉ chữ a-z, A-Z, số và dấu _ (không dấu, không khoảng trắng).', 'warning');
                 return;
             }
 
@@ -801,14 +1047,29 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeAddAdminModal();
+                closeEditAdminModal();
             }
         });
 
-        // Close modal on backdrop click
-        document.getElementById('addAdminModal').addEventListener('click', function(e) {
-            if (e.target === this) {
+        // Close modal on backdrop click (pointerdown starts inside -> pointerup outside = drag, skip)
+        document.getElementById('addAdminModal').addEventListener('pointerdown', function(e) {
+            this._pointerDownOnBackdrop = (e.target === this);
+        });
+        document.getElementById('addAdminModal').addEventListener('pointerup', function(e) {
+            if (this._pointerDownOnBackdrop && e.target === this) {
                 closeAddAdminModal();
             }
+            this._pointerDownOnBackdrop = false;
+        });
+
+        document.getElementById('editAdminModal').addEventListener('pointerdown', function(e) {
+            this._pointerDownOnBackdrop = (e.target === this);
+        });
+        document.getElementById('editAdminModal').addEventListener('pointerup', function(e) {
+            if (this._pointerDownOnBackdrop && e.target === this) {
+                closeEditAdminModal();
+            }
+            this._pointerDownOnBackdrop = false;
         });
     </script>
 </body>
