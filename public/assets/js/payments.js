@@ -44,14 +44,6 @@ async function loadUnpaidOrders() {
         showLoading();
         selectedOrders.clear();
         
-        // Use currentMonth from filter state
-        if (!currentMonth) {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            currentMonth = `${year}-${month}`;
-        }
-        
         const response = await fetch(`${CONFIG.API_URL}?action=getUnpaidOrdersByMonth&month=${currentMonth}&timestamp=${Date.now()}`);
         const data = await response.json();
         
@@ -652,59 +644,16 @@ function closePaymentModal() {
     }
 }
 
-// Smart Search with Debounce
-let searchDebounceTimer;
-function filterCTV() {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-        performSearch();
-    }, 300); // Wait 300ms after user stops typing
-}
-
-function performSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    
-    // Show/hide clear button
-    updateSearchUI(searchTerm);
-    
-    if (!searchTerm) {
-        filteredCommissions = [...allCommissions];
-        renderCTVList();
-        return;
-    }
-    
-    // Smart search: tìm theo nhiều trường
-    filteredCommissions = allCommissions.filter(ctv => {
-        const searchFields = [
-            ctv.ctv_name?.toLowerCase() || '',
-            ctv.referral_code?.toLowerCase() || '',
-            ctv.phone || '',
-            ctv.bank_name?.toLowerCase() || '',
-            ctv.bank_account_number || ''
-        ];
-        
-        return searchFields.some(field => field.includes(searchTerm));
-    });
-    
-    renderCTVList();
-    
-    // Show search result count
-    if (searchTerm) {
-        const resultText = filteredCommissions.length === 0 
-            ? 'Không tìm thấy kết quả' 
-            : `Tìm thấy ${filteredCommissions.length} CTV`;
-        showToast(resultText, filteredCommissions.length === 0 ? 'warning' : 'info');
-    }
-}
-
-function updateSearchUI(searchTerm) {
-    const searchInput = document.getElementById('searchInput');
-    const clearBtn = document.getElementById('searchClearBtn');
-    
-    if (clearBtn) {
-        clearBtn.style.display = searchTerm ? 'block' : 'none';
-    }
+// ── Unified debounced filter (dùng chung cho cả unpaid tab + search) ──
+let filterDebounceTimer;
+function onSearchInput() {
+    clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = setTimeout(() => {
+        currentFilters.search = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+        const clearBtn = document.getElementById('searchClearBtn');
+        if (clearBtn) clearBtn.classList.toggle('hidden', !currentFilters.search);
+        applyFilters();
+    }, 300);
 }
 
 // Load previous month (DEPRECATED - Use filterByPeriod('lastMonth') instead)
@@ -749,6 +698,21 @@ function showEmptyState() {
     
     if (emptyState) emptyState.classList.remove('hidden');
     if (loadingState) loadingState.classList.add('hidden');
+}
+
+// ── History tab loading helpers ──
+function showHistoryLoading() {
+    const ls = document.getElementById('historyLoadingState');
+    const es = document.getElementById('historyEmptyState');
+    if (ls) ls.classList.remove('hidden');
+    if (es) es.classList.add('hidden');
+    // Remove old cards
+    document.querySelectorAll('.history-card').forEach(c => c.remove());
+}
+
+function hideHistoryLoading() {
+    const ls = document.getElementById('historyLoadingState');
+    if (ls) ls.classList.add('hidden');
 }
 
 // Utility functions
@@ -828,7 +792,7 @@ function switchTab(tab) {
             tabHistory.classList.remove('border-transparent', 'text-slate-500');
         }
         if (historyContent) historyContent.classList.remove('hidden');
-        renderHistoryFromFilters();
+        loadPaymentHistory(); // loads + renders + shows skeleton while waiting
     } else if (tab === 'excluded') {
         if (tabExcluded) {
             tabExcluded.classList.add('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
@@ -846,6 +810,8 @@ function switchTab(tab) {
 // Load Payment History (theo ngày thực trả payment_date_unix, hoặc tất cả khi period = all)
 async function loadPaymentHistory() {
     try {
+        showHistoryLoading();
+
         const params = new URLSearchParams({
             action: 'getPaidOrdersByMonth',
             timestamp: Date.now()
@@ -869,32 +835,34 @@ async function loadPaymentHistory() {
     } catch (error) {
         console.error('Error loading payment history:', error);
         showToast('Không thể tải lịch sử thanh toán', 'error');
+    } finally {
+        hideHistoryLoading();
     }
 }
 
 /** Lọc lịch sử theo trạng thái + ô tìm kiếm (client) */
 function getFilteredPaymentHistoryForDisplay() {
-    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-    const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+    // Thống nhất: đọc filter từ state thay vì DOM
+    const { status, search } = currentFilters;
 
     let list = paymentHistory;
 
-    if (statusFilter !== 'all') {
-        list = list.filter(p => (p.status || 'paid') === statusFilter);
+    if (status && status !== 'all') {
+        list = list.filter(p => (p.status || 'paid') === status);
     }
 
-    if (searchTerm) {
+    if (search) {
         list = list.filter(payment => {
-            const searchFields = [
+            const fields = [
                 payment.ctv_name?.toLowerCase() || '',
                 payment.referral_code?.toLowerCase() || '',
-                payment.phone || '',
+                payment.phone?.toLowerCase() || '',
                 payment.bank_name?.toLowerCase() || '',
-                payment.bank_account_number || '',
+                String(payment.bank_account_number || '').toLowerCase(),
                 payment.payment_method?.toLowerCase() || '',
                 payment.note?.toLowerCase() || ''
             ];
-            return searchFields.some(field => field.includes(searchTerm));
+            return fields.some(f => f.includes(search));
         });
     }
 
@@ -1057,43 +1025,6 @@ function getPaymentMethodLabel(method) {
 }
 
 
-// Search in History Tab
-let historySearchDebounceTimer;
-function filterHistory() {
-    clearTimeout(historySearchDebounceTimer);
-    historySearchDebounceTimer = setTimeout(() => {
-        performHistorySearch();
-    }, 300);
-}
-
-function performHistorySearch() {
-    const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-    const clearBtn = document.getElementById('searchClearBtn');
-    if (clearBtn) {
-        if (searchTerm) clearBtn.classList.remove('hidden');
-        else clearBtn.classList.add('hidden');
-    }
-    currentFilters.search = searchTerm;
-    renderHistoryFromFilters();
-
-    if (searchTerm) {
-        const n = getFilteredPaymentHistoryForDisplay().length;
-        const resultText = n === 0 ? 'Không tìm thấy kết quả' : `Tìm thấy ${n} thanh toán`;
-        showToast(resultText, n === 0 ? 'warning' : 'info');
-    }
-}
-
-// Update search function based on active tab
-const originalFilterCTV = filterCTV;
-filterCTV = function() {
-    if (currentTab === 'history') {
-        filterHistory();
-    } else {
-        originalFilterCTV();
-    }
-};
-
-
 // ============================================
 // ENHANCED FILTER FUNCTIONS
 // ============================================
@@ -1168,6 +1099,13 @@ function filterByPeriod(period) {
             endDate = null;
             break;
     }
+
+    // Derive currentMonth from startDate — dùng chung cho API call
+    if (startDate) {
+        const y = startDate.getFullYear();
+        const m = String(startDate.getMonth() + 1).padStart(2, '0');
+        currentMonth = `${y}-${m}`;
+    }
     
     currentFilters.dateRange = startDate && endDate ? { startDate, endDate } : null;
 
@@ -1197,19 +1135,12 @@ function runAfterPeriodFilterChange() {
 
 // Apply all filters
 function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    
-    currentFilters.status = statusFilter;
-    currentFilters.search = searchTerm;
-    
-    // Show/hide clear button
+    // Đọc từ state — onSearchInput/selectStatusFilter/clearAllFilters đã sync vào currentFilters
+    const { status, search } = currentFilters;
+
+    // Clear button: chỉ toggle, tránh gọi classList nhiều lần
     const clearBtn = document.getElementById('searchClearBtn');
-    if (searchTerm) {
-        clearBtn.classList.remove('hidden');
-    } else {
-        clearBtn.classList.add('hidden');
-    }
+    if (clearBtn) clearBtn.classList.toggle('hidden', !search);
 
     updateActiveFiltersDisplay();
 
@@ -1217,10 +1148,7 @@ function applyFilters() {
         renderHistoryFromFilters();
         return;
     }
-    if (currentTab === 'excluded') {
-        return;
-    }
-    
+
     // Filter data - Create deep copy to avoid modifying original
     let filtered = allCommissions.map(ctv => ({
         ...ctv,
@@ -1300,13 +1228,12 @@ function applyFilters() {
     }
     
     // Filter by status
-    if (statusFilter !== 'all') {
+    if (status && status !== 'all') {
         filtered = filtered.map(ctv => {
             if (ctv.orders && Array.isArray(ctv.orders)) {
                 const filteredOrders = ctv.orders.filter(order => {
-                    // Map status values
                     const orderStatus = order.payment_status || order.status || 'pending';
-                    return orderStatus === statusFilter;
+                    return orderStatus === status;
                 });
 
                 // Active orders = non-excluded only (for commission totals)
@@ -1323,15 +1250,15 @@ function applyFilters() {
         }).filter(ctv => ctv.order_count > 0);
     }
     
-    // Filter by search
-    if (searchTerm) {
+    // Filter by search (CTTV name, referral code, phone, bank)
+    if (search) {
         filtered = filtered.filter(ctv => {
             return (
-                (ctv.referral_code && ctv.referral_code.toLowerCase().includes(searchTerm)) ||
-                (ctv.full_name && ctv.full_name.toLowerCase().includes(searchTerm)) ||
-                (ctv.phone && ctv.phone.includes(searchTerm)) ||
-                (ctv.bank_account_number && ctv.bank_account_number.includes(searchTerm)) ||
-                (ctv.bank_name && ctv.bank_name.toLowerCase().includes(searchTerm))
+                (ctv.referral_code && ctv.referral_code.toLowerCase().includes(search)) ||
+                (ctv.full_name && ctv.full_name.toLowerCase().includes(search)) ||
+                (ctv.phone && ctv.phone.includes(search)) ||
+                (ctv.bank_account_number && ctv.bank_account_number.includes(search)) ||
+                (ctv.bank_name && ctv.bank_name.toLowerCase().includes(search))
             );
         });
     }
@@ -1344,7 +1271,12 @@ function applyFilters() {
         filters: currentFilters
     });
 
-    updateActiveFiltersDisplay();
+    // Tab "Đã loại": vẫn phải tính filteredCommissions + badge "Chưa thanh toán" (trước đây return sớm → badge sai)
+    if (currentTab === 'excluded') {
+        updateUnpaidBadge();
+        return;
+    }
+
     renderCTVList();
     updateFilteredSummary();
 }
@@ -1429,6 +1361,11 @@ function updateActiveFiltersDisplay() {
     tagsContainer.innerHTML = tags.join('');
 }
 
+// Cập nhật badge count trên tab Chưa thanh toán — gọi được từ bất kỳ tab nào
+function updateUnpaidBadge() {
+    document.getElementById('unpaidCount').textContent = filteredCommissions.length;
+}
+
 // Update summary with filtered data
 function updateFilteredSummary() {
     applySummaryLabels('unpaid');
@@ -1470,11 +1407,6 @@ function clearSearch() {
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClearBtn').classList.add('hidden');
     currentFilters.search = '';
-    applyFilters();
-}
-
-// Override old filterCTV function to use new applyFilters
-function filterCTV() {
     applyFilters();
 }
 
@@ -1846,6 +1778,7 @@ function selectStatusFilter(value, label) {
     document.getElementById('statusFilter').value = value;
     document.getElementById('statusFilterLabel').textContent = label;
     document.getElementById('statusFilterMenu')?.remove();
+    currentFilters.status = value;
     applyFilters();
 }
 
@@ -2041,11 +1974,11 @@ async function restoreCommission(orderId, orderCode) {
 
         if (data.success) {
             showToast(`Đã khôi phục hoa hồng cho đơn ${orderCode}`, 'success');
-            // Refresh appropriate tab
+            // Luôn tải lại danh sách chưa thanh toán — API mới có is_excluded đúng; chỉ gọi loadExcluded trước đây thì allCommissions vẫn cũ
+            await loadUnpaidOrders();
+            updateExcludedBadge();
             if (currentTab === 'excluded') {
-                loadExcludedCommissions();
-            } else {
-                setTimeout(() => loadUnpaidOrders(), 500);
+                await loadExcludedCommissions();
             }
         } else {
             throw new Error(data.error || 'Không thể khôi phục hoa hồng');
