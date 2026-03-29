@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let allOrders = [];
     let filteredOrders = [];
     let currentReferralCode = '';
+    let currentCTVInfo = null;
     let currentFilter = VALID_FILTERS.includes(filterFromUrl) ? filterFromUrl : 'all';
     let currentSearchQuery = (searchFromUrl || '').trim().toLowerCase();
     let currentSort = VALID_SORTS.includes(sortFromUrl) ? sortFromUrl : 'newest';
@@ -113,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     phone: isPhone ? code : '****',
                     address: 'Xem trong đơn hàng'
                 };
+                currentCTVInfo = ctvInfo;
                 displayCTVInfo(ctvInfo);
 
                 // Initialize custom slug modal
@@ -152,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 phone: isPhone ? code : '****',
                 address: 'Xem trong đơn hàng'
             };
+            currentCTVInfo = ctvInfo;
             displayCTVInfo(ctvInfo);
 
             // Display orders
@@ -265,6 +268,10 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('ctvPhone').textContent = maskPhone(ctvInfo.phone);
         document.getElementById('ctvCode').textContent = currentReferralCode || '-';
         document.getElementById('ctvJoinDate').textContent = formatJoinDate(joinDateRaw);
+
+        // Show edit button
+        const btn = document.getElementById('editCtvBtn');
+        if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
     }
 
     function displayOrders() {
@@ -942,7 +949,79 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.style.overflow = ''; // Restore scroll
     };
 
-    // Helper functions
+    // Expose openEditCTVModal inside DOMContentLoaded so it has access to closure vars
+    window.openEditCTVModal = function () {
+        const modal = document.getElementById('editCtvModal');
+        if (!modal) return;
+        document.getElementById('editCtvName').value = currentCTVInfo?.name || '';
+        document.getElementById('editCtvPhone').value = currentCTVInfo?.phone || '';
+        document.getElementById('editCtvEmail').value = currentCTVInfo?.email || '';
+        document.getElementById('editCtvCity').value = currentCTVInfo?.city || '';
+        document.getElementById('editCtvError').classList.add('hidden');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeEditCtvModal = function () {
+        document.getElementById('editCtvModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    };
+
+    window.saveEditCtv = async function () {
+        const name = document.getElementById('editCtvName').value.trim();
+        const phone = document.getElementById('editCtvPhone').value.trim();
+        const email = document.getElementById('editCtvEmail').value.trim();
+        const city = document.getElementById('editCtvCity').value.trim();
+        const errorEl = document.getElementById('editCtvError');
+        const saveBtn = document.getElementById('editCtvSaveBtn');
+
+        if (!name) {
+            errorEl.textContent = 'Vui lòng nhập họ và tên.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        errorEl.classList.add('hidden');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Đang lưu...';
+
+        try {
+            const res = await fetch(`${API_URL}/api/ctv/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referralCode: currentReferralCode,
+                    fullName: name,
+                    phone: phone,
+                    email: email,
+                    city: city
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                document.getElementById('ctvName').textContent =
+                    name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                if (currentCTVInfo) {
+                    currentCTVInfo.name = name;
+                    currentCTVInfo.phone = phone;
+                    currentCTVInfo.email = email;
+                    currentCTVInfo.city = city;
+                }
+                closeEditCtvModal();
+            } else {
+                errorEl.textContent = result.error || 'Không thể cập nhật. Vui lòng thử lại.';
+                errorEl.classList.remove('hidden');
+            }
+        } catch (err) {
+            errorEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+            errorEl.classList.remove('hidden');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Lưu thay đổi';
+        }
+    };
+
     function parseAmount(value) {
         if (typeof value === 'number') return value;
         if (!value) return 0;
