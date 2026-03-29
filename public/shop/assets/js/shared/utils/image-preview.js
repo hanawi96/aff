@@ -736,3 +736,57 @@ function _displayStringTypeInfo(hasRedString, hasRopeString) {
         container.style.display = 'none';
     }
 }
+
+// ============================================
+// QUY TRINH PROCESS IMAGES - CLICK TO FULLSCREEN
+// ============================================
+
+function setupQuyTrinhImageClick() {
+    const processImages = document.querySelectorAll('.quy-trinh-lam img');
+
+    processImages.forEach(img => {
+        img.style.cursor = 'pointer';
+
+        eventManager.add('quyTrinhClick', img, 'click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const imageUrl = img.src;
+            const imageName = img.alt || 'Hình ảnh công đoạn';
+            _openFullscreenImage(imageUrl, imageName);
+        });
+    });
+}
+
+// Run on DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupQuyTrinhImageClick);
+} else {
+    setupQuyTrinhImageClick();
+}
+
+// ============================================
+// BENEFITS IMAGES - CLICK TO FULLSCREEN
+// ============================================
+
+function setupBenefitsImageClick() {
+    const benefitImages = document.querySelectorAll('.benefit-card-img');
+
+    benefitImages.forEach(img => {
+        img.style.cursor = 'pointer';
+
+        eventManager.add('benefitsClick', img, 'click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const imageUrl = img.src;
+            const imageName = img.alt || 'Hình ảnh';
+            _openFullscreenImage(imageUrl, imageName);
+        });
+    });
+}
+
+// Run on DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupBenefitsImageClick);
+} else {
+    setupBenefitsImageClick();
+}
