@@ -167,6 +167,10 @@ function filterOrdersData() {
                 const monthStart = getVNStartOfLast30Days();
                 const todayEnd = getVNEndOfToday();
                 matchesDate = orderDate >= monthStart && orderDate <= todayEnd;
+            } else if (dateFilter === 'lastMonth') {
+                const lastMonthStart = getVNStartOfLastMonth();
+                const lastMonthEnd = getVNEndOfLastMonth();
+                matchesDate = orderDate >= lastMonthStart && orderDate <= lastMonthEnd;
             } else if (dateFilter === 'custom') {
                 const startDateStr = document.getElementById('customDateStart').value;
                 const endDateStr = document.getElementById('customDateEnd').value;
@@ -514,19 +518,45 @@ function showCustomDatePicker(event) {
         <div class="date-picker-content">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
-                <button onclick="closeCustomDatePicker()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <button type="button" onclick="closeCustomDatePicker()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
+
+            <!-- Chọn nhanh theo tháng -->
+            <div class="mb-5 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-indigo-800">Chọn nhanh theo tháng</span>
+                    <select id="quickYearMonthSelect" class="min-w-[10.5rem] max-w-full cursor-pointer rounded-lg border border-indigo-200 py-1.5 pl-3 pr-10 text-sm font-medium text-slate-800 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style="appearance:none;-webkit-appearance:none;-moz-appearance:none;background-color:#fff;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%2364748b%22 stroke-width=%222%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');background-position:right 0.6rem center;background-size:1rem 1rem;background-repeat:no-repeat;">
+                        ${(() => {
+                            const vy = parseInt(getTodayDateString().split('-')[0], 10);
+                            let opts = '';
+                            for (let y = vy; y >= vy - 5; y--) {
+                                opts += `<option value="${y}" ${y === vy ? 'selected' : ''}>Năm ${y}</option>`;
+                            }
+                            return opts;
+                        })()}
+                    </select>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
+                    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => `
+                        <button type="button" onclick="quickSelectMonth(${m})"
+                            class="rounded-lg border border-indigo-200/80 bg-white px-1 py-2 text-center text-xs font-medium text-indigo-800 shadow-sm transition hover:border-indigo-400 hover:bg-indigo-50 sm:text-sm">
+                            Tháng ${m}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
             
             <!-- Mode Tabs -->
             <div class="date-mode-tabs">
-                <button class="date-mode-tab ${currentDateMode === 'single' ? 'active' : ''}" onclick="switchDateMode('single')">
+                <button type="button" data-mode="single" class="date-mode-tab ${currentDateMode === 'single' ? 'active' : ''}" onclick="switchDateMode('single')">
                     Một ngày
                 </button>
-                <button class="date-mode-tab ${currentDateMode === 'range' ? 'active' : ''}" onclick="switchDateMode('range')">
+                <button type="button" data-mode="range" class="date-mode-tab ${currentDateMode === 'range' ? 'active' : ''}" onclick="switchDateMode('range')">
                     Khoảng thời gian
                 </button>
             </div>
@@ -548,25 +578,25 @@ function showCustomDatePicker(event) {
                     <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
                     <div class="date-input-wrapper">
                         <input type="date" id="startDateInput" value="${startDate}" 
-                            class="w-full" max="${today}">
+                            class="w-full">
                     </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
                     <div class="date-input-wrapper">
                         <input type="date" id="endDateInput" value="${endDate}" 
-                            class="w-full" max="${today}">
+                            class="w-full">
                     </div>
                 </div>
             </div>
             
             <!-- Action Buttons -->
             <div class="flex gap-3 mt-6">
-                <button onclick="clearCustomDate()" 
+                <button type="button" onclick="clearCustomDate()" 
                     class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                     Xóa bộ lọc
                 </button>
-                <button onclick="applyCustomDate()" 
+                <button type="button" onclick="applyCustomDate()" 
                     class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">
                     Áp dụng
                 </button>
@@ -604,15 +634,14 @@ function closeCustomDatePicker() {
 function switchDateMode(mode) {
     currentDateMode = mode;
 
-    // Update tabs
     document.querySelectorAll('.date-mode-tab').forEach(tab => {
-        tab.classList.remove('active');
+        const m = tab.getAttribute('data-mode');
+        tab.classList.toggle('active', m === mode);
     });
-    event.target.classList.add('active');
 
-    // Show/hide modes
     const singleMode = document.getElementById('singleDateMode');
     const rangeMode = document.getElementById('rangeDateMode');
+    if (!singleMode || !rangeMode) return;
 
     if (mode === 'single') {
         singleMode.classList.remove('hidden');
@@ -621,6 +650,28 @@ function switchDateMode(mode) {
         singleMode.classList.add('hidden');
         rangeMode.classList.remove('hidden');
     }
+}
+
+/**
+ * Chọn nhanh cả tháng dương lịch: từ 00:00 ngày 1 đến hết ngày cuối tháng.
+ */
+function quickSelectMonth(month) {
+    const yearEl = document.getElementById('quickYearMonthSelect');
+    if (!yearEl) return;
+    const year = parseInt(yearEl.value, 10);
+    if (Number.isNaN(year) || month < 1 || month > 12) return;
+
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    switchDateMode('range');
+    const si = document.getElementById('startDateInput');
+    const ei = document.getElementById('endDateInput');
+    if (si) si.value = start;
+    if (ei) ei.value = end;
+
+    applyCustomDate();
 }
 
 /**

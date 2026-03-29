@@ -26,8 +26,8 @@ async function loadOrdersChart() {
     // Get current period from date filter
     const currentPeriod = document.getElementById('dateFilter')?.value || 'week';
 
-    // Skip if period is 'all'
-    if (currentPeriod === 'all') {
+    // Skip if period is 'all' or client-only calendar range (no matching chart API)
+    if (currentPeriod === 'all' || currentPeriod === 'lastMonth') {
         hideOrdersChart();
         return;
     }
@@ -39,7 +39,7 @@ async function loadOrdersChart() {
         const now = Date.now();
         const cache = ordersChartCache[currentPeriod];
 
-        if (cache.data && (now - cache.timestamp) < CHART_CACHE_TTL) {
+        if (cache?.data && (now - cache.timestamp) < CHART_CACHE_TTL) {
             console.log('📦 Using cached orders chart data for', currentPeriod);
             renderOrdersChart(cache.data);
             return;

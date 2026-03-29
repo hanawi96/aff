@@ -157,6 +157,23 @@ function getVNEndOfMonth() {
 }
 
 /**
+ * End of previous calendar month in Vietnam (23:59:59.999 VN on last day)
+ */
+function getVNEndOfLastMonth() {
+    return new Date(getVNStartOfMonth().getTime() - 1);
+}
+
+/**
+ * Start of previous calendar month in Vietnam (1st day 00:00:00 VN)
+ */
+function getVNStartOfLastMonth() {
+    const endLast = getVNEndOfLastMonth();
+    const vnDateStr = endLast.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    const [year, month] = vnDateStr.split('-');
+    return new Date(`${year}-${month}-01T00:00:00+07:00`);
+}
+
+/**
  * Get start of current year in Vietnam timezone (Jan 1st 00:00:00 VN time)
  * @returns {Date} - UTC date representing start of year in VN
  */
@@ -276,6 +293,8 @@ if (typeof module !== 'undefined' && module.exports) {
         getVNStartOfWeek,
         getVNStartOfMonth,
         getVNEndOfMonth,
+        getVNStartOfLastMonth,
+        getVNEndOfLastMonth,
         getVNStartOfYear,
         getVNEndOfYear,
         isVNToday,

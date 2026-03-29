@@ -90,6 +90,8 @@ function updateStatLabels() {
         periodLabel = '7 ngày';
     } else if (dateFilter === 'month') {
         periodLabel = '30 ngày';
+    } else if (dateFilter === 'lastMonth') {
+        periodLabel = 'Tháng trước';
     } else if (dateFilter === 'custom' && customDateStart && customDateEnd) {
         if (customDateStart === customDateEnd) {
             // Single date
