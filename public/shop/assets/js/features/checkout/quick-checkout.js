@@ -1158,8 +1158,8 @@ export class QuickCheckout {
             label.style.display = 'none';
         }
         
-        // Hide custom input wrapper
-        const inputWrapper = document.querySelector('.custom-weight-input-wrapper');
+        // Hide custom input wrapper (scoped to modal mua ngay — tránh để lại display:none khi mở lại "Nhập khác")
+        const inputWrapper = document.querySelector('#customWeightGroup .custom-weight-input-wrapper');
         if (inputWrapper) {
             inputWrapper.style.display = 'none';
         }
@@ -1180,6 +1180,12 @@ export class QuickCheckout {
         const label = babyWeightGroup?.querySelector('.checkout-form-label');
         if (label) {
             label.style.display = 'flex';
+        }
+
+        // Bỏ display:none inline từ lần chọn preset trước — nếu không ô nhập "Nhập khác" sẽ không hiện
+        const inputWrapper = document.querySelector('#customWeightGroup .custom-weight-input-wrapper');
+        if (inputWrapper) {
+            inputWrapper.style.display = '';
         }
     }
     
@@ -1226,7 +1232,8 @@ export class QuickCheckout {
         const confirmBtn = document.getElementById('customWeightConfirmBtn');
         const changeBtn = document.getElementById('customWeightChangeBtn');
         const babyWeightInput = document.getElementById('checkoutBabyWeight');
-        const inputWrapper = document.querySelector('.custom-weight-input-wrapper');
+        const customWeightGroupEl = document.getElementById('customWeightGroup');
+        const inputWrapper = customWeightGroupEl?.querySelector('.custom-weight-input-wrapper');
         
         // Show weight selection UI
         this.showWeightSelectionUI();
@@ -2411,8 +2418,14 @@ export class QuickCheckout {
                     if (weight === 'custom') {
                         // Show custom input
                         customWeightGroup.classList.remove('hidden');
-                        customWeightInput.setAttribute('required', 'required');
-                        customWeightInput.focus();
+                        const inputWrapper = customWeightGroup.querySelector('.custom-weight-input-wrapper');
+                        if (inputWrapper) {
+                            inputWrapper.style.display = 'flex';
+                        }
+                        if (customWeightInput) {
+                            customWeightInput.setAttribute('required', 'required');
+                            customWeightInput.focus();
+                        }
                         babyWeightInput.value = 'custom';
                     } else {
                         // Hide custom input
