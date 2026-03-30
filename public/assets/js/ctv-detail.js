@@ -92,7 +92,7 @@ function displayCTVInfo() {
 
     // Details
     document.getElementById('ctvReferralCode').textContent = ctvData.referralCode;
-    const commissionRate = (ctvData.commissionRate || 0.1) * 100;
+    const commissionRate = (ctvData.commissionRate || 0.12) * 100;
     document.getElementById('ctvCommissionRate').textContent = `${commissionRate.toFixed(0)}%`;
     document.getElementById('ctvCity').textContent = ctvData.city || 'Chưa cập nhật';
     document.getElementById('ctvCreatedAt').textContent = formatDate(ctvData.timestamp);

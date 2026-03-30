@@ -73,7 +73,7 @@ export async function registerCTV(request, env, corsHeaders) {
             data.motivation || null,
             referralCode,
             'Mới',
-            0.1, // Default 10%
+            0.12, // Default 12%
             now,
             now
         ).run();

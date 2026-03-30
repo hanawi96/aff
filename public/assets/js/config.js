@@ -16,8 +16,8 @@ const CONFIG = {
     CTV_SPREADSHEET_ID: '1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI',
     ORDER_SPREADSHEET_ID: '1XNdGOYAVYa4BdZFEVZicMLbX8nJ3J--2HPJjltD9r-k',
     
-    // Commission rate (10% = 0.1)
-    COMMISSION_RATE: 0.1,
+    // Commission rate (12% = 0.12)
+    COMMISSION_RATE: 0.12,
     
     // Contact info
     CONTACT: {

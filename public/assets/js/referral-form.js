@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <!-- Commission Rate Card -->
                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 mb-4 border border-green-200">
                         <p class="text-sm text-gray-700 leading-relaxed">
-                            Tỉ lệ hoa hồng cập nhật ngày <span class="font-semibold text-green-600">${currentDate}</span> là: <span class="text-2xl font-bold text-green-600">10%</span>
+                            Tỉ lệ hoa hồng cập nhật ngày <span class="font-semibold text-green-600">${currentDate}</span> là: <span class="text-2xl font-bold text-green-600">12%</span>
                         </p>
                     </div>
 
@@ -273,12 +273,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
                                             </svg>
-                                            Hoa hồng 10%
+                                            Hoa hồng 12%
                                         </span>
                                         <span class="text-green-700 font-bold text-xl">100.000đ</span>
                                     </div>
                                     <div class="text-green-600 text-xs bg-white/70 rounded px-2 py-1">
-                                        1.000.000đ × 10% = 100.000đ
+                                        1.000.000đ × 12% = 120.000đ
                                     </div>
                                 </div>
                             </div>
@@ -301,11 +301,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             <p class="text-sm text-gray-700 font-medium mb-2">Ví dụ:</p>
                             <div class="space-y-1.5 text-sm">
                                 <p class="text-gray-600">• Ngày 1: Chị Lan click vào link của bạn</p>
-                                <p class="text-gray-600">• Ngày 3: Chị Lan mua đồ 800k → Bạn nhận 80k</p>
-                                <p class="text-gray-600">• Ngày 6: Chị Lan mua thêm 500k → Bạn nhận 50k</p>
+                                <p class="text-gray-600">• Ngày 3: Chị Lan mua đồ 800k → Bạn nhận 96k</p>
+                                <p class="text-gray-600">• Ngày 6: Chị Lan mua thêm 500k → Bạn nhận 60k</p>
                                 <p class="text-blue-600 font-medium">• Ngày 7: Chị Lan click lại link → Gia hạn thêm 7 ngày</p>
-                                <p class="text-gray-600">• Ngày 10: Chị Lan mua 600k → Bạn vẫn nhận 60k</p>
-                                <p class="text-green-600 font-semibold mt-2 pt-2 border-t border-blue-300">✓ Tổng: 190.000đ hoa hồng</p>
+                                <p class="text-gray-600">• Ngày 10: Chị Lan mua 600k → Bạn vẫn nhận 72k</p>
+                                <p class="text-green-600 font-semibold mt-2 pt-2 border-t border-blue-300">✓ Tổng: 228.000đ hoa hồng</p>
                                 <p class="text-xs text-gray-500 italic mt-1">💡 Click lại link = Gia hạn thêm 7 ngày mới</p>
                             </div>
                         </div>
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <p class="text-sm text-gray-700 font-medium mb-2">📌 Tóm Tắt:</p>
                         <div class="space-y-1 text-sm text-gray-600">
                             <p>• Link có hiệu lực 7 ngày</p>
-                            <p>• Hoa hồng 10% trên giá sản phẩm không tính phí ship</p>
+                            <p>• Hoa hồng 12% trên giá sản phẩm không tính phí ship</p>
                             <p>• Thanh toán cuối mỗi tháng</p>
                         </div>
                     </div>
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.shareCommissionPage = function () {
         const shareUrl = window.location.origin + window.location.pathname + '#cach-tinh-hoa-hong';
-        const shareText = 'Xem cách tính hoa hồng 10% khi trở thành cộng tác viên!';
+        const shareText = 'Xem cách tính hoa hồng 12% khi trở thành cộng tác viên!';
 
         // Check if Web Share API is available (mobile)
         if (navigator.share) {
