@@ -1,4 +1,5 @@
 // Form handling and submission
+console.log('[CTV-Referral] referral-form.js loaded');
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('referralForm');
     const successMessage = document.getElementById('successMessage');
@@ -477,7 +478,7 @@ window.selectMotivation = function (button, text) {
 // BANK DROPDOWN FUNCTIONALITY
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function () {
+function initBankDropdown() {
     const bankSelectButton = document.getElementById('bankSelectButton');
     const bankSearchInput = document.getElementById('bankSearchInput');
     const bankDropdown = document.getElementById('bankDropdown');
@@ -486,6 +487,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const bankDropdownIcon = document.getElementById('bankDropdownIcon');
     const bankOptions = document.querySelectorAll('.bank-option');
 
+    console.log('[CTV-Referral] bank dropdown init', {
+        bankSelectButton: !!bankSelectButton,
+        bankSearchInput: !!bankSearchInput,
+        bankDropdown: !!bankDropdown,
+        bankNameValue: !!bankNameValue,
+        bankSelectedText: !!bankSelectedText,
+        bankDropdownIcon: !!bankDropdownIcon,
+        bankOptionsCount: bankOptions ? bankOptions.length : 0
+    });
+
     // Exit if elements don't exist (e.g., using native select instead of custom dropdown)
     if (!bankSelectButton || !bankSearchInput || !bankDropdown) return;
 
@@ -493,6 +504,11 @@ document.addEventListener('DOMContentLoaded', function () {
     bankSelectButton.addEventListener('click', function (e) {
         e.stopPropagation();
         const isHidden = bankDropdown.classList.contains('hidden');
+
+        console.log('[CTV-Referral] bank select clicked', {
+            isHiddenBefore: isHidden,
+            classList: bankDropdown.className
+        });
 
         if (isHidden) {
             bankDropdown.classList.remove('hidden');
@@ -504,6 +520,11 @@ document.addEventListener('DOMContentLoaded', function () {
             bankDropdown.classList.add('hidden');
             bankDropdownIcon.style.transform = 'rotate(0deg)';
         }
+
+        console.log('[CTV-Referral] bank dropdown class after toggle', {
+            isHiddenAfter: bankDropdown.classList.contains('hidden'),
+            classList: bankDropdown.className
+        });
     });
 
     // Search functionality
@@ -522,6 +543,8 @@ document.addEventListener('DOMContentLoaded', function () {
         let noResultsDiv = document.getElementById('noResultsMessage');
 
         let hasVisibleOptions = false;
+
+        console.log('[CTV-Referral] filterBankOptions', { searchTerm });
 
         bankOptions.forEach(option => {
             const text = option.textContent.toLowerCase();
@@ -546,6 +569,10 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (noResultsDiv) {
             noResultsDiv.style.display = 'none';
         }
+
+        // Log how many options are currently visible
+        const visibleCount = Array.from(bankOptions).filter(opt => opt.style.display !== 'none').length;
+        console.log('[CTV-Referral] filter result', { hasVisibleOptions, visibleCount });
     }
 
     // Handle option selection
@@ -596,4 +623,14 @@ document.addEventListener('DOMContentLoaded', function () {
             bankSearchInput.value = '';
         }
     });
+}
+
+// Run init even if this script is loaded after DOMContentLoaded.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBankDropdown);
+} else {
+    initBankDropdown();
+}
+
+// Close the top-level DOMContentLoaded handler that wraps the referral page.
 });

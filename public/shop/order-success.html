@@ -108,13 +108,10 @@
             font-size: 1.28rem;
             line-height: 1.22;
             letter-spacing: -0.2px;
-        }
-
-        .order-success-cta-kicker {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .order-success-cta-accent {
@@ -128,21 +125,12 @@
             100% { transform: translateX(0); }
         }
 
-        .order-success-arrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 12px;
-            color: #0f766e;
-            font-weight: 700;
-        }
-
-        .order-success-arrow svg {
+        .order-success-arrow-inline {
             width: 26px;
             height: 26px;
             color: #059669;
-            animation: arrowNudge 1.1s ease-in-out infinite;
             flex-shrink: 0;
+            animation: arrowNudge 1.1s ease-in-out infinite;
         }
         .order-success-bullets {
             margin-top: 10px;
@@ -230,27 +218,23 @@
             </div>
 
             <div class="order-success-affiliate">
-                <div class="order-success-cta-kicker">
-                    <div class="order-success-arrow">
-                        <span>Đăng ký làm CTV ngay</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12.293 4.293a1 1 0 011.414 0l7 7a1 1 0 010 1.414l-7 7a1 1 0 01-1.414-1.414L18.586 13H3a1 1 0 110-2h15.586l-6.293-6.293a1 1 0 010-1.414z"/>
-                        </svg>
-                    </div>
-                </div>
-
                 <p class="order-success-affiliate-hero">
-                    NÓNG: Kiếm thêm <span class="order-success-cta-accent">3 - 5 triệu</span> mỗi tháng cho mẹ bỉm sữa!!
+                    <svg class="order-success-arrow-inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12.293 4.293a1 1 0 011.414 0l7 7a1 1 0 010 1.414l-7 7a1 1 0 01-1.414-1.414L18.586 13H3a1 1 0 110-2h15.586l-6.293-6.293a1 1 0 010-1.414z"/>
+                    </svg>
+                    <span>
+                        NÓNG: Kiếm thêm <span class="order-success-cta-accent">3 - 5 triệu</span> mỗi tháng cho mẹ bỉm sữa!!
+                    </span>
                 </p>
 
                 <p class="order-success-sub" style="margin-top: 10px; color:#0f766e; font-weight: 700;">
                     Làm Cộng Tác Viên bán vòng dâu tằm nhận <span style="color:#059669;">hoa hồng 12%</span>
                 </p>
                 <div class="order-success-bullets">
+                    <div class="order-success-bullet"><span class="check">✓</span><span>Không cần vốn, không nhập hàng</span></div>
                     <div class="order-success-bullet"><span class="check">✓</span><span>Chỉ cần chia sẻ link, khách mua trong <strong>7 ngày</strong> sẽ được ghi nhận hoa hồng.</span></div>
-                    <div class="order-success-bullet"><span class="check">✓</span><span>Không tính phí ship</span></div>
                     <div class="order-success-bullet"><span class="check">✓</span><span>Thanh toán cuối mỗi tháng</span></div>
-                    <div class="order-success-bullet"><span class="check">✓</span><span>Hỗ trợ 24/7 trong nhóm Zalo</span></div>
+                    
                 </div>
 
                 <div class="order-success-affiliate-actions">
