@@ -24,7 +24,7 @@
   },
   {
     "name": "products",
-    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0\r\n, markup_multiplier REAL DEFAULT NULL, is_handmade INTEGER DEFAULT 0, is_chemical_free INTEGER DEFAULT 0, favorites_count INTEGER DEFAULT 0, pricing_method TEXT DEFAULT 'markup' CHECK (pricing_method IN ('markup', 'profit')), target_profit REAL DEFAULT NULL)"
+    "sql": "CREATE TABLE \"products\" (\r\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    name TEXT NOT NULL,\r\n    price REAL NOT NULL DEFAULT 0,\r\n    sku TEXT UNIQUE,\r\n    description TEXT,\r\n    image_url TEXT,\r\n    category_id INTEGER,\r\n    is_active INTEGER DEFAULT 1,\r\n    original_price REAL,\r\n    rating REAL DEFAULT 0,\r\n    purchases INTEGER DEFAULT 0,\r\n    stock_quantity INTEGER DEFAULT 0,\r\n    cost_price REAL DEFAULT 0\r\n, markup_multiplier REAL DEFAULT NULL, is_handmade INTEGER DEFAULT 0, is_chemical_free INTEGER DEFAULT 0, favorites_count INTEGER DEFAULT 0, pricing_method TEXT DEFAULT 'markup' CHECK (pricing_method IN ('markup', 'profit')), target_profit REAL DEFAULT NULL, bracelet_type TEXT DEFAULT 'elastic' CHECK (bracelet_type IN ('elastic', 'adjustable', 'other')))"
   },
   {
     "name": "commission_payments",

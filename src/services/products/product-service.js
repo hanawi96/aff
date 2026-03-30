@@ -21,6 +21,29 @@ function hasMeaningfulDifference(a, b, epsilon = 0.01) {
     return Math.abs(n1 - n2) > epsilon;
 }
 
+let braceletTypeColumnSupported;
+
+function normalizeBraceletType(value) {
+    if (value === 'adjustable') return 'adjustable';
+    if (value === 'other') return 'other';
+    return 'elastic';
+}
+
+async function hasBraceletTypeColumn(env) {
+    if (braceletTypeColumnSupported !== undefined) {
+        return braceletTypeColumnSupported;
+    }
+    try {
+        const { results } = await env.DB.prepare(`PRAGMA table_info(products)`).all();
+        braceletTypeColumnSupported = Array.isArray(results)
+            && results.some((col) => String(col?.name || '').toLowerCase() === 'bracelet_type');
+    } catch (error) {
+        console.warn('Could not inspect bracelet_type column:', error);
+        braceletTypeColumnSupported = false;
+    }
+    return braceletTypeColumnSupported;
+}
+
 async function ensureSystemMetaTable(env) {
     await env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS system_meta (
@@ -338,11 +361,15 @@ export async function createProduct(data, env, corsHeaders) {
             }
         }
 
-        // Insert product
-        const result = await env.DB.prepare(`
-            INSERT INTO products (name, price, original_price, cost_price, markup_multiplier, category_id, stock_quantity, rating, purchases, sku, description, image_url, is_active, pricing_method, target_profit)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
+        const supportsBraceletType = await hasBraceletTypeColumn(env);
+        const braceletType = normalizeBraceletType(data.bracelet_type);
+
+        const insertColumns = [
+            'name', 'price', 'original_price', 'cost_price', 'markup_multiplier', 'category_id',
+            'stock_quantity', 'rating', 'purchases', 'sku', 'description', 'image_url',
+            'is_active', 'pricing_method', 'target_profit'
+        ];
+        const insertValues = [
             normalizedName,
             price,
             data.original_price ? parseFloat(data.original_price) : null,
@@ -358,7 +385,17 @@ export async function createProduct(data, env, corsHeaders) {
             data.is_active !== undefined ? data.is_active : 1,
             data.pricing_method || 'markup',
             data.target_profit ? parseFloat(data.target_profit) : null
-        ).run();
+        ];
+        if (supportsBraceletType) {
+            insertColumns.push('bracelet_type');
+            insertValues.push(braceletType);
+        }
+
+        const placeholders = insertColumns.map(() => '?').join(', ');
+        const result = await env.DB.prepare(`
+            INSERT INTO products (${insertColumns.join(', ')})
+            VALUES (${placeholders})
+        `).bind(...insertValues).run();
 
         const productId = result.meta.last_row_id;
 
@@ -529,6 +566,11 @@ export async function updateProduct(data, env, corsHeaders) {
         if (data.target_profit !== undefined) {
             updates.push('target_profit = ?');
             values.push(data.target_profit ? parseFloat(data.target_profit) : null);
+        }
+        const supportsBraceletType = await hasBraceletTypeColumn(env);
+        if (supportsBraceletType && data.bracelet_type !== undefined) {
+            updates.push('bracelet_type = ?');
+            values.push(normalizeBraceletType(data.bracelet_type));
         }
 
         if (updates.length === 0) {

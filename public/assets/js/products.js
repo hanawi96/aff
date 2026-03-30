@@ -13,6 +13,41 @@ let originalProductStockValue = null;
 let outdatedProductsCache = null;
 let shouldShowMaterialOutdatedWarnings = null;
 
+function normalizeBraceletType(value) {
+    if (value === 'adjustable') return 'adjustable';
+    if (value === 'other') return 'other';
+    return 'elastic';
+}
+
+function getBraceletTypeLabel(value) {
+    const normalizedType = normalizeBraceletType(value);
+    if (normalizedType === 'adjustable') return 'Dây rút';
+    if (normalizedType === 'other') return 'Loại khác';
+    return 'Dây co giãn';
+}
+
+function setBraceletTypePreset(value) {
+    const normalizedType = normalizeBraceletType(value);
+    const input = document.getElementById('productBraceletType');
+    if (input) {
+        input.value = normalizedType;
+    }
+
+    document.querySelectorAll('[data-bracelet-type]').forEach((btn) => {
+        const isActive = btn.getAttribute('data-bracelet-type') === normalizedType;
+        btn.classList.toggle('bg-indigo-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('border-indigo-600', isActive);
+        btn.classList.toggle('shadow-sm', isActive);
+
+        btn.classList.toggle('bg-white', !isActive);
+        btn.classList.toggle('text-gray-700', !isActive);
+        btn.classList.toggle('border-gray-300', !isActive);
+        btn.classList.toggle('hover:border-indigo-300', !isActive);
+        btn.classList.toggle('hover:text-indigo-700', !isActive);
+    });
+}
+
 // Filter state
 let currentFilters = {
     categoryId: null,
@@ -727,6 +762,7 @@ function createProductCard(product) {
                         </span>`
         }
                     ${product.sku ? `<span class="text-xs text-gray-500 font-mono">${escapeHtml(product.sku)}</span>` : ''}
+                    <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded border border-indigo-100">${escapeHtml(getBraceletTypeLabel(product.bracelet_type))}</span>
                 </div>
                 
                 <div class="space-y-2 mb-4">
@@ -868,6 +904,35 @@ function showAddProductModal() {
                             <input type="text" id="productName" required
                                 class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                 placeholder="VD: Vòng dâu tằm trơn" autofocus>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                Loại vòng
+                            </label>
+                            <input type="hidden" id="productBraceletType" value="elastic">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <button type="button"
+                                    data-bracelet-type="elastic"
+                                    onclick="setBraceletTypePreset('elastic')"
+                                    class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-600 shadow-sm">
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-white/90"></span>
+                                    Dây co giãn
+                                </button>
+                                <button type="button"
+                                    data-bracelet-type="adjustable"
+                                    onclick="setBraceletTypePreset('adjustable')"
+                                    class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300 hover:border-indigo-300 hover:text-indigo-700">
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                    Dây rút
+                                </button>
+                                <button type="button"
+                                    data-bracelet-type="other"
+                                    onclick="setBraceletTypePreset('other')"
+                                    class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300 hover:border-indigo-300 hover:text-indigo-700">
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                    Loại khác
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -1659,6 +1724,7 @@ async function saveProduct(productId = null) {
     const purchases = parseFormattedNumber(document.getElementById('productPurchases')?.value);
     const sku = document.getElementById('productSKU')?.value.trim();
     const description = document.getElementById('productDescription')?.value.trim();
+    const braceletType = normalizeBraceletType(document.getElementById('productBraceletType')?.value);
     let image_url = document.getElementById('productImageURL')?.value.trim();
     
     // Get pricing method and target profit
@@ -1754,6 +1820,7 @@ async function saveProduct(productId = null) {
         purchases: purchases || 0,
         sku: sku || null,
         description: description || null,
+        bracelet_type: braceletType,
         image_url: image_url || null,
         pricing_method: pricing_method,
         target_profit: target_profit
@@ -1856,6 +1923,7 @@ async function saveProduct(productId = null) {
                     localProduct.purchases = purchases;
                     localProduct.sku = sku;
                     localProduct.description = description;
+                    localProduct.bracelet_type = braceletType;
                     localProduct.image_url = image_url;
                 }
             }
@@ -2143,6 +2211,35 @@ async function editProduct(productId) {
                                 <input type="text" id="productName" required value="${escapeHtml(product.name)}"
                                     class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                     placeholder="VD: Vòng dâu tằm trơn" autofocus>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Loại vòng
+                                </label>
+                                <input type="hidden" id="productBraceletType" value="${normalizeBraceletType(product.bracelet_type)}">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button type="button"
+                                        data-bracelet-type="elastic"
+                                        onclick="setBraceletTypePreset('elastic')"
+                                        class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${normalizeBraceletType(product.bracelet_type) === 'elastic' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-300 hover:text-indigo-700'}">
+                                        <span class="inline-block w-2.5 h-2.5 rounded-full ${normalizeBraceletType(product.bracelet_type) === 'elastic' ? 'bg-white/90' : 'bg-indigo-500'}"></span>
+                                        Dây co giãn
+                                    </button>
+                                    <button type="button"
+                                        data-bracelet-type="adjustable"
+                                        onclick="setBraceletTypePreset('adjustable')"
+                                        class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${normalizeBraceletType(product.bracelet_type) === 'adjustable' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-300 hover:text-indigo-700'}">
+                                        <span class="inline-block w-2.5 h-2.5 rounded-full ${normalizeBraceletType(product.bracelet_type) === 'adjustable' ? 'bg-white/90' : 'bg-indigo-500'}"></span>
+                                        Dây rút
+                                    </button>
+                                    <button type="button"
+                                        data-bracelet-type="other"
+                                        onclick="setBraceletTypePreset('other')"
+                                        class="px-3.5 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-center gap-2 ${normalizeBraceletType(product.bracelet_type) === 'other' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-300 hover:text-indigo-700'}">
+                                        <span class="inline-block w-2.5 h-2.5 rounded-full ${normalizeBraceletType(product.bracelet_type) === 'other' ? 'bg-white/90' : 'bg-indigo-500'}"></span>
+                                        Loại khác
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
