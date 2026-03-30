@@ -4,8 +4,6 @@
 
 // Import discount service
 import { discountService } from './assets/js/shared/services/discount.service.js';
-// Import success modal
-import { successModal } from './assets/js/shared/components/success-modal.js';
 // Import bundle products service
 import { bundleProductsService } from './assets/js/shared/services/bundle-products.service.js';
 // Import form validator
@@ -1286,11 +1284,24 @@ const cart = {
                 storage.saveDiscount(null);
                 localStorage.removeItem('orderNote');
                 
-                // Show success modal with order info
-                successModal.show({
-                    orderId: result.order.id,
-                    total: result.order.total
-                });
+                // Redirect to success page (no modal)
+                const orderId = result.order?.id;
+                const total = result.order?.total;
+                if (orderId) {
+                    // Save latest successful order for fallback if URL params missing.
+                    try {
+                        localStorage.setItem('shop_last_success_order', JSON.stringify({
+                            orderId: String(orderId),
+                            total: total ?? null,
+                            savedAt: Date.now()
+                        }));
+                    } catch (e) {}
+
+                    window.location.href =
+                        `/shop/order-success.html?orderId=${encodeURIComponent(orderId)}&total=${encodeURIComponent(total ?? '')}`;
+                } else {
+                    window.location.href = '/shop/';
+                }
                 
             } else {
                 throw new Error(result.error || 'Không thể tạo đơn hàng');

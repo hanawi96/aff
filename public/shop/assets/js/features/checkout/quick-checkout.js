@@ -9,7 +9,6 @@ import { CONFIG } from '../../shared/constants/config.js';
 import { apiService } from '../../shared/services/api.service.js';
 import { AddressSelector } from '../../components/address-selector.js';
 import { discountService } from '../../shared/services/discount.service.js';
-import { successModal } from '../../shared/components/success-modal.js';
 import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
 import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
@@ -2179,11 +2178,23 @@ export class QuickCheckout {
                 // Close checkout modal
                 this.close();
                 
-                // Show success modal with order info
-                successModal.show({
-                    orderId: result.order?.order_id || orderData.orderId,
-                    total: totalAmount
-                });
+                // Redirect to success page (no modal)
+                const orderId = result.order?.order_id || orderData.orderId;
+                if (orderId) {
+                    // Save latest successful order for fallback if URL params missing.
+                    try {
+                        localStorage.setItem('shop_last_success_order', JSON.stringify({
+                            orderId: String(orderId),
+                            total: totalAmount ?? null,
+                            savedAt: Date.now()
+                        }));
+                    } catch (e) {}
+
+                    window.location.href =
+                        `/shop/order-success.html?orderId=${encodeURIComponent(orderId)}&total=${encodeURIComponent(totalAmount ?? '')}`;
+                } else {
+                    window.location.href = '/shop/';
+                }
                 
                 // Reset button state
                 submitBtn.disabled = false;
