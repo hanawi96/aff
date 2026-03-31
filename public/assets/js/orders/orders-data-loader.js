@@ -77,6 +77,9 @@ async function loadOrdersData() {
             filterOrdersData();
             updateDateSortIcon();
             updateAmountSortIcon();
+            if (typeof updateMissingSizeBanner === 'function') {
+                updateMissingSizeBanner();
+            }
             hideLoading();
         } else {
             throw new Error(data.error || 'Failed to load data');

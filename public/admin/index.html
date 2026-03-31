@@ -551,6 +551,22 @@
                     <h2 class="text-lg font-semibold text-gray-900">Danh Sách Đơn Hàng</h2>
                 </div>
 
+                <!-- Banner: đơn còn SP thiếu cân/size (cập nhật theo dữ liệu, không phụ thuộc bộ lọc) -->
+                <div id="ordersMissingSizeBanner" class="hidden px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm text-amber-950 flex-1 min-w-0">
+                        <span class="font-semibold">Lưu ý:</span>
+                        <span id="ordersMissingSizeBannerText">Có 0 đơn hàng chưa có cân nặng</span>
+                    </p>
+                    <button type="button" onclick="showOrdersMissingSizeListModal()" title="Xem danh sách đơn"
+                        class="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-100 transition-colors"
+                        aria-label="Xem danh sách">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+
                 <!-- Loading State -->
                 <div id="loadingState" class="p-8">
                     <div class="space-y-4">
@@ -784,23 +800,23 @@
     <!-- Orders Modules (refactored from orders.js) -->
     <script src="../assets/js/orders/orders-address-learning.js?v=1"></script>
     <script src="../assets/js/orders/orders-smart-paste.js?v=2"></script>
-    <script src="../assets/js/orders/orders-constants.js?v=1"></script>
-    <script src="../assets/js/orders/orders-utils.js?v=4"></script>
+    <script src="../assets/js/orders/orders-constants.js?v=2"></script>
+    <script src="../assets/js/orders/orders-utils.js?v=5"></script>
     <script src="../assets/js/orders/orders-ui-states.js?v=1"></script>
     <script src="../assets/js/orders/orders-pagination.js?v=1"></script>
     <script src="../assets/js/orders/orders-sorting.js?v=2"></script>
     <script src="../assets/js/orders/orders-stats.js?v=2"></script>
     <script src="../assets/js/orders/orders-data-loader.js?v=6"></script>
     <script src="../assets/js/orders/orders-filters.js?v=8"></script>
-    <script src="../assets/js/orders/orders-bulk-actions.js?v=2"></script>
+    <script src="../assets/js/orders/orders-bulk-actions.js?v=3"></script>
     <script src="../assets/js/orders/orders-export-history.js?v=25"></script>
     <script src="../assets/js/orders/orders-priority.js?v=2"></script>
-    <script src="../assets/js/orders/orders-table.js?v=3"></script>
+    <script src="../assets/js/orders/orders-table.js?v=4"></script>
     <script src="../assets/js/orders/orders-status.js?v=2"></script>
     <script src="../assets/js/orders/orders-products-display.js?v=3"></script>
     <script src="../assets/js/orders/orders-profit-modal.js?v=1"></script>
     <script src="../assets/js/orders/orders-ctv-modal.js?v=1"></script>
-    <script src="../assets/js/orders/orders-delete-modals.js?v=1"></script>
+    <script src="../assets/js/orders/orders-delete-modals.js?v=2"></script>
     <script src="../assets/js/orders/orders-edit-modals.js?v=10"></script>
     <script src="../assets/js/orders/orders-customer.js?v=4"></script>
     <script src="../assets/js/orders/orders-chart.js?v=2"></script>

@@ -149,6 +149,10 @@ async function deleteOrder(orderId, orderCode) {
             // Re-render the table
             renderOrdersTable();
 
+            if (typeof updateMissingSizeBanner === 'function') {
+                updateMissingSizeBanner();
+            }
+
             showToast(`Đã xóa đơn hàng ${orderCode}`, 'success', null, deleteId);
         } else {
             throw new Error(data.error || 'Không thể xóa đơn hàng');

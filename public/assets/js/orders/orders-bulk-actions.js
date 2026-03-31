@@ -85,6 +85,79 @@ function clearSelection() {
 // ============================================
 
 /**
+ * Modal cảnh báo: trong các đơn đã chọn có đơn còn sản phẩm thiếu cân/size (giống copy SPX)
+ * @param {Array<{ order: object, missing: string[] }>} entries
+ * @param {function} onConfirm — gọi khi bấm "Có, export tiếp"
+ */
+function showBulkExportMissingSizeModal(entries, onConfirm) {
+    const modalId = 'bulkExportMissingSizeModal';
+    document.getElementById(modalId)?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = modalId;
+    overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+
+    const listHtml = entries.map(({ order, missing }) => {
+        const code = escapeHtml(String(order.order_id || order.id || ''));
+        const names = missing.slice(0, 10).map((n) => escapeHtml(n)).join(', ');
+        const more = missing.length > 10 ? ` … (+${missing.length - 10} SP)` : '';
+        return `<li class="text-sm text-gray-800 border-b border-gray-100 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+            <span class="font-semibold text-amber-800">${code}</span>
+            <span class="text-gray-600"> — ${names}${more}</span>
+        </li>`;
+    }).join('');
+
+    overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-amber-200 overflow-hidden" role="dialog" aria-modal="true">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Thiếu cân nặng / size
+                </h3>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-700 mb-3">Có <strong>${entries.length}</strong> đơn (trong số đã chọn) còn sản phẩm chưa có cân hoặc size. Export Excel thường cần đủ thông tin.</p>
+                <ul class="max-h-56 overflow-y-auto space-y-0 pr-1 list-none pl-0">${listHtml}</ul>
+                <p class="text-sm font-medium text-gray-900 mt-4">Bạn vẫn muốn export?</p>
+                <div class="flex flex-wrap gap-2 justify-end mt-5">
+                    <button type="button" class="bulk-export-miss-cancel px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium">Hủy</button>
+                    <button type="button" class="bulk-export-miss-ok px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">Có, export tiếp</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const close = () => overlay.remove();
+
+    overlay.querySelector('.bulk-export-miss-cancel').addEventListener('click', close);
+    overlay.querySelector('.bulk-export-miss-ok').addEventListener('click', () => {
+        close();
+        onConfirm();
+    });
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    document.body.appendChild(overlay);
+}
+
+/**
+ * Sau khi qua cảnh báo thiếu size (nếu có): kiểm tra đơn đã gửi hàng rồi export
+ */
+async function proceedBulkExportFlow(selectedOrders) {
+    const shippedOrders = selectedOrders.filter((o) => o.status === 'shipped');
+
+    if (shippedOrders.length > 0) {
+        showShippedOrdersConfirmModal(shippedOrders.length, selectedOrders);
+        return;
+    }
+
+    await performExport(selectedOrders);
+}
+
+/**
  * Bulk Export - Export selected orders to SPX Excel format
  */
 async function bulkExport() {
@@ -94,34 +167,31 @@ async function bulkExport() {
     }
 
     try {
-        // Check if XLSX library is loaded (silently load if needed)
         if (typeof XLSX === 'undefined') {
             await loadXLSXLibrary();
         }
 
-        const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(o.id));
-        
-        // ============================================
-        // IMPROVEMENT: Check for shipped orders
-        // ============================================
-        const shippedOrders = selectedOrders.filter(o => o.status === 'shipped');
-        
-        console.log('🔍 Bulk Export Debug:');
-        console.log('  Total selected:', selectedOrders.length);
-        console.log('  Shipped orders:', shippedOrders.length);
-        console.log('  Selected orders statuses:', selectedOrders.map(o => ({ id: o.id, status: o.status })));
-        
-        if (shippedOrders.length > 0) {
-            console.log('  ✅ Showing confirmation modal');
-            // Show confirmation modal
-            showShippedOrdersConfirmModal(shippedOrders.length, selectedOrders);
-            return; // Wait for user decision
+        const selectedOrders = allOrdersData.filter((o) => selectedOrderIds.has(o.id));
+
+        const missingEntries = [];
+        for (const order of selectedOrders) {
+            const missing = getOrderProductsMissingSizeWeight(order);
+            if (missing.length > 0) {
+                missingEntries.push({ order, missing });
+            }
         }
-        
-        console.log('  ⏭️ No shipped orders, proceeding with export');
-        // No shipped orders, proceed with export
-        await performExport(selectedOrders);
-        
+
+        if (missingEntries.length > 0) {
+            showBulkExportMissingSizeModal(missingEntries, () => {
+                proceedBulkExportFlow(selectedOrders).catch((err) => {
+                    console.error('Error exporting:', err);
+                    showToast('Lỗi: ' + err.message, 'error');
+                });
+            });
+            return;
+        }
+
+        await proceedBulkExportFlow(selectedOrders);
     } catch (error) {
         console.error('Error exporting:', error);
         showToast('Lỗi: ' + error.message, 'error');

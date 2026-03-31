@@ -133,5 +133,9 @@ function updateOrderData(orderId, updates) {
     if (filteredIndex !== -1) {
         Object.assign(filteredOrdersData[filteredIndex], updates);
     }
+
+    if (typeof updateMissingSizeBanner === 'function') {
+        updateMissingSizeBanner();
+    }
 }
 

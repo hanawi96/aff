@@ -186,6 +186,97 @@ function getOrderProductsMissingSizeWeight(order) {
 }
 
 /**
+ * Một lượt quét allOrdersData — đơn nào có ≥1 SP thiếu cân/size (dùng chung bộ lọc / SPX)
+ */
+function computeOrdersWithMissingSize() {
+    if (typeof allOrdersData === 'undefined' || !Array.isArray(allOrdersData)) return [];
+    const out = [];
+    for (const order of allOrdersData) {
+        const missing = getOrderProductsMissingSizeWeight(order);
+        if (missing.length > 0) out.push({ order, missing });
+    }
+    return out;
+}
+
+/**
+ * Cập nhật dòng "Lưu ý" phía trên bảng đơn (ẩn nếu không có đơn thiếu size)
+ */
+function updateMissingSizeBanner() {
+    const wrap = document.getElementById('ordersMissingSizeBanner');
+    const textEl = document.getElementById('ordersMissingSizeBannerText');
+    if (!wrap || !textEl) return;
+    const n = computeOrdersWithMissingSize().length;
+    if (n === 0) {
+        wrap.classList.add('hidden');
+        return;
+    }
+    textEl.textContent = `Có ${n} đơn hàng chưa có cân nặng`;
+    wrap.classList.remove('hidden');
+}
+
+/**
+ * Modal danh sách đơn thiếu cân/size (bấm icon mắt trên banner)
+ */
+function showOrdersMissingSizeListModal() {
+    const entries = computeOrdersWithMissingSize();
+    const modalId = 'ordersMissingSizeListModal';
+    document.getElementById(modalId)?.remove();
+
+    if (entries.length === 0) {
+        showToast('Không còn đơn nào thiếu cân/size', 'info');
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = modalId;
+    overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+
+    const rows = entries.map(({ order, missing }) => {
+        const code = escapeHtml(String(order.order_id || order.id || ''));
+        const cust = escapeHtml(String(order.customer_name || '—'));
+        const names = missing.map((m) => escapeHtml(m)).join(', ');
+        return `<tr class="border-b border-gray-100 hover:bg-amber-50/50">
+            <td class="py-2.5 px-3 text-sm font-semibold text-amber-900 whitespace-nowrap">${code}</td>
+            <td class="py-2.5 px-3 text-sm text-gray-800">${cust}</td>
+            <td class="py-2.5 px-3 text-sm text-gray-600">${names}</td>
+        </tr>`;
+    }).join('');
+
+    overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[88vh] overflow-hidden border border-amber-200 flex flex-col" role="dialog" aria-modal="true">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-lg font-bold text-white">Đơn hàng chưa đủ cân / size</h3>
+                <button type="button" class="orders-missing-list-close text-white/90 hover:text-white p-1 rounded-lg hover:bg-white/10" aria-label="Đóng">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <p class="text-sm text-gray-600 mb-3">Tổng <strong>${entries.length}</strong> đơn — sản phẩm thiếu cân hoặc size:</p>
+                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="min-w-full text-left">
+                        <thead class="bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            <tr>
+                                <th class="py-2.5 px-3">Mã đơn</th>
+                                <th class="py-2.5 px-3">Khách hàng</th>
+                                <th class="py-2.5 px-3">Sản phẩm thiếu size</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const close = () => overlay.remove();
+    overlay.querySelector('.orders-missing-list-close').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+    document.body.appendChild(overlay);
+}
+
+/**
  * Format weight/size value with proper unit
  * @param {string|number} value - Weight or size value
  * @returns {string} Formatted value with unit (e.g., "5kg", "100g")

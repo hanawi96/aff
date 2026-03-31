@@ -261,7 +261,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     // Giá trị (Total Amount - Doanh thu)
     const tdAmount = document.createElement('td');
     tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center';
-    const paymentMethod = order.payment_method || 'cod';
+    const paymentMethod = (order.payment_method || 'cod').toLowerCase().trim();
     
     // Calculate total amount (doanh thu)
     const shippingFee = order.shipping_fee || 0;
@@ -287,7 +287,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
                 </button>
             </div>
             <div class="text-xs ${isBankTransfer ? 'text-green-600 font-medium' : 'text-gray-500'}">
-                ${isBankTransfer ? 'bank' : 'cod'}
+                ${isBankTransfer ? 'Đã CK' : 'cod'}
             </div>
         </div>
     `;
