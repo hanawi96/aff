@@ -181,6 +181,9 @@ const cart = {
         
         // Check and save CTV referral from URL (if exists)
         await checkAndSaveReferralFromURL();
+
+        // Load shipping fee from admin settings first (before any rendering)
+        await cart.loadShippingFee();
         
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
@@ -308,6 +311,20 @@ const cart = {
     },
 
     // Load available discounts from API
+    loadShippingFee: async () => {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/get?action=getShippingFee`);
+            const data = await response.json();
+            if (data.success && data.shippingFee) {
+                CONFIG.SHIPPING_FEE = data.shippingFee;
+                state.shippingFee = data.shippingFee;
+                console.log('📦 [Cart] Shipping fee loaded from API:', CONFIG.SHIPPING_FEE);
+            }
+        } catch (error) {
+            console.error('[Cart] Error loading shipping fee, using default:', CONFIG.SHIPPING_FEE, error);
+        }
+    },
+
     loadAvailableDiscounts: async () => {
         try {
             const allDiscounts = await discountService.getActiveDiscounts();

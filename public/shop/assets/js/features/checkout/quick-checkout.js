@@ -872,8 +872,9 @@ export class QuickCheckout {
         const subtotal = (this.product.price * this.quantity) + weightSurcharge;
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0);
         
-        // Check if free shipping from cross-sell or discount
-        const hasFreeShipping = this.selectedCrossSells.length > 0 || 
+        // Check if free shipping: cross-sell selected, freeship discount, or quantity >= 2
+        const hasFreeShipping = this.quantity >= 2 ||
+                               this.selectedCrossSells.length > 0 || 
                                (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
         const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
         
@@ -924,6 +925,7 @@ export class QuickCheckout {
         // Update button states
         document.getElementById('checkoutQtyMinus').disabled = this.quantity <= 1;
         document.getElementById('checkoutQtyPlus').disabled = this.quantity >= this.product.maxQuantity;
+
     }
     
     /**
@@ -1419,8 +1421,9 @@ export class QuickCheckout {
             orderItemsList.innerHTML = chipsHtml;
         }
         
-        // Calculate shipping (free if any cross-sell selected or discount is freeship)
-        const hasFreeShipping = this.selectedCrossSells.length > 0 || 
+        // Calculate shipping (free if qty >= 2, cross-sell selected, or freeship discount)
+        const hasFreeShipping = this.quantity >= 2 ||
+                               this.selectedCrossSells.length > 0 || 
                                (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
         const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
         
@@ -1998,7 +2001,8 @@ export class QuickCheckout {
             const product = this.crossSellProducts.find(p => p.id === item.id); 
             return sum + (product ? product.price * item.quantity : 0); 
         }, 0);
-        const hasFreeShipping = this.selectedCrossSells.length > 0 || 
+        const hasFreeShipping = this.quantity >= 2 ||
+                               this.selectedCrossSells.length > 0 || 
                                (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
         const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
         const totalAmount = productTotal + crossSellTotal + shippingFee - this.discountAmount;
