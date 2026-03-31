@@ -193,29 +193,58 @@ class ErrorDisplayService {
      * @param {number} offset - Offset from top
      */
     scrollToErrorInModal(fieldId, modalId, offset = 20) {
-        const field = document.getElementById(fieldId);
         const modal = document.getElementById(modalId);
-        
-        if (!field || !modal) return;
-        
-        // Find scrollable container
-        const scrollContainer = modal.querySelector('.modal-content') || modal;
-        
-        // Calculate position relative to modal
+        if (!modal) return;
+
+        let field = document.getElementById(fieldId);
+        // Mua ngay: checkoutBabyWeight là input hidden — cuộn tới khối chọn cân hiển thị
+        if (fieldId === 'checkoutBabyWeight') {
+            const weightGroup = document.getElementById('babyWeightGroup');
+            if (weightGroup) {
+                field = weightGroup;
+            }
+        }
+        // Tên bé: cuộn tới cả khối (label + ô nhập)
+        if (fieldId === 'checkoutBabyName') {
+            const nameGroup = document.getElementById('babyNameGroup');
+            if (nameGroup) {
+                field = nameGroup;
+            }
+        }
+        if (!field) return;
+
+        // Modal "Mua ngay" cuộn trong .quick-checkout-body; modal khác thường dùng .modal-content
+        const scrollContainer =
+            modal.querySelector('.quick-checkout-body') ||
+            modal.querySelector('.modal-content') ||
+            modal;
+
         const fieldRect = field.getBoundingClientRect();
         const containerRect = scrollContainer.getBoundingClientRect();
         const relativeTop = fieldRect.top - containerRect.top + scrollContainer.scrollTop;
-        
-        // Smooth scroll within modal
+
         scrollContainer.scrollTo({
-            top: relativeTop - offset,
+            top: Math.max(0, relativeTop - offset),
             behavior: 'smooth'
         });
-        
-        // Focus field after scroll
+
         setTimeout(() => {
-            field.focus();
-            this.highlightElement(field);
+            if (fieldId === 'checkoutBabyWeight') {
+                const firstPreset = document.querySelector('#babyWeightGroup .weight-preset-btn');
+                if (firstPreset) {
+                    firstPreset.focus({ preventScroll: true });
+                    this.highlightElement(firstPreset);
+                }
+            } else if (fieldId === 'checkoutBabyName') {
+                const nameInput = document.getElementById('checkoutBabyName');
+                if (nameInput) {
+                    nameInput.focus({ preventScroll: true });
+                    this.highlightElement(nameInput);
+                }
+            } else if (field && field.offsetParent !== null && field.type !== 'hidden') {
+                field.focus({ preventScroll: true });
+                this.highlightElement(field);
+            }
         }, this.SCROLL_DURATION);
     }
     

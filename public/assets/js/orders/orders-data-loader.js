@@ -68,18 +68,15 @@ async function loadOrdersData() {
 
         if (data.success) {
             allOrdersData = data.orders || [];
-            filteredOrdersData = [...allOrdersData];
 
             // Build search index for fast searching
             buildSearchIndex();
 
-            // Apply default sorting (newest first)
-            applySorting();
+            // Áp dụng bộ lọc theo DOM (trạng thái mặc định: chưa gửi, thanh toán, CTV, ngày…)
+            // Trước đây gán filteredOrdersData = toàn bộ đơn nên UI lọc và bảng không khớp.
+            filterOrdersData();
             updateDateSortIcon();
             updateAmountSortIcon();
-
-            updateStats();
-            renderOrdersTable();
             hideLoading();
         } else {
             throw new Error(data.error || 'Failed to load data');
@@ -233,10 +230,9 @@ ${order.address || 'N/A'}`;
             await toggleOrderPriority(orderId, 1, true, true); // silent + skipRender
         }
 
-        // Render once after all updates
+        // Render once after all updates — refilter để đồng bộ với bộ lọc trạng thái đang bật
         if (needsStatusUpdate || needsPriorityRemoval) {
-            applySorting();
-            renderOrdersTable();
+            filterOrdersData(true);
         }
     } catch (err) {
         console.error('Failed to copy:', err);

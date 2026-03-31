@@ -410,7 +410,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .bulk-input-group .error-message {
-    font-size: 11px;
+    font-size: 13px;
     color: #ef4444;
     margin-top: -4px;
 }

@@ -10,7 +10,7 @@
 .error-message {
     display: none;
     color: #e74c3c;
-    font-size: 12px;
+    font-size: 13px;
     margin-top: 6px;
     padding: 0;
     background-color: transparent;
@@ -62,7 +62,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .error-message {
-        font-size: 11px;
+        font-size: 13px;
     }
 }
 

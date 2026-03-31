@@ -348,9 +348,9 @@ async function bulkUpdateStatus(newStatus, statusLabel) {
             }
         }
 
-        // Clear selection and re-render
+        // Clear selection — refilter để đơn đổi trạng thái không còn khớp bộ lọc sẽ biến khỏi danh sách
         clearSelection();
-        renderOrdersTable();
+        filterOrdersData(true);
 
         // Show result
         if (failCount === 0) {

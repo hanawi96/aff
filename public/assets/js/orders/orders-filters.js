@@ -68,10 +68,13 @@ function invalidateSearchCache() {
 /**
  * Filter orders data based on search, status, payment method, CTV, and date filters
  * OPTIMIZED: Uses pre-built search index for 10x faster search
+ * @param {boolean} [preservePage=false] - true: giữ trang hiện tại (hợp lệ sau khi đổi trạng thái 1 đơn, refilter)
  */
-function filterOrdersData() {
+function filterOrdersData(preservePage = false) {
+    const pageBeforeFilter = preservePage ? currentPage : null;
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+    // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
+    const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
@@ -189,7 +192,12 @@ function filterOrdersData() {
     // Apply sorting
     applySorting();
 
-    currentPage = 1; // Reset to first page when filtering
+    if (preservePage && pageBeforeFilter != null) {
+        const totalPages = Math.max(1, Math.ceil(filteredOrdersData.length / itemsPerPage) || 1);
+        currentPage = Math.min(Math.max(1, pageBeforeFilter), totalPages);
+    } else {
+        currentPage = 1; // Reset to first page when filtering (đổi bộ lọc thủ công)
+    }
 
     // Update stats based on filtered data
     updateStats();
@@ -236,7 +244,7 @@ function toggleStatusFilter(event) {
 
     const statuses = [
         { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
-        { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
+        { value: 'pending', label: 'Chưa gửi hàng', color: 'yellow' },
         { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
         { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
         { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },

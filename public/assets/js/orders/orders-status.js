@@ -151,21 +151,15 @@ async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, 
         const data = await response.json();
 
         if (data.success) {
-            // Update local data
+            // Cập nhật nguồn dữ liệu gốc — filteredOrdersData sẽ được tính lại bởi filterOrdersData
             const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
             if (orderIndex !== -1) {
                 allOrdersData[orderIndex].status = newStatus;
             }
 
-            // Update filtered data
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].status = newStatus;
-            }
-
-            // Re-render the table (only if not skipped)
+            // Áp lại bộ lọc hiện tại: đơn không còn khớp (vd. đã gửi khi đang lọc chưa gửi) sẽ biến mất ngay
             if (!skipRender) {
-                renderOrdersTable();
+                filterOrdersData(true);
             }
 
             // Show success toast (only if not silent)

@@ -663,9 +663,7 @@ export class BabyWeightModal {
             if (cancelBtn) cancelBtn.onclick = onCancel;
             if (closeBtn) closeBtn.onclick = onCancel;
 
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) onCancel();
-            });
+            // Không đóng khi bấm ra ngoài overlay — chỉ nút × / Hủy / Đồng ý
         });
     }
     
@@ -702,15 +700,7 @@ export class BabyWeightModal {
             customInput.oninput = (e) => this.handleCustomInput(e.target.value);
         }
         
-        // Click outside to close
-        const modal = this.getModalElement();
-        if (modal) {
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    this.close();
-                }
-            };
-        }
+        // Không đóng khi bấm ra ngoài (backdrop) — đóng bằng nút X / Hủy
     }
     
     /**

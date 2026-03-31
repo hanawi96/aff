@@ -37,15 +37,9 @@ async function toggleOrderPriority(orderId, currentPriority, silent = false, ski
             allOrdersData[orderIndex].is_priority = data.isPriority;
         }
         
-        const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-        if (filteredIndex !== -1) {
-            filteredOrdersData[filteredIndex].is_priority = data.isPriority;
-        }
-        
-        // Re-sort and render (only if not skipped)
+        // filteredOrdersData được tính lại bởi filterOrdersData (lọc ưu tiên đang bật thì đồng bộ đúng)
         if (!skipRender) {
-            applySorting();
-            renderOrdersTable();
+            filterOrdersData(true);
         }
         
         // Show toast only if not silent

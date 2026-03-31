@@ -1929,35 +1929,26 @@ export class QuickCheckout {
         if (!addressValidation.isValid) {
             console.error('❌ Address validation failed:', addressValidation.message);
             
-            // Show toast notification
             showToast(addressValidation.message, 'error');
             
-            // Show inline error for address fields
-            if (!this.addressSelector.provinceCode) {
-                errorDisplayService.showError('provinceSelect', addressValidation.message);
-            } else if (!this.addressSelector.districtCode) {
-                errorDisplayService.showError('districtSelect', addressValidation.message);
-            } else if (!this.addressSelector.wardCode) {
-                errorDisplayService.showError('wardSelect', addressValidation.message);
+            // Địa chỉ phân cấp (HierarchicalAddressSelector): không có provinceSelect/districtSelect/wardSelect trong DOM
+            const needAddressPick = !this.addressSelector.provinceCode ||
+                !this.addressSelector.districtCode ||
+                !this.addressSelector.wardCode;
+            let scrollFieldId = 'addressSelectorDisplay';
+            if (needAddressPick) {
+                errorDisplayService.showError('addressSelectorDisplay', addressValidation.message);
+                scrollFieldId = 'addressSelectorDisplay';
             } else if (!this.addressSelector.street) {
                 errorDisplayService.showError('streetInput', addressValidation.message);
+                scrollFieldId = 'streetInput';
             }
-            
-            // Scroll to address section in modal
-            const addressContainer = document.getElementById('quickCheckoutAddressSelectorContainer');
-            if (addressContainer) {
-                addressContainer.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-            }
+            errorDisplayService.scrollToErrorInModal(scrollFieldId, 'quickCheckoutModal', 20);
             return;
         }
         
         // Clear address errors if validation passed
-        errorDisplayService.clearError('provinceSelect');
-        errorDisplayService.clearError('districtSelect');
-        errorDisplayService.clearError('wardSelect');
+        errorDisplayService.clearError('addressSelectorDisplay');
         errorDisplayService.clearError('streetInput');
         
         // Validate bank transfer confirmation
@@ -1968,13 +1959,9 @@ export class QuickCheckout {
             if (errorEl) {
                 errorEl.classList.remove('hidden');
                 
-                // Scroll to bank confirm button smoothly
                 const bankInfo = document.getElementById('bankTransferInfo');
                 if (bankInfo) {
-                    bankInfo.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
-                    });
+                    errorDisplayService.scrollToErrorInModal('bankTransferInfo', 'quickCheckoutModal', 20);
                 }
             }
             return;
@@ -2333,15 +2320,7 @@ export class QuickCheckout {
             closeBtn.addEventListener('click', () => this.close());
         }
         
-        // Click outside to close
-        const modal = document.getElementById('quickCheckoutModal');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.close();
-                }
-            });
-        }
+        // Không đóng khi bấm ra ngoài (backdrop) — chỉ đóng bằng nút X
         
         // Quantity buttons
         const qtyMinus = document.getElementById('checkoutQtyMinus');
@@ -2509,15 +2488,7 @@ export class QuickCheckout {
             viewCodesBtn.addEventListener('click', () => this.openDiscountModal());
         }
         
-        // ESC key to close
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const modal = document.getElementById('quickCheckoutModal');
-                if (modal && !modal.classList.contains('hidden')) {
-                    this.close();
-                }
-            }
-        });
+        // Không đóng bằng phím Escape — chỉ đóng bằng nút X (tránh trùng với dropdown/địa chỉ)
     }
 
     /**
