@@ -302,11 +302,12 @@ function createCTVRow(ctv, index) {
     tdQr.className = 'px-5 py-4 whitespace-nowrap text-center';
     const qrUrl = ctv.qrImageUrl || ctv.qr_image_url;
     if (qrUrl) {
-        const safeSrc = escapeHtml(qrUrl);
+        const displayUrl = getQrDisplayUrl(qrUrl);
+        const safeSrc = escapeHtml(displayUrl);
         tdQr.innerHTML = `
             <button type="button" onclick="showQrModal(${JSON.stringify(qrUrl)}, ${JSON.stringify(ctv.fullName || '')})"
                 class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-emerald-200 bg-white shadow-sm hover:ring-2 hover:ring-emerald-400/50 transition overflow-hidden p-0.5" title="Xem QR">
-                <img src="${safeSrc}" alt="QR" class="w-full h-full object-cover rounded-md" width="40" height="40" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                <img src="${safeSrc}" alt="QR" class="w-full h-full object-cover rounded-md" width="40" height="40" loading="lazy" decoding="async">
             </button>`;
     } else {
         tdQr.innerHTML = `<span class="text-slate-300">—</span>`;
@@ -784,12 +785,12 @@ function showEditModal(ctv) {
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Ảnh QR Ngân hàng</label>
                         <input type="file" id="editQrInput" accept="image/*" class="hidden">
-                        <input type="hidden" id="editCtvQrUrl" value="${ctv.qrImageUrl || ''}">
+                        <input type="hidden" id="editCtvQrUrl" value="${escapeHtml(ctv.qrImageUrl || '')}">
                         <input type="hidden" id="editQrChanged" value="false">
 
                         ${ctv.qrImageUrl ? `
                         <div id="editQrImageWrapper" class="relative group">
-                            <img id="editQrPreviewImg" src="${ctv.qrImageUrl}" alt="QR Preview"
+                            <img id="editQrPreviewImg" src="${escapeHtml(getQrDisplayUrl(ctv.qrImageUrl))}" alt="QR Preview"
                                 class="max-h-36 mx-auto rounded-xl border border-gray-200 shadow-sm transition-opacity">
                             <!-- Overlay trên ảnh — hiện khi hover -->
                             <div id="editQrOverlay" class="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 gap-3">
@@ -875,9 +876,6 @@ function initEditQrUpload() {
 
 function handleEditQrSelect() {
     const qrInput = document.getElementById('editQrInput');
-    const previewImg = document.getElementById('editQrPreviewImg');
-    const wrapper = document.getElementById('editQrImageWrapper');
-
     const file = qrInput.files[0];
     if (!file) return;
 
@@ -892,12 +890,40 @@ function handleEditQrSelect() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
+        const previewImg = document.getElementById('editQrPreviewImg');
         if (previewImg) {
+            // CTV đã có QR: cập nhật ảnh preview và hiện badge
             previewImg.src = e.target.result;
+            const badge = document.getElementById('editQrBadge');
+            if (badge) badge.classList.remove('hidden');
+        } else {
+            // CTV chưa có QR: tạo preview wrapper thay thế dropzone
+            const dropZone = document.getElementById('editQrDropZone');
+            if (dropZone) {
+                const newWrapper = document.createElement('div');
+                newWrapper.id = 'editQrImageWrapper';
+                newWrapper.className = 'relative group';
+                newWrapper.innerHTML = `
+                    <img id="editQrPreviewImg" src="${e.target.result}" alt="QR Preview"
+                        class="max-h-36 mx-auto rounded-xl border border-gray-200 shadow-sm transition-opacity">
+                    <div id="editQrOverlay" class="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 gap-3">
+                        <button type="button" onclick="document.getElementById('editQrInput').click()"
+                            class="flex items-center gap-2 px-4 py-2 bg-white text-slate-800 rounded-lg text-sm font-medium shadow hover:bg-slate-100 transition-colors" title="Đổi ảnh QR">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd"/></svg>
+                            Đổi ảnh
+                        </button>
+                        <button type="button" onclick="removeEditQrImage()"
+                            class="flex items-center gap-2 px-4 py-2 bg-white text-red-600 rounded-lg text-sm font-medium shadow hover:bg-red-50 transition-colors" title="Xóa ảnh QR">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd"/></svg>
+                            Xóa
+                        </button>
+                    </div>
+                    <span id="editQrBadge" class="absolute top-2 right-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">Đã chọn</span>
+                    </span>`;
+                dropZone.replaceWith(newWrapper);
+            }
         }
-        // Hiện badge "Đã chọn" để biết có ảnh mới chưa lưu
-        const badge = document.getElementById('editQrBadge');
-        if (badge) badge.classList.remove('hidden');
         // Đánh dấu đã đổi
         const changedFlag = document.getElementById('editQrChanged');
         if (changedFlag) changedFlag.value = 'true';
@@ -1518,6 +1544,24 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Chuyển URL R2 trực tiếp (pub-...r2.dev) sang Worker proxy để load ảnh qua Worker.
+// Cần thiết cho local dev: file được upload vào R2 simulation của Wrangler,
+// nhưng URL pub-...r2.dev trỏ đến Cloudflare cloud (file không tồn tại ở đó).
+// Worker proxy (?action=getR2Image&key=...) serve file từ R2 simulation cục bộ.
+// Trong production Worker cũng serve được từ R2 thật → hoạt động đúng ở cả 2 môi trường.
+function getQrDisplayUrl(rawUrl) {
+    if (!rawUrl) return null;
+    const R2_DOMAIN = 'pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
+    if (rawUrl.includes(R2_DOMAIN)) {
+        const idx = rawUrl.indexOf(R2_DOMAIN + '/');
+        if (idx !== -1) {
+            const key = rawUrl.substring(idx + R2_DOMAIN.length + 1);
+            return `${CONFIG.API_URL}/?action=getR2Image&key=${encodeURIComponent(key)}`;
+        }
+    }
+    return rawUrl;
 }
 
 function formatCurrency(amount) {
@@ -2745,9 +2789,10 @@ function updateCharts() {
 window.showQrModal = function(url, name) {
     const modal = document.getElementById('qrModal');
     if (!modal) return;
-    document.getElementById('qrModalImg').src = url;
+    const displayUrl = getQrDisplayUrl(url);
+    document.getElementById('qrModalImg').src = displayUrl;
     document.getElementById('qrModalTitle').textContent = 'QR Ngân Hàng - ' + name;
-    document.getElementById('qrDownloadBtn').href = url;
+    document.getElementById('qrDownloadBtn').href = displayUrl;
     document.getElementById('qrDownloadBtn').download = 'QR_' + (name || 'CTV') + '_' + Date.now() + '.jpg';
     modal.classList.remove('hidden');
 };

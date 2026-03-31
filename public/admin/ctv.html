@@ -1446,46 +1446,16 @@
             addCtvQrUrl.value = '';
         };
 
-        // Intercept form submit to upload QR first
+        // Form submit: tạo CTV trước → sau đó upload QR bằng referralCode thật
         const addCTVForm = document.getElementById('addCTVForm');
         if (addCTVForm) {
             addCTVForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 const file = addQrInput.files[0];
-                let qrUrl = addCtvQrUrl.value;
+                const submitBtn = addCTVForm.querySelector('[type="submit"]');
+                const originalText = submitBtn.innerHTML;
 
-                // Upload QR nếu có file mới
-                if (file && !qrUrl) {
-                    const base64 = await fileToBase64(file);
-                    const submitBtn = addCTVForm.querySelector('[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải ảnh...';
-
-                    try {
-                        const res = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                referralCode: 'TEMP_' + Date.now(),
-                                imageBase64: base64
-                            })
-                        });
-                        const result = await res.json();
-                        if (result.success) {
-                            qrUrl = result.qr_image_url;
-                            addCtvQrUrl.value = qrUrl;
-                        }
-                    } catch (err) {
-                        console.error('QR upload error:', err);
-                    }
-
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-
-                // Submit form data
                 const formData = new FormData(addCTVForm);
                 const data = {
                     fullName: formData.get('fullName'),
@@ -1497,36 +1467,63 @@
                     bankName: formData.get('bankName'),
                     commissionRate: (parseFloat(formData.get('commissionRate')) || 12) / 100,
                     status: formData.get('status'),
-                    qrImageUrl: qrUrl || null
+                    qrImageUrl: null
                 };
 
-                const submitBtn = addCTVForm.querySelector('[type="submit"]');
-                const originalText = submitBtn.innerHTML;
+                // Bước 1: Tạo CTV trước (không có QR)
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang xử lý...';
 
+                let registerResult;
                 try {
                     const res = await fetch(`${CONFIG.API_URL}/api/ctv/register`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     });
-                    const result = await res.json();
-
-                    if (result.success) {
-                        closeAddCTVModal();
-                        removeAddQrImage();
-                        showReferralLinkModal(result.referralCode, result.referralUrl, data.fullName);
-                        loadCTVData();
-                    } else {
-                        alert(result.error || 'Có lỗi xảy ra');
+                    registerResult = await res.json();
+                    if (!registerResult.success) {
+                        alert(registerResult.error || 'Có lỗi xảy ra');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        return;
                     }
                 } catch (err) {
                     alert('Lỗi kết nối: ' + err.message);
-                } finally {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
+                    return;
                 }
+
+                // Bước 2: Upload QR bằng referralCode thật (CTV đã tồn tại trong DB)
+                if (file) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải ảnh QR...';
+                    try {
+                        const base64 = await fileToBase64(file);
+                        const qrRes = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                referralCode: registerResult.referralCode,
+                                imageBase64: base64
+                            })
+                        });
+                        const qrResult = await qrRes.json();
+                        if (!qrResult.success) {
+                            console.warn('QR upload failed (CTV đã tạo, có thể chỉnh sửa sau):', qrResult.error);
+                        }
+                    } catch (err) {
+                        console.error('QR upload error:', err);
+                    }
+                }
+
+                // Bước 3: Hoàn thành
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                closeAddCTVModal();
+                removeAddQrImage();
+                showReferralLinkModal(registerResult.referralCode, registerResult.referralUrl, data.fullName);
+                loadCTVData();
             });
         }
 

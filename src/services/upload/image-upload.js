@@ -65,14 +65,19 @@ export async function uploadImage(env, file, filename) {
         
         console.log('☁️ File uploaded to R2 successfully');
         
-        // Prefer the R2 public (r2.dev or custom domain) URL so `image_url` in DB is a
-        // stable, shareable link. `<img src>` works without going through the Worker.
-        // Optional: set env.R2_PUBLIC_BASE_URL in wrangler (no trailing slash) to override.
+        // Production: dùng trực tiếp pub-...r2.dev (public R2 URL).
+        // Local dev: đặt R2_PUBLIC_BASE_URL=http://127.0.0.1:8787 trong .dev.vars
+        //   → file được upload vào R2 simulation của Wrangler, trả về proxy URL
+        //   qua Worker (?action=getR2Image&key=...) để trình duyệt load được.
         const defaultPublicBase = 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
         const base = (typeof env.R2_PUBLIC_BASE_URL === 'string' && env.R2_PUBLIC_BASE_URL.trim())
             ? env.R2_PUBLIC_BASE_URL.trim().replace(/\/$/, '')
             : defaultPublicBase;
-        const publicUrl = `${base}/${uniqueFilename}`;
+
+        const isLocalProxy = base.includes('127.0.0.1') || base.includes('localhost');
+        const publicUrl = isLocalProxy
+            ? `${base}/?action=getR2Image&key=${encodeURIComponent(uniqueFilename)}`
+            : `${base}/${uniqueFilename}`;
         
         console.log('✅ Image uploaded successfully:', {
             filename: uniqueFilename,
