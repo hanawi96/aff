@@ -529,9 +529,11 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
             updatedProduct.product_id = oldProduct.product_id;
         }
 
-        // Add optional fields if provided
-        if (weight) updatedProduct.weight = weight;
-        if (size) updatedProduct.size = size;
+        // Add optional fields — "chưa có" / rỗng → không gửi (NULL trong DB)
+        const weightNorm = normalizeOrderItemSizeClient(weight || null);
+        const sizeNorm = normalizeOrderItemSizeClient(size || null);
+        if (weightNorm) updatedProduct.weight = weightNorm;
+        if (sizeNorm) updatedProduct.size = sizeNorm;
 
         // Store UNIT prices (not total)
         if (unitPrice > 0) updatedProduct.price = unitPrice;

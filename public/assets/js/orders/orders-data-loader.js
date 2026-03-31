@@ -102,13 +102,85 @@ function refreshData() {
 // Copy SPX format
 let copySPXInProgress = false; // Prevent multiple simultaneous calls
 
+/**
+ * Modal cảnh báo thiếu cân/size trước khi copy SPX
+ */
+function showCopySpXMissingSizeModal(missingProductNames, onConfirm) {
+    const modalId = 'copySpxMissingSizeModal';
+    document.getElementById(modalId)?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = modalId;
+    overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+
+    const listItems = missingProductNames.slice(0, 12).map((n) =>
+        `<li class="text-sm text-gray-800">${escapeHtml(n)}</li>`
+    ).join('');
+    const moreHint = missingProductNames.length > 12
+        ? `<p class="text-xs text-gray-500 mt-2">… và ${missingProductNames.length - 12} sản phẩm khác</p>`
+        : '';
+
+    overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-amber-200 overflow-hidden" role="dialog" aria-modal="true">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Thiếu cân nặng / size
+                </h3>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-700 mb-3">Các sản phẩm sau chưa có cân hoặc size. In đơn (SPX) thường cần đủ thông tin.</p>
+                <ul class="list-disc pl-5 max-h-40 overflow-y-auto space-y-1 mb-1">${listItems}</ul>
+                ${moreHint}
+                <p class="text-sm font-medium text-gray-900 mt-4">Bạn vẫn muốn copy format SPX?</p>
+                <div class="flex flex-wrap gap-2 justify-end mt-5">
+                    <button type="button" class="copy-spx-miss-cancel px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium">Hủy</button>
+                    <button type="button" class="copy-spx-miss-ok px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium">Có, copy tiếp</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const close = () => overlay.remove();
+
+    overlay.querySelector('.copy-spx-miss-cancel').addEventListener('click', close);
+    overlay.querySelector('.copy-spx-miss-ok').addEventListener('click', () => {
+        close();
+        onConfirm();
+    });
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    document.body.appendChild(overlay);
+}
+
 async function copySPXFormat(orderId) {
-    // Prevent multiple simultaneous calls
     if (copySPXInProgress) {
         showToast('Đang xử lý, vui lòng đợi...', 'warning');
         return;
     }
 
+    const order = allOrdersData.find(o => o.id === orderId);
+    if (!order) {
+        showToast('Không tìm thấy đơn hàng', 'error');
+        return;
+    }
+
+    const missingNames = getOrderProductsMissingSizeWeight(order);
+    if (missingNames.length > 0) {
+        showCopySpXMissingSizeModal(missingNames, () => {
+            void copySPXFormatExecute(orderId);
+        });
+        return;
+    }
+
+    await copySPXFormatExecute(orderId);
+}
+
+async function copySPXFormatExecute(orderId) {
     copySPXInProgress = true;
 
     try {
@@ -238,7 +310,6 @@ ${order.address || 'N/A'}`;
         console.error('Failed to copy:', err);
         showToast('Lỗi khi copy', 'error');
     } finally {
-        // Always release the lock
         copySPXInProgress = false;
     }
 }

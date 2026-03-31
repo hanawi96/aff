@@ -137,6 +137,55 @@ function formatCurrency(amount) {
 // ============================================
 
 /**
+ * Chuẩn hóa cân/size trước khi gửi API: rỗng hoặc "chưa có" → null (đồng bộ DB)
+ */
+function normalizeOrderItemSizeClient(value) {
+    if (value == null) return null;
+    const s = String(value).trim();
+    if (s === '') return null;
+    const lower = s.toLowerCase();
+    if (lower === 'chưa có' || lower === 'chua co' || lower === 'chua có') return null;
+    return s;
+}
+
+/**
+ * Danh sách tên sản phẩm trong đơn chưa có cân hoặc size (sau chuẩn hóa).
+ * Dùng trước khi copy format SPX / in để cảnh báo.
+ */
+function getOrderProductsMissingSizeWeight(order) {
+    if (!order || order.products == null || order.products === '') return [];
+    let products = [];
+    try {
+        products = JSON.parse(order.products);
+        if (!Array.isArray(products)) products = [];
+    } catch (e) {
+        const lines = String(order.products).split(/[,\n]/).map((line) => line.trim()).filter(Boolean);
+        products = lines.map((line) => {
+            const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+            if (match) return { name: match[1].trim(), quantity: parseInt(match[2], 10) };
+            return { name: line, quantity: 1 };
+        });
+    }
+
+    const missing = [];
+    for (const p of products) {
+        if (typeof p === 'string') {
+            missing.push(p.trim() || 'Sản phẩm');
+            continue;
+        }
+        if (!p || typeof p !== 'object') {
+            missing.push('Sản phẩm');
+            continue;
+        }
+        const name = (p.name || 'Sản phẩm').trim() || 'Sản phẩm';
+        const size = normalizeOrderItemSizeClient(p.size ?? null);
+        const weight = normalizeOrderItemSizeClient(p.weight ?? null);
+        if (!size && !weight) missing.push(name);
+    }
+    return missing;
+}
+
+/**
  * Format weight/size value with proper unit
  * @param {string|number} value - Weight or size value
  * @returns {string} Formatted value with unit (e.g., "5kg", "100g")
@@ -144,6 +193,8 @@ function formatCurrency(amount) {
 function formatWeightSize(value) {
     if (!value) return '';
     let str = String(value).trim();
+    const lower = str.toLowerCase();
+    if (lower === 'chưa có' || lower === 'chua co' || lower === 'chua có') return '';
 
     // Loại bỏ khoảng trắng thừa: "5 kg" -> "5kg"
     str = str.replace(/\s+/g, '');

@@ -9,6 +9,8 @@
 let customDatePickerModal = null;
 let currentDateMode = 'single'; // 'single' or 'range'
 let priorityFilterActive = false; // Track priority filter state
+/** Chỉ hiện đơn có ít nhất 1 sản phẩm thiếu cân/size (dùng getOrderProductsMissingSizeWeight) */
+let missingSizeFilterActive = false;
 let allCTVList = []; // Cache CTV list for filter dropdown
 // Note: allProductsList is declared in orders.js
 
@@ -120,6 +122,13 @@ function filterOrdersData(preservePage = false) {
         // Priority filter
         const matchesPriority = !priorityFilterActive || order.is_priority === 1;
 
+        // Bộ lọc "Chưa có size" — đơn có ≥1 dòng sản phẩm không có cân/size sau chuẩn hóa
+        let matchesMissingSize = true;
+        if (missingSizeFilterActive) {
+            const missing = getOrderProductsMissingSizeWeight(order);
+            matchesMissingSize = missing.length > 0;
+        }
+
         // Status filter
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
         const statusMap = {
@@ -186,7 +195,7 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesStatus && matchesPayment && matchesCTV && matchesDate;
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
     // Apply sorting
@@ -828,12 +837,29 @@ function togglePriorityFilter() {
     
     // Apply filter
     filterOrdersData();
-    
-    // Show toast
-    if (priorityFilterActive) {
-        const priorityCount = allOrdersData.filter(o => o.is_priority === 1).length;
-        showToast(`Đang hiển thị ${priorityCount} đơn ưu tiên`, 'info');
+}
+
+/**
+ * Bật/tắt bộ lọc chỉ đơn có sản phẩm chưa có cân hoặc size
+ */
+function toggleMissingSizeFilter() {
+    const button = document.getElementById('missingSizeFilterBtn');
+    if (!button) return;
+    const icon = button.querySelector('svg');
+
+    missingSizeFilterActive = !missingSizeFilterActive;
+
+    if (missingSizeFilterActive) {
+        button.classList.remove('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
+        button.classList.add('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
+        icon.classList.remove('text-gray-500');
+        icon.classList.add('text-amber-600');
     } else {
-        showToast('Đang hiển thị tất cả đơn hàng', 'info');
+        button.classList.remove('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
+        button.classList.add('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
+        icon.classList.remove('text-amber-600');
+        icon.classList.add('text-gray-500');
     }
+
+    filterOrdersData();
 }

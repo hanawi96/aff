@@ -3,6 +3,7 @@
 // ============================================
 
 import { sendOrderNotification } from '../../../../src/services/notifications/telegram-service.js';
+import { normalizeOrderItemSize } from '../../../../src/utils/order-item-size.js';
 
 /**
  * Shop Order Service
@@ -396,7 +397,7 @@ export class ShopOrderService {
                 item.price || 0,
                 item.cost_price || 0,
                 item.quantity || 1,
-                item.size || null, // Baby weight from cart item
+                normalizeOrderItemSize(item.size), // Baby weight — NULL nếu chưa có
                 item.notes || null, // Baby name stored here
                 new Date(orderDate).toISOString(),
                 orderDate

@@ -58,22 +58,18 @@ async function saveProductsToExistingOrder() {
         return;
     }
 
-    // Validate: Check if all products have weight/size
+    // Validate: Check if all products have weight/size (null = chọn "chưa có" — hợp lệ, lưu NULL)
     const missingWeightProducts = [];
     selectedProducts.forEach(productId => {
-        // Read directly from DOM input to ensure we get the latest value
         const weightInput = document.getElementById(`weight_${productId}`);
-        const weightOrSize = weightInput ? weightInput.value.trim() : (productWeights[productId] || '');
-        
-        if (!weightOrSize.trim()) {
+        const domVal = weightInput ? weightInput.value.trim() : '';
+        const wState = productWeights[productId];
+        if (wState === null) return;
+        if (!domVal && (wState === undefined || wState === '')) {
             const product = allProductsList.find(p => p.id === productId);
-            if (product) {
-                missingWeightProducts.push(product.name);
-            }
-        } else {
-            // Update the global variable with the latest value from DOM
-            productWeights[productId] = weightOrSize;
+            if (product) missingWeightProducts.push(product.name);
         }
+        if (domVal) productWeights[productId] = domVal;
     });
 
     if (missingWeightProducts.length > 0) {
@@ -112,7 +108,7 @@ async function saveProductsToExistingOrder() {
             const product = allProductsList.find(p => p.id === productId);
             if (product) {
                 const quantity = productQuantities[productId] || 1;
-                const weightOrSize = productWeights[productId] || ''; // This field stores either weight or size
+                const wRaw = productWeights[productId];
                 const notes = productNotes[productId] || '';
 
                 // Determine if this is size or weight based on category
@@ -134,9 +130,9 @@ async function saveProductsToExistingOrder() {
                     newProduct.cost_price = product.cost_price;
                 }
 
-                // Add size (for both weight and size) with auto-unit
-                if (weightOrSize) {
-                    let finalSize = weightOrSize.trim();
+                // Add size (for both weight and size) with auto-unit — wRaw === null → không gắn size (NULL DB)
+                if (wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
+                    let finalSize = String(wRaw).trim();
 
                     // Auto-add unit if only number is entered
                     if (/^\d+(\.\d+)?$/.test(finalSize)) {
@@ -159,7 +155,7 @@ async function saveProductsToExistingOrder() {
                     price: product.price,
                     cost_price: product.cost_price,
                     quantity: quantity,
-                    weightOrSize: weightOrSize,
+                    weightOrSize: wRaw,
                     notes: notes,
                     finalProduct: newProduct
                 });

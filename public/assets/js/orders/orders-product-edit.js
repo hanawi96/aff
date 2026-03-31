@@ -300,7 +300,8 @@ function saveEditedProduct(index) {
     // Use unit prices (not total from input)
     const price = editOrderUnitPrice;
     const costPrice = editOrderUnitCost;
-    const size = document.getElementById('editProductSize')?.value.trim();
+    const sizeRaw = document.getElementById('editProductSize')?.value.trim() || '';
+    const size = normalizeOrderItemSizeClient(sizeRaw || null);
     const notes = document.getElementById('editProductNotes')?.value.trim();
 
     console.log('💾 saveEditedProduct called:', {
@@ -335,7 +336,7 @@ function saveEditedProduct(index) {
 
     if (price > 0) currentOrderProducts[index].price = price;
     if (costPrice > 0) currentOrderProducts[index].cost_price = costPrice;
-    if (size) currentOrderProducts[index].size = size;
+    if (size) currentOrderProducts[index].size = size; // null/empty/"chưa có" → không gán (NULL DB)
     if (notes) currentOrderProducts[index].notes = notes;
 
     console.log('✅ Product saved:', currentOrderProducts[index]);

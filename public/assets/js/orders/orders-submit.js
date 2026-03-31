@@ -86,6 +86,12 @@ async function submitNewOrder() {
         if (cleanProduct.cost_price !== undefined && cleanProduct.cost_price !== null) {
             cleanProduct.cost_price = parsePrice(cleanProduct.cost_price);
         }
+
+        // Cân/size: không lưu chuỗi "chưa có" — gửi null (backend cũng chuẩn hóa)
+        cleanProduct.size = normalizeOrderItemSizeClient(cleanProduct.size);
+        cleanProduct.weight = normalizeOrderItemSizeClient(cleanProduct.weight);
+        if (cleanProduct.size == null) delete cleanProduct.size;
+        if (cleanProduct.weight == null) delete cleanProduct.weight;
         
         return cleanProduct;
     });

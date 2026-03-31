@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // ADD ORDER MODAL HELPER FUNCTIONS
 // ============================================
 // Helper functions for the add order modal
@@ -247,35 +247,33 @@ function renderOrderProducts() {
         // Product details on same line with proper labels
         let detailsLine = [];
         
-        // Handle weight field
-        if (product.weight) {
-            const weightStr = String(product.weight).toLowerCase();
-            if (weightStr.includes('kg')) {
-                detailsLine.push(`⚖️ Cân nặng: ${product.weight}`);
-            } else if (weightStr.includes('g')) {
-                detailsLine.push(`⚖️ Cân nặng: ${product.weight}`);
-            } else {
-                // Just a number, assume grams
-                detailsLine.push(`⚖️ Cân nặng: ${product.weight}g`);
+        const weightDisp = normalizeOrderItemSizeClient(product.weight ?? null);
+        const sizeDisp = normalizeOrderItemSizeClient(product.size ?? null);
+
+        if (!weightDisp && !sizeDisp) {
+            detailsLine.push('⚖️ <span class="text-amber-600 font-medium">Chưa có</span>');
+        } else {
+            if (weightDisp) {
+                const weightStr = String(weightDisp).toLowerCase();
+                if (weightStr.includes('kg')) {
+                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}`);
+                } else if (weightStr.includes('g')) {
+                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}`);
+                } else {
+                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}g`);
+                }
             }
-        }
-        
-        // Handle size field - check if it's a measurement (cm, tay) or weight (kg, number)
-        if (product.size) {
-            const sizeStr = String(product.size).toLowerCase();
-            
-            if (sizeStr.includes('cm') || sizeStr.includes('tay')) {
-                // It's a size measurement
-                detailsLine.push(`📏 Size tay: ${product.size}`);
-            } else if (sizeStr.includes('kg') || sizeStr.includes('g')) {
-                // It's a weight
-                detailsLine.push(`⚖️ Cân nặng: ${product.size}`);
-            } else if (!isNaN(parseFloat(sizeStr))) {
-                // Just a number - assume it's weight in kg
-                detailsLine.push(`⚖️ Cân nặng: ${product.size}kg`);
-            } else {
-                // Unknown format, just display as is
-                detailsLine.push(product.size);
+            if (sizeDisp) {
+                const sizeStr = String(sizeDisp).toLowerCase();
+                if (sizeStr.includes('cm') || sizeStr.includes('tay')) {
+                    detailsLine.push(`📏 Size tay: ${sizeDisp}`);
+                } else if (sizeStr.includes('kg') || sizeStr.includes('g')) {
+                    detailsLine.push(`⚖️ Cân nặng: ${sizeDisp}`);
+                } else if (!isNaN(parseFloat(sizeStr))) {
+                    detailsLine.push(`⚖️ Cân nặng: ${sizeDisp}kg`);
+                } else {
+                    detailsLine.push(sizeDisp);
+                }
             }
         }
         

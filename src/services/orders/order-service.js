@@ -1,4 +1,5 @@
 import { jsonResponse } from '../../utils/response.js';
+import { normalizeOrderItemSize } from '../../utils/order-item-size.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
 
 // Create new order - Main order creation function
@@ -340,8 +341,8 @@ export async function createOrder(data, env, corsHeaders) {
                     }
                 }
 
-                // Merge weight and size into single size column
-                const sizeValue = size || weight || null;
+                // Merge weight and size into single size column (placeholder "chưa có" → NULL)
+                const sizeValue = normalizeOrderItemSize(size ?? weight);
 
                 itemsData.push({
                     productId,

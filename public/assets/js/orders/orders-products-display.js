@@ -136,8 +136,10 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     const productName = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
     const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
     const price = typeof product === 'object' && product.price ? product.price : null;
-    const weight = typeof product === 'object' && product.weight ? product.weight : null;
-    const size = typeof product === 'object' && product.size ? product.size : null;
+    const rawWeight = typeof product === 'object' && product.weight ? product.weight : null;
+    const rawSize = typeof product === 'object' && product.size ? product.size : null;
+    const weight = normalizeOrderItemSizeClient(rawWeight);
+    const size = normalizeOrderItemSizeClient(rawSize);
     const notes = typeof product === 'object' && product.notes ? product.notes : null;
 
     // Parse quantity nếu là string
@@ -146,7 +148,7 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     // Parse price using helper function
     const priceNum = parsePrice(price);
 
-    // Tạo text chi tiết
+    // Tạo text chi tiết — không có cân/size (NULL) vẫn hiển thị "Chưa có" để admin dễ nhận biết
     const details = [];
     if (weight) details.push(`⚖️ ${formatWeightSize(weight)}`);
     if (size) {
@@ -155,6 +157,9 @@ function createProductItemHtml(product, orderId, orderCode, index) {
             size.toLowerCase().includes('tay');
         const icon = isSizeMeasurement ? '📏' : '⚖️';
         details.push(`${icon} ${formatWeightSize(size)}`);
+    }
+    if (!weight && !size) {
+        details.push('⚖️ <span class="text-amber-600 font-medium">Chưa có</span>');
     }
     if (priceNum > 0) {
         details.push(`💰 ${formatCurrency(priceNum * parsedQuantity)}`);

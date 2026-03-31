@@ -70,7 +70,7 @@ function renderBestSellingProductsBox() {
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <input type="text" id="${sizeId}" placeholder="Size" 
+                            <input type="text" id="${sizeId}" placeholder="Size" oninput="delete this.dataset.sizeExplicitNull"
                                 class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500" />
                             <div class="flex items-center border border-gray-300 rounded overflow-hidden">
                                 <button onclick="quickChangeQty('${qtyId}', -1)" class="px-1.5 py-1 bg-gray-50 hover:bg-gray-100">
@@ -91,7 +91,7 @@ function renderBestSellingProductsBox() {
                             </button>
                         </div>
                         <div class="flex flex-wrap gap-1 mt-1.5">
-                            <button type="button" onclick="setQuickProductSize('${sizeId}', 'chưa có')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">chưa có</button>
+                            <button type="button" onclick="setQuickProductSize('${sizeId}', null)" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">chưa có</button>
                             ${[3,4,5,6,7,8,9,10].map(kg => `<button type="button" onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
                         </div>
                     </div>
@@ -228,12 +228,17 @@ function quickChangeQty(inputId, delta) {
     input.value = newVal;
 }
 
-// Set size/weight from preset button for quick add products
+// Set size/weight from preset button — null = chưa có cân (lưu NULL, không lưu chuỗi "chưa có")
 function setQuickProductSize(sizeInputId, value) {
     const input = document.getElementById(sizeInputId);
-    if (input) {
-        input.value = value;
+    if (!input) return;
+    if (value === null || value === undefined) {
+        input.value = '';
+        input.dataset.sizeExplicitNull = '1';
+        return;
     }
+    delete input.dataset.sizeExplicitNull;
+    input.value = value;
 }
 
 // Quick add product to order (for best selling products)
@@ -242,11 +247,11 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
     const sizeInput = document.getElementById(sizeInputId);
 
     const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-    const size = sizeInput ? sizeInput.value.trim() : null;
+    const sizeTrim = sizeInput ? sizeInput.value.trim() : '';
+    const explicitNull = sizeInput?.dataset?.sizeExplicitNull === '1';
 
-    // Validate: Size is required for best selling products
-    if (!size) {
-        showToast('Vui lòng nhập size trước khi thêm sản phẩm', 'warning');
+    if (!sizeTrim && !explicitNull) {
+        showToast('Vui lòng nhập size hoặc chọn "chưa có" trước khi thêm sản phẩm', 'warning');
         if (sizeInput) {
             sizeInput.focus();
             sizeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
@@ -257,7 +262,6 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
         return;
     }
 
-    // Add product to current order
     const product = {
         product_id: productId,  // CRITICAL: Add product_id for order_items table
         id: productId,
@@ -265,9 +269,13 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
         price: price,
         cost_price: costPrice,
         quantity: quantity,
-        size: size || null,
         notes: null
     };
+    if (explicitNull) {
+        product.size = null;
+    } else {
+        product.size = sizeTrim;
+    }
 
     currentOrderProducts.push(product);
 
@@ -277,14 +285,14 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
     }
     if (sizeInput) {
         sizeInput.value = '';
+        delete sizeInput.dataset.sizeExplicitNull;
     }
 
     // Re-render products list and update summary
     renderOrderProducts();
     updateOrderSummary();
 
-    // Show success toast with size info
-    const sizeText = size ? ` (${size})` : '';
+    const sizeText = explicitNull ? ' (chưa có cân)' : (sizeTrim ? ` (${sizeTrim})` : '');
     showToast(`Đã thêm ${quantity}x ${productName}${sizeText}`, 'success');
 }
 

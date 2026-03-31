@@ -1,4 +1,5 @@
 import { jsonResponse } from '../../utils/response.js';
+import { normalizeOrderItemSize } from '../../utils/order-item-size.js';
 
 // Update order products
 export async function updateOrderProducts(data, env, corsHeaders) {
@@ -64,7 +65,7 @@ export async function updateOrderProducts(data, env, corsHeaders) {
                 product.price || product.product_price || 0,
                 product.cost_price || product.cost || product.product_cost || 0,
                 product.quantity || 1,
-                product.size || product.weight || null, // Use size field for both weight and size
+                normalizeOrderItemSize(product.size ?? product.weight), // Cân/size: NULL nếu chưa có (không lưu "chưa có")
                 product.notes || null,
                 currentTimestamp
             ).run();
