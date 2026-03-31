@@ -183,9 +183,9 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
             const regex = new RegExp(`(${escapeHtml(searchQuery)})`, 'gi');
             displayName = displayName.replace(regex, '<mark class="bg-yellow-200 px-0.5">$1</mark>');
         }
-        // Preset "chưa có" → productWeights[id]=null (DB NULL); + 3–10kg (cân)
+        // Preset "chưa có" → productWeights[id]=null (DB NULL); + 3–15kg (cân)
         const btnUnknown = `<button type="button" onclick="event.stopPropagation(); setProductWeight(${p.id}, null)" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${PRODUCT_WEIGHT_UNKNOWN_LABEL}</button>`;
-        const btnKgPresets = [3, 4, 5, 6, 7, 8, 9, 10].map(kg =>
+        const btnKgPresets = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg =>
             `<button type="button" onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`
         ).join('');
         const weightPresetRow = `<div class="flex flex-wrap gap-1.5 pt-1">${btnUnknown}${isAdultBracelet ? '' : btnKgPresets}</div>`;

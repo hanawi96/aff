@@ -92,7 +92,7 @@ function renderBestSellingProductsBox() {
                         </div>
                         <div class="flex flex-wrap gap-1 mt-1.5">
                             <button type="button" onclick="setQuickProductSize('${sizeId}', null)" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">chưa có</button>
-                            ${[3,4,5,6,7,8,9,10].map(kg => `<button type="button" onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
+                            ${[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg => `<button type="button" onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
                         </div>
                     </div>
                 `;

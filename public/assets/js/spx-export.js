@@ -67,34 +67,7 @@ function parseAddressForExport(order) {
 }
 
 /**
- * Format product name with size/weight
- * Logic: Only "cm" suffix = size tay, everything else = cân nặng (kg)
- */
-function formatProductName(name, size) {
-    if (!size) return name;
-    
-    const sizeStr = size.toString().toLowerCase().trim();
-    
-    // Check if size contains 'cm' - for bracelet size
-    if (sizeStr.includes('cm')) {
-        // Extract number: "14cm" or "14" -> "14"
-        const cmValue = sizeStr.replace(/[^0-9.]/g, '');
-        return `${name} cho size tay ${cmValue}cm`;
-    }
-    
-    // Everything else is weight (kg) - including numbers without suffix
-    // Extract number and format as kg
-    const kgValue = sizeStr.replace(/[^0-9.]/g, '');
-    if (kgValue) {
-        return `${name} cho bé ${kgValue}kg`;
-    }
-    
-    // If no number found, return as is
-    return name;
-}
-
-/**
- * Parse products JSON to product list
+ * Parse products JSON to product list（商品名保持原名，与 Copy SPX 共用 formatSPXProductBracketLine）
  */
 function parseProducts(productsJson) {
     if (!productsJson) return [];
@@ -103,7 +76,8 @@ function parseProducts(productsJson) {
         const products = typeof productsJson === 'string' ? JSON.parse(productsJson) : productsJson;
         if (Array.isArray(products)) {
             return products.map(p => ({
-                name: formatProductName(p.name || p.product_name || '', p.size || p.weight || ''),
+                name: p.name || p.product_name || '',
+                sizeOrWeight: p.size || p.weight || null,
                 quantity: p.quantity || 1,
                 price: p.price || p.unit_price || 0,
                 notes: p.notes || null
@@ -207,17 +181,12 @@ function createSPXExcelWorkbook(orders) {
         const address = parseAddressForExport(order);
         const products = parseProducts(order.products);
         
-        // Format all products into one line (like Copy SPX Format)
+        // Format all products into one line (与 Copy SPX Format 一致)
         let productText = '';
         if (products.length > 0) {
-            const productLines = products.map(product => {
-                let line = product.name;
-                line += ` - Số lượng: ${product.quantity}`;
-                if (product.notes) {
-                    line += ` - Lưu ý: ${product.notes}`;
-                }
-                return `[${line}]`;
-            });
+            const productLines = products.map(product =>
+                formatSPXProductBracketLine(product.name, product.sizeOrWeight, product.quantity, product.notes)
+            );
             productText = productLines.join(' ----- ');
             
             // Add order notes if exists

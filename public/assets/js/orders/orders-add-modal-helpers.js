@@ -328,6 +328,52 @@ function renderOrderProducts() {
             </div>
         `;
     }).join('');
+
+    // Sau khi render xong → kiểm tra và auto-check freeship nếu đủ điều kiện
+    autoUpdateFreeshipCheckbox();
+}
+
+/**
+ * Auto-check "Miễn phí ship" khi giỏ đủ điều kiện:
+ *   - Có ≥1 SP bán kèm (category_id = 23)
+ *   - Có ≥1 SP "chính" KHÔNG thuộc "Bi, charm bạc" (category_id = 24) và không phải bán kèm
+ * Mỗi lần thêm/xóa SP đều re-evaluate. Nếu đủ điều kiện → luôn check (kể cả sau khi bỏ thủ công).
+ * Không tự bỏ check khi điều kiện không thỏa — người dùng kiểm soát.
+ */
+function autoUpdateFreeshipCheckbox() {
+    const checkbox = document.getElementById('freeShippingCheckbox');
+    if (!checkbox) return;
+
+    const FREESHIP_CAT = 23;
+    const BI_CHARM_CAT = 24;
+
+    let hasFreeship = false;
+    let hasEligibleMain = false;
+
+    for (const p of currentOrderProducts) {
+        const catalogProduct = (typeof allProductsList !== 'undefined')
+            ? allProductsList.find(cp => cp.id === (p.product_id || p.id))
+            : null;
+
+        if (catalogProduct) {
+            // Dùng hàm đã có để hỗ trợ multi-category (category_ids[])
+            const isFreeship = productBelongsToCategory(catalogProduct, FREESHIP_CAT);
+            const isBiCharm = productBelongsToCategory(catalogProduct, BI_CHARM_CAT);
+            if (isFreeship) {
+                hasFreeship = true;
+            } else if (!isBiCharm) {
+                hasEligibleMain = true;
+            }
+        } else {
+            // SP tự nhập (custom, không có catalog) → tính là SP chính hợp lệ
+            hasEligibleMain = true;
+        }
+    }
+
+    if (hasFreeship && hasEligibleMain && !checkbox.checked) {
+        checkbox.checked = true;
+        toggleFreeShipping();
+    }
 }
 
 /**

@@ -193,30 +193,7 @@ async function copySPXFormatExecute(orderId) {
             return;
         }
 
-        // Helper function to format product name with size/weight
-        // Logic: Only "cm" suffix = size tay, everything else = cân nặng (kg)
-        function formatProductNameWithSize(name, size) {
-            if (!size) return name;
-            
-            const sizeStr = size.toString().toLowerCase().trim();
-            
-            // Check if size contains 'cm' - for bracelet size
-            if (sizeStr.includes('cm')) {
-                const cmValue = sizeStr.replace(/[^0-9.]/g, '');
-                return `${name} cho size tay ${cmValue}cm`;
-            }
-            
-            // Everything else is weight (kg) - including numbers without suffix
-            const kgValue = sizeStr.replace(/[^0-9.]/g, '');
-            if (kgValue) {
-                return `${name} cho bé ${kgValue}kg`;
-            }
-            
-            // If no number found, return as is
-            return name;
-        }
-
-        // Parse products
+        // Parse products（商品行格式见 orders-utils：formatSPXProductBracketLine）
         let productsText = '';
         if (order.products) {
             try {
@@ -237,31 +214,15 @@ async function copySPXFormatExecute(orderId) {
                 }
 
                 // Format each product
-                const productLines = products.map((product, index) => {
+                const productLines = products.map((product) => {
                     const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
                     const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
                     const size = typeof product === 'object' && product.size ? product.size : null;
                     const weight = typeof product === 'object' && product.weight ? product.weight : null;
                     const notes = typeof product === 'object' && product.notes ? product.notes : null;
+                    const sizeOrWeight = size || weight;
 
-                    // Determine which field to use for formatting
-                    // Priority: size > weight
-                    let sizeOrWeight = size || weight;
-                    
-                    // Format product name with size/weight (like Excel export)
-                    const formattedName = formatProductNameWithSize(name, sizeOrWeight);
-
-                    // Build product line
-                    let line = formattedName;
-                    line += ` - Số lượng: ${quantity}`;
-
-                    // Add notes if exists
-                    if (notes) {
-                        line += ` - Lưu ý: ${notes}`;
-                    }
-
-                    // Wrap in brackets
-                    return `[${line}]`;
+                    return formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes);
                 });
 
                 // Join products with " ----- " separator (on same line)

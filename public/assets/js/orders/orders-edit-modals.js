@@ -7,7 +7,7 @@
  * - updateOrderData() from orders-constants.js
  * - renderOrdersTable() from orders-table.js
  * - updateStats() from orders-stats.js
- * - escapeHtml(), formatCurrency() from orders-utils.js
+ * - escapeHtml(), formatCurrency(), formatVnIntegerString(), formatVnMoneyInput(), parsePrice() from orders-utils.js
  * - showToast() from toast-manager.js
  * - CONFIG.API_URL from config.js
  */
@@ -169,9 +169,12 @@ function editProductName(productId, orderId, orderCode) {
                         <input 
                             type="text" 
                             id="editProductPrice" 
+                            inputmode="numeric"
+                            autocomplete="off"
                             value=""
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Nhập giá bán"
+                            placeholder="VD: 90.000"
+                            oninput="formatVnMoneyInput(this); onEditModalPriceOrCostInput('price');"
                         />
                         <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
                             Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
@@ -245,11 +248,11 @@ function editProductName(productId, orderId, orderCode) {
         const priceInput = document.getElementById('editProductPrice');
         const costPriceInput = document.getElementById('editProductCostPrice');
         
-        if (priceInput && editModalUnitPrice > 0) {
-            priceInput.value = editModalUnitPrice * quantity;
+        if (priceInput) {
+            priceInput.value = editModalUnitPrice > 0 ? formatVnIntegerString(editModalUnitPrice * quantity) : '';
         }
-        if (costPriceInput && editModalUnitCost > 0) {
-            costPriceInput.value = editModalUnitCost * quantity;
+        if (costPriceInput) {
+            costPriceInput.value = editModalUnitCost > 0 ? formatVnIntegerString(editModalUnitCost * quantity) : '';
         }
         
         updateEditModalTotalPrices();
@@ -403,25 +406,10 @@ async function saveProductName(productId, orderId, orderCode, newName, oldName) 
 }
 
 
-// Update total prices when quantity changes in edit modal
-function updateEditModalTotalPrices() {
-    if (editModalIsUpdating) return;
-
-    const priceInput = document.getElementById('editProductPrice');
-    const costPriceInput = document.getElementById('editProductCostPrice');
+// Nhãn đơn giá/sp khi SL > 1 (dùng chung khi đổi SL hoặc gõ tổng tiền)
+function refreshEditModalUnitLabels() {
     const quantityInput = document.getElementById('editProductQuantity');
-
-    if (!priceInput || !costPriceInput || !quantityInput) return;
-
-    const quantity = parseInt(quantityInput.value) || 1;
-
-    // Recalculate total prices when quantity changes
-    editModalIsUpdating = true;
-    if (editModalUnitPrice > 0) priceInput.value = editModalUnitPrice * quantity;
-    if (editModalUnitCost > 0) costPriceInput.value = editModalUnitCost * quantity;
-    editModalIsUpdating = false;
-
-    // Show/hide unit price labels (only when quantity > 1)
+    const quantity = parseInt(quantityInput?.value) || 1;
     const priceUnitDiv = document.getElementById('editProductPriceUnit');
     const costUnitDiv = document.getElementById('editProductCostUnit');
 
@@ -440,6 +428,54 @@ function updateEditModalTotalPrices() {
     }
 }
 
+/** Gõ tổng tiền → cập nhật đơn giá nội bộ (đồng bộ khi đổi số lượng) */
+function onEditModalPriceOrCostInput(sourceField) {
+    if (editModalIsUpdating) return;
+    const priceInput = document.getElementById('editProductPrice');
+    const costPriceInput = document.getElementById('editProductCostPrice');
+    const quantityInput = document.getElementById('editProductQuantity');
+    if (!priceInput || !costPriceInput || !quantityInput) return;
+    const quantity = parseInt(quantityInput.value) || 1;
+    const currentPriceValue = parsePrice(priceInput.value);
+    const currentCostValue = parsePrice(costPriceInput.value);
+    if (sourceField === 'price') {
+        editModalUnitPrice = currentPriceValue / quantity;
+    }
+    if (sourceField === 'cost') {
+        editModalUnitCost = currentCostValue / quantity;
+    }
+    refreshEditModalUnitLabels();
+}
+
+// Update total prices when quantity changes in edit modal
+function updateEditModalTotalPrices() {
+    if (editModalIsUpdating) return;
+
+    const priceInput = document.getElementById('editProductPrice');
+    const costPriceInput = document.getElementById('editProductCostPrice');
+    const quantityInput = document.getElementById('editProductQuantity');
+
+    if (!priceInput || !costPriceInput || !quantityInput) return;
+
+    const quantity = parseInt(quantityInput.value) || 1;
+
+    // Tổng tiền = đơn giá × SL, hiển thị kiểu 90.000
+    editModalIsUpdating = true;
+    if (editModalUnitPrice > 0) {
+        priceInput.value = formatVnIntegerString(editModalUnitPrice * quantity);
+    } else {
+        priceInput.value = '';
+    }
+    if (editModalUnitCost > 0) {
+        costPriceInput.value = formatVnIntegerString(editModalUnitCost * quantity);
+    } else {
+        costPriceInput.value = '';
+    }
+    editModalIsUpdating = false;
+
+    refreshEditModalUnitLabels();
+}
+
 
 // Save product changes
 async function saveProductChanges(orderId, productIndex, orderCode) {
@@ -456,9 +492,9 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
     const size = sizeInput ? sizeInput.value.trim() : '';
     const notes = notesInput ? notesInput.value.trim() : '';
 
-    // Calculate unit prices from total input values
-    const totalPrice = priceInput ? parseFloat(priceInput.value.replace(/[^\d]/g, '')) || 0 : 0;
-    const totalCost = costPriceInput ? parseFloat(costPriceInput.value.replace(/[^\d]/g, '')) || 0 : 0;
+    // Tính đơn giá từ tổng (ô đã format 90.000)
+    const totalPrice = priceInput ? parsePrice(priceInput.value) : 0;
+    const totalCost = costPriceInput ? parsePrice(costPriceInput.value) : 0;
     const unitPrice = totalPrice / quantity;
     const unitCost = totalCost / quantity;
 
@@ -1172,14 +1208,14 @@ function editAmount(orderId, orderCode) {
                             </svg>
                         </div>
                         <input 
-                            type="number" 
+                            type="text" 
                             id="editAmountInput" 
-                            value="${currentAmount}"
-                            min="0"
-                            step="1000"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            value="${currentAmount > 0 ? formatVnIntegerString(currentAmount) : ''}"
                             class="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            placeholder="Nhập giá trị đơn hàng"
-                            oninput="updateAmountPreview(${referralCode ? 'true' : 'false'})"
+                            placeholder="VD: 598.000"
+                            oninput="formatVnMoneyInput(this); updateAmountPreview(${referralCode ? 'true' : 'false'})"
                         />
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 text-sm font-medium">đ</span>
@@ -1189,7 +1225,7 @@ function editAmount(orderId, orderCode) {
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Nhập số tiền không bao gồm dấu phẩy
+                        Số tiền tự định dạng kiểu 90.000 (dấu chấm phân cách nghìn)
                     </p>
                 </div>
 
@@ -1251,7 +1287,7 @@ function updateAmountPreview(hasReferral) {
 
     if (!input || !preview) return;
 
-    const newAmount = parseFloat(input.value) || 0;
+    const newAmount = parsePrice(input.value) || 0;
 
     // Update amount display
     const amountDisplay = preview.querySelector('.text-green-600');
@@ -1282,7 +1318,7 @@ function closeEditAmountModal() {
 async function saveAmount(orderId, orderCode, referralCode) {
     // Get value from form
     const amountInput = document.getElementById('editAmountInput');
-    const newAmount = parseFloat(amountInput?.value) || 0;
+    const newAmount = amountInput ? parsePrice(amountInput.value) : 0;
 
     // Validate
     if (newAmount <= 0) {

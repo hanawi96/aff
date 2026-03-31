@@ -149,6 +149,42 @@ function normalizeOrderItemSizeClient(value) {
 }
 
 /**
+ * SPX 文案：由 size/weight 得到展示用 Size 标签（含 cm 手围、kg 体重；空则「Chưa có」）
+ * @param {string|number|null|undefined} sizeOrWeight - 优先 size，其次 weight
+ * @returns {string} 如 "5kg"、"14cm" 或 "Chưa có"
+ */
+function getSPXSizeLabel(sizeOrWeight) {
+    if (sizeOrWeight === null || sizeOrWeight === undefined) return 'Chưa có';
+    const raw = String(sizeOrWeight).trim();
+    if (raw === '') return 'Chưa có';
+
+    const sizeStr = raw.toLowerCase();
+    if (sizeStr.includes('cm')) {
+        const cmValue = sizeStr.replace(/[^0-9.]/g, '');
+        if (cmValue) return `${cmValue}cm`;
+        return 'Chưa có';
+    }
+    const kgValue = sizeStr.replace(/[^0-9.]/g, '');
+    if (kgValue) return `${kgValue}kg`;
+    return 'Chưa có';
+}
+
+/**
+ * SPX 单行括号格式（Copy SPX / Excel 商品列一致）：[Tên -- Size: … - Số lượng: n]
+ * @param {string} name - 商品原名（不再拼接「cho bé Xkg」）
+ * @param {string|number|null|undefined} sizeOrWeight
+ * @param {number} quantity
+ * @param {string|null|undefined} notes
+ */
+function formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes) {
+    const baseName = (name || 'Sản phẩm').trim() || 'Sản phẩm';
+    const sizeLabel = getSPXSizeLabel(sizeOrWeight);
+    let line = `${baseName} -- Size: ${sizeLabel} - Số lượng: ${quantity}`;
+    if (notes) line += ` - Lưu ý: ${notes}`;
+    return `[${line}]`;
+}
+
+/**
  * Danh sách tên sản phẩm trong đơn chưa có cân hoặc size (sau chuẩn hóa).
  * Dùng trước khi copy format SPX / in để cảnh báo.
  */
