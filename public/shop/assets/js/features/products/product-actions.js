@@ -56,10 +56,11 @@ export class ProductActions {
      */
     addToCart(productId) {
         console.log('🛒 ProductActions: addToCart called for productId:', productId);
-        
-        const product = this.products.find(p => p.id === productId);
+
+        const product = this.findProductById(productId);
         if (!product) {
             console.error('❌ ProductActions: Product not found:', productId);
+            showToast('Không tìm thấy sản phẩm. Vui lòng tải lại trang và thử lại.');
             return;
         }
 
@@ -132,12 +133,28 @@ export class ProductActions {
     }
     
     /**
+     * Tìm SP theo id (chuẩn hóa number/string — API có thể trả id kiểu khác nhau).
+     * Fallback window.allProducts khi grid đã nối catalog nhưng ProductActions chưa sync.
+     */
+    findProductById(productId) {
+        const pid = Number(productId);
+        if (!Number.isFinite(pid)) return null;
+        const list = Array.isArray(this.products) ? this.products : [];
+        let product = list.find((p) => Number(p.id) === pid);
+        if (!product && typeof window !== 'undefined' && Array.isArray(window.allProducts)) {
+            product = window.allProducts.find((p) => Number(p.id) === pid);
+        }
+        return product || null;
+    }
+
+    /**
      * Buy now - open quick checkout
      */
     buyNow(productId) {
-        const product = this.products.find(p => p.id === productId);
+        const product = this.findProductById(productId);
         if (!product) {
             console.error('Product not found:', productId);
+            showToast('Không tìm thấy sản phẩm. Vui lòng tải lại trang và thử lại.');
             return;
         }
 
@@ -151,19 +168,22 @@ export class ProductActions {
         const newUrl = `${window.location.pathname}?buy=${productId}`;
         window.history.pushState({ productId }, '', newUrl);
         
-        // Trigger quick checkout
-        if (window.quickCheckout) {
-            window.quickCheckout.open({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                originalPrice: product.original_price,
-                image: product.image_url,
-                maxQuantity: 99,
-                isFlashSale: false,
-                categories: product.categories || [] // Pass categories
-            });
+        if (!window.quickCheckout) {
+            console.error('Quick checkout chưa sẵn sàng');
+            showToast('Hệ thống đang tải. Vui lòng thử lại sau vài giây.');
+            return;
         }
+
+        window.quickCheckout.open({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            originalPrice: product.original_price,
+            image: product.image_url,
+            maxQuantity: 99,
+            isFlashSale: false,
+            categories: product.categories || [] // Pass categories
+        });
     }
     
     /**

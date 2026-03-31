@@ -587,31 +587,6 @@ export class QuickCheckout {
     }
     
     /**
-     * Fill demo data for testing
-     */
-    async fillDemoData() {
-        // Fill basic info
-        document.getElementById('checkoutPhone').value = '0987654321';
-        document.getElementById('checkoutName').value = 'Nguyễn Thị Hoa';
-        document.getElementById('checkoutBabyWeight').value = '5kg';
-        
-        // Fill baby name if needed
-        if (this.needsBabyName) {
-            const babyNameInput = document.getElementById('checkoutBabyName');
-            if (babyNameInput) {
-                babyNameInput.value = 'Minh An';
-            }
-        }
-        
-        document.getElementById('checkoutNote').value = 'Giao hàng giờ hành chính';
-        
-        // Fill address - HierarchicalAddressSelector doesn't have fillDemoData method
-        // User needs to select address manually
-        
-        showToast('Đã điền dữ liệu demo! Vui lòng chọn địa chỉ.', 'success');
-    }
-    
-    /**
      * Select payment method
      */
     selectPaymentMethod(method) {

@@ -2515,36 +2515,6 @@ body {
     color: #e74c3c;
 }
 
-.demo-data-btn {
-    padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #9c27b0, #ba68c8);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
-}
-
-.demo-data-btn:hover {
-    background: linear-gradient(135deg, #7b1fa2, #9c27b0);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
-}
-
-.demo-data-btn:active {
-    transform: translateY(0);
-}
-
-.demo-data-btn i {
-    font-size: 1rem;
-}
-
 .quick-checkout-close {
     width: 36px;
     height: 36px;

@@ -306,6 +306,9 @@ export class HomePage {
                     if (this.productGrid) {
                         this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
                     }
+                    if (this.productActions) {
+                        this.productActions.setProducts(this.allProducts);
+                    }
 
                     this.setShopPerfHudBody(
                         `⏳ Đang nối: ${this.allProducts.length}/${this._shopProductsTotal || '?'} SP (API phân trang)…`,
@@ -333,6 +336,9 @@ export class HomePage {
                     this.products = this.allProducts;
                     if (this.productGrid) {
                         this.productGrid.setAllProducts(this.allProducts, { preserveExpandedView: true });
+                    }
+                    if (this.productActions) {
+                        this.productActions.setProducts(this.allProducts);
                     }
                     this._shopProductsTotal = this.allProducts.length;
                     this.setShopPerfHudBody(
@@ -674,11 +680,15 @@ export class HomePage {
     renderProducts() {
         // Chỉ cần set products, ProductGrid sẽ tự xử lý
         const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
-        
+
         if (this.productGrid) {
             this.productGrid.setAllProducts(productsToRender);
         } else {
             console.error('❌ ProductGrid not initialized!');
+        }
+        // buyNow / addToCart dùng ProductActions — phải trùng nguồn với lưới SP
+        if (this.productActions && productsToRender.length) {
+            this.productActions.setProducts(productsToRender);
         }
     }
     
