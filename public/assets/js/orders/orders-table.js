@@ -216,13 +216,25 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     
     // Get customer badge from cache (already calculated)
     const customerBadge = getCustomerBadge(order.customer_phone);
-    
+    // 一键复制客户电话（与订单号列复制交互一致）；data-phone 使用 encodeURIComponent 避免特殊字符破坏属性
+    // Copy SĐT: stopPropagation để không mở modal sửa khách
+    const phoneCopyBtn = order.customer_phone
+        ? `<button type="button" onclick="event.stopPropagation(); copyToClipboard(decodeURIComponent(this.getAttribute('data-phone') || ''))" data-phone="${encodeURIComponent(order.customer_phone)}" title="Copy số điện thoại" class="inline-flex text-gray-400 hover:text-gray-600 flex-shrink-0" aria-label="Copy số điện thoại">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>`
+        : '';
+
     tdCustomer.innerHTML = `
         <div id="${customerId}" class="group cursor-pointer hover:bg-blue-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
             <div class="flex items-center gap-2">
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</div>
-                    <div class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</div>
+                    <div class="flex items-center justify-center gap-1 flex-wrap">
+                        <span class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</span>
+                        ${phoneCopyBtn}
+                    </div>
                     ${customerBadge ? `<div class="mt-1">${customerBadge}</div>` : ''}
                 </div>
                 <button class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 flex-shrink-0" title="Chỉnh sửa thông tin khách hàng">
