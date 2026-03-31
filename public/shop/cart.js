@@ -42,7 +42,8 @@ const state = {
     paymentMethod: 'cod', // Default payment method
     openNoteInputs: new Set(), // Track which note inputs are open
     validator: null, // Form validator instance
-    isInitialized: false // Prevent double initialization
+    isInitialized: false, // Prevent double initialization
+    productCategoryMap: {} // { productId: categoryId } – cached from API
 };
 
 // ============================================
@@ -187,6 +188,9 @@ const cart = {
         
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
+
+        // Fetch category_id cho từng SP trong giỏ (dùng cho freeship logic)
+        await cart.loadProductCategories();
         
         // Load available discounts (await to ensure it completes)
         await cart.loadAvailableDiscounts();
@@ -323,6 +327,40 @@ const cart = {
         } catch (error) {
             console.error('[Cart] Error loading shipping fee, using default:', CONFIG.SHIPPING_FEE, error);
         }
+    },
+
+    // Fetch category_id for cart items from API (parallel), cache vào state.productCategoryMap
+    loadProductCategories: async () => {
+        if (state.cart.length === 0) return;
+
+        const idsToFetch = [];
+        for (const item of state.cart) {
+            // Nếu item đã có category_id (vd: bundle products), cache ngay không cần fetch
+            if (item.category_id) {
+                state.productCategoryMap[item.id] = item.category_id;
+                continue;
+            }
+            // Chưa có trong cache → cần fetch
+            if (state.productCategoryMap[item.id] === undefined) {
+                idsToFetch.push(item.id);
+            }
+        }
+
+        if (idsToFetch.length === 0) return;
+
+        await Promise.all(idsToFetch.map(async (id) => {
+            try {
+                const resp = await fetch(`${CONFIG.API_BASE_URL}/get?action=getProductById&id=${id}`);
+                const data = await resp.json();
+                const product = data.product || data;
+                if (product && product.category_id != null) {
+                    state.productCategoryMap[id] = product.category_id;
+                }
+            } catch (err) {
+                console.warn(`[Cart] Could not fetch category for product ${id}:`, err);
+            }
+        }));
+        console.log('📦 [Cart] Product category map loaded:', state.productCategoryMap);
     },
 
     loadAvailableDiscounts: async () => {
@@ -963,8 +1001,27 @@ const cart = {
             return sum + (item.price * item.quantity);
         }, 0);
 
-        // Check if cart has bundle products
-        const hasBundleProduct = state.cart.some(item => item.isBundleProduct);
+        // Nhận diện "sản phẩm bán kèm" theo 2 cách (đồng bộ với quick-checkout's selectedCrossSells):
+        //  1. item.isBundleProduct = true  → thêm từ phần bundle trong cart page
+        //  2. product ID nằm trong danh sách bundle → thêm từ trang chủ / listing thông thường
+        const bundleProductIds = bundleProductsService.getBundleProductIds();
+        const hasBundleProduct = state.cart.some(item =>
+            item.isBundleProduct === true || bundleProductIds.includes(item.id)
+        );
+
+        // Freeship khi có ít nhất 1 SP (không phải bán kèm cat23, không phải bi-charm cat24)
+        // có số lượng >= 2. Category lấy từ state.productCategoryMap (đã fetch lúc init).
+        const CAT_BI_CHARM = 24;
+        const CAT_BUNDLE = 23;
+        const hasQtyFreeship = state.cart.some(item => {
+            if (item.quantity < 2) return false;
+            // Bundle products không tính vào điều kiện qty >= 2
+            if (item.isBundleProduct === true || bundleProductIds.includes(item.id)) return false;
+            const catId = state.productCategoryMap[item.id] ?? item.category_id ?? null;
+            if (catId === CAT_BI_CHARM) return false;  // bi, charm bạc → loại trừ
+            if (catId === CAT_BUNDLE) return false;     // danh mục bán kèm → không tính
+            return true;
+        });
 
         // Calculate discount using discountService
         let discountAmount = 0;
@@ -981,7 +1038,10 @@ const cart = {
         if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
             state.shippingFee = 0;
         } else if (hasBundleProduct) {
-            // Free shipping if cart has at least 1 bundle product
+            // Free shipping if cart has at least 1 bundle product (sản phẩm bán kèm)
+            state.shippingFee = 0;
+        } else if (hasQtyFreeship) {
+            // Free shipping if any eligible product (not cat24, not cat23) has qty >= 2
             state.shippingFee = 0;
         } else if (!state.discount || state.discount.type !== 'freeship') {
             state.shippingFee = CONFIG.SHIPPING_FEE;
@@ -1045,6 +1105,8 @@ const cart = {
                 // Set label based on reason
                 if (hasBundleProduct) {
                     freeshipLabel.textContent = '(Mua kèm)';
+                } else if (hasQtyFreeship) {
+                    freeshipLabel.textContent = '(Mua từ 2+)';
                 } else if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
                     freeshipLabel.textContent = '(Đơn ≥500k)';
                 } else if (state.discount && state.discount.type === 'freeship') {
