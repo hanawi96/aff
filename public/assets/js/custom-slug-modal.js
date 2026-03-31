@@ -12,28 +12,31 @@ export function initCustomSlugModal(referralCode, customSlug) {
 }
 
 function addCustomSlugButton() {
-    // Find the container that has ctvCode
     const ctvCodeElement = document.getElementById('ctvCode');
     if (!ctvCodeElement || document.getElementById('customSlugBtn')) return;
-    
-    // Get the parent container (the flex div with badges)
-    const badgesContainer = ctvCodeElement.closest('.flex.flex-wrap');
-    if (!badgesContainer) return;
-    
-    // Create button badge
+
+    const mount = document.getElementById('customSlugBtnMount');
+    const badgesContainer = document.getElementById('ctvMetaBadges') || ctvCodeElement.closest('.flex.flex-wrap');
+    const parent = mount || badgesContainer;
+    if (!parent) return;
+
     const button = document.createElement('button');
     button.id = 'customSlugBtn';
+    button.type = 'button';
     button.onclick = showCustomSlugModal;
-    button.className = 'flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20 hover:bg-white/20 transition-all';
+    const label = currentCustomSlug ? 'Đổi link giới thiệu' : 'Tạo / chỉnh sửa link giới thiệu';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    // Chỉ icon bút — cạnh tiêu đề "Link giới thiệu" (hoặc fallback append vào ctvMetaBadges)
+    button.className =
+        'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:border-violet-300 hover:bg-violet-50';
     button.innerHTML = `
-        <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
         </svg>
-        <span class="text-white/90 text-sm font-semibold">${currentCustomSlug ? 'Đổi link' : 'Tạo link'}</span>
     `;
-    
-    // Add button to badges container
-    badgesContainer.appendChild(button);
+
+    parent.appendChild(button);
 }
 
 function showCustomSlugModal() {

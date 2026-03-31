@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let allOrders = [];
     let filteredOrders = [];
     let currentReferralCode = '';
+    /** Slug tùy chỉnh trên shop (nếu có) — ưu tiên khi dựng link ?ref= */
+    let currentCustomSlug = null;
     let currentCTVInfo = null;
     let currentFilter = VALID_FILTERS.includes(filterFromUrl) ? filterFromUrl : 'all';
     let currentSearchQuery = (searchFromUrl || '').trim().toLowerCase();
@@ -92,6 +94,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    const ctvReferralLinkCopy = document.getElementById('ctvReferralLinkCopy');
+    if (ctvReferralLinkCopy) {
+        ctvReferralLinkCopy.addEventListener('click', function () {
+            const a = document.getElementById('ctvReferralLink');
+            const text = a && a.href && a.href !== '#' ? a.href : '';
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(
+                    function () {
+                        const prev = ctvReferralLinkCopy.getAttribute('title') || 'Sao chép';
+                        ctvReferralLinkCopy.setAttribute('title', 'Đã chép');
+                        ctvReferralLinkCopy.setAttribute('aria-label', 'Đã chép vào bộ nhớ tạm');
+                        setTimeout(function () {
+                            ctvReferralLinkCopy.setAttribute('title', prev);
+                            ctvReferralLinkCopy.setAttribute('aria-label', 'Sao chép link giới thiệu');
+                        }, 2000);
+                    },
+                    function () {}
+                );
+            }
+        });
+    }
+
     // Load data immediately
     if (orderIdFromUrl && String(orderIdFromUrl).trim()) {
         isOrderLookupMode = true;
@@ -115,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 applyFilters();
                 currentReferralCode = result.referralCode || '';
+                currentCustomSlug = result.customSlug || null;
                 currentOrderLookupRaw = orderIdRaw;
                 isOrderLookupMode = true;
                 showOrderLookupBannerUi(orderIdRaw);
@@ -230,6 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 applyFilters();
                 currentReferralCode = result.referralCode || code;
+                currentCustomSlug = result.customSlug || null;
                 showNormalSections();
                 updateLastUpdatedTime();
 
@@ -272,6 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             applyFilters();
             currentReferralCode = result.referralCode || code;
+            currentCustomSlug = result.customSlug || null;
             showNormalSections();
             updateLastUpdatedTime();
 
@@ -283,6 +311,10 @@ document.addEventListener('DOMContentLoaded', function () {
             };
             currentCTVInfo = ctvInfo;
             displayCTVInfo(ctvInfo);
+
+            if (currentReferralCode && window.initCustomSlugModal) {
+                window.initCustomSlugModal(currentReferralCode, result.customSlug || null);
+            }
 
             // Display orders
             displayOrders();
@@ -350,6 +382,18 @@ document.addEventListener('DOMContentLoaded', function () {
         updateURLState();
     }
 
+    /** URL shop kèm ?ref= — cùng quy tắc với custom-slug-modal (local dùng origin, production dùng CONFIG.SHOP_URL) */
+    function buildReferralLinkUrl() {
+        const refParam = currentCustomSlug || currentReferralCode;
+        if (!refParam) return '';
+        const isLocal =
+            typeof location !== 'undefined' &&
+            (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        let base = isLocal ? location.origin : (CONFIG.SHOP_URL || '');
+        base = String(base).replace(/\/$/, '');
+        return `${base}/?ref=${encodeURIComponent(refParam)}`;
+    }
+
     function displayCTVInfo(ctvInfo) {
         const capitalizeName = (name) => name?.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         const maskPhone = (phone) => {
@@ -405,6 +449,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const canEdit = currentReferralCode && !ctvInfo.noReferral && !ctvInfo.ctvMissing;
             btn.style.opacity = canEdit ? '1' : '0';
             btn.style.pointerEvents = canEdit ? 'auto' : 'none';
+        }
+
+        const referralUrl = buildReferralLinkUrl();
+        const referralSection = document.getElementById('ctvReferralLinkSection');
+        const referralLinkEl = document.getElementById('ctvReferralLink');
+        const canShowReferral =
+            Boolean(referralUrl) && !ctvInfo.noReferral && !ctvInfo.ctvMissing;
+        if (referralSection && referralLinkEl) {
+            if (canShowReferral) {
+                referralSection.classList.remove('hidden');
+                referralLinkEl.href = referralUrl;
+                referralLinkEl.textContent = referralUrl;
+            } else {
+                referralSection.classList.add('hidden');
+                referralLinkEl.removeAttribute('href');
+                referralLinkEl.textContent = '';
+            }
         }
     }
 
@@ -737,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createOrderCard(order) {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl shadow-sm sm:shadow-md sm:hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer';
+        card.className = 'cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-md';
         
         const amount = parseAmount(order.total_amount || order.totalAmount);
         const commission = order.commission || (amount * CONFIG.COMMISSION_RATE);
@@ -754,63 +815,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
         card.innerHTML = `
             <div class="p-4">
-                <!-- Header: Date + Icon -->
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-9 h-9 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                            </svg>
+                <div class="mb-3 flex items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span class="text-sm font-semibold text-gray-900">${date}</span>
+                            <span class="text-xs text-gray-400">·</span>
+                            <span class="font-mono text-xs font-medium text-gray-600">${order.order_id || '#' + orderId}</span>
                         </div>
-                        <div>
-                            <div class="text-xs text-gray-500">Đơn hàng</div>
-                            <div class="text-sm font-bold text-gray-900">${date}</div>
-                        </div>
+                        <div class="mt-1.5 truncate text-sm text-gray-800">${customerName}</div>
+                        <div class="text-xs text-gray-500">${maskedPhone}</div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="h-5 w-5 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
-
-                <div class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-100 px-2.5 py-1">
-                    <span class="text-[11px] font-medium text-purple-600">Mã đơn:</span>
-                    <span class="text-xs font-bold text-purple-700">${order.order_id || '#' + orderId}</span>
-                </div>
-
-                <!-- Customer Info -->
-                <div class="bg-gray-50 rounded-xl p-3 mb-3 border border-gray-200">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                        </svg>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-semibold text-gray-900 truncate">${customerName}</div>
-                            <div class="text-xs text-gray-600">${maskedPhone}</div>
-                        </div>
+                <div class="flex items-end justify-between gap-3 border-t border-gray-100 pt-3">
+                    <div>
+                        <div class="text-[11px] font-medium text-gray-500">Tổng tiền</div>
+                        <div class="text-base font-bold tabular-nums text-gray-900">${formatCurrency(amount)}</div>
                     </div>
-                </div>
-
-                <!-- Amount & Commission in one row -->
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
-                        <div class="text-xs text-blue-700 mb-0.5">Tổng tiền</div>
-                        <div class="text-sm sm:text-base font-bold text-blue-900 break-words">${formatCurrency(amount)}</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 border border-green-200">
-                        <div class="text-xs text-green-700 mb-0.5">Hoa hồng</div>
-                        <div class="text-sm sm:text-base font-bold text-green-900 break-words">${formatCurrency(commission)}</div>
+                    <div class="text-right">
+                        <div class="text-[11px] font-medium text-gray-500">Hoa hồng</div>
+                        <div class="text-base font-bold tabular-nums text-gray-900">${formatCurrency(commission)}</div>
                     </div>
                 </div>
             </div>
-
-            <!-- Footer -->
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-2.5 border-t border-purple-100">
-                <div class="flex items-center justify-center gap-2 text-purple-600 font-medium text-xs">
-                    <span>Xem chi tiết</span>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                </div>
+            <div class="border-t border-gray-100 bg-gray-50/80 px-4 py-2 text-center text-xs font-medium text-gray-500">
+                Xem chi tiết →
             </div>
         `;
         
@@ -905,9 +936,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const button = document.createElement('button');
         const isActive = pageNum === currentPage;
         
-        button.className = isActive 
-            ? 'w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg transition-all'
-            : 'w-10 h-10 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 transition-all';
+        button.className = isActive
+            ? 'h-9 w-9 rounded-lg bg-indigo-600 text-sm font-bold text-white shadow-sm transition-all'
+            : 'h-9 w-9 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 transition hover:bg-gray-50';
         
         button.textContent = pageNum;
         button.onclick = () => goToPage(pageNum);
