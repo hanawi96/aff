@@ -22,6 +22,19 @@
             </div>
         </div>
 
+        <!-- Chế độ tra cứu theo mã đơn (từ trang chủ CTV) -->
+        <div id="orderLookupBanner" class="hidden mb-4 sm:mb-5 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-4 py-3 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-violet-900">
+                <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <span>Đang xem theo <strong class="font-semibold">mã đơn hàng</strong>: <span id="orderLookupBannerCode" class="font-mono font-bold"></span></span>
+                </span>
+                <a href="./" class="inline-flex items-center justify-center gap-1.5 text-violet-700 font-semibold hover:text-violet-900 underline decoration-violet-300 underline-offset-2">Tra cứu theo mã CTV / SĐT</a>
+            </div>
+        </div>
+
         <!-- CTV Info Card -->
         <div id="ctvInfoCard" class="bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-xl border border-white/20">
             <div class="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4">

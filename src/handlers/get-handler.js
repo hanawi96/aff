@@ -17,6 +17,7 @@ import {
 import {
     getCTVOrdersOptimized,
     getCTVOrdersByPhoneOptimized,
+    getCTVOrdersByOrderIdOptimized,
     getCTVDashboardOptimized
 } from '../services/ctv/ctv-stats.js';
 
@@ -171,6 +172,11 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getCTVOrdersByPhone':
             const ctvPhone = url.searchParams.get('phone');
             return await getCTVOrdersByPhoneOptimized(ctvPhone, env, corsHeaders);
+
+        case 'getCTVOrdersByOrderId': {
+            const oid = url.searchParams.get('orderId');
+            return await getCTVOrdersByOrderIdOptimized(oid, env, corsHeaders);
+        }
 
         case 'getCTVDashboard':
             return await getCTVDashboardOptimized(env, corsHeaders);

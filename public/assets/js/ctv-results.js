@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const VALID_SORTS = ['newest', 'oldest', 'commission_desc', 'revenue_desc'];
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromUrl = urlParams.get('code');
+    const orderIdFromUrl = urlParams.get('orderId');
     const filterFromUrl = urlParams.get('filter');
     const pageFromUrl = parseInt(urlParams.get('page') || '1', 10);
     const searchFromUrl = urlParams.get('q');
@@ -21,9 +22,13 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentSearchQuery = (searchFromUrl || '').trim().toLowerCase();
     let currentSort = VALID_SORTS.includes(sortFromUrl) ? sortFromUrl : 'newest';
 
-    if (!codeFromUrl) {
-        // No code provided, redirect to search
-        window.location.href = 'search.html';
+    /** Tra cứu theo mã đơn — không cần tham số code */
+    let isOrderLookupMode = false;
+    /** Giữ nguyên mã đơn gốc trên URL (để làm mới & lịch sử) */
+    let currentOrderLookupRaw = '';
+
+    if (!codeFromUrl && !orderIdFromUrl) {
+        window.location.href = 'index.html';
         return;
     }
 
@@ -69,7 +74,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (refreshDataBtn) {
         refreshDataBtn.addEventListener('click', function () {
-            loadOrderData(currentReferralCode || codeFromUrl, true);
+            if (isOrderLookupMode && currentOrderLookupRaw) {
+                loadOrderDataByOrderId(currentOrderLookupRaw, true);
+            } else {
+                loadOrderData(currentReferralCode || codeFromUrl, true);
+            }
         });
     }
     if (exportCsvBtn) {
@@ -84,7 +93,121 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Load data immediately
-    loadOrderData(codeFromUrl);
+    if (orderIdFromUrl && String(orderIdFromUrl).trim()) {
+        isOrderLookupMode = true;
+        currentOrderLookupRaw = String(orderIdFromUrl).trim();
+        loadOrderDataByOrderId(currentOrderLookupRaw);
+    } else {
+        loadOrderData(codeFromUrl);
+    }
+
+    async function loadOrderDataByOrderId(orderIdRaw, preservePaging = false) {
+        try {
+            const response = await fetch(
+                `${API_URL}?action=getCTVOrdersByOrderId&orderId=${encodeURIComponent(orderIdRaw)}&t=${Date.now()}`
+            );
+            const result = await response.json();
+
+            if (result.success && result.ctvInfo) {
+                allOrders = result.orders || [];
+                if (!preservePaging) {
+                    currentPage = Math.max(1, currentPage);
+                }
+                applyFilters();
+                currentReferralCode = result.referralCode || '';
+                currentOrderLookupRaw = orderIdRaw;
+                isOrderLookupMode = true;
+                showOrderLookupBannerUi(orderIdRaw);
+                showNormalSections();
+                updateLastUpdatedTime();
+
+                const ctvInfo = result.ctvInfo;
+                currentCTVInfo = ctvInfo;
+                displayCTVInfo(ctvInfo);
+
+                if (currentReferralCode && window.initCustomSlugModal) {
+                    window.initCustomSlugModal(currentReferralCode, result.customSlug || null);
+                }
+
+                displayOrders();
+                document.getElementById('loadingState').classList.add('hidden');
+                return;
+            }
+
+            const err = (result && result.error) ? String(result.error) : '';
+            if (err.includes('Unknown action')) {
+                showOrderLookupApiMisconfiguredError();
+                document.getElementById('loadingState').classList.add('hidden');
+                return;
+            }
+
+            showOrderNotFoundError(orderIdRaw);
+            document.getElementById('loadingState').classList.add('hidden');
+        } catch (error) {
+            console.error('Order lookup error:', error);
+            showOrderNotFoundError(orderIdRaw);
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+    }
+
+    function showOrderLookupBannerUi(raw) {
+        const banner = document.getElementById('orderLookupBanner');
+        const codeEl = document.getElementById('orderLookupBannerCode');
+        if (banner && codeEl) {
+            codeEl.textContent = raw.replace(/^#+/, '').trim() || raw;
+            banner.classList.remove('hidden');
+        }
+    }
+
+    function hideOrderLookupBannerUi() {
+        const banner = document.getElementById('orderLookupBanner');
+        if (banner) banner.classList.add('hidden');
+    }
+
+    function showOrderLookupApiMisconfiguredError() {
+        hideNormalSections();
+        const errorStateContainer = document.getElementById('errorStateContainer');
+        errorStateContainer.classList.remove('hidden');
+        errorStateContainer.innerHTML = `
+            <div class="max-w-2xl mx-auto text-center py-16 px-2">
+                <h2 class="text-xl font-bold text-gray-900 mb-3">API chưa hỗ trợ tra cứu mã đơn</h2>
+                <p class="text-gray-600 text-sm mb-4">Worker đang chạy có thể là bản cũ (thiếu action <code class="bg-gray-100 px-1 rounded">getCTVOrdersByOrderId</code>). Hãy deploy bản mới hoặc dùng API local.</p>
+                <p class="text-gray-500 text-xs mb-6">Mở console: <code class="bg-gray-100 px-1 rounded">localStorage.setItem('force_remote_api','1')</code> rồi tải lại nếu bạn cần trỏ về Workers production.</p>
+                <a href="index.html" class="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700">Quay lại tra cứu</a>
+            </div>
+        `;
+    }
+
+    function showOrderNotFoundError(orderIdRaw) {
+        hideNormalSections();
+        const errorStateContainer = document.getElementById('errorStateContainer');
+        const display = String(orderIdRaw || '').replace(/^#+/, '').trim() || '(trống)';
+        errorStateContainer.classList.remove('hidden');
+        errorStateContainer.innerHTML = `
+            <div class="max-w-2xl mx-auto text-center py-16">
+                <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-violet-100 to-fuchsia-100 rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">Không tìm thấy đơn hàng</h2>
+                <p class="text-gray-600 mb-2">
+                    Không có đơn nào khớp mã <span class="font-mono font-semibold text-gray-900">${escapeHtml(display)}</span>
+                </p>
+                <p class="text-gray-500 text-sm mb-8">Kiểm tra lại mã đơn (có thể copy từ tin nhắn khách) hoặc tra cứu theo mã CTV / số điện thoại.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="index.html"
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:from-violet-700 hover:to-fuchsia-700 transition-all shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Tra cứu lại
+                    </a>
+                </div>
+            </div>
+        `;
+        updateURLState();
+    }
 
     async function loadOrderData(code, preservePaging = false) {
         const isPhone = /^0?\d{9,10}$/.test(code);
@@ -99,6 +222,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Check if CTV exists but has no orders
             if (result.success && result.ctvInfo) {
                 // CTV exists - show info even if no orders
+                isOrderLookupMode = false;
+                hideOrderLookupBannerUi();
                 allOrders = result.orders || [];
                 if (!preservePaging) {
                     currentPage = Math.max(1, currentPage);
@@ -118,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 displayCTVInfo(ctvInfo);
 
                 // Initialize custom slug modal
-                if (window.initCustomSlugModal) {
+                if (currentReferralCode && window.initCustomSlugModal) {
                     window.initCustomSlugModal(currentReferralCode, result.customSlug || null);
                 }
 
@@ -139,6 +264,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // Store data
+            isOrderLookupMode = false;
+            hideOrderLookupBannerUi();
             allOrders = result.orders;
             if (!preservePaging) {
                 currentPage = Math.max(1, currentPage);
@@ -265,13 +392,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 null);
 
         document.getElementById('ctvName').textContent = capitalizeName(ctvInfo.name) || 'Cộng tác viên';
-        document.getElementById('ctvPhone').textContent = maskPhone(ctvInfo.phone);
-        document.getElementById('ctvCode').textContent = currentReferralCode || '-';
+        if (ctvInfo.noReferral || ctvInfo.ctvMissing) {
+            document.getElementById('ctvPhone').textContent = '—';
+        } else {
+            document.getElementById('ctvPhone').textContent = maskPhone(ctvInfo.phone);
+        }
+        document.getElementById('ctvCode').textContent = currentReferralCode || '—';
         document.getElementById('ctvJoinDate').textContent = formatJoinDate(joinDateRaw);
 
-        // Show edit button
         const btn = document.getElementById('editCtvBtn');
-        if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+        if (btn) {
+            const canEdit = currentReferralCode && !ctvInfo.noReferral && !ctvInfo.ctvMissing;
+            btn.style.opacity = canEdit ? '1' : '0';
+            btn.style.pointerEvents = canEdit ? 'auto' : 'none';
+        }
     }
 
     function displayOrders() {
@@ -455,7 +589,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateURLState() {
         const params = new URLSearchParams();
-        params.set('code', currentReferralCode || codeFromUrl);
+        if (isOrderLookupMode && currentOrderLookupRaw) {
+            params.set('orderId', currentOrderLookupRaw);
+        } else {
+            params.set('code', currentReferralCode || codeFromUrl);
+        }
         if (currentFilter !== 'all') params.set('filter', currentFilter);
         if (currentPage > 1) params.set('page', String(currentPage));
         if (currentSearchQuery) params.set('q', currentSearchQuery);
@@ -474,6 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function hideNormalSections() {
+        hideOrderLookupBannerUi();
         const ids = ['ctvInfoCard', 'dataActionsSection', 'filtersSection', 'searchSortSection', 'statsSection', 'ordersGrid', 'paginationContainer'];
         ids.forEach(id => {
             const el = document.getElementById(id);

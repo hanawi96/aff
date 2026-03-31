@@ -5,258 +5,464 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tra Cứu Đơn Hàng - CTV</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root {
+            --bg1: #fef3f8;
+            --bg2: #f0f9ff;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --pink: #db2777;
+            --pink-soft: #fce7f3;
+            --violet: #6d28d9;
+            --border: #e5e7eb;
+            --radius: 12px;
+            --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
 
-        * {
-            font-family: 'Inter', sans-serif;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
-            background: linear-gradient(135deg, #fef3f8 0%, #fef7ed 25%, #f0f9ff 50%, #faf5ff 75%, #fef3f8 100%);
-            background-size: 400% 400%;
-            animation: gentleGradient 20s ease infinite;
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font);
+            color: var(--text);
+            background: linear-gradient(165deg, var(--bg1) 0%, #fef7ed 40%, var(--bg2) 100%);
+            background-attachment: fixed;
+        }
+
+        /* Trang trí nền tĩnh — không animation */
+        .bg-decor {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-decor span {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.06;
+        }
+
+        .bg-decor .d1 {
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, #fbbf24, #f472b6);
+            top: 8%;
+            left: 5%;
+        }
+
+        .bg-decor .d2 {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            bottom: 12%;
+            right: 6%;
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 28rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .avatar {
+            width: 5rem;
+            height: 5rem;
+            margin: 0 auto 1rem;
+            border-radius: 9999px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            display: block;
+        }
+
+        h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+
+        /* Tabs — chỉ đổi class, không ghi đè toàn bộ className */
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.25rem;
+            background: #f3f4f6;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 1.25rem;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 0;
+            padding: 0.65rem 0.5rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.65rem;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+            font-family: inherit;
+            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        @media (min-width: 400px) {
+            .tab {
+                font-size: 0.875rem;
+                padding: 0.65rem 0.75rem;
+            }
+        }
+
+        .tab--ctv.tab--active {
+            background: #fff;
+            color: var(--pink);
+            box-shadow: 0 0 0 2px #fbcfe8;
+        }
+
+        .tab--order.tab--active {
+            background: #fff;
+            color: var(--violet);
+            box-shadow: 0 0 0 2px #ddd6fe;
+        }
+
+        .tab:focus-visible {
+            outline: 2px solid var(--pink);
+            outline-offset: 2px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .input-wrap {
             position: relative;
         }
 
-        @keyframes gentleGradient {
-
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-        }
-
-        /* Floating shapes - very subtle */
-        .floating-shape {
+        .input-wrap .icon-search {
             position: absolute;
-            border-radius: 50%;
-            opacity: 0.08;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #9ca3af;
             pointer-events: none;
         }
 
-        .shape-1 {
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(135deg, #fbbf24, #f472b6);
-            top: 10%;
-            left: 5%;
-            animation: float1 25s ease-in-out infinite;
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 2.75rem 0.75rem 2.5rem;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            color: var(--text);
+            background: #fff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .shape-2 {
-            width: 150px;
-            height: 150px;
-            background: linear-gradient(135deg, #60a5fa, #c084fc);
-            bottom: 15%;
-            right: 8%;
-            animation: float2 20s ease-in-out infinite;
-        }
-
-        .shape-3 {
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, #fb923c, #fbbf24);
-            top: 60%;
-            left: 10%;
-            animation: float3 18s ease-in-out infinite;
-        }
-
-        /* Mobile responsive shapes */
-        @media (max-width: 768px) {
-            .shape-1 {
-                width: 80px;
-                height: 80px;
-            }
-
-            .shape-2 {
-                width: 60px;
-                height: 60px;
-            }
-
-            .shape-3 {
-                width: 50px;
-                height: 50px;
-            }
-        }
-
-        @keyframes float1 {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate(30px, -30px) scale(1.1);
-            }
-        }
-
-        @keyframes float2 {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate(-25px, 25px) scale(1.15);
-            }
-        }
-
-        @keyframes float3 {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate(20px, 20px) scale(1.2);
-            }
-        }
-
-        .main-card {
-            /* No animations */
+        .search-input::placeholder {
+            color: #9ca3af;
         }
 
         .search-input:focus {
-            border-color: #ec4899;
-            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+            outline: none;
+            border-color: #f472b6;
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.12);
         }
 
-        .btn-search {
+        /* Vùng nút xóa cố định — không ẩn/hiện làm nhảy layout */
+        .input-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            cursor: pointer;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s ease, color 0.12s ease;
+        }
+
+        .input-wrap.has-value .input-clear {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .input-clear:hover {
+            color: #4b5563;
+        }
+
+        .hint-slot {
+            margin-top: 0.5rem;
+        }
+
+        .saved-hint {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius);
+            border: 1px solid #fbcfe8;
+            background: var(--pink-soft);
+            font-size: 0.75rem;
+            color: #9d174d;
+            min-height: 2.75rem;
+            box-sizing: border-box;
+        }
+
+        .saved-hint--empty {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            padding-top: 0;
+            padding-bottom: 0;
+            min-height: 0;
+            height: 0;
+            margin: 0;
+            border: none;
+            overflow: hidden;
+        }
+
+        .saved-hint--has {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .saved-hint__left {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .btn-primary {
+            width: 100%;
+            margin-top: 1.25rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
-            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(236, 72, 153, 0.25);
+            transition: filter 0.15s ease, transform 0.1s ease;
         }
 
-        .btn-search:hover:not(:disabled) {
-            background: linear-gradient(135deg, #db2777 0%, #ec4899 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        .btn-primary:hover:not(:disabled) {
+            filter: brightness(0.97);
         }
 
-        .btn-search:active:not(:disabled) {
-            transform: translateY(0);
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .spin {
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .support {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .support-title {
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin: 0 0 0.75rem;
+        }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .support-grid--wide {
+            grid-column: 1 / -1;
         }
 
         .support-link {
-            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            color: #374151;
+            transition: background 0.15s ease;
         }
 
         .support-link:hover {
-            transform: translateY(-1px);
+            background: #f3f4f6;
         }
 
-        /* Subtle sparkle effect */
-        .sparkle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border-radius: 50%;
-            opacity: 0;
-            animation: sparkle 3s ease-in-out infinite;
+        .support-link--zalo {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
         }
 
-        @keyframes sparkle {
-
-            0%,
-            100% {
-                opacity: 0;
-                transform: scale(0);
-            }
-
-            50% {
-                opacity: 0.6;
-                transform: scale(1);
-            }
+        .support-link--zalo:hover {
+            background: #1d4ed8;
         }
 
-        .sparkle-1 {
-            top: 20%;
-            left: 15%;
-            animation-delay: 0s;
+        .support-link--fb {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #9f1239;
         }
 
-        .sparkle-2 {
-            top: 40%;
-            right: 20%;
-            animation-delay: 1s;
+        .support-link--fb:hover {
+            background: #ffe4e6;
         }
 
-        .sparkle-3 {
-            bottom: 30%;
-            left: 25%;
-            animation-delay: 2s;
-        }
-
-        .sparkle-4 {
-            top: 70%;
-            right: 15%;
-            animation-delay: 1.5s;
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 
-<body class="min-h-screen">
-    <!-- Floating shapes -->
-    <div class="floating-shape shape-1"></div>
-    <div class="floating-shape shape-2"></div>
-    <div class="floating-shape shape-3"></div>
+<body>
+    <div class="bg-decor" aria-hidden="true">
+        <span class="d1"></span>
+        <span class="d2"></span>
+    </div>
 
-    <!-- Sparkles -->
-    <div class="sparkle sparkle-1"></div>
-    <div class="sparkle sparkle-2"></div>
-    <div class="sparkle sparkle-3"></div>
-    <div class="sparkle sparkle-4"></div>
+    <div class="page">
+        <div class="shell">
+            <header class="hero">
+                <img class="avatar" src="../assets/avatar.jpg" alt="" width="80" height="80" decoding="async">
+                <h1>Tra Cứu Đơn Hàng</h1>
+                <p id="pageSubtitle" class="subtitle">Nhập mã CTV hoặc số điện thoại để xem toàn bộ đơn</p>
+            </header>
 
-    <div class="min-h-screen flex items-center justify-center px-4 py-8 relative z-10">
-        <div class="w-full max-w-md">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="avatar-container inline-block">
-                    <img src="../assets/avatar.jpg" alt="Logo"
-                        class="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg border-2 border-white">
+            <div class="card">
+                <div class="tabs" role="tablist" aria-label="Chế độ tra cứu">
+                    <button type="button" id="modeCtvBtn" class="tab tab--ctv tab--active" role="tab" aria-selected="true">Mã CTV / SĐT</button>
+                    <button type="button" id="modeOrderBtn" class="tab tab--order" role="tab" aria-selected="false">Mã đơn hàng</button>
                 </div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Tra Cứu Đơn Hàng</h1>
-                <p class="text-gray-600">Nhập mã CTV hoặc số điện thoại để xem đơn hàng</p>
-            </div>
 
-            <!-- Main Card -->
-            <div class="main-card bg-white rounded-2xl shadow-lg p-6 mb-6">
-                <form id="searchForm" class="space-y-5">
-                    <div>
-                        <label for="referralCode" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Mã CTV hoặc Số Điện Thoại
-                        </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input type="text" id="referralCode" placeholder="VD: CTV123456 hoặc 0386190596" required
-                                class="search-input w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none transition-all text-gray-900 placeholder-gray-400">
-                        </div>
-                    </div>
-
-                    <button type="submit" id="searchButton"
-                        class="btn-search w-full py-3 px-4 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                        <svg id="searchIcon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <form id="searchForm" novalidate>
+                    <label id="searchFieldLabel" class="field-label" for="referralCode">Mã CTV hoặc Số Điện Thoại</label>
+                    <div class="input-wrap" id="inputWrap">
+                        <svg class="icon-search" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <svg id="loadingSpinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
+                        <input type="text" id="referralCode" name="q" autocomplete="off"
+                            class="search-input"
+                            placeholder="VD: CTV123456 hoặc 0386190596"
+                            required>
+                        <button type="button" id="clearInputBtn" class="input-clear" title="Xóa" aria-label="Xóa">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="hint-slot">
+                        <div id="savedCodeHint" class="saved-hint saved-hint--empty">
+                            <span class="saved-hint__left">
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                </svg>
+                                <span>Mã đã lưu: <strong id="savedCodeText"></strong></span>
+                            </span>
+                            <button type="button" id="forgetCodeBtn" style="background:none;border:none;padding:0;font:inherit;color:#db2777;font-weight:600;cursor:pointer;">Quên</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="searchButton" class="btn-primary">
+                        <svg id="searchIcon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <svg id="loadingSpinner" class="spin hidden" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor"
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                             </path>
@@ -265,33 +471,31 @@
                     </button>
                 </form>
 
-                <!-- Support Section -->
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                    <p class="text-center text-sm text-gray-500 mb-3">Cần hỗ trợ?</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="/ctv/guide.html"
-                            class="support-link flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium rounded-lg border border-gray-200">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="support">
+                    <p class="support-title">Cần hỗ trợ?</p>
+                    <div class="support-grid">
+                        <a href="/ctv/guide.html" class="support-link">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
-                            <span>Hướng dẫn</span>
+                            Hướng dẫn
                         </a>
-                        <a href="https://zalo.me/g/pdkvsn6scdfenhvj0shr" target="_blank"
-                            class="support-link flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <a href="https://zalo.me/g/pdkvsn6scdfenhvj0shr" target="_blank" rel="noopener noreferrer"
+                            class="support-link support-link--zalo">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                                 <path
                                     d="M12 2C6.477 2 2 6.145 2 11.243c0 2.855 1.371 5.424 3.514 7.15v3.607l3.456-1.893c.923.255 1.897.393 2.903.393 5.523 0 10-4.145 10-9.257C22 6.145 17.523 2 12 2zm.993 12.535l-2.558-2.73-4.993 2.73 5.492-5.832 2.62 2.73 4.931-2.73-5.492 5.832z" />
                             </svg>
-                            <span>Nhóm Zalo</span>
+                            Nhóm Zalo
                         </a>
                         <a href="https://drive.google.com/drive/folders/1ZJpdagr5LG0f_cef23MgZD7GsuEdR_Ea?hl=vi"
-                            class="support-link col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-medium rounded-lg border border-rose-200">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            class="support-link support-link--fb support-grid--wide">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M7.5 8.25h9m-9 3h6m-9 8.25h8.25A2.25 2.25 0 0015 17.25V6.75A2.25 2.25 0 0012.75 4.5H6.75A2.25 2.25 0 004.5 6.75v10.5A2.25 2.25 0 006.75 19.5zM15 15l3.75 3.75V6.75A2.25 2.25 0 0016.5 4.5h-3" />
                             </svg>
-                            <span>Kho feedback</span>
+                            Kho feedback
                         </a>
                     </div>
                 </div>
@@ -299,7 +503,26 @@
         </div>
     </div>
 
-    <script src="../assets/js/config.js"></script>
+    <!-- Điền mã đã lưu đồng bộ ngay sau khi parse DOM — trước DOMContentLoaded, giảm nháy -->
+    <script>
+        (function () {
+            try {
+                var k = 'ctv_saved_code';
+                var s = localStorage.getItem(k);
+                var input = document.getElementById('referralCode');
+                var hint = document.getElementById('savedCodeHint');
+                var txt = document.getElementById('savedCodeText');
+                var wrap = document.getElementById('inputWrap');
+                if (s && input && hint && txt) {
+                    input.value = s;
+                    txt.textContent = s;
+                    hint.classList.remove('saved-hint--empty');
+                    hint.classList.add('saved-hint--has');
+                    if (wrap) wrap.classList.add('has-value');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
     <script src="../assets/js/ctv-search.js"></script>
 </body>
 

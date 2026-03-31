@@ -760,12 +760,167 @@ function extractCustomerName(lines, phoneInfo) {
     return null;
 }
 
+// ============================================
+// POSITION-AWARE SHORT CODE EXPANSION
+// ============================================
+// Mã viết tắt tỉnh/huyện 2 ký tự CHỈ được expand khi nằm ở vị trí hợp lý:
+//   - Mã tỉnh: segment cuối cùng (sau dấu phẩy cuối) hoặc từ cuối cùng
+//   - Mã huyện: segment áp chót
+// Nguyên nhân: mã 2 ký tự như "na", "la", "cm", "kg" trùng với
+// từ tiếng Việt/đơn vị đo, gây nhận diện sai khi expand vô điều kiện.
+
+const PROVINCE_SHORT_CODES = {
+    'bn': 'Bắc Ninh', 'bg': 'Bắc Giang', 'bk': 'Bắc Kạn',
+    'hb': 'Hòa Bình', 'hy': 'Hưng Yên', 'ls': 'Lạng Sơn',
+    'lc': 'Lào Cai', 'nb': 'Ninh Bình', 'pt': 'Phú Thọ',
+    'sl': 'Sơn La', 'tb': 'Thái Bình', 'tq': 'Tuyên Quang',
+    'vp': 'Vĩnh Phúc', 'yb': 'Yên Bái', 'na': 'Nghệ An',
+    'ht': 'Hà Tĩnh', 'qb': 'Quảng Bình', 'qt': 'Quảng Trị',
+    'py': 'Phú Yên', 'kh': 'Khánh Hòa', 'nt': 'Ninh Thuận',
+    'gl': 'Gia Lai', 'kt': 'Kon Tum', 'ld': 'Lâm Đồng',
+    'bp': 'Bình Phước', 'la': 'Long An', 'tg': 'Tiền Giang',
+    'vl': 'Vĩnh Long', 'dt': 'Đồng Tháp', 'ag': 'An Giang',
+    'kg': 'Kiên Giang', 'bl': 'Bạc Liêu', 'cm': 'Cà Mau',
+    'st': 'Sóc Trăng', 'tv': 'Trà Vinh',
+    'bd': 'Bình Dương', 'bt': 'Bình Thuận', 'dn': 'Đồng Nai',
+    'dl': 'Đắk Lắk', 'tn': 'Thái Nguyên', 'hg': 'Hà Giang',
+    'qn': 'Quảng Ninh', 'hn': 'Hà Nam'
+};
+
+const DISTRICT_SHORT_CODES = {
+    'bc': 'Bến Cát', 'tu': 'Tân Uyên',
+    'bh': 'Biên Hòa', 'lk': 'Long Khánh',
+    'cg': 'Cần Giuộc', 'bl': 'Bến Lức', 'dh': 'Đức Hòa'
+};
+
+/**
+ * Expand 2-letter province/district codes chỉ khi nằm ở vị trí phù hợp.
+ *
+ * Có dấu phẩy:
+ *   - Segment cuối  → ưu tiên tỉnh, fallback huyện
+ *   - Segment áp chót → ưu tiên huyện, fallback tỉnh
+ *
+ * Không có dấu phẩy:
+ *   - Từ cuối cùng (cần >= 2 từ) → ưu tiên tỉnh, fallback huyện
+ *
+ * Segment > 3 từ bị bỏ qua (không thể là viết tắt đơn lẻ).
+ */
+function expandShortCodesAtEnd(address) {
+    const hasCommas = address.includes(',');
+    let changed = false;
+
+    if (hasCommas) {
+        const segments = address.split(',').map(s => s.trim()).filter(s => s);
+        if (segments.length === 0) return address;
+
+        // --- Segment cuối: tỉnh trước, huyện fallback ---
+        const lastIdx = segments.length - 1;
+        const lastWords = segments[lastIdx].split(/\s+/).filter(w => w);
+        if (lastWords.length > 0 && lastWords.length <= 3) {
+            const code = lastWords[lastWords.length - 1].toLowerCase();
+            const expanded = PROVINCE_SHORT_CODES[code] || DISTRICT_SHORT_CODES[code];
+            if (expanded) {
+                const type = PROVINCE_SHORT_CODES[code] ? 'Province' : 'District';
+                lastWords[lastWords.length - 1] = expanded;
+                segments[lastIdx] = lastWords.join(' ');
+                changed = true;
+                console.log(`  ✓ ${type} code at end: "${code}" → "${expanded}"`);
+            }
+        }
+
+        // --- Segment áp chót: huyện trước, tỉnh fallback ---
+        if (segments.length >= 2) {
+            const prevIdx = segments.length - 2;
+            const prevWords = segments[prevIdx].split(/\s+/).filter(w => w);
+            if (prevWords.length > 0 && prevWords.length <= 3) {
+                const code = prevWords[prevWords.length - 1].toLowerCase();
+                const expanded = DISTRICT_SHORT_CODES[code] || PROVINCE_SHORT_CODES[code];
+                if (expanded) {
+                    const type = DISTRICT_SHORT_CODES[code] ? 'District' : 'Province';
+                    prevWords[prevWords.length - 1] = expanded;
+                    segments[prevIdx] = prevWords.join(' ');
+                    changed = true;
+                    console.log(`  ✓ ${type} code at second-to-last: "${code}" → "${expanded}"`);
+                }
+            }
+        }
+
+        return changed ? segments.join(', ') : address;
+    }
+
+    // Không có dấu phẩy: chỉ kiểm tra từ cuối cùng
+    const words = address.trim().split(/\s+/);
+    if (words.length >= 2) {
+        const code = words[words.length - 1].toLowerCase();
+        const expanded = PROVINCE_SHORT_CODES[code] || DISTRICT_SHORT_CODES[code];
+        if (expanded) {
+            const type = PROVINCE_SHORT_CODES[code] ? 'Province' : 'District';
+            words[words.length - 1] = expanded;
+            changed = true;
+            console.log(`  ✓ ${type} code as last word (no commas): "${code}" → "${expanded}"`);
+        }
+    }
+
+    if (!changed) {
+        console.log('  ⏭️ No position-appropriate short codes found');
+    }
+
+    return changed ? words.join(' ') : address;
+}
+
+// ============================================
+// CUSTOMER ADDRESS HINT (từ lịch sử đơn hàng)
+// ============================================
+// Trích xuất tỉnh/huyện phổ biến nhất của khách hàng từ dữ liệu đã load
+// trong bộ nhớ (allOrdersData). Không gọi API → zero latency.
+
+/**
+ * Lấy tỉnh/huyện phổ biến nhất của khách hàng từ dữ liệu đơn hàng đã load.
+ * Trả về null nếu không tìm thấy hoặc dữ liệu chưa sẵn sàng.
+ */
+function getCustomerAddressHint(phone) {
+    if (!phone || typeof allOrdersData === 'undefined' ||
+        !Array.isArray(allOrdersData) || allOrdersData.length === 0) {
+        return null;
+    }
+
+    const customerOrders = allOrdersData.filter(
+        o => o.customer_phone === phone && o.province_id
+    );
+    if (customerOrders.length === 0) return null;
+
+    // Đếm tần suất province_id
+    const pCounts = {};
+    for (const o of customerOrders) {
+        const pid = String(o.province_id);
+        pCounts[pid] = (pCounts[pid] || 0) + 1;
+    }
+    const topProvince = Object.entries(pCounts).sort((a, b) => b[1] - a[1])[0];
+    if (!topProvince) return null;
+
+    // Đếm tần suất district_id trong tỉnh phổ biến nhất
+    const dCounts = {};
+    for (const o of customerOrders) {
+        if (String(o.province_id) === topProvince[0] && o.district_id) {
+            const did = String(o.district_id);
+            dCounts[did] = (dCounts[did] || 0) + 1;
+        }
+    }
+    const topDistrict = Object.entries(dCounts).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+        province_id: topProvince[0],
+        district_id: topDistrict ? topDistrict[0] : null,
+        orderCount: customerOrders.length
+    };
+}
+
 /**
  * Parse address and match with Vietnam address database
  * Enhanced to handle addresses WITHOUT commas and with typos
  * PRIORITY: Longer phrases (2-3 words) over single words
  */
-async function parseAddress(addressText) {
+async function parseAddress(addressText, customerHint = null) {
     const result = {
         street: '',
         ward: null,
@@ -792,6 +947,24 @@ async function parseAddress(addressText) {
     
     console.log('📊 Address data:', vietnamAddressData.length, 'provinces loaded');
     
+    // ============================================
+    // RESOLVE CUSTOMER ADDRESS HINT
+    // ============================================
+    let customerProvinceBoost = null;
+    let customerDistrictBoost = null;
+
+    if (customerHint && customerHint.province_id) {
+        customerProvinceBoost = vietnamAddressData.find(p => p.Id === customerHint.province_id) || null;
+        if (customerProvinceBoost && customerHint.district_id) {
+            customerDistrictBoost = customerProvinceBoost.Districts.find(
+                d => d.Id === customerHint.district_id
+            ) || null;
+        }
+        if (customerProvinceBoost) {
+            console.log(`  🧑 Customer hint: ${customerProvinceBoost.Name}${customerDistrictBoost ? ' → ' + customerDistrictBoost.Name : ''} (${customerHint.orderCount} đơn trước)`);
+        }
+    }
+
     // ============================================
     // LAYER 0: PRE-NORMALIZATION (NEW - Safe)
     // ============================================
@@ -1195,6 +1368,32 @@ async function parseAddress(addressText) {
     processedAddress = addressText;
     
     // ============================================
+    // EARLY PROVINCE DETECTION (trước abbreviation expansion)
+    // ============================================
+    // Tìm tỉnh/TP trên text GỐC (chưa bị abbreviation expansion thay đổi).
+    // Threshold 0.9: chỉ match tên tỉnh rõ ràng, tránh false positive.
+    // Quét từ cuối lên đầu vì tỉnh luôn ở cuối địa chỉ Việt Nam.
+    let earlyProvinceMatch = null;
+
+    {
+        const rawParts = processedAddress.split(/[,.\-]/).map(s => s.trim()).filter(s => s.length >= 3);
+        for (let i = rawParts.length - 1; i >= 0; i--) {
+            const norm = removeVietnameseTones(rawParts[i]).toLowerCase();
+            if (/\b(phuong|xa|thi tran|khom|quan|huyen)\b/.test(norm)) continue;
+
+            const match = fuzzyMatch(rawParts[i], vietnamAddressData, 0.9);
+            if (match && match.score >= 0.9) {
+                earlyProvinceMatch = match.match;
+                console.log(`  🎯 Early province (raw text): "${rawParts[i]}" → ${earlyProvinceMatch.Name} (score: ${match.score.toFixed(2)})`);
+                break;
+            }
+        }
+        if (!earlyProvinceMatch) {
+            console.log('  ⏭️ No early province detected on raw text');
+        }
+    }
+
+    // ============================================
     // PRE-PROCESSING: Expand common abbreviations (EXISTING)
     // ============================================
     // CRITICAL: Expand FULL NAMES FIRST before expanding abbreviations
@@ -1363,102 +1562,19 @@ async function parseAddress(addressText) {
         return cityMap[city.toLowerCase()] + trailing;
     });
     
-    // Pattern 3.5: Province abbreviations (common 2-letter codes)
-    // IMPORTANT: These must be at word boundaries to avoid false matches
-    // CONFLICT HANDLING: Some codes are ambiguous, prioritize most common usage
-    
-    // 4-letter codes (no conflicts)
+    // Pattern 3.5: Province/District short codes
+    // 3+ letter codes: an toàn, expand bằng \b...\b bình thường
     processedAddress = processedAddress.replace(/\bbrvt\b/gi, 'Bà Rịa - Vũng Tàu');
     processedAddress = processedAddress.replace(/\btth\b/gi, 'Thừa Thiên Huế');
     processedAddress = processedAddress.replace(/\bbtr\b/gi, 'Bến Tre');
-    
-    // 2-letter codes - UNAMBIGUOUS (safe to expand)
-    processedAddress = processedAddress.replace(/\bbn\b/gi, 'Bắc Ninh');
-    processedAddress = processedAddress.replace(/\bbg\b/gi, 'Bắc Giang');
-    processedAddress = processedAddress.replace(/\bbk\b/gi, 'Bắc Kạn');
-    processedAddress = processedAddress.replace(/\bhb\b/gi, 'Hòa Bình');
-    processedAddress = processedAddress.replace(/\bhy\b/gi, 'Hưng Yên');
-    processedAddress = processedAddress.replace(/\bls\b/gi, 'Lạng Sơn');
-    processedAddress = processedAddress.replace(/\blc\b/gi, 'Lào Cai');
-    processedAddress = processedAddress.replace(/\bnb\b/gi, 'Ninh Bình');
-    processedAddress = processedAddress.replace(/\bpt\b/gi, 'Phú Thọ');
-    processedAddress = processedAddress.replace(/\bsl\b/gi, 'Sơn La');
-    processedAddress = processedAddress.replace(/\btb\b/gi, 'Thái Bình');
-    processedAddress = processedAddress.replace(/\btq\b/gi, 'Tuyên Quang');
-    processedAddress = processedAddress.replace(/\bvp\b/gi, 'Vĩnh Phúc');
-    processedAddress = processedAddress.replace(/\byb\b/gi, 'Yên Bái');
-    processedAddress = processedAddress.replace(/\bna\b/gi, 'Nghệ An');
-    processedAddress = processedAddress.replace(/\bht\b/gi, 'Hà Tĩnh');
-    processedAddress = processedAddress.replace(/\bqb\b/gi, 'Quảng Bình');
-    processedAddress = processedAddress.replace(/\bqt\b/gi, 'Quảng Trị');
     processedAddress = processedAddress.replace(/\bqng\b/gi, 'Quảng Ngãi');
-    processedAddress = processedAddress.replace(/\bpy\b/gi, 'Phú Yên');
-    // FIXED: Only match "kh" as standalone abbreviation, not as part of other words
-    // Use lookahead/lookbehind to ensure it's surrounded by spaces or punctuation
-    processedAddress = processedAddress.replace(/(?<=^|\s|,)kh(?=\s|,|$)/gi, 'Khánh Hòa');
-    processedAddress = processedAddress.replace(/\bnt\b/gi, 'Ninh Thuận');
-    processedAddress = processedAddress.replace(/\bgl\b/gi, 'Gia Lai');
-    processedAddress = processedAddress.replace(/\bkt\b/gi, 'Kon Tum');
-    processedAddress = processedAddress.replace(/\bld\b/gi, 'Lâm Đồng');
-    processedAddress = processedAddress.replace(/\bbp\b/gi, 'Bình Phước');
-    processedAddress = processedAddress.replace(/\bla\b/gi, 'Long An');
-    processedAddress = processedAddress.replace(/\btg\b/gi, 'Tiền Giang');
-    processedAddress = processedAddress.replace(/\bvl\b/gi, 'Vĩnh Long');
-    processedAddress = processedAddress.replace(/\bdt\b/gi, 'Đồng Tháp');
-    processedAddress = processedAddress.replace(/\bag\b/gi, 'An Giang');
-    processedAddress = processedAddress.replace(/\bkg\b/gi, 'Kiên Giang');
-    processedAddress = processedAddress.replace(/\bbl\b/gi, 'Bạc Liêu');
-    processedAddress = processedAddress.replace(/\bcm\b/gi, 'Cà Mau');
-    processedAddress = processedAddress.replace(/\bst\b/gi, 'Sóc Trăng');
-    processedAddress = processedAddress.replace(/\btv\b/gi, 'Trà Vinh');
-    
-    // 2-letter codes - AMBIGUOUS (need context or prioritize common usage)
-    // BD: Bình Dương (more common) vs Bình Định
-    processedAddress = processedAddress.replace(/\bbd\b/gi, 'Bình Dương');
-    // BT: Bình Thuận (more common) vs Bến Tre (use BTR)
-    processedAddress = processedAddress.replace(/\bbt\b/gi, 'Bình Thuận');
-    // DN: Đồng Nai (more common) vs Đắk Nông (use DL for Đắk Lắk region)
-    processedAddress = processedAddress.replace(/\bdn\b/gi, 'Đồng Nai');
-    // DL: Đắk Lắk (more common than Đồng Nai in this context)
-    processedAddress = processedAddress.replace(/\bdl\b/gi, 'Đắk Lắk');
-    // TN: Thái Nguyên (more common) vs Tây Ninh
-    processedAddress = processedAddress.replace(/\btn\b/gi, 'Thái Nguyên');
-    // HG: Hà Giang (Northern, more common) vs Hậu Giang (Southern)
-    processedAddress = processedAddress.replace(/\bhg\b/gi, 'Hà Giang');
-    // QN: Quảng Ninh (more common) vs Quảng Nam
-    processedAddress = processedAddress.replace(/\bqn\b/gi, 'Quảng Ninh');
-    // HN: Hà Nam (province) - but be careful with Hà Nội (city, already handled)
-    processedAddress = processedAddress.replace(/\bhn\b/gi, 'Hà Nam');
-    
-    // ENHANCED: Add more common district/city abbreviations across Vietnam
-    // CRITICAL: Only use SAFE abbreviations (3+ letters or very specific 2-letter codes)
-    // Avoid short codes that appear in common words (nh, th, ph, etc.)
-    
-    // Bình Dương districts (SAFE - specific to region)
     processedAddress = processedAddress.replace(/\btdm\b/gi, 'Thủ Dầu Một');
-    // DA, TA removed - too ambiguous (conflicts with "đa", "ta" in common words)
-    processedAddress = processedAddress.replace(/\bbc\b/gi, 'Bến Cát');
-    processedAddress = processedAddress.replace(/\btu\b/gi, 'Tân Uyên');
-    
-    // Đồng Nai districts (SAFE - specific)
-    processedAddress = processedAddress.replace(/\bbh\b/gi, 'Biên Hòa');
-    processedAddress = processedAddress.replace(/\blk\b/gi, 'Long Khánh');
-    // NH removed - conflicts with "nh" in "Bình", "Thanh", "Vinh", etc.
-    
-    // Long An districts (SAFE - specific)
-    processedAddress = processedAddress.replace(/\bcg\b/gi, 'Cần Giuộc');
-    processedAddress = processedAddress.replace(/\bbl\b/gi, 'Bến Lức');
-    processedAddress = processedAddress.replace(/\bdh\b/gi, 'Đức Hòa');
-    // TT removed - conflicts with "thị trấn" abbreviation
-    
-    // Hà Nội districts (REMOVED - too many conflicts)
-    // HK, CG, TX, HD, LB, GL, DA, ML all conflict with common words
-    // Users should type full names or use "q." prefix
-    
-    // Major cities (SAFE - 3+ letters or very specific)
     processedAddress = processedAddress.replace(/\bhue\b/gi, 'Huế');
-    // VT, PT, NT, QN, VL, DL, BMT removed - too ambiguous
-    // Users should use "tp" prefix: "tp VT", "tp NT", etc.
+    
+    // 2-letter codes: CHỈ expand ở vị trí cuối (tỉnh) hoặc áp chót (huyện)
+    // Tránh false positive khi code nằm giữa tên đường/phường
+    // VD: "xã Na Ri" không bị "na" → "Nghệ An", "5 cm" không bị "cm" → "Cà Mau"
+    processedAddress = expandShortCodesAtEnd(processedAddress);
     
     // Pattern 4: "hồ chí minh" (without "thành phố") → add prefix
     // IMPORTANT: Check if "Thành phố" already exists before it
@@ -2326,6 +2442,13 @@ async function parseAddress(addressText) {
         }
     }
     
+    // Early Province Detection: tỉnh tìm thấy trên text gốc (trước abbreviation expansion)
+    if (!result.province && earlyProvinceMatch) {
+        result.province = earlyProvinceMatch;
+        result.confidence = 'high';
+        console.log(`  ✅ Province matched (early detection on raw text): ${earlyProvinceMatch.Name}`);
+    }
+
     let bestProvinceMatch = null;
     let bestProvinceScore = 0;
     let bestProvinceWordCount = 0;
@@ -2649,6 +2772,13 @@ async function parseAddress(addressText) {
             }
         }
         
+        // CUSTOMER HISTORY FALLBACK: khách cũ → dùng tỉnh quen thuộc
+        if (!result.province && customerProvinceBoost) {
+            result.province = customerProvinceBoost;
+            result.confidence = 'medium';
+            console.log(`  ✅ Province set from customer history: ${customerProvinceBoost.Name} (${customerHint.orderCount} đơn trước)`);
+        }
+
         if (bestProvinceMatch && !result.province) {
             console.log(`  ⚠️ Province match score too low (${bestProvinceScore.toFixed(2)}), will try to infer from district...`);
         } else if (!result.province) {
@@ -3095,6 +3225,12 @@ async function parseAddress(addressText) {
                         // PROVINCE HINT BOOST
                         if (provinceHint && district.Name.includes(provinceHint)) {
                             adjustedScore += 0.2;
+                        }
+                        
+                        // CUSTOMER HISTORY BOOST: ưu tiên huyện quen thuộc của khách
+                        if (customerDistrictBoost && district.Id === customerDistrictBoost.Id) {
+                            adjustedScore += 0.15;
+                            console.log(`    🧑 Customer history boost: ${district.Name} (+0.15 → ${adjustedScore.toFixed(2)})`);
                         }
                         
                         districtCandidates.push({
@@ -4259,6 +4395,14 @@ async function parseAddress(addressText) {
             // ============================================
             let keywords = [];
             
+            // HIGHEST PRIORITY: Full normalized street address
+            // Đây là keyword đáng tin nhất vì match exact = chắc chắn cùng địa chỉ.
+            // VD: "135/17/43 nguyen huu canh" → exact match trong Learning DB
+            const fullStreetNorm = removeVietnameseTones(result.street).toLowerCase().trim();
+            if (fullStreetNorm.length >= 4 && fullStreetNorm.length <= 100) {
+                keywords.push(fullStreetNorm);
+            }
+            
             // CRITICAL: If landmark exists, extract keywords from ORIGINAL address (before landmark extraction)
             // This ensures we capture locality names like "Hậu Dưỡng" that come after landmark
             // Example: "sau đình hậu dưỡng đông anh" → extract from full text, not just "sau đình"
@@ -4301,11 +4445,12 @@ async function parseAddress(addressText) {
                     console.log(`   ✅ Found in learning DB!`);
                     console.log(`      Ward ID: ${learningResult.ward_id}`);
                     console.log(`      Ward Name: ${learningResult.ward_name}`);
-                    console.log(`      Confidence: ${learningResult.confidence} (need ≥2 to auto-fill)`);
+                    console.log(`      Confidence: ${learningResult.confidence}, Type: ${learningResult.match_type || 'unknown'}`);
                     
-                    // Only auto-fill if confidence >= 2 (confirmed at least twice)
-                    // This prevents false positives from single incorrect entries
-                    if (learningResult.confidence >= 2) {
+                    // Exact match (full address hoặc keyword chính xác) → confidence 1 đủ tin cậy
+                    // Partial/fuzzy match → cần confidence ≥ 2 để tránh false positive
+                    const minConfidence = learningResult.match_type === 'exact' ? 1 : 2;
+                    if (learningResult.confidence >= minConfidence) {
                         // Find ward object from ID
                         // IMPORTANT: Compare both as strings and numbers (API may return different formats)
                         console.log(`   🔍 Searching for ward ID: ${learningResult.ward_id} (type: ${typeof learningResult.ward_id})`);
@@ -4346,7 +4491,7 @@ async function parseAddress(addressText) {
                             console.warn(`   📋 Sample wards: ${sampleWards.join(', ')}`);
                         }
                     } else {
-                        console.log(`   ⏭️ Confidence too low (${learningResult.confidence} < 1), will use fuzzy matching`);
+                        console.log(`   ⏭️ Confidence too low (${learningResult.confidence} < ${minConfidence}, type: ${learningResult.match_type || 'unknown'}), will use fuzzy matching`);
                     }
                 } else {
                     console.log(`   ❌ Not found in learning DB, will use fuzzy matching`);
@@ -5645,6 +5790,12 @@ async function smartParseCustomerInfo(text) {
     // Extract phone
     const phoneInfo = extractPhoneNumber(text);
     
+    // Customer address hint: zero-cost lookup từ dữ liệu đã load trong bộ nhớ
+    const customerHint = phoneInfo?.phone ? getCustomerAddressHint(phoneInfo.phone) : null;
+    if (customerHint) {
+        console.log(`🧑 Customer hint found: province=${customerHint.province_id}, district=${customerHint.district_id} (${customerHint.orderCount} đơn)`);
+    }
+    
     // Extract name
     const nameInfo = extractCustomerName(lines, phoneInfo);
     
@@ -5670,7 +5821,7 @@ async function smartParseCustomerInfo(text) {
         .filter(line => line.length > 0); // Remove empty lines after phone removal
     
     const addressText = addressLines.join(', ');
-    const addressInfo = await parseAddress(addressText);
+    const addressInfo = await parseAddress(addressText, customerHint);
     
     // Calculate overall confidence
     let overallConfidence = 'low';
@@ -5710,6 +5861,194 @@ async function smartParseCustomerInfo(text) {
         },
         warnings: []
     };
+}
+
+// ============================================
+// WARD SUGGESTION TAGS (khi ward không tìm thấy)
+// ============================================
+
+/**
+ * Tính top N phường/xã gợi ý bằng word-overlap scoring.
+ * Nhẹ, nhanh (chỉ string compare, không Levenshtein).
+ */
+function _scoreWardSuggestions(wards, addressText, limit = 3) {
+    if (!wards?.length || !addressText) return [];
+
+    const addrNorm = removeVietnameseTones(addressText).toLowerCase();
+    const scored = [];
+
+    for (const ward of wards) {
+        const nameClean = removeVietnameseTones(ward.Name).toLowerCase()
+            .replace(/^(phuong|xa|thi tran|tt)\s+/i, '');
+        if (nameClean.length < 2) continue;
+
+        let score = 0;
+
+        if (addrNorm.includes(nameClean)) {
+            score = 0.8 + Math.min(nameClean.length / 30, 0.2);
+        } else {
+            const wardWords = nameClean.split(/\s+/).filter(w => w.length >= 2);
+            const matched = wardWords.filter(w => addrNorm.includes(w));
+            if (matched.length > 0) {
+                score = (matched.length / wardWords.length) * 0.6;
+            }
+        }
+
+        if (score > 0.15) scored.push({ ward, score });
+    }
+
+    return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+/**
+ * Hiển thị tag gợi ý phường/xã dưới grid địa chỉ.
+ * Click tag → set ward dropdown + cập nhật preview + xóa tag.
+ */
+function renderWardSuggestions(district, addressText) {
+    const old = document.getElementById('wardSuggestions');
+    if (old) old.remove();
+
+    if (!district?.Wards?.length) return;
+
+    const wardSelect = document.getElementById('newOrderWard');
+    if (!wardSelect) return;
+
+    const suggestions = _scoreWardSuggestions(district.Wards, addressText);
+    if (suggestions.length === 0) return;
+
+    const container = document.createElement('div');
+    container.id = 'wardSuggestions';
+    container.className = 'mt-1.5 flex flex-wrap items-center gap-1.5';
+
+    const label = document.createElement('span');
+    label.className = 'text-xs text-gray-500';
+    label.textContent = 'Gợi ý phường/xã:';
+    container.appendChild(label);
+
+    for (const { ward, score } of suggestions) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isStrong = score >= 0.6;
+        btn.className = isStrong
+            ? 'px-2.5 py-0.5 text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full font-semibold transition-colors ring-1 ring-indigo-300'
+            : 'px-2.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-medium transition-colors';
+        btn.textContent = ward.Name;
+        btn.title = `Score: ${score.toFixed(2)}`;
+        btn.onclick = () => {
+            wardSelect.value = ward.Id;
+            wardSelect.dispatchEvent(new Event('change'));
+            container.remove();
+            _setFieldConfidence(wardSelect, 'high');
+        };
+        container.appendChild(btn);
+    }
+
+    const gridContainer = wardSelect.closest('.grid');
+    if (gridContainer) {
+        gridContainer.parentElement.insertBefore(container, gridContainer.nextSibling);
+    }
+}
+
+/**
+ * Xóa gợi ý phường/xã.
+ */
+function clearWardSuggestions() {
+    const el = document.getElementById('wardSuggestions');
+    if (el) el.remove();
+}
+
+// ============================================
+// SMART PASTE CONFIDENCE INDICATORS
+// ============================================
+
+const _confidenceRingClasses = {
+    high:   ['ring-2', 'ring-green-500', 'border-green-400'],
+    medium: ['ring-2', 'ring-amber-500', 'border-amber-400'],
+    low:    ['ring-2', 'ring-red-500',   'border-red-400']
+};
+const _allRingClasses = Object.values(_confidenceRingClasses).flat();
+
+function _setFieldConfidence(el, level) {
+    if (!el) return;
+    el.classList.remove(..._allRingClasses);
+    const cls = _confidenceRingClasses[level];
+    if (cls) el.classList.add(...cls);
+}
+
+/**
+ * Hiển thị confidence trực quan trên các dropdown địa chỉ sau smart paste.
+ *   - Xanh lá: nhận diện chắc chắn
+ *   - Vàng cam: cần kiểm tra lại
+ *   - Đỏ: không tìm thấy, cần chọn tay
+ * Badge tóm tắt hiển thị dưới preview địa chỉ.
+ * Tự động xóa khi user thay đổi bất kỳ dropdown nào.
+ */
+function showSmartPasteConfidence(data) {
+    const ids = ['newOrderProvince', 'newOrderDistrict', 'newOrderWard', 'newOrderStreetAddress'];
+    const [provEl, distEl, wardEl, streetEl] = ids.map(id => document.getElementById(id));
+    const preview = document.getElementById('newOrderAddressPreview');
+
+    const addr = data.address;
+    const overallConf = addr.confidence || 'low';
+
+    // Province: luôn 'high' khi tìm thấy (tỉnh/TP rất ít nhầm)
+    _setFieldConfidence(provEl, addr.province ? 'high' : 'low');
+
+    // District/Ward: dùng overallConf nếu tìm thấy, 'low' nếu không
+    _setFieldConfidence(distEl, addr.district ? (overallConf === 'low' ? 'medium' : overallConf) : 'low');
+    _setFieldConfidence(wardEl, addr.ward ? overallConf : 'low');
+
+    // Street: 'high' nếu có giá trị
+    if (addr.street) _setFieldConfidence(streetEl, 'high');
+
+    // Badge tóm tắt
+    if (preview) {
+        const items = [
+            { ok: !!addr.province, label: 'Tỉnh/TP' },
+            { ok: !!addr.district, label: 'Quận/Huyện' },
+            { ok: !!addr.ward,     label: 'Phường/Xã' }
+        ];
+
+        let badge = document.getElementById('smartPasteConfidenceBadge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'smartPasteConfidenceBadge';
+            preview.parentNode.appendChild(badge);
+        }
+
+        const allOk = items.every(i => i.ok);
+        const bgCls = allOk
+            ? 'bg-green-50 border-green-200'
+            : 'bg-amber-50 border-amber-200';
+
+        badge.className = `mt-1.5 px-2.5 py-1 rounded-lg border text-xs flex items-center gap-1.5 ${bgCls}`;
+        badge.innerHTML = items.map(i => {
+            if (i.ok) return `<span class="text-green-600 font-semibold">✓ ${i.label}</span>`;
+            return `<span class="text-red-600 font-semibold">✗ ${i.label}</span>`;
+        }).join('<span class="text-gray-300">|</span>');
+    }
+
+    // Tự động xóa indicator khi user thay đổi bất kỳ field nào
+    const clearOnce = () => clearSmartPasteConfidence();
+    const opts = { once: true };
+    provEl?.addEventListener('change', clearOnce, opts);
+    distEl?.addEventListener('change', clearOnce, opts);
+    wardEl?.addEventListener('change', clearOnce, opts);
+    streetEl?.addEventListener('input', clearOnce, opts);
+}
+
+/**
+ * Xóa toàn bộ confidence indicator khỏi form địa chỉ.
+ */
+function clearSmartPasteConfidence() {
+    ['newOrderProvince', 'newOrderDistrict', 'newOrderWard', 'newOrderStreetAddress']
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove(..._allRingClasses);
+        });
+    const badge = document.getElementById('smartPasteConfidenceBadge');
+    if (badge) badge.remove();
+    clearWardSuggestions();
 }
 
 /**
@@ -5788,9 +6127,11 @@ async function applyParsedDataToForm(parsedData) {
             // Set ward if found
             if (data.address.ward) {
                 wardSelect.value = data.address.ward.Id;
+                clearWardSuggestions();
                 console.log('✅ Ward set to:', wardSelect.value);
             } else {
-                console.log('⚠️ Ward not found, but dropdown is enabled for manual selection');
+                console.log('⚠️ Ward not found, rendering suggestions...');
+                renderWardSuggestions(data.address.district, data.address.fullText);
             }
         } else if (data.address.province) {
             // Province found but no district - still render districts for manual selection
@@ -5821,6 +6162,9 @@ async function applyParsedDataToForm(parsedData) {
     } else {
         console.warn('⚠️ No province found in parsed data');
     }
+
+    // Hiển thị confidence trực quan trên các dropdown
+    showSmartPasteConfidence(data);
 }
 
 // Initialize on page load - NO LONGER NEEDED, use addressSelector data

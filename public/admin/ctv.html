@@ -1154,9 +1154,9 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Tỷ lệ hoa hồng (%) <span class="text-red-500">*</span>
                         </label>
-                        <input type="number" name="commissionRate" value="10" min="0" max="100" step="1" required
+                        <input type="number" name="commissionRate" value="12" min="0" max="100" step="1" required
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
-                        <p class="text-xs text-gray-500 mt-1">Mặc định: 10%</p>
+                        <p class="text-xs text-gray-500 mt-1">Mặc định: 12%</p>
                     </div>
 
                     <!-- Trạng thái -->
@@ -1495,7 +1495,7 @@
                     age: formData.get('age'),
                     bankAccountNumber: formData.get('bankAccountNumber'),
                     bankName: formData.get('bankName'),
-                    commissionRate: (parseFloat(formData.get('commissionRate')) || 10) / 100,
+                    commissionRate: (parseFloat(formData.get('commissionRate')) || 12) / 100,
                     status: formData.get('status'),
                     qrImageUrl: qrUrl || null
                 };
@@ -1516,7 +1516,7 @@
                     if (result.success) {
                         closeAddCTVModal();
                         removeAddQrImage();
-                        showToast('Thêm CTV thành công!', 'success');
+                        showReferralLinkModal(result.referralCode, result.referralUrl, data.fullName);
                         loadCTVData();
                     } else {
                         alert(result.error || 'Có lỗi xảy ra');
@@ -1527,6 +1527,99 @@
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 }
+            });
+        }
+
+        // Hiển thị modal thông tin CTV vừa tạo (mã giới thiệu + link)
+        function showReferralLinkModal(code, url, name) {
+            // Xóa modal cũ nếu có
+            const old = document.getElementById('referralLinkModal');
+            if (old) old.remove();
+
+            const orderCheckUrl = `https://shopvd.store/ctv/?code=${code}`;
+
+            const modal = document.createElement('div');
+            modal.id = 'referralLinkModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4 animate-fadeIn';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-slideUp">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Thêm CTV thành công!</h3>
+                            <p class="text-sm text-gray-500">${name || 'CTV mới'}</p>
+                        </div>
+                    </div>
+                    <div class="px-6 py-5 space-y-4">
+                        <!-- Mã giới thiệu -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Mã giới thiệu</label>
+                            <div class="flex items-center gap-2">
+                                <span class="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 font-bold text-lg rounded-lg tracking-wider">${code}</span>
+                                <button onclick="copyToClipboard('${code}', this)" class="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors" title="Sao chép">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Link giới thiệu -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Link giới thiệu (gửi cho CTV)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="${url}" class="flex-1 px-3 py-2 bg-gray-50 text-sm text-gray-700 rounded-lg border border-gray-200 truncate" />
+                                <button onclick="copyToClipboard('${url}', this)" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors flex-shrink-0" title="Sao chép">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Link kiểm tra đơn -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Link kiểm tra đơn hàng (cho CTV)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" readonly value="${orderCheckUrl}" class="flex-1 px-3 py-2 bg-gray-50 text-sm text-gray-700 rounded-lg border border-gray-200 truncate" />
+                                <button onclick="copyToClipboard('${orderCheckUrl}', this)" class="px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors flex-shrink-0" title="Sao chép">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 bg-gray-50 rounded-b-2xl">
+                        <button onclick="document.getElementById('referralLinkModal').remove()"
+                            class="w-full px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-xl font-medium hover:shadow-lg transition-all">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        // Copy text vào clipboard + hiệu ứng visual trên nút
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+                setTimeout(() => { btn.innerHTML = original; }, 1500);
+                showToast('Đã sao chép!', 'success');
+            }).catch(() => {
+                // Fallback cho trình duyệt cũ
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                input.remove();
+                showToast('Đã sao chép!', 'success');
             });
         }
 

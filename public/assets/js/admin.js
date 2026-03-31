@@ -224,13 +224,18 @@ function createCTVRow(ctv, index) {
     const tdCode = document.createElement('td');
     tdCode.className = 'px-5 py-4 whitespace-nowrap';
     tdCode.innerHTML = `
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
             <span class="px-2.5 py-1 inline-flex text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-800 font-mono ring-1 ring-indigo-100">
                 ${escapeHtml(ctv.referralCode)}
             </span>
-            <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.referralCode)}')" class="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors" title="Sao chép">
+            <button type="button" onclick="copyToClipboard('${escapeHtml(ctv.referralCode)}')" class="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors" title="Sao chép mã">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+            <button type="button" onclick="copyToClipboard('https://shopvd.store/?ref=${escapeHtml(ctv.referralCode)}')" class="text-slate-400 hover:text-blue-600 p-1 rounded-lg hover:bg-blue-50 transition-colors" title="Sao chép link giới thiệu">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M19.902 4.098a3.75 3.75 0 0 0-5.304 0l-4.5 4.5a3.75 3.75 0 0 0 1.035 6.037.75.75 0 0 1-.646 1.353 5.25 5.25 0 0 1-1.449-8.45l4.5-4.5a5.25 5.25 0 1 1 7.424 7.424l-1.757 1.757a.75.75 0 1 1-1.06-1.06l1.757-1.757a3.75 3.75 0 0 0 0-5.304Zm-7.389 4.267a.75.75 0 0 1 1-.353 5.25 5.25 0 0 1 1.449 8.45l-4.5 4.5a5.25 5.25 0 1 1-7.424-7.424l1.757-1.757a.75.75 0 1 1 1.06 1.06l-1.757 1.757a3.75 3.75 0 1 0 5.304 5.304l4.5-4.5a3.75 3.75 0 0 0-1.035-6.037.75.75 0 0 1-.354-1Z" clip-rule="evenodd" />
                 </svg>
             </button>
         </div>
@@ -771,7 +776,7 @@ function showEditModal(ctv) {
                     <!-- Hoa hồng -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Hoa hồng (%)</label>
-                        <input type="number" name="commissionRate" value="${((ctv.commissionRate || 0.1) * 100).toFixed(0)}" min="0" max="100" step="1"
+                        <input type="number" name="commissionRate" value="${((ctv.commissionRate || 0.12) * 100).toFixed(0)}" min="0" max="100" step="1"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent">
                     </div>
 
@@ -2196,7 +2201,7 @@ function showAddCTVModal() {
         form.querySelector('input[name="city"]').value = 'Hà Nội';
         form.querySelector('select[name="age"]').value = '26-30';
         form.querySelector('input[name="bankAccountNumber"]').value = '1234567890123';
-        form.querySelector('input[name="commissionRate"]').value = '10';
+        form.querySelector('input[name="commissionRate"]').value = '12';
         form.querySelector('select[name="status"]').value = 'Mới';
         
         // Set demo bank

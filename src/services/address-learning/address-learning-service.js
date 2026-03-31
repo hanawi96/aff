@@ -87,6 +87,12 @@ function extractKeywords(streetAddress) {
         }
     }
     
+    // Full normalized address: keyword đáng tin nhất cho exact matching
+    // VD: "135/17/43 nguyen huu canh" → khi tìm lại sẽ match ngay TIER 1
+    if (normalized.length >= 4 && normalized.length <= 100) {
+        keywords.unshift(normalized);
+    }
+    
     // Remove duplicates and empty strings
     return [...new Set(keywords)].filter(k => k.trim().length > 0);
 }

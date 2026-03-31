@@ -36,8 +36,22 @@ export async function registerCTV(data, env, corsHeaders) {
             }, 409, corsHeaders);
         }
 
-        // Generate referral code
-        const referralCode = generateReferralCode();
+        // Sinh mã giới thiệu duy nhất (kiểm tra DB tránh trùng)
+        let referralCode;
+        let codeAttempts = 0;
+        do {
+            referralCode = generateReferralCode();
+            const dup = await env.DB.prepare('SELECT id FROM ctv WHERE referral_code = ?').bind(referralCode).first();
+            if (!dup) break;
+            codeAttempts++;
+        } while (codeAttempts < 10);
+
+        if (codeAttempts >= 10) {
+            return jsonResponse({
+                success: false,
+                error: 'Không thể tạo mã giới thiệu duy nhất. Vui lòng thử lại.'
+            }, 500, corsHeaders);
+        }
 
         // Auto-migrate: thêm cột QR nếu chưa có
         await migrateCTVQrColumns(env);
