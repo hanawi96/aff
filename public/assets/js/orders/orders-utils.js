@@ -81,6 +81,41 @@ function parsePrice(price) {
 }
 
 /**
+ * Định dạng ô nhập tiền VN (90.000) khi gõ: chỉ giữ chữ số rồi format locale vi-VN.
+ * Dùng chung modal đơn hàng (SP tùy chỉnh, chỉnh sửa dòng).
+ */
+function formatVnMoneyInput(inputEl) {
+    if (!inputEl) return;
+    const digits = String(inputEl.value || '').replace(/\D/g, '');
+    if (digits === '') {
+        inputEl.value = '';
+        return;
+    }
+    let num = parseInt(digits, 10);
+    if (Number.isNaN(num) || num < 0) num = 0;
+    if (num > 999999999) num = 999999999;
+    inputEl.value = new Intl.NumberFormat('vi-VN').format(num);
+    requestAnimationFrame(() => {
+        try {
+            const len = inputEl.value.length;
+            inputEl.setSelectionRange(len, len);
+        } catch (e) {
+            /* ignore */
+        }
+    });
+}
+
+/**
+ * Hiển thị số nguyên kiểu VN (90.000), chuỗi rỗng nếu <= 0 hoặc không hợp lệ
+ */
+function formatVnIntegerString(amount) {
+    if (amount === null || amount === undefined || amount === '') return '';
+    const n = Math.round(Number(amount));
+    if (Number.isNaN(n) || n <= 0) return '';
+    return new Intl.NumberFormat('vi-VN').format(n);
+}
+
+/**
  * Format number as Vietnamese currency
  * @param {number|string} amount - Amount to format
  * @returns {string} Formatted currency string (e.g., "100.000đ")

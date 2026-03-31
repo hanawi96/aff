@@ -1,6 +1,114 @@
 // ============================================
 // CUSTOM PRODUCT MODAL (Thêm sản phẩm tùy chỉnh)
 // ============================================
+// formatVnMoneyInput: orders-utils.js
+
+/**
+ * Hiển thị lãi / cảnh báo lỗ khi nhập giá trong modal tự nhập SP
+ */
+function calculateModalCustomProfit() {
+    const priceEl = document.getElementById('modalCustomProductPriceInput');
+    const costEl = document.getElementById('modalCustomProductCostInput');
+    const profitWrap = document.getElementById('modalCustomProfitDisplay');
+    const lossWrap = document.getElementById('modalCustomLossWarning');
+    const profitAmt = document.getElementById('modalCustomProfitAmount');
+    const profitPct = document.getElementById('modalCustomProfitMargin');
+    if (!priceEl || !costEl || !profitWrap || !lossWrap) return;
+
+    const price = parsePrice(priceEl.value);
+    const cost = parsePrice(costEl.value);
+    if (price <= 0 && cost <= 0) {
+        profitWrap.classList.add('hidden');
+        lossWrap.classList.add('hidden');
+        return;
+    }
+
+    const profit = price - cost;
+    const marginPct = price > 0 ? Math.round((profit / price) * 100) : 0;
+
+    if (cost > 0 && cost > price) {
+        lossWrap.classList.remove('hidden');
+        profitWrap.classList.add('hidden');
+        return;
+    }
+    lossWrap.classList.add('hidden');
+    profitWrap.classList.remove('hidden');
+    if (profitAmt) profitAmt.textContent = formatCurrency(Math.max(0, profit));
+    if (profitPct) profitPct.textContent = String(marginPct);
+}
+
+/**
+ * Đọc form modal tự nhập và push vào currentOrderProducts (không có product_id catalog).
+ * Tách biệt addProductFromModal — chỉ dùng cho SP chọn từ danh sách (selectedProducts).
+ */
+function addCustomProductToOrder() {
+    const nameEl = document.getElementById('modalCustomProductNameInput');
+    const priceEl = document.getElementById('modalCustomProductPriceInput');
+    const costEl = document.getElementById('modalCustomProductCostInput');
+    const qtyEl = document.getElementById('modalCustomProductQtyInput');
+    const weightEl = document.getElementById('modalCustomProductWeightInput');
+    const notesEl = document.getElementById('modalCustomProductNotesInput');
+
+    if (!nameEl || !priceEl) {
+        console.warn('addCustomProductToOrder: thiếu DOM modal tự nhập');
+        return;
+    }
+
+    const name = nameEl.value.trim();
+    const price = parsePrice(priceEl.value);
+    const costPrice = costEl ? parsePrice(costEl.value) : 0;
+    const quantity = Math.max(1, parseInt(qtyEl?.value, 10) || 1);
+    let weightRaw = (weightEl?.value || '').trim();
+    const notes = (notesEl?.value || '').trim();
+
+    if (!name) {
+        showToast('Vui lòng nhập tên sản phẩm', 'warning');
+        nameEl.focus();
+        return;
+    }
+    if (!price || price <= 0) {
+        showToast('Vui lòng nhập giá bán hợp lệ', 'warning');
+        priceEl.focus();
+        return;
+    }
+
+    // Chuẩn hóa cân: chỉ nhập số thì gắn đơn vị kg (thống nhất luồng catalog)
+    let weight = weightRaw;
+    if (weight && /^\d+(\.\d+)?$/.test(weight)) {
+        weight = `${weight}kg`;
+    }
+
+    const existing = currentOrderProducts.find((p) => {
+        const sameCustom = p.product_id == null && p.id == null;
+        if (!sameCustom) return false;
+        const w = p.weight || '';
+        const n = p.notes || '';
+        return p.name === name && w === (weight || '') && n === notes;
+    });
+
+    if (existing) {
+        existing.quantity += quantity;
+    } else {
+        const row = {
+            name,
+            quantity,
+            price
+        };
+        if (costPrice > 0) row.cost_price = costPrice;
+        if (weight) row.weight = weight;
+        if (notes) row.notes = notes;
+        currentOrderProducts.push(row);
+    }
+
+    renderOrderProducts();
+    updateOrderSummary();
+    if (typeof updateOrderNotesDisplay === 'function') {
+        updateOrderNotesDisplay();
+    }
+    closeCustomProductModal();
+    selectedCategory = null;
+    showToast('Đã thêm sản phẩm tùy chỉnh', 'success');
+}
 
 /**
  * Show custom product modal (Tự nhập) - SỬ DỤNG FORM CÓ SẴN
@@ -61,11 +169,10 @@ function showCustomProductModal() {
                                     Giá bán <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
-                                    <input type="number" id="modalCustomProductPriceInput" 
-                                        placeholder="50000" 
-                                        min="0" 
-                                        step="1000" 
-                                        oninput="calculateModalCustomProfit()"
+                                    <input type="text" id="modalCustomProductPriceInput" 
+                                        inputmode="numeric" autocomplete="off"
+                                        placeholder="90.000" 
+                                        oninput="formatVnMoneyInput(this); calculateModalCustomProfit();"
                                         class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
                                     <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
                                 </div>
@@ -76,11 +183,10 @@ function showCustomProductModal() {
                                     💰 Giá vốn
                                 </label>
                                 <div class="relative">
-                                    <input type="number" id="modalCustomProductCostInput" 
-                                        placeholder="25000" 
-                                        min="0" 
-                                        step="1000" 
-                                        oninput="calculateModalCustomProfit()"
+                                    <input type="text" id="modalCustomProductCostInput" 
+                                        inputmode="numeric" autocomplete="off"
+                                        placeholder="50.000" 
+                                        oninput="formatVnMoneyInput(this); calculateModalCustomProfit();"
                                         class="w-full px-3 py-2 pr-7 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" />
                                     <span class="absolute right-2 top-2 text-xs text-gray-400">đ</span>
                                 </div>
@@ -146,7 +252,7 @@ function showCustomProductModal() {
                 <button onclick="closeCustomProductModal()" class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
                     Hủy
                 </button>
-                <button onclick="addProductFromModal(); closeCustomProductModal();" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                <button onclick="addCustomProductToOrder()" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
                     Thêm vào đơn
                 </button>
             </div>
