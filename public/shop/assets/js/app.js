@@ -38,12 +38,6 @@ class App {
             // Initialize appropriate page
             switch (page) {
                 case 'home':
-                    // Load debug panel only when explicitly requested.
-                    if (new URLSearchParams(window.location.search).get('ctvdebug') === '1') {
-                        import('./shared/components/ctv-debug-panel.js').catch((error) => {
-                            console.warn('CTV debug panel load failed:', error);
-                        });
-                    }
                     this.currentPage = new HomePage();
                     await this.currentPage.init();
                     break;

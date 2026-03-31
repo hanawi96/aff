@@ -215,15 +215,3 @@ export function calculateCommission(totalAmount, shippingFee, commissionRate) {
     return Math.max(0, commission); // Không âm
 }
 
-/**
- * Debug: Hiển thị thông tin tracking hiện tại
- */
-export function debugCTVTracking() {
-    const ref = getCTVCookie();
-    console.log('🔍 CTV Tracking Debug:', {
-        hasCookie: !!ref,
-        referralCode: ref,
-        cookieName: CTV_COOKIE_NAME,
-        expiryDays: CTV_COOKIE_DAYS
-    });
-}

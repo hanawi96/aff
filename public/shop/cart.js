@@ -13,8 +13,6 @@ import { checkoutValidationRules } from './assets/js/shared/constants/validation
 import { errorDisplayService } from './assets/js/shared/services/error-display.service.js';
 // Import CTV tracking
 import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } from './assets/js/shared/utils/ctv-tracking.js';
-// Import CTV debug panel
-import './assets/js/shared/components/ctv-debug-panel.js';
 
 // Configuration
 const CONFIG = {

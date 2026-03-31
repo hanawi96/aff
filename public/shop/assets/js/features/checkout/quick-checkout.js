@@ -14,7 +14,6 @@ import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
 import { getCTVInfoForOrder, calculateCommission } from '../../shared/utils/ctv-tracking.js';
-import '../../shared/components/ctv-debug-panel.js';
 
 /**
  * Quick Checkout Manager
