@@ -11,7 +11,7 @@ export async function migrateCTVQrColumns(env) {
     } catch (_) { /* column đã tồn tại */ }
 }
 
-// Đăng ký CTV mới - Lưu vào cả Turso Database và Google Sheets
+// Đăng ký CTV mới
 export async function registerCTV(data, env, corsHeaders) {
     try {
         // Debug: Log received data
@@ -509,26 +509,6 @@ export async function updateCTV(data, env, corsHeaders) {
 
         console.log('✅ Updated CTV in database:', data.referralCode);
 
-        // 2. Đồng bộ sang Google Sheets
-        try {
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
-            const syncResponse = await fetch(`${googleScriptUrl}?action=updateCTV`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (syncResponse.ok) {
-                console.log('✅ Synced CTV to Google Sheets');
-            } else {
-                console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
-            }
-        } catch (syncError) {
-            console.error('⚠️ Google Sheets sync error:', syncError);
-        }
-
         return jsonResponse({
             success: true,
             message: 'Đã cập nhật thông tin CTV'
@@ -569,31 +549,6 @@ export async function bulkDeleteCTV(data, env, corsHeaders) {
 
         const deletedCount = result.meta?.changes || 0;
         console.log(`✅ Deleted ${deletedCount} CTVs from database`);
-
-        // 2. Sync to Google Sheets (async, fire-and-forget)
-        try {
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
-            
-            fetch(`${googleScriptUrl}?action=bulkDeleteCTV`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    referralCodes: referralCodes
-                })
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Synced bulk delete to Google Sheets');
-                } else {
-                    console.warn('⚠️ Failed to sync to Google Sheets, but database deleted successfully');
-                }
-            }).catch(syncError => {
-                console.error('⚠️ Google Sheets sync error:', syncError);
-            });
-        } catch (syncError) {
-            console.error('⚠️ Google Sheets sync error:', syncError);
-        }
 
         return jsonResponse({
             success: true,

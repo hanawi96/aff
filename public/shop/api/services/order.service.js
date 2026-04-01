@@ -167,12 +167,8 @@ export class ShopOrderService {
             env.ctx.waitUntil(telegramPromise);
         }
 
-        // Save to Google Sheets (fire-and-forget after DB insert)
+        // Lưu vào Google Sheets (fire-and-forget)
         const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
-        if (!googleScriptUrl) {
-            console.warn('⚠️ [ShopOrderService] Missing env.GOOGLE_APPS_SCRIPT_URL - skip Google Sheets sync.');
-        }
-
         if (googleScriptUrl) {
             const sheetsData = {
                 orderId,
@@ -193,53 +189,25 @@ export class ShopOrderService {
                 referralPartner: data.referralPartner || data.referral_partner || '',
                 telegramNotification: env.SECRET_KEY || 'VDT_SECRET_2025_ANHIEN'
             };
-
             const sheetsPromise = fetch(googleScriptUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sheetsData)
-            }).then(async (sheetsResponse) => {
-                const responseText = await sheetsResponse.text();
-
-                // Apps Script returns JSON like: { result: 'success' | 'error', message: '...' }
+            }).then(async r => {
+                const text = await r.text();
                 try {
-                    const parsed = JSON.parse(responseText);
-                    if (sheetsResponse.ok && parsed?.result === 'success') {
+                    const parsed = JSON.parse(text);
+                    if (r.ok && parsed?.result === 'success') {
                         console.log('✅ Saved shop order to Google Sheets:', orderId);
-                        return;
-                    }
-
-                    console.warn('⚠️ Google Sheets sync failed:', {
-                        orderId,
-                        httpStatus: sheetsResponse.status,
-                        appsResult: parsed?.result,
-                        message: parsed?.message,
-                        raw: responseText
-                    });
-                } catch (e) {
-                    if (sheetsResponse.ok) {
-                        console.warn('⚠️ Google Sheets returned non-JSON but HTTP ok:', {
-                            orderId,
-                            raw: responseText
-                        });
                     } else {
-                        console.warn('⚠️ Failed to save shop order to Google Sheets:', {
-                            orderId,
-                            httpStatus: sheetsResponse.status,
-                            raw: responseText
-                        });
+                        console.warn('⚠️ Google Sheets sync failed:', { orderId, status: r.status, result: parsed?.result });
                     }
+                } catch {
+                    if (r.ok) console.warn('⚠️ Google Sheets returned non-JSON:', { orderId, raw: text });
+                    else console.warn('⚠️ Failed to save shop order to Google Sheets:', { orderId, status: r.status });
                 }
-            }).catch((sheetsError) => {
-                console.error('⚠️ Google Sheets error (shop order):', sheetsError);
-            });
-
-            // Prefer waitUntil for Cloudflare Workers; fall back to plain fire-and-forget
-            if (env.ctx && env.ctx.waitUntil) {
-                env.ctx.waitUntil(sheetsPromise);
-            }
+            }).catch(err => console.error('⚠️ Google Sheets error (shop order):', err));
+            if (env.ctx?.waitUntil) env.ctx.waitUntil(sheetsPromise);
         }
 
         return {

@@ -56,7 +56,6 @@ function debounce(func, wait) {
     };
 }
 
-// Load CTV data from Google Sheets
 async function loadCTVData() {
     try {
         showLoading();

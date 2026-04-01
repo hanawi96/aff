@@ -17,10 +17,6 @@ const CONFIG = {
         return 'https://ctv-api.yendev96.workers.dev';
     })(),
     
-    // Google Sheets ID
-    CTV_SPREADSHEET_ID: '1axooVOgwVsgwAqCE59afdz6RQOWNV1j4WUGQrBvUHiI',
-    ORDER_SPREADSHEET_ID: '1XNdGOYAVYa4BdZFEVZicMLbX8nJ3J--2HPJjltD9r-k',
-    
     // Commission rate (12% = 0.12)
     COMMISSION_RATE: 0.12,
     

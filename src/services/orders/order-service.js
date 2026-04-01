@@ -442,11 +442,9 @@ export async function createOrder(data, env, corsHeaders) {
             env.ctx.waitUntil(telegramPromise);
         }
 
-        // 3. Lưu vào Google Sheets (gọi Google Apps Script)
-        // Fire-and-forget: Không chờ response để tăng tốc độ tạo đơn
+        // Lưu vào Google Sheets (fire-and-forget)
         const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
         if (googleScriptUrl) {
-            // Chuẩn bị dữ liệu cho Google Sheets (format giống như order-handler.js)
             const sheetsData = {
                 orderId: data.orderId,
                 orderDate: data.orderDate || new Date().getTime(),
@@ -459,44 +457,20 @@ export async function createOrder(data, env, corsHeaders) {
                 cart: data.cart,
                 total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
                 paymentMethod: data.paymentMethod || 'cod',
-                // Đồng bộ referralCode sau khi đã validate tại backend
                 referralCode: validReferralCode || '',
-                // Commission đã validate từ database
                 referralCommission: finalCommission || 0,
                 referralPartner: data.referralPartner || '',
                 telegramNotification: env.SECRET_KEY || 'VDT_SECRET_2025_ANHIEN'
             };
-
-            console.log('📤 Sending to Google Sheets (async):', {
-                orderId: sheetsData.orderId,
-                referralCode: sheetsData.referralCode,
-                referralCommission: sheetsData.referralCommission
-            });
-
-            // Fire-and-forget: Gửi request nhưng không await
-            // Sử dụng ctx.waitUntil() để đảm bảo request hoàn thành sau khi response đã gửi
             const sheetsPromise = fetch(googleScriptUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sheetsData)
-            }).then(async (sheetsResponse) => {
-                const responseText = await sheetsResponse.text();
-                if (sheetsResponse.ok) {
-                    console.log('✅ Saved order to Google Sheets:', data.orderId);
-                } else {
-                    console.warn('⚠️ Failed to save to Google Sheets:', sheetsResponse.status, responseText);
-                }
-            }).catch((sheetsError) => {
-                console.error('⚠️ Google Sheets error:', sheetsError);
-            });
-
-            // If context is available, use waitUntil to ensure the request completes
-            // This allows the response to be sent immediately while the background task continues
-            if (env.ctx && env.ctx.waitUntil) {
-                env.ctx.waitUntil(sheetsPromise);
-            }
+            }).then(async r => {
+                if (r.ok) console.log('✅ Saved order to Google Sheets:', data.orderId);
+                else console.warn('⚠️ Failed to save to Google Sheets:', r.status, await r.text());
+            }).catch(err => console.error('⚠️ Google Sheets error:', err));
+            if (env.ctx?.waitUntil) env.ctx.waitUntil(sheetsPromise);
         }
 
         return jsonResponse({

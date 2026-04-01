@@ -81,7 +81,7 @@ function editProductInOrder(index) {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Size/Tay</label>
-                        <input type="text" id="editProductSize" value="${escapeHtml(product.size || '')}" placeholder="VD: Size M, 5kg..." 
+                        <input type="text" id="editProductSize" value="${escapeHtml(product.size || product.weight || '')}" placeholder="VD: Size M, 5kg..." 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                     </div>
                 </div>
@@ -336,7 +336,13 @@ function saveEditedProduct(index) {
 
     if (price > 0) currentOrderProducts[index].price = price;
     if (costPrice > 0) currentOrderProducts[index].cost_price = costPrice;
-    if (size) currentOrderProducts[index].size = size; // null/empty/"chưa có" → không gán (NULL DB)
+    // Gán size (hoặc xóa nếu rỗng), đồng thời xóa weight cũ để tránh hiển thị trùng
+    if (size) {
+        currentOrderProducts[index].size = size;
+    } else {
+        delete currentOrderProducts[index].size;
+    }
+    delete currentOrderProducts[index].weight; // normalize: sau khi edit chỉ dùng size
     if (notes) currentOrderProducts[index].notes = notes;
 
     console.log('✅ Product saved:', currentOrderProducts[index]);

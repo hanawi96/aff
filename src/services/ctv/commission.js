@@ -35,30 +35,6 @@ export async function updateCTVCommission(data, env, corsHeaders) {
 
         console.log('✅ Updated commission in database:', data.referralCode);
 
-        // 2. Đồng bộ sang Google Sheets
-        try {
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
-            const syncResponse = await fetch(`${googleScriptUrl}?action=updateCommission`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    referralCode: data.referralCode,
-                    commissionRate: rate
-                })
-            });
-
-            if (syncResponse.ok) {
-                console.log('✅ Synced commission to Google Sheets');
-            } else {
-                console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
-            }
-        } catch (syncError) {
-            console.error('⚠️ Google Sheets sync error:', syncError);
-            // Không throw error, vì database đã update thành công
-        }
-
         return jsonResponse({
             success: true,
             message: 'Đã cập nhật commission rate',
@@ -117,35 +93,6 @@ export async function bulkUpdateCTVCommission(data, env, corsHeaders) {
 
         const updatedCount = result.meta?.changes || 0;
         console.log(`✅ Updated ${updatedCount} CTVs in database`);
-
-        // 2. Đồng bộ sang Google Sheets (async, không chờ)
-        // Gửi batch request thay vì từng request riêng lẻ
-        try {
-            const googleScriptUrl = env.GOOGLE_APPS_SCRIPT_URL;
-            
-            // Gửi tất cả trong 1 request duy nhất
-            fetch(`${googleScriptUrl}?action=bulkUpdateCommission`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    referralCodes: referralCodes,
-                    commissionRate: rate
-                })
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Synced bulk commission to Google Sheets');
-                } else {
-                    console.warn('⚠️ Failed to sync to Google Sheets, but database updated successfully');
-                }
-            }).catch(syncError => {
-                console.error('⚠️ Google Sheets sync error:', syncError);
-            });
-            // Không await - fire and forget để response nhanh hơn
-        } catch (syncError) {
-            console.error('⚠️ Google Sheets sync error:', syncError);
-        }
 
         return jsonResponse({
             success: true,
