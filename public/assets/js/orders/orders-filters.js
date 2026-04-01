@@ -11,8 +11,51 @@ let currentDateMode = 'single'; // 'single' or 'range'
 let priorityFilterActive = false; // Track priority filter state
 /** Chỉ hiện đơn có ít nhất 1 sản phẩm thiếu cân/size (dùng getOrderProductsMissingSizeWeight) */
 let missingSizeFilterActive = false;
+/** Chỉ hiện đơn có ít nhất 1 sản phẩm thuộc danh mục "Mix thẻ tên bé" (category id 21) */
+let theTenBeFilterActive = false;
 let allCTVList = []; // Cache CTV list for filter dropdown
 // Note: allProductsList is declared in orders.js
+
+// Cache tập product_id thuộc danh mục "Mix thẻ tên bé" (category_id = 21)
+let _cat21ProductIds = null;
+
+function _getCategory21ProductIds() {
+    if (_cat21ProductIds !== null) return _cat21ProductIds;
+    _cat21ProductIds = new Set(
+        (allProductsList || [])
+            .filter(p => {
+                if (Array.isArray(p.category_ids)) return p.category_ids.some(id => parseInt(id, 10) === 21);
+                return parseInt(p.category_id, 10) === 21;
+            })
+            .map(p => p.id)
+    );
+    return _cat21ProductIds;
+}
+
+/** Vô hiệu cache khi allProductsList thay đổi */
+function invalidateCategory21Cache() {
+    _cat21ProductIds = null;
+}
+
+/**
+ * Kiểm tra đơn hàng có ít nhất 1 SP thuộc danh mục "Mix thẻ tên bé" (cat 21)
+ * Ưu tiên khớp product_id; fallback khớp tên chứa "thẻ tên"
+ */
+function orderHasTheTenBeProduct(order) {
+    try {
+        const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
+        if (!Array.isArray(products)) return false;
+        const cat21Ids = _getCategory21ProductIds();
+        return products.some(item => {
+            const pid = item.product_id || item.id;
+            if (pid != null && cat21Ids.has(pid)) return true;
+            // Fallback theo tên khi product_id không có hoặc đã bị xóa
+            return (item.name || '').toLowerCase().includes('thẻ tên');
+        });
+    } catch {
+        return false;
+    }
+}
 
 // ============================================
 // SEARCH INDEX CACHE (Performance Optimization)
@@ -129,6 +172,9 @@ function filterOrdersData(preservePage = false) {
             matchesMissingSize = missing.length > 0;
         }
 
+        // Bộ lọc "Thẻ tên bé" — đơn có ≥1 SP thuộc danh mục Mix thẻ tên bé (cat 21)
+        const matchesTheTenBe = !theTenBeFilterActive || orderHasTheTenBeProduct(order);
+
         // Status filter
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
         const statusMap = {
@@ -195,7 +241,7 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesStatus && matchesPayment && matchesCTV && matchesDate;
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
     // Apply sorting
@@ -859,6 +905,35 @@ function toggleMissingSizeFilter() {
         button.classList.add('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
         icon.classList.remove('text-amber-600');
         icon.classList.add('text-gray-500');
+    }
+
+    filterOrdersData();
+}
+
+function toggleTheTenBeFilter() {
+    const button = document.getElementById('theTenBeFilterBtn');
+    if (!button) return;
+    const icon = button.querySelector('svg');
+
+    // Xóa cache product ids khi toggle để đảm bảo fresh nếu products đã load sau
+    invalidateCategory21Cache();
+
+    theTenBeFilterActive = !theTenBeFilterActive;
+
+    if (theTenBeFilterActive) {
+        button.classList.remove('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
+        button.classList.add('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
+        icon.classList.remove('text-gray-500');
+        icon.classList.add('text-pink-600');
+        button.querySelector('span').classList.remove('text-gray-700');
+        button.querySelector('span').classList.add('text-pink-700', 'font-semibold');
+    } else {
+        button.classList.remove('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
+        button.classList.add('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
+        icon.classList.remove('text-pink-600');
+        icon.classList.add('text-gray-500');
+        button.querySelector('span').classList.remove('text-pink-700', 'font-semibold');
+        button.querySelector('span').classList.add('text-gray-700');
     }
 
     filterOrdersData();

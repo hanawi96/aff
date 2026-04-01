@@ -167,9 +167,13 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     const detailsText = details.length > 0 ? details.join(' • ') : '';
 
     const productId = `product_${orderId}_${index}`;
-    
+    const isMissingWeight = !weight && !size;
+    const itemBg = isMissingWeight
+        ? 'bg-amber-50 border-amber-300'
+        : 'bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-purple-200';
+
     return `
-        <div class="relative bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl px-3 py-2.5 border border-purple-200 shadow-sm hover:shadow-md transition-all group">
+        <div class="relative ${itemBg} rounded-xl px-3 py-2.5 border shadow-sm hover:shadow-md transition-all group">
             <!-- Header: Tên sản phẩm và số lượng -->
             <div class="flex items-start gap-2 mb-1.5">
                 <div class="flex-shrink-0 w-2 h-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full shadow-sm mt-1.5">

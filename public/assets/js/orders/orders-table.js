@@ -121,9 +121,9 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     
     // Apply priority styling
     const isPriority = order.is_priority === 1;
+
     if (isPriority) {
         tr.classList.add('bg-yellow-50', 'hover:bg-yellow-100');
-        // Use inline style to ensure border is applied
         tr.style.borderLeft = '4px solid #facc15'; // yellow-400
     } else {
         tr.classList.add('hover:bg-gray-50');
