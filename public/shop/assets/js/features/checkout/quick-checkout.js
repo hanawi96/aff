@@ -2343,6 +2343,25 @@ export class QuickCheckout {
         if (submitBtn) {
             submitBtn.addEventListener('click', () => this.submit());
         }
+
+        // Phone input: chỉ cho phép nhập số
+        const phoneInput = document.getElementById('checkoutPhone');
+        if (phoneInput) {
+            // Chặn phím chữ cái trước khi ký tự được nhập
+            phoneInput.addEventListener('keydown', (e) => {
+                const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Enter','Home','End'];
+                if (allowed.includes(e.key)) return;
+                if (e.ctrlKey || e.metaKey) return; // Cho phép Ctrl+C, Ctrl+V, Ctrl+A,...
+                if (!/^\d$/.test(e.key)) e.preventDefault();
+            });
+            // Xử lý paste: loại bỏ ký tự không phải số
+            phoneInput.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const onlyDigits = text.replace(/[^0-9]/g, '');
+                document.execCommand('insertText', false, onlyDigits);
+            });
+        }
         
         // Order details toggle
         const orderDetailsToggle = document.getElementById('orderDetailsToggle');
