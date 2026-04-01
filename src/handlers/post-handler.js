@@ -136,7 +136,7 @@ import {
 } from '../services/payments/payment-service.js';
 
 // Upload
-import { uploadImage } from '../services/upload/image-upload.js';
+import { uploadImage, deleteImageByUrl } from '../services/upload/image-upload.js';
 import { migrateCTVQrColumns } from '../services/ctv/ctv-service.js';
 
 // Address Learning
@@ -425,79 +425,35 @@ export async function handlePost(path, request, env, corsHeaders) {
     }
 
     if (path === '/api/ctv/upload-qr') {
-        // Upload ảnh QR ngân hàng cho CTV
+        // Lưu URL ảnh QR ngân hàng cho CTV (frontend đã upload lên R2 trước qua ?action=uploadImage)
         try {
             const ctvId = data.referralCode;
             if (!ctvId) {
                 return jsonResponse({ success: false, error: 'Thiếu referralCode' }, 400, corsHeaders);
             }
+            if (!data.qrImageUrl) {
+                return jsonResponse({ success: false, error: 'Thiếu qrImageUrl' }, 400, corsHeaders);
+            }
 
             await migrateCTVQrColumns(env);
 
-            // Upload ảnh lên R2
-            const { results: [ctv] } = await env.DB.prepare(`SELECT qr_image_url, referral_code FROM ctv WHERE referral_code = ?`).bind(ctvId).all();
+            const ctv = await env.DB.prepare(`SELECT qr_image_url FROM ctv WHERE referral_code = ?`).bind(ctvId).first();
             if (!ctv) {
                 return jsonResponse({ success: false, error: 'Không tìm thấy CTV' }, 404, corsHeaders);
             }
 
-            // Nếu gửi url trực tiếp (frontend đã upload rồi)
-            if (data.qrImageUrl) {
-                const now = Date.now();
-                // Xóa ảnh cũ
-                if (ctv.qr_image_url && ctv.qr_image_url !== data.qrImageUrl) {
-                    try {
-                        const { deleteImageByUrl } = await import('../services/upload/image-upload.js');
-                        await deleteImageByUrl(env, ctv.qr_image_url);
-                    } catch (_) {}
-                }
-                await env.DB.prepare(`UPDATE ctv SET qr_image_url = ?, qr_image_updated_at_unix = ?, updated_at_unix = ? WHERE referral_code = ?`)
-                    .bind(data.qrImageUrl, now, now, ctvId).run();
-                return jsonResponse({ success: true, qr_image_url: data.qrImageUrl }, 200, corsHeaders);
+            // Xóa ảnh cũ nếu khác URL mới
+            if (ctv.qr_image_url && ctv.qr_image_url !== data.qrImageUrl) {
+                try { await deleteImageByUrl(env, ctv.qr_image_url); } catch (_) {}
             }
 
-            // Nếu gửi ảnh dạng base64
-            if (data.imageBase64) {
-                const matches = data.imageBase64.match(/^data:([^;]+);base64,(.+)$/);
-                if (!matches) {
-                    return jsonResponse({ success: false, error: 'Định dạng base64 không hợp lệ' }, 400, corsHeaders);
-                }
-                const mimeType = matches[1];
-                const base64Data = matches[2];
-                const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-                const ext = mimeType.split('/')[1] || 'jpg';
-                const filename = `qr-ctv/${ctv.referral_code}_${Date.now()}.${ext}`;
+            const now = Date.now();
+            await env.DB.prepare(`UPDATE ctv SET qr_image_url = ?, qr_image_updated_at_unix = ?, updated_at_unix = ? WHERE referral_code = ?`)
+                .bind(data.qrImageUrl, now, now, ctvId).run();
 
-                const { uploadImage: uploadImg } = await import('../services/upload/image-upload.js');
-                const fileForUpload = {
-                    size: buffer.length,
-                    type: mimeType,
-                    buffer,
-                    name: `${ctv.referral_code}_${Date.now()}.${ext}`
-                };
-                const result = await uploadImg(env, fileForUpload, `qr-ctv/${ctv.referral_code}_${Date.now()}.${ext}`);
-
-                if (!result.success) {
-                    return jsonResponse({ success: false, error: result.error }, 500, corsHeaders);
-                }
-
-                // Xóa ảnh cũ
-                if (ctv.qr_image_url) {
-                    try {
-                        const { deleteImageByUrl } = await import('../services/upload/image-upload.js');
-                        await deleteImageByUrl(env, ctv.qr_image_url);
-                    } catch (_) {}
-                }
-
-                const now = Date.now();
-                await env.DB.prepare(`UPDATE ctv SET qr_image_url = ?, qr_image_updated_at_unix = ?, updated_at_unix = ? WHERE referral_code = ?`)
-                    .bind(result.url, now, now, ctvId).run();
-
-                return jsonResponse({ success: true, qr_image_url: result.url }, 200, corsHeaders);
-            }
-
-            return jsonResponse({ success: false, error: 'Không có ảnh QR' }, 400, corsHeaders);
+            return jsonResponse({ success: true, qr_image_url: data.qrImageUrl }, 200, corsHeaders);
         } catch (error) {
-            console.error('❌ Error uploading QR:', error);
+            console.error('❌ Error saving QR URL:', error);
             return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
         }
     }

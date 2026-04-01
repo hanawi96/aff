@@ -1499,18 +1499,30 @@
                 if (file) {
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải ảnh QR...';
                     try {
-                        const base64 = await fileToBase64(file);
-                        const qrRes = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
+                        const ext = file.name.split('.').pop() || 'jpg';
+                        const qrFormData = new FormData();
+                        qrFormData.append('image', file);
+                        qrFormData.append('filename', `qr-ctv/${registerResult.referralCode}.${ext}`);
+                        const uploadRes = await fetch(`${CONFIG.API_URL}/?action=uploadImage`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                referralCode: registerResult.referralCode,
-                                imageBase64: base64
-                            })
+                            body: qrFormData
                         });
-                        const qrResult = await qrRes.json();
-                        if (!qrResult.success) {
-                            console.warn('QR upload failed (CTV đã tạo, có thể chỉnh sửa sau):', qrResult.error);
+                        const uploadResult = await uploadRes.json();
+                        if (uploadResult.success) {
+                            const qrRes = await fetch(`${CONFIG.API_URL}/api/ctv/upload-qr`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    referralCode: registerResult.referralCode,
+                                    qrImageUrl: uploadResult.url
+                                })
+                            });
+                            const qrResult = await qrRes.json();
+                            if (!qrResult.success) {
+                                console.warn('QR URL save failed (CTV đã tạo, có thể chỉnh sửa sau):', qrResult.error);
+                            }
+                        } else {
+                            console.warn('QR upload failed (CTV đã tạo, có thể chỉnh sửa sau):', uploadResult.error);
                         }
                     } catch (err) {
                         console.error('QR upload error:', err);
@@ -1620,14 +1632,6 @@
             });
         }
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
     </script>
     <script src="../assets/js/auth-check.js"></script>
 

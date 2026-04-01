@@ -1,18 +1,22 @@
 // Sanitize filename: remove special chars, replace spaces with hyphens
+// Preserves folder path prefix (e.g. "qr-ctv/foo.jpg" → "qr-ctv/foo.jpg")
 function sanitizeFilename(filename) {
-    // Get extension
-    const ext = filename.split('.').pop();
-    const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-    
-    // Remove special chars, replace spaces with hyphens, lowercase
-    const sanitized = nameWithoutExt
+    // Separate path prefix from filename
+    const lastSlash = filename.lastIndexOf('/');
+    const pathPrefix = lastSlash >= 0 ? filename.substring(0, lastSlash + 1) : '';
+    const nameOnly   = lastSlash >= 0 ? filename.substring(lastSlash + 1)    : filename;
+
+    const ext = nameOnly.split('.').pop();
+    const nameWithoutExt = nameOnly.substring(0, nameOnly.lastIndexOf('.'));
+
+    const sanitized = (nameWithoutExt
         .toLowerCase()
-        .replace(/\s+/g, '-')           // Replace spaces with hyphens
-        .replace(/[^a-z0-9-_]/g, '')    // Remove special chars except hyphen and underscore
-        .replace(/-+/g, '-')            // Replace multiple hyphens with single
-        .replace(/^-|-$/g, '');         // Remove leading/trailing hyphens
-    
-    return `${sanitized}.${ext}`;
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-_]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')) || 'image';
+
+    return `${pathPrefix}${sanitized}.${ext}`;
 }
 
 export async function uploadImage(env, file, filename) {
