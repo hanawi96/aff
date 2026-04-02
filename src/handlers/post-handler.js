@@ -26,6 +26,7 @@ import {
 // Orders
 import { 
     createOrder,
+    updateOrderFull,
     updateOrderNotes,
     updateCustomerInfo,
     updateAddress,
@@ -411,6 +412,10 @@ export async function handlePost(path, request, env, corsHeaders) {
 
     if (path === '/api/order/create') {
         return await createOrder(data, env, corsHeaders);
+    }
+
+    if (path === '/api/order/update') {
+        return await updateOrderFull(data, env, corsHeaders);
     }
     
     if (path === '/api/ctv/update-commission') {

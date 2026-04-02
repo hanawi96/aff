@@ -706,10 +706,12 @@ function editCustomerInfo(orderId, orderCode) {
                         </div>
                         <input 
                             type="tel" 
+                            inputmode="numeric"
                             id="editCustomerPhone" 
                             value="${escapeHtml(customerPhone)}"
                             class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Nhập số điện thoại"
+                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                         />
                     </div>
                     <p class="mt-1.5 text-xs text-gray-500 flex items-center gap-1">

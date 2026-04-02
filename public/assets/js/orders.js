@@ -223,11 +223,14 @@ document.addEventListener('DOMContentLoaded', function () {
 // ============================================
 // Variables declared at top of file
 
-// Show add order modal
-async function showAddOrderModal(duplicateData = null) {
-    // Update URL hash for sharing
-    if (!duplicateData) {
+// Show add order modal (same UI for tạo mới / nhân bản / sửa toàn bộ)
+async function showAddOrderModal(duplicateData = null, formOptions = null) {
+    const isEdit = formOptions?.mode === 'edit' && Number(formOptions.editOrderDbId) > 0;
+
+    if (!duplicateData && !isEdit) {
         window.history.pushState(null, '', '#add-order');
+    } else if (isEdit) {
+        window.history.pushState(null, '', `#edit-order-${formOptions.editOrderDbId}`);
     }
     
     // CRITICAL: Load packaging config first before showing modal
@@ -248,8 +251,10 @@ async function showAddOrderModal(duplicateData = null) {
     const customerName = duplicateData?.customer_name || '';
     const customerPhone = duplicateData?.customer_phone || '';
     const address = duplicateData?.address || '';
-    const referralCode = duplicateData?.referral_code || '';
+    const referralCode = duplicateData?.referral_code != null ? duplicateData.referral_code : '';
     const paymentMethod = duplicateData?.payment_method || 'cod';
+    const orderNotesSeed = duplicateData?.notes || '';
+    const orderStatusSeed = duplicateData?.status || 'pending';
 
     // Get customer shipping fee from cost_config
     let shippingFee = duplicateData?.shipping_fee;
@@ -297,7 +302,7 @@ async function showAddOrderModal(duplicateData = null) {
                             </svg>
                         </div>
                         <div>
-                            <h2 class="text-2xl font-bold text-white">${duplicateData ? 'Nhân bản đơn hàng' : 'Thêm đơn hàng mới'}</h2>
+                            <h2 class="text-2xl font-bold text-white">${isEdit ? 'Sửa đơn hàng' + (duplicateData?.order_display_id ? ' · ' + escapeHtml(duplicateData.order_display_id) : '') : duplicateData ? 'Nhân bản đơn hàng' : 'Thêm đơn hàng mới'}</h2>
                             <p class="text-white/80 text-sm mt-1">Điền thông tin và thêm sản phẩm</p>
                         </div>
                     </div>
@@ -311,6 +316,7 @@ async function showAddOrderModal(duplicateData = null) {
 
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6">
+                <input type="hidden" id="orderFormEditDbId" value="${isEdit ? String(formOptions.editOrderDbId) : ''}" />
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <!-- Left: Order Info (2 cols) -->
                     <div class="lg:col-span-2 space-y-3">
@@ -357,7 +363,7 @@ async function showAddOrderModal(duplicateData = null) {
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại <span class="text-red-500">*</span></label>
-                            <input type="tel" id="newOrderCustomerPhone" value="${escapeHtml(customerPhone)}" placeholder="0123456789" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            <input type="tel" id="newOrderCustomerPhone" inputmode="numeric" value="${escapeHtml(customerPhone)}" placeholder="0123456789" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                             <div id="customerStatusHint" class="mt-1.5 text-xs hidden"></div>
                         </div>
 
@@ -401,7 +407,12 @@ async function showAddOrderModal(duplicateData = null) {
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã CTV (tùy chọn)</label>
-                            <input type="text" id="newOrderReferralCode" data-ctv-input value="${escapeHtml(referralCode)}" placeholder="VD: CTV001" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            <div class="flex gap-2">
+                                <input type="text" id="newOrderReferralCode" data-ctv-input value="${escapeHtml(referralCode)}" placeholder="Nhập mã hoặc chọn từ danh sách" class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                <button type="button" onclick="openCTVPickerModal()" class="flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap">
+                                    Danh sách
+                                </button>
+                            </div>
                             <div id="ctvVerifyStatus"></div>
                         </div>
 
@@ -427,7 +438,7 @@ async function showAddOrderModal(duplicateData = null) {
                         <!-- Priority Checkbox -->
                         <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="newOrderPriority" class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500" ${duplicateData?.is_priority ? 'checked' : ''} />
+                                <input type="checkbox" id="newOrderPriority" class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500" ${duplicateData && duplicateData.is_priority ? 'checked' : ''} />
                                 <span class="text-sm font-medium text-gray-800 flex items-center gap-1.5">
                                     <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -438,7 +449,7 @@ async function showAddOrderModal(duplicateData = null) {
                             <p class="text-xs text-gray-600 mt-1.5 ml-6">Đơn ưu tiên sẽ hiển thị đầu tiên trong danh sách</p>
                         </div>
 
-                        <input type="hidden" id="newOrderStatus" value="pending" />
+                        <input type="hidden" id="newOrderStatus" value="${escapeHtml(orderStatusSeed)}" />
 
                         <style>
                             .payment-method-btn {
@@ -602,7 +613,7 @@ async function showAddOrderModal(duplicateData = null) {
                                 </svg>
                                 Ghi chú đơn hàng
                             </label>
-                            <textarea id="newOrderNotes" rows="2" placeholder="VD: Giao giờ hành chính, gọi trước 15 phút..." class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"></textarea>
+                            <textarea id="newOrderNotes" rows="2" placeholder="VD: Giao giờ hành chính, gọi trước 15 phút..." class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none">${escapeHtml(orderNotesSeed)}</textarea>
                         </div>
                     </div>
 
@@ -852,14 +863,14 @@ async function showAddOrderModal(duplicateData = null) {
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Kiểm tra kỹ thông tin trước khi tạo đơn</span>
+                    <span>${isEdit ? 'Kiểm tra kỹ trước khi lưu thay đổi' : 'Kiểm tra kỹ thông tin trước khi tạo đơn'}</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <button onclick="closeAddOrderModal()" class="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">
                         Hủy
                     </button>
-                    <button onclick="submitNewOrder()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                        Tạo đơn hàng
+                    <button type="button" id="orderFormSubmitBtn" onclick="submitNewOrder()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                        ${isEdit ? 'Lưu đơn hàng' : 'Tạo đơn hàng'}
                     </button>
                 </div>
             </div>
@@ -879,16 +890,28 @@ async function showAddOrderModal(duplicateData = null) {
     // Init address selector with duplicate data
     initAddressSelector(duplicateData);
 
-    // Set discount code if duplicating
     if (duplicateData?.discount_code) {
         const discountInput = document.getElementById('newOrderDiscountCode');
         if (discountInput) {
-            discountInput.value = duplicateData.discount_code;
-            // Auto apply discount after a short delay
+            discountInput.value = String(duplicateData.discount_code).toUpperCase();
+            const hid = document.getElementById('appliedDiscountId');
+            if (hid && duplicateData.discount_id) {
+                hid.value = String(duplicateData.discount_id);
+            }
             setTimeout(() => {
                 applyDiscountCode();
-            }, 500);
+            }, 400);
         }
+    }
+
+    if (duplicateData && Number(duplicateData.shipping_fee) === 0) {
+        requestAnimationFrame(() => {
+            const cb = document.getElementById('freeShippingCheckbox');
+            if (cb) {
+                cb.checked = true;
+                toggleFreeShipping();
+            }
+        });
     }
 
     // PERFORMANCE: Use requestAnimationFrame to batch DOM updates
@@ -957,8 +980,8 @@ function closeAddOrderModal() {
         currentOrderProducts = [];
         currentOrderNotes = '';
 
-        // Remove hash from URL
-        if (window.location.hash === '#add-order') {
+        const h = window.location.hash;
+        if (h === '#add-order' || (h && h.startsWith('#edit-order'))) {
             window.history.pushState(null, '', window.location.pathname + window.location.search);
         }
     }

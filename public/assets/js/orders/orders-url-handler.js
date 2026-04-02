@@ -9,10 +9,12 @@ function checkUrlHash() {
     const hash = window.location.hash;
 
     if (hash === '#add-order') {
-        // Wait a bit for page to fully load
-        setTimeout(() => {
-            showAddOrderModal();
-        }, 500);
+        setTimeout(() => showAddOrderModal(), 500);
+    } else if (hash.startsWith('#edit-order-')) {
+        const id = parseInt(hash.replace('#edit-order-', ''), 10);
+        if (id > 0 && typeof editFullOrder === 'function') {
+            setTimeout(() => editFullOrder(id), 500);
+        }
     }
 }
 

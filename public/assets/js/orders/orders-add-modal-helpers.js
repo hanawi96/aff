@@ -232,6 +232,7 @@ function renderOrderProducts() {
 
     if (currentOrderProducts.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-4 text-sm italic">Chưa có sản phẩm nào</p>';
+        autoUpdateFreeshipCheckbox();
         return;
     }
 
@@ -334,11 +335,16 @@ function renderOrderProducts() {
 }
 
 /**
- * Auto-check "Miễn phí ship" khi giỏ đủ điều kiện:
- *   - Có ≥1 SP bán kèm (category_id = 23)
- *   - Có ≥1 SP "chính" KHÔNG thuộc "Bi, charm bạc" (category_id = 24) và không phải bán kèm
- * Mỗi lần thêm/xóa SP đều re-evaluate. Nếu đủ điều kiện → luôn check (kể cả sau khi bỏ thủ công).
- * Không tự bỏ check khi điều kiện không thỏa — người dùng kiểm soát.
+ * Miễn phí ship tự động (checkbox) — đồng bộ mỗi lần render giỏ (thêm / xóa / sửa):
+ * Bật khi (!blocked) && (
+ *   (tổng quantity >= 2 và giỏ KHÔNG phải chỉ toàn SP bán kèm cat 23)
+ *   || (có cat 23 && có ít nhất 1 đơn vị không thuộc cat 23)
+ * ).
+ * Tắt khi điều kiện không còn đúng (vd. xóa SP chính, chỉ còn bán kèm).
+ *
+ * Block (luôn tắt freeship):
+ * - Chỉ toàn "Bi, charm bạc" (24), không có 23.
+ * - Chỉ 24 + chỉ 23, không có danh mục khác.
  */
 function autoUpdateFreeshipCheckbox() {
     const checkbox = document.getElementById('freeShippingCheckbox');
@@ -347,31 +353,57 @@ function autoUpdateFreeshipCheckbox() {
     const FREESHIP_CAT = 23;
     const BI_CHARM_CAT = 24;
 
-    let hasFreeship = false;
-    let hasEligibleMain = false;
+    if (currentOrderProducts.length === 0) {
+        return;
+    }
+
+    let totalQty = 0;
+    let has23 = false;
+    let has24 = false;
+    let qtyOtherMain = 0;
+    let non23Qty = 0;
+    let onlyAllCat24 = currentOrderProducts.length > 0;
 
     for (const p of currentOrderProducts) {
-        const catalogProduct = (typeof allProductsList !== 'undefined')
+        const q = parseInt(p.quantity, 10) || 1;
+        totalQty += q;
+
+        const catalog = (typeof allProductsList !== 'undefined')
             ? allProductsList.find(cp => cp.id === (p.product_id || p.id))
             : null;
 
-        if (catalogProduct) {
-            // Dùng hàm đã có để hỗ trợ multi-category (category_ids[])
-            const isFreeship = productBelongsToCategory(catalogProduct, FREESHIP_CAT);
-            const isBiCharm = productBelongsToCategory(catalogProduct, BI_CHARM_CAT);
-            if (isFreeship) {
-                hasFreeship = true;
-            } else if (!isBiCharm) {
-                hasEligibleMain = true;
-            }
-        } else {
-            // SP tự nhập (custom, không có catalog) → tính là SP chính hợp lệ
-            hasEligibleMain = true;
+        if (!catalog) {
+            onlyAllCat24 = false;
+            non23Qty += q;
+            qtyOtherMain += q;
+            continue;
         }
+
+        const in23 = productBelongsToCategory(catalog, FREESHIP_CAT);
+        const in24 = productBelongsToCategory(catalog, BI_CHARM_CAT);
+        const otherMain = !in23 && !in24;
+
+        if (in23) has23 = true;
+        if (in24) has24 = true;
+        if (otherMain) qtyOtherMain += q;
+        if (!in23) non23Qty += q;
+        if (!in24) onlyAllCat24 = false;
     }
 
-    if (hasFreeship && hasEligibleMain && !checkbox.checked) {
-        checkbox.checked = true;
+    onlyAllCat24 = onlyAllCat24 && has24 && !has23;
+
+    const stuck24Plus23Only = has24 && has23 && qtyOtherMain === 0;
+    const blocked = onlyAllCat24 || stuck24Plus23Only;
+
+    const exclusivelyCat23Only = has23 && non23Qty === 0;
+
+    const shouldAutoFreeship = !blocked && (
+        (totalQty >= 2 && !exclusivelyCat23Only)
+        || (has23 && non23Qty >= 1)
+    );
+
+    if (checkbox.checked !== shouldAutoFreeship) {
+        checkbox.checked = shouldAutoFreeship;
         toggleFreeShipping();
     }
 }

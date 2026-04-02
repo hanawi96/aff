@@ -105,13 +105,11 @@ async function submitNewOrder() {
 
     const totalAmount = productTotal + shippingFee - discountAmount;
 
-    // Get current Vietnam time (browser timezone)
-    const orderDate = Date.now(); // Milliseconds since epoch in user's timezone
+    const editDbIdRaw = document.getElementById('orderFormEditDbId')?.value?.trim();
+    const isUpdate = !!editDbIdRaw;
 
-    // Prepare order data
+    // Prepare order data (tạo mới: có orderId + orderDate; sửa: backend giữ mã đơn & mốc thời gian)
     const orderData = {
-        orderId: 'DH' + Date.now(), // Generate order ID
-        orderDate: orderDate, // Send Vietnam time from browser
         customer: {
             name: customerName,
             phone: customerPhone
@@ -144,25 +142,35 @@ async function submitNewOrder() {
         is_priority: isPriority
     };
 
-    // Show loading state
-    const submitButton = event?.target;
+    if (!isUpdate) {
+        orderData.orderId = 'DH' + Date.now();
+        orderData.orderDate = Date.now();
+    }
+
+    const submitButton = document.getElementById('orderFormSubmitBtn');
     const originalText = submitButton?.textContent;
     if (submitButton) {
         submitButton.disabled = true;
-        submitButton.textContent = 'Đang tạo...';
+        submitButton.textContent = isUpdate ? 'Đang lưu...' : 'Đang tạo...';
     }
 
     try {
-        // Measure order creation time
         const startTime = performance.now();
-        
-        const response = await fetch(`${CONFIG.API_URL}/api/order/create`, {
+
+        const apiUrl = isUpdate
+            ? `${CONFIG.API_URL}/api/order/update`
+            : `${CONFIG.API_URL}/api/order/create`;
+        const requestBody = isUpdate
+            ? { ...orderData, orderDbId: Number(editDbIdRaw) }
+            : orderData;
+
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify(orderData)
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();
@@ -170,19 +178,10 @@ async function submitNewOrder() {
         // Log performance
         const endTime = performance.now();
         const duration = (endTime - startTime).toFixed(2);
-        console.log(`⏱️ Order created in ${duration}ms (${currentOrderProducts.length} products)`);
-        
-        // Show performance indicator
-        if (duration < 150) {
-            console.log('🚀 Performance: Excellent!');
-        } else if (duration < 300) {
-            console.log('✅ Performance: Good');
-        } else {
-            console.log('⚠️ Performance: Slow');
-        }
+        console.log(`⏱️ Order ${isUpdate ? 'update' : 'create'} in ${duration}ms (${currentOrderProducts.length} products)`);
 
         if (response.ok && result.success) {
-            showToast('✅ Tạo đơn hàng thành công!', 'success');
+            showToast(isUpdate ? '✅ Đã cập nhật đơn hàng!' : '✅ Tạo đơn hàng thành công!', 'success');
             
             // Learn from this address (async, don't wait)
             console.log('🔍 Learning check:', {
@@ -193,9 +192,9 @@ async function submitNewOrder() {
                 hasFunction: typeof learnFromAddress !== 'undefined'
             });
             
-            if (streetAddress && districtId && wardId && wardName) {
+            if (!isUpdate && streetAddress && districtId && wardId && wardName) {
                 console.log('📚 Calling learnFromAddress...');
-                learnFromAddress(streetAddress, parseInt(districtId), parseInt(wardId), wardName)
+                learnFromAddress(streetAddress, parseInt(districtId, 10), parseInt(wardId, 10), wardName)
                     .then(result => {
                         console.log('📚 Learning result:', result);
                         if (result.success) {
@@ -205,7 +204,7 @@ async function submitNewOrder() {
                         }
                     })
                     .catch(err => console.error('❌ Learning error:', err));
-            } else {
+            } else if (!isUpdate) {
                 console.warn('⚠️ Missing data for learning:', {
                     hasStreet: !!streetAddress,
                     hasDistrict: !!districtId,
@@ -222,18 +221,10 @@ async function submitNewOrder() {
             // Show success animation or redirect
             console.log('✅ Order created:', result.order);
         } else {
-            throw new Error(result.message || 'Không thể tạo đơn hàng');
+            throw new Error(result.message || result.error || (isUpdate ? 'Không thể cập nhật đơn hàng' : 'Không thể tạo đơn hàng'));
         }
-
-        // Verify timestamp for debugging
-        console.log('✅ Order created successfully');
-        console.log('🕐 Timestamp verification:', {
-            saved_timestamp: orderData.orderDate,
-            saved_as_date: new Date(orderData.orderDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-            note: 'This timestamp should match Vietnam time when displayed'
-        });
     } catch (error) {
-        console.error('❌ Error creating order:', error);
+        console.error('❌ Error submitting order:', error);
         showToast(`Lỗi: ${error.message}`, 'error');
     } finally {
         // Restore button state
