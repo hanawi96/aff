@@ -857,227 +857,127 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
 }
 
 
+// Bulk-fetch all product–material rows in ONE query, group by product in JS.
+// Eliminates N+1 query problem (was 121+ queries → now 1).
+async function buildProductMaterialsMap(env) {
+    const { results: rows } = await env.DB.prepare(`
+        SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+               p.price as current_price, p.cost_price as current_cost_price,
+               pm.quantity, m.item_cost,
+               pm.updated_at_unix as formula_updated_at_unix,
+               CAST(strftime('%s', m.updated_at) AS INTEGER) as material_updated_at_unix
+        FROM products p
+        INNER JOIN product_materials pm ON p.id = pm.product_id
+        JOIN cost_config m ON pm.material_name = m.item_name
+        WHERE p.is_active = 1
+        ORDER BY p.id
+    `).all();
+
+    const map = new Map();
+    for (const r of rows) {
+        if (!map.has(r.id)) {
+            map.set(r.id, {
+                id: r.id, name: r.name,
+                markup_multiplier: r.markup_multiplier,
+                pricing_method: r.pricing_method,
+                target_profit: r.target_profit,
+                current_price: r.current_price,
+                current_cost_price: r.current_cost_price,
+                materials: []
+            });
+        }
+        map.get(r.id).materials.push({
+            quantity: r.quantity, item_cost: r.item_cost,
+            formula_updated_at_unix: r.formula_updated_at_unix,
+            material_updated_at_unix: r.material_updated_at_unix
+        });
+    }
+    return map;
+}
+
+function computeExpectedPrices(product) {
+    const mats = product.materials;
+    let costPrice = 0, latestFormula = 0, latestMaterial = 0;
+    for (const m of mats) {
+        costPrice += (m.quantity || 0) * (m.item_cost || 0);
+        latestFormula = Math.max(latestFormula, Number(m.formula_updated_at_unix || 0));
+        latestMaterial = Math.max(latestMaterial, Number(m.material_updated_at_unix || 0));
+    }
+    costPrice = Math.round(costPrice * 100) / 100;
+    if (latestMaterial <= latestFormula) return null;
+
+    const method = product.pricing_method || 'markup';
+    const tp = Number(product.target_profit || 0);
+    let price;
+    if (method === 'profit' && product.target_profit != null && tp >= 0) {
+        price = smartRoundPriceUp(costPrice + tp);
+    } else {
+        let mu = product.markup_multiplier;
+        if (mu == null) mu = mats.length <= 3 ? 2.5 : mats.length <= 6 ? 3.0 : 3.5;
+        price = smartRoundPrice(costPrice * mu);
+    }
+
+    if (!hasMeaningfulDifference(costPrice, product.current_cost_price) &&
+        !hasMeaningfulDifference(price, product.current_price)) return null;
+
+    return { expectedCostPrice: costPrice, expectedPrice: price };
+}
+
 // Check how many products have outdated prices (need recalculation)
 export async function checkOutdatedProducts(env, corsHeaders) {
     try {
-        const lastMaterialPriceUpdateUnix = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
-        const lastProductsRecalculateUnix = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
+        const lastUpdate = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
+        const lastRecalc = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
 
-        // No material price change since last recalc => no "outdated" warning.
-        if (!lastMaterialPriceUpdateUnix || lastMaterialPriceUpdateUnix <= lastProductsRecalculateUnix) {
-            return jsonResponse({
-                success: true,
-                outdated_count: 0,
-                total_products: 0
-            }, 200, corsHeaders);
+        if (!lastUpdate || lastUpdate <= lastRecalc) {
+            return jsonResponse({ success: true, outdated_count: 0, total_products: 0 }, 200, corsHeaders);
         }
 
-        // Get all products that have materials
-        const { results: productsWithMaterials } = await env.DB.prepare(`
-            SELECT DISTINCT 
-                p.id,
-                p.markup_multiplier,
-                p.pricing_method,
-                p.target_profit,
-                p.price as current_price,
-                p.cost_price as current_cost_price
-            FROM products p
-            INNER JOIN product_materials pm ON p.id = pm.product_id
-            WHERE p.is_active = 1
-        `).all();
-
+        const map = await buildProductMaterialsMap(env);
         let outdatedCount = 0;
-
-        // Check each product
-        for (const product of productsWithMaterials) {
-            try {
-                // Get materials for this product
-                const { results: materials } = await env.DB.prepare(`
-                    SELECT 
-                        pm.material_name, 
-                        pm.quantity, 
-                        m.item_cost,
-                        pm.updated_at_unix as formula_updated_at_unix,
-                        CAST(strftime('%s', m.updated_at) AS INTEGER) as material_updated_at_unix
-                    FROM product_materials pm
-                    JOIN cost_config m ON pm.material_name = m.item_name
-                    WHERE pm.product_id = ?
-                `).bind(product.id).all();
-
-                // Calculate expected cost price
-                let expectedCostPrice = 0;
-                let latestFormulaUpdatedAtUnix = 0;
-                let latestMaterialUpdatedAtUnix = 0;
-                for (const material of materials) {
-                    expectedCostPrice += (material.quantity || 0) * (material.item_cost || 0);
-                    latestFormulaUpdatedAtUnix = Math.max(latestFormulaUpdatedAtUnix, Number(material.formula_updated_at_unix || 0));
-                    latestMaterialUpdatedAtUnix = Math.max(latestMaterialUpdatedAtUnix, Number(material.material_updated_at_unix || 0));
-                }
-                expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
-
-                // Only warn when material prices were updated after formula sync
-                if (latestMaterialUpdatedAtUnix <= latestFormulaUpdatedAtUnix) {
-                    continue;
-                }
-
-                // Calculate expected selling price based on product pricing method
-                let expectedPrice;
-                const materialCount = materials.length;
-                const pricingMethod = product.pricing_method || 'markup';
-                const targetProfit = Number(product.target_profit || 0);
-
-                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
-                    const minimumPrice = expectedCostPrice + targetProfit;
-                    expectedPrice = smartRoundPriceUp(minimumPrice);
-                } else {
-                    let markupToUse = product.markup_multiplier;
-                    if (markupToUse === null || markupToUse === undefined) {
-                        if (materialCount <= 3) {
-                            markupToUse = 2.5;
-                        } else if (materialCount <= 6) {
-                            markupToUse = 3.0;
-                        } else {
-                            markupToUse = 3.5;
-                        }
-                    }
-                    expectedPrice = smartRoundPrice(expectedCostPrice * markupToUse);
-                }
-
-                // Check if prices are different (tolerant comparison to avoid float/type false positives)
-                if (hasMeaningfulDifference(expectedCostPrice, product.current_cost_price) ||
-                    hasMeaningfulDifference(expectedPrice, product.current_price)) {
-                    outdatedCount++;
-                }
-            } catch (error) {
-                console.error(`Error checking product ${product.id}:`, error);
-            }
+        for (const p of map.values()) {
+            if (computeExpectedPrices(p)) outdatedCount++;
         }
 
-        return jsonResponse({
-            success: true,
-            outdated_count: outdatedCount,
-            total_products: productsWithMaterials.length
-        }, 200, corsHeaders);
-
+        return jsonResponse({ success: true, outdated_count: outdatedCount, total_products: map.size }, 200, corsHeaders);
     } catch (error) {
         console.error('Error checking outdated products:', error);
-        return jsonResponse({
-            success: false,
-            error: error.message
-        }, 500, corsHeaders);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
     }
 }
 
 // Get detailed list of outdated products for admin quick inspection
 export async function getOutdatedProductsDetails(env, corsHeaders) {
     try {
-        const lastMaterialPriceUpdateUnix = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
-        const lastProductsRecalculateUnix = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
+        const lastUpdate = await getSystemMetaNumber(env, 'materials_last_price_update_unix');
+        const lastRecalc = await getSystemMetaNumber(env, 'products_last_recalculate_unix');
 
-        if (!lastMaterialPriceUpdateUnix || lastMaterialPriceUpdateUnix <= lastProductsRecalculateUnix) {
-            return jsonResponse({
-                success: true,
-                outdated_count: 0,
-                products: []
-            }, 200, corsHeaders);
+        if (!lastUpdate || lastUpdate <= lastRecalc) {
+            return jsonResponse({ success: true, outdated_count: 0, products: [] }, 200, corsHeaders);
         }
 
-        const { results: productsWithMaterials } = await env.DB.prepare(`
-            SELECT DISTINCT 
-                p.id,
-                p.name,
-                p.markup_multiplier,
-                p.pricing_method,
-                p.target_profit,
-                p.price as current_price,
-                p.cost_price as current_cost_price
-            FROM products p
-            INNER JOIN product_materials pm ON p.id = pm.product_id
-            WHERE p.is_active = 1
-            ORDER BY p.name COLLATE NOCASE ASC
-        `).all();
-
+        const map = await buildProductMaterialsMap(env);
         const outdatedProducts = [];
 
-        for (const product of productsWithMaterials) {
-            try {
-                const { results: materials } = await env.DB.prepare(`
-                    SELECT 
-                        pm.material_name, 
-                        pm.quantity, 
-                        m.item_cost,
-                        pm.updated_at_unix as formula_updated_at_unix,
-                        CAST(strftime('%s', m.updated_at) AS INTEGER) as material_updated_at_unix
-                    FROM product_materials pm
-                    JOIN cost_config m ON pm.material_name = m.item_name
-                    WHERE pm.product_id = ?
-                `).bind(product.id).all();
-
-                let expectedCostPrice = 0;
-                let latestFormulaUpdatedAtUnix = 0;
-                let latestMaterialUpdatedAtUnix = 0;
-                for (const material of materials) {
-                    expectedCostPrice += (material.quantity || 0) * (material.item_cost || 0);
-                    latestFormulaUpdatedAtUnix = Math.max(latestFormulaUpdatedAtUnix, Number(material.formula_updated_at_unix || 0));
-                    latestMaterialUpdatedAtUnix = Math.max(latestMaterialUpdatedAtUnix, Number(material.material_updated_at_unix || 0));
-                }
-                expectedCostPrice = Math.round(expectedCostPrice * 100) / 100;
-
-                // Only show details when there was a real material-price update after formula sync
-                if (latestMaterialUpdatedAtUnix <= latestFormulaUpdatedAtUnix) {
-                    continue;
-                }
-
-                let expectedPrice;
-                const materialCount = materials.length;
-                const pricingMethod = product.pricing_method || 'markup';
-                const targetProfit = Number(product.target_profit || 0);
-
-                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
-                    const minimumPrice = expectedCostPrice + targetProfit;
-                    expectedPrice = smartRoundPriceUp(minimumPrice);
-                } else {
-                    let markupToUse = product.markup_multiplier;
-                    if (markupToUse === null || markupToUse === undefined) {
-                        if (materialCount <= 3) {
-                            markupToUse = 2.5;
-                        } else if (materialCount <= 6) {
-                            markupToUse = 3.0;
-                        } else {
-                            markupToUse = 3.5;
-                        }
-                    }
-                    expectedPrice = smartRoundPrice(expectedCostPrice * markupToUse);
-                }
-
-                if (hasMeaningfulDifference(expectedCostPrice, product.current_cost_price) ||
-                    hasMeaningfulDifference(expectedPrice, product.current_price)) {
-                    outdatedProducts.push({
-                        id: product.id,
-                        name: product.name,
-                        current_price: product.current_price,
-                        expected_price: expectedPrice,
-                        current_cost_price: product.current_cost_price,
-                        expected_cost_price: expectedCostPrice,
-                        delta_price: expectedPrice - (product.current_price || 0),
-                        delta_cost_price: expectedCostPrice - (product.current_cost_price || 0)
-                    });
-                }
-            } catch (error) {
-                console.error(`Error checking product ${product.id}:`, error);
+        for (const product of map.values()) {
+            const result = computeExpectedPrices(product);
+            if (result) {
+                outdatedProducts.push({
+                    id: product.id, name: product.name,
+                    current_price: product.current_price,
+                    expected_price: result.expectedPrice,
+                    current_cost_price: product.current_cost_price,
+                    expected_cost_price: result.expectedCostPrice,
+                    delta_price: result.expectedPrice - (product.current_price || 0),
+                    delta_cost_price: result.expectedCostPrice - (product.current_cost_price || 0)
+                });
             }
         }
 
-        return jsonResponse({
-            success: true,
-            outdated_count: outdatedProducts.length,
-            products: outdatedProducts
-        }, 200, corsHeaders);
+        outdatedProducts.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi'));
+        return jsonResponse({ success: true, outdated_count: outdatedProducts.length, products: outdatedProducts }, 200, corsHeaders);
     } catch (error) {
         console.error('Error getting outdated products details:', error);
-        return jsonResponse({
-            success: false,
-            error: error.message
-        }, 500, corsHeaders);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
     }
 }

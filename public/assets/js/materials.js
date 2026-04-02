@@ -941,7 +941,7 @@ async function executeRecalculateAllPrices() {
         }
 
         if (data.success) {
-            const { updated, skipped, total } = data;
+            const { updated, skipped, total, updates } = data;
             
             changedMaterialNames.clear();
 
@@ -949,44 +949,35 @@ async function executeRecalculateAllPrices() {
             if (badge) {
                 badge.classList.add('hidden');
             }
+
+            const productListHtml = (updates && updates.length > 0) ? `
+                <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    ${updates.map((p, i) => `
+                        <div class="px-3 py-2 flex items-center gap-3 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                            <span class="text-xs text-gray-400 w-5 text-right flex-shrink-0">${i + 1}</span>
+                            <span class="text-sm text-gray-800 flex-1 truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+                            <span class="text-xs text-gray-400 line-through flex-shrink-0">${formatCurrency(p.old_price)}</span>
+                            <span class="text-xs font-bold text-green-600 flex-shrink-0">${formatCurrency(p.new_price)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
             
-            // Show detailed success message
             const successModal = document.createElement('div');
             successModal.id = 'resultModal';
             successModal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
             successModal.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-                    <div class="p-6">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+                    <div class="p-6 flex-shrink-0">
                         <div class="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật thành công!</h3>
-                        <div class="space-y-3 mb-6">
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-medium text-green-800">Đã cập nhật</span>
-                                    <span class="text-2xl font-bold text-green-600">${updated}</span>
-                                </div>
-                                <p class="text-xs text-green-700 mt-1">sản phẩm có giá bán mới</p>
-                            </div>
-                            ${skipped > 0 ? `
-                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium text-gray-800">Bỏ qua</span>
-                                        <span class="text-2xl font-bold text-gray-600">${skipped}</span>
-                                    </div>
-                                    <p class="text-xs text-gray-700 mt-1">sản phẩm không có markup hoặc công thức</p>
-                                </div>
-                            ` : ''}
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-medium text-blue-800">Tổng số</span>
-                                    <span class="text-2xl font-bold text-blue-600">${total}</span>
-                                </div>
-                                <p class="text-xs text-blue-700 mt-1">sản phẩm trong hệ thống</p>
-                            </div>
-                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Cập nhật thành công!</h3>
+                        <p class="text-sm text-gray-500 text-center mb-4">Đã cập nhật <strong class="text-green-600">${updated}</strong> sản phẩm${skipped > 0 ? ` • Bỏ qua ${skipped}` : ''}</p>
+                        ${productListHtml}
+                    </div>
+                    <div class="p-4 pt-0 flex-shrink-0">
                         <button onclick="closeResultModal()" class="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Đóng</button>
                     </div>
                 </div>
@@ -994,7 +985,6 @@ async function executeRecalculateAllPrices() {
 
             document.body.appendChild(successModal);
             
-            // Also show a toast
             showToast(`✅ Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
             
         } else {

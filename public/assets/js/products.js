@@ -2026,20 +2026,10 @@ function formatCurrency(amount) {
 }
 
 // Smart rounding for prices (làm tròn thông minh)
+// Làm tròn LÊN đến giá dạng X9.000đ (29k, 59k, 139k, 169k, ...)
 function smartRound(price) {
-    if (price < 10000) {
-        // Dưới 10k: làm tròn đến 1.000đ
-        return Math.round(price / 1000) * 1000;
-    } else if (price < 100000) {
-        // 10k-100k: làm tròn đến 1.000đ
-        return Math.round(price / 1000) * 1000;
-    } else if (price < 500000) {
-        // 100k-500k: làm tròn đến 5.000đ
-        return Math.round(price / 5000) * 5000;
-    } else {
-        // Trên 500k: làm tròn đến 10.000đ
-        return Math.round(price / 10000) * 10000;
-    }
+    if (price <= 0) return 0;
+    return Math.ceil((price + 1000) / 10000) * 10000 - 1000;
 }
 
 // Get smart markup based on product complexity
@@ -3865,18 +3855,11 @@ function hasMeaningfulDifference(a, b, epsilon = 0.01) {
 }
 
 function smartRoundPrice(price) {
-    if (price < 10000) return Math.round(price / 1000) * 1000;
-    if (price < 100000) return Math.round(price / 1000) * 1000;
-    if (price < 500000) return Math.round(price / 5000) * 5000;
-    return Math.round(price / 10000) * 10000;
+    if (price <= 0) return 0;
+    return Math.ceil((price + 1000) / 10000) * 10000 - 1000;
 }
 
-function smartRoundPriceUp(price) {
-    if (price < 10000) return Math.ceil(price / 1000) * 1000;
-    if (price < 100000) return Math.ceil(price / 1000) * 1000;
-    if (price < 500000) return Math.ceil(price / 5000) * 5000;
-    return Math.ceil(price / 10000) * 10000;
-}
+const smartRoundPriceUp = smartRoundPrice;
 
 async function fetchOutdatedProductsDetailsLegacy() {
     const products = Array.isArray(allProducts) ? allProducts : [];
@@ -4174,17 +4157,45 @@ async function executeQuickRecalculate() {
         }
 
         if (data.success) {
-            const { updated, skipped } = data;
+            const { updated, skipped, updates } = data;
             
-            // Hide notification banner
             hideOutdatedNotification();
             outdatedProductsCache = null;
             shouldShowMaterialOutdatedWarnings = false;
-            
-            // Show success message
-            showToast(`Đã cập nhật giá cho ${updated} sản phẩm`, 'success');
-            
-            // Reload products to show new prices
+
+            const productListHtml = (updates && updates.length > 0) ? `
+                <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 mb-4">
+                    ${updates.map((p, i) => `
+                        <div class="px-3 py-2 flex items-center gap-3 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                            <span class="text-xs text-gray-400 w-5 text-right flex-shrink-0">${i + 1}</span>
+                            <span class="text-sm text-gray-800 flex-1 truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+                            <span class="text-xs text-gray-400 line-through flex-shrink-0">${formatCurrency(p.old_price)}</span>
+                            <span class="text-xs font-bold text-green-600 flex-shrink-0">${formatCurrency(p.new_price)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            const resultModal = document.createElement('div');
+            resultModal.id = 'recalculateResultModal';
+            resultModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+            resultModal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+                    <div class="p-6 flex-shrink-0">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Cập nhật thành công!</h3>
+                        <p class="text-sm text-gray-500 text-center mb-4">Đã cập nhật <strong class="text-green-600">${updated}</strong> sản phẩm${skipped > 0 ? ` • Bỏ qua ${skipped}` : ''}</p>
+                        ${productListHtml}
+                    </div>
+                    <div class="p-4 pt-0 flex-shrink-0">
+                        <button onclick="document.getElementById('recalculateResultModal')?.remove()" class="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Đóng</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(resultModal);
+
             await reloadProductsKeepPage();
             
         } else {
@@ -4392,22 +4403,24 @@ function updateSellingPriceFromProfit() {
     const costPrice = parseFormattedNumber(costPriceInput.value) || 0;
     
     if (costPrice > 0 && targetProfit >= 0) {
-        // Calculate selling price: cost + desired profit (absolute amount)
-        const sellingPrice = costPrice + targetProfit;
-        
-        // Update price input
+        const rawPrice = costPrice + targetProfit;
+        const sellingPrice = smartRound(rawPrice);
+
         priceInput.value = formatNumber(sellingPrice);
-        
-        // Calculate and display markup multiplier
+
+        // Lãi thực tế sau làm tròn — chỉ cập nhật khi user KHÔNG đang gõ vào ô lãi
+        const adjustedProfit = sellingPrice - costPrice;
+        if (adjustedProfit !== targetProfit && document.activeElement !== targetProfitInput) {
+            targetProfitInput.value = formatNumber(adjustedProfit);
+        }
+
         const markup = sellingPrice / costPrice;
         calculatedMarkupSpan.textContent = `×${markup.toFixed(2)}`;
-        
-        // Update hidden markup input for consistency (will be recalculated in saveProduct anyway)
+
         if (markupInput) {
             markupInput.value = markup.toFixed(2);
         }
-        
-        // Update profit display
+
         calculateExpectedProfit();
     } else {
         calculatedMarkupSpan.textContent = '-';
