@@ -27,6 +27,35 @@ function productBelongsToCategory(product, categoryId) {
     return parseInt(String(product.category_id ?? ''), 10) === normalized;
 }
 
+/** Đường dẫn ảnh hiển thị trong modal (cùng quy ước với trang quản lý sản phẩm admin). */
+function resolveModalProductImageSrc(product) {
+    const raw = (product.image_url || '').trim();
+    if (!raw) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return encodeURI(raw);
+    }
+    if (raw.startsWith('./assets/')) {
+        return '../' + raw.substring(2);
+    }
+    if (raw.startsWith('assets/')) {
+        return '../' + raw;
+    }
+    return `../assets/images/${raw}`;
+}
+
+const MODAL_THUMB_FALLBACK_SVG = '<svg class="w-8 h-8 opacity-55" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>';
+
+/** Thumbnail 64px (w-16): lazy load, không gọi URL khi không có ảnh. */
+function modalProductThumbHtml(imageSrc) {
+    const fallback = `<div class="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 pointer-events-none">${MODAL_THUMB_FALLBACK_SVG}</div>`;
+    const wrapStart = '<div class="relative h-16 w-16 flex-shrink-0 self-center rounded-lg border border-gray-200 overflow-hidden bg-gray-100">';
+    if (!imageSrc) {
+        return `${wrapStart}${fallback}</div>`;
+    }
+    const safe = escapeHtml(imageSrc);
+    return `${wrapStart}<img src="${safe}" alt="" width="64" height="64" class="relative z-10 h-full w-full object-cover" loading="lazy" decoding="async" onerror="this.style.display='none'">${fallback}</div>`;
+}
+
 /**
  * Show product selection modal
  * Opens a modal for selecting products from catalog or custom input
@@ -189,7 +218,8 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
             `<button type="button" onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`
         ).join('');
         const weightPresetRow = `<div class="flex flex-wrap gap-1.5 pt-1">${btnUnknown}${isAdultBracelet ? '' : btnKgPresets}</div>`;
-        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-2 p-3 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-start gap-2"><div class="flex-shrink-0 mt-0.5"><div class="w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div><div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-tight mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${isSelected ? `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2"><label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div></div><div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] == null ? '' : (productWeights[p.id] || '')}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div><div class="col-span-7"><label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div></div>${weightPresetRow}</div>` : ''}</div>`;
+        const thumbHtml = modalProductThumbHtml(resolveModalProductImageSrc(p));
+        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-3 p-4 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-center gap-3"><div class="flex w-5 flex-shrink-0 items-center justify-center"><div class="h-5 w-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div>${thumbHtml}<div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-snug mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${isSelected ? `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2"><label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div></div><div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] == null ? '' : (productWeights[p.id] || '')}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div><div class="col-span-7"><label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div></div>${weightPresetRow}</div>` : ''}</div>`;
     }).join('');
 }
 
