@@ -54,9 +54,9 @@ let currentFilters = {
     searchTerm: ''
 };
 
-// Sort state
+// Sort state (null = mặc định: lượt bán cao → thấp)
 let currentSort = {
-    field: null, // 'price', 'margin', 'profit'
+    field: null, // 'price', 'margin', 'profit', 'purchases'
     direction: null // 'asc', 'desc'
 };
 
@@ -380,31 +380,35 @@ async function reloadProductsKeepPage() {
                 });
             }
 
-            // Apply sorting
-            if (currentSort.field) {
-                results.sort((a, b) => {
-                    let aVal, bVal;
+            // Apply sorting (mặc định: purchases desc)
+            const sortField = currentSort.field || 'purchases';
+            const sortDir = currentSort.direction || 'desc';
+            results.sort((a, b) => {
+                let aVal, bVal;
 
-                    switch (currentSort.field) {
-                        case 'price':
-                            aVal = a.price || 0;
-                            bVal = b.price || 0;
-                            break;
-                        case 'margin':
-                            aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
-                            bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
-                            break;
-                        case 'profit':
-                            aVal = (a.price || 0) - (a.cost_price || 0);
-                            bVal = (b.price || 0) - (b.cost_price || 0);
-                            break;
-                        default:
-                            return 0;
-                    }
+                switch (sortField) {
+                    case 'price':
+                        aVal = a.price || 0;
+                        bVal = b.price || 0;
+                        break;
+                    case 'margin':
+                        aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
+                        bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
+                        break;
+                    case 'profit':
+                        aVal = (a.price || 0) - (a.cost_price || 0);
+                        bVal = (b.price || 0) - (b.cost_price || 0);
+                        break;
+                    case 'purchases':
+                        aVal = a.purchases || 0;
+                        bVal = b.purchases || 0;
+                        break;
+                    default:
+                        return 0;
+                }
 
-                    return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
-                });
-            }
+                return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+            });
 
             filteredProducts = results;
             renderProducts();
@@ -520,31 +524,35 @@ function searchAndSort(skipURLUpdate = false) {
         });
     }
 
-    // Apply sorting
-    if (currentSort.field) {
-        results.sort((a, b) => {
-            let aVal, bVal;
+    // Apply sorting (mặc định: purchases desc)
+    const sortField = currentSort.field || 'purchases';
+    const sortDir = currentSort.direction || 'desc';
+    results.sort((a, b) => {
+        let aVal, bVal;
 
-            switch (currentSort.field) {
-                case 'price':
-                    aVal = a.price || 0;
-                    bVal = b.price || 0;
-                    break;
-                case 'margin':
-                    aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
-                    bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
-                    break;
-                case 'profit':
-                    aVal = (a.price || 0) - (a.cost_price || 0);
-                    bVal = (b.price || 0) - (b.cost_price || 0);
-                    break;
-                default:
-                    return 0;
-            }
+        switch (sortField) {
+            case 'price':
+                aVal = a.price || 0;
+                bVal = b.price || 0;
+                break;
+            case 'margin':
+                aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
+                bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
+                break;
+            case 'profit':
+                aVal = (a.price || 0) - (a.cost_price || 0);
+                bVal = (b.price || 0) - (b.cost_price || 0);
+                break;
+            case 'purchases':
+                aVal = a.purchases || 0;
+                bVal = b.purchases || 0;
+                break;
+            default:
+                return 0;
+        }
 
-            return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
-        });
-    }
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
 
     // Pin newly created product to top once (after filtering/sorting).
     if (pinnedProductId) {

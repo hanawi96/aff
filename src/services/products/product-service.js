@@ -74,7 +74,7 @@ export async function getAllProducts(env, corsHeaders) {
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             WHERE p.is_active = 1
-            ORDER BY name ASC
+            ORDER BY p.purchases DESC, p.name COLLATE NOCASE ASC
         `).all();
 
         // Get ALL product-category relationships in ONE query
