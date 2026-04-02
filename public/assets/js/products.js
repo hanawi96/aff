@@ -5096,25 +5096,28 @@ function resetPendingImageSelection() {
 }
 
 async function uploadImageToR2(file) {
+    const ext = (file.name || '').split('.').pop() || 'jpg';
+    const timestamp = Date.now();
+    const filename = `products/${timestamp}.${ext}`;
+
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('filename', file.name);
+    formData.append('filename', filename);
 
-    const response = await fetch(`${CONFIG.API_URL}?action=uploadImage`, {
+    const response = await fetch(`${CONFIG.API_URL}/?action=uploadImage`, {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-        },
         body: formData
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        let errMsg = `HTTP ${response.status}`;
+        try { const e = await response.json(); errMsg = e.error || errMsg; } catch (_) {}
+        throw new Error(errMsg);
     }
 
     const data = await response.json();
     if (!data.success || !data.url) {
-        throw new Error(data.error || 'Upload failed - no URL returned');
+        throw new Error(data.error || 'Upload thất bại - không nhận được URL');
     }
 
     return data.url;
