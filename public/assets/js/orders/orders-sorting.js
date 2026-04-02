@@ -124,69 +124,31 @@ function updateAmountSortIcon() {
  */
 function applySorting() {
     filteredOrdersData.sort((a, b) => {
-        // LEVEL 1: Sort by status - Pending orders always on top
-        const statusA = (a.status || 'pending').toLowerCase().trim();
-        const statusB = (b.status || 'pending').toLowerCase().trim();
-        
-        // Define status priority (lower number = higher priority)
-        // pending (chờ xử lý) = 1 - LUÔN LÊN TRÊN
-        // shipped (đã gửi hàng) = 2 - XUỐNG DƯỚI
-        // Other statuses = 3
-        const getStatusPriority = (status) => {
-            if (status === 'pending') return 1;      // Chờ xử lý - ưu tiên cao nhất
-            if (status === 'shipped') return 2;      // Đã gửi hàng - xuống dưới
-            if (status === 'in_transit') return 3;   // Đang vận chuyển
-            if (status === 'delivered') return 4;    // Đã giao hàng
-            if (status === 'failed') return 5;       // Thất bại
-            return 6; // Unknown status
-        };
-        
-        const statusPriorityA = getStatusPriority(statusA);
-        const statusPriorityB = getStatusPriority(statusB);
-        
-        // If status priorities are different, sort by status
-        if (statusPriorityA !== statusPriorityB) {
-            return statusPriorityA - statusPriorityB;
-        }
-        
-        // LEVEL 2: Within same status, sort by priority flag
+        // LEVEL 1: Đơn được đánh dấu ưu tiên luôn lên trên
         const priorityA = a.is_priority || 0;
         const priorityB = b.is_priority || 0;
-        
-        // If priorities are different, priority orders come first
         if (priorityA !== priorityB) {
             return priorityB - priorityA;
         }
-        
-        // LEVEL 3: Within same status and priority, apply user-selected sorting
+
+        // LEVEL 2: User-selected sorting (amount hoặc date)
         if (amountSortOrder !== 'none') {
             const amountA = a.total_amount || 0;
             const amountB = b.total_amount || 0;
+            return amountSortOrder === 'desc' ? amountB - amountA : amountA - amountB;
+        }
 
-            if (amountSortOrder === 'desc') {
-                return amountB - amountA;
-            } else {
-                return amountA - amountB;
-            }
-        } else if (dateSortOrder !== 'none') {
-            // Prefer created_at_unix (Vietnam time) over created_at (UTC time)
+        if (dateSortOrder !== 'none') {
             const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
             const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
-            const dateA = new Date(timestampA);
-            const dateB = new Date(timestampB);
-
-            if (dateSortOrder === 'desc') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
+            return dateSortOrder === 'desc'
+                ? new Date(timestampB) - new Date(timestampA)
+                : new Date(timestampA) - new Date(timestampB);
         }
-        
-        // Default: newest first
+
+        // Default: đơn cũ nhất lên trên (FIFO - đặt trước làm trước)
         const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
         const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
-        const dateA = new Date(timestampA);
-        const dateB = new Date(timestampB);
-        return dateB - dateA;
+        return new Date(timestampA) - new Date(timestampB);
     });
 }

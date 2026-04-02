@@ -520,12 +520,11 @@ export async function updateMaterial(data, env, corsHeaders) {
             console.log('✅ Updated product_materials references');
         }
 
-        // Always count affected products for the final material key.
-        // This is used by frontend to update the "outdated products" badge immediately.
         const { results: affected } = await env.DB.prepare(`
-            SELECT COUNT(DISTINCT product_id) as count
-            FROM product_materials
-            WHERE material_name = ?
+            SELECT COUNT(DISTINCT pm.product_id) as count
+            FROM product_materials pm
+            JOIN products p ON pm.product_id = p.id
+            WHERE pm.material_name = ? AND p.is_active = 1
         `).bind(newItemName).all();
 
         affectedCount = Number(affected[0]?.count || 0);

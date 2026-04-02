@@ -1,19 +1,16 @@
 import { jsonResponse } from '../../utils/response.js';
 import { deleteImageByUrl } from '../upload/image-upload.js';
 
+// Làm tròn LÊN đến giá dạng X9.000đ (139k, 59k, 169k, ...)
+// Công thức: ceil((price + 1000) / 10000) * 10000 - 1000
+// Ví dụ: 153.500 → 159.000 | 166.400 → 169.000 | 139.000 → 139.000
 function smartRoundPrice(price) {
-    if (price < 10000) return Math.round(price / 1000) * 1000;
-    if (price < 100000) return Math.round(price / 1000) * 1000;
-    if (price < 500000) return Math.round(price / 5000) * 5000;
-    return Math.round(price / 10000) * 10000;
+    if (price <= 0) return 0;
+    return Math.ceil((price + 1000) / 10000) * 10000 - 1000;
 }
 
-function smartRoundPriceUp(price) {
-    if (price < 10000) return Math.ceil(price / 1000) * 1000;
-    if (price < 100000) return Math.ceil(price / 1000) * 1000;
-    if (price < 500000) return Math.ceil(price / 5000) * 5000;
-    return Math.ceil(price / 10000) * 10000;
-}
+// Alias — cả markup lẫn profit đều dùng cùng 1 logic làm tròn lên X9.000
+const smartRoundPriceUp = smartRoundPrice;
 
 function hasMeaningfulDifference(a, b, epsilon = 0.01) {
     const n1 = Number(a || 0);
@@ -716,17 +713,34 @@ export async function deleteProduct(data, env, corsHeaders) {
     }
 }
 
-// Recalculate all product prices based on current material costs
-export async function recalculateAllProductPrices(env, corsHeaders) {
+// Recalculate product prices based on current material costs.
+// changedMaterials: optional string[] — only recalc products containing these materials.
+export async function recalculateAllProductPrices(env, corsHeaders, changedMaterials) {
     try {
-        // Get all products that have materials
-        const { results: productsWithMaterials } = await env.DB.prepare(`
-            SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
-                   p.pricing_method, p.target_profit
-            FROM products p
-            INNER JOIN product_materials pm ON p.id = pm.product_id
-            WHERE p.is_active = 1
-        `).all();
+        let productsQuery;
+
+        if (Array.isArray(changedMaterials) && changedMaterials.length > 0) {
+            const placeholders = changedMaterials.map(() => '?').join(',');
+            const { results } = await env.DB.prepare(`
+                SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
+                       p.pricing_method, p.target_profit
+                FROM products p
+                INNER JOIN product_materials pm ON p.id = pm.product_id
+                WHERE p.is_active = 1 AND pm.material_name IN (${placeholders})
+            `).bind(...changedMaterials).all();
+            productsQuery = results;
+        } else {
+            const { results } = await env.DB.prepare(`
+                SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
+                       p.pricing_method, p.target_profit
+                FROM products p
+                INNER JOIN product_materials pm ON p.id = pm.product_id
+                WHERE p.is_active = 1
+            `).all();
+            productsQuery = results;
+        }
+
+        const productsWithMaterials = productsQuery;
 
         if (productsWithMaterials.length === 0) {
             return jsonResponse({
@@ -772,29 +786,14 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                 const pricingMethod = product.pricing_method || 'markup';
                 const targetProfit = Number(product.target_profit || 0);
 
-                // Debug logging
-                console.log(`🔍 Product ${product.id} (${product.name}):`, {
-                    pricingMethod,
-                    target_profit: product.target_profit,
-                    markup_multiplier: product.markup_multiplier,
-                    old_cost_price: product.old_cost_price,
-                    newCostPrice
-                });
-
                 if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
-                    // Use target profit method: price = cost + target profit
-                    // Round UP to avoid dropping below desired profit because of rounding step.
                     const minimumPrice = newCostPrice + targetProfit;
                     newPrice = smartRoundPriceUp(minimumPrice);
                     newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
-                    console.log(`💰 Using profit method: ${newCostPrice} + ${targetProfit} => rounded up ${newPrice}`);
                 } else {
-                    // Use markup method: price = cost × markup
                     if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
-                        // Use saved markup multiplier
                         newMarkup = product.markup_multiplier;
                     } else {
-                        // Use auto markup based on material count
                         if (materialCount <= 3) {
                             newMarkup = 2.5;
                         } else if (materialCount <= 6) {
@@ -803,9 +802,7 @@ export async function recalculateAllProductPrices(env, corsHeaders) {
                             newMarkup = 3.5;
                         }
                     }
-                    newPrice = newCostPrice * newMarkup;
-                    console.log(`📊 Using markup method: ${newCostPrice} × ${newMarkup} = ${newPrice}`);
-                    newPrice = smartRoundPrice(newPrice);
+                    newPrice = smartRoundPrice(newCostPrice * newMarkup);
                 }
 
                 // Only update if prices changed

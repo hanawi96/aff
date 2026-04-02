@@ -694,6 +694,34 @@ export async function updateAmount(data, env, corsHeaders) {
     }
 }
 
+// Update payment method
+export async function updatePaymentMethod(data, env, corsHeaders) {
+    try {
+        if (!data.orderId || !data.paymentMethod) {
+            return jsonResponse({ success: false, error: 'Thiếu orderId hoặc paymentMethod' }, 400, corsHeaders);
+        }
+
+        const allowed = ['cod', 'bank'];
+        if (!allowed.includes(data.paymentMethod)) {
+            return jsonResponse({ success: false, error: 'Hình thức thanh toán không hợp lệ' }, 400, corsHeaders);
+        }
+
+        const result = await env.DB.prepare(`
+            UPDATE orders SET payment_method = ? WHERE id = ?
+        `).bind(data.paymentMethod, data.orderId).run();
+
+        if (result.meta && result.meta.changes === 0) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        return jsonResponse({ success: true, message: 'Đã cập nhật hình thức thanh toán' }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating payment method:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 // Delete order
 export async function deleteOrder(data, env, corsHeaders) {
     try {

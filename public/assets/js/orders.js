@@ -8,7 +8,7 @@ let filteredOrdersData = [];
 let selectedOrderIds = new Set();
 let currentPage = 1;
 const itemsPerPage = 15;
-let dateSortOrder = 'desc';
+let dateSortOrder = 'none';
 let amountSortOrder = 'none';
 let packagingConfig = [];
 

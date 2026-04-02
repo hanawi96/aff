@@ -30,6 +30,7 @@ import {
     updateCustomerInfo,
     updateAddress,
     updateAmount,
+    updatePaymentMethod,
     deleteOrder,
     updateOrderStatus,
     toggleOrderPriority
@@ -500,6 +501,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateAddress(data, env, corsHeaders);
             case 'updateAmount':
                 return await updateAmount(data, env, corsHeaders);
+            case 'updatePaymentMethod':
+                return await updatePaymentMethod(data, env, corsHeaders);
             case 'deleteOrder':
                 return await deleteOrder(data, env, corsHeaders);
             case 'updateOrderStatus':
@@ -513,7 +516,7 @@ export async function handlePost(path, request, env, corsHeaders) {
             case 'deleteProduct':
                 return await deleteProduct(data, env, corsHeaders);
             case 'recalculateAllPrices':
-                return await recalculateAllProductPrices(env, corsHeaders);
+                return await recalculateAllProductPrices(env, corsHeaders, data.changedMaterials);
             case 'addProductCategory':
                 return await addProductCategory(data, env, corsHeaders);
             case 'removeProductCategory':

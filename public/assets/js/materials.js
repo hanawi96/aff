@@ -2,6 +2,7 @@
 let allMaterials = [];
 let filteredMaterials = [];
 let allCategories = [];
+const changedMaterialNames = new Set();
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function () {
@@ -406,7 +407,10 @@ async function saveMaterial(oldItemName = null) {
             showToast(oldItemName ? 'Đã cập nhật nguyên liệu' : 'Đã thêm nguyên liệu mới', 'success');
             closeMaterialModal();
             await loadMaterials();
-            applyOutdatedProductsBadge(data.affected_products || 0);
+            if (data.price_changed && data.affected_products > 0) {
+                changedMaterialNames.add(itemName);
+            }
+            applyOutdatedProductsBadge(data.affected_products || 0, false);
             
             if (oldItemName && data.affected_products > 0) {
                 showToast(`Đã cập nhật giá vốn cho ${data.affected_products} sản phẩm`, 'info');
@@ -767,16 +771,14 @@ async function saveQuickEdit(itemName) {
                 `;
             }
             
-            // Show success with affected products count
             if (data.affected_products > 0) {
+                changedMaterialNames.add(itemName);
                 showToast(`✅ Đã cập nhật giá. ${data.affected_products} sản phẩm bị ảnh hưởng`, 'success');
             } else {
                 showToast('✅ Đã cập nhật giá', 'success');
             }
 
-            // Update badge immediately for the just-changed material,
-            // then sync with server-calculated global outdated count in background.
-            applyOutdatedProductsBadge(data.affected_products || 0);
+            applyOutdatedProductsBadge(data.affected_products || 0, false);
             
             // Update stats
             updateStats();
@@ -866,7 +868,7 @@ async function recalculateAllPrices() {
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật giá sản phẩm?</h3>
                 <p class="text-sm text-gray-600 text-center mb-4">
-                    Hệ thống sẽ tính lại giá bán cho tất cả sản phẩm dựa trên:
+                    Hệ thống sẽ tính lại giá bán cho các sản phẩm có nguyên liệu vừa thay đổi giá, dựa trên:
                 </p>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
                     <ul class="text-sm text-blue-800 space-y-2">
@@ -894,10 +896,9 @@ async function recalculateAllPrices() {
                         <div class="flex-1">
                             <p class="text-sm font-medium text-yellow-800">Logic cập nhật</p>
                             <p class="text-xs text-yellow-700 mt-1">
-                                • <strong>Phương thức markup:</strong> Giá bán = Giá vốn mới × Hệ số markup<br>
-                                • <strong>Phương thức lãi cố định:</strong> Giá bán = Giá vốn mới + Lãi mong muốn (giữ nguyên lãi)<br>
-                                • Sản phẩm không có công thức nguyên liệu sẽ bị bỏ qua<br>
-                                • Giá bán sẽ được làm tròn thông minh
+                                • <strong>Markup:</strong> Giá bán = Giá vốn × Hệ số markup<br>
+                                • <strong>Lãi cố định:</strong> Giá bán = Giá vốn + Lãi mong muốn<br>
+                                • Giá bán luôn làm tròn lên dạng X9.000đ (VD: 159k, 169k)
                             </p>
                         </div>
                     </div>
@@ -921,10 +922,14 @@ async function executeRecalculateAllPrices() {
     showToast('Đang tính toán và cập nhật giá...', 'info', 0, loadingId); // 0 = no auto-hide
     
     try {
+        const payload = { action: 'recalculateAllPrices' };
+        if (changedMaterialNames.size > 0) {
+            payload.changedMaterials = [...changedMaterialNames];
+        }
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'recalculateAllPrices' })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
@@ -938,7 +943,8 @@ async function executeRecalculateAllPrices() {
         if (data.success) {
             const { updated, skipped, total } = data;
             
-            // Hide badge after successful update
+            changedMaterialNames.clear();
+
             const badge = document.getElementById('outdatedProductsBadge');
             if (badge) {
                 badge.classList.add('hidden');

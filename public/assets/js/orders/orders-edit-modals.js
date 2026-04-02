@@ -1393,3 +1393,91 @@ async function saveAmount(orderId, orderCode, referralCode) {
         showToast('Không thể cập nhật giá trị đơn hàng: ' + error.message, 'error', null, saveId);
     }
 }
+
+// ============================================
+// EDIT PAYMENT METHOD MODAL
+// ============================================
+
+function editPaymentMethod(orderId, orderCode, currentMethod) {
+    const isCOD = currentMethod !== 'bank';
+
+    const modal = document.createElement('div');
+    modal.id = 'editPaymentMethodModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-4 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Hình thức thanh toán
+                    </h3>
+                    <p class="text-sm text-white/80 mt-0.5">Đơn hàng: ${escapeHtml(orderCode)}</p>
+                </div>
+                <button onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="text-white/80 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-3">
+                <label class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${isCOD ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}">
+                    <input type="radio" name="paymentMethod" value="cod" ${isCOD ? 'checked' : ''} class="w-4 h-4 text-orange-500 accent-orange-500">
+                    <div>
+                        <p class="font-semibold text-gray-800">COD</p>
+                        <p class="text-xs text-gray-500">Thanh toán khi nhận hàng</p>
+                    </div>
+                </label>
+                <label class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${!isCOD ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}">
+                    <input type="radio" name="paymentMethod" value="bank" ${!isCOD ? 'checked' : ''} class="w-4 h-4 text-green-500 accent-green-500">
+                    <div>
+                        <p class="font-semibold text-gray-800">Chuyển khoản</p>
+                        <p class="text-xs text-gray-500">Khách đã thanh toán qua CK</p>
+                    </div>
+                </label>
+            </div>
+            <div class="px-5 pb-5 flex gap-3">
+                <button onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors">Huỷ</button>
+                <button onclick="savePaymentMethod(${orderId}, '${escapeHtml(orderCode)}')" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors">Lưu</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+async function savePaymentMethod(orderId, orderCode) {
+    const selected = document.querySelector('#editPaymentMethodModal input[name="paymentMethod"]:checked');
+    if (!selected) return;
+    const newMethod = selected.value;
+
+    document.getElementById('editPaymentMethodModal')?.remove();
+    const saveId = `save-pm-${orderId}`;
+    showToast('Đang lưu...', 'info', 0, saveId);
+
+    try {
+        const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) throw new Error('Không tìm thấy đơn hàng');
+
+        const response = await fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'updatePaymentMethod', orderId, paymentMethod: newMethod })
+        });
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Không thể cập nhật');
+
+        allOrdersData[orderIndex].payment_method = newMethod;
+        const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
+        if (filteredIndex !== -1) filteredOrdersData[filteredIndex].payment_method = newMethod;
+
+        renderOrdersTable();
+        showToast(`Đã đổi sang ${newMethod === 'bank' ? 'Chuyển khoản' : 'COD'} cho đơn ${orderCode}`, 'success', null, saveId);
+    } catch (error) {
+        console.error('Error saving payment method:', error);
+        showToast('Không thể cập nhật: ' + error.message, 'error', null, saveId);
+    }
+}
