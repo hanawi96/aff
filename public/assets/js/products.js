@@ -5104,7 +5104,15 @@ async function uploadImageToR2(file) {
     formData.append('image', file);
     formData.append('filename', filename);
 
-    const response = await fetch(`${CONFIG.API_URL}/?action=uploadImage`, {
+    // Khi chạy local dev, Wrangler chỉ mô phỏng R2 cục bộ → URL trả về là localhost,
+    // lưu vào DB dùng chung sẽ không truy cập được trên production.
+    // Vì vậy luôn upload qua production Worker để ảnh nằm trên Cloudflare R2 thật.
+    const isLocalDev = ['127.0.0.1', 'localhost'].includes(location.hostname);
+    const uploadApiUrl = isLocalDev
+        ? 'https://ctv-api.yendev96.workers.dev/?action=uploadImage'
+        : `${CONFIG.API_URL}/?action=uploadImage`;
+
+    const response = await fetch(uploadApiUrl, {
         method: 'POST',
         body: formData
     });
