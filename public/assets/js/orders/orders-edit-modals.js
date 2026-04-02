@@ -1407,42 +1407,79 @@ function editPaymentMethod(orderId, orderCode, currentMethod) {
     modal.id = 'editPaymentMethodModal';
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-4 flex items-center justify-between">
-                <div>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-1 ring-black/5">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-start justify-between gap-3">
+                <div class="min-w-0">
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                        </span>
                         Hình thức thanh toán
                     </h3>
-                    <p class="text-sm text-white/80 mt-0.5">Đơn hàng: ${escapeHtml(orderCode)}</p>
+                    <p class="text-sm text-blue-100 mt-2 pl-11">Đơn hàng: <span class="font-medium text-white">${escapeHtml(orderCode)}</span></p>
                 </div>
-                <button onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="text-white/80 hover:text-white transition-colors">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <button type="button" onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="shrink-0 rounded-lg p-1.5 text-white/90 hover:bg-white/15 hover:text-white transition-colors" aria-label="Đóng">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <div class="p-5 space-y-3">
-                <label class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${isCOD ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}">
-                    <input type="radio" name="paymentMethod" value="cod" ${isCOD ? 'checked' : ''} class="w-4 h-4 text-orange-500 accent-orange-500">
-                    <div>
-                        <p class="font-semibold text-gray-800">COD</p>
-                        <p class="text-xs text-gray-500">Thanh toán khi nhận hàng</p>
+            <div class="px-5 pt-4 pb-2">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Chọn một phương thức</p>
+            </div>
+            <div class="px-5 pb-5 space-y-2.5">
+                <label class="block cursor-pointer select-none">
+                    <input type="radio" name="paymentMethod" value="cod" ${isCOD ? 'checked' : ''} class="peer sr-only">
+                    <div class="relative flex items-center gap-4 rounded-xl border-2 border-slate-200/90 bg-slate-50/40 p-4 shadow-sm transition-all duration-200 ease-out
+                        hover:border-slate-300 hover:bg-white hover:shadow-md
+                        peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2
+                        peer-checked:border-amber-500 peer-checked:bg-gradient-to-br peer-checked:from-amber-50 peer-checked:to-white peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-amber-500/20
+                        peer-checked:[&_.pm-pay-icon]:bg-amber-500 peer-checked:[&_.pm-pay-icon]:text-white peer-checked:[&_.pm-pay-icon]:shadow-inner
+                        peer-checked:[&_.pm-pay-dot]:border-amber-500 peer-checked:[&_.pm-pay-dot]:bg-amber-500
+                        peer-checked:[&_.pm-dot-pip]:scale-100 peer-checked:[&_.pm-dot-pip]:opacity-100">
+                        <span class="pm-pay-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-all duration-200 shadow-sm">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block font-semibold text-gray-900">COD</span>
+                            <span class="mt-0.5 block text-sm text-gray-500 leading-snug">Thanh toán khi nhận hàng</span>
+                        </span>
+                        <span class="pm-pay-dot relative flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white transition-all duration-200">
+                            <span class="pm-dot-pip h-2 w-2 rounded-full bg-white scale-0 opacity-0 transition-all duration-200"></span>
+                        </span>
                     </div>
                 </label>
-                <label class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${!isCOD ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}">
-                    <input type="radio" name="paymentMethod" value="bank" ${!isCOD ? 'checked' : ''} class="w-4 h-4 text-green-500 accent-green-500">
-                    <div>
-                        <p class="font-semibold text-gray-800">Chuyển khoản</p>
-                        <p class="text-xs text-gray-500">Khách đã thanh toán qua CK</p>
+                <label class="block cursor-pointer select-none">
+                    <input type="radio" name="paymentMethod" value="bank" ${!isCOD ? 'checked' : ''} class="peer sr-only">
+                    <div class="relative flex items-center gap-4 rounded-xl border-2 border-slate-200/90 bg-slate-50/40 p-4 shadow-sm transition-all duration-200 ease-out
+                        hover:border-slate-300 hover:bg-white hover:shadow-md
+                        peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-600 peer-focus-visible:ring-offset-2
+                        peer-checked:border-emerald-600 peer-checked:bg-gradient-to-br peer-checked:from-emerald-50 peer-checked:to-white peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-emerald-600/20
+                        peer-checked:[&_.pm-pay-icon]:bg-emerald-600 peer-checked:[&_.pm-pay-icon]:text-white peer-checked:[&_.pm-pay-icon]:shadow-inner
+                        peer-checked:[&_.pm-pay-dot]:border-emerald-600 peer-checked:[&_.pm-pay-dot]:bg-emerald-600
+                        peer-checked:[&_.pm-dot-pip]:scale-100 peer-checked:[&_.pm-dot-pip]:opacity-100">
+                        <span class="pm-pay-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 transition-all duration-200 shadow-sm">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m0 0V4.875A1.125 1.125 0 0018.75 3.75H5.25a1.125 1.125 0 00-1.125 1.125V21M9 9v6m6-6v6M12 3v18" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block font-semibold text-gray-900">Chuyển khoản</span>
+                            <span class="mt-0.5 block text-sm text-gray-500 leading-snug">Khách đã thanh toán qua CK</span>
+                        </span>
+                        <span class="pm-pay-dot relative flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white transition-all duration-200">
+                            <span class="pm-dot-pip h-2 w-2 rounded-full bg-white scale-0 opacity-0 transition-all duration-200"></span>
+                        </span>
                     </div>
                 </label>
             </div>
-            <div class="px-5 pb-5 flex gap-3">
-                <button onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors">Huỷ</button>
-                <button onclick="savePaymentMethod(${orderId}, '${escapeHtml(orderCode)}')" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors">Lưu</button>
+            <div class="px-5 py-4 flex gap-3 border-t border-slate-100 bg-slate-50/50">
+                <button type="button" onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 hover:bg-white font-medium text-sm transition-colors shadow-sm">Huỷ</button>
+                <button type="button" onclick="savePaymentMethod(${orderId}, '${escapeHtml(orderCode)}')" class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Lưu</button>
             </div>
         </div>
     `;
