@@ -172,30 +172,59 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             LIMIT 10
         `).bind(...bindStartO).all();
 
-        // Get daily data for charts (last 30 days) - Use total_amount
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const dailyData = await env.DB.prepare(`
-            SELECT 
-                DATE(orders.created_at_unix/1000, 'unixepoch') as date,
-                COALESCE(SUM(orders.total_amount), 0) as revenue,
-                COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) + 
-                COALESCE(SUM(orders.shipping_cost), 0) + 
-                COALESCE(SUM(orders.packaging_cost), 0) + 
-                COALESCE(SUM(orders.commission), 0) + 
-                COALESCE(SUM(orders.tax_amount), 0) as cost
-            FROM orders
-            LEFT JOIN order_items ON orders.id = order_items.order_id
-            WHERE orders.created_at_unix >= ?
-            GROUP BY DATE(orders.created_at_unix/1000, 'unixepoch')
-            ORDER BY date ASC
-        `).bind(thirtyDaysAgo.getTime()).all();
+        // Chart data — respects selected date range, hourly for single day
+        const isSingleDay = endMs && (endMs - startMs < 86400000);
+        let dailyDataFormatted;
 
-        const dailyDataFormatted = dailyData.results.map(d => ({
-            date: d.date,
-            revenue: d.revenue || 0,
-            cost: d.cost || 0,
-            profit: (d.revenue || 0) - (d.cost || 0)
-        }));
+        if (isSingleDay) {
+            const hourlyData = await env.DB.prepare(`
+                SELECT 
+                    CAST(((orders.created_at_unix/1000 + 25200) % 86400) / 3600 AS INTEGER) as hour,
+                    COALESCE(SUM(orders.total_amount), 0) as revenue,
+                    COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) +
+                    COALESCE(SUM(orders.shipping_cost), 0) +
+                    COALESCE(SUM(orders.packaging_cost), 0) +
+                    COALESCE(SUM(orders.commission), 0) +
+                    COALESCE(SUM(orders.tax_amount), 0) as cost
+                FROM orders
+                LEFT JOIN order_items ON orders.id = order_items.order_id
+                WHERE orders.created_at_unix >= ? AND orders.created_at_unix <= ?
+                GROUP BY hour
+                ORDER BY hour ASC
+            `).bind(startMs, endMs).all();
+
+            const hourMap = {};
+            for (let h = 0; h < 24; h++) hourMap[h] = { hour: h, revenue: 0, cost: 0, profit: 0 };
+            (hourlyData.results || []).forEach(d => {
+                hourMap[d.hour] = { hour: d.hour, revenue: d.revenue || 0, cost: d.cost || 0, profit: (d.revenue || 0) - (d.cost || 0) };
+            });
+            dailyDataFormatted = Object.values(hourMap);
+        } else {
+            const dailyBinds = endMs ? [startMs, endMs] : [startMs];
+            const dailyEndClause = endMs ? ' AND orders.created_at_unix <= ?' : '';
+            const dailyData = await env.DB.prepare(`
+                SELECT 
+                    DATE((orders.created_at_unix/1000 + 25200), 'unixepoch') as date,
+                    COALESCE(SUM(orders.total_amount), 0) as revenue,
+                    COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) +
+                    COALESCE(SUM(orders.shipping_cost), 0) +
+                    COALESCE(SUM(orders.packaging_cost), 0) +
+                    COALESCE(SUM(orders.commission), 0) +
+                    COALESCE(SUM(orders.tax_amount), 0) as cost
+                FROM orders
+                LEFT JOIN order_items ON orders.id = order_items.order_id
+                WHERE orders.created_at_unix >= ?${dailyEndClause}
+                GROUP BY date
+                ORDER BY date ASC
+            `).bind(...dailyBinds).all();
+
+            dailyDataFormatted = (dailyData.results || []).map(d => ({
+                date: d.date,
+                revenue: d.revenue || 0,
+                cost: d.cost || 0,
+                profit: (d.revenue || 0) - (d.cost || 0)
+            }));
+        }
 
         return jsonResponse({
             success: true,

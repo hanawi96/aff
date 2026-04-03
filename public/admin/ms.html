@@ -150,6 +150,7 @@ const ORDER_PAGE_SIZE=15;
 let orderPage=1;
 let customRange=null; // {startDate:'2026-01-01', endDate:'2026-01-31'}
 let dateMode='day'; // 'day' or 'range'
+let _cMeta=null;
 
 function setPeriod(p){
   currentPeriod=p;
@@ -262,6 +263,9 @@ function renderAll(d,prev){
     </div>`;
   }).join(''):'<p class="px-4 py-6 text-sm text-gray-400 text-center">Chưa có dữ liệu sản phẩm</p>';
 
+  const _r=getDateRange();
+  const chartHtml=_r?buildChart(d.daily_data||[],_r):'';
+
   const html=`
     <!-- KPI chính -->
     <div class="bg-white rounded-2xl border border-gray-100 p-4">
@@ -314,6 +318,9 @@ function renderAll(d,prev){
         <p class="text-[11px] text-gray-400 mt-0.5">${o.unique_customers>0?(o.total_orders/o.unique_customers).toFixed(1):0} đơn/KH</p>
       </div>
     </div>
+
+    <!-- Biểu đồ -->
+    ${chartHtml}
 
     <!-- Hoa hồng -->
     <div class="bg-amber-50 rounded-2xl p-3.5 border border-amber-100 flex items-center justify-between">
@@ -429,6 +436,104 @@ function loadMoreOrders(){
   const items=document.getElementById('orderList').children;
   const firstNew=items[(orderPage-1)*ORDER_PAGE_SIZE];
   if(firstNew)firstNew.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ─── Chart ───
+function buildChart(data,range){
+  if(!data||!data.length){_cMeta=null;return'';}
+  const isHourly=data[0].hour!==undefined;
+  const pts=[];
+  if(isHourly){
+    data.forEach(d=>pts.push({l:d.hour+'h',r:d.revenue||0,p:d.profit||0}));
+  }else{
+    const map={};
+    data.forEach(d=>{map[d.date]=d;});
+    const sMs=new Date(range.s+'T12:00:00+07:00').getTime();
+    const eMs=new Date(range.e+'T12:00:00+07:00').getTime();
+    for(let t=sMs;t<=eMs+1;t+=864e5){
+      const k=new Date(t).toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
+      const dd=new Date(k+'T00:00:00+07:00');
+      const d=map[k];
+      pts.push({l:`${dd.getDate()}/${dd.getMonth()+1}`,r:d?d.revenue:0,p:d?d.profit:0});
+    }
+  }
+  const W=350,H=180,pl=45,pr=10,ptt=15,pb=28;
+  const cW=W-pl-pr,cH=H-ptt-pb;
+  const mx=Math.max(...pts.map(p=>Math.max(p.r,Math.abs(p.p))),1);
+  const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
+  const yP=v=>ptt+cH-Math.max(0,v)/mx*cH;
+  _cMeta={pts,W,H,pl,ptt,cW,cH,mx};
+  const rP=pts.map((p,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(p.r).toFixed(1)}`).join('');
+  const rA=rP+` L${xP(pts.length-1).toFixed(1)},${ptt+cH} L${xP(0).toFixed(1)},${ptt+cH} Z`;
+  const pP=pts.map((p,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(Math.max(p.p,0)).toFixed(1)}`).join('');
+  let g='',yl='';
+  for(let i=0;i<=4;i++){
+    const v=mx*i/4,yy=yP(v);
+    g+=`<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W-pr}" y2="${yy.toFixed(1)}" stroke="#f3f4f6"/>`;
+    yl+=`<text x="${pl-4}" y="${(yy+3).toFixed(1)}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${fmtK(v)}</text>`;
+  }
+  let xl='';
+  const mxL=isHourly?8:Math.min(pts.length,7);
+  const stp=Math.max(1,Math.ceil(pts.length/mxL));
+  for(let i=0;i<pts.length;i+=stp)
+    xl+=`<text x="${xP(i).toFixed(1)}" y="${H-6}" text-anchor="middle" fill="#9ca3af" style="font-size:9px">${pts[i].l}</text>`;
+  if(pts.length>1&&(pts.length-1)%stp!==0)
+    xl+=`<text x="${xP(pts.length-1).toFixed(1)}" y="${H-6}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${pts[pts.length-1].l}</text>`;
+  const dots=pts.length<=10?pts.map((p,i)=>`<circle cx="${xP(i).toFixed(1)}" cy="${yP(p.r).toFixed(1)}" r="3" fill="#6366f1" stroke="#fff" stroke-width="1.5"/>`).join(''):'';
+  return`<div class="bg-white rounded-2xl border border-gray-100 p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Biểu đồ</h3>
+    <div class="flex items-center gap-3 text-[10px]">
+      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500 inline-block"></span>Doanh thu</span>
+      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>Lợi nhuận</span>
+    </div>
+  </div>
+  <div class="relative" id="chartWrap">
+    <svg id="chartSvg" viewBox="0 0 ${W} ${H}" class="w-full" preserveAspectRatio="xMidYMid meet" onclick="chartTap(event)">
+      ${g}${yl}${xl}
+      <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity=".12"/><stop offset="100%" stop-color="#6366f1" stop-opacity=".01"/></linearGradient></defs>
+      <path d="${rA}" fill="url(#rg)"/>
+      <path d="${rP}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${pP}" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3"/>
+      ${dots}
+      <line id="cInd" x1="0" y1="${ptt}" x2="0" y2="${ptt+cH}" stroke="#6366f1" stroke-width="1" stroke-dasharray="3 2" style="opacity:0;transition:opacity .15s"/>
+      <circle id="cDotR" r="4.5" fill="#6366f1" stroke="#fff" stroke-width="2" style="opacity:0;transition:opacity .15s"/>
+      <circle id="cDotP" r="4.5" fill="#34d399" stroke="#fff" stroke-width="2" style="opacity:0;transition:opacity .15s"/>
+    </svg>
+    <div id="cTip" class="hidden absolute top-0 left-0 -translate-x-1/2 bg-gray-900 text-white text-[10px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none whitespace-nowrap" style="transition:all .15s"></div>
+  </div>
+</div>`;
+}
+
+function chartTap(evt){
+  if(!_cMeta)return;
+  const {pts,W,ptt,cW,cH,mx,pl}=_cMeta;
+  const svg=document.getElementById('chartSvg');
+  if(!svg)return;
+  const rect=svg.getBoundingClientRect();
+  const cx=(evt.clientX-rect.left)/rect.width*W;
+  const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
+  const yP=v=>ptt+cH-Math.max(0,v)/mx*cH;
+  let best=0,bd=1e9;
+  pts.forEach((_,i)=>{const d=Math.abs(xP(i)-cx);if(d<bd){bd=d;best=i;}});
+  const tip=document.getElementById('cTip');
+  const ind=document.getElementById('cInd');
+  const dr=document.getElementById('cDotR');
+  const dp=document.getElementById('cDotP');
+  if(tip&&!tip.classList.contains('hidden')&&tip.dataset.i==best){
+    tip.classList.add('hidden');if(ind)ind.style.opacity='0';
+    if(dr)dr.style.opacity='0';if(dp)dp.style.opacity='0';return;
+  }
+  const p=pts[best];const px=xP(best);
+  if(ind){ind.setAttribute('x1',px);ind.setAttribute('x2',px);ind.style.opacity='1';}
+  if(dr){dr.setAttribute('cx',px);dr.setAttribute('cy',yP(p.r));dr.style.opacity='1';}
+  if(dp){dp.setAttribute('cx',px);dp.setAttribute('cy',yP(Math.max(p.p,0)));dp.style.opacity='1';}
+  if(tip){
+    tip.innerHTML=`<b>${p.l}</b><br><span style="color:#a5b4fc">DT: ${fmtK(p.r)}</span><br><span style="color:#6ee7b7">LN: ${fmtK(p.p)}</span>`;
+    tip.style.left=`${px/W*100}%`;
+    tip.dataset.i=best;
+    tip.classList.remove('hidden');
+  }
 }
 
 // ─── Date Picker ───
