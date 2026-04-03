@@ -40,14 +40,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Check URL hash to auto-open modal
     checkUrlHash();
 
-    // PERFORMANCE: Preload products in background for instant modal
+    // PERFORMANCE: Preload data in background for instant modal
     setTimeout(() => {
-        if (allProductsList.length === 0) {
-            loadProductsAndCategories().then(() => {
-                // Products preloaded
-            });
-        }
-    }, 1000); // Wait 1s after page load to not block initial render
+        if (allProductsList.length === 0) loadProductsAndCategories();
+        if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') loadActiveDiscounts();
+        if (window.addressSelector && !window.addressSelector.loaded) window.addressSelector.init();
+    }, 1000);
     
     // Auto-refresh badge every 30 seconds
     setInterval(updateExportHistoryBadge, 30000);
@@ -233,8 +231,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
         window.history.pushState(null, '', `#edit-order-${formOptions.editOrderDbId}`);
     }
     
-    // CRITICAL: Load packaging config first before showing modal
-    await loadPackagingConfig();
+    // Only fetch if not already loaded (data is preloaded at DOMContentLoaded)
+    if (packagingConfig.length === 0) {
+        await loadPackagingConfig();
+    }
     
     // PERFORMANCE: Don't block on products load
     // Load in background if needed
@@ -882,91 +882,67 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
 
     document.body.appendChild(modal);
 
-    // Setup customer check on phone input
-    setupCustomerCheck();
+    // PERFORMANCE: Defer all setup work to AFTER browser paints the modal.
+    // setTimeout(fn, 0) = macrotask = runs after paint, unlike rAF/microtask.
+    setTimeout(() => {
+        setupCustomerCheck();
+        setupShippingCostSync();
+        initAddressSelector(duplicateData);
 
-    // Setup auto-sync shipping cost with shipping fee
-    setupShippingCostSync();
+        if (duplicateData?.discount_code) {
+            const discountInput = document.getElementById('newOrderDiscountCode');
+            if (discountInput) {
+                const discountCode = String(duplicateData.discount_code).toUpperCase();
+                discountInput.value = discountCode;
 
-    // Init address selector with duplicate data
-    initAddressSelector(duplicateData);
-
-    if (duplicateData?.discount_code) {
-        const discountInput = document.getElementById('newOrderDiscountCode');
-        if (discountInput) {
-            const discountCode = String(duplicateData.discount_code).toUpperCase();
-            discountInput.value = discountCode;
-
-            if (isEdit) {
-                // Edit mode: restore saved discount state without re-validating
-                const discountAmount = duplicateData.discount_amount || 0;
-                const discountInfo = allDiscountsList.find(d =>
-                    String(d.code || d.discount_code || '').toUpperCase() === discountCode
-                );
-
-                document.getElementById('appliedDiscountId').value = duplicateData.discount_id || (discountInfo?.id || '');
-                document.getElementById('appliedDiscountCode').value = discountCode;
-                document.getElementById('appliedDiscountAmount').value = discountAmount;
-                document.getElementById('appliedDiscountType').value = discountInfo?.type || '';
-
-                setTimeout(() => {
+                if (isEdit) {
+                    const discountAmount = duplicateData.discount_amount || 0;
+                    const discountInfo = allDiscountsList.find(d =>
+                        String(d.code || d.discount_code || '').toUpperCase() === discountCode
+                    );
+                    document.getElementById('appliedDiscountId').value = duplicateData.discount_id || (discountInfo?.id || '');
+                    document.getElementById('appliedDiscountCode').value = discountCode;
+                    document.getElementById('appliedDiscountAmount').value = discountAmount;
+                    document.getElementById('appliedDiscountType').value = discountInfo?.type || '';
                     const discount = discountInfo || { code: discountCode, type: 'custom', title: 'Giảm giá' };
                     showDiscountSuccess(discount, discountAmount);
-                    updateOrderSummary();
-                }, 400);
-            } else {
-                const hid = document.getElementById('appliedDiscountId');
-                if (hid && duplicateData.discount_id) {
-                    hid.value = String(duplicateData.discount_id);
-                }
-                setTimeout(() => {
+                } else {
+                    const hid = document.getElementById('appliedDiscountId');
+                    if (hid && duplicateData.discount_id) {
+                        hid.value = String(duplicateData.discount_id);
+                    }
                     applyDiscountCode();
-                }, 400);
+                }
             }
         }
-    }
 
-    if (duplicateData && Number(duplicateData.shipping_fee) === 0) {
-        requestAnimationFrame(() => {
+        if (duplicateData && Number(duplicateData.shipping_fee) === 0) {
             const cb = document.getElementById('freeShippingCheckbox');
             if (cb) {
                 cb.checked = true;
                 toggleFreeShipping();
             }
-        });
-    }
+        }
 
-    // PERFORMANCE: Use requestAnimationFrame to batch DOM updates
-    requestAnimationFrame(() => {
         if (currentOrderProducts.length > 0) {
             renderOrderProducts();
         }
-        // Always call updateOrderSummary to show initial values
         updateOrderSummary();
-    });
 
-    // Setup real-time profit calculation
-    const referralCodeInput = document.getElementById('newOrderReferralCode');
-    if (referralCodeInput) {
-        referralCodeInput.addEventListener('input', () => {
-            updateOrderSummary();
-        });
-    }
-
-    // FIX: Wait for products to load before rendering quick add products
-    // This ensures data is always available and prevents flickering
-    productsPromise.then(() => {
-        renderQuickAddProducts();
-    }).catch(error => {
-        console.error('❌ Error loading products:', error);
-        const container = document.getElementById('quickAddProductsContainer');
-        if (container) {
-            container.innerHTML = '<p class="text-xs text-red-500 italic text-center py-2">Lỗi tải sản phẩm</p>';
+        const referralCodeInput = document.getElementById('newOrderReferralCode');
+        if (referralCodeInput) {
+            referralCodeInput.addEventListener('input', () => updateOrderSummary());
         }
-    });
 
-    // Focus first input
-    setTimeout(() => document.getElementById('newOrderCustomerName')?.focus(), 100);
+        productsPromise.then(() => renderQuickAddProducts()).catch(() => {
+            const container = document.getElementById('quickAddProductsContainer');
+            if (container) {
+                container.innerHTML = '<p class="text-xs text-red-500 italic text-center py-2">Lỗi tải sản phẩm</p>';
+            }
+        });
+
+        document.getElementById('newOrderCustomerName')?.focus();
+    }, 0);
 }
 
 // Toggle free shipping

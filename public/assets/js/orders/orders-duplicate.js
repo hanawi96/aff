@@ -11,19 +11,30 @@ async function parseOrderProductsForModal(order) {
         products = JSON.parse(order.products);
         const productNames = products.map(p => p.name).filter(Boolean);
         let productIdMap = {};
-        if (productNames.length > 0) {
+
+        // Look up product IDs from preloaded list first (no API call)
+        if (productNames.length > 0 && typeof allProductsList !== 'undefined' && allProductsList.length > 0) {
+            allProductsList.forEach(p => {
+                if (p.name && productNames.includes(p.name)) {
+                    productIdMap[p.name] = p.id;
+                }
+            });
+        }
+
+        // Fallback to API only if local lookup missed some
+        const missingNames = productNames.filter(n => !productIdMap[n]);
+        if (missingNames.length > 0) {
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=getProductsByNames&names=${encodeURIComponent(JSON.stringify(productNames))}`);
+                const response = await fetch(`${CONFIG.API_URL}?action=getProductsByNames&names=${encodeURIComponent(JSON.stringify(missingNames))}`);
                 const data = await response.json();
                 if (data.success && data.products) {
-                    data.products.forEach(p => {
-                        productIdMap[p.name] = p.id;
-                    });
+                    data.products.forEach(p => { productIdMap[p.name] = p.id; });
                 }
             } catch (e) {
                 console.warn('Could not lookup product IDs:', e);
             }
         }
+
         products = products.map(product => {
             const cleanProduct = { ...product };
             if (cleanProduct.price !== undefined && cleanProduct.price !== null) {
@@ -115,7 +126,6 @@ async function duplicateOrder(orderId) {
         return;
     }
     showAddOrderModal(await buildOrderModalSeed(order, 'duplicate'));
-    showToast('Đã sao chép thông tin đơn hàng', 'info');
 }
 
 /**
