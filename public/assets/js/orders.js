@@ -223,6 +223,15 @@ document.addEventListener('DOMContentLoaded', function () {
 async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const isEdit = formOptions?.mode === 'edit' && Number(formOptions.editOrderDbId) > 0;
 
+    // Restore draft for fresh "add" mode
+    if (!duplicateData && !isEdit) {
+        const draft = _loadOrderDraft();
+        if (draft) {
+            duplicateData = draft;
+            setTimeout(() => showToast('Đã khôi phục dữ liệu từ lần nhập trước', 'info'), 500);
+        }
+    }
+
     if (!duplicateData && !isEdit) {
         window.history.pushState(null, '', '#add-order');
     } else if (isEdit) {
@@ -972,6 +981,9 @@ function toggleFreeShipping() {
 function closeAddOrderModal() {
     const modal = document.getElementById('addOrderModal');
     if (modal) {
+        const isEdit = !!document.getElementById('orderFormEditDbId')?.value;
+        if (!isEdit) _saveOrderDraft();
+
         modal.remove();
         currentOrderProducts = [];
         currentOrderNotes = '';
@@ -981,6 +993,46 @@ function closeAddOrderModal() {
             window.history.pushState(null, '', window.location.pathname + window.location.search);
         }
     }
+}
+
+// --- Order Draft (sessionStorage) ---
+const _DRAFT_KEY = 'orderDraft';
+
+function _saveOrderDraft() {
+    const name = document.getElementById('newOrderCustomerName')?.value || '';
+    const phone = document.getElementById('newOrderCustomerPhone')?.value || '';
+    if (!name && !phone && currentOrderProducts.length === 0) {
+        sessionStorage.removeItem(_DRAFT_KEY);
+        return;
+    }
+    sessionStorage.setItem(_DRAFT_KEY, JSON.stringify({
+        customer_name: name,
+        customer_phone: phone,
+        address: document.getElementById('newOrderAddress')?.value || '',
+        province_id: document.getElementById('newOrderProvince')?.value || '',
+        district_id: document.getElementById('newOrderDistrict')?.value || '',
+        ward_id: document.getElementById('newOrderWard')?.value || '',
+        street_address: document.getElementById('newOrderStreetAddress')?.value || '',
+        shipping_fee: parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0,
+        shipping_cost: parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0,
+        payment_method: document.getElementById('newOrderPaymentMethod')?.value || 'cod',
+        referral_code: document.getElementById('newOrderReferralCode')?.value || '',
+        notes: document.getElementById('newOrderNotes')?.value || '',
+        is_priority: document.getElementById('newOrderPriority')?.checked || false,
+        status: document.getElementById('newOrderStatus')?.value || 'pending',
+        products: currentOrderProducts
+    }));
+}
+
+function _loadOrderDraft() {
+    try {
+        const raw = sessionStorage.getItem(_DRAFT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+
+function clearOrderDraft() {
+    sessionStorage.removeItem(_DRAFT_KEY);
 }
 
 // Handle Smart Paste - Parse customer info automatically

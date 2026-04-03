@@ -26,37 +26,30 @@ async function initAddressSelector(duplicateData = null) {
     // Render provinces
     window.addressSelector.renderProvinces(provinceSelect);
 
-    // If duplicating order with address IDs, set them
+    // If duplicating/restoring order with address IDs, set them
     if (duplicateData?.province_id) {
-        // IDs are now stored as strings in database (already padded)
         const provinceId = String(duplicateData.province_id);
         const districtId = duplicateData.district_id ? String(duplicateData.district_id) : null;
         const wardId = duplicateData.ward_id ? String(duplicateData.ward_id) : null;
 
-        // Set province
         provinceSelect.value = provinceId;
 
-        // Render and set district with setTimeout to ensure options are rendered
+        // Always render districts so the dropdown is enabled and populated
+        window.addressSelector.renderDistricts(districtSelect, provinceId);
+
         if (districtId) {
-            window.addressSelector.renderDistricts(districtSelect, provinceId);
             setTimeout(() => {
                 districtSelect.value = districtId;
-
-                // Render and set ward with setTimeout
+                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
                 if (wardId) {
-                    window.addressSelector.renderWards(wardSelect, provinceId, districtId);
                     setTimeout(() => {
                         wardSelect.value = wardId;
-                        // Update preview after all values are set
-                        if (duplicateData?.province_id) {
-                            updateAddressPreview();
-                        }
+                        updateAddressPreview();
                     }, 50);
                 }
             }, 50);
         }
 
-        // Set street address
         if (duplicateData.street_address) {
             streetInput.value = duplicateData.street_address;
         }
