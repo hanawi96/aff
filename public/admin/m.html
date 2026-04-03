@@ -376,7 +376,7 @@ async function showEditOrder(id){
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   _populateCatFilter();
-  Promise.all([loadAddressData(), loadProductList()]).then(()=>{
+  Promise.all([loadAddressData(), loadProductList(), loadShippingConfig()]).then(()=>{
     // Prefill address dropdowns
     if(o.province_id){
       const pSel=document.getElementById('cProvince');
@@ -436,7 +436,7 @@ function showCreateOrder(){
   document.body.style.overflow='hidden';
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
-  Promise.all([loadAddressData(), loadProductList()]).then(()=>{
+  Promise.all([loadAddressData(), loadProductList(), loadShippingConfig()]).then(()=>{
     renderProvinces();
     renderProductPicker();
   });
@@ -513,6 +513,7 @@ function buildCreateForm(isEdit=false){
           <span id="cartTotal" class="text-base font-bold text-indigo-600"></span>
         </div>
         <div id="cartList" class="space-y-2.5"></div>
+        <div id="cartSummary" class="hidden border-t border-gray-100 pt-3 space-y-1.5"></div>
       </div>
     </div>
 
@@ -816,10 +817,25 @@ function renderCart(){
   if(!wrap||!list)return;
   if(!createProducts.length){wrap.classList.add('hidden');return}
   wrap.classList.remove('hidden');
-  const total=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
   const totalQty=createProducts.reduce((s,p)=>s+(p.quantity||1),0);
-  if(totalEl)totalEl.textContent=fmt(total);
+  const isFreeShip=document.getElementById('cFreeShip')?.checked;
+  const shipFee=isFreeShip?0:DEFAULT_SHIP_FEE;
+  const discountAmt=mDiscount?.amount||0;
+  const grandTotal=prodTotal+shipFee-discountAmt;
+  if(totalEl)totalEl.textContent=fmt(grandTotal);
   if(countEl)countEl.textContent=`${totalQty} sản phẩm`;
+  // Summary breakdown
+  const summary=document.getElementById('cartSummary');
+  if(summary){
+    const rows=[];
+    rows.push(`<div class="flex justify-between text-xs text-gray-500"><span>Sản phẩm</span><span>${fmt(prodTotal)}</span></div>`);
+    rows.push(`<div class="flex justify-between text-xs ${isFreeShip?'text-green-600':'text-gray-500'}"><span>Phí vận chuyển</span><span>${isFreeShip?'Miễn phí':fmt(shipFee)}</span></div>`);
+    if(discountAmt>0)rows.push(`<div class="flex justify-between text-xs text-violet-600"><span>Giảm giá (${mDiscount?.code||''})</span><span>-${fmt(discountAmt)}</span></div>`);
+    rows.push(`<div class="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-100"><span>Tổng đơn</span><span class="text-indigo-600">${fmt(grandTotal)}</span></div>`);
+    summary.innerHTML=rows.join('');
+    summary.classList.remove('hidden');
+  }
   list.innerHTML=createProducts.map((p,i)=>{
     const imgSrc=resolveImgSrc(p.image_url);
     const img=imgSrc
@@ -1111,8 +1127,8 @@ async function submitOrder(){
     paymentMethod,payment_method:paymentMethod,
     referralCode:document.getElementById('cReferral')?.value.trim()||null,
     shippingFee:shipFee,shipping_fee:shipFee,
-    shippingCost:existingOrder?.shipping_cost??25000,
-    shipping_cost:existingOrder?.shipping_cost??25000,
+    shippingCost:getShipCost(isEdit?existingOrder:null),
+    shipping_cost:getShipCost(isEdit?existingOrder:null),
     total:prodTotal+shipFee,totalAmount:prodTotal+shipFee,
     cart:createProducts,
     notes:document.getElementById('cNotes')?.value.trim()||null,
@@ -1219,9 +1235,26 @@ function selectCTV(id){
 }
 
 // ─── Free Ship ───
-const DEFAULT_SHIP_FEE=30000;
+let DEFAULT_SHIP_FEE=30000; // will be overridden from config
+let DEFAULT_SHIP_COST=25000;
 const FREESHIP_CAT=23; // Sản phẩm bán kèm
 const BI_CHARM_CAT=24; // Bi, charm bạc
+
+let _shipConfigLoaded=false;
+async function loadShippingConfig(){
+  if(_shipConfigLoaded)return;
+  try{
+    const r=await fetch(`${API()}?action=getPackagingConfig&timestamp=${Date.now()}`);
+    const d=await r.json();
+    if(d.success&&d.config){
+      const fee=d.config.find(x=>x.item_name==='customer_shipping_fee');
+      const cost=d.config.find(x=>x.item_name==='default_shipping_cost');
+      if(fee?.item_cost!=null)DEFAULT_SHIP_FEE=fee.item_cost;
+      if(cost?.item_cost!=null)DEFAULT_SHIP_COST=cost.item_cost;
+      _shipConfigLoaded=true;
+    }
+  }catch{}
+}
 
 function _productInCat(p,catId){
   const pid=p.product_id||p.id;
@@ -1259,11 +1292,17 @@ function onFreeShipChange(){
   const cb=document.getElementById('cFreeShip');
   const hint=document.getElementById('freeShipHint');
   if(hint)hint.textContent=cb?.checked?'Khách không trả phí ship':'Tự động theo sản phẩm';
+  if(createProducts.length)renderCart();
 }
 
 function getShipFee(existingOrder){
   if(document.getElementById('cFreeShip')?.checked)return 0;
-  return existingOrder?.shipping_fee??DEFAULT_SHIP_FEE;
+  const prev=existingOrder?.shipping_fee;
+  return(prev!=null&&prev>0)?prev:DEFAULT_SHIP_FEE;
+}
+function getShipCost(existingOrder){
+  const prev=existingOrder?.shipping_cost;
+  return(prev!=null&&prev>0)?prev:DEFAULT_SHIP_COST;
 }
 
 // ─── Discount ───
@@ -1296,7 +1335,7 @@ async function applyMobileDiscount(){
   if(!code){toast('Vui lòng nhập mã giảm giá');return}
   const phone=document.getElementById('cPhone')?.value.trim()||'';
   const orderTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
-  const shipFee=30000;
+  const shipFee=document.getElementById('cFreeShip')?.checked?0:DEFAULT_SHIP_FEE;
   try{
     const r=await fetch(`${API()}?action=validateDiscount&code=${encodeURIComponent(code)}&customerPhone=${encodeURIComponent(phone)}&orderAmount=${orderTotal+shipFee}&timestamp=${Date.now()}`);
     const d=await r.json();
@@ -1315,6 +1354,7 @@ function showDiscountApplied(){
   document.getElementById('discountAppliedAmount').textContent=mDiscount.amount>0?`Giảm ${fmt(mDiscount.amount)}`:'Đã áp dụng';
   const el=document.getElementById('discountApplied');
   el.classList.remove('hidden');el.classList.add('flex');
+  if(createProducts.length)renderCart();
 }
 
 function clearMobileDiscount(){
@@ -1322,6 +1362,7 @@ function clearMobileDiscount(){
   document.getElementById('cDiscountCode').value='';
   const el=document.getElementById('discountApplied');
   el.classList.add('hidden');el.classList.remove('flex');
+  if(createProducts.length)renderCart();
 }
 
 async function openDiscountSheet(){
