@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Đơn hàng — Mobile</title>
+<link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+*{-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior-y:contain}
+.tab-active{color:#4f46e5;border-color:#4f46e5;font-weight:600}
+.skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp .2s ease-out}
+.slide-in{animation:slideIn .25s ease-out}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+.sheet-up{animation:sheetUp .25s cubic-bezier(0.32,0.72,0,1)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:999px;background:#d1d5db;transition:.2s;cursor:pointer}
+.toggle-track::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-track{background:#22c55e}
+.toggle input:checked+.toggle-track::after{transform:translateX(18px)}
+.toggle.indigo input:checked+.toggle-track{background:#6366f1}
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen max-w-lg mx-auto">
+
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3">
+  <div class="flex items-center justify-between">
+    <h1 class="text-lg font-bold text-gray-900">Đơn hàng</h1>
+    <div class="flex items-center gap-2">
+      <button id="btnSearch" onclick="toggleSearch()" class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button onclick="showCreateOrder()" class="h-10 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-xl flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+        Tạo đơn
+      </button>
+    </div>
+  </div>
+  <!-- Search bar (hidden) -->
+  <div id="searchBar" class="hidden mt-3">
+    <input id="searchInput" type="search" placeholder="Tìm tên, SĐT, mã đơn..." class="w-full px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="onSearch()">
+  </div>
+</header>
+
+<!-- Status Tabs -->
+<div class="sticky top-[60px] z-30 bg-white border-b border-gray-200 flex">
+  <button class="tab flex-1 py-3 text-center text-sm border-b-2 border-transparent text-gray-500 tab-active" data-status="pending" onclick="switchTab(this)">
+    Chờ xử lý <span id="countPending" class="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
+  </button>
+  <button class="tab flex-1 py-3 text-center text-sm border-b-2 border-transparent text-gray-500" data-status="shipped" onclick="switchTab(this)">
+    Đã gửi <span id="countShipped" class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"></span>
+  </button>
+</div>
+
+<!-- Order List -->
+<main id="orderList" class="px-4 py-3 space-y-3">
+  <!-- Skeleton cards -->
+  <div id="skeletons">
+    <div class="bg-white rounded-xl p-4 space-y-3"><div class="skeleton h-4 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded mt-2"></div><div class="skeleton h-3 w-32 rounded mt-1"></div></div>
+    <div class="bg-white rounded-xl p-4 space-y-3 mt-3"><div class="skeleton h-4 w-20 rounded"></div><div class="skeleton h-3 w-36 rounded mt-2"></div><div class="skeleton h-3 w-28 rounded mt-1"></div></div>
+    <div class="bg-white rounded-xl p-4 space-y-3 mt-3"><div class="skeleton h-4 w-28 rounded"></div><div class="skeleton h-3 w-44 rounded mt-2"></div><div class="skeleton h-3 w-24 rounded mt-1"></div></div>
+  </div>
+  <div id="emptyState" class="hidden text-center py-12 text-gray-400 text-sm">Không có đơn hàng nào</div>
+</main>
+
+<!-- Load more -->
+<div id="loadMore" class="hidden text-center py-4 pb-8">
+  <button onclick="loadMoreOrders()" class="text-indigo-600 text-sm font-medium">Tải thêm...</button>
+</div>
+
+<!-- Order Detail Panel -->
+<div id="detailPanel" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeDetail()"></div>
+  <div id="detailContent" class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white overflow-y-auto slide-in"></div>
+</div>
+
+<!-- Create Order Panel -->
+<div id="createPanel" class="fixed inset-0 z-50 hidden">
+  <div id="createContent" class="absolute inset-0 bg-gray-50 overflow-y-auto"></div>
+</div>
+
+<!-- Discount Sheet -->
+<div id="discountSheet" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeDiscountSheet()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col" style="max-height:80vh">
+    <div class="p-4 border-b border-gray-100 shrink-0">
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
+      <h3 class="font-bold text-gray-900 text-sm mb-3">Chọn mã giảm giá</h3>
+      <input id="discountSearch" type="search" placeholder="Tìm mã, tên..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="renderDiscountSheetList()">
+    </div>
+    <div id="discountSheetList" class="overflow-y-auto flex-1 p-3 space-y-1.5"></div>
+  </div>
+</div>
+
+<!-- CTV Picker Sheet -->
+<div id="ctvSheet" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeCTVSheet()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col" style="max-height:80vh">
+    <div class="p-4 border-b border-gray-100 shrink-0">
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
+      <h3 class="font-bold text-gray-900 text-sm mb-3">Chọn cộng tác viên</h3>
+      <input id="ctvSearch" type="search" placeholder="Tìm tên, SĐT, mã CTV..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="renderCTVList()">
+    </div>
+    <div id="ctvList" class="overflow-y-auto flex-1 p-3 space-y-1.5"></div>
+  </div>
+</div>
+
+<!-- Product Size/Notes Bottom Sheet -->
+<div id="prodSheet" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeProdSheet()"></div>
+  <div id="prodSheetContent" class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] hidden">
+  <div class="bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-xl"></div>
+</div>
+
+<script defer src="../assets/js/config.js"></script>
+<script defer src="../assets/js/auth-check.js"></script>
+<script>
+// ─── State ───
+let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
+const PAGE_SIZE=20;
+const API=()=>(window.CONFIG?.API_URL||'http://127.0.0.1:8787');
+const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800'}};
+const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
+const ago=ts=>{if(!ts)return'';const sec=ts>1e10?ts/1000:ts,d=(Date.now()/1000-sec),m=d/60,h=m/60,dd=h/24;if(dd>=1)return Math.floor(dd)+'ngày';if(h>=1)return Math.floor(h)+'h';if(m>=1)return Math.floor(m)+'ph';return'vừa xong'};
+const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded',()=>loadOrders());
+
+async function loadOrders(){
+  try{
+    const r=await fetch(`${API()}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
+    const d=await r.json();
+    if(d.success){allOrders=d.orders||[];applyFilter();document.getElementById('skeletons').remove()}
+    else throw new Error(d.error);
+  }catch(e){document.getElementById('skeletons').innerHTML='<p class="text-center text-red-500 text-sm py-8">Lỗi tải dữ liệu</p>'}
+}
+
+function applyFilter(){
+  const q=searchTerm.toLowerCase();
+  filtered=allOrders.filter(o=>{
+    if(currentTab!=='all'&&(o.status||'pending')!==currentTab)return false;
+    if(q){
+      const s=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();
+      if(!s.includes(q))return false;
+    }
+    return true;
+  });
+  filtered.sort((a,b)=>(b.created_at_unix||0)-(a.created_at_unix||0));
+  page=1;
+  renderCards();
+  updateCounts();
+}
+
+function updateCounts(){
+  const c=s=>allOrders.filter(o=>(o.status||'pending')===s).length;
+  const set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n||''};
+  set('countPending',c('pending'));set('countShipped',c('shipped'));
+}
+
+function renderCards(){
+  const list=document.getElementById('orderList');
+  const empty=document.getElementById('emptyState');
+  const more=document.getElementById('loadMore');
+  const slice=filtered.slice(0,page*PAGE_SIZE);
+  
+  // Remove old cards
+  list.querySelectorAll('.order-card').forEach(el=>el.remove());
+  
+  if(slice.length===0){empty.classList.remove('hidden');more.classList.add('hidden');return}
+  empty.classList.add('hidden');
+  
+  const frag=document.createDocumentFragment();
+  slice.forEach(o=>{
+    const card=document.createElement('div');
+    const isPri=o.is_priority===1;
+    card.className=`order-card bg-white rounded-xl p-4 border shadow-sm fade-up ${isPri?'border-yellow-300 border-l-4':'border-gray-100'}`;
+    card.setAttribute('data-id',o.id);
+    const st=STATUS[o.status||'pending']||STATUS.pending;
+    let prods='';
+    try{const p=JSON.parse(o.products);prods=p.map(x=>x.name).join(', ')}catch{}
+    const starSvg=isPri
+      ?`<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
+      :`<svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`;
+    card.innerHTML=`
+      <div class="cursor-pointer" onclick="showDetail(${o.id})">
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-sm font-bold text-gray-900 truncate">${esc(o.customer_name)}</span>
+            <span class="text-xs ${st.bg} px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">${st.label}</span>
+            ${isPri?'<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded-md shrink-0">⭐ ƯU TIÊN</span>':''}
+          </div>
+          <button onclick="event.stopPropagation();togglePriority(${o.id})" class="shrink-0 p-1 -mr-1 rounded-lg hover:bg-yellow-50 transition-colors">${starSvg}</button>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <p class="text-xs text-gray-500">${esc(o.customer_phone||'')}</p>
+            <p class="text-xs text-gray-400 mt-1 truncate">${esc(prods)||'—'}</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <p class="text-base font-bold ${o.payment_method==='bank_transfer'?'text-green-600':'text-gray-900'}">${fmt(o.total_amount)}</p>
+            <p class="text-[11px] text-gray-400 mt-0.5">${ago(o.created_at_unix)}</p>
+          </div>
+        </div>
+      </div>`;
+    frag.appendChild(card);
+  });
+  list.appendChild(frag);
+  more.classList.toggle('hidden',slice.length>=filtered.length);
+}
+
+function loadMoreOrders(){page++;renderCards()}
+
+// ─── Tabs & Search ───
+function switchTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  currentTab=btn.dataset.status;
+  applyFilter();
+  window.scrollTo(0,0);
+}
+
+let searchTimer;
+function onSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();applyFilter()},200)}
+function toggleSearch(){
+  const bar=document.getElementById('searchBar');
+  bar.classList.toggle('hidden');
+  if(!bar.classList.contains('hidden'))document.getElementById('searchInput').focus();
+  else{document.getElementById('searchInput').value='';searchTerm='';applyFilter()}
+}
+
+// ─── Detail Panel ───
+function showDetail(id){
+  const o=allOrders.find(x=>x.id===id);if(!o)return;
+  const panel=document.getElementById('detailPanel');
+  const content=document.getElementById('detailContent');
+  const st=STATUS[o.status||'pending']||STATUS.pending;
+  let prodHtml='';
+  try{
+    const prods=JSON.parse(o.products);
+    prodHtml=prods.map(p=>`
+      <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-gray-800 truncate">${esc(p.name)}</p>
+          ${p.size?`<p class="text-xs text-gray-400">${esc(p.size)}</p>`:''}
+        </div>
+        <div class="text-right shrink-0 ml-3">
+          <p class="text-sm font-medium text-gray-900">x${p.quantity||1}</p>
+          <p class="text-xs text-gray-500">${fmt(p.price)}</p>
+        </div>
+      </div>`).join('');
+  }catch{}
+  
+  const statuses=['pending','shipped','delivered','cancelled'];
+  const statusBtns=statuses.map(s=>{
+    const si=STATUS[s];
+    const active=s===(o.status||'pending');
+    return`<button onclick="changeStatus(${o.id},'${s}','${esc(o.order_id)}')" class="flex-1 py-2.5 rounded-lg text-xs font-medium border ${active?'border-indigo-300 bg-indigo-50 text-indigo-700':'border-gray-200 text-gray-600 hover:bg-gray-50'}">${si.label}</button>`;
+  }).join('');
+
+  const isPri=o.is_priority===1;
+  const detailStarSvg=isPri
+    ?`<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
+    :`<svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`;
+  content.innerHTML=`
+    <div class="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-2">
+      <button onclick="closeDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 shrink-0">
+        <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="flex-1 min-w-0">
+        <h2 class="font-bold text-gray-900 truncate">${esc(o.order_id)}</h2>
+        <span class="${st.bg} text-[11px] px-2 py-0.5 rounded-full font-medium">${st.label}</span>
+      </div>
+      <button onclick="togglePriority(${o.id})" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-yellow-50 transition-colors shrink-0" title="${isPri?'Bỏ ưu tiên':'Đánh dấu ưu tiên'}">${detailStarSvg}</button>
+      <button onclick="showEditOrder(${o.id})" class="h-9 px-3.5 bg-indigo-600 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shrink-0">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+        Sửa
+      </button>
+    </div>
+    <div class="p-4 space-y-5">
+      <div>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Khách hàng</h3>
+        <p class="text-sm font-semibold text-gray-900">${esc(o.customer_name)}</p>
+        <p class="text-sm text-gray-600">${esc(o.customer_phone)}</p>
+        <p class="text-sm text-gray-500 mt-1">${esc(o.address||'Chưa có địa chỉ')}</p>
+      </div>
+      <div>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Sản phẩm</h3>
+        <div class="bg-gray-50 rounded-xl p-3">${prodHtml||'<p class="text-sm text-gray-400">—</p>'}</div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-xl p-3">
+          <p class="text-xs text-gray-400">Tổng tiền</p>
+          <p class="text-base font-bold text-gray-900 mt-0.5">${fmt(o.total_amount)}</p>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-3">
+          <p class="text-xs text-gray-400">Phí ship KH</p>
+          <p class="text-base font-bold text-gray-900 mt-0.5">${fmt(o.shipping_fee)}</p>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-3">
+          <p class="text-xs text-gray-400">Thanh toán</p>
+          <p class="text-sm font-semibold mt-0.5 ${o.payment_method==='bank_transfer'?'text-green-600':'text-orange-600'}">${o.payment_method==='bank_transfer'?'Đã CK':'COD'}</p>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-3">
+          <p class="text-xs text-gray-400">Hoa hồng</p>
+          <p class="text-base font-bold text-gray-900 mt-0.5">${fmt(o.commission)}</p>
+        </div>
+      </div>
+      ${o.notes?`<div><h3 class="text-xs font-semibold text-gray-400 uppercase mb-1">Ghi chú</h3><p class="text-sm text-gray-700 bg-amber-50 p-3 rounded-xl">${esc(o.notes)}</p></div>`:''}
+      <div>
+        <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Đổi trạng thái</h3>
+        <div class="flex gap-2">${statusBtns}</div>
+      </div>
+    </div>`;
+  panel.classList.remove('hidden');
+  document.body.style.overflow='hidden';
+}
+
+function closeDetail(){document.getElementById('detailPanel').classList.add('hidden');document.body.style.overflow=''}
+
+let editOrderId=null; // db id of order being edited
+
+async function showEditOrder(id){
+  const o=allOrders.find(x=>x.id===id);if(!o)return;
+  editOrderId=id;mDiscount=null;
+  createProducts=[];activeCategoryId='';
+  // Parse existing products into createProducts
+  try{
+    const prods=JSON.parse(o.products);
+    prods.forEach(p=>createProducts.push({
+      product_id:p.product_id||p.id||null,
+      name:p.name,price:p.price||0,
+      cost_price:p.cost_price||p.costPrice||0,
+      image_url:p.image_url||'',
+      quantity:p.quantity||1,
+      size:p.size||null,
+      notes:p.notes||null
+    }));
+  }catch{}
+  const content=document.getElementById('createContent');
+  content.innerHTML=buildCreateForm(true);
+  // Prefill customer fields
+  document.getElementById('cName').value=o.customer_name||'';
+  document.getElementById('cPhone').value=o.customer_phone||'';
+  document.getElementById('cStreet').value=o.street_address||'';
+  document.getElementById('cPayment').value=o.payment_method||'cod';
+  document.getElementById('cNotes').value=o.notes||'';
+  if(Number(o.shipping_fee)===0){
+    const cb=document.getElementById('cFreeShip');
+    if(cb){cb.checked=true;onFreeShipChange();}
+  }
+  if(o.discount_code){
+    document.getElementById('cDiscountCode').value=o.discount_code;
+    mDiscount={id:o.discount_id||null,code:o.discount_code,amount:o.discount_amount||0,type:'',title:'Đã áp dụng'};
+    showDiscountApplied();
+  }
+  if(o.referral_code){
+    document.getElementById('ctvCheck').checked=true;
+    toggleCTVSection();
+    document.getElementById('cReferral').value=o.referral_code;
+    // Try to fill selected card from cache
+    const ctv=allCTVCache.find(c=>(c.referralCode||c.referral_code)===o.referral_code);
+    if(ctv)setCTVSelected(ctv);
+  }
+  document.getElementById('createPanel').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  _populateCatFilter();
+  Promise.all([loadAddressData(), loadProductList()]).then(()=>{
+    // Prefill address dropdowns
+    if(o.province_id){
+      const pSel=document.getElementById('cProvince');
+      renderProvinces();
+      pSel.value=o.province_id;
+      onProvinceChange();
+      setTimeout(()=>{
+        if(o.district_id){
+          document.getElementById('cDistrict').value=o.district_id;
+          onDistrictChange();
+          setTimeout(()=>{if(o.ward_id)document.getElementById('cWard').value=o.ward_id;},50);
+        }
+      },50);
+    } else renderProvinces();
+    renderProductPicker();
+    renderCart();
+  });
+}
+
+async function togglePriority(id){
+  const o=allOrders.find(x=>x.id===id);if(!o)return;
+  const newVal=o.is_priority===1?0:1;
+  // Optimistic update
+  o.is_priority=newVal;
+  applyFilter();
+  // Re-render detail if open
+  const panel=document.getElementById('detailPanel');
+  if(!panel.classList.contains('hidden'))showDetail(id);
+  try{
+    const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggleOrderPriority',orderId:id})});
+    const d=await r.json();
+    if(!d.success){o.is_priority=newVal===1?0:1;applyFilter();throw new Error(d.error)}
+    toast(newVal===1?'Đã đánh dấu ưu tiên ⭐':'Đã bỏ ưu tiên');
+  }catch(e){toast('Lỗi: '+e.message)}
+}
+
+async function changeStatus(id,status,code){
+  try{
+    const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateOrderStatus',orderId:id,status})});
+    const d=await r.json();
+    if(d.success){
+      const o=allOrders.find(x=>x.id===id);if(o)o.status=status;
+      applyFilter();showDetail(id);toast('Đã cập nhật trạng thái');
+    }else throw new Error(d.error);
+  }catch(e){toast('Lỗi: '+e.message)}
+}
+
+// ─── Create Order ───
+let createProducts=[], addressData=null, allProductsCache=[], allCategoriesCache=[], activeCategoryId='';
+
+function showCreateOrder(){
+  editOrderId=null;createProducts=[];activeCategoryId='';mDiscount=null;
+  // freeShip checkbox resets via buildCreateForm() re-render
+  const content=document.getElementById('createContent');
+  content.innerHTML=buildCreateForm();
+  document.getElementById('createPanel').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  // Populate categories if already cached (subsequent opens)
+  _populateCatFilter();
+  Promise.all([loadAddressData(), loadProductList()]).then(()=>{
+    renderProvinces();
+    renderProductPicker();
+  });
+}
+
+function _populateCatFilter(){
+  const sel=document.getElementById('catFilter');if(!sel||!allCategoriesCache.length)return;
+  allCategoriesCache.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+}
+
+function closeCreate(){editOrderId=null;mDiscount=null;document.getElementById('createPanel').classList.add('hidden');document.body.style.overflow=''}
+
+function buildCreateForm(isEdit=false){
+  return`
+  <!-- Header -->
+  <div class="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
+    <button onclick="closeCreate()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100">
+      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <h2 class="font-bold text-gray-900 flex-1">${isEdit?'Sửa đơn hàng':'Tạo đơn hàng'}</h2>
+    <button id="submitBtn" onclick="submitOrder()" class="h-9 px-4 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white text-sm font-semibold rounded-xl flex items-center gap-1.5">${isEdit?'Lưu lại':'Tạo đơn'}</button>
+  </div>
+  <div class="p-4 space-y-5 pb-10">
+
+    <!-- Khách hàng -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khách hàng</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <input id="cName" type="text" placeholder="Tên khách hàng *" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        </div>
+        <div class="col-span-2">
+          <input id="cPhone" type="tel" placeholder="Số điện thoại *" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        </div>
+      </div>
+    </div>
+
+    <!-- Địa chỉ -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Địa chỉ giao hàng</h3>
+      <select id="cProvince" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" onchange="onProvinceChange()">
+        <option value="">Tỉnh/Thành phố *</option>
+      </select>
+      <select id="cDistrict" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" onchange="onDistrictChange()">
+        <option value="">Quận/Huyện *</option>
+      </select>
+      <select id="cWard" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+        <option value="">Phường/Xã *</option>
+      </select>
+      <input id="cStreet" type="text" placeholder="Số nhà, tên đường" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+    </div>
+
+    <!-- Sản phẩm -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Sản phẩm</h3>
+      <div class="flex gap-2">
+        <input id="prodSearch" type="search" placeholder="Tìm sản phẩm..." class="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white" oninput="renderProductPicker()">
+        <button type="button" onclick="openCustomProductSheet()" class="shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold rounded-xl hover:bg-purple-100 transition-colors whitespace-nowrap">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Tự nhập
+        </button>
+      </div>
+      <select id="catFilter" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" onchange="activeCategoryId=this.value;renderProductPicker()">
+        <option value="">🔥 Bán chạy</option>
+      </select>
+      <div id="prodList" class="space-y-2 max-h-64 overflow-y-auto -mx-1 px-1"></div>
+      <!-- Giỏ hàng -->
+      <div id="cartWrap" class="hidden border-t border-gray-100 pt-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Đã chọn</span>
+            <span id="cartCount" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-1.5 py-0.5 rounded-full"></span>
+          </div>
+          <span id="cartTotal" class="text-base font-bold text-indigo-600"></span>
+        </div>
+        <div id="cartList" class="space-y-2.5"></div>
+      </div>
+    </div>
+
+    <!-- Thông tin thêm -->
+    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="px-4 pt-4 pb-2">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Thông tin thêm</h3>
+      </div>
+
+      <!-- Thanh toán -->
+      <div class="flex items-center px-4 py-3 border-b border-gray-100">
+        <div class="flex items-center gap-2.5 w-32 shrink-0">
+          <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          <span class="text-sm text-gray-600 font-medium">Thanh toán</span>
+        </div>
+        <select id="cPayment" class="flex-1 text-sm font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 text-right appearance-none cursor-pointer pr-1">
+          <option value="cod">COD</option>
+          <option value="bank_transfer">Chuyển khoản</option>
+        </select>
+        <svg class="w-4 h-4 text-gray-400 shrink-0 -ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <!-- Miễn ship -->
+      <div class="flex items-center px-4 py-3 border-b border-gray-100">
+        <div class="flex items-center gap-2.5 flex-1">
+          <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z"/></svg>
+          <div>
+            <p class="text-sm font-medium text-gray-900">Miễn phí vận chuyển</p>
+            <p class="text-xs text-gray-400" id="freeShipHint">Tự động theo sản phẩm</p>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="cFreeShip" onchange="onFreeShipChange()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- CTV -->
+      <div class="border-b border-gray-100">
+        <div class="flex items-center px-4 py-3">
+          <div class="flex items-center gap-2.5 flex-1">
+            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-sm font-medium text-gray-900">Đơn của CTV</p>
+          </div>
+          <label class="toggle indigo">
+            <input type="checkbox" id="ctvCheck" onchange="toggleCTVSection()">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div id="ctvSection" class="hidden px-4 pb-3 space-y-2">
+          <div class="flex gap-2">
+            <input id="cReferral" type="text" placeholder="Nhập mã CTV..." class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white" oninput="onReferralInput()">
+            <button type="button" onclick="openCTVSheet()" class="shrink-0 px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-600 text-xs font-semibold rounded-xl flex items-center gap-1.5 hover:bg-indigo-100 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              Chọn
+            </button>
+          </div>
+          <div id="ctvSelected" class="hidden items-center gap-2.5 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
+            <div class="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center shrink-0" id="ctvAvatar"></div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 truncate" id="ctvName"></p>
+              <p class="text-xs text-gray-500" id="ctvPhone"></p>
+            </div>
+            <button onclick="clearCTV()" class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mã giảm giá -->
+      <div class="border-b border-gray-100 px-4 py-3 space-y-2">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+          <input id="cDiscountCode" type="text" placeholder="Mã giảm giá" class="flex-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-gray-400 uppercase font-medium" oninput="this.value=this.value.toUpperCase()">
+          <button type="button" onclick="openDiscountSheet()" class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-violet-50 text-gray-400 hover:text-violet-600 transition-colors" title="Chọn mã">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          </button>
+          <button type="button" onclick="applyMobileDiscount()" class="shrink-0 px-3 py-1.5 bg-violet-600 text-white text-xs font-semibold rounded-lg hover:bg-violet-700 transition-colors">Áp dụng</button>
+        </div>
+        <div id="discountApplied" class="hidden items-center gap-2.5 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2">
+          <div class="w-7 h-7 rounded-full bg-violet-200 text-violet-700 text-xs font-bold flex items-center justify-center shrink-0">%</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-gray-900" id="discountAppliedLabel"></p>
+            <p class="text-xs text-violet-600 font-medium" id="discountAppliedAmount"></p>
+          </div>
+          <button onclick="clearMobileDiscount()" class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ghi chú -->
+      <div class="flex items-center px-4 py-3 gap-2.5">
+        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <input id="cNotes" type="text" placeholder="Ghi chú đơn hàng..." class="flex-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-gray-400">
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── Address ───
+async function loadAddressData(){
+  if(addressData)return;
+  const basePath=location.pathname.includes('/admin/')?'../assets/data/tree.json':'/assets/data/tree.json';
+  const r=await fetch(basePath);addressData=await r.json();
+}
+
+function renderProvinces(){
+  const sel=document.getElementById('cProvince');if(!sel||!addressData)return;
+  if(sel.options.length>1)return;
+  Object.entries(addressData).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,p])=>{
+    const opt=document.createElement('option');opt.value=id;opt.textContent=p.name;sel.appendChild(opt);
+  });
+}
+
+function onProvinceChange(){
+  const pid=document.getElementById('cProvince').value;
+  const dSel=document.getElementById('cDistrict');
+  const wSel=document.getElementById('cWard');
+  dSel.innerHTML='<option value="">Quận/Huyện *</option>';
+  wSel.innerHTML='<option value="">Phường/Xã *</option>';
+  if(!pid||!addressData?.[pid])return;
+  Object.entries(addressData[pid]['quan-huyen']||{}).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,d])=>{
+    const opt=document.createElement('option');opt.value=id;opt.textContent=d.name;dSel.appendChild(opt);
+  });
+}
+
+function onDistrictChange(){
+  const pid=document.getElementById('cProvince').value;
+  const did=document.getElementById('cDistrict').value;
+  const wSel=document.getElementById('cWard');
+  wSel.innerHTML='<option value="">Phường/Xã *</option>';
+  if(!pid||!did)return;
+  const dist=addressData?.[pid]?.['quan-huyen']?.[did];if(!dist)return;
+  Object.entries(dist['xa-phuong']||{}).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,w])=>{
+    const opt=document.createElement('option');opt.value=id;opt.textContent=w.name;wSel.appendChild(opt);
+  });
+}
+
+// ─── Products ───
+async function loadProductList(){
+  if(allProductsCache.length)return;
+  try{
+    const [rp,rc]=await Promise.all([
+      fetch(`${API()}?action=getAllProducts&timestamp=${Date.now()}`),
+      fetch(`${API()}?action=getAllCategories&timestamp=${Date.now()}`)
+    ]);
+    const [dp,dc]=await Promise.all([rp.json(),rc.json()]);
+    if(dp.success)allProductsCache=(dp.products||[]).filter(p=>p.is_active!==0);
+    if(dc.success){
+      allCategoriesCache=dc.categories||[];
+      const sel=document.getElementById('catFilter');
+      if(sel)allCategoriesCache.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
+    }
+  }catch{}
+}
+
+function resolveImgSrc(raw){
+  if(!raw)return null;raw=raw.trim();
+  if(raw.startsWith('http://')||raw.startsWith('https://'))return raw;
+  if(raw.startsWith('./assets/'))return '../'+raw.substring(2);
+  if(raw.startsWith('assets/'))return '../'+raw;
+  return`../assets/images/${raw}`;
+}
+
+function renderProductPicker(){
+  const q=(document.getElementById('prodSearch')?.value||'').toLowerCase();
+  const catId=activeCategoryId;
+  const list=document.getElementById('prodList');if(!list)return;
+  let prods=allProductsCache;
+  if(catId){const cid=parseInt(catId);prods=prods.filter(p=>Array.isArray(p.category_ids)?p.category_ids.some(x=>parseInt(x)===cid):parseInt(p.category_id)===cid)}
+  else prods=[...prods].sort((a,b)=>(b.purchases||0)-(a.purchases||0));
+  if(q)prods=prods.filter(p=>p.name.toLowerCase().includes(q));
+  prods=prods.slice(0,20);
+  list.innerHTML=prods.length?prods.map(p=>{
+    const inCart=createProducts.find(x=>x.product_id===p.id);
+    const imgSrc=resolveImgSrc(p.image_url);
+    const img=imgSrc?`<img src="${imgSrc}" class="w-11 h-11 rounded-lg object-cover shrink-0 bg-gray-100" loading="lazy" onerror="this.style.display='none'">`:
+      `<div class="w-11 h-11 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center"><svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+    return`<button onclick="toggleProduct(${p.id})" class="w-full flex items-center gap-3 p-2.5 rounded-xl border ${inCart?'border-indigo-300 bg-indigo-50':'border-gray-100 bg-white'} text-left">
+      ${img}
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-800 truncate">${esc(p.name)}</p>
+        <p class="text-xs text-gray-500">${fmt(p.price)}</p>
+      </div>
+      ${inCart?`<svg class="w-5 h-5 text-indigo-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`:`<svg class="w-5 h-5 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`}
+    </button>`;
+  }).join(''):`<p class="text-center text-sm text-gray-400 py-4">${allProductsCache.length?'Không tìm thấy':'Đang tải...'}</p>`;
+}
+
+function toggleProduct(id){
+  const inCart=createProducts.find(x=>x.product_id===id);
+  if(inCart){
+    // Already in cart → remove
+    createProducts=createProducts.filter(x=>x.product_id!==id);
+    renderProductPicker();renderCart();
+  } else {
+    // Not in cart → open bottom sheet to pick size/notes
+    openProdSheet(id);
+  }
+}
+
+function openProdSheet(id){
+  const p=allProductsCache.find(x=>x.id===id);if(!p)return;
+  const imgSrc=resolveImgSrc(p.image_url);
+  const imgHtml=imgSrc
+    ?`<img src="${imgSrc}" class="w-14 h-14 rounded-xl object-cover bg-gray-100" loading="lazy">`
+    :`<div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center"><svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+
+  document.getElementById('prodSheetContent').innerHTML=`
+    <div class="p-4 space-y-4 pb-8">
+      <!-- Handle -->
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-1"></div>
+      <!-- Product info -->
+      <div class="flex items-center gap-3">
+        ${imgHtml}
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-900 text-sm">${esc(p.name)}</p>
+          <p class="text-sm font-bold text-indigo-600 mt-0.5">${fmt(p.price)}</p>
+        </div>
+      </div>
+      <!-- Quantity -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số lượng</label>
+        <div class="flex items-center gap-3 mt-2">
+          <button onclick="sheetQty(-1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">−</button>
+          <input id="sheetQty" type="number" value="1" min="1" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+          <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">+</button>
+        </div>
+      </div>
+      <!-- Size -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Size / Cân nặng</label>
+        <div class="flex gap-2 mt-2 flex-wrap" id="sizeChips"></div>
+        <input id="sheetSize" type="text" placeholder="Nhập size, cân nặng... (VD: 5kg, M, L)" class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        <p class="text-xs text-gray-400 mt-1">Bỏ trống nếu chưa có thông tin</p>
+      </div>
+      <!-- Notes -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý cho sản phẩm</label>
+        <input id="sheetNotes" type="text" placeholder="VD: giao trước 5h, đóng gói cẩn thận..." class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      </div>
+      <!-- Add button -->
+      <button onclick="confirmAddProduct(${id})" class="w-full py-3.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm">Thêm vào đơn</button>
+    </div>`;
+
+  // Populate quick size chips
+  const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];
+  const chipEl=document.getElementById('sizeChips');
+  chips.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600';
+    btn.textContent=c;
+    btn.onclick=()=>{
+      const sizeInput=document.getElementById('sheetSize');
+      if(c==='chưa có'){sizeInput.value='';sizeInput.dataset.sizeNull='1';}
+      else{sizeInput.value=c;delete sizeInput.dataset.sizeNull;}
+      chipEl.querySelectorAll('button').forEach(b=>b.classList.remove('border-indigo-300','bg-indigo-50','text-indigo-600'));
+      btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
+    };
+    chipEl.appendChild(btn);
+  });
+
+  document.getElementById('prodSheet').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('sheetQty')?.focus(),100);
+}
+
+function sheetQty(d){
+  const el=document.getElementById('sheetQty');if(!el)return;
+  el.value=Math.max(1,(parseInt(el.value)||1)+d);
+}
+
+function closeProdSheet(){
+  document.getElementById('prodSheet').classList.add('hidden');
+  document.body.style.overflow='hidden'; // keep create panel scroll locked
+}
+
+function confirmAddProduct(id){
+  const p=allProductsCache.find(x=>x.id===id);if(!p)return;
+  const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  const sizeEl=document.getElementById('sheetSize');
+  const sizeNull=sizeEl?.dataset.sizeNull==='1';
+  const size=sizeNull?null:(sizeEl?.value.trim()||null);
+  const notes=document.getElementById('sheetNotes')?.value.trim()||null;
+  createProducts.push({product_id:p.id,name:p.name,price:p.price,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});
+  closeProdSheet();
+  renderProductPicker();
+  renderCart();
+  autoUpdateFreeshipCheckbox();
+  toast(`Đã thêm ${qty}× ${p.name}`);
+}
+
+function renderCart(){
+  const wrap=document.getElementById('cartWrap');
+  const list=document.getElementById('cartList');
+  const totalEl=document.getElementById('cartTotal');
+  const countEl=document.getElementById('cartCount');
+  if(!wrap||!list)return;
+  if(!createProducts.length){wrap.classList.add('hidden');return}
+  wrap.classList.remove('hidden');
+  const total=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const totalQty=createProducts.reduce((s,p)=>s+(p.quantity||1),0);
+  if(totalEl)totalEl.textContent=fmt(total);
+  if(countEl)countEl.textContent=`${totalQty} sản phẩm`;
+  list.innerHTML=createProducts.map((p,i)=>{
+    const imgSrc=resolveImgSrc(p.image_url);
+    const img=imgSrc
+      ?`<img src="${imgSrc}" class="w-14 h-14 rounded-xl object-cover bg-gray-50 border border-gray-100" loading="lazy" onerror="this.style.display='none'">`
+      :`<div class="w-14 h-14 rounded-xl bg-gray-100 border border-gray-100 shrink-0 flex items-center justify-center"><svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+    const subtotal=fmt((p.price||0)*(p.quantity||1));
+    return`
+    <div class="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+      <!-- Top row: img + name + subtotal -->
+      <div class="flex items-start gap-3 p-3">
+        <div class="shrink-0">${img}</div>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <p class="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">${esc(p.name)}</p>
+          <p class="text-xs text-gray-400 mt-1">${fmt(p.price)}<span class="mx-1">×</span>${p.quantity}</p>
+          ${p.size?`<span class="inline-block mt-1.5 bg-indigo-50 text-indigo-600 border border-indigo-100 text-[11px] font-semibold px-2 py-0.5 rounded-full">${esc(p.size)}</span>`:''}
+          ${p.notes?`<p class="text-[11px] text-amber-600 mt-1 italic truncate">💬 ${esc(p.notes)}</p>`:''}
+        </div>
+        <div class="shrink-0 text-right pt-0.5">
+          <p class="text-sm font-bold text-indigo-600">${subtotal}</p>
+        </div>
+      </div>
+      <!-- Bottom row: qty + actions -->
+      <div class="flex items-center justify-between px-3 pb-3">
+        <!-- Qty controls -->
+        <div class="flex items-center gap-1 bg-gray-50 rounded-xl p-1">
+          <button onclick="changeQty(${i},-1)" class="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform">−</button>
+          <span class="text-sm font-bold text-gray-900 w-7 text-center">${p.quantity}</span>
+          <button onclick="changeQty(${i},1)" class="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 font-bold text-base flex items-center justify-center shadow-sm active:scale-95 transition-transform">+</button>
+        </div>
+        <!-- Edit + Remove -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="openEditCartItem(${i})" class="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+            Sửa
+          </button>
+          <button onclick="removeCartItem(${i})" class="w-8 h-8 rounded-xl bg-red-50 border border-red-100 text-red-400 flex items-center justify-center hover:bg-red-100 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function changeQty(i,d){createProducts[i].quantity=Math.max(1,createProducts[i].quantity+d);renderCart();autoUpdateFreeshipCheckbox();}
+function removeCartItem(i){createProducts.splice(i,1);renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();}
+
+function openEditCartItem(i){
+  const p=createProducts[i];if(!p)return;
+  const imgSrc=resolveImgSrc(p.image_url);
+  const imgHtml=imgSrc
+    ?`<img src="${imgSrc}" class="w-14 h-14 rounded-xl object-cover bg-gray-100" loading="lazy">`
+    :`<div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center"><svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+
+  document.getElementById('prodSheetContent').innerHTML=`
+    <div class="p-4 space-y-4 pb-8">
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-1"></div>
+      <div class="flex items-center gap-3">
+        ${imgHtml}
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-900 text-sm">${esc(p.name)}</p>
+          <span class="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Chỉnh sửa</span>
+        </div>
+      </div>
+      <!-- Số lượng -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số lượng</label>
+        <div class="flex items-center gap-3 mt-2">
+          <button onclick="sheetQty(-1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">−</button>
+          <input id="sheetQty" type="number" value="${p.quantity||1}" min="1" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+          <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">+</button>
+        </div>
+      </div>
+      <!-- Giá tiền -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
+        <input id="sheetPrice" type="number" value="${p.price||0}" min="0" step="1000"
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        <p class="text-xs text-gray-400 mt-1">Hiện tại: ${fmt(p.price)}</p>
+      </div>
+      <!-- Size -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Size / Cân nặng</label>
+        <div class="flex gap-2 mt-2 flex-wrap" id="sizeChips"></div>
+        <input id="sheetSize" type="text" value="${esc(p.size||'')}" placeholder="Nhập size, cân nặng..."
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      </div>
+      <!-- Lưu ý -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý cho sản phẩm</label>
+        <input id="sheetNotes" type="text" value="${esc(p.notes||'')}" placeholder="VD: giao trước 5h, đóng gói cẩn thận..."
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      </div>
+      <!-- Nút -->
+      <div class="flex gap-2">
+        <button onclick="removeCartItem(${i});closeProdSheet()" class="flex-none px-4 py-3 bg-red-50 text-red-500 font-semibold rounded-xl text-sm">Xoá</button>
+        <button onclick="confirmEditCartItem(${i})" class="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-xl text-sm">Lưu thay đổi</button>
+      </div>
+    </div>`;
+
+  // Size chips
+  const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];
+  const chipEl=document.getElementById('sizeChips');
+  chips.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600';
+    if((p.size||'')===(c==='chưa có'?'':c))btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
+    btn.textContent=c;
+    btn.onclick=()=>{
+      const sizeInput=document.getElementById('sheetSize');
+      if(c==='chưa có'){sizeInput.value='';sizeInput.dataset.sizeNull='1';}
+      else{sizeInput.value=c;delete sizeInput.dataset.sizeNull;}
+      chipEl.querySelectorAll('button').forEach(b=>b.classList.remove('border-indigo-300','bg-indigo-50','text-indigo-600'));
+      btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
+    };
+    chipEl.appendChild(btn);
+  });
+
+  document.getElementById('prodSheet').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+}
+
+function confirmEditCartItem(i){
+  const p=createProducts[i];if(!p)return;
+  const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  const price=Math.max(0,parseInt(document.getElementById('sheetPrice')?.value)||0);
+  const sizeEl=document.getElementById('sheetSize');
+  const sizeNull=sizeEl?.dataset.sizeNull==='1';
+  const size=sizeNull?null:(sizeEl?.value.trim()||p.size||null);
+  const notes=document.getElementById('sheetNotes')?.value.trim()||null;
+  createProducts[i]={...p,quantity:qty,price,size,notes};
+  closeProdSheet();renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();
+  autoUpdateFreeshipCheckbox();
+  toast('Đã cập nhật sản phẩm');
+}
+
+// ─── Custom Product ───
+function _fmtPriceInput(el){
+  // Remove non-digits, format with dots
+  let v=el.value.replace(/\D/g,'');
+  el.value=v?parseInt(v,10).toLocaleString('vi-VN'):'';
+  _calcCustomProfit();
+}
+
+function _calcCustomProfit(){
+  const price=_parseVnd(document.getElementById('custPrice')?.value||'0');
+  const cost=_parseVnd(document.getElementById('custCost')?.value||'0');
+  const info=document.getElementById('custProfitInfo');if(!info)return;
+  if(price<=0&&cost<=0){info.className='hidden';return;}
+  if(cost>0&&cost>price){
+    info.className='text-xs bg-red-50 border border-red-100 text-red-600 rounded-xl px-3 py-2 font-medium';
+    info.textContent='⚠️ Giá vốn cao hơn giá bán!';return;
+  }
+  if(price>0&&cost>0){
+    const profit=price-cost;const pct=Math.round(profit/price*100);
+    info.className='text-xs bg-green-50 border border-green-100 text-green-700 rounded-xl px-3 py-2 flex items-center justify-between';
+    info.innerHTML=`<span>Lãi dự kiến</span><span class="font-bold">${fmt(profit)} <span class="font-normal opacity-70">(${pct}%)</span></span>`;
+  }else info.className='hidden';
+}
+
+function _parseVnd(s){return parseInt(String(s).replace(/\D/g,''),10)||0;}
+
+function openCustomProductSheet(){
+  document.getElementById('prodSheetContent').innerHTML=`
+    <div class="p-4 space-y-4 pb-8">
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto"></div>
+      <!-- Header -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+        <div>
+          <p class="font-bold text-gray-900 text-sm">Sản phẩm tùy chỉnh</p>
+          <p class="text-xs text-gray-400">Không có trong danh sách</p>
+        </div>
+      </div>
+      <!-- Tên -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Tên sản phẩm *</label>
+        <input id="custName" type="text" placeholder="Nhập tên sản phẩm..."
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:bg-white">
+      </div>
+      <!-- Giá bán + Giá vốn -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá bán *</label>
+          <div class="relative mt-2">
+            <input id="custPrice" type="text" inputmode="numeric" placeholder="90.000"
+              oninput="_fmtPriceInput(this)"
+              class="w-full px-3.5 py-2.5 pr-7 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:bg-white">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">đ</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá vốn</label>
+          <div class="relative mt-2">
+            <input id="custCost" type="text" inputmode="numeric" placeholder="50.000"
+              oninput="_fmtPriceInput(this)"
+              class="w-full px-3.5 py-2.5 pr-7 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:bg-white">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">đ</span>
+          </div>
+        </div>
+      </div>
+      <!-- Profit info -->
+      <div id="custProfitInfo" class="hidden"></div>
+      <!-- Số lượng -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số lượng</label>
+        <div class="flex items-center gap-3 mt-2">
+          <button onclick="sheetQty(-1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-lg flex items-center justify-center shrink-0">−</button>
+          <input id="sheetQty" type="number" value="1" min="1" class="flex-1 h-10 text-center border border-gray-200 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+          <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-lg flex items-center justify-center shrink-0">+</button>
+        </div>
+      </div>
+      <!-- Cân nặng -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Cân nặng / Size</label>
+        <input id="custSize" type="text" placeholder="VD: 5kg, M, L..."
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      </div>
+      <!-- Lưu ý -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý</label>
+        <input id="custNotes" type="text" placeholder="Ghi chú thêm về sản phẩm..."
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      </div>
+      <!-- Buttons -->
+      <button onclick="confirmAddCustomProduct()" class="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition-colors">
+        Thêm vào đơn
+      </button>
+    </div>`;
+  document.getElementById('prodSheet').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('custName')?.focus(),100);
+}
+
+function confirmAddCustomProduct(){
+  const name=document.getElementById('custName')?.value.trim();
+  const price=_parseVnd(document.getElementById('custPrice')?.value||'');
+  const cost=_parseVnd(document.getElementById('custCost')?.value||'');
+  if(!name){toast('Vui lòng nhập tên sản phẩm');document.getElementById('custName')?.focus();return;}
+  if(!price||price<=0){toast('Vui lòng nhập giá bán hợp lệ');document.getElementById('custPrice')?.focus();return;}
+  const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  let size=(document.getElementById('custSize')?.value.trim())||null;
+  if(size&&/^\d+(\.\d+)?$/.test(size))size=size+'kg'; // auto append kg if plain number
+  const notes=document.getElementById('custNotes')?.value.trim()||null;
+  // Merge if same custom product already in cart
+  const existing=createProducts.find(p=>!p.product_id&&p.name===name&&(p.size||null)===(size||null)&&(p.notes||null)===(notes||null));
+  if(existing){existing.quantity+=qty;}
+  else{createProducts.push({product_id:null,name,price,cost_price:cost||0,image_url:'',quantity:qty,size,notes});}
+  closeProdSheet();renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();
+  toast(`Đã thêm: ${name}`);
+}
+
+async function submitOrder(){
+  const name=document.getElementById('cName')?.value.trim();
+  const phone=document.getElementById('cPhone')?.value.trim();
+  const provinceId=document.getElementById('cProvince')?.value;
+  const districtId=document.getElementById('cDistrict')?.value;
+  const wardId=document.getElementById('cWard')?.value;
+  if(!name){toast('Vui lòng nhập tên khách hàng');return}
+  if(!phone){toast('Vui lòng nhập số điện thoại');return}
+  if(!provinceId||!districtId||!wardId){toast('Vui lòng chọn đầy đủ địa chỉ');return}
+  if(!createProducts.length){toast('Vui lòng chọn ít nhất 1 sản phẩm');return}
+
+  const pSel=document.getElementById('cProvince'),dSel=document.getElementById('cDistrict'),wSel=document.getElementById('cWard');
+  const street=document.getElementById('cStreet')?.value.trim()||'';
+  const pName=pSel.selectedOptions[0]?.text||'';
+  const dName=dSel.selectedOptions[0]?.text||'';
+  const wName=wSel.selectedOptions[0]?.text||'';
+  const fullAddr=[street,wName,dName,pName].filter(Boolean).join(', ');
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+
+  const isEdit=!!editOrderId;
+  const existingOrder=isEdit?allOrders.find(x=>x.id===editOrderId):null;
+  const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const shipFee=getShipFee(isEdit?existingOrder:null);
+  const paymentMethod=document.getElementById('cPayment')?.value||'cod';
+  const body={
+    customer:{name,phone},
+    address:fullAddr,
+    province_id:provinceId,province_name:pName,
+    district_id:districtId,district_name:dName,
+    ward_id:wardId,ward_name:wName,
+    street_address:street,
+    paymentMethod,payment_method:paymentMethod,
+    referralCode:document.getElementById('cReferral')?.value.trim()||null,
+    shippingFee:shipFee,shipping_fee:shipFee,
+    shippingCost:existingOrder?.shipping_cost??25000,
+    shipping_cost:existingOrder?.shipping_cost??25000,
+    total:prodTotal+shipFee,totalAmount:prodTotal+shipFee,
+    cart:createProducts,
+    notes:document.getElementById('cNotes')?.value.trim()||null,
+    discount_id:mDiscount?.id||existingOrder?.discount_id||null,
+    discountCode:mDiscount?.code||existingOrder?.discount_code||null,
+    discount_code:mDiscount?.code||existingOrder?.discount_code||null,
+    discountAmount:mDiscount?.amount||existingOrder?.discount_amount||0,
+    discount_amount:mDiscount?.amount||existingOrder?.discount_amount||0,
+    is_priority:existingOrder?.is_priority||0,
+    ...(isEdit
+      ?{orderDbId:editOrderId,status:existingOrder?.status||'pending',orderDate:existingOrder?.created_at_unix||Date.now()}
+      :{orderId:'DH'+Date.now(),orderDate:Date.now(),status:'pending'})
+  };
+  try{
+    const url=isEdit?`${API()}/api/order/update`:`${API()}/api/order/create`;
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(r.ok&&d.success){
+      closeCreate();
+      toast(isEdit?'Đã lưu thay đổi ✓':'Tạo đơn hàng thành công!');
+      await loadOrders();
+      if(isEdit)showDetail(editOrderId);
+    }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':'Lỗi tạo đơn'));
+  }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.innerHTML=isEdit?'Lưu lại':'Tạo đơn'}
+}
+
+// ─── CTV ───
+let allCTVCache=[];
+
+function toggleCTVSection(){
+  const checked=document.getElementById('ctvCheck')?.checked;
+  const sec=document.getElementById('ctvSection');
+  if(checked){sec.classList.remove('hidden')}
+  else{sec.classList.add('hidden');clearCTV();}
+}
+
+function clearCTV(){
+  const inp=document.getElementById('cReferral');
+  if(inp)inp.value='';
+  document.getElementById('ctvSelected')?.classList.add('hidden');
+  document.getElementById('ctvSelected')?.classList.remove('flex');
+}
+
+function onReferralInput(){
+  // Clear selected card if user edits manually
+  const inp=document.getElementById('cReferral')?.value.trim();
+  const sel=document.getElementById('ctvSelected');
+  if(!inp){sel?.classList.add('hidden');sel?.classList.remove('flex');}
+}
+
+function setCTVSelected(ctv){
+  document.getElementById('cReferral').value=ctv.referralCode||ctv.referral_code||'';
+  document.getElementById('ctvName').textContent=ctv.fullName||ctv.full_name||'';
+  document.getElementById('ctvPhone').textContent=ctv.phone||'';
+  document.getElementById('ctvAvatar').textContent=(ctv.fullName||ctv.full_name||'?')[0].toUpperCase();
+  const sel=document.getElementById('ctvSelected');
+  sel.classList.remove('hidden');sel.classList.add('flex');
+}
+
+async function openCTVSheet(){
+  document.getElementById('ctvSheet').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  document.getElementById('ctvSearch').value='';
+  if(!allCTVCache.length){
+    document.getElementById('ctvList').innerHTML='<p class="text-center text-sm text-gray-400 py-6">Đang tải...</p>';
+    try{
+      const r=await fetch(`${API()}?action=getAllCTV&timestamp=${Date.now()}`);
+      const d=await r.json();
+      allCTVCache=(d.ctvList||[]).filter(c=>c.status==='Mới'||c.status==='Đang hoạt động');
+    }catch{document.getElementById('ctvList').innerHTML='<p class="text-center text-sm text-red-400 py-6">Lỗi tải dữ liệu</p>';return;}
+  }
+  renderCTVList();
+}
+
+function closeCTVSheet(){
+  document.getElementById('ctvSheet').classList.add('hidden');
+  document.body.style.overflow='hidden';
+}
+
+function renderCTVList(){
+  const q=(document.getElementById('ctvSearch')?.value||'').toLowerCase();
+  const list=document.getElementById('ctvList');
+  let items=allCTVCache;
+  if(q)items=items.filter(c=>(c.fullName||c.full_name||'').toLowerCase().includes(q)||(c.phone||'').includes(q)||(c.referralCode||c.referral_code||'').toLowerCase().includes(q));
+  list.innerHTML=items.length?items.map(c=>{
+    const name=c.fullName||c.full_name||'';
+    const code=c.referralCode||c.referral_code||'';
+    const q=(document.getElementById('ctvSearch')?.value||'').toLowerCase();
+    return`<button onclick="selectCTV(${c.id})" class="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 text-left transition-colors">
+      <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center shrink-0">${name[0]?.toUpperCase()||'?'}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-gray-900 truncate">${esc(name)}</p>
+        <p class="text-xs text-gray-500">${esc(c.phone||'')} · <span class="font-mono text-indigo-600">${esc(code)}</span></p>
+      </div>
+    </button>`;
+  }).join(''):'<p class="text-center text-sm text-gray-400 py-6">Không tìm thấy</p>';
+}
+
+function selectCTV(id){
+  const ctv=allCTVCache.find(c=>c.id===id);if(!ctv)return;
+  setCTVSelected(ctv);
+  closeCTVSheet();
+  toast(`Đã chọn: ${ctv.fullName||ctv.full_name}`);
+}
+
+// ─── Free Ship ───
+const DEFAULT_SHIP_FEE=30000;
+const FREESHIP_CAT=23; // Sản phẩm bán kèm
+const BI_CHARM_CAT=24; // Bi, charm bạc
+
+function _productInCat(p,catId){
+  const pid=p.product_id||p.id;
+  const catalog=allProductsCache.find(x=>x.id===pid);
+  if(!catalog)return false;
+  const norm=parseInt(catId,10);
+  if(Array.isArray(catalog.category_ids))return catalog.category_ids.some(x=>parseInt(x,10)===norm);
+  return parseInt(catalog.category_id??'',10)===norm;
+}
+
+function autoUpdateFreeshipCheckbox(){
+  const cb=document.getElementById('cFreeShip');if(!cb)return;
+  if(!createProducts.length)return;
+  let totalQty=0,has23=false,has24=false,qtyOtherMain=0,non23Qty=0;
+  let onlyAllCat24=createProducts.length>0;
+  for(const p of createProducts){
+    const q=parseInt(p.quantity,10)||1;totalQty+=q;
+    const in23=_productInCat(p,FREESHIP_CAT);
+    const in24=_productInCat(p,BI_CHARM_CAT);
+    const otherMain=!in23&&!in24;
+    if(in23)has23=true;if(in24)has24=true;
+    if(otherMain)qtyOtherMain+=q;
+    if(!in24)onlyAllCat24=false;
+    if(!in23)non23Qty+=q;
+  }
+  onlyAllCat24=onlyAllCat24&&has24&&!has23;
+  const stuck24Plus23Only=has24&&has23&&qtyOtherMain===0;
+  const blocked=onlyAllCat24||stuck24Plus23Only;
+  const exclusivelyCat23Only=has23&&non23Qty===0;
+  const should=!blocked&&((totalQty>=2&&!exclusivelyCat23Only)||(has23&&non23Qty>=1));
+  if(cb.checked!==should){cb.checked=should;onFreeShipChange();}
+}
+
+function onFreeShipChange(){
+  const cb=document.getElementById('cFreeShip');
+  const hint=document.getElementById('freeShipHint');
+  if(hint)hint.textContent=cb?.checked?'Khách không trả phí ship':'Tự động theo sản phẩm';
+}
+
+function getShipFee(existingOrder){
+  if(document.getElementById('cFreeShip')?.checked)return 0;
+  return existingOrder?.shipping_fee??DEFAULT_SHIP_FEE;
+}
+
+// ─── Discount ───
+let allDiscountsCache=[], mDiscount=null; // {id,code,amount,type,title}
+
+function calcDiscountAmount(d, orderTotal, shipFee){
+  if(d.type==='fixed') return Math.min(d.discount_value||0, orderTotal);
+  if(d.type==='percentage'){
+    const amt=Math.round((d.discount_value||0)/100*orderTotal);
+    return d.max_discount_amount?Math.min(amt,d.max_discount_amount):amt;
+  }
+  if(d.type==='freeship') return shipFee||30000;
+  return 0;
+}
+
+function discountBadgeColor(type){
+  return {fixed:'bg-blue-50 text-blue-700 border-blue-100',percentage:'bg-green-50 text-green-700 border-green-100',freeship:'bg-orange-50 text-orange-700 border-orange-100',gift:'bg-pink-50 text-pink-700 border-pink-100'}[type]||'bg-gray-50 text-gray-700 border-gray-100';
+}
+
+function discountValueText(d){
+  if(d.type==='fixed') return`-${fmt(d.discount_value)}`;
+  if(d.type==='percentage'){let t=`-${d.discount_value}%`;if(d.max_discount_amount)t+=` (max ${fmt(d.max_discount_amount)})`;return t;}
+  if(d.type==='freeship') return'Miễn ship';
+  if(d.type==='gift') return'Quà tặng';
+  return'';
+}
+
+async function applyMobileDiscount(){
+  const code=document.getElementById('cDiscountCode')?.value.trim().toUpperCase();
+  if(!code){toast('Vui lòng nhập mã giảm giá');return}
+  const phone=document.getElementById('cPhone')?.value.trim()||'';
+  const orderTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const shipFee=30000;
+  try{
+    const r=await fetch(`${API()}?action=validateDiscount&code=${encodeURIComponent(code)}&customerPhone=${encodeURIComponent(phone)}&orderAmount=${orderTotal+shipFee}&timestamp=${Date.now()}`);
+    const d=await r.json();
+    if(d.success&&d.discount){
+      const amount=calcDiscountAmount(d.discount,orderTotal+shipFee,shipFee);
+      mDiscount={id:d.discount.id,code:d.discount.code,amount,type:d.discount.type,title:d.discount.title};
+      showDiscountApplied();
+      toast(`Áp dụng thành công: ${discountValueText(d.discount)}`);
+    }else{toast(d.error||'Mã không hợp lệ');}
+  }catch{toast('Lỗi kiểm tra mã giảm giá');}
+}
+
+function showDiscountApplied(){
+  if(!mDiscount)return;
+  document.getElementById('discountAppliedLabel').textContent=`${mDiscount.code} · ${mDiscount.title||''}`;
+  document.getElementById('discountAppliedAmount').textContent=mDiscount.amount>0?`Giảm ${fmt(mDiscount.amount)}`:'Đã áp dụng';
+  const el=document.getElementById('discountApplied');
+  el.classList.remove('hidden');el.classList.add('flex');
+}
+
+function clearMobileDiscount(){
+  mDiscount=null;
+  document.getElementById('cDiscountCode').value='';
+  const el=document.getElementById('discountApplied');
+  el.classList.add('hidden');el.classList.remove('flex');
+}
+
+async function openDiscountSheet(){
+  document.getElementById('discountSheet').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  document.getElementById('discountSearch').value='';
+  if(!allDiscountsCache.length){
+    document.getElementById('discountSheetList').innerHTML='<p class="text-center text-sm text-gray-400 py-6">Đang tải...</p>';
+    try{
+      const r=await fetch(`${API()}?action=getAllDiscounts&timestamp=${Date.now()}`);
+      const d=await r.json();
+      const now=new Date();
+      allDiscountsCache=(d.discounts||[]).filter(x=>x.active&&(!x.expiry_date||new Date(x.expiry_date)>=now)&&(!x.start_date||new Date(x.start_date)<=now));
+    }catch{document.getElementById('discountSheetList').innerHTML='<p class="text-center text-sm text-red-400 py-6">Lỗi tải dữ liệu</p>';return;}
+  }
+  renderDiscountSheetList();
+}
+
+function closeDiscountSheet(){
+  document.getElementById('discountSheet').classList.add('hidden');
+  document.body.style.overflow='hidden';
+}
+
+function renderDiscountSheetList(){
+  const q=(document.getElementById('discountSearch')?.value||'').toLowerCase();
+  const list=document.getElementById('discountSheetList');
+  let items=allDiscountsCache;
+  if(q)items=items.filter(d=>(d.code||'').toLowerCase().includes(q)||(d.title||'').toLowerCase().includes(q));
+  list.innerHTML=items.length?items.map(d=>{
+    const badge=discountBadgeColor(d.type);
+    const valTxt=discountValueText(d);
+    const minTxt=d.min_order_amount?`Tối thiểu ${fmt(d.min_order_amount)}`:'';
+    const useTxt=d.max_total_uses?`Còn ${(d.max_total_uses-(d.usage_count||0))} lượt`:'';
+    return`<button onclick="pickDiscount('${esc(d.code)}')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-violet-50 border border-transparent hover:border-violet-100 text-left transition-colors">
+      <div class="shrink-0 w-10 h-10 rounded-xl ${badge} border flex items-center justify-center font-bold text-sm">%</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-bold text-gray-900 text-sm font-mono">${esc(d.code)}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full border font-medium ${badge}">${valTxt}</span>
+        </div>
+        <p class="text-xs text-gray-600 truncate mt-0.5">${esc(d.title||'')}</p>
+        ${(minTxt||useTxt)?`<p class="text-xs text-gray-400 mt-0.5">${[minTxt,useTxt].filter(Boolean).join(' · ')}</p>`:''}
+      </div>
+    </button>`;
+  }).join(''):'<p class="text-center text-sm text-gray-400 py-6">Không tìm thấy</p>';
+}
+
+function pickDiscount(code){
+  document.getElementById('cDiscountCode').value=code;
+  closeDiscountSheet();
+  applyMobileDiscount();
+}
+
+// ─── Toast ───
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.querySelector('div').textContent=msg;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.add('hidden'),2500);
+}
+</script>
+</body>
+</html>
