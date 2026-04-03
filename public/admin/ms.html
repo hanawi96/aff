@@ -132,7 +132,7 @@ body{overscroll-behavior-y:contain}
 
 <script src="../assets/js/config.js"></script>
 <script>
-const API=()=>(window.CONFIG?.API_URL||'http://127.0.0.1:8787');
+const API=()=>(typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://127.0.0.1:8787');
 const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+'đ';
 const fmtK=n=>{
   if(!n&&n!==0)return'—';

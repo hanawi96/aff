@@ -6,7 +6,7 @@
     // Use global CONFIG from config.js to keep API endpoint consistent
     // across local and Cloudflare Pages environments.
     const API_URL = (
-        window.CONFIG && window.CONFIG.API_URL
+        typeof CONFIG !== 'undefined' && CONFIG.API_URL
     ) || (
         'https://ctv-api.yendev96.workers.dev'
     );
