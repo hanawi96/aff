@@ -12,26 +12,39 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
         // Calculate date range
         const now = new Date();
         let startDate;
-        
-        switch (period) {
-            case 'today':
-                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-                break;
-            case 'week':
-                const dayOfWeek = now.getUTCDay();
-                const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysToMonday, 0, 0, 0));
-                break;
-            case 'year':
-                startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
-                break;
-            case 'all':
-                startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
-                break;
-            case 'month':
-            default:
-                startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        let endDate = null;
+
+        if (data.startDate) {
+            startDate = new Date(data.startDate);
+            if (data.endDate) endDate = new Date(data.endDate);
+        } else {
+            switch (period) {
+                case 'today':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+                    break;
+                case 'week':
+                    const dayOfWeek = now.getUTCDay();
+                    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysToMonday, 0, 0, 0));
+                    break;
+                case 'year':
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+                    break;
+                case 'all':
+                    startDate = new Date(Date.UTC(2020, 0, 1, 0, 0, 0));
+                    break;
+                case 'month':
+                default:
+                    startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+            }
         }
+
+        const startMs = startDate.getTime();
+        const endMs = endDate ? endDate.getTime() : null;
+        const endClause = endMs ? ' AND created_at_unix <= ?' : '';
+        const endClauseO = endMs ? ' AND o.created_at_unix <= ?' : '';
+        const bindStart = endMs ? [startMs, endMs] : [startMs];
+        const bindStartO = endMs ? [startMs, endMs] : [startMs];
 
         // Get overview data from orders table (simple & fast)
         const overview = await env.DB.prepare(`
@@ -43,8 +56,8 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 COALESCE(SUM(commission), 0) as total_commission,
                 COALESCE(SUM(tax_amount), 0) as total_tax
             FROM orders
-            WHERE created_at_unix >= ?
-        `).bind(startDate.getTime()).first();
+            WHERE created_at_unix >= ?${endClause}
+        `).bind(...bindStart).first();
 
         // Get product data from order_items (separate query to avoid JOIN issues)
         const productData = await env.DB.prepare(`
@@ -53,23 +66,24 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
             FROM order_items oi
             INNER JOIN orders o ON oi.order_id = o.id
-            WHERE o.created_at_unix >= ?
-        `).bind(startDate.getTime()).first();
+            WHERE o.created_at_unix >= ?${endClauseO}
+        `).bind(...bindStartO).first();
 
         // Get unique customers count (by phone number)
-        // Handle both milliseconds (13 digits) and seconds (10 digits) timestamps
-        const startTimeMs = startDate.getTime();
+        const startTimeMs = startMs;
         const startTimeSec = Math.floor(startTimeMs / 1000);
-        const customerData = await env.DB.prepare(`
-            SELECT COUNT(DISTINCT customer_phone) as unique_customers
-            FROM orders
-            WHERE (
+        const endTimeMs = endMs;
+        const endTimeSec = endMs ? Math.floor(endMs / 1000) : null;
+        let custSql = `SELECT COUNT(DISTINCT customer_phone) as unique_customers FROM orders WHERE (
                 (LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix >= ?) OR
                 (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix >= ?)
-            )
-              AND customer_phone IS NOT NULL 
-              AND customer_phone != ''
-        `).bind(startTimeMs, startTimeSec).first();
+            ) AND customer_phone IS NOT NULL AND customer_phone != ''`;
+        let custBinds = [startTimeMs, startTimeSec];
+        if (endMs) {
+            custSql += ` AND ((LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix <= ?) OR (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix <= ?))`;
+            custBinds.push(endTimeMs, endTimeSec);
+        }
+        const customerData = await env.DB.prepare(custSql).bind(...custBinds).first();
 
         // Merge results
         overview.total_products_sold = productData.total_products_sold || 0;
@@ -100,8 +114,8 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.thank_card') AS REAL)), 0) as thank_card,
                 COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.paper_print') AS REAL)), 0) as paper_print
             FROM orders
-            WHERE created_at_unix >= ? AND packaging_details IS NOT NULL
-        `).bind(startDate.getTime()).first();
+            WHERE created_at_unix >= ?${endClause} AND packaging_details IS NOT NULL
+        `).bind(...bindStart).first();
 
         const costBreakdown = {
             product_cost: overview.product_cost || 0,
@@ -121,9 +135,9 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
         const ordersWithCommission = await env.DB.prepare(`
             SELECT order_id, commission, referral_code, created_at_unix 
             FROM orders 
-            WHERE commission > 0 AND created_at_unix >= ?
+            WHERE commission > 0 AND created_at_unix >= ?${endClause}
             LIMIT 5
-        `).bind(startDate.getTime()).all();
+        `).bind(...bindStart).all();
         
         console.log('📊 Analytics Debug:', {
             period: period,
@@ -152,11 +166,11 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 ) as profit_margin
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
-            WHERE o.created_at_unix >= ?
+            WHERE o.created_at_unix >= ?${endClauseO}
             GROUP BY oi.product_id, oi.product_name
             ORDER BY total_sold DESC
             LIMIT 10
-        `).bind(startDate.getTime()).all();
+        `).bind(...bindStartO).all();
 
         // Get daily data for charts (last 30 days) - Use total_amount
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

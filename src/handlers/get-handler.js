@@ -402,7 +402,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getDetailedAnalytics':
             const analyticsPeriod = url.searchParams.get('period') || 'month';
-            return await getDetailedAnalytics({ period: analyticsPeriod }, env, corsHeaders);
+            const analyticsStartDate = url.searchParams.get('startDate');
+            const analyticsEndDate = url.searchParams.get('endDate');
+            return await getDetailedAnalytics({ period: analyticsPeriod, startDate: analyticsStartDate, endDate: analyticsEndDate }, env, corsHeaders);
 
         case 'migrateOrdersToItems':
             return await migrateOrdersToItems(env, corsHeaders);
