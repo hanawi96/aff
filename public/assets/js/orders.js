@@ -317,6 +317,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6">
                 <input type="hidden" id="orderFormEditDbId" value="${isEdit ? String(formOptions.editOrderDbId) : ''}" />
+                <input type="hidden" id="orderFormEditDisplayId" value="${isEdit && duplicateData?.order_display_id ? String(duplicateData.order_display_id) : ''}" />
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <!-- Left: Order Info (2 cols) -->
                     <div class="lg:col-span-2 space-y-3">
@@ -893,14 +894,35 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     if (duplicateData?.discount_code) {
         const discountInput = document.getElementById('newOrderDiscountCode');
         if (discountInput) {
-            discountInput.value = String(duplicateData.discount_code).toUpperCase();
-            const hid = document.getElementById('appliedDiscountId');
-            if (hid && duplicateData.discount_id) {
-                hid.value = String(duplicateData.discount_id);
+            const discountCode = String(duplicateData.discount_code).toUpperCase();
+            discountInput.value = discountCode;
+
+            if (isEdit) {
+                // Edit mode: restore saved discount state without re-validating
+                const discountAmount = duplicateData.discount_amount || 0;
+                const discountInfo = allDiscountsList.find(d =>
+                    String(d.code || d.discount_code || '').toUpperCase() === discountCode
+                );
+
+                document.getElementById('appliedDiscountId').value = duplicateData.discount_id || (discountInfo?.id || '');
+                document.getElementById('appliedDiscountCode').value = discountCode;
+                document.getElementById('appliedDiscountAmount').value = discountAmount;
+                document.getElementById('appliedDiscountType').value = discountInfo?.type || '';
+
+                setTimeout(() => {
+                    const discount = discountInfo || { code: discountCode, type: 'custom', title: 'Giảm giá' };
+                    showDiscountSuccess(discount, discountAmount);
+                    updateOrderSummary();
+                }, 400);
+            } else {
+                const hid = document.getElementById('appliedDiscountId');
+                if (hid && duplicateData.discount_id) {
+                    hid.value = String(duplicateData.discount_id);
+                }
+                setTimeout(() => {
+                    applyDiscountCode();
+                }, 400);
             }
-            setTimeout(() => {
-                applyDiscountCode();
-            }, 400);
         }
     }
 

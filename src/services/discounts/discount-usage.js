@@ -64,6 +64,7 @@ export async function validateDiscount(url, env, corsHeaders) {
         const code = url.searchParams.get('code');
         const customerPhone = url.searchParams.get('customerPhone');
         const orderAmount = parseFloat(url.searchParams.get('orderAmount')) || 0;
+        const excludeOrderId = url.searchParams.get('excludeOrderId') || '';
 
         if (!code) {
             return jsonResponse({
@@ -115,20 +116,33 @@ export async function validateDiscount(url, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Check max total uses
-        if (discount.max_total_uses && discount.usage_count >= discount.max_total_uses) {
-            return jsonResponse({
-                success: false,
-                error: 'Mã giảm giá đã hết lượt sử dụng'
-            }, 400, corsHeaders);
+        // Check max total uses (exclude current order when editing)
+        if (discount.max_total_uses) {
+            let totalUsed = discount.usage_count || 0;
+            if (excludeOrderId) {
+                const excluded = await env.DB.prepare(`
+                    SELECT COUNT(*) as count FROM discount_usage 
+                    WHERE discount_code = ? AND order_id = ?
+                `).bind(code.toUpperCase(), excludeOrderId).first();
+                if (excluded?.count) totalUsed -= excluded.count;
+            }
+            if (totalUsed >= discount.max_total_uses) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Mã giảm giá đã hết lượt sử dụng'
+                }, 400, corsHeaders);
+            }
         }
 
-        // Check max uses per customer
+        // Check max uses per customer (exclude current order when editing)
         if (customerPhone && discount.max_uses_per_customer) {
-            const usageCount = await env.DB.prepare(`
-                SELECT COUNT(*) as count FROM discount_usage 
-                WHERE discount_code = ? AND customer_phone = ?
-            `).bind(code.toUpperCase(), customerPhone).first();
+            let query = `SELECT COUNT(*) as count FROM discount_usage WHERE discount_code = ? AND customer_phone = ?`;
+            const binds = [code.toUpperCase(), customerPhone];
+            if (excludeOrderId) {
+                query += ` AND order_id != ?`;
+                binds.push(excludeOrderId);
+            }
+            const usageCount = await env.DB.prepare(query).bind(...binds).first();
 
             if (usageCount && usageCount.count >= discount.max_uses_per_customer) {
                 return jsonResponse({

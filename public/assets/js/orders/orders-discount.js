@@ -15,7 +15,12 @@
 // ============================================
 
 // Apply discount code
-async function applyDiscountCode() {
+// excludeOrderId: optional order_id (display ID) to exclude from usage checks when editing
+async function applyDiscountCode(excludeOrderId) {
+    if (!excludeOrderId) {
+        excludeOrderId = document.getElementById('orderFormEditDisplayId')?.value || '';
+    }
+
     const discountCodeInput = document.getElementById('newOrderDiscountCode');
     const discountCode = discountCodeInput?.value.trim().toUpperCase();
 
@@ -41,7 +46,11 @@ async function applyDiscountCode() {
         const orderAmount = productTotal + shippingFee;
 
         // Validate discount code via API
-        const response = await fetch(`${CONFIG.API_URL}?action=validateDiscount&code=${encodeURIComponent(discountCode)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`);
+        let validateUrl = `${CONFIG.API_URL}?action=validateDiscount&code=${encodeURIComponent(discountCode)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`;
+        if (excludeOrderId) {
+            validateUrl += `&excludeOrderId=${encodeURIComponent(excludeOrderId)}`;
+        }
+        const response = await fetch(validateUrl);
 
         console.log('🔍 Discount validation response:', response.status, response.statusText);
 
