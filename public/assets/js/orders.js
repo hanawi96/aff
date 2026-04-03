@@ -31,23 +31,21 @@ let currentEditingOrderCode = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    loadCurrentTaxRate(); // Load tax rate first
-    loadOrdersData();
-    loadPackagingConfig();
+    // CRITICAL: Only these 2 are needed for initial table render
     setupEventListeners();
-    updateExportHistoryBadge(); // Load export history badge
-
-    // Check URL hash to auto-open modal
+    loadOrdersData();
     checkUrlHash();
 
-    // PERFORMANCE: Preload data in background for instant modal
+    // DEFERRED: Non-critical data — load after table has rendered
     setTimeout(() => {
+        loadCurrentTaxRate();
+        loadPackagingConfig();
+        updateExportHistoryBadge();
         if (allProductsList.length === 0) loadProductsAndCategories();
         if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') loadActiveDiscounts();
         if (window.addressSelector && !window.addressSelector.loaded) window.addressSelector.init();
-    }, 1000);
-    
-    // Auto-refresh badge every 30 seconds
+    }, 800);
+
     setInterval(updateExportHistoryBadge, 30000);
 });
 
