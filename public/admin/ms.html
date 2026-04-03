@@ -216,17 +216,7 @@ async function loadData(){
     }else throw new Error(cr.error||'Lỗi tải dữ liệu');
   }catch(e){
     const sk=document.getElementById('skeleton');if(sk)sk.classList.add('hidden');
-    const em=document.getElementById('errMsg');
-    if(em){
-      em.innerHTML=`<div class="text-left text-xs space-y-1 max-w-md mx-auto">
-        <p class="text-red-500 font-bold">Lỗi: ${e.message}</p>
-        <p class="text-gray-400">API: ${API()}</p>
-        <p class="text-gray-400">CONFIG: ${JSON.stringify(window.CONFIG?.API_URL||'undefined')}</p>
-        <p class="text-gray-400">Host: ${location.hostname}</p>
-        <p class="text-gray-400 break-all">Stack: ${e.stack?.substring(0,200)||'N/A'}</p>
-      </div>`;
-      em.classList.remove('hidden');
-    }
+    const em=document.getElementById('errMsg');if(em){em.textContent='Lỗi: '+e.message;em.classList.remove('hidden');}
   }finally{icon?.classList.remove('animate-spin');}
 }
 
