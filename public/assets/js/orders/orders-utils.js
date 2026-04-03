@@ -228,6 +228,7 @@ function computeOrdersWithMissingSize() {
     if (typeof allOrdersData === 'undefined' || !Array.isArray(allOrdersData)) return [];
     const out = [];
     for (const order of allOrdersData) {
+        if ((order.status || 'pending') !== 'pending') continue;
         const missing = getOrderProductsMissingSizeWeight(order);
         if (missing.length > 0) out.push({ order, missing });
     }
