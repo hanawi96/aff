@@ -150,7 +150,13 @@ async function loadOrders(){
     const d=await r.json();
     if(d.success){allOrders=d.orders||[];applyFilter();document.getElementById('skeletons').remove()}
     else throw new Error(d.error);
-  }catch(e){document.getElementById('skeletons').innerHTML='<p class="text-center text-red-500 text-sm py-8">Lỗi tải dữ liệu</p>'}
+  }catch(e){document.getElementById('skeletons').innerHTML=`<div class="text-left text-xs p-4 space-y-1">
+    <p class="text-red-500 font-bold">Lỗi: ${e.message}</p>
+    <p class="text-gray-400">API: ${API()}</p>
+    <p class="text-gray-400">CONFIG: ${JSON.stringify(window.CONFIG?.API_URL||'undefined')}</p>
+    <p class="text-gray-400">Host: ${location.hostname}</p>
+    <p class="text-gray-400 break-all">Stack: ${e.stack?.substring(0,200)||'N/A'}</p>
+  </div>`}
 }
 
 function applyFilter(){
