@@ -66,14 +66,14 @@ body{overscroll-behavior-y:contain}
 </div>
 
 <!-- Order List -->
-<main id="orderList" class="px-4 py-3 space-y-3">
+<main id="orderList" class="divide-y divide-gray-100">
   <!-- Skeleton cards -->
   <div id="skeletons">
-    <div class="bg-white rounded-xl p-4 space-y-3"><div class="skeleton h-4 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded mt-2"></div><div class="skeleton h-3 w-32 rounded mt-1"></div></div>
-    <div class="bg-white rounded-xl p-4 space-y-3 mt-3"><div class="skeleton h-4 w-20 rounded"></div><div class="skeleton h-3 w-36 rounded mt-2"></div><div class="skeleton h-3 w-28 rounded mt-1"></div></div>
-    <div class="bg-white rounded-xl p-4 space-y-3 mt-3"><div class="skeleton h-4 w-28 rounded"></div><div class="skeleton h-3 w-44 rounded mt-2"></div><div class="skeleton h-3 w-24 rounded mt-1"></div></div>
+    <div class="bg-white px-4 py-3.5 border-b border-gray-100 space-y-3"><div class="skeleton h-4 w-24 rounded"></div><div class="skeleton h-3 w-40 rounded mt-2"></div><div class="skeleton h-3 w-32 rounded mt-1"></div></div>
+    <div class="bg-white px-4 py-3.5 border-b border-gray-100 space-y-3"><div class="skeleton h-4 w-20 rounded"></div><div class="skeleton h-3 w-36 rounded mt-2"></div><div class="skeleton h-3 w-28 rounded mt-1"></div></div>
+    <div class="bg-white px-4 py-3.5 border-b border-gray-100 space-y-3"><div class="skeleton h-4 w-28 rounded"></div><div class="skeleton h-3 w-44 rounded mt-2"></div><div class="skeleton h-3 w-24 rounded mt-1"></div></div>
   </div>
-  <div id="emptyState" class="hidden text-center py-12 text-gray-400 text-sm">Không có đơn hàng nào</div>
+  <div id="emptyState" class="hidden text-center py-12 text-gray-400 text-sm bg-white">Không có đơn hàng nào</div>
 </main>
 
 <!-- Load more -->
@@ -194,9 +194,9 @@ function renderCards(){
     let hasNoSize=false;
     let prods='';
     try{const p=JSON.parse(o.products);prods=p.map(x=>x.name).join(', ');hasNoSize=p.some(x=>!x.size);}catch{}
-    const bgClass=isPri?'bg-white':hasNoSize?'bg-orange-50':'bg-white';
-    const borderClass=isPri?'border-yellow-300 border-l-4':hasNoSize?'border-orange-200':'border-gray-100';
-    card.className=`order-card ${bgClass} rounded-xl p-4 border shadow-sm fade-up ${borderClass}`;
+    const bgClass=isPri?'bg-yellow-50/60':hasNoSize?'bg-orange-50/60':'bg-white';
+    const borderLeft=isPri?'border-l-[3px] border-l-yellow-400':'';
+    card.className=`order-card ${bgClass} px-4 py-3.5 fade-up ${borderLeft}`;
     card.setAttribute('data-id',o.id);
     const st=STATUS[o.status||'pending']||STATUS.pending;
     const starSvg=isPri

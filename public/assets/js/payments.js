@@ -1095,57 +1095,35 @@ function switchTab(tab) {
     if (excludedContent) excludedContent.classList.add('hidden');
     if (rankingContent) rankingContent.classList.add('hidden');
 
-    // Reset trạng thái nút tab (chỉ tab đang chọn mới active)
-    if (tabUnpaid) {
-        tabUnpaid.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-        tabUnpaid.classList.add('border-transparent', 'text-slate-500');
+    const activeBase = 'bg-white shadow-sm ring-1 ring-black/5';
+    const inactiveBase = 'text-slate-500';
+    const colorMap = {unpaid:'text-emerald-700',history:'text-blue-700',excluded:'text-red-700',ranking:'text-amber-700'};
+
+    [tabUnpaid, tabHistory, tabExcluded, tabRanking].forEach(btn => {
+        if (!btn) return;
+        btn.classList.remove('bg-white','shadow-sm','ring-1','ring-black/5','text-emerald-700','text-blue-700','text-red-700','text-amber-700','active');
+        btn.classList.add(inactiveBase);
+    });
+
+    const tabMap = {unpaid:tabUnpaid,history:tabHistory,excluded:tabExcluded,ranking:tabRanking};
+    const contentMap = {unpaid:unpaidContent,history:historyContent,excluded:excludedContent,ranking:rankingContent};
+    const activeBtn = tabMap[tab];
+    if (activeBtn) {
+        activeBase.split(' ').forEach(c => activeBtn.classList.add(c));
+        activeBtn.classList.add('active', colorMap[tab]);
+        activeBtn.classList.remove(inactiveBase);
     }
-    if (tabHistory) {
-        tabHistory.classList.remove('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-        tabHistory.classList.add('border-transparent', 'text-slate-500');
-    }
-    if (tabExcluded) {
-        tabExcluded.classList.remove('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
-        tabExcluded.classList.add('border-transparent', 'text-slate-500');
-    }
-    if (tabRanking) {
-        tabRanking.classList.remove('active', 'border-amber-500', 'text-amber-700', 'bg-amber-50/50');
-        tabRanking.classList.add('border-transparent', 'text-slate-500');
-    }
+    if (contentMap[tab]) contentMap[tab].classList.remove('hidden');
 
     if (tab === 'unpaid') {
-        if (tabUnpaid) {
-            tabUnpaid.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-            tabUnpaid.classList.remove('border-transparent', 'text-slate-500');
-        }
-        if (unpaidContent) unpaidContent.classList.remove('hidden');
-
         applyFilters();
     } else if (tab === 'history') {
-        if (tabHistory) {
-            tabHistory.classList.add('active', 'border-emerald-600', 'text-emerald-700', 'bg-emerald-50/50');
-            tabHistory.classList.remove('border-transparent', 'text-slate-500');
-        }
-        if (historyContent) historyContent.classList.remove('hidden');
-        loadPaymentHistory(); // loads + renders + shows skeleton while waiting
+        loadPaymentHistory();
     } else if (tab === 'excluded') {
-        if (tabExcluded) {
-            tabExcluded.classList.add('active', 'border-red-500', 'text-red-700', 'bg-red-50/50');
-            tabExcluded.classList.remove('border-transparent', 'text-slate-500');
-        }
-        if (excludedContent) excludedContent.classList.remove('hidden');
-
         const sel = document.getElementById('selectedAmount');
         if (sel) sel.textContent = '0đ';
-
         loadExcludedCommissions();
     } else if (tab === 'ranking') {
-        if (tabRanking) {
-            tabRanking.classList.remove('border-transparent', 'text-slate-500');
-            tabRanking.classList.add('active', 'border-amber-500', 'text-amber-700', 'bg-amber-50/50');
-        }
-        if (rankingContent) rankingContent.classList.remove('hidden');
-
         loadRanking();
     }
 }
