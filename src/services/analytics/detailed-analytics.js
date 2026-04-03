@@ -180,6 +180,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             const hourlyData = await env.DB.prepare(`
                 SELECT 
                     CAST(((orders.created_at_unix/1000 + 25200) % 86400) / 3600 AS INTEGER) as hour,
+                    COUNT(DISTINCT orders.id) as order_count,
                     COALESCE(SUM(orders.total_amount), 0) as revenue,
                     COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) +
                     COALESCE(SUM(orders.shipping_cost), 0) +
@@ -194,9 +195,9 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             `).bind(startMs, endMs).all();
 
             const hourMap = {};
-            for (let h = 0; h < 24; h++) hourMap[h] = { hour: h, revenue: 0, cost: 0, profit: 0 };
+            for (let h = 0; h < 24; h++) hourMap[h] = { hour: h, revenue: 0, cost: 0, profit: 0, orders: 0 };
             (hourlyData.results || []).forEach(d => {
-                hourMap[d.hour] = { hour: d.hour, revenue: d.revenue || 0, cost: d.cost || 0, profit: (d.revenue || 0) - (d.cost || 0) };
+                hourMap[d.hour] = { hour: d.hour, revenue: d.revenue || 0, cost: d.cost || 0, profit: (d.revenue || 0) - (d.cost || 0), orders: d.order_count || 0 };
             });
             dailyDataFormatted = Object.values(hourMap);
         } else {
@@ -205,6 +206,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             const dailyData = await env.DB.prepare(`
                 SELECT 
                     DATE((orders.created_at_unix/1000 + 25200), 'unixepoch') as date,
+                    COUNT(DISTINCT orders.id) as order_count,
                     COALESCE(SUM(orders.total_amount), 0) as revenue,
                     COALESCE(SUM(order_items.product_cost * order_items.quantity), 0) +
                     COALESCE(SUM(orders.shipping_cost), 0) +
@@ -222,9 +224,34 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 date: d.date,
                 revenue: d.revenue || 0,
                 cost: d.cost || 0,
-                profit: (d.revenue || 0) - (d.cost || 0)
+                profit: (d.revenue || 0) - (d.cost || 0),
+                orders: d.order_count || 0
             }));
         }
+
+        // Order list for the period
+        const orderList = await env.DB.prepare(`
+            SELECT o.id, o.order_id, o.customer_name, o.customer_phone,
+                   o.total_amount, o.created_at_unix, o.status,
+                   COALESCE(SUM(oi.product_cost * oi.quantity), 0) +
+                   COALESCE(o.shipping_cost, 0) + COALESCE(o.packaging_cost, 0) +
+                   COALESCE(o.commission, 0) + COALESCE(o.tax_amount, 0) as total_cost
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.created_at_unix >= ?${endClauseO}
+            GROUP BY o.id
+            ORDER BY o.created_at_unix DESC
+        `).bind(...bindStartO).all();
+
+        const ordersFormatted = (orderList.results || []).map(o => ({
+            order_id: o.order_id,
+            customer_name: o.customer_name,
+            customer_phone: o.customer_phone,
+            total_amount: o.total_amount || 0,
+            profit: (o.total_amount || 0) - (o.total_cost || 0),
+            created_at_unix: o.created_at_unix,
+            status: o.status
+        }));
 
         return jsonResponse({
             success: true,
@@ -251,6 +278,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             cost_breakdown: costBreakdown,
             top_products: topProducts.results || [],
             daily_data: dailyDataFormatted,
+            orders: ordersFormatted,
             comparison: {
                 revenue_change: 0,
                 profit_change: 0,

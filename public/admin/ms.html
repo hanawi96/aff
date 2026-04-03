@@ -21,6 +21,7 @@ body{overscroll-behavior-y:contain}
 .month-btn.active{background:#6366f1;color:#fff;font-weight:600;border-color:transparent;box-shadow:0 2px 6px rgba(99,102,241,.3)}
 .no-scrollbar::-webkit-scrollbar{display:none}
 .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+.ct-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen max-w-lg mx-auto">
@@ -129,7 +130,7 @@ body{overscroll-behavior-y:contain}
   <div id="errMsg" class="hidden text-center py-16 text-gray-400 text-sm"></div>
 </div>
 
-<script defer src="../assets/js/config.js"></script>
+<script src="../assets/js/config.js"></script>
 <script>
 const API=()=>(window.CONFIG?.API_URL||'http://127.0.0.1:8787');
 const fmt=n=>new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+'đ';
@@ -151,6 +152,7 @@ let orderPage=1;
 let customRange=null; // {startDate:'2026-01-01', endDate:'2026-01-31'}
 let dateMode='day'; // 'day' or 'range'
 let _cMeta=null;
+let _chartMode='rev';
 
 function setPeriod(p){
   currentPeriod=p;
@@ -381,6 +383,9 @@ function renderAll(d,prev){
   if(skEl)skEl.classList.add('hidden');
   if(cEl)cEl.classList.remove('hidden');
 
+  // Render chart SVG
+  if(_cMeta)renderChartSvg(_chartMode);
+
   // Animate bars
   requestAnimationFrame(()=>{
     document.querySelectorAll('.bar').forEach(b=>{
@@ -438,16 +443,16 @@ function loadMoreOrders(){
   if(firstNew)firstNew.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-// ─── Chart: So sánh doanh thu kỳ này vs kỳ trước ───
+// ─── Chart: So sánh kỳ này vs kỳ trước (tab Doanh thu / Lợi nhuận) ───
 function buildChart(curData,prevData,range){
   if(!curData||!curData.length){_cMeta=null;return'';}
   const isH=curData[0].hour!==undefined;
-  const cur=[],pre=[];
+  const pts=[];
   if(isH){
     const pm={};(prevData||[]).forEach(d=>{pm[d.hour]=d;});
     curData.forEach(d=>{
-      cur.push({l:d.hour+'h',v:d.revenue||0});
-      const p=pm[d.hour];pre.push(p?p.revenue||0:0);
+      const p=pm[d.hour];
+      pts.push({l:d.hour+'h',rev:d.revenue||0,prof:d.profit||0,ord:d.orders||0,prevRev:p?p.revenue||0:0,prevProf:p?p.profit||0:0,prevOrd:p?p.orders||0:0});
     });
   }else{
     const cMap={},pMap={};
@@ -462,77 +467,109 @@ function buildChart(curData,prevData,range){
       const k=new Date(t).toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
       const dd=new Date(k+'T00:00:00+07:00');
       const c=cMap[k];
-      cur.push({l:`${dd.getDate()}/${dd.getMonth()+1}`,v:c?c.revenue:0});
       const pk=new Date(psMs+pi*864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
       const p=pMap[pk];
-      pre.push(p?p.revenue:0);
+      pts.push({l:`${dd.getDate()}/${dd.getMonth()+1}`,rev:c?c.revenue:0,prof:c?c.profit:0,ord:c?c.orders||0:0,prevRev:p?p.revenue:0,prevProf:p?p.profit:0,prevOrd:p?p.orders||0:0});
       pi++;
     }
   }
-  if(!cur.length){_cMeta=null;return'';}
-  const hasPrev=pre.some(v=>v>0);
+  if(!pts.length){_cMeta=null;return'';}
+  const hasPrev=pts.some(p=>p.prevRev>0||p.prevProf!==0);
   const W=350,H=180,pl=45,pr=10,ptt=15,pb=28;
   const cW=W-pl-pr,cH=H-ptt-pb;
-  const allVals=cur.map(p=>p.v).concat(hasPrev?pre:[]);
-  const mx=Math.max(...allVals,1);
-  const xP=i=>pl+(cur.length>1?i/(cur.length-1)*cW:cW/2);
-  const yP=v=>ptt+cH-Math.max(0,v)/mx*cH;
-  _cMeta={cur,pre,hasPrev,W,H,pl,ptt,cW,cH,mx};
-  const cPath=cur.map((p,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(p.v).toFixed(1)}`).join('');
-  const cArea=cPath+` L${xP(cur.length-1).toFixed(1)},${ptt+cH} L${xP(0).toFixed(1)},${ptt+cH} Z`;
-  let pPath='';
-  if(hasPrev) pPath=pre.map((v,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(v).toFixed(1)}`).join('');
-  let g='',yl='';
-  for(let i=0;i<=4;i++){
-    const v=mx*i/4,yy=yP(v);
-    g+=`<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W-pr}" y2="${yy.toFixed(1)}" stroke="#f3f4f6"/>`;
-    yl+=`<text x="${pl-4}" y="${(yy+3).toFixed(1)}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${fmtK(v)}</text>`;
-  }
+  const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
   let xl='';
-  const mxL=isH?8:Math.min(cur.length,7);
-  const stp=Math.max(1,Math.ceil(cur.length/mxL));
-  for(let i=0;i<cur.length;i+=stp)
-    xl+=`<text x="${xP(i).toFixed(1)}" y="${H-6}" text-anchor="middle" fill="#9ca3af" style="font-size:9px">${cur[i].l}</text>`;
-  if(cur.length>1&&(cur.length-1)%stp!==0)
-    xl+=`<text x="${xP(cur.length-1).toFixed(1)}" y="${H-6}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${cur[cur.length-1].l}</text>`;
-  const dots=cur.length<=10?cur.map((p,i)=>`<circle cx="${xP(i).toFixed(1)}" cy="${yP(p.v).toFixed(1)}" r="3" fill="#6366f1" stroke="#fff" stroke-width="1.5"/>`).join(''):'';
-  return`<div class="bg-white rounded-2xl border border-gray-100 p-4">
-  <div class="flex items-center justify-between mb-3">
-    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">So sánh doanh thu</h3>
-    <div class="flex items-center gap-3 text-[10px]">
-      <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-indigo-500 rounded inline-block"></span>Kỳ này</span>
-      ${hasPrev?'<span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-gray-300 rounded inline-block" style="border-top:1px dashed #9ca3af"></span>Kỳ trước</span>':''}
-    </div>
+  const mxL=isH?8:Math.min(pts.length,7);
+  const stp=Math.max(1,Math.ceil(pts.length/mxL));
+  for(let i=0;i<pts.length;i+=stp)
+    xl+=`<text x="${xP(i).toFixed(1)}" y="${H-6}" text-anchor="middle" fill="#9ca3af" style="font-size:9px">${pts[i].l}</text>`;
+  if(pts.length>1&&(pts.length-1)%stp!==0)
+    xl+=`<text x="${xP(pts.length-1).toFixed(1)}" y="${H-6}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${pts[pts.length-1].l}</text>`;
+  _cMeta={pts,hasPrev,W,H,pl,pr,ptt,pb,cW,cH,xl};
+  _chartMode='rev';
+  return`<div class="bg-white rounded-2xl border border-gray-100 p-4" id="chartBox">
+  <div class="flex bg-gray-100 rounded-lg p-0.5 gap-0.5 mb-3">
+    <button onclick="switchChart('rev')" data-ct="rev" class="ct-tab flex-1 py-1.5 rounded-md text-xs font-medium text-gray-500 transition-all active">Doanh thu</button>
+    <button onclick="switchChart('prof')" data-ct="prof" class="ct-tab flex-1 py-1.5 rounded-md text-xs font-medium text-gray-500 transition-all">Lợi nhuận</button>
+    <button onclick="switchChart('ord')" data-ct="ord" class="ct-tab flex-1 py-1.5 rounded-md text-xs font-medium text-gray-500 transition-all">Đơn hàng</button>
+  </div>
+  <div class="flex items-center justify-end gap-3 text-[10px] mb-2">
+    <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 rounded inline-block" id="legCur" style="background:#6366f1"></span>Kỳ này</span>
+    ${hasPrev?'<span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-gray-300 rounded inline-block" style="border-top:1px dashed #9ca3af"></span>Kỳ trước</span>':''}
   </div>
   <div class="relative" id="chartWrap">
-    <svg id="chartSvg" viewBox="0 0 ${W} ${H}" class="w-full" preserveAspectRatio="xMidYMid meet" onclick="chartTap(event)">
-      ${g}${yl}${xl}
-      <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity=".12"/><stop offset="100%" stop-color="#6366f1" stop-opacity=".01"/></linearGradient></defs>
-      ${hasPrev?`<path d="${pPath}" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>`:''}
-      <path d="${cArea}" fill="url(#rg)"/>
-      <path d="${cPath}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${dots}
-      <line id="cInd" x1="0" y1="${ptt}" x2="0" y2="${ptt+cH}" stroke="#6366f1" stroke-width="1" stroke-dasharray="3 2" style="opacity:0;transition:opacity .15s"/>
-      <circle id="cDotC" r="4.5" fill="#6366f1" stroke="#fff" stroke-width="2" style="opacity:0;transition:opacity .15s"/>
-      ${hasPrev?`<circle id="cDotP" r="3.5" fill="#d1d5db" stroke="#fff" stroke-width="1.5" style="opacity:0;transition:opacity .15s"/>`:''}
-    </svg>
+    <div id="chartInner"></div>
     <div id="cTip" class="hidden absolute top-0 left-0 -translate-x-1/2 bg-gray-900 text-white text-[10px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none whitespace-nowrap leading-relaxed" style="transition:all .15s"></div>
   </div>
   ${!hasPrev?'<p class="text-[10px] text-gray-400 text-center mt-2">Không có dữ liệu kỳ trước để so sánh</p>':''}
 </div>`;
 }
 
+function renderChartSvg(mode){
+  if(!_cMeta)return;
+  const{pts,hasPrev,W,H,pl,pr,ptt,pb,cW,cH,xl}=_cMeta;
+  const isOrd=mode==='ord';const isRev=mode==='rev';
+  const color=isOrd?'#f59e0b':isRev?'#6366f1':'#10b981';
+  const vals=pts.map(p=>isOrd?p.ord:isRev?p.rev:p.prof);
+  const prev=pts.map(p=>isOrd?p.prevOrd:isRev?p.prevRev:p.prevProf);
+  const all=vals.concat(hasPrev?prev:[]);
+  const minV=Math.min(0,...all);
+  const maxV=Math.max(0,...all);
+  const rng=maxV-minV||1;
+  const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
+  const yP=v=>ptt+cH-(v-minV)/rng*cH;
+  _cMeta._mode=mode;_cMeta._minV=minV;_cMeta._rng=rng;
+  const cPath=vals.map((v,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(v).toFixed(1)}`).join('');
+  const zy=yP(0);
+  const cArea=cPath+` L${xP(vals.length-1).toFixed(1)},${zy.toFixed(1)} L${xP(0).toFixed(1)},${zy.toFixed(1)} Z`;
+  let pPath='';
+  if(hasPrev)pPath=prev.map((v,i)=>`${i?'L':'M'}${xP(i).toFixed(1)},${yP(v).toFixed(1)}`).join('');
+  let g='',yl='';
+  for(let i=0;i<=4;i++){
+    const v=minV+rng*i/4,yy=yP(v);
+    g+=`<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W-pr}" y2="${yy.toFixed(1)}" stroke="#f3f4f6"/>`;
+    yl+=`<text x="${pl-4}" y="${(yy+3).toFixed(1)}" text-anchor="end" fill="#9ca3af" style="font-size:9px">${isOrd?Math.round(v):fmtK(v)}</text>`;
+  }
+  let zLine='';
+  if(minV<0)zLine=`<line x1="${pl}" y1="${zy.toFixed(1)}" x2="${W-pr}" y2="${zy.toFixed(1)}" stroke="#e5e7eb" stroke-dasharray="4 2"/>`;
+  const dots=pts.length<=10?vals.map((v,i)=>`<circle cx="${xP(i).toFixed(1)}" cy="${yP(v).toFixed(1)}" r="3" fill="${color}" stroke="#fff" stroke-width="1.5"/>`).join(''):'';
+  const el=document.getElementById('chartInner');
+  if(!el)return;
+  el.innerHTML=`<svg id="chartSvg" viewBox="0 0 ${W} ${H}" class="w-full" preserveAspectRatio="xMidYMid meet" onclick="chartTap(event)">
+    ${g}${yl}${xl}${zLine}
+    <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".12"/><stop offset="100%" stop-color="${color}" stop-opacity=".01"/></linearGradient></defs>
+    ${hasPrev?`<path d="${pPath}" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>`:''}
+    <path d="${cArea}" fill="url(#rg)"/>
+    <path d="${cPath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+    <line id="cInd" x1="0" y1="${ptt}" x2="0" y2="${ptt+cH}" stroke="${color}" stroke-width="1" stroke-dasharray="3 2" style="opacity:0;transition:opacity .15s"/>
+    <circle id="cDotC" r="4.5" fill="${color}" stroke="#fff" stroke-width="2" style="opacity:0;transition:opacity .15s"/>
+    ${hasPrev?'<circle id="cDotP" r="3.5" fill="#d1d5db" stroke="#fff" stroke-width="1.5" style="opacity:0;transition:opacity .15s"/>':''}
+  </svg>`;
+  const leg=document.getElementById('legCur');if(leg)leg.style.background=color;
+}
+
+function switchChart(mode){
+  _chartMode=mode;
+  document.querySelectorAll('.ct-tab').forEach(t=>{
+    t.classList.toggle('active',t.dataset.ct===mode);
+    t.classList.toggle('text-gray-500',t.dataset.ct!==mode);
+  });
+  const tip=document.getElementById('cTip');if(tip)tip.classList.add('hidden');
+  renderChartSvg(mode);
+}
+
 function chartTap(evt){
   if(!_cMeta)return;
-  const {cur,pre,hasPrev,W,ptt,cW,cH,mx,pl}=_cMeta;
+  const{pts,hasPrev,W,ptt,cW,cH,pl,_mode,_minV,_rng}=_cMeta;
   const svg=document.getElementById('chartSvg');
   if(!svg)return;
   const rect=svg.getBoundingClientRect();
   const cx=(evt.clientX-rect.left)/rect.width*W;
-  const xP=i=>pl+(cur.length>1?i/(cur.length-1)*cW:cW/2);
-  const yP=v=>ptt+cH-Math.max(0,v)/mx*cH;
+  const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
+  const yP=v=>ptt+cH-(v-_minV)/_rng*cH;
   let best=0,bd=1e9;
-  cur.forEach((_,i)=>{const d=Math.abs(xP(i)-cx);if(d<bd){bd=d;best=i;}});
+  pts.forEach((_,i)=>{const d=Math.abs(xP(i)-cx);if(d<bd){bd=d;best=i;}});
   const tip=document.getElementById('cTip');
   const ind=document.getElementById('cInd');
   const dc=document.getElementById('cDotC');
@@ -541,21 +578,26 @@ function chartTap(evt){
     tip.classList.add('hidden');if(ind)ind.style.opacity='0';
     if(dc)dc.style.opacity='0';if(dp)dp.style.opacity='0';return;
   }
-  const p=cur[best];const pv=pre[best]||0;const px=xP(best);
+  const p=pts[best];
+  const isOrd=_mode==='ord';const isRev=_mode==='rev';
+  const curV=isOrd?p.ord:isRev?p.rev:p.prof;
+  const prevV=isOrd?p.prevOrd:isRev?p.prevRev:p.prevProf;
+  const px=xP(best);
   if(ind){ind.setAttribute('x1',px);ind.setAttribute('x2',px);ind.style.opacity='1';}
-  if(dc){dc.setAttribute('cx',px);dc.setAttribute('cy',yP(p.v));dc.style.opacity='1';}
-  if(dp&&hasPrev){dp.setAttribute('cx',px);dp.setAttribute('cy',yP(pv));dp.style.opacity='1';}
+  if(dc){dc.setAttribute('cx',px);dc.setAttribute('cy',yP(curV));dc.style.opacity='1';}
+  if(dp&&hasPrev){dp.setAttribute('cx',px);dp.setAttribute('cy',yP(prevV));dp.style.opacity='1';}
   if(tip){
     let diff='';
-    if(hasPrev&&pv>0){
-      const pct=((p.v-pv)/pv*100);const up=pct>=0;
+    if(hasPrev&&prevV>0){
+      const pct=(curV-prevV)/Math.abs(prevV)*100;const up=pct>=0;
       diff=` <span style="color:${up?'#86efac':'#fca5a5'}">${up?'↑':'↓'}${Math.abs(pct).toFixed(1)}%</span>`;
-    }else if(hasPrev&&pv===0&&p.v>0){
+    }else if(hasPrev&&prevV===0&&curV>0){
       diff=' <span style="color:#86efac">↑ mới</span>';
     }
-    let html=`<b>${p.l}</b>${diff}<br><span style="color:#a5b4fc">● ${fmtK(p.v)}</span>`;
-    if(hasPrev) html+=`<br><span style="color:#d1d5db">○ ${fmtK(pv)}</span>`;
-    tip.innerHTML=html;
+    const lbl=isOrd?'ĐH':isRev?'DT':'LN';
+    const fv=v=>isOrd?v+' đơn':fmtK(v);
+    const cc=isOrd?'#fcd34d':isRev?'#a5b4fc':'#6ee7b7';
+    tip.innerHTML=`<b>${p.l}</b>${diff}<br><span style="color:${cc}">● ${lbl}: ${fv(curV)}</span>${hasPrev?`<br><span style="color:#d1d5db">○ ${lbl}: ${fv(prevV)}</span>`:''}`;
     tip.style.left=`${px/W*100}%`;
     tip.dataset.i=best;
     tip.classList.remove('hidden');
