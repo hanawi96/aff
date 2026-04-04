@@ -854,6 +854,19 @@ function logout() {
 // PRICE RECALCULATION
 // ============================================
 
+/** Giữ cố định class layout (.rc-footer-primary); chỉ bật/tắt trạng thái tương tác */
+function setRcConfirmButtonEnabled(btnEl, enabled) {
+    if (!btnEl) return;
+    btnEl.disabled = !enabled;
+    if (enabled) {
+        btnEl.classList.remove('opacity-60', 'cursor-not-allowed');
+        btnEl.classList.add('hover:shadow-lg', 'cursor-pointer');
+    } else {
+        btnEl.classList.add('opacity-60', 'cursor-not-allowed');
+        btnEl.classList.remove('hover:shadow-lg', 'cursor-pointer');
+    }
+}
+
 async function recalculateAllPrices() {
     // Build changed-materials chips
     const changedList = [...changedMaterialNames];
@@ -882,7 +895,7 @@ async function recalculateAllPrices() {
     modal.id = 'confirmModal';
     modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col min-w-0 overflow-hidden">
             <!-- Header -->
             <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 rounded-t-2xl flex items-center gap-3 shrink-0">
                 <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -902,12 +915,17 @@ async function recalculateAllPrices() {
             <div id="rcProductList" class="flex-1 overflow-y-auto min-h-0">
                 ${skeletonHtml}
             </div>
-            <!-- Footer -->
-            <div class="px-5 py-3.5 border-t border-gray-100 flex gap-2.5 shrink-0">
-                <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm">Hủy</button>
-                <button id="rcConfirmBtn" disabled
-                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all opacity-60 cursor-not-allowed flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <!-- Footer: mobile = column-reverse (CTA trên); sm+ = lưới 3 cột minmax(0,1fr) để không tràn khỏi max-w-lg -->
+            <div class="box-border min-w-0 w-full shrink-0 border-t border-gray-100 px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col-reverse gap-2 sm:grid sm:grid-cols-3 sm:gap-2 sm:items-stretch">
+                <button type="button" onclick="closeConfirmModal()" class="rc-footer-secondary min-w-0 w-full px-3 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm text-center whitespace-normal leading-snug">Hủy</button>
+                <button type="button" id="rcDismissBtn" onclick="dismissOutdatedFromRecalculateModal()"
+                    class="rc-footer-secondary min-w-0 w-full px-3 py-2.5 border border-amber-200 bg-amber-50/70 text-amber-900 rounded-xl font-semibold text-sm transition-colors hover:bg-amber-100 text-center whitespace-normal leading-snug"
+                    title="Không cập nhật giá sản phẩm — ẩn thông báo vĩnh viễn cho đợt này">
+                    Bỏ qua
+                </button>
+                <button type="button" id="rcConfirmBtn" disabled
+                    class="rc-footer-primary min-w-0 w-full px-3 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white opacity-60 cursor-not-allowed text-center whitespace-normal leading-snug">
+                    <svg class="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     Đang tải...
                 </button>
             </div>
@@ -920,12 +938,18 @@ async function recalculateAllPrices() {
         const res = await fetch(`${CONFIG.API_URL}?action=getOutdatedProductsDetails&timestamp=${Date.now()}`);
         const data = await res.json();
 
-        const listEl    = document.getElementById('rcProductList');
+        const listEl     = document.getElementById('rcProductList');
         const subtitleEl = document.getElementById('rcModalSubtitle');
-        const btnEl     = document.getElementById('rcConfirmBtn');
+        const btnEl      = document.getElementById('rcConfirmBtn');
+        const dismissBtn = document.getElementById('rcDismissBtn');
         if (!listEl) return; // modal was closed already
 
         const products = (data.success && Array.isArray(data.products)) ? data.products : [];
+
+        if (dismissBtn) {
+            if (data.success && products.length === 0) dismissBtn.classList.add('hidden');
+            else dismissBtn.classList.remove('hidden');
+        }
 
         if (products.length === 0) {
             subtitleEl.textContent = 'Không có sản phẩm nào cần cập nhật';
@@ -937,9 +961,8 @@ async function recalculateAllPrices() {
                     <p class="text-sm font-medium text-gray-600">Tất cả sản phẩm đã được cập nhật</p>
                     <p class="text-xs text-gray-400 mt-1">Giá bán phản ánh đúng giá nguyên liệu hiện tại</p>
                 </div>`;
-            btnEl.disabled = false;
-            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
-            btnEl.innerHTML = 'Cập nhật ngay';
+            setRcConfirmButtonEnabled(btnEl, true);
+            btnEl.innerHTML = 'Cập nhật';
             btnEl.onclick = () => executeRecalculateAllPrices();
         } else {
             subtitleEl.textContent = `${products.length} sản phẩm cần cập nhật giá`;
@@ -970,14 +993,15 @@ async function recalculateAllPrices() {
                     </div>
                 </div>`;
             }).join('');
-            btnEl.disabled = false;
-            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
-            btnEl.innerHTML = `Cập nhật ${products.length} sản phẩm`;
+            setRcConfirmButtonEnabled(btnEl, true);
+            btnEl.innerHTML = 'Cập nhật';
             btnEl.onclick = () => executeRecalculateAllPrices();
         }
     } catch {
         const listEl = document.getElementById('rcProductList');
         const btnEl  = document.getElementById('rcConfirmBtn');
+        const dismissBtn = document.getElementById('rcDismissBtn');
+        if (dismissBtn) dismissBtn.classList.remove('hidden');
         if (!listEl) return;
         listEl.innerHTML = `
             <div class="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -985,9 +1009,8 @@ async function recalculateAllPrices() {
                 <p class="text-sm text-gray-500">Không thể tải danh sách sản phẩm</p>
             </div>`;
         if (btnEl) {
-            btnEl.disabled = false;
-            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
-            btnEl.innerHTML = 'Cập nhật ngay';
+            setRcConfirmButtonEnabled(btnEl, true);
+            btnEl.innerHTML = 'Cập nhật';
             btnEl.onclick = () => executeRecalculateAllPrices();
         }
     }
@@ -1616,5 +1639,44 @@ function applyOutdatedProductsBadge(count, syncWithServer = true) {
     // Ensure 100% correctness: quick UI update first, exact server sync right after.
     if (syncWithServer) {
         setTimeout(() => checkOutdatedProducts(), 0);
+    }
+}
+
+async function dismissOutdatedFromRecalculateModal() {
+    const btn = document.getElementById('rcDismissBtn');
+    const originalText = btn ? btn.textContent.trim() : '';
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang xử lý...';
+    }
+
+    const restoreBtn = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText || 'Bỏ qua';
+        }
+    };
+
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'dismissOutdatedNotification' })
+        });
+        const data = await response.json();
+        if (data.success) {
+            changedMaterialNames.clear();
+            closeConfirmModal();
+            applyOutdatedProductsBadge(0, false);
+            showToast('Đã bỏ qua cập nhật giá sản phẩm', 'success', 3000);
+        } else {
+            restoreBtn();
+            showToast('Không thể bỏ qua: ' + (data.error || 'Lỗi không xác định'), 'error', 4000);
+        }
+    } catch (error) {
+        console.error('Error dismissing outdated notification:', error);
+        restoreBtn();
+        showToast('Lỗi kết nối, vui lòng thử lại', 'error', 4000);
     }
 }
