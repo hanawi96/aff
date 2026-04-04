@@ -7,10 +7,13 @@ import { jsonResponse } from '../../utils/response.js';
  */
 export async function getLocationStats(params, env, corsHeaders) {
     try {
-        const { level, provinceId, districtId, period, startDate, previousStartDate, previousEndDate } = params;
+        const { level, provinceId, districtId, period, startDate, endDate, previousStartDate, previousEndDate } = params;
         
         // Calculate date range
         let startTimestamp = 0;
+        let endTimestamp = endDate ? new Date(endDate).getTime() : 0;
+        const endCond = endTimestamp > 0 ? `AND created_at_unix <= ${endTimestamp}` : '';
+
         if (startDate) {
             startTimestamp = new Date(startDate).getTime();
         } else if (period && period !== 'all') {
@@ -52,6 +55,7 @@ export async function getLocationStats(params, env, corsHeaders) {
                     AND province_id IS NOT NULL 
                     AND province_id != ''
                     AND created_at_unix >= ?
+                    ${endCond}
                 GROUP BY province_id, province_name
                 ORDER BY revenue DESC
             `;
@@ -91,6 +95,7 @@ export async function getLocationStats(params, env, corsHeaders) {
                     AND district_id IS NOT NULL 
                     AND district_id != ''
                     AND created_at_unix >= ?
+                    ${endCond}
                 GROUP BY district_id, district_name
                 ORDER BY revenue DESC
             `;
@@ -132,6 +137,7 @@ export async function getLocationStats(params, env, corsHeaders) {
                     AND ward_id IS NOT NULL 
                     AND ward_id != ''
                     AND created_at_unix >= ?
+                    ${endCond}
                 GROUP BY ward_id, ward_name
                 ORDER BY revenue DESC
             `;

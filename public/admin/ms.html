@@ -22,6 +22,7 @@ body{overscroll-behavior-y:contain}
 .no-scrollbar::-webkit-scrollbar{display:none}
 .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
 .ct-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.i-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen max-w-lg mx-auto">
@@ -162,6 +163,7 @@ function setPeriod(p){
     t.classList.toggle('text-gray-500',t.dataset.p!==p);
   });
   if(p!=='custom')document.getElementById('customLabel').textContent='Chọn ngày';
+  _insightTab='products';
   loadData();
 }
 
@@ -360,12 +362,24 @@ function renderAll(d,prev){
       }).join('')}
     </div>`:''}
 
-    <!-- Sản phẩm bán chạy -->
+    <!-- Bán chạy / Địa lý tabs -->
     <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div class="px-4 pt-3.5 pb-2">
-        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Sản phẩm bán chạy</h3>
+      <div class="px-4 pt-3.5 pb-3">
+        <div class="flex bg-gray-100 rounded-xl p-1 gap-1">
+          <button onclick="switchInsightTab('products')" data-itab="products" class="i-tab flex-1 py-1.5 rounded-lg text-xs font-medium text-gray-500 transition-all active">
+            <svg class="w-3 h-3 inline mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Bán chạy
+          </button>
+          <button onclick="switchInsightTab('geo')" data-itab="geo" class="i-tab flex-1 py-1.5 rounded-lg text-xs font-medium text-gray-500 transition-all">
+            <svg class="w-3 h-3 inline mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Địa lý
+          </button>
+        </div>
       </div>
-      ${topProdHtml}
+      <div id="itab-products">${topProdHtml}</div>
+      <div id="itab-geo" class="hidden">
+        <div id="geoContent" class="divide-y divide-gray-50">
+          <div class="px-4 py-8 text-center text-sm text-gray-400">Đang tải dữ liệu địa lý...</div>
+        </div>
+      </div>
     </div>
 
     <!-- Danh sách đơn hàng gần đây (nếu có) -->
@@ -382,6 +396,13 @@ function renderAll(d,prev){
   if(cEl)cEl.innerHTML=html;
   if(skEl)skEl.classList.add('hidden');
   if(cEl)cEl.classList.remove('hidden');
+  // Reset insight tab UI to match state
+  _insightTab='products';
+  document.querySelectorAll('.i-tab').forEach(t=>{
+    const active=t.dataset.itab==='products';
+    t.classList.toggle('active',active);
+    t.classList.toggle('text-gray-500',!active);
+  });
 
   // Render chart SVG
   if(_cMeta)renderChartSvg(_chartMode);
@@ -415,7 +436,10 @@ function renderOrderList(){
     const ds=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
     return`<div class="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3">
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold text-gray-900 truncate">${o.customer_name||'—'}</p>
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+          <span class="w-1.5 h-1.5 rounded-full shrink-0 ${pc?'bg-green-400':'bg-red-400'}"></span>
+          <span class="truncate">${o.customer_name||'—'}</span>
+        </p>
         <p class="text-xs text-gray-400 mt-0.5">${ds} · ${o.order_id||''}</p>
       </div>
       <div class="text-right shrink-0">
@@ -441,6 +465,72 @@ function loadMoreOrders(){
   const items=document.getElementById('orderList').children;
   const firstNew=items[(orderPage-1)*ORDER_PAGE_SIZE];
   if(firstNew)firstNew.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ─── Insight Tabs (Bán chạy / Địa lý) ───
+let _insightTab='products';
+const _geoCache={};
+
+function switchInsightTab(tab){
+  _insightTab=tab;
+  document.querySelectorAll('.i-tab').forEach(t=>{
+    const active=t.dataset.itab===tab;
+    t.classList.toggle('active',active);
+    t.classList.toggle('text-gray-500',!active);
+  });
+  document.getElementById('itab-products')?.classList.toggle('hidden',tab!=='products');
+  document.getElementById('itab-geo')?.classList.toggle('hidden',tab!=='geo');
+  if(tab==='geo')loadGeoTab();
+}
+
+async function loadGeoTab(){
+  const range=getDateRange();
+  if(!range){document.getElementById('geoContent').innerHTML='<p class="px-4 py-8 text-center text-sm text-gray-400">Chọn khoảng thời gian để xem địa lý</p>';return;}
+  const cacheKey=currentPeriod==='custom'?`geo_c_${customRange?.startDate}_${customRange?.endDate}`:`geo_${currentPeriod}`;
+  if(_geoCache[cacheKey]){renderGeoContent(_geoCache[cacheKey]);return;}
+
+  document.getElementById('geoContent').innerHTML='<div class="px-4 py-8 text-center"><div class="inline-block w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div></div>';
+
+  try{
+    const startIso=new Date(range.s+'T00:00:00+07:00').toISOString();
+    const endIso=new Date(range.e+'T23:59:59.999+07:00').toISOString();
+    const url=`${API()}?action=getLocationStats&level=province&startDate=${startIso}&endDate=${endIso}&timestamp=${Date.now()}`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.success){
+      const locs=(data.locations||[]).sort((a,b)=>(b.orders||0)-(a.orders||0));
+      _geoCache[cacheKey]=locs;
+      renderGeoContent(locs);
+    }else throw new Error(data.error||'Lỗi tải địa lý');
+  }catch(e){
+    document.getElementById('geoContent').innerHTML=`<p class="px-4 py-8 text-center text-sm text-red-400">Lỗi: ${e.message}</p>`;
+  }
+}
+
+function renderGeoContent(locs){
+  const el=document.getElementById('geoContent');
+  if(!el)return;
+  if(!locs||!locs.length){el.innerHTML='<p class="px-4 py-8 text-center text-sm text-gray-400">Chưa có dữ liệu địa lý</p>';return;}
+  const maxOrders=locs[0]?.orders||1;
+  const totalOrders=locs.reduce((s,l)=>s+(l.orders||0),0);
+  el.innerHTML=locs.slice(0,15).map((loc,i)=>{
+    const pct=totalOrders>0?Math.round((loc.orders/totalOrders)*100):0;
+    const barW=Math.round((loc.orders/maxOrders)*100);
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return`<div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0">
+      <span class="w-6 h-6 rounded-full ${i<3?'bg-indigo-600 text-white':'bg-gray-100 text-gray-500'} text-[11px] font-bold flex items-center justify-center shrink-0">${medal||i+1}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-800 truncate">${loc.name||'—'}</p>
+        <div class="mt-1.5 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+          <div class="h-1.5 bg-indigo-400 rounded-full transition-all" style="width:${barW}%"></div>
+        </div>
+      </div>
+      <div class="text-right shrink-0 ml-2">
+        <p class="text-sm font-bold text-gray-900">${fmtN(loc.orders)} đơn</p>
+        <p class="text-[11px] text-gray-400">${pct}% · ${fmtK(loc.revenue||0)}</p>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ─── Chart: So sánh kỳ này vs kỳ trước (tab Doanh thu / Lợi nhuận) ───
