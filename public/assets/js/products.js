@@ -3856,6 +3856,42 @@ function hideOutdatedNotification() {
     }
 }
 
+async function dismissOutdatedProducts() {
+    const btn = document.getElementById('dismissOutdatedBtn');
+    const originalHTML = btn ? btn.innerHTML : null;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Đang xử lý...</span>';
+    }
+
+    const restoreBtn = () => {
+        if (btn && originalHTML) { btn.disabled = false; btn.innerHTML = originalHTML; }
+    };
+
+    try {
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'dismissOutdatedNotification' })
+        });
+        const data = await response.json();
+        if (data.success) {
+            hideOutdatedNotification();
+            outdatedProductsCache = null;
+            shouldShowMaterialOutdatedWarnings = false;
+            showToast('Đã bỏ qua cập nhật giá sản phẩm', 'success', 3000);
+        } else {
+            restoreBtn();
+            showToast('Không thể bỏ qua: ' + (data.error || 'Lỗi không xác định'), 'error', 4000);
+        }
+    } catch (error) {
+        console.error('Error dismissing outdated notification:', error);
+        restoreBtn();
+        showToast('Lỗi kết nối, vui lòng thử lại', 'error', 4000);
+    }
+}
+
 function hasMeaningfulDifference(a, b, epsilon = 0.01) {
     const n1 = Number(a || 0);
     const n2 = Number(b || 0);
@@ -4158,11 +4194,8 @@ async function executeQuickRecalculate() {
 
         const data = await response.json();
 
-        // Hide loading toast
-        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
-        if (loadingToast) {
-            toastManager.remove(loadingToast);
-        }
+        // Hide loading toast — products.js uses its own showToast (DOM-based, not toastManager)
+        document.getElementById(`productsSimpleToast-${loadingId}`)?.remove();
 
         if (data.success) {
             const { updated, skipped, updates } = data;
@@ -4210,12 +4243,7 @@ async function executeQuickRecalculate() {
             throw new Error(data.error || 'Không thể cập nhật giá');
         }
     } catch (error) {
-        // Hide loading toast
-        const loadingToast = toastManager.toasts.find(t => t.id === loadingId);
-        if (loadingToast) {
-            toastManager.remove(loadingToast);
-        }
-        
+        document.getElementById(`productsSimpleToast-${loadingId}`)?.remove();
         console.error('Error recalculating prices:', error);
         showToast('Lỗi: ' + error.message, 'error');
     }

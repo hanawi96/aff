@@ -860,6 +860,36 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
 }
 
 
+// Dismiss the "outdated products" notification without updating any prices.
+// Stamps timestamps so the system sees all products as "up to date" after
+// the user decides the material price change doesn't require product updates.
+export async function dismissOutdatedNotification(env, corsHeaders) {
+    try {
+        const nowUnix = Math.floor(Date.now() / 1000);
+
+        // Get all active product IDs that have materials
+        const { results } = await env.DB.prepare(`
+            SELECT DISTINCT pm.product_id
+            FROM product_materials pm
+            INNER JOIN products p ON p.id = pm.product_id
+            WHERE p.is_active = 1
+        `).all();
+
+        if (results.length > 0) {
+            const idList = results.map(r => r.product_id).join(',');
+            await env.DB.prepare(
+                `UPDATE product_materials SET updated_at_unix = ${nowUnix} WHERE product_id IN (${idList})`
+            ).run();
+        }
+
+        await setSystemMetaNumber(env, 'products_last_recalculate_unix', nowUnix);
+
+        return jsonResponse({ success: true }, 200, corsHeaders);
+    } catch (error) {
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 // Bulk-fetch all product–material rows in ONE query, group by product in JS.
 // Eliminates N+1 query problem (was 121+ queries → now 1).
 async function buildProductMaterialsMap(env) {

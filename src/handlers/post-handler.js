@@ -43,7 +43,8 @@ import {
     createProduct, 
     updateProduct, 
     deleteProduct,
-    recalculateAllProductPrices
+    recalculateAllProductPrices,
+    dismissOutdatedNotification
 } from '../services/products/product-service.js';
 
 // Product Categories
@@ -522,6 +523,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await deleteProduct(data, env, corsHeaders);
             case 'recalculateAllPrices':
                 return await recalculateAllProductPrices(env, corsHeaders, data.changedMaterials);
+            case 'dismissOutdatedNotification':
+                return await dismissOutdatedNotification(env, corsHeaders);
             case 'addProductCategory':
                 return await addProductCategory(data, env, corsHeaders);
             case 'removeProductCategory':
