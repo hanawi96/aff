@@ -1995,12 +1995,6 @@ function renderAll(d,prev){
         </div>
       </div>
     </div>
-    ${d.orders&&d.orders.length?`
-    <div>
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 px-0.5">Đơn hàng · ${d.orders.length} đơn</h3>
-      <div id="stOrderList" class="space-y-2"></div>
-      <div id="stLoadMoreWrap" class="mt-3"></div>
-    </div>`:''}
   `;
   const cEl=document.getElementById('statsContent');
   const skEl=document.getElementById('skeleton');
@@ -2020,53 +2014,6 @@ function renderAll(d,prev){
       requestAnimationFrame(()=>{b.style.width=w;});
     });
   });
-  if(d.orders&&d.orders.length){
-    currentOrders=d.orders;
-    orderPage=1;
-    renderStatsOrderList();
-  }
-}
-
-function renderStatsOrderList(){
-  const list=document.getElementById('stOrderList');
-  const wrap=document.getElementById('stLoadMoreWrap');
-  if(!list||!wrap)return;
-  const slice=currentOrders.slice(0,orderPage*ORDER_PAGE_SIZE);
-  const remaining=currentOrders.length-slice.length;
-  list.innerHTML=slice.map(o=>{
-    const pc=(o.profit||0)>=0;
-    const d=new Date(o.created_at_unix);
-    const ds=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-    return`<div class="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3">
-      <div class="min-w-0 flex-1">
-        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-          <span class="w-1.5 h-1.5 rounded-full shrink-0 ${pc?'bg-green-400':'bg-red-400'}"></span>
-          <span class="truncate">${o.customer_name||'—'}</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-0.5">${ds} · ${o.order_id||''}</p>
-      </div>
-      <div class="text-right shrink-0">
-        <p class="text-sm font-bold text-gray-900">${fmtK(o.total_amount)}</p>
-        <p class="text-xs font-semibold ${pc?'text-green-500':'text-red-400'} mt-0.5">${pc?'+':''}${fmtK(o.profit)}</p>
-      </div>
-    </div>`;
-  }).join('');
-  wrap.innerHTML=remaining>0
-    ?`<button onclick="loadMoreStatsOrders()" class="w-full py-3 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-        Xem thêm ${remaining} đơn
-      </button>`
-    :(currentOrders.length>ORDER_PAGE_SIZE
-      ?`<p class="text-xs text-center text-gray-400 py-2">Đã hiển thị tất cả ${currentOrders.length} đơn</p>`
-      :'');
-}
-
-function loadMoreStatsOrders(){
-  orderPage++;
-  renderStatsOrderList();
-  const items=document.getElementById('stOrderList').children;
-  const firstNew=items[(orderPage-1)*ORDER_PAGE_SIZE];
-  if(firstNew)firstNew.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function switchInsightTab(tab){
