@@ -978,11 +978,11 @@ function toggleFreeShipping() {
 }
 
 // Close add order modal
-function closeAddOrderModal() {
+function closeAddOrderModal(skipDraft = false) {
     const modal = document.getElementById('addOrderModal');
     if (modal) {
         const isEdit = !!document.getElementById('orderFormEditDbId')?.value;
-        if (!isEdit) _saveOrderDraft();
+        if (!isEdit && !skipDraft) _saveOrderDraft();
 
         modal.remove();
         currentOrderProducts = [];

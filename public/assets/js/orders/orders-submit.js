@@ -213,8 +213,8 @@ async function submitNewOrder() {
                 });
             }
             
+            closeAddOrderModal(true);
             if (typeof clearOrderDraft === 'function') clearOrderDraft();
-            closeAddOrderModal();
             
             // Reload orders data
             loadOrdersData();

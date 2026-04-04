@@ -9,7 +9,9 @@
 <style>
 *{-webkit-tap-highlight-color:transparent}
 body{overscroll-behavior-y:contain}
-.tab-active{color:#4f46e5;border-color:#4f46e5;font-weight:600}
+.tab-active{background:#6366f1;color:#fff!important;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
+.tab-active span{background:rgba(255,255,255,.25)!important;color:#fff!important}
+.tab{transition:all .15s ease}
 .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.2s infinite}
 @keyframes sk{to{background-position:-200% 0}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -56,13 +58,15 @@ body{overscroll-behavior-y:contain}
 </header>
 
 <!-- Status Tabs -->
-<div class="sticky top-[60px] z-30 bg-white border-b border-gray-200 flex">
-  <button class="tab flex-1 py-3 text-center text-sm border-b-2 border-transparent text-gray-500 tab-active" data-status="pending" onclick="switchTab(this)">
-    Chờ xử lý <span id="countPending" class="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
-  </button>
-  <button class="tab flex-1 py-3 text-center text-sm border-b-2 border-transparent text-gray-500" data-status="shipped" onclick="switchTab(this)">
-    Đã gửi <span id="countShipped" class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"></span>
-  </button>
+<div class="sticky top-[60px] z-30 bg-white border-b border-gray-200 px-3 py-2">
+  <div class="flex gap-1.5 bg-gray-100 rounded-xl p-1">
+    <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500 tab-active" data-status="pending" onclick="switchTab(this)">
+      Chờ xử lý <span id="countPending" class="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
+    </button>
+    <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500" data-status="shipped" onclick="switchTab(this)">
+      Đã gửi <span id="countShipped" class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"></span>
+    </button>
+  </div>
 </div>
 
 <!-- Order List -->
