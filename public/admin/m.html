@@ -91,12 +91,16 @@ body{overscroll-behavior-y:contain}
 <!-- Order Detail Panel -->
 <div id="detailPanel" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeDetail()"></div>
-  <div id="detailContent" class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white overflow-y-auto slide-in"></div>
+  <div class="absolute inset-0 max-w-lg mx-auto pointer-events-none">
+    <div id="detailContent" class="absolute right-0 top-0 bottom-0 w-full bg-white overflow-y-auto slide-in pointer-events-auto"></div>
+  </div>
 </div>
 
 <!-- Create Order Panel -->
-<div id="createPanel" class="fixed inset-0 z-50 hidden">
-  <div id="createContent" class="absolute inset-0 bg-gray-50 overflow-y-auto"></div>
+<div id="createPanel" class="fixed inset-0 z-50 hidden bg-gray-50 overflow-y-auto">
+  <div class="min-h-full max-w-lg mx-auto">
+    <div id="createContent" class="bg-gray-50"></div>
+  </div>
 </div>
 
 <!-- Discount Sheet -->
@@ -536,7 +540,7 @@ function buildCreateForm(isEdit=false){
     <h2 class="font-bold text-gray-900 flex-1">${isEdit?'Sửa đơn hàng':'Tạo đơn hàng'}</h2>
     <button id="submitBtn" onclick="submitOrder()" class="h-9 px-4 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white text-sm font-semibold rounded-xl flex items-center gap-1.5">${isEdit?'Lưu lại':'Tạo đơn'}</button>
   </div>
-  <div class="p-4 space-y-5 pb-10">
+  <div class="pt-4 pb-10 space-y-4">
 
     <!-- Khách hàng -->
     <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
