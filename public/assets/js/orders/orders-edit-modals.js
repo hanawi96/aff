@@ -582,6 +582,21 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         // Convert back to JSON string
         const updatedProductsJson = JSON.stringify(products);
 
+        // ── Tính lại shipping_fee theo điều kiện freeship ──
+        const currentShippingFee  = order.shipping_fee  || 0;
+        const currentShippingCost = order.shipping_cost || 0;
+        const shouldFreeship = _calcFreeshipForProducts(products);
+
+        let newShippingFee;
+        if (shouldFreeship) {
+            newShippingFee = 0; // Áp dụng miễn phí ship
+        } else if (currentShippingFee === 0 && currentShippingCost > 0) {
+            // Trước có freeship, giờ không còn → khôi phục phí ship thực
+            newShippingFee = currentShippingCost;
+        } else {
+            newShippingFee = currentShippingFee; // Giữ nguyên
+        }
+
         // Update in database via API
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
@@ -591,7 +606,8 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
             body: JSON.stringify({
                 action: 'updateOrderProducts',
                 orderId: orderId,
-                products: updatedProductsJson
+                products: updatedProductsJson,
+                shipping_fee: newShippingFee
             })
         });
 
@@ -600,9 +616,10 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         if (data.success) {
             // Update local data using helper function
             const updates = { products: updatedProductsJson };
-            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
-            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
-            if (data.commission !== undefined) updates.commission = data.commission;
+            if (data.total_amount  !== undefined) updates.total_amount  = data.total_amount;
+            if (data.shipping_fee  !== undefined) updates.shipping_fee  = data.shipping_fee;
+            if (data.product_cost  !== undefined) updates.product_cost  = data.product_cost;
+            if (data.commission    !== undefined) updates.commission    = data.commission;
 
             updateOrderData(orderId, updates);
 
@@ -1531,4 +1548,54 @@ async function savePaymentMethod(orderId, orderCode) {
         console.error('Error saving payment method:', error);
         showToast('Không thể cập nhật: ' + error.message, 'error', null, saveId);
     }
+}
+
+// ============================================
+// FREESHIP CALCULATION (mirror of autoUpdateFreeshipCheckbox)
+// Dùng khi edit sản phẩm để tính lại shipping_fee
+// ============================================
+function _calcFreeshipForProducts(productsArr) {
+    if (!productsArr || productsArr.length === 0) return false;
+
+    const FREESHIP_CAT = 23;
+    const BI_CHARM_CAT = 24;
+
+    let totalQty = 0;
+    let has23 = false, has24 = false;
+    let qtyOtherMain = 0, non23Qty = 0;
+    let onlyAllCat24 = productsArr.length > 0;
+
+    for (const p of productsArr) {
+        const q = parseInt(p.quantity, 10) || 1;
+        totalQty += q;
+
+        const catalog = (typeof allProductsList !== 'undefined')
+            ? allProductsList.find(cp => cp.id === (p.product_id || p.id))
+            : null;
+
+        if (!catalog) {
+            onlyAllCat24 = false;
+            non23Qty += q;
+            qtyOtherMain += q;
+            continue;
+        }
+
+        const in23 = productBelongsToCategory(catalog, FREESHIP_CAT);
+        const in24 = productBelongsToCategory(catalog, BI_CHARM_CAT);
+
+        if (in23) has23 = true;
+        if (in24) has24 = true;
+        if (!in23 && !in24) qtyOtherMain += q;
+        if (!in23) non23Qty += q;
+        if (!in24) onlyAllCat24 = false;
+    }
+
+    onlyAllCat24 = onlyAllCat24 && has24 && !has23;
+    const blocked = onlyAllCat24 || (has24 && has23 && qtyOtherMain === 0);
+    const exclusivelyCat23Only = has23 && non23Qty === 0;
+
+    return !blocked && (
+        (totalQty >= 2 && !exclusivelyCat23Only)
+        || (has23 && non23Qty >= 1)
+    );
 }

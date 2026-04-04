@@ -24,7 +24,7 @@ export async function updateOrderProducts(data, env, corsHeaders) {
 
         // Get order info for commission calculation
         const order = await env.DB.prepare(`
-            SELECT referral_code, shipping_fee
+            SELECT referral_code, shipping_fee, shipping_cost
             FROM orders 
             WHERE id = ?
         `).bind(data.orderId).first();
@@ -79,8 +79,13 @@ export async function updateOrderProducts(data, env, corsHeaders) {
         `).bind(data.orderId).first();
 
         const productTotal = productTotalResult?.product_total || 0;
-        const shippingFee = order.shipping_fee || 0;
-        
+
+        // Ưu tiên dùng shipping_fee được gửi từ client (đã tính lại freeship)
+        // Nếu client không gửi, giữ nguyên giá trị trong DB
+        const shippingFee = data.shipping_fee !== undefined
+            ? data.shipping_fee
+            : (order.shipping_fee || 0);
+
         // Get discount amount from order
         const orderDiscount = await env.DB.prepare(`
             SELECT discount_amount
@@ -93,14 +98,14 @@ export async function updateOrderProducts(data, env, corsHeaders) {
         // Calculate total_amount: productTotal + shippingFee - discountAmount
         const newTotalAmount = productTotal + shippingFee - discountAmount;
         
-        // Update total_amount in orders table
+        // Update total_amount AND shipping_fee in orders table
         await env.DB.prepare(`
             UPDATE orders
-            SET total_amount = ?
+            SET total_amount = ?, shipping_fee = ?
             WHERE id = ?
-        `).bind(newTotalAmount, data.orderId).run();
+        `).bind(newTotalAmount, shippingFee, data.orderId).run();
         
-        const updatedOrder = { total_amount: newTotalAmount };
+        const updatedOrder = { total_amount: newTotalAmount, shipping_fee: shippingFee };
 
         // Calculate product_cost from order_items
         const productCostResult = await env.DB.prepare(`
@@ -149,6 +154,7 @@ export async function updateOrderProducts(data, env, corsHeaders) {
             success: true,
             message: 'Đã cập nhật sản phẩm',
             total_amount: updatedOrder.total_amount,
+            shipping_fee: updatedOrder.shipping_fee,
             product_cost: calculatedProductCost,
             commission: calculatedCommission
         }, 200, corsHeaders);
