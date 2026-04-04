@@ -256,7 +256,19 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdAddress.className = 'px-4 py-4 text-center';
     tdAddress.style.minWidth = '350px';
     tdAddress.style.maxWidth = '500px';
-    const address = order.address || 'Chưa có địa chỉ';
+    // Reconstruct full address (name_with_type) from IDs when available,
+    // so "Phường 19, Quận Bình Thạnh, Thành phố Hồ Chí Minh" is always shown correctly
+    let address = order.address || 'Chưa có địa chỉ';
+    if (order.province_id && order.district_id && window.addressSelector?.loaded) {
+        const pId = String(order.province_id);
+        const dId = String(order.district_id);
+        const wId = order.ward_id ? String(order.ward_id) : '';
+        const reconstructed = window.addressSelector.generateFullAddress(
+            order.street_address || '',
+            pId, dId, wId
+        );
+        if (reconstructed) address = reconstructed;
+    }
     tdAddress.innerHTML = `
         <div class="group cursor-pointer hover:bg-amber-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors relative" onclick="editAddress(${order.id}, '${escapeHtml(order.order_id)}')">
             <p class="text-sm text-gray-700 line-clamp-3 pr-6 text-left" title="${escapeHtml(address)}">

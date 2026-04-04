@@ -2,11 +2,31 @@
 
 /**
  * Parse address into components for SPX export (Tỉnh/Quận/Xã/Địa chỉ chi tiết)
- * IMPROVED: Prioritize structured address fields (province_name, district_name, etc.)
- * Fallback to parsing old address field if structured fields not available
+ * PRIORITY 1: Look up name_with_type from addressSelector using stored IDs (most accurate)
+ * PRIORITY 2: Use stored structured name fields (may have short names without type prefix)
+ * PRIORITY 3: Parse old address string (backward compatibility)
  */
 function parseAddressForExport(order) {
-    // PRIORITY 1: Use structured address fields (new format)
+    // PRIORITY 1: Use IDs to look up full names (name_with_type) from tree.json
+    // This ensures "Phường 19", "Quận Bình Thạnh", "Thành phố Hồ Chí Minh" etc.
+    if (order.province_id && order.district_id && window.addressSelector?.loaded) {
+        const pId = String(order.province_id);
+        const dId = String(order.district_id);
+        const wId = order.ward_id ? String(order.ward_id) : '';
+        const pName = window.addressSelector.getProvinceName(pId);
+        const dName = window.addressSelector.getDistrictName(pId, dId);
+        const wName = wId ? window.addressSelector.getWardName(pId, dId, wId) : '';
+        if (pName || dName) {
+            return {
+                province: pName || order.province_name || '',
+                district: dName || order.district_name || '',
+                ward: wName || order.ward_name || '',
+                detail: order.street_address || ''
+            };
+        }
+    }
+
+    // PRIORITY 2: Use stored structured address fields (may be short names)
     if (order.province_name || order.district_name || order.ward_name || order.street_address) {
         return {
             province: order.province_name || '',

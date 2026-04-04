@@ -1046,10 +1046,22 @@ async function saveAddress(orderId, orderCode) {
     const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = streetInput?.value?.trim() || null;
 
-    // Get names from selected options
-    const provinceName = (provinceId && provinceSelect?.selectedOptions[0]?.text) || null;
-    const districtName = (districtId && districtSelect?.selectedOptions[0]?.text) || null;
-    const wardName = (wardId && wardSelect?.selectedOptions[0]?.text) || null;
+    // Get full names (name_with_type) — prefer addressSelector lookup by ID for accuracy
+    const provinceName = (provinceId && (
+        window.addressSelector?.loaded
+            ? window.addressSelector.getProvinceName(provinceId)
+            : null
+    ) || provinceSelect?.selectedOptions[0]?.text) || null;
+    const districtName = (districtId && (
+        window.addressSelector?.loaded
+            ? window.addressSelector.getDistrictName(provinceId, districtId)
+            : null
+    ) || districtSelect?.selectedOptions[0]?.text) || null;
+    const wardName = (wardId && (
+        window.addressSelector?.loaded
+            ? window.addressSelector.getWardName(provinceId, districtId, wardId)
+            : null
+    ) || wardSelect?.selectedOptions[0]?.text) || null;
 
     // Generate full address
     const fullAddress = window.addressSelector.generateFullAddress(
