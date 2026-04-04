@@ -272,7 +272,9 @@ async function loadOrders(){
 function applyFilter(){
   const q=searchTerm.toLowerCase();
   filtered=allOrders.filter(o=>{
-    if(currentTab!=='all'&&(o.status||'pending')!==currentTab)return false;
+    // Khi có từ khóa tìm kiếm: tìm trên tất cả trạng thái (pending + shipped)
+    // Khi không có từ khóa: lọc theo tab hiện tại
+    if(!q&&currentTab!=='all'&&currentTab!=='stats'&&(o.status||'pending')!==currentTab)return false;
     if(q){
       const s=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();
       if(!s.includes(q))return false;
