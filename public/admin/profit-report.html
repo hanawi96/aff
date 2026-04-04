@@ -163,6 +163,7 @@
         }
 
         .period-filter-container[data-active="today"] .period-btn[data-period="today"],
+        .period-filter-container[data-active="yesterday"] .period-btn[data-period="yesterday"],
         .period-filter-container[data-active="week"] .period-btn[data-period="week"],
         .period-filter-container[data-active="month"] .period-btn[data-period="month"],
         .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"],
@@ -176,6 +177,7 @@
         }
 
         .period-filter-container[data-active="today"] .period-btn[data-period="today"]:hover,
+        .period-filter-container[data-active="yesterday"] .period-btn[data-period="yesterday"]:hover,
         .period-filter-container[data-active="week"] .period-btn[data-period="week"]:hover,
         .period-filter-container[data-active="month"] .period-btn[data-period="month"]:hover,
         .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"]:hover,
@@ -378,6 +380,7 @@
             <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Khoảng thời gian</p>
             <div class="period-filter-container flex flex-wrap gap-2" data-active="week">
                 <button type="button" onclick="changePeriod('today')" data-period="today" class="period-btn px-3 py-2 sm:px-4">Hôm nay</button>
+                <button type="button" onclick="changePeriod('yesterday')" data-period="yesterday" class="period-btn px-3 py-2 sm:px-4">Hôm qua</button>
                 <button type="button" onclick="changePeriod('week')" data-period="week" class="period-btn px-3 py-2 sm:px-4">Tuần</button>
                 <button type="button" onclick="changePeriod('month')" data-period="month" class="period-btn px-3 py-2 sm:px-4">Tháng</button>
                 <button type="button" onclick="changePeriod('quarter')" data-period="quarter" class="period-btn px-3 py-2 sm:px-4">3 tháng</button>

@@ -15,6 +15,7 @@ let currentChartTab = 'revenue'; // Track active chart tab
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 const dataCache = {
     today: { data: null, timestamp: 0 },
+    yesterday: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
     quarter: { data: null, timestamp: 0 },
@@ -24,6 +25,7 @@ const dataCache = {
 
 const chartCache = {
     today: { data: null, timestamp: 0 },
+    yesterday: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
     quarter: { data: null, timestamp: 0 },
@@ -33,6 +35,7 @@ const chartCache = {
 
 const ordersChartCache = {
     today: { data: null, timestamp: 0 },
+    yesterday: { data: null, timestamp: 0 },
     week: { data: null, timestamp: 0 },
     month: { data: null, timestamp: 0 },
     quarter: { data: null, timestamp: 0 },
@@ -72,10 +75,11 @@ function switchChartTab(tab) {
 }
 
 /**
- * Get API period value (convert 'custom' to 'all' for backend compatibility)
+ * Get API period value (convert 'custom'/'yesterday' to 'all' for backend compatibility)
  */
 function getAPIPeriod() {
-    return currentPeriod === 'custom' ? 'all' : currentPeriod;
+    if (currentPeriod === 'custom' || currentPeriod === 'yesterday') return 'all';
+    return currentPeriod;
 }
 
 /**
@@ -92,6 +96,15 @@ function getDateRangeParams() {
         const endDate = new Date(customDateRange.endDate + 'T23:59:59.999+07:00');
         startDateParam = `&startDate=${startDate.toISOString()}`;
         endDateParam = `&endDate=${endDate.toISOString()}`;
+    } else if (currentPeriod === 'yesterday') {
+        // Yesterday: 00:00:00 → 23:59:59.999 VN timezone
+        const now = new Date();
+        const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
+        const vnYesterdayStart = new Date(vnToday.getTime() - 24 * 60 * 60 * 1000);
+        const vnYesterdayEnd = new Date(vnToday.getTime() - 1); // 23:59:59.999 of yesterday
+        startDateParam = `&startDate=${vnYesterdayStart.toISOString()}`;
+        endDateParam = `&endDate=${vnYesterdayEnd.toISOString()}`;
     } else if (currentPeriod === 'today') {
         const vnStartOfToday = getVNStartOfToday();
         startDateParam = `&startDate=${vnStartOfToday.toISOString()}`;
@@ -914,6 +927,10 @@ function renderRevenueChart(data) {
             periodLabel = 'Hôm nay';
             previousLabel = 'Hôm qua';
             break;
+        case 'yesterday':
+            periodLabel = 'Hôm qua';
+            previousLabel = 'Hôm kia';
+            break;
         case 'week':
             periodLabel = 'Tuần này';
             previousLabel = 'Tuần trước';
@@ -925,6 +942,12 @@ function renderRevenueChart(data) {
         case 'year':
             periodLabel = 'Năm nay';
             previousLabel = 'Năm trước';
+            break;
+        case 'all':
+            if (currentPeriod === 'yesterday') {
+                periodLabel = 'Hôm qua';
+                previousLabel = 'Hôm kia';
+            }
             break;
     }
     
@@ -1205,6 +1228,10 @@ function renderOrdersChart(data) {
             periodLabel = 'Hôm nay';
             previousLabel = 'Hôm qua';
             break;
+        case 'yesterday':
+            periodLabel = 'Hôm qua';
+            previousLabel = 'Hôm kia';
+            break;
         case 'week':
             periodLabel = 'Tuần này';
             previousLabel = 'Tuần trước';
@@ -1216,6 +1243,12 @@ function renderOrdersChart(data) {
         case 'year':
             periodLabel = 'Năm nay';
             previousLabel = 'Năm trước';
+            break;
+        case 'all':
+            if (currentPeriod === 'yesterday') {
+                periodLabel = 'Hôm qua';
+                previousLabel = 'Hôm kia';
+            }
             break;
     }
     
@@ -1470,6 +1503,10 @@ function renderProfitChart(data) {
             periodLabel = 'Hôm nay';
             previousLabel = 'Hôm qua';
             break;
+        case 'yesterday':
+            periodLabel = 'Hôm qua';
+            previousLabel = 'Hôm kia';
+            break;
         case 'week':
             periodLabel = 'Tuần này';
             previousLabel = 'Tuần trước';
@@ -1481,6 +1518,12 @@ function renderProfitChart(data) {
         case 'year':
             periodLabel = 'Năm nay';
             previousLabel = 'Năm trước';
+            break;
+        case 'all':
+            if (currentPeriod === 'yesterday') {
+                periodLabel = 'Hôm qua';
+                previousLabel = 'Hôm kia';
+            }
             break;
     }
     
