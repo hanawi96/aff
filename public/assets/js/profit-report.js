@@ -951,6 +951,10 @@ function renderRevenueChart(data) {
             break;
     }
     
+    // Totals for subtitle (data.currentPeriod.total is a summary object from API)
+    const revCurTotal = data.currentPeriod?.total?.revenue ?? data.currentPeriod.revenue.reduce((s, v) => s + v, 0);
+    const revPrevTotal = data.previousPeriod?.total?.revenue ?? data.previousPeriod.revenue.reduce((s, v) => s + v, 0);
+
     // Create chart
     revenueChart = new Chart(ctx, {
         type: 'line',
@@ -996,6 +1000,13 @@ function renderRevenueChart(data) {
                 intersect: false
             },
             plugins: {
+                subtitle: {
+                    display: true,
+                    text: `Tổng ${periodLabel}: ${formatCurrency(revCurTotal)}   ·   Tổng ${previousLabel}: ${formatCurrency(revPrevTotal)}`,
+                    color: '#6366f1',
+                    font: { size: 12, weight: '500' },
+                    padding: { bottom: 10 }
+                },
                 legend: {
                     display: true,
                     position: 'top',
@@ -1252,6 +1263,14 @@ function renderOrdersChart(data) {
             break;
     }
     
+    // Totals for subtitle (currentPeriod.total is the orders-per-slot array here)
+    const ordCurTotal = Array.isArray(data.currentPeriod.total)
+        ? data.currentPeriod.total.reduce((s, v) => s + v, 0)
+        : (data.currentPeriod.total || 0);
+    const ordPrevTotal = Array.isArray(data.previousPeriod.total)
+        ? data.previousPeriod.total.reduce((s, v) => s + v, 0)
+        : (data.previousPeriod.total || 0);
+
     // Create chart
     ordersChart = new Chart(ctx, {
         type: 'line',
@@ -1297,6 +1316,13 @@ function renderOrdersChart(data) {
                 intersect: false
             },
             plugins: {
+                subtitle: {
+                    display: true,
+                    text: `Tổng ${periodLabel}: ${ordCurTotal} đơn   ·   Tổng ${previousLabel}: ${ordPrevTotal} đơn`,
+                    color: '#10b981',
+                    font: { size: 12, weight: '500' },
+                    padding: { bottom: 10 }
+                },
                 legend: {
                     display: true,
                     position: 'top',
@@ -1527,6 +1553,10 @@ function renderProfitChart(data) {
             break;
     }
     
+    // Totals for subtitle
+    const profCurTotal = data.currentPeriod?.total?.profit ?? data.currentPeriod.profit.reduce((s, v) => s + v, 0);
+    const profPrevTotal = data.previousPeriod?.total?.profit ?? data.previousPeriod.profit.reduce((s, v) => s + v, 0);
+
     // Create chart with profit data
     profitChart = new Chart(ctx, {
         type: 'line',
@@ -1572,6 +1602,13 @@ function renderProfitChart(data) {
                 intersect: false
             },
             plugins: {
+                subtitle: {
+                    display: true,
+                    text: `Tổng ${periodLabel}: ${formatCurrency(profCurTotal)}   ·   Tổng ${previousLabel}: ${formatCurrency(profPrevTotal)}`,
+                    color: '#10b981',
+                    font: { size: 12, weight: '500' },
+                    padding: { bottom: 10 }
+                },
                 legend: {
                     display: true,
                     position: 'top',
