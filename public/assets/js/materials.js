@@ -855,63 +855,142 @@ function logout() {
 // ============================================
 
 async function recalculateAllPrices() {
-    // Show confirmation dialog
+    // Build changed-materials chips
+    const changedList = [...changedMaterialNames];
+    const chipsHtml = changedList.length > 0 ? `
+        <div class="px-4 py-2 bg-orange-50/70 border-b border-orange-100 flex items-center gap-1.5 shrink-0 overflow-x-auto">
+            <span class="text-[10px] font-bold text-orange-400 uppercase tracking-wider shrink-0">Nguyên liệu:</span>
+            ${changedList.slice(0, 6).map(n => `<span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-700 text-[11px] font-medium whitespace-nowrap">${escapeHtml(n)}</span>`).join('')}
+            ${changedList.length > 6 ? `<span class="text-[11px] text-orange-400 font-semibold shrink-0">+${changedList.length - 6}</span>` : ''}
+        </div>` : '';
+
+    // Skeleton rows for loading state
+    const skeletonHtml = Array.from({length: 4}, (_, i) => `
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 animate-pulse">
+            <div class="w-6 h-6 rounded-full bg-gray-100 shrink-0"></div>
+            <div class="flex-1 space-y-1.5">
+                <div class="h-3.5 bg-gray-100 rounded-full w-${i % 2 === 0 ? '3/5' : '2/4'}"></div>
+                <div class="h-2.5 bg-gray-100 rounded-full w-1/3"></div>
+            </div>
+            <div class="text-right space-y-1.5 shrink-0">
+                <div class="h-3.5 bg-gray-100 rounded-full w-20"></div>
+                <div class="h-2.5 bg-gray-100 rounded-full w-12 ml-auto"></div>
+            </div>
+        </div>`).join('');
+
     const modal = document.createElement('div');
     modal.id = 'confirmModal';
     modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
-
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div class="p-6">
-                <div class="w-12 h-12 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 rounded-t-2xl flex items-center gap-3 shrink-0">
+                <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật giá sản phẩm?</h3>
-                <p class="text-sm text-gray-600 text-center mb-4">
-                    Hệ thống sẽ tính lại giá bán cho các sản phẩm có nguyên liệu vừa thay đổi giá, dựa trên:
-                </p>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
-                    <ul class="text-sm text-blue-800 space-y-2">
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span><strong>Giá nguyên liệu hiện tại</strong> (đã cập nhật)</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span><strong>Hệ số markup</strong> (cho sản phẩm dùng phương thức markup)</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span><strong>Lãi mong muốn</strong> (cho sản phẩm dùng phương thức lãi cố định)</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span><strong>Công thức nguyên liệu</strong> của từng sản phẩm</span>
-                        </li>
-                    </ul>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-bold text-white leading-tight">Cập nhật giá sản phẩm</h3>
+                    <p id="rcModalSubtitle" class="text-[11px] text-orange-100 leading-tight mt-0.5">Đang tải danh sách...</p>
                 </div>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                    <div class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-yellow-800">Logic cập nhật</p>
-                            <p class="text-xs text-yellow-700 mt-1">
-                                • <strong>Markup:</strong> Giá bán = Giá vốn × Hệ số markup<br>
-                                • <strong>Lãi cố định:</strong> Giá bán = Giá vốn + Lãi mong muốn<br>
-                                • Giá bán luôn làm tròn lên dạng X9.000đ (VD: 159k, 169k)
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Hủy</button>
-                    <button onclick="executeRecalculateAllPrices()" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">Cập nhật ngay</button>
-                </div>
+                <button onclick="closeConfirmModal()" class="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
-        </div>
-    `;
+            <!-- Changed materials chips (if any) -->
+            ${chipsHtml}
+            <!-- Product list -->
+            <div id="rcProductList" class="flex-1 overflow-y-auto min-h-0">
+                ${skeletonHtml}
+            </div>
+            <!-- Footer -->
+            <div class="px-5 py-3.5 border-t border-gray-100 flex gap-2.5 shrink-0">
+                <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm">Hủy</button>
+                <button id="rcConfirmBtn" disabled
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all opacity-60 cursor-not-allowed flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Đang tải...
+                </button>
+            </div>
+        </div>`;
 
     document.body.appendChild(modal);
+
+    // Fetch outdated product details in background
+    try {
+        const res = await fetch(`${CONFIG.API_URL}?action=getOutdatedProductsDetails&timestamp=${Date.now()}`);
+        const data = await res.json();
+
+        const listEl    = document.getElementById('rcProductList');
+        const subtitleEl = document.getElementById('rcModalSubtitle');
+        const btnEl     = document.getElementById('rcConfirmBtn');
+        if (!listEl) return; // modal was closed already
+
+        const products = (data.success && Array.isArray(data.products)) ? data.products : [];
+
+        if (products.length === 0) {
+            subtitleEl.textContent = 'Không có sản phẩm nào cần cập nhật';
+            listEl.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
+                        <svg class="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <p class="text-sm font-medium text-gray-600">Tất cả sản phẩm đã được cập nhật</p>
+                    <p class="text-xs text-gray-400 mt-1">Giá bán phản ánh đúng giá nguyên liệu hiện tại</p>
+                </div>`;
+            btnEl.disabled = false;
+            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
+            btnEl.innerHTML = 'Cập nhật ngay';
+            btnEl.onclick = () => executeRecalculateAllPrices();
+        } else {
+            subtitleEl.textContent = `${products.length} sản phẩm cần cập nhật giá`;
+            listEl.innerHTML = products.map((p, i) => {
+                const dp = (p.expected_price || 0) - (p.current_price || 0);
+                const dc = (p.expected_cost_price || 0) - (p.current_cost_price || 0);
+                const up = dp >= 0;
+                const fmtDelta = v => `${v >= 0 ? '+' : ''}${formatCurrency(v)}`;
+                return `
+                <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                    <span class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 text-[11px] font-bold flex items-center justify-center shrink-0">${i + 1}</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(p.name)}</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">
+                            Vốn: <span class="line-through">${formatCurrency(p.current_cost_price)}</span>
+                            <span class="mx-1 text-gray-300">→</span>
+                            <span class="font-medium text-gray-600">${formatCurrency(p.expected_cost_price)}</span>
+                            ${dc !== 0 ? `<span class="ml-1 ${dc >= 0 ? 'text-amber-500' : 'text-sky-500'}">(${fmtDelta(dc)})</span>` : ''}
+                        </p>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="flex items-center gap-1.5 justify-end">
+                            <span class="text-xs text-gray-400 line-through">${formatCurrency(p.current_price)}</span>
+                            <svg class="w-3 h-3 text-orange-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                            <span class="text-sm font-bold text-gray-900">${formatCurrency(p.expected_price)}</span>
+                        </div>
+                        <span class="text-xs font-semibold ${up ? 'text-emerald-500' : 'text-red-400'}">${fmtDelta(dp)}</span>
+                    </div>
+                </div>`;
+            }).join('');
+            btnEl.disabled = false;
+            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
+            btnEl.innerHTML = `Cập nhật ${products.length} sản phẩm`;
+            btnEl.onclick = () => executeRecalculateAllPrices();
+        }
+    } catch {
+        const listEl = document.getElementById('rcProductList');
+        const btnEl  = document.getElementById('rcConfirmBtn');
+        if (!listEl) return;
+        listEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                <svg class="w-8 h-8 text-red-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-sm text-gray-500">Không thể tải danh sách sản phẩm</p>
+            </div>`;
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.className = 'flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-lg cursor-pointer';
+            btnEl.innerHTML = 'Cập nhật ngay';
+            btnEl.onclick = () => executeRecalculateAllPrices();
+        }
+    }
 }
 
 async function executeRecalculateAllPrices() {

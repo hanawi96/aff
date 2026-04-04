@@ -717,133 +717,136 @@ export async function deleteProduct(data, env, corsHeaders) {
 // changedMaterials: optional string[] — only recalc products containing these materials.
 export async function recalculateAllProductPrices(env, corsHeaders, changedMaterials) {
     try {
-        let productsQuery;
-
+        // ── 1. Single bulk query: get all products + all their materials at once ─────────
+        // Previously this was N+1 queries (1 product list + 1 material fetch per product).
+        // Now it's a single JOIN, grouped in JS — same approach as buildProductMaterialsMap.
+        let rows;
         if (Array.isArray(changedMaterials) && changedMaterials.length > 0) {
-            const placeholders = changedMaterials.map(() => '?').join(',');
-            const { results } = await env.DB.prepare(`
-                SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
-                       p.pricing_method, p.target_profit
+            const ph = changedMaterials.map(() => '?').join(',');
+            const r = await env.DB.prepare(`
+                SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+                       p.price AS old_price, p.cost_price AS old_cost_price,
+                       pm.quantity, m.item_cost
                 FROM products p
                 INNER JOIN product_materials pm ON p.id = pm.product_id
-                WHERE p.is_active = 1 AND pm.material_name IN (${placeholders})
-            `).bind(...changedMaterials).all();
-            productsQuery = results;
-        } else {
-            const { results } = await env.DB.prepare(`
-                SELECT DISTINCT p.id, p.name, p.markup_multiplier, p.price as old_price, p.cost_price as old_cost_price,
-                       p.pricing_method, p.target_profit
-                FROM products p
-                INNER JOIN product_materials pm ON p.id = pm.product_id
+                JOIN cost_config m ON pm.material_name = m.item_name
                 WHERE p.is_active = 1
+                  AND p.id IN (
+                      SELECT DISTINCT product_id FROM product_materials
+                      WHERE material_name IN (${ph})
+                  )
+                ORDER BY p.id
+            `).bind(...changedMaterials).all();
+            rows = r.results;
+        } else {
+            const r = await env.DB.prepare(`
+                SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+                       p.price AS old_price, p.cost_price AS old_cost_price,
+                       pm.quantity, m.item_cost
+                FROM products p
+                INNER JOIN product_materials pm ON p.id = pm.product_id
+                JOIN cost_config m ON pm.material_name = m.item_name
+                WHERE p.is_active = 1
+                ORDER BY p.id
             `).all();
-            productsQuery = results;
+            rows = r.results;
         }
 
-        const productsWithMaterials = productsQuery;
-
-        if (productsWithMaterials.length === 0) {
-            return jsonResponse({
-                success: true,
-                message: 'No products with materials found',
-                updated: 0
-            }, 200, corsHeaders);
+        // ── 2. Group rows by product, accumulate materials in JS ─────────────────────────
+        const productMap = new Map();
+        for (const row of rows) {
+            if (!productMap.has(row.id)) {
+                productMap.set(row.id, {
+                    id: row.id, name: row.name,
+                    markup_multiplier: row.markup_multiplier,
+                    pricing_method: row.pricing_method,
+                    target_profit: row.target_profit,
+                    old_price: row.old_price,
+                    old_cost_price: row.old_cost_price,
+                    materials: []
+                });
+            }
+            productMap.get(row.id).materials.push({ quantity: row.quantity, item_cost: row.item_cost });
         }
 
-        let updatedCount = 0;
-        let skippedCount = 0;
+        if (productMap.size === 0) {
+            return jsonResponse({ success: true, message: 'No products with materials found', updated: 0 }, 200, corsHeaders);
+        }
+
+        // ── 3. Compute new prices purely in JS (zero extra DB round-trips) ───────────────
+        let updatedCount = 0, skippedCount = 0;
         const updates = [];
+        const toUpdate = [];   // { id, costPrice, price, markup }
+        const allProductIds = [];
 
-        // Process each product
-        for (const product of productsWithMaterials) {
-            try {
-                // Get materials for this product
-                const { results: materials } = await env.DB.prepare(`
-                    SELECT 
-                        pm.material_name, 
-                        pm.quantity, 
-                        m.item_cost,
-                        pm.updated_at_unix as formula_updated_at_unix,
-                        CAST(strftime('%s', m.updated_at) AS INTEGER) as material_updated_at_unix
-                    FROM product_materials pm
-                    JOIN cost_config m ON pm.material_name = m.item_name
-                    WHERE pm.product_id = ?
-                `).bind(product.id).all();
+        for (const product of productMap.values()) {
+            const pid = Number(product.id);
+            if (!pid || !isFinite(pid)) continue; // skip rows with invalid id
 
-                // Calculate new cost price
-                let newCostPrice = 0;
-                for (const material of materials) {
-                    newCostPrice += (material.quantity || 0) * (material.item_cost || 0);
-                }
+            const { materials } = product;
+            let newCostPrice = 0;
+            for (const m of materials) newCostPrice += (Number(m.quantity) || 0) * (Number(m.item_cost) || 0);
+            newCostPrice = Math.round(newCostPrice * 100) / 100;
+            if (!isFinite(newCostPrice)) newCostPrice = 0;
 
-                // Round to 2 decimal places
-                newCostPrice = Math.round(newCostPrice * 100) / 100;
+            const pricingMethod = product.pricing_method || 'markup';
+            const targetProfit = Number(product.target_profit) || 0;
+            let newPrice, newMarkup;
 
-                // Calculate new selling price based on pricing method
-                let newPrice;
-                let newMarkup;
-                const materialCount = materials.length;
-                const pricingMethod = product.pricing_method || 'markup';
-                const targetProfit = Number(product.target_profit || 0);
+            if (pricingMethod === 'profit' && product.target_profit != null && targetProfit >= 0) {
+                newPrice = smartRoundPriceUp(newCostPrice + targetProfit);
+                newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
+            } else {
+                newMarkup = (product.markup_multiplier != null && isFinite(product.markup_multiplier))
+                    ? Number(product.markup_multiplier)
+                    : (materials.length <= 3 ? 2.5 : materials.length <= 6 ? 3.0 : 3.5);
+                newPrice = smartRoundPrice(newCostPrice * newMarkup);
+            }
+            if (!isFinite(newPrice)) newPrice = 0;
+            if (!isFinite(newMarkup)) newMarkup = 2.5;
 
-                if (pricingMethod === 'profit' && product.target_profit !== null && product.target_profit !== undefined && targetProfit >= 0) {
-                    const minimumPrice = newCostPrice + targetProfit;
-                    newPrice = smartRoundPriceUp(minimumPrice);
-                    newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
-                } else {
-                    if (product.markup_multiplier !== null && product.markup_multiplier !== undefined) {
-                        newMarkup = product.markup_multiplier;
-                    } else {
-                        if (materialCount <= 3) {
-                            newMarkup = 2.5;
-                        } else if (materialCount <= 6) {
-                            newMarkup = 3.0;
-                        } else {
-                            newMarkup = 3.5;
-                        }
-                    }
-                    newPrice = smartRoundPrice(newCostPrice * newMarkup);
-                }
+            allProductIds.push(pid);
 
-                // Only update if prices changed
-                if (newCostPrice !== product.old_cost_price || newPrice !== product.old_price) {
-                    // Update product with new prices and calculated markup
-                    await env.DB.prepare(`
-                        UPDATE products
-                        SET cost_price = ?, price = ?, markup_multiplier = ?
-                        WHERE id = ?
-                    `).bind(newCostPrice, newPrice, newMarkup, product.id).run();
-
-                    updatedCount++;
-                    updates.push({
-                        id: product.id,
-                        name: product.name,
-                        old_cost_price: product.old_cost_price,
-                        new_cost_price: newCostPrice,
-                        old_price: product.old_price,
-                        new_price: newPrice,
-                        pricing_method: pricingMethod,
-                        markup: newMarkup,
-                        target_profit: product.target_profit
-                    });
-                } else {
-                    skippedCount++;
-                }
-
-            } catch (error) {
-                console.error(`Error processing product ${product.id}:`, error);
-                // Continue with next product
+            if (hasMeaningfulDifference(newCostPrice, product.old_cost_price) || hasMeaningfulDifference(newPrice, product.old_price)) {
+                toUpdate.push({ id: pid, costPrice: newCostPrice, price: newPrice, markup: newMarkup });
+                updatedCount++;
+                updates.push({
+                    id: pid, name: product.name,
+                    old_cost_price: product.old_cost_price, new_cost_price: newCostPrice,
+                    old_price: product.old_price, new_price: newPrice,
+                    pricing_method: pricingMethod, markup: newMarkup, target_profit: product.target_profit
+                });
+            } else {
+                skippedCount++;
             }
         }
 
-        await setSystemMetaNumber(env, 'products_last_recalculate_unix', Math.floor(Date.now() / 1000));
+        // ── 4. Write all price changes + stamp timestamps ────────────────────────────────
+        const nowUnix = Math.floor(Date.now() / 1000);
+
+        for (const p of toUpdate) {
+            await env.DB.prepare(
+                'UPDATE products SET cost_price=?, price=?, markup_multiplier=? WHERE id=?'
+            ).bind(p.costPrice, p.price, p.markup, p.id).run();
+        }
+
+        // Stamp ALL processed product_materials in one single query using literal IDs.
+        // IDs are integers validated above (isFinite check), safe to embed directly.
+        if (allProductIds.length > 0) {
+            const idList = allProductIds.join(',');
+            await env.DB.prepare(
+                `UPDATE product_materials SET updated_at_unix = ${nowUnix} WHERE product_id IN (${idList})`
+            ).run();
+        }
+
+        await setSystemMetaNumber(env, 'products_last_recalculate_unix', nowUnix);
 
         return jsonResponse({
             success: true,
             message: `Successfully recalculated prices for ${updatedCount} products`,
             updated: updatedCount,
             skipped: skippedCount,
-            total: productsWithMaterials.length,
+            total: productMap.size,
             updates: updates
         }, 200, corsHeaders);
 
