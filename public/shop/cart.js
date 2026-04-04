@@ -1153,6 +1153,16 @@ const cart = {
             checkoutTotal.textContent = utils.formatPrice(state.total);
         }
 
+        // Update bank transfer amount & QR if bank payment selected
+        if (state.paymentMethod === 'bank') {
+            const amountEl = document.getElementById('bankTransferAmount');
+            if (amountEl) amountEl.textContent = utils.formatPrice(state.total);
+            cartPayment.updateBankQR(state.total);
+        }
+
+        // Always preload QR in background for instant display when user clicks bank transfer
+        cartPayment.preloadBankQR(state.total);
+
         // Update discount row
         if (discountRow && discountCodeLabel && discountAmountElement) {
             if (discountAmount > 0) {
@@ -2024,6 +2034,9 @@ const cartPayment = {
             if (amountEl) {
                 amountEl.textContent = utils.formatPrice(state.total);
             }
+
+            // Generate QR code
+            cartPayment.updateBankQR(state.total);
             
             // Update bank transfer note with customer phone
             const phoneInput = document.getElementById('cartPhone');
@@ -2053,6 +2066,102 @@ const cartPayment = {
         console.log('Payment method selected:', method);
     },
     
+    // Preload QR image in background for instant display
+    preloadBankQR: (amount) => {
+        const phoneInput = document.getElementById('cartPhone');
+        const customerPhone = phoneInput ? (phoneInput.value || '').trim() : '';
+        const rawNote = customerPhone ? ('THANH TOAN ' + customerPhone) : 'THANH TOAN';
+        const qrUrl = `https://img.vietqr.io/image/TCB-19036266560015-qr_only.jpg?amount=${Math.round(amount)}&addInfo=${encodeURIComponent(rawNote)}&accountName=${encodeURIComponent('LE THI ANH')}`;
+
+        cartPayment._preloadedQrUrl = qrUrl;
+        const img = new Image();
+        img.src = qrUrl;
+    },
+
+    // Ensure QR elements exist in DOM (cache-safe: creates dynamically if absent)
+    ensureBankQRElements: () => {
+        if (document.getElementById('cartBankQrWrap')) return;
+
+        const bankInfo = document.getElementById('bankTransferInfo');
+        if (!bankInfo) return;
+
+        if (!document.getElementById('cartBankQrStyle')) {
+            const style = document.createElement('style');
+            style.id = 'cartBankQrStyle';
+            style.textContent = `
+                #cartBankQrWrap{text-align:center;padding:1rem 0 1rem;border-bottom:1px dashed rgba(0,0,0,.1);margin-bottom:.75rem}
+                #cartBankQrImg{width:100%;max-width:280px;height:auto;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:block;margin:0 auto .5rem}
+                #cartBankQrLoading{width:100%;max-width:280px;height:80px;border-radius:12px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-size:.8rem;color:#94a3b8;background:#f8fafc}
+                #cartBankQrHint{font-size:.72rem;color:#64748b;margin:0;font-weight:500}
+            `;
+            document.head.appendChild(style);
+        }
+
+        const wrap = document.createElement('div');
+        wrap.id = 'cartBankQrWrap';
+        wrap.style.display = 'none';
+        wrap.innerHTML = `
+            <div id="cartBankQrLoading" style="display:flex">Đang tạo mã QR...</div>
+            <img id="cartBankQrImg" alt="QR chuyển khoản" style="display:none" />
+            <p id="cartBankQrHint" style="font-size:.72rem;color:#64748b;margin:0;font-weight:500;text-align:center">Quét mã QR để chuyển khoản đúng số tiền</p>
+        `;
+
+        const content = bankInfo.querySelector('.bank-info-content');
+        if (content) {
+            bankInfo.insertBefore(wrap, content);
+        } else {
+            bankInfo.prepend(wrap);
+        }
+    },
+
+    // Generate VietQR code for current order total
+    updateBankQR: (amount) => {
+        cartPayment.ensureBankQRElements();
+
+        const qrWrap = document.getElementById('cartBankQrWrap');
+        const qrImg = document.getElementById('cartBankQrImg');
+        const qrLoading = document.getElementById('cartBankQrLoading');
+        if (!qrWrap || !qrImg) return;
+
+        const bankId = 'TCB';
+        const accountNo = '19036266560015';
+        const accountName = 'LE THI ANH';
+        const template = 'qr_only';
+
+        const phoneInput = document.getElementById('cartPhone');
+        const customerPhone = phoneInput ? (phoneInput.value || '').trim() : '';
+        const rawNote = customerPhone ? ('THANH TOAN ' + customerPhone) : 'THANH TOAN';
+        const addInfo = encodeURIComponent(rawNote);
+
+        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.jpg?amount=${Math.round(amount)}&addInfo=${addInfo}&accountName=${encodeURIComponent(accountName)}`;
+        const isPreloaded = cartPayment._preloadedQrUrl === qrUrl;
+
+        qrWrap.style.display = 'block';
+
+        if (isPreloaded) {
+            // Already cached → show instantly
+            if (qrLoading) qrLoading.style.display = 'none';
+            qrImg.src = qrUrl;
+            qrImg.style.display = 'block';
+        } else {
+            // Not preloaded → show loading while fetching
+            if (qrLoading) { qrLoading.style.display = 'flex'; qrLoading.textContent = 'Đang tạo mã QR...'; }
+            qrImg.style.display = 'none';
+
+            qrImg.onload = function() {
+                this.style.display = 'block';
+                const loading = document.getElementById('cartBankQrLoading');
+                if (loading) loading.style.display = 'none';
+            };
+            qrImg.onerror = function() {
+                const loading = document.getElementById('cartBankQrLoading');
+                if (loading) loading.textContent = 'Không tải được mã QR';
+            };
+
+            qrImg.src = qrUrl;
+        }
+    },
+
     // Confirm bank transfer
     confirmBankTransfer: () => {
         cartPayment.bankTransferConfirmed = true;

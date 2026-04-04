@@ -81,8 +81,11 @@ body{overscroll-behavior-y:contain}
 </main>
 
 <!-- Load more -->
-<div id="loadMore" class="hidden text-center py-4 pb-8">
-  <button onclick="loadMoreOrders()" class="text-indigo-600 text-sm font-medium">Tải thêm...</button>
+<div id="loadMore" class="hidden px-4 py-3 pb-8">
+  <button onclick="loadMoreOrders()" id="loadMoreBtn" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-indigo-200 bg-indigo-50 text-indigo-600 text-sm font-semibold active:scale-[0.98] transition-all">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+    <span id="loadMoreText">Xem tiếp</span>
+  </button>
 </div>
 
 <!-- Order Detail Panel -->
@@ -138,7 +141,7 @@ body{overscroll-behavior-y:contain}
 <script>
 // ─── State ───
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
-const PAGE_SIZE=20;
+const PAGE_SIZE=10;
 const API=()=>(typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://127.0.0.1:8787');
 const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800'}};
 const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
@@ -197,7 +200,12 @@ function renderCards(){
     const isPri=o.is_priority===1;
     let hasNoSize=false;
     let prods='';
-    try{const p=JSON.parse(o.products);prods=p.map(x=>x.name).join(', ');hasNoSize=p.some(x=>!x.size);}catch{}
+    try{
+      const p=JSON.parse(o.products);
+      prods=p.map(x=>x.name).join(', ');
+      const _norm=v=>{const s=String(v??'').trim().toLowerCase();return(s&&s!=='chưa có'&&s!=='chua co'&&s!=='chua có')?s:null;};
+      hasNoSize=p.some(x=>!_norm(x.size)&&!_norm(x.weight));
+    }catch{}
     const bgClass=isPri?'bg-yellow-50/60':hasNoSize?'bg-orange-50/60':'bg-white';
     const borderLeft=isPri?'border-l-[3px] border-l-yellow-400':'';
     card.className=`order-card ${bgClass} px-4 py-3.5 fade-up ${borderLeft}`;
@@ -234,7 +242,12 @@ function renderCards(){
     frag.appendChild(card);
   });
   list.appendChild(frag);
-  more.classList.toggle('hidden',slice.length>=filtered.length);
+  const remaining=filtered.length-slice.length;
+  more.classList.toggle('hidden',remaining<=0);
+  if(remaining>0){
+    const txt=document.getElementById('loadMoreText');
+    if(txt)txt.textContent=`Xem tiếp ${remaining} đơn`;
+  }
 }
 
 function loadMoreOrders(){page++;renderCards()}

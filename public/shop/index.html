@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Vòng dâu tằm by Ánh - Bảo Vệ Con Yêu Bằng Tình Yêu Thủ Công</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     
@@ -18,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
-    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="stylesheet" href="styles.css?v=14">
     <link rel="stylesheet" href="assets/css/home.css?v=2">
     <link rel="stylesheet" href="assets/css/feedback-carousel.css">
     <link rel="stylesheet" href="assets/css/featured-carousel.css">
@@ -1716,6 +1719,13 @@
                             </svg>
                             Thông tin chuyển khoản
                         </div>
+                        <!-- QR Code chuyển khoản tự động -->
+                        <div class="bank-qr-wrap" id="bankQrWrap" style="display:none">
+                            <div class="bank-qr-loading" id="bankQrLoading">Đang tạo mã QR...</div>
+                            <img id="bankQrImg" alt="QR chuyển khoản" class="bank-qr-img" style="display:none" onerror="document.getElementById('bankQrLoading').textContent='Không tải được mã QR'" onload="this.style.display='block';document.getElementById('bankQrLoading').style.display='none'" />
+                            <p class="bank-qr-hint">Quét mã QR để chuyển khoản đúng số tiền</p>
+                        </div>
+
                         <div class="bank-info-content">
                             <div class="bank-info-row">
                                 <span class="bank-info-label">Số tiền cần chuyển:</span>
@@ -1732,8 +1742,8 @@
                             <div class="bank-info-row">
                                 <span class="bank-info-label">Số tài khoản:</span>
                                 <span class="bank-info-value">
-                                    <span id="bankAccountNumber">6968969012</span>
-                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('6968969012')" title="Sao chép">
+                                    <span id="bankAccountNumber">19036266560015</span>
+                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('19036266560015')" title="Sao chép">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
                                             <path fill-rule="evenodd" d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 0 1-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0 1 13.5 1.5H15a3 3 0 0 1 2.663 1.618ZM12 4.5A1.5 1.5 0 0 1 13.5 3H15a1.5 1.5 0 0 1 1.5 1.5H12Z" clip-rule="evenodd" />
                                             <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 0 1 9 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0 1 16.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625v-12Z" />
@@ -2267,7 +2277,7 @@
         </div>
     </div>
     
-    <script type="module" src="assets/js/app.js"></script>
+    <script type="module" src="assets/js/app.js?v=14"></script>
     <script defer src="assets/js/faq-modal.js"></script>
     <script defer src="assets/js/feedback-carousel.js"></script>
 </body>

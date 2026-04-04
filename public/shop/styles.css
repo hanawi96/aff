@@ -3781,6 +3781,52 @@ body {
     flex-shrink: 0;
 }
 
+/* QR Code chuyển khoản */
+.bank-qr-wrap {
+    text-align: center;
+    padding: 1rem 0 1rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+    margin-bottom: 0.75rem;
+}
+
+.bank-qr-img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    display: block;
+    margin: 0 auto 0.5rem;
+}
+
+.bank-qr-loading {
+    width: 100%;
+    max-width: 280px;
+    height: 80px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    background: #f8fafc;
+    animation: qrPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes qrPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.bank-qr-hint {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+}
+
 .bank-confirm-btn {
     width: 100%;
     padding: 1rem;
