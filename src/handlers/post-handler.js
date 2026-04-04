@@ -522,7 +522,7 @@ export async function handlePost(path, request, env, corsHeaders) {
             case 'deleteProduct':
                 return await deleteProduct(data, env, corsHeaders);
             case 'recalculateAllPrices':
-                return await recalculateAllProductPrices(env, corsHeaders, data.changedMaterials);
+                return await recalculateAllProductPrices(env, corsHeaders, data.changedMaterials, data.productIds);
             case 'dismissOutdatedNotification':
                 return await dismissOutdatedNotification(env, corsHeaders);
             case 'addProductCategory':

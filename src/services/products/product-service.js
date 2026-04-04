@@ -715,15 +715,33 @@ export async function deleteProduct(data, env, corsHeaders) {
 
 // Recalculate product prices based on current material costs.
 // changedMaterials: optional string[] — only recalc products containing these materials.
-export async function recalculateAllProductPrices(env, corsHeaders, changedMaterials) {
+// productIds: optional number[] — only these product ids (partial update; skips global products_last_recalculate_unix).
+export async function recalculateAllProductPrices(env, corsHeaders, changedMaterials, productIdsRaw) {
     try {
+        const idFilter = [];
+        if (Array.isArray(productIdsRaw) && productIdsRaw.length > 0) {
+            const seen = new Set();
+            for (const x of productIdsRaw) {
+                const n = Number(x);
+                if (n > 0 && Number.isFinite(n) && !seen.has(n)) {
+                    seen.add(n);
+                    idFilter.push(n);
+                    if (idFilter.length >= 500) break;
+                }
+            }
+        }
+        const partialMode = idFilter.length > 0;
+        if (Array.isArray(productIdsRaw) && productIdsRaw.length > 0 && idFilter.length === 0) {
+            return jsonResponse({ success: false, error: 'Danh sách sản phẩm không hợp lệ' }, 400, corsHeaders);
+        }
+
+        const idClause = partialMode ? ` AND p.id IN (${idFilter.map(() => '?').join(',')}) ` : '';
+
         // ── 1. Single bulk query: get all products + all their materials at once ─────────
-        // Previously this was N+1 queries (1 product list + 1 material fetch per product).
-        // Now it's a single JOIN, grouped in JS — same approach as buildProductMaterialsMap.
         let rows;
         if (Array.isArray(changedMaterials) && changedMaterials.length > 0) {
             const ph = changedMaterials.map(() => '?').join(',');
-            const r = await env.DB.prepare(`
+            const stmt = env.DB.prepare(`
                 SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
                        p.price AS old_price, p.cost_price AS old_cost_price,
                        pm.quantity, m.item_cost
@@ -735,11 +753,15 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
                       SELECT DISTINCT product_id FROM product_materials
                       WHERE material_name IN (${ph})
                   )
+                  ${idClause}
                 ORDER BY p.id
-            `).bind(...changedMaterials).all();
+            `);
+            const r = partialMode
+                ? await stmt.bind(...changedMaterials, ...idFilter).all()
+                : await stmt.bind(...changedMaterials).all();
             rows = r.results;
         } else {
-            const r = await env.DB.prepare(`
+            const stmt = env.DB.prepare(`
                 SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
                        p.price AS old_price, p.cost_price AS old_cost_price,
                        pm.quantity, m.item_cost
@@ -747,8 +769,10 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
                 INNER JOIN product_materials pm ON p.id = pm.product_id
                 JOIN cost_config m ON pm.material_name = m.item_name
                 WHERE p.is_active = 1
+                  ${idClause}
                 ORDER BY p.id
-            `).all();
+            `);
+            const r = partialMode ? await stmt.bind(...idFilter).all() : await stmt.all();
             rows = r.results;
         }
 
@@ -839,7 +863,11 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
             ).run();
         }
 
-        await setSystemMetaNumber(env, 'products_last_recalculate_unix', nowUnix);
+        // Chỉ bump meta toàn hệ thống khi cập nhật đủ phạm vi (không lọc theo productIds).
+        // Cập nhật một phần: chỉ stamp product_materials từng SP; banner vẫn đúng cho SP chưa chọn.
+        if (!partialMode) {
+            await setSystemMetaNumber(env, 'products_last_recalculate_unix', nowUnix);
+        }
 
         return jsonResponse({
             success: true,
@@ -847,7 +875,8 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
             updated: updatedCount,
             skipped: skippedCount,
             total: productMap.size,
-            updates: updates
+            updates: updates,
+            partial: partialMode
         }, 200, corsHeaders);
 
     } catch (error) {

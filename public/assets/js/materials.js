@@ -867,6 +867,36 @@ function setRcConfirmButtonEnabled(btnEl, enabled) {
     }
 }
 
+function wireRcProductSelection(listEl, confirmBtn) {
+    const selectAll = listEl.querySelector('#rcSelectAll');
+    const picks = () => listEl.querySelectorAll('input.rc-pick');
+    const hint = listEl.querySelector('#rcSelectionHint');
+
+    const sync = () => {
+        const all = picks();
+        const n = [...all].filter((x) => x.checked).length;
+        const total = all.length;
+        if (hint) {
+            hint.textContent = total ? `${n}/${total} đã chọn` : '';
+        }
+        if (selectAll && total > 0) {
+            selectAll.checked = n === total;
+            selectAll.indeterminate = n > 0 && n < total;
+        }
+        if (confirmBtn) setRcConfirmButtonEnabled(confirmBtn, n > 0);
+    };
+
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            const on = selectAll.checked;
+            picks().forEach((p) => { p.checked = on; });
+            sync();
+        });
+    }
+    picks().forEach((p) => p.addEventListener('change', sync));
+    sync();
+}
+
 async function recalculateAllPrices() {
     // Build changed-materials chips
     const changedList = [...changedMaterialNames];
@@ -966,13 +996,15 @@ async function recalculateAllPrices() {
             btnEl.onclick = () => executeRecalculateAllPrices();
         } else {
             subtitleEl.textContent = `${products.length} sản phẩm cần cập nhật giá`;
-            listEl.innerHTML = products.map((p, i) => {
+            const rowsHtml = products.map((p, i) => {
                 const dp = (p.expected_price || 0) - (p.current_price || 0);
                 const dc = (p.expected_cost_price || 0) - (p.current_cost_price || 0);
                 const up = dp >= 0;
                 const fmtDelta = v => `${v >= 0 ? '+' : ''}${formatCurrency(v)}`;
+                const pid = Number(p.id);
                 return `
-                <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                <div class="flex items-center gap-2.5 px-4 sm:px-5 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                    <input type="checkbox" class="rc-pick h-4 w-4 shrink-0 rounded border-gray-300 text-orange-600 focus:ring-orange-500" data-product-id="${pid}" checked />
                     <span class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 text-[11px] font-bold flex items-center justify-center shrink-0">${i + 1}</span>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(p.name)}</p>
@@ -993,7 +1025,16 @@ async function recalculateAllPrices() {
                     </div>
                 </div>`;
             }).join('');
-            setRcConfirmButtonEnabled(btnEl, true);
+            listEl.innerHTML = `
+                <div class="sticky top-0 z-10 flex items-center gap-3 border-b border-gray-100 bg-white/95 px-4 py-2.5 backdrop-blur-sm sm:px-5">
+                    <label class="flex cursor-pointer select-none items-center gap-2 shrink-0">
+                        <input type="checkbox" id="rcSelectAll" class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500" checked />
+                        <span class="text-xs font-semibold text-gray-600">Chọn tất cả</span>
+                    </label>
+                    <span id="rcSelectionHint" class="min-w-0 truncate text-[11px] text-gray-400"></span>
+                </div>
+                ${rowsHtml}`;
+            wireRcProductSelection(listEl, btnEl);
             btnEl.innerHTML = 'Cập nhật';
             btnEl.onclick = () => executeRecalculateAllPrices();
         }
@@ -1017,16 +1058,32 @@ async function recalculateAllPrices() {
 }
 
 async function executeRecalculateAllPrices() {
+    const listRoot = document.getElementById('rcProductList');
+    const allPicks = listRoot ? listRoot.querySelectorAll('input.rc-pick') : [];
+    let productIdsPayload = null;
+    if (allPicks.length > 0) {
+        productIdsPayload = [...listRoot.querySelectorAll('input.rc-pick:checked')]
+            .map((el) => Number(el.dataset.productId))
+            .filter((n) => n > 0 && Number.isFinite(n));
+        if (productIdsPayload.length === 0) {
+            showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning', 3500);
+            return;
+        }
+    }
+
     closeConfirmModal();
-    
+
     // Show loading toast with unique ID
     const loadingId = 'recalculate-loading-' + Date.now();
     showToast('Đang tính toán và cập nhật giá...', 'info', 0, loadingId); // 0 = no auto-hide
-    
+
     try {
         const payload = { action: 'recalculateAllPrices' };
         if (changedMaterialNames.size > 0) {
             payload.changedMaterials = [...changedMaterialNames];
+        }
+        if (productIdsPayload) {
+            payload.productIds = productIdsPayload;
         }
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
@@ -1043,13 +1100,14 @@ async function executeRecalculateAllPrices() {
         }
 
         if (data.success) {
-            const { updated, skipped, total, updates } = data;
-            
-            changedMaterialNames.clear();
+            const { updated, skipped, total, updates, partial } = data;
 
-            const badge = document.getElementById('outdatedProductsBadge');
-            if (badge) {
-                badge.classList.add('hidden');
+            if (!partial) {
+                changedMaterialNames.clear();
+                const badge = document.getElementById('outdatedProductsBadge');
+                if (badge) badge.classList.add('hidden');
+            } else {
+                checkOutdatedProducts();
             }
 
             const productListHtml = (updates && updates.length > 0) ? `

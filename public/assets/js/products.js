@@ -4008,6 +4008,9 @@ function closeOutdatedProductsDetailsModal() {
     if (modal) modal.remove();
 }
 
+/** null = cập nhật toàn bộ; number[] = chỉ các id đã chọn (từ modal chi tiết) */
+let pendingRecalculateProductIds = null;
+
 function renderOutdatedProductsDetails(container, products) {
     if (!container) return;
 
@@ -4030,9 +4033,13 @@ function renderOutdatedProductsDetails(container, products) {
         const costDeltaClass = costDelta >= 0 ? 'text-red-600' : 'text-green-600';
         const priceDeltaText = `${priceDelta >= 0 ? '+' : ''}${formatCurrency(priceDelta)}`;
         const costDeltaText = `${costDelta >= 0 ? '+' : ''}${formatCurrency(costDelta)}`;
+        const pid = Number(product.id);
 
         return `
             <tr class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="w-10 px-2 py-3 align-middle">
+                    <input type="checkbox" class="od-pick h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500" data-product-id="${pid}" checked />
+                </td>
                 <td class="px-4 py-3">
                     <div class="font-medium text-gray-900">${escapeHtml(product.name || `#${product.id}`)}</div>
                     <div class="text-xs text-gray-500">ID: ${product.id}</div>
@@ -4061,10 +4068,18 @@ function renderOutdatedProductsDetails(container, products) {
     }).join('');
 
     container.innerHTML = `
+        <div class="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            <label class="inline-flex cursor-pointer select-none items-center gap-2 font-semibold text-gray-700">
+                <input type="checkbox" id="odSelectAll" class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500" checked />
+                Chọn tất cả
+            </label>
+            <span id="odSelectionHint"></span>
+        </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50 text-gray-600">
                     <tr>
+                        <th class="w-10 px-2 py-3 text-left font-semibold" title="Chọn sản phẩm cần cập nhật"></th>
                         <th class="px-4 py-3 text-left font-semibold">Sản phẩm</th>
                         <th class="px-4 py-3 text-left font-semibold">Giá hiện tại</th>
                         <th class="px-4 py-3 text-left font-semibold">Giá đề xuất</th>
@@ -4079,6 +4094,40 @@ function renderOutdatedProductsDetails(container, products) {
             </table>
         </div>
     `;
+
+    const hint = container.querySelector('#odSelectionHint');
+    const updateHint = () => {
+        const all = container.querySelectorAll('input.od-pick');
+        const n = [...all].filter((x) => x.checked).length;
+        if (hint) hint.textContent = all.length ? `Đã chọn ${n}/${all.length}` : '';
+    };
+    const recalcBtn = document.getElementById('odRecalcBtn');
+    const innerSync = () => {
+        const selectAll = container.querySelector('#odSelectAll');
+        const all = container.querySelectorAll('input.od-pick');
+        const n = [...all].filter((x) => x.checked).length;
+        const total = all.length;
+        if (selectAll && total > 0) {
+            selectAll.checked = n === total;
+            selectAll.indeterminate = n > 0 && n < total;
+        }
+        if (recalcBtn) {
+            recalcBtn.disabled = total > 0 && n === 0;
+            recalcBtn.classList.toggle('opacity-50', recalcBtn.disabled);
+            recalcBtn.classList.toggle('cursor-not-allowed', recalcBtn.disabled);
+        }
+        updateHint();
+    };
+    const selectAll = container.querySelector('#odSelectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            const on = selectAll.checked;
+            container.querySelectorAll('input.od-pick').forEach((p) => { p.checked = on; });
+            innerSync();
+        });
+    }
+    container.querySelectorAll('input.od-pick').forEach((p) => p.addEventListener('change', innerSync));
+    innerSync();
 }
 
 async function openOutdatedProductsDetailsModal() {
@@ -4109,10 +4158,10 @@ async function openOutdatedProductsDetailsModal() {
                     Đang tải danh sách...
                 </div>
             </div>
-            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                <button type="button" onclick="quickRecalculatePrices(); closeOutdatedProductsDetailsModal();"
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
+                <button type="button" id="odRecalcBtn" onclick="quickRecalculatePrices()"
                     class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Cập nhật tất cả ngay
+                    Cập nhật
                 </button>
                 <button type="button" onclick="closeOutdatedProductsDetailsModal()"
                     class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium">
@@ -4128,6 +4177,11 @@ async function openOutdatedProductsDetailsModal() {
     try {
         const details = await fetchOutdatedProductsDetails();
         renderOutdatedProductsDetails(content, details.products || []);
+        const recalcBtn = document.getElementById('odRecalcBtn');
+        if (recalcBtn && (!details.products || details.products.length === 0)) {
+            recalcBtn.disabled = true;
+            recalcBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
     } catch (error) {
         if (content) {
             content.innerHTML = `
@@ -4137,10 +4191,34 @@ async function openOutdatedProductsDetailsModal() {
                 </div>
             `;
         }
+        const recalcBtnErr = document.getElementById('odRecalcBtn');
+        if (recalcBtnErr) {
+            recalcBtnErr.disabled = true;
+            recalcBtnErr.classList.add('opacity-50', 'cursor-not-allowed');
+        }
     }
 }
 
 async function quickRecalculatePrices() {
+    const content = document.getElementById('outdatedProductsDetailsContent');
+    const dm = document.getElementById('outdatedProductsDetailsModal');
+    const allPicks = content ? content.querySelectorAll('input.od-pick') : [];
+
+    if (dm && allPicks.length > 0) {
+        const selected = [...content.querySelectorAll('input.od-pick:checked')]
+            .map((el) => Number(el.dataset.productId))
+            .filter((n) => n > 0 && Number.isFinite(n));
+        if (selected.length === 0) {
+            showToast('Vui lòng chọn ít nhất một sản phẩm', 'warning', 3500);
+            return;
+        }
+        pendingRecalculateProductIds = selected;
+        closeOutdatedProductsDetailsModal();
+    } else {
+        pendingRecalculateProductIds = null;
+        if (dm) closeOutdatedProductsDetailsModal();
+    }
+
     // Show confirmation modal
     const modal = document.createElement('div');
     modal.id = 'confirmRecalculateModal';
@@ -4155,7 +4233,7 @@ async function quickRecalculatePrices() {
                     </svg>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Cập nhật giá sản phẩm?</h3>
-                <p class="text-sm text-gray-600 text-center mb-6">
+                <p id="quickRecalcConfirmText" class="text-sm text-gray-600 text-center mb-6">
                     Hệ thống sẽ tự động tính lại giá bán cho tất cả sản phẩm dựa trên giá nguyên liệu hiện tại và hệ số markup đã lưu.
                 </p>
                 <div class="flex gap-3">
@@ -4171,25 +4249,38 @@ async function quickRecalculatePrices() {
     `;
 
     document.body.appendChild(modal);
+
+    const confirmP = document.getElementById('quickRecalcConfirmText');
+    if (confirmP && Array.isArray(pendingRecalculateProductIds) && pendingRecalculateProductIds.length > 0) {
+        const n = pendingRecalculateProductIds.length;
+        confirmP.textContent = `Hệ thống sẽ tính lại giá cho ${n} sản phẩm đã chọn, dựa trên giá nguyên liệu hiện tại và hệ số markup đã lưu.`;
+    }
 }
 
 function closeRecalculateModal() {
+    pendingRecalculateProductIds = null;
     const modal = document.getElementById('confirmRecalculateModal');
     if (modal) modal.remove();
 }
 
 async function executeQuickRecalculate() {
+    const selectedIds = Array.isArray(pendingRecalculateProductIds) && pendingRecalculateProductIds.length > 0
+        ? [...pendingRecalculateProductIds]
+        : null;
     closeRecalculateModal();
-    
+
     // Show loading toast
     const loadingId = 'recalculate-loading-' + Date.now();
     showToast('Đang tính toán và cập nhật giá...', 'info', 0, loadingId);
-    
+
     try {
+        const payload = { action: 'recalculateAllPrices' };
+        if (selectedIds) payload.productIds = selectedIds;
+
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'recalculateAllPrices' })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
@@ -4198,11 +4289,16 @@ async function executeQuickRecalculate() {
         document.getElementById(`productsSimpleToast-${loadingId}`)?.remove();
 
         if (data.success) {
-            const { updated, skipped, updates } = data;
-            
-            hideOutdatedNotification();
+            const { updated, skipped, updates, partial } = data;
+
             outdatedProductsCache = null;
-            shouldShowMaterialOutdatedWarnings = false;
+            if (!partial) {
+                hideOutdatedNotification();
+                shouldShowMaterialOutdatedWarnings = false;
+            } else {
+                shouldShowMaterialOutdatedWarnings = null;
+                checkOutdatedProducts();
+            }
 
             const productListHtml = (updates && updates.length > 0) ? `
                 <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 mb-4">
