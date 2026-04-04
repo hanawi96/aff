@@ -146,9 +146,16 @@ function applySorting() {
                 : new Date(timestampA) - new Date(timestampB);
         }
 
-        // Default: đơn cũ nhất lên trên (FIFO - đặt trước làm trước)
+        // Default sort depends on status filter:
+        // - "shipped" / "in_transit" / "delivered": mới nhất lên trên (gửi gần nhất dễ theo dõi)
+        // - Các trạng thái khác: cũ nhất lên trên (FIFO - đặt trước làm trước)
+        const currentStatusFilter = document.getElementById('statusFilter')?.value || 'pending';
+        const newestFirstStatuses = ['shipped', 'in_transit', 'delivered'];
         const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
         const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
-        return new Date(timestampA) - new Date(timestampB);
+        if (newestFirstStatuses.includes(currentStatusFilter)) {
+            return new Date(timestampB) - new Date(timestampA); // Mới nhất lên trên
+        }
+        return new Date(timestampA) - new Date(timestampB); // Cũ nhất lên trên (FIFO)
     });
 }
