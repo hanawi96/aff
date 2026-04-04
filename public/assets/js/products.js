@@ -4159,8 +4159,8 @@ async function openOutdatedProductsDetailsModal() {
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
-                <button type="button" id="odRecalcBtn" onclick="quickRecalculatePrices()"
-                    class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium">
+                <button type="button" id="odRecalcBtn" onclick="quickRecalculatePrices()" disabled
+                    class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg transition-all font-medium opacity-50 cursor-not-allowed disabled:hover:shadow-none">
                     Cập nhật
                 </button>
                 <button type="button" onclick="closeOutdatedProductsDetailsModal()"
@@ -4178,9 +4178,14 @@ async function openOutdatedProductsDetailsModal() {
         const details = await fetchOutdatedProductsDetails();
         renderOutdatedProductsDetails(content, details.products || []);
         const recalcBtn = document.getElementById('odRecalcBtn');
-        if (recalcBtn && (!details.products || details.products.length === 0)) {
-            recalcBtn.disabled = true;
-            recalcBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        if (recalcBtn) {
+            if (details.products && details.products.length > 0) {
+                recalcBtn.disabled = false;
+                recalcBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                recalcBtn.disabled = true;
+                recalcBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
         }
     } catch (error) {
         if (content) {
@@ -4203,6 +4208,11 @@ async function quickRecalculatePrices() {
     const content = document.getElementById('outdatedProductsDetailsContent');
     const dm = document.getElementById('outdatedProductsDetailsModal');
     const allPicks = content ? content.querySelectorAll('input.od-pick') : [];
+
+    if (dm && allPicks.length === 0 && content && content.querySelector('svg.animate-spin')) {
+        showToast('Vui lòng đợi tải xong danh sách', 'info', 2500);
+        return;
+    }
 
     if (dm && allPicks.length > 0) {
         const selected = [...content.querySelectorAll('input.od-pick:checked')]

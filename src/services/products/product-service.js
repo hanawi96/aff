@@ -794,7 +794,15 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
         }
 
         if (productMap.size === 0) {
-            return jsonResponse({ success: true, message: 'No products with materials found', updated: 0 }, 200, corsHeaders);
+            return jsonResponse({
+                success: true,
+                message: 'No products with materials found',
+                updated: 0,
+                skipped: 0,
+                total: 0,
+                updates: [],
+                partial: partialMode
+            }, 200, corsHeaders);
         }
 
         // ── 3. Compute new prices purely in JS (zero extra DB round-trips) ───────────────
