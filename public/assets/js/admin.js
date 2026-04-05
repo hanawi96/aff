@@ -7,6 +7,19 @@ let sortOrder = 'none'; // Default off (date sort)
 let commissionSortOrder = 'desc'; // Default: tổng hoa hồng cao nhất trước
 let rateSortOrder = 'none'; // 'desc' = cao nhất trước, 'asc' = thấp nhất trước, 'none' = không sắp xếp
 let currentTimeFilter = 'all'; // Time filter state
+/** @type {{ startDate: string, endDate: string } | null} */
+let ctvCustomDateRange = null;
+let lastNonCustomTimeFilter = 'all';
+
+const CTV_TIME_FILTER_BTN_IDS = {
+    all: 'timeFilterAll',
+    today: 'timeFilterToday',
+    week: 'timeFilterWeek',
+    month: 'timeFilterMonth',
+    '3months': 'timeFilter3Months',
+    '6months': 'timeFilter6Months',
+    custom: 'timeFilterCustom'
+};
 
 // Bulk selection state
 let selectedCTVIds = new Set();
@@ -428,6 +441,19 @@ function filterCTVData() {
 // Apply time filter to CTV
 function applyTimeFilter(ctv) {
     if (currentTimeFilter === 'all') return true;
+
+    if (currentTimeFilter === 'custom' && ctvCustomDateRange) {
+        if (!ctv.timestamp) {
+            return false;
+        }
+        const ctvDate = new Date(ctv.timestamp);
+        const start = new Date(ctvCustomDateRange.startDate + 'T00:00:00+07:00');
+        const end = new Date(ctvCustomDateRange.endDate + 'T23:59:59.999+07:00');
+        return ctvDate >= start && ctvDate <= end;
+    }
+    if (currentTimeFilter === 'custom') {
+        return true;
+    }
     
     // CTV data has 'timestamp' field from backend
     if (!ctv.timestamp) {
@@ -472,34 +498,62 @@ function applyTimeFilter(ctv) {
     return result;
 }
 
-// Filter by registration time
-window.filterByRegistrationTime = function(timeFilter) {
-    currentTimeFilter = timeFilter;
-    
-    console.log('🔍 Time filter changed to:', timeFilter);
-    
-    // Update button states (desktop)
-    const buttons = ['timeFilterAll', 'timeFilterToday', 'timeFilterWeek', 'timeFilterMonth', 'timeFilter3Months', 'timeFilter6Months'];
-    buttons.forEach(btnId => {
-        const btn = document.getElementById(btnId);
-        if (btn) {
-            btn.classList.remove('active');
-        }
+function clearCTVCustomDateInputs() {
+    const hS = document.getElementById('customDateStartCTV');
+    const hE = document.getElementById('customDateEndCTV');
+    const label = document.getElementById('customDateLabelCTV');
+    if (hS) hS.value = '';
+    if (hE) hE.value = '';
+    if (label) label.textContent = 'Chọn ngày';
+}
+
+function finalizeCTVTimeFilterChange() {
+    Object.keys(CTV_TIME_FILTER_BTN_IDS).forEach(k => {
+        const btn = document.getElementById(CTV_TIME_FILTER_BTN_IDS[k]);
+        if (btn) btn.classList.remove('active');
     });
-    
-    const activeBtn = document.getElementById(`timeFilter${timeFilter.charAt(0).toUpperCase() + timeFilter.slice(1)}`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
+    const activeId = CTV_TIME_FILTER_BTN_IDS[currentTimeFilter];
+    if (activeId) {
+        const b = document.getElementById(activeId);
+        if (b) b.classList.add('active');
     }
-    
-    // Update mobile select
     const mobileSelect = document.getElementById('mobileTimeFilter');
     if (mobileSelect) {
-        mobileSelect.value = timeFilter;
+        if (currentTimeFilter === 'custom' && ctvCustomDateRange) {
+            mobileSelect.value = 'custom';
+            const opt = document.getElementById('ctvMobileCustomTimeOpt');
+            const lab = document.getElementById('customDateLabelCTV');
+            if (opt && lab) opt.textContent = '📌 ' + lab.textContent;
+        } else if (Object.prototype.hasOwnProperty.call(CTV_TIME_FILTER_BTN_IDS, currentTimeFilter)) {
+            mobileSelect.value = currentTimeFilter;
+            const opt = document.getElementById('ctvMobileCustomTimeOpt');
+            if (opt) opt.textContent = '📌 Chọn ngày…';
+        }
     }
-    
-    // Apply filter
     filterCTVData();
+}
+
+// Filter by registration time
+window.filterByRegistrationTime = function(timeFilter) {
+    if (timeFilter === 'custom' && !ctvCustomDateRange) {
+        showCustomDatePickerCTV({});
+        const mobileSelect = document.getElementById('mobileTimeFilter');
+        if (mobileSelect && mobileSelect.value === 'custom') {
+            mobileSelect.value = lastNonCustomTimeFilter;
+        }
+        return;
+    }
+
+    currentTimeFilter = timeFilter;
+
+    if (timeFilter !== 'custom') {
+        ctvCustomDateRange = null;
+        clearCTVCustomDateInputs();
+        lastNonCustomTimeFilter = timeFilter;
+    }
+
+    console.log('🔍 Time filter changed to:', timeFilter);
+    finalizeCTVTimeFilterChange();
 };
 
 // View CTV detail
@@ -2792,4 +2846,264 @@ window.showQrModal = function(url, name) {
 window.closeQrModal = function() {
     const modal = document.getElementById('qrModal');
     if (modal) modal.classList.add('hidden');
+};
+
+// ========== Custom date picker (CTV list — giống profit / location-report) ==========
+let currentDateModeCTV = 'single';
+let customDatePickerModalCTV = null;
+
+function getTodayDateStringCTV() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+
+function updateCustomDateLabelCTV(startDate, endDate) {
+    const label = document.getElementById('customDateLabelCTV');
+    if (!label) return;
+    if (startDate === endDate) {
+        const date = new Date(startDate + 'T00:00:00');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        label.textContent = `${day}/${month}/${year}`;
+    } else {
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        const startDay = String(start.getDate()).padStart(2, '0');
+        const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+        const endDay = String(end.getDate()).padStart(2, '0');
+        const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+        const endYear = end.getFullYear();
+        if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+            label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
+        } else {
+            label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
+        }
+    }
+}
+
+window.showCustomDatePickerCTV = function (event) {
+    if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+    }
+    if (customDatePickerModalCTV) {
+        customDatePickerModalCTV.remove();
+        customDatePickerModalCTV = null;
+    }
+    const today = getTodayDateStringCTV();
+    const startEl = document.getElementById('customDateStartCTV');
+    const endEl = document.getElementById('customDateEndCTV');
+    const startDate = (startEl && startEl.value) || today;
+    const endDate = (endEl && endEl.value) || today;
+
+    const modal = document.createElement('div');
+    modal.className = 'date-picker-modal';
+    modal.innerHTML = `
+        <div class="date-picker-content ctv-picker-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
+                <button type="button" onclick="closeCustomDatePickerCTV()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="profit-quick-month-box">
+                <div class="profit-quick-month-label">Chọn nhanh theo tháng</div>
+                <select id="ctvDpYear" class="profit-year-select" aria-label="Năm"></select>
+                <div id="ctvMonthGrid" class="profit-month-grid"></div>
+            </div>
+            <div class="date-mode-tabs">
+                <button type="button" data-mode="single" class="date-mode-tab ${currentDateModeCTV === 'single' ? 'active' : ''}" onclick="switchDateModeCTV('single', this)">Một ngày</button>
+                <button type="button" data-mode="range" class="date-mode-tab ${currentDateModeCTV === 'range' ? 'active' : ''}" onclick="switchDateModeCTV('range', this)">Khoảng thời gian</button>
+            </div>
+            <div id="singleDateModeCTV" class="${currentDateModeCTV === 'single' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="singleDateInputCTV" value="${startDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            <div id="rangeDateModeCTV" class="${currentDateModeCTV === 'range' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="startDateInputCTV" value="${startDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="endDateInputCTV" value="${endDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="clearCustomDateCTV()"
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Xóa bộ lọc</button>
+                <button type="button" onclick="applyCustomDateCTV()"
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">Áp dụng</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    customDatePickerModalCTV = modal;
+    initCtvDpYearSelect(startDate);
+    renderCtvMonthGrid();
+    const ySel = modal.querySelector('#ctvDpYear');
+    if (ySel) ySel.addEventListener('change', renderCtvMonthGrid);
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeCustomDatePickerCTV();
+    });
+};
+
+function initCtvDpYearSelect(referenceDateStr) {
+    const modal = customDatePickerModalCTV;
+    if (!modal) return;
+    const ySel = modal.querySelector('#ctvDpYear');
+    if (!ySel) return;
+    const today = getTodayDateStringCTV();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const ref = referenceDateStr || today;
+    const defaultY = parseInt(ref.slice(0, 4), 10);
+    ySel.innerHTML = '';
+    for (let y = curY; y >= curY - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = 'Năm ' + y;
+        ySel.appendChild(opt);
+    }
+    ySel.value = String(Math.min(Math.max(defaultY, curY - 5), curY));
+}
+
+function renderCtvMonthGrid() {
+    const modal = customDatePickerModalCTV;
+    if (!modal) return;
+    const ySel = modal.querySelector('#ctvDpYear');
+    const grid = modal.querySelector('#ctvMonthGrid');
+    if (!ySel || !grid) return;
+    const y = parseInt(ySel.value, 10);
+    const today = getTodayDateStringCTV();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const curM = parseInt(today.slice(5, 7), 10) - 1;
+    grid.replaceChildren();
+    for (let m = 0; m < 12; m++) {
+        const disabled = y === curY && m > curM;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profit-month-btn';
+        btn.textContent = 'Tháng ' + (m + 1);
+        const monthIndex = m;
+        if (!disabled) {
+            btn.addEventListener('click', function () {
+                pickCtvMonth(y, monthIndex);
+            });
+        } else {
+            btn.disabled = true;
+        }
+        grid.appendChild(btn);
+    }
+}
+
+function pickCtvMonth(y, m) {
+    const today = getTodayDateStringCTV();
+    const ty = parseInt(today.slice(0, 4), 10);
+    const tm = parseInt(today.slice(5, 7), 10);
+    const td = parseInt(today.slice(8, 10), 10);
+    const monthNum = m + 1;
+    const start = `${y}-${String(monthNum).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    let endDay = lastDay;
+    if (y === ty && monthNum === tm) {
+        endDay = Math.min(lastDay, td);
+    }
+    const end = `${y}-${String(monthNum).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const hS = document.getElementById('customDateStartCTV');
+    const hE = document.getElementById('customDateEndCTV');
+    if (hS) hS.value = start;
+    if (hE) hE.value = end;
+    updateCustomDateLabelCTV(start, end);
+    ctvCustomDateRange = { startDate: start, endDate: end };
+    currentTimeFilter = 'custom';
+    closeCustomDatePickerCTV();
+    finalizeCTVTimeFilterChange();
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+}
+
+window.closeCustomDatePickerCTV = function () {
+    if (!customDatePickerModalCTV) return;
+    customDatePickerModalCTV.style.opacity = '0';
+    const modalEl = customDatePickerModalCTV;
+    setTimeout(function () {
+        modalEl.remove();
+        if (customDatePickerModalCTV === modalEl) {
+            customDatePickerModalCTV = null;
+        }
+    }, 200);
+};
+
+window.switchDateModeCTV = function (mode, el) {
+    currentDateModeCTV = mode;
+    const root = el && el.closest ? el.closest('.ctv-picker-content') : null;
+    const scope = root || customDatePickerModalCTV;
+    if (scope) {
+        scope.querySelectorAll('.date-mode-tab').forEach(function (tab) {
+            tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+    }
+    const singleMode = document.getElementById('singleDateModeCTV');
+    const rangeMode = document.getElementById('rangeDateModeCTV');
+    if (!singleMode || !rangeMode) return;
+    if (mode === 'single') {
+        singleMode.classList.remove('hidden');
+        rangeMode.classList.add('hidden');
+    } else {
+        singleMode.classList.add('hidden');
+        rangeMode.classList.remove('hidden');
+    }
+};
+
+window.applyCustomDateCTV = function () {
+    let startDate;
+    let endDate;
+    if (currentDateModeCTV === 'single') {
+        const singleDate = document.getElementById('singleDateInputCTV').value;
+        if (!singleDate) {
+            showToast('Vui lòng chọn ngày', 'warning');
+            return;
+        }
+        startDate = singleDate;
+        endDate = singleDate;
+    } else {
+        startDate = document.getElementById('startDateInputCTV').value;
+        endDate = document.getElementById('endDateInputCTV').value;
+        if (!startDate || !endDate) {
+            showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
+            return;
+        }
+    }
+    const hS = document.getElementById('customDateStartCTV');
+    const hE = document.getElementById('customDateEndCTV');
+    if (hS) hS.value = startDate;
+    if (hE) hE.value = endDate;
+    updateCustomDateLabelCTV(startDate, endDate);
+    ctvCustomDateRange = { startDate: startDate, endDate: endDate };
+    currentTimeFilter = 'custom';
+    closeCustomDatePickerCTV();
+    finalizeCTVTimeFilterChange();
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+};
+
+window.clearCustomDateCTV = function () {
+    clearCTVCustomDateInputs();
+    ctvCustomDateRange = null;
+    currentTimeFilter = 'all';
+    lastNonCustomTimeFilter = 'all';
+    closeCustomDatePickerCTV();
+    finalizeCTVTimeFilterChange();
+    showToast('Đã xóa bộ lọc thời gian', 'info');
 };

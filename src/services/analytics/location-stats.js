@@ -16,7 +16,7 @@ export async function getLocationStats(params, env, corsHeaders) {
 
         if (startDate) {
             startTimestamp = new Date(startDate).getTime();
-        } else if (period && period !== 'all') {
+        } else if (period && period !== 'all' && period !== 'custom') {
             const now = new Date();
             switch (period) {
                 case 'today':
@@ -219,24 +219,36 @@ export async function getLocationStats(params, env, corsHeaders) {
         // Count all customers with phone, not just those with address
         let uniqueCustomersQuery;
         if (level === 'province') {
-            uniqueCustomersQuery = await env.DB.prepare(`
+            let ucSql = `
                 SELECT COUNT(DISTINCT customer_phone) as unique_customers
                 FROM orders
                 WHERE customer_phone IS NOT NULL 
                     AND customer_phone != ''
                     AND created_at_unix >= ?
-            `).bind(startTimestamp).first();
+            `;
+            const ucBinds = [startTimestamp];
+            if (endTimestamp > 0) {
+                ucSql += ` AND created_at_unix <= ?`;
+                ucBinds.push(endTimestamp);
+            }
+            uniqueCustomersQuery = await env.DB.prepare(ucSql).bind(...ucBinds).first();
         } else if (level === 'district') {
-            uniqueCustomersQuery = await env.DB.prepare(`
+            let ucSql = `
                 SELECT COUNT(DISTINCT customer_phone) as unique_customers
                 FROM orders
                 WHERE customer_phone IS NOT NULL 
                     AND customer_phone != ''
                     AND province_id = ?
                     AND created_at_unix >= ?
-            `).bind(provinceId, startTimestamp).first();
+            `;
+            const ucBinds = [provinceId, startTimestamp];
+            if (endTimestamp > 0) {
+                ucSql += ` AND created_at_unix <= ?`;
+                ucBinds.push(endTimestamp);
+            }
+            uniqueCustomersQuery = await env.DB.prepare(ucSql).bind(...ucBinds).first();
         } else if (level === 'ward') {
-            uniqueCustomersQuery = await env.DB.prepare(`
+            let ucSql = `
                 SELECT COUNT(DISTINCT customer_phone) as unique_customers
                 FROM orders
                 WHERE customer_phone IS NOT NULL 
@@ -244,7 +256,13 @@ export async function getLocationStats(params, env, corsHeaders) {
                     AND province_id = ?
                     AND district_id = ?
                     AND created_at_unix >= ?
-            `).bind(provinceId, districtId, startTimestamp).first();
+            `;
+            const ucBinds = [provinceId, districtId, startTimestamp];
+            if (endTimestamp > 0) {
+                ucSql += ` AND created_at_unix <= ?`;
+                ucBinds.push(endTimestamp);
+            }
+            uniqueCustomersQuery = await env.DB.prepare(ucSql).bind(...ucBinds).first();
         }
 
         const uniqueCustomers = uniqueCustomersQuery?.unique_customers || 0;

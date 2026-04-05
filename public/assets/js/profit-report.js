@@ -1767,7 +1767,7 @@ function showCustomDatePickerProfit(event) {
     const modal = document.createElement('div');
     modal.className = 'date-picker-modal';
     modal.innerHTML = `
-        <div class="date-picker-content">
+        <div class="date-picker-content profit-picker-content">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
                 <button onclick="closeCustomDatePickerProfit()" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -1776,13 +1776,19 @@ function showCustomDatePickerProfit(event) {
                     </svg>
                 </button>
             </div>
+
+            <div class="profit-quick-month-box">
+                <div class="profit-quick-month-label">Chọn nhanh theo tháng</div>
+                <select id="profitDpYear" class="profit-year-select" aria-label="Năm"></select>
+                <div id="profitMonthGrid" class="profit-month-grid"></div>
+            </div>
             
             <!-- Mode Tabs -->
             <div class="date-mode-tabs">
-                <button class="date-mode-tab ${currentDateModeProfit === 'single' ? 'active' : ''}" onclick="switchDateModeProfit('single')">
+                <button type="button" data-mode="single" class="date-mode-tab ${currentDateModeProfit === 'single' ? 'active' : ''}" onclick="switchDateModeProfit('single', this)">
                     Một ngày
                 </button>
-                <button class="date-mode-tab ${currentDateModeProfit === 'range' ? 'active' : ''}" onclick="switchDateModeProfit('range')">
+                <button type="button" data-mode="range" class="date-mode-tab ${currentDateModeProfit === 'range' ? 'active' : ''}" onclick="switchDateModeProfit('range', this)">
                     Khoảng thời gian
                 </button>
             </div>
@@ -1832,6 +1838,13 @@ function showCustomDatePickerProfit(event) {
     
     document.body.appendChild(modal);
     customDatePickerModalProfit = modal;
+
+    initProfitDpYearSelect(startDate);
+    renderProfitMonthGrid();
+    const ySel = modal.querySelector('#profitDpYear');
+    if (ySel) {
+        ySel.addEventListener('change', renderProfitMonthGrid);
+    }
     
     // Close on backdrop click
     modal.addEventListener('click', function(e) {
@@ -1839,6 +1852,90 @@ function showCustomDatePickerProfit(event) {
             closeCustomDatePickerProfit();
         }
     });
+}
+
+/**
+ * Populate year dropdown (current year … current−5), same range as mobile stats.
+ */
+function initProfitDpYearSelect(referenceDateStr) {
+    const modal = customDatePickerModalProfit;
+    if (!modal) return;
+    const ySel = modal.querySelector('#profitDpYear');
+    if (!ySel) return;
+    const today = getTodayDateStringProfit();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const ref = referenceDateStr || today;
+    const defaultY = parseInt(ref.slice(0, 4), 10);
+    ySel.innerHTML = '';
+    for (let y = curY; y >= curY - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = 'Năm ' + y;
+        ySel.appendChild(opt);
+    }
+    const pickY = Math.min(Math.max(defaultY, curY - 5), curY);
+    ySel.value = String(pickY);
+}
+
+/**
+ * Render 12 month buttons; disable future months in selected year (VN date).
+ */
+function renderProfitMonthGrid() {
+    const modal = customDatePickerModalProfit;
+    if (!modal) return;
+    const ySel = modal.querySelector('#profitDpYear');
+    const grid = modal.querySelector('#profitMonthGrid');
+    if (!ySel || !grid) return;
+    const y = parseInt(ySel.value, 10);
+    const today = getTodayDateStringProfit();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const curM = parseInt(today.slice(5, 7), 10) - 1;
+    grid.innerHTML = '';
+    for (let m = 0; m < 12; m++) {
+        const disabled = y === curY && m > curM;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profit-month-btn';
+        btn.textContent = 'Tháng ' + (m + 1);
+        btn.dataset.m = String(m);
+        if (disabled) {
+            btn.disabled = true;
+        } else {
+            btn.addEventListener('click', function () {
+                pickProfitMonth(y, m);
+            });
+        }
+        grid.appendChild(btn);
+    }
+}
+
+/**
+ * Apply full month (clamped to today if current month), same idea as m.html pickMonth.
+ */
+function pickProfitMonth(y, m) {
+    const today = getTodayDateStringProfit();
+    const ty = parseInt(today.slice(0, 4), 10);
+    const tm = parseInt(today.slice(5, 7), 10);
+    const td = parseInt(today.slice(8, 10), 10);
+    const monthNum = m + 1;
+    const start = `${y}-${String(monthNum).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    let endDay = lastDay;
+    if (y === ty && monthNum === tm) {
+        endDay = Math.min(lastDay, td);
+    }
+    const end = `${y}-${String(monthNum).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+
+    document.getElementById('customDateStartProfit').value = start;
+    document.getElementById('customDateEndProfit').value = end;
+    updateCustomDateLabelProfit(start, end);
+    const periodContainer = document.querySelector('.period-filter-container');
+    if (periodContainer) periodContainer.dataset.active = 'custom';
+    currentPeriod = 'custom';
+    customDateRange = { startDate: start, endDate: end };
+    loadAllData();
+    closeCustomDatePickerProfit();
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
 }
 
 /**
@@ -1857,14 +1954,15 @@ function closeCustomDatePickerProfit() {
 /**
  * Switch between single and range date mode
  */
-function switchDateModeProfit(mode) {
+function switchDateModeProfit(mode, el) {
     currentDateModeProfit = mode;
-    
-    // Update tabs
-    document.querySelectorAll('.date-mode-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    event.target.classList.add('active');
+    const root = el && el.closest ? el.closest('.profit-picker-content') : null;
+    const scope = root || customDatePickerModalProfit;
+    if (scope) {
+        scope.querySelectorAll('.date-mode-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+    }
     
     // Show/hide modes
     const singleMode = document.getElementById('singleDateModeProfit');

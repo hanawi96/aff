@@ -1,5 +1,7 @@
 // Location Analytics Dashboard - Smart & Optimized with AI Insights
 let currentPeriod = 'all';
+/** @type {{ startDate: string, endDate: string } | null} */
+let customDateRange = null;
 let currentLevel = 'province'; // province, district, ward
 let currentProvinceId = null;
 let currentProvinceName = null;
@@ -19,8 +21,43 @@ const dataCache = {
     quarter: { province: null, district: {}, ward: {}, previous: null },
     'half-year': { province: null, district: {}, ward: {}, previous: null },
     year: { province: null, district: {}, ward: {}, previous: null },
-    all: { province: null, district: {}, ward: {}, previous: null }
+    all: { province: null, district: {}, ward: {}, previous: null },
+    custom: { rangeKey: '', province: null, district: {}, ward: {}, previous: null }
 };
+
+function getCustomRangeKey() {
+    if (currentPeriod !== 'custom' || !customDateRange) return '';
+    return customDateRange.startDate + '_' + customDateRange.endDate;
+}
+
+function syncCustomCacheKey() {
+    if (currentPeriod !== 'custom' || !customDateRange) return;
+    const k = getCustomRangeKey();
+    if (dataCache.custom.rangeKey !== k) {
+        dataCache.custom.rangeKey = k;
+        dataCache.custom.province = null;
+        dataCache.custom.district = {};
+        dataCache.custom.ward = {};
+        dataCache.custom.previous = null;
+    }
+}
+
+function getCacheBucket() {
+    if (currentPeriod === 'custom' && customDateRange) {
+        syncCustomCacheKey();
+        return dataCache.custom;
+    }
+    return dataCache[currentPeriod] || dataCache.all;
+}
+
+function clearLocationCustomDateInputs() {
+    const hS = document.getElementById('customDateStartLocation');
+    const hE = document.getElementById('customDateEndLocation');
+    const label = document.getElementById('customDateLabelLocation');
+    if (hS) hS.value = '';
+    if (hE) hE.value = '';
+    if (label) label.textContent = 'Chọn ngày';
+}
 
 // Analytics engine
 const AnalyticsEngine = {
@@ -201,16 +238,37 @@ function loadFromURL() {
     const districtId = params.get('districtId');
     const districtName = params.get('districtName');
     const period = params.get('period');
+    const urlCustomStart = params.get('startDate');
+    const urlCustomEnd = params.get('endDate');
     
     let hasParams = false;
     
-    // Reset to defaults first
     if (!period) {
         console.log('📖 No period param, using default: all');
         currentPeriod = 'all';
+        customDateRange = null;
+        clearLocationCustomDateInputs();
+    } else if (period === 'custom') {
+        console.log('📖 Custom period from URL');
+        if (urlCustomStart && urlCustomEnd) {
+            currentPeriod = 'custom';
+            customDateRange = { startDate: urlCustomStart, endDate: urlCustomEnd };
+            hasParams = true;
+            const hS = document.getElementById('customDateStartLocation');
+            const hE = document.getElementById('customDateEndLocation');
+            if (hS) hS.value = urlCustomStart;
+            if (hE) hE.value = urlCustomEnd;
+            updateCustomDateLabelLocation(urlCustomStart, urlCustomEnd);
+        } else {
+            currentPeriod = 'all';
+            customDateRange = null;
+            clearLocationCustomDateInputs();
+        }
     } else {
         console.log('📖 Setting period:', period);
         currentPeriod = period;
+        customDateRange = null;
+        clearLocationCustomDateInputs();
         hasParams = true;
     }
     
@@ -293,8 +351,14 @@ function updateURL() {
     console.log('🔗 updateURL() called');
     const params = new URLSearchParams();
     
-    // Always include period
     params.set('period', currentPeriod);
+    if (currentPeriod === 'custom' && customDateRange) {
+        params.set('startDate', customDateRange.startDate);
+        params.set('endDate', customDateRange.endDate);
+    } else {
+        params.delete('startDate');
+        params.delete('endDate');
+    }
     
     // Add level-specific params
     params.set('level', currentLevel);
@@ -318,7 +382,9 @@ function updateURL() {
         provinceName: currentProvinceName,
         districtId: currentDistrictId,
         districtName: currentDistrictName,
-        period: currentPeriod
+        period: currentPeriod,
+        customStart: currentPeriod === 'custom' && customDateRange ? customDateRange.startDate : null,
+        customEnd: currentPeriod === 'custom' && customDateRange ? customDateRange.endDate : null
     };
     
     console.log('🔗 Pushing state:', state);
@@ -336,6 +402,17 @@ function restoreState(state) {
     currentDistrictId = state.districtId || null;
     currentDistrictName = state.districtName || null;
     currentPeriod = state.period || 'all';
+    if (currentPeriod === 'custom' && state.customStart && state.customEnd) {
+        customDateRange = { startDate: state.customStart, endDate: state.customEnd };
+        const hS = document.getElementById('customDateStartLocation');
+        const hE = document.getElementById('customDateEndLocation');
+        if (hS) hS.value = state.customStart;
+        if (hE) hE.value = state.customEnd;
+        updateCustomDateLabelLocation(state.customStart, state.customEnd);
+    } else {
+        customDateRange = null;
+        clearLocationCustomDateInputs();
+    }
     
     console.log('🔄 After restore - State:', {
         level: currentLevel,
@@ -353,12 +430,13 @@ function restoreState(state) {
     
     console.log('🔄 Clearing cache for:', cacheKey);
     
+    const bucket = getCacheBucket();
     if (currentLevel === 'province') {
-        dataCache[currentPeriod].province = null;
+        bucket.province = null;
     } else if (currentLevel === 'district') {
-        dataCache[currentPeriod].district[cacheKey] = null;
+        bucket.district[cacheKey] = null;
     } else {
-        dataCache[currentPeriod].ward[cacheKey] = null;
+        bucket.ward[cacheKey] = null;
     }
     
     console.log('🔄 Updating UI...');
@@ -429,6 +507,9 @@ function handleBreadcrumbProvinceClick() {
 // Change period
 function changePeriod(period) {
     currentPeriod = period;
+    if (period !== 'custom') {
+        customDateRange = null;
+    }
     updatePeriodButtons();
     updateURL();
     loadLocationData();
@@ -436,17 +517,15 @@ function changePeriod(period) {
 
 // Refresh data
 function refreshData() {
-    // Clear cache for current period
+    const bucket = getCacheBucket();
     if (currentLevel === 'province') {
-        dataCache[currentPeriod].province = null;
+        bucket.province = null;
     } else if (currentLevel === 'district') {
-        dataCache[currentPeriod].district[currentProvinceId] = null;
+        bucket.district[currentProvinceId] = null;
     } else if (currentLevel === 'ward') {
-        dataCache[currentPeriod].ward[`${currentProvinceId}_${currentDistrictId}`] = null;
+        bucket.ward[`${currentProvinceId}_${currentDistrictId}`] = null;
     }
-    
-    // Also clear previous data cache
-    dataCache[currentPeriod].previous = null;
+    bucket.previous = null;
     
     showToast('Đang làm mới dữ liệu...', 'info');
     loadLocationData();
@@ -472,11 +551,12 @@ async function loadLocationData() {
                         currentLevel === 'district' ? currentProvinceId :
                         `${currentProvinceId}_${currentDistrictId}`;
         
-        const cachedData = currentLevel === 'province' ? dataCache[currentPeriod].province :
-                          currentLevel === 'district' ? dataCache[currentPeriod].district[cacheKey] :
-                          dataCache[currentPeriod].ward[cacheKey];
+        const cacheBucket = getCacheBucket();
+        const cachedData = currentLevel === 'province' ? cacheBucket.province :
+                          currentLevel === 'district' ? cacheBucket.district[cacheKey] :
+                          cacheBucket.ward[cacheKey];
 
-        const cachedPrevious = dataCache[currentPeriod].previous;
+        const cachedPrevious = cacheBucket.previous;
 
         if (cachedData && cachedPrevious) {
             console.log('📦 Using cached data for:', cacheKey);
@@ -490,17 +570,17 @@ async function loadLocationData() {
         
         console.log('🌐 No cache, fetching from API...');
 
-        // Calculate date ranges for current and previous period
-        const { startDate, previousStartDate, previousEndDate } = calculateDateRanges(currentPeriod);
+        const { startDate, rangeEndDate, previousStartDate, previousEndDate } = calculateDateRanges(currentPeriod);
         
         let startDateParam = startDate ? `&startDate=${startDate.toISOString()}` : '';
+        let endDateParam = rangeEndDate ? `&endDate=${rangeEndDate.toISOString()}` : '';
         let previousParams = '';
         if (previousStartDate && previousEndDate) {
             previousParams = `&previousStartDate=${previousStartDate.toISOString()}&previousEndDate=${previousEndDate.toISOString()}`;
         }
 
         // Build API URL based on level
-        let apiUrl = `${CONFIG.API_URL}?action=getLocationStats&level=${currentLevel}&period=${currentPeriod}${startDateParam}${previousParams}&timestamp=${Date.now()}`;
+        let apiUrl = `${CONFIG.API_URL}?action=getLocationStats&level=${currentLevel}&period=${currentPeriod}${startDateParam}${endDateParam}${previousParams}&timestamp=${Date.now()}`;
         
         if (currentLevel === 'district' && currentProvinceId) {
             apiUrl += `&provinceId=${currentProvinceId}`;
@@ -529,15 +609,15 @@ async function loadLocationData() {
                 return { ...loc, growth };
             });
             
-            // Cache the data
+            const storeBucket = getCacheBucket();
             if (currentLevel === 'province') {
-                dataCache[currentPeriod].province = allLocationData;
+                storeBucket.province = allLocationData;
             } else if (currentLevel === 'district') {
-                dataCache[currentPeriod].district[cacheKey] = allLocationData;
+                storeBucket.district[cacheKey] = allLocationData;
             } else {
-                dataCache[currentPeriod].ward[cacheKey] = allLocationData;
+                storeBucket.ward[cacheKey] = allLocationData;
             }
-            dataCache[currentPeriod].previous = previousPeriodData;
+            storeBucket.previous = previousPeriodData;
 
             console.log('📥 Rendering location data...');
             renderLocationData();
@@ -552,14 +632,31 @@ async function loadLocationData() {
     }
 }
 
-// Calculate date ranges for comparison
+function inclusiveCalendarDaysVN(startYmd, endYmd) {
+    const s = new Date(startYmd + 'T00:00:00+07:00').getTime();
+    const e = new Date(endYmd + 'T00:00:00+07:00').getTime();
+    return Math.round((e - s) / 86400000) + 1;
+}
+
+// Calculate date ranges for comparison (rangeEndDate chỉ dùng khi period === 'custom')
 function calculateDateRanges(period) {
     const now = new Date();
     let startDate = null;
+    let rangeEndDate = null;
     let previousStartDate = null;
     let previousEndDate = null;
 
-    if (period === 'today') {
+    if (period === 'custom' && customDateRange) {
+        const s = customDateRange.startDate;
+        const e = customDateRange.endDate;
+        startDate = new Date(s + 'T00:00:00+07:00');
+        rangeEndDate = new Date(e + 'T23:59:59.999+07:00');
+        const nDays = Math.max(1, inclusiveCalendarDaysVN(s, e));
+        previousEndDate = new Date(startDate.getTime());
+        previousEndDate.setMilliseconds(previousEndDate.getMilliseconds() - 1);
+        previousStartDate = new Date(startDate);
+        previousStartDate.setDate(previousStartDate.getDate() - nDays);
+    } else if (period === 'today') {
         startDate = getVNStartOfToday();
         previousStartDate = new Date(startDate);
         previousStartDate.setDate(previousStartDate.getDate() - 1);
@@ -578,23 +675,19 @@ function calculateDateRanges(period) {
         previousEndDate = new Date(startDate);
         previousEndDate.setMilliseconds(-1);
     } else if (period === 'quarter') {
-        // 3 months ago from today (in VN timezone)
         const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
         const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
         startDate = new Date(vnToday);
         startDate.setMonth(startDate.getMonth() - 3);
-        // Previous period: 6 months ago to 3 months ago
         previousStartDate = new Date(startDate);
         previousStartDate.setMonth(previousStartDate.getMonth() - 3);
         previousEndDate = new Date(startDate);
         previousEndDate.setMilliseconds(-1);
     } else if (period === 'half-year') {
-        // 6 months ago from today (in VN timezone)
         const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
         const vnToday = new Date(vnDateStr + 'T00:00:00+07:00');
         startDate = new Date(vnToday);
         startDate.setMonth(startDate.getMonth() - 6);
-        // Previous period: 12 months ago to 6 months ago
         previousStartDate = new Date(startDate);
         previousStartDate.setMonth(previousStartDate.getMonth() - 6);
         previousEndDate = new Date(startDate);
@@ -607,7 +700,7 @@ function calculateDateRanges(period) {
         previousEndDate.setMilliseconds(-1);
     }
 
-    return { startDate, previousStartDate, previousEndDate };
+    return { startDate, rangeEndDate, previousStartDate, previousEndDate };
 }
 
 // Render location data (table + charts + stats)
@@ -993,6 +1086,277 @@ function filterTable() {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     });
+}
+
+// ============================================
+// Custom date picker (giống profit-report / m.html)
+// ============================================
+
+let currentDateModeLocation = 'single';
+let customDatePickerModalLocation = null;
+
+function getTodayDateStringLocation() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+
+function updateCustomDateLabelLocation(startDate, endDate) {
+    const label = document.getElementById('customDateLabelLocation');
+    if (!label) return;
+    if (startDate === endDate) {
+        const date = new Date(startDate + 'T00:00:00');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        label.textContent = `${day}/${month}/${year}`;
+    } else {
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        const startDay = String(start.getDate()).padStart(2, '0');
+        const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+        const endDay = String(end.getDate()).padStart(2, '0');
+        const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+        const endYear = end.getFullYear();
+        if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+            label.textContent = `${startDay}-${endDay}/${endMonth}/${endYear}`;
+        } else {
+            label.textContent = `${startDay}/${startMonth}-${endDay}/${endMonth}/${endYear}`;
+        }
+    }
+}
+
+function showCustomDatePickerLocation(event) {
+    event.stopPropagation();
+    if (customDatePickerModalLocation) {
+        customDatePickerModalLocation.remove();
+        customDatePickerModalLocation = null;
+    }
+    const today = getTodayDateStringLocation();
+    const startEl = document.getElementById('customDateStartLocation');
+    const endEl = document.getElementById('customDateEndLocation');
+    const startDate = (startEl && startEl.value) || today;
+    const endDate = (endEl && endEl.value) || today;
+
+    const modal = document.createElement('div');
+    modal.className = 'date-picker-modal';
+    modal.innerHTML = `
+        <div class="date-picker-content loc-picker-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Chọn thời gian</h3>
+                <button type="button" onclick="closeCustomDatePickerLocation()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="profit-quick-month-box">
+                <div class="profit-quick-month-label">Chọn nhanh theo tháng</div>
+                <select id="locDpYear" class="profit-year-select" aria-label="Năm"></select>
+                <div id="locMonthGrid" class="profit-month-grid"></div>
+            </div>
+            <div class="date-mode-tabs">
+                <button type="button" data-mode="single" class="date-mode-tab ${currentDateModeLocation === 'single' ? 'active' : ''}" onclick="switchDateModeLocation('single', this)">Một ngày</button>
+                <button type="button" data-mode="range" class="date-mode-tab ${currentDateModeLocation === 'range' ? 'active' : ''}" onclick="switchDateModeLocation('range', this)">Khoảng thời gian</button>
+            </div>
+            <div id="singleDateModeLocation" class="${currentDateModeLocation === 'single' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="singleDateInputLocation" value="${startDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            <div id="rangeDateModeLocation" class="${currentDateModeLocation === 'range' ? '' : 'hidden'}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="startDateInputLocation" value="${startDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                    <div class="date-input-wrapper">
+                        <input type="date" id="endDateInputLocation" value="${endDate}" class="w-full" max="${today}">
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="clearCustomDateLocation()"
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Xóa bộ lọc</button>
+                <button type="button" onclick="applyCustomDateLocation()"
+                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium">Áp dụng</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    customDatePickerModalLocation = modal;
+    initLocDpYearSelect(startDate);
+    renderLocMonthGrid();
+    const ySel = modal.querySelector('#locDpYear');
+    if (ySel) ySel.addEventListener('change', renderLocMonthGrid);
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeCustomDatePickerLocation();
+    });
+}
+
+function initLocDpYearSelect(referenceDateStr) {
+    const modal = customDatePickerModalLocation;
+    if (!modal) return;
+    const ySel = modal.querySelector('#locDpYear');
+    if (!ySel) return;
+    const today = getTodayDateStringLocation();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const ref = referenceDateStr || today;
+    const defaultY = parseInt(ref.slice(0, 4), 10);
+    ySel.innerHTML = '';
+    for (let y = curY; y >= curY - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = 'Năm ' + y;
+        ySel.appendChild(opt);
+    }
+    ySel.value = String(Math.min(Math.max(defaultY, curY - 5), curY));
+}
+
+function renderLocMonthGrid() {
+    const modal = customDatePickerModalLocation;
+    if (!modal) return;
+    const ySel = modal.querySelector('#locDpYear');
+    const grid = modal.querySelector('#locMonthGrid');
+    if (!ySel || !grid) return;
+    const y = parseInt(ySel.value, 10);
+    const today = getTodayDateStringLocation();
+    const curY = parseInt(today.slice(0, 4), 10);
+    const curM = parseInt(today.slice(5, 7), 10) - 1;
+    grid.replaceChildren();
+    for (let m = 0; m < 12; m++) {
+        const disabled = y === curY && m > curM;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profit-month-btn';
+        btn.textContent = 'Tháng ' + (m + 1);
+        if (!disabled) {
+            const monthIndex = m;
+            btn.addEventListener('click', function () {
+                pickLocationMonth(y, monthIndex);
+            });
+        } else {
+            btn.disabled = true;
+        }
+        grid.appendChild(btn);
+    }
+}
+
+function pickLocationMonth(y, m) {
+    const today = getTodayDateStringLocation();
+    const ty = parseInt(today.slice(0, 4), 10);
+    const tm = parseInt(today.slice(5, 7), 10);
+    const td = parseInt(today.slice(8, 10), 10);
+    const monthNum = m + 1;
+    const start = `${y}-${String(monthNum).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    let endDay = lastDay;
+    if (y === ty && monthNum === tm) {
+        endDay = Math.min(lastDay, td);
+    }
+    const end = `${y}-${String(monthNum).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const hS = document.getElementById('customDateStartLocation');
+    const hE = document.getElementById('customDateEndLocation');
+    if (hS) hS.value = start;
+    if (hE) hE.value = end;
+    updateCustomDateLabelLocation(start, end);
+    const pc = document.querySelector('.period-filter-container');
+    if (pc) pc.dataset.active = 'custom';
+    currentPeriod = 'custom';
+    customDateRange = { startDate: start, endDate: end };
+    updatePeriodButtons();
+    updateURL();
+    loadLocationData();
+    closeCustomDatePickerLocation();
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+}
+
+function closeCustomDatePickerLocation() {
+    if (!customDatePickerModalLocation) return;
+    customDatePickerModalLocation.style.opacity = '0';
+    const modalEl = customDatePickerModalLocation;
+    setTimeout(function () {
+        modalEl.remove();
+        if (customDatePickerModalLocation === modalEl) {
+            customDatePickerModalLocation = null;
+        }
+    }, 200);
+}
+
+function switchDateModeLocation(mode, el) {
+    currentDateModeLocation = mode;
+    const root = el && el.closest ? el.closest('.loc-picker-content') : null;
+    const scope = root || customDatePickerModalLocation;
+    if (scope) {
+        scope.querySelectorAll('.date-mode-tab').forEach(function (tab) {
+            tab.classList.toggle('active', tab.dataset.mode === mode);
+        });
+    }
+    const singleMode = document.getElementById('singleDateModeLocation');
+    const rangeMode = document.getElementById('rangeDateModeLocation');
+    if (!singleMode || !rangeMode) return;
+    if (mode === 'single') {
+        singleMode.classList.remove('hidden');
+        rangeMode.classList.add('hidden');
+    } else {
+        singleMode.classList.add('hidden');
+        rangeMode.classList.remove('hidden');
+    }
+}
+
+function applyCustomDateLocation() {
+    let startDate;
+    let endDate;
+    if (currentDateModeLocation === 'single') {
+        const singleDate = document.getElementById('singleDateInputLocation').value;
+        if (!singleDate) {
+            showToast('Vui lòng chọn ngày', 'warning');
+            return;
+        }
+        startDate = singleDate;
+        endDate = singleDate;
+    } else {
+        startDate = document.getElementById('startDateInputLocation').value;
+        endDate = document.getElementById('endDateInputLocation').value;
+        if (!startDate || !endDate) {
+            showToast('Vui lòng chọn đầy đủ khoảng thời gian', 'warning');
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            showToast('Ngày bắt đầu phải trước ngày kết thúc', 'warning');
+            return;
+        }
+    }
+    const hS = document.getElementById('customDateStartLocation');
+    const hE = document.getElementById('customDateEndLocation');
+    if (hS) hS.value = startDate;
+    if (hE) hE.value = endDate;
+    updateCustomDateLabelLocation(startDate, endDate);
+    const pc = document.querySelector('.period-filter-container');
+    if (pc) pc.dataset.active = 'custom';
+    currentPeriod = 'custom';
+    customDateRange = { startDate: startDate, endDate: endDate };
+    updatePeriodButtons();
+    updateURL();
+    loadLocationData();
+    closeCustomDatePickerLocation();
+    showToast('Đã áp dụng bộ lọc thời gian', 'success');
+}
+
+function clearCustomDateLocation() {
+    const hS = document.getElementById('customDateStartLocation');
+    const hE = document.getElementById('customDateEndLocation');
+    if (hS) hS.value = '';
+    if (hE) hE.value = '';
+    const label = document.getElementById('customDateLabelLocation');
+    if (label) label.textContent = 'Chọn ngày';
+    closeCustomDatePickerLocation();
+    changePeriod('all');
+    showToast('Đã xóa bộ lọc thời gian', 'info');
 }
 
 // Utility functions

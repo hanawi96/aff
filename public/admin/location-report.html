@@ -62,7 +62,8 @@
         .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"],
         .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"],
         .period-filter-container[data-active="year"] .period-btn[data-period="year"],
-        .period-filter-container[data-active="all"] .period-btn[data-period="all"] {
+        .period-filter-container[data-active="all"] .period-btn[data-period="all"],
+        .period-filter-container[data-active="custom"] .period-btn[data-period="custom"] {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             border-color: transparent;
             color: #fff;
@@ -74,8 +75,140 @@
         .period-filter-container[data-active="quarter"] .period-btn[data-period="quarter"]:hover,
         .period-filter-container[data-active="half-year"] .period-btn[data-period="half-year"]:hover,
         .period-filter-container[data-active="year"] .period-btn[data-period="year"]:hover,
-        .period-filter-container[data-active="all"] .period-btn[data-period="all"]:hover {
+        .period-filter-container[data-active="all"] .period-btn[data-period="all"]:hover,
+        .period-filter-container[data-active="custom"] .period-btn[data-period="custom"]:hover {
             filter: brightness(1.05);
+        }
+
+        /* Modal chọn ngày — đồng bộ profit-report */
+        @keyframes locFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes locSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .date-picker-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: locFadeIn 0.2s ease-out;
+            transition: opacity 0.2s ease;
+        }
+        .date-picker-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            box-sizing: border-box;
+            animation: locSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .date-input-wrapper input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+        .date-input-wrapper input[type="date"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .date-mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .date-mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+        .date-mode-tab.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .profit-quick-month-box {
+            border: 1px solid #bae6fd;
+            background: #f0f9ff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .profit-quick-month-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: #0369a1;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .profit-year-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #0c4a6e;
+            box-sizing: border-box;
+        }
+        .profit-year-select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+        .profit-month-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .profit-month-btn {
+            padding: 10px 4px;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 500;
+            color: #0369a1;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .profit-month-btn:hover:not(:disabled) {
+            border-color: #7dd3fc;
+            background: #e0f2fe;
+        }
+        .profit-month-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .profit-month-btn.active {
+            border-color: #4f46e5;
+            background: #eef2ff;
+            color: #4338ca;
+            box-shadow: 0 1px 2px rgba(79, 70, 229, 0.15);
         }
     </style>
     <link rel="stylesheet" href="../assets/css/admin.css">
@@ -219,7 +352,16 @@
                     <button type="button" onclick="changePeriod('half-year')" data-period="half-year" class="period-btn px-3 py-2 sm:px-4">6 tháng</button>
                     <button type="button" onclick="changePeriod('year')" data-period="year" class="period-btn px-3 py-2 sm:px-4">Năm nay</button>
                     <button type="button" onclick="changePeriod('all')" data-period="all" class="period-btn px-3 py-2 sm:px-4">Tất cả</button>
+                    <button type="button" onclick="showCustomDatePickerLocation(event)" id="customDateBtnLocation" data-period="custom"
+                        class="period-btn inline-flex items-center gap-1.5 px-3 py-2 sm:px-4">
+                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span id="customDateLabelLocation">Chọn ngày</span>
+                    </button>
                 </div>
+                <input type="hidden" id="customDateStartLocation" value="">
+                <input type="hidden" id="customDateEndLocation" value="">
             </div>
 
             <!-- AI Insights Banner -->

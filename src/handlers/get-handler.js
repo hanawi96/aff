@@ -478,6 +478,7 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             const districtId = url.searchParams.get('districtId');
             const locationPeriod = url.searchParams.get('period') || 'all';
             const locationStartDate = url.searchParams.get('startDate');
+            const locationEndDate = url.searchParams.get('endDate');
             const previousStartDate = url.searchParams.get('previousStartDate');
             const previousEndDate = url.searchParams.get('previousEndDate');
             return await getLocationStats({ 
@@ -486,6 +487,7 @@ export async function handleGet(action, url, request, env, corsHeaders) {
                 districtId, 
                 period: locationPeriod, 
                 startDate: locationStartDate,
+                endDate: locationEndDate,
                 previousStartDate,
                 previousEndDate
             }, env, corsHeaders);
