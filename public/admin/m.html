@@ -136,7 +136,7 @@ body{overscroll-behavior-y:contain}
 <div id="statsView" class="hidden">
   <!-- Period tabs -->
   <div class="bg-white border-b border-gray-100 px-3 py-2.5">
-    <div class="flex gap-1 overflow-x-auto no-scrollbar">
+    <div class="flex gap-1 overflow-x-auto no-scrollbar" data-swipe-tab-ignore>
       <button onclick="setPeriod('yesterday')" data-p="yesterday" class="ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">H.qua</button>
       <button onclick="setPeriod('today')" data-p="today" class="ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">H.nay</button>
       <button onclick="setPeriod('week')" data-p="week" class="ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">7 ng</button>
@@ -317,6 +317,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const b=document.querySelector(`.tab[data-status="${t}"]`);
     if(b)switchTab(b,{skipUrl:true});
   });
+  initTabSwipe();
 });
 
 async function loadOrders(){
@@ -344,7 +345,14 @@ function applyFilter(){
     }
     return true;
   });
-  filtered.sort((a,b)=>(b.is_priority||0)-(a.is_priority||0)||(b.created_at_unix||0)-(a.created_at_unix||0));
+  // Tab Chờ xử lý: đơn đặt trước lên trên để gửi hàng trước; đơn mới xuống dưới (vẫn ưu tiên ⭐ trước).
+  const pendingFifo=currentTab==='pending'&&!q;
+  filtered.sort((a,b)=>{
+    const pr=(b.is_priority||0)-(a.is_priority||0);
+    if(pr)return pr;
+    if(pendingFifo)return(a.created_at_unix||0)-(b.created_at_unix||0);
+    return(b.created_at_unix||0)-(a.created_at_unix||0);
+  });
   page=1;
   renderCards();
   updateCounts();
@@ -456,6 +464,53 @@ function switchTab(btn,opts){
     window.scrollTo(0,0);
   }
   if(!opts||!opts.skipUrl)setMainTabHash(currentTab);
+}
+
+// Vuốt ngang đổi tab (pending → shipped → stats): passive, không scroll-jank
+const SWIPE_TAB_ORDER=['pending','shipped','stats'];
+const SWIPE_TAB_MIN=56,SWIPE_TAB_RATIO=1.2;
+let _swTabX,_swTabY,_swTabTrack;
+function swipeTabOverlayHit(el){
+  if(!el||!el.closest)return true;
+  const ids=['createPanel','detailPanel','discountSheet','ctvSheet','prodSheet','dateSheet'];
+  for(let i=0;i<ids.length;i++){
+    const n=document.getElementById(ids[i]);
+    if(n&&!n.classList.contains('hidden')&&el.closest('#'+ids[i]))return true;
+  }
+  return false;
+}
+function swipeTabIgnore(el){
+  if(!el||!el.closest)return true;
+  if(swipeTabOverlayHit(el))return true;
+  if(el.closest('[data-swipe-tab-ignore]'))return true;
+  if(el.closest('input,textarea,select,[contenteditable="true"]'))return true;
+  return false;
+}
+function onSwipeTabStart(e){
+  if(e.touches.length!==1)return;
+  const t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY);
+  _swTabTrack=!swipeTabIgnore(el);
+  if(!_swTabTrack)return;
+  _swTabX=t.clientX;_swTabY=t.clientY;
+}
+function onSwipeTabEnd(e){
+  if(!_swTabTrack)return;
+  _swTabTrack=false;
+  if(e.changedTouches.length!==1)return;
+  const t=e.changedTouches[0],dx=t.clientX-_swTabX,dy=t.clientY-_swTabY;
+  if(Math.abs(dx)<SWIPE_TAB_MIN||Math.abs(dx)<Math.abs(dy)*SWIPE_TAB_RATIO)return;
+  const i=SWIPE_TAB_ORDER.indexOf(currentTab);
+  if(i<0)return;
+  let n=-1;
+  if(dx<0&&i<SWIPE_TAB_ORDER.length-1)n=i+1;
+  else if(dx>0&&i>0)n=i-1;
+  if(n<0)return;
+  const btn=document.querySelector('.tab[data-status="'+SWIPE_TAB_ORDER[n]+'"]');
+  if(btn)switchTab(btn);
+}
+function initTabSwipe(){
+  document.body.addEventListener('touchstart',onSwipeTabStart,{passive:true});
+  document.body.addEventListener('touchend',onSwipeTabEnd,{passive:true});
 }
 
 let searchTimer;
