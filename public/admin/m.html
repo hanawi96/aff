@@ -2090,19 +2090,24 @@ function _pickXIdx(count,max){
   return idxs;
 }
 
-function _mkSmooth(vals,xPFn,yPFn,T,yMax){
+function _mkSmooth(vals,xPFn,yPFn,T,yMax,yMinTop){
   if(!vals.length)return'';
   const n=vals.length;
   const xs=vals.map((_,i)=>xPFn(i));
   const ys=vals.map(v=>yPFn(v));
-  const cy=y=>yMax!=null?Math.min(y,yMax):y;
+  const clampCP=y=>{
+    let yy=y;
+    if(yMax!=null)yy=Math.min(yy,yMax);
+    if(yMinTop!=null)yy=Math.max(yy,yMinTop);
+    return yy;
+  };
   if(n===1)return`M${xs[0].toFixed(1)},${ys[0].toFixed(1)}`;
   let d=`M${xs[0].toFixed(1)},${ys[0].toFixed(1)}`;
   for(let i=0;i<n-1;i++){
     const px=i>0?xs[i-1]:xs[i],py=i>0?ys[i-1]:ys[i];
     const nx=i<n-2?xs[i+2]:xs[i+1],ny=i<n-2?ys[i+2]:ys[i+1];
-    const cp1x=xs[i]+(xs[i+1]-px)*T/3,cp1y=cy(ys[i]+(ys[i+1]-py)*T/3);
-    const cp2x=xs[i+1]-(nx-xs[i])*T/3,cp2y=cy(ys[i+1]-(ny-ys[i])*T/3);
+    const cp1x=xs[i]+(xs[i+1]-px)*T/3,cp1y=clampCP(ys[i]+(ys[i+1]-py)*T/3);
+    const cp2x=xs[i+1]-(nx-xs[i])*T/3,cp2y=clampCP(ys[i+1]-(ny-ys[i])*T/3);
     d+=` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${xs[i+1].toFixed(1)},${ys[i+1].toFixed(1)}`;
   }
   return d;
@@ -2139,7 +2144,7 @@ function buildChart(curData,prevData,range,curOv,prevOv){
   }
   if(!pts.length){_cMeta=null;return'';}
   const hasPrev=pts.some(p=>p.prevRev>0||p.prevProf!==0);
-  const W=350,H=190,pl=46,pr=8,ptt=12,pb=26;
+  const W=350,H=196,pl=46,pr=8,ptt=18,pb=26;
   const cW=W-pl-pr,cH=H-ptt-pb;
   const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
   const maxLbls=isH?6:Math.min(pts.length,7);
@@ -2203,17 +2208,19 @@ function renderChartSvg(mode){
   const prevVals=pts.map(p=>isOrd?p.prevOrd:isRev?p.prevRev:p.prevProf);
   const all=vals.concat(hasPrev?prevVals:[]);
   const minV=Math.min(0,...all);
-  const maxV=Math.max(0,...all);
+  const rawMax=Math.max(0,...all);
+  const span=Math.max(rawMax-minV,1e-9);
+  const maxV=rawMax+span*0.14;
   const rng=maxV-minV||1;
   const xP=i=>pl+(pts.length>1?i/(pts.length-1)*cW:cW/2);
   const yP=v=>ptt+cH-(v-minV)/rng*cH;
   _cMeta._mode=mode;_cMeta._minV=minV;_cMeta._rng=rng;
   const T=0.4;
   const yMax=ptt+cH;
-  const cPath=_mkSmooth(vals,xP,yP,T,yMax);
+  const cPath=_mkSmooth(vals,xP,yP,T,yMax,ptt);
   const zy=yP(0);
   const cArea=vals.length>1?cPath+` L${xP(vals.length-1).toFixed(1)},${zy.toFixed(1)} L${xP(0).toFixed(1)},${zy.toFixed(1)} Z`:'';
-  const pPath=hasPrev?_mkSmooth(prevVals,xP,yP,T,yMax):'';
+  const pPath=hasPrev?_mkSmooth(prevVals,xP,yP,T,yMax,ptt):'';
   let g='',yl='';
   for(let i=0;i<=4;i++){
     const v=minV+rng*i/4,yy=yP(v);
@@ -2235,10 +2242,10 @@ function renderChartSvg(mode){
         <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
       </linearGradient>
       <clipPath id="cp${mode}">
-        <rect x="${pl}" y="${ptt}" width="${cW}" height="${cH}"/>
+        <rect x="${pl}" y="${ptt - 3}" width="${cW}" height="${cH + 3}"/>
       </clipPath>
       <clipPath id="cpL${mode}">
-        <rect x="${pl}" y="${ptt}" width="${cW}" height="${cH+1}"/>
+        <rect x="${pl}" y="${ptt - 3}" width="${cW}" height="${cH + 4}"/>
       </clipPath>
     </defs>
     ${cArea?`<path d="${cArea}" fill="url(#rg${mode})" clip-path="url(#cp${mode})"/>`:''}
