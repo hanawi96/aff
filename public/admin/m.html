@@ -78,7 +78,7 @@ body{overscroll-behavior-y:contain}
 <!-- Status Tabs -->
 <div class="sticky top-[60px] z-30 bg-white border-gray-200 px-3 py-2">
   <div class="flex gap-1.5 bg-gray-100 rounded-xl p-1">
-    <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500 tab-active" data-status="pending" onclick="switchTab(this)">
+    <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500" data-status="pending" onclick="switchTab(this)">
       Chờ xử lý <span id="countPending" class="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
     </button>
     <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500" data-status="shipped" onclick="switchTab(this)">
@@ -89,6 +89,29 @@ body{overscroll-behavior-y:contain}
     </button>
   </div>
 </div>
+<script>
+(function(){
+  var ok={pending:1,shipped:1,stats:1};
+  var r=(location.hash||'').replace(/^#/,'').toLowerCase();
+  var t=ok[r]?r:'pending';
+  if(t==='stats'){
+    var st=document.createElement('style');
+    st.id='m-tab-boot';
+    st.textContent='#orderList,#loadMore{display:none!important}#statsView{display:block!important}';
+    document.head.appendChild(st);
+  }
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('tab-active');});
+  var b=document.querySelector('.tab[data-status="'+t+'"]');
+  if(b)b.classList.add('tab-active');
+  if(t==='stats'){
+    var ht=document.getElementById('headerTitle');
+    if(ht)ht.textContent='Thống kê';
+    document.getElementById('orderHeaderBtns')?.classList.add('hidden');
+    document.getElementById('statsHeaderBtns')?.classList.remove('hidden');
+    document.getElementById('searchBar')?.classList.add('hidden');
+  }
+})();
+</script>
 
 <!-- Order List -->
 <main id="orderList">
@@ -248,6 +271,21 @@ body{overscroll-behavior-y:contain}
 <script>
 // ─── State ───
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
+const MAIN_TAB_IDS=new Set(['pending','shipped','stats']);
+function tabFromHash(){
+  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
+  return MAIN_TAB_IDS.has(raw)?raw:'pending';
+}
+function setMainTabHash(tab){
+  if(!MAIN_TAB_IDS.has(tab))return;
+  const path=location.pathname+location.search;
+  const next=`${path}#${tab}`;
+  if(location.pathname+location.search+location.hash!==next)history.replaceState(null,'',next);
+}
+function fixInvalidMainHash(){
+  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
+  if(raw&&!MAIN_TAB_IDS.has(raw))setMainTabHash('pending');
+}
 const PAGE_SIZE=10;
 const API=()=>(typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://127.0.0.1:8787');
 const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800',dot:'bg-amber-400'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800',dot:'bg-blue-400'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800',dot:'bg-emerald-400'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800',dot:'bg-red-400'}};
@@ -256,7 +294,30 @@ const ago=ts=>{if(!ts)return'';const sec=ts>1e10?ts/1000:ts,d=(Date.now()/1000-s
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
 
 // ─── Init ───
-document.addEventListener('DOMContentLoaded',()=>{loadOrders();loadProductList();});
+document.addEventListener('DOMContentLoaded',()=>{
+  fixInvalidMainHash();
+  currentTab=tabFromHash();
+  if(currentTab==='stats'){
+    document.getElementById('orderList')?.classList.add('hidden');
+    document.getElementById('loadMore')?.classList.add('hidden');
+    document.getElementById('statsView')?.classList.remove('hidden');
+    document.getElementById('m-tab-boot')?.remove();
+    document.getElementById('searchInput').value='';
+    searchTerm='';
+    updateTabActive(currentPeriod);
+    if(!statsInitialized){statsInitialized=true;loadData();}
+  }else{
+    document.getElementById('m-tab-boot')?.remove();
+    applyFilter();
+  }
+  loadOrders();loadProductList();
+  window.addEventListener('hashchange',()=>{
+    const t=tabFromHash();
+    if(t===currentTab)return;
+    const b=document.querySelector(`.tab[data-status="${t}"]`);
+    if(b)switchTab(b,{skipUrl:true});
+  });
+});
 
 async function loadOrders(){
   try{
@@ -372,7 +433,7 @@ function renderCards(){
 function loadMoreOrders(){page++;renderCards()}
 
 // ─── Tabs & Search ───
-function switchTab(btn){
+function switchTab(btn,opts){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('tab-active'));
   btn.classList.add('tab-active');
   currentTab=btn.dataset.status;
@@ -394,6 +455,7 @@ function switchTab(btn){
     applyFilter();
     window.scrollTo(0,0);
   }
+  if(!opts||!opts.skipUrl)setMainTabHash(currentTab);
 }
 
 let searchTimer;
