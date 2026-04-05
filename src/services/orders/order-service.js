@@ -332,16 +332,27 @@ export async function updateOrderNotes(data, env, corsHeaders) {
 // Update customer info
 export async function updateCustomerInfo(data, env, corsHeaders) {
     try {
-        if (!data.orderId || !data.customerName || !data.customerPhone) {
+        if (!data.orderId) {
             return jsonResponse({
                 success: false,
-                error: 'Thiếu orderId, customerName hoặc customerPhone'
+                error: 'Thiếu orderId'
             }, 400, corsHeaders);
         }
 
-        // Validate phone format
+        const customerName = String(data.customerName || '').trim() || 'Khách hàng';
+        let phone = String(data.customerPhone || '').replace(/\s/g, '');
+        if (phone.startsWith('+84')) phone = '0' + phone.slice(3);
+        else if (phone.startsWith('84') && phone.length >= 10) phone = '0' + phone.slice(2);
+
+        if (!phone) {
+            return jsonResponse({
+                success: false,
+                error: 'Thiếu số điện thoại'
+            }, 400, corsHeaders);
+        }
+
         const phoneRegex = /^0\d{9}$/;
-        if (!phoneRegex.test(data.customerPhone)) {
+        if (!phoneRegex.test(phone)) {
             return jsonResponse({
                 success: false,
                 error: 'Số điện thoại không hợp lệ'
@@ -353,7 +364,7 @@ export async function updateCustomerInfo(data, env, corsHeaders) {
             UPDATE orders 
             SET customer_name = ?, customer_phone = ?
             WHERE id = ?
-        `).bind(data.customerName, data.customerPhone, data.orderId).run();
+        `).bind(customerName, phone, data.orderId).run();
 
         if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
