@@ -83,7 +83,7 @@ export async function uploadImage(env, file, filename) {
             ? `${base}/?action=getR2Image&key=${encodeURIComponent(uniqueFilename)}`
             : `${base}/${uniqueFilename}`;
         
-        console.log('✅ Image uploaded successfully:', {
+        console.log('Image uploaded successfully:', {
             filename: uniqueFilename,
             url: publicUrl,
             size: file.size,

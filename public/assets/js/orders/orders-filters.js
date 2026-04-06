@@ -110,14 +110,60 @@ function invalidateSearchCache() {
 // MAIN FILTER FUNCTION
 // ============================================
 
+/** Trạng thái dropdown trước khi người dùng bắt đầu nhập tìm (khôi phục khi xóa ô tìm, trừ khi đã đổi trạng thái lúc đang tìm) */
+let _orderStatusFilterBeforeSearch = null;
+/** Ô tìm lần trước có nội dung hay không — chỉ dùng để phát hiện lúc «vừa bắt đầu tìm» / «vừa xóa hết» */
+let _prevSearchInputHadText = false;
+
+const ORDER_STATUS_FILTER_LABELS = {
+    all: 'Tất cả trạng thái',
+    pending: 'Chưa gửi hàng',
+    shipped: 'Đã gửi hàng',
+    in_transit: 'Đang vận chuyển',
+    delivered: 'Đã giao hàng',
+    failed: 'Giao hàng thất bại'
+};
+
+/**
+ * Vừa bắt đầu nhập tìm → chuyển dropdown sang «Tất cả trạng thái» (một lần).
+ * Trong lúc vẫn gõ / vẫn có từ khóa, giữ nguyên trạng thái người dùng chọn (lọc kết hợp tìm + trạng thái).
+ * Xóa hết ô tìm → khôi phục trạng thái đã lưu (nếu chưa đổi tay lúc đang tìm).
+ */
+function syncStatusFilterWithSearchInput() {
+    const searchRaw = document.getElementById('searchInput')?.value || '';
+    const hasActiveSearch = searchRaw.trim().length > 0;
+    const hidden = document.getElementById('statusFilter');
+    const labelEl = document.getElementById('statusFilterLabel');
+    if (!hidden || !labelEl) return;
+
+    if (hasActiveSearch && !_prevSearchInputHadText) {
+        if (hidden.value !== 'all' && _orderStatusFilterBeforeSearch === null) {
+            _orderStatusFilterBeforeSearch = hidden.value;
+        }
+        hidden.value = 'all';
+        labelEl.textContent = ORDER_STATUS_FILTER_LABELS.all;
+    } else if (!hasActiveSearch && _prevSearchInputHadText) {
+        if (_orderStatusFilterBeforeSearch !== null) {
+            const v = _orderStatusFilterBeforeSearch;
+            _orderStatusFilterBeforeSearch = null;
+            hidden.value = v;
+            labelEl.textContent = ORDER_STATUS_FILTER_LABELS[v] || v;
+        }
+    }
+    _prevSearchInputHadText = hasActiveSearch;
+}
+
 /**
  * Filter orders data based on search, status, payment method, CTV, and date filters
  * OPTIMIZED: Uses pre-built search index for 10x faster search
  * @param {boolean} [preservePage=false] - true: giữ trang hiện tại (hợp lệ sau khi đổi trạng thái 1 đơn, refilter)
  */
 function filterOrdersData(preservePage = false) {
+    syncStatusFilterWithSearchInput();
+
     const pageBeforeFilter = preservePage ? currentPage : null;
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const searchRaw = document.getElementById('searchInput')?.value || '';
+    const searchTerm = searchRaw.toLowerCase();
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
@@ -348,6 +394,9 @@ function toggleStatusFilter(event) {
  * Select status filter value
  */
 function selectStatusFilter(value, label) {
+    if ((document.getElementById('searchInput')?.value || '').trim().length > 0) {
+        _orderStatusFilterBeforeSearch = null;
+    }
     document.getElementById('statusFilter').value = value;
     document.getElementById('statusFilterLabel').textContent = label;
     document.getElementById('statusFilterMenu')?.remove();
