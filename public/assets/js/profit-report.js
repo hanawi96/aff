@@ -756,6 +756,14 @@ function renderTopProductsTable() {
         const profitMargin = product.profit_margin || 0;
         const profitColor = profitMargin > 50 ? 'text-emerald-600' : profitMargin > 30 ? 'text-green-600' : 'text-yellow-600';
         const name0 = (product.product_name && product.product_name.charAt(0)) ? product.product_name.charAt(0).toUpperCase() : '?';
+        const imgResolved = resolveProfitProductImageUrl(product.image_url);
+        const safeImgSrc = imgResolved ? escapeHtml(imgResolved) : '';
+        const thumbBlock = safeImgSrc
+            ? `<div class="relative mr-3 h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/80">
+                <img src="${safeImgSrc}" alt="" class="h-full w-full object-cover" loading="lazy" decoding="async" onerror="onProfitProductImgError(this)" />
+                <div class="profit-img-ph absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold text-white">${escapeHtml(name0)}</div>
+            </div>`
+            : `<div class="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold text-white">${escapeHtml(name0)}</div>`;
 
         let rankDisplay = String(rank);
         if (rank === 1) rankDisplay = '🥇';
@@ -769,9 +777,7 @@ function renderTopProductsTable() {
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">
-                            ${name0}
-                        </div>
+                        ${thumbBlock}
                         <div>
                             <div class="text-sm font-medium text-gray-900">${escapeHtml(product.product_name || '')}</div>
                             <div class="text-xs text-gray-500">${product.order_count || 0} đơn hàng</div>
@@ -957,6 +963,28 @@ function formatCurrency(amount) {
 function formatNumber(num) {
     if (num === null || num === undefined || isNaN(num)) return '0';
     return new Intl.NumberFormat('vi-VN').format(num);
+}
+
+/** Đồng bộ logic với admin m.html — ảnh có thể là URL đầy đủ hoặc tên file trong assets/images */
+function resolveProfitProductImageUrl(raw) {
+    if (raw == null || typeof raw !== 'string') return '';
+    const s = raw.trim();
+    if (!s) return '';
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('/')) return s;
+    if (s.startsWith('./assets/')) return '../' + s.slice(2);
+    if (s.startsWith('assets/')) return '../' + s;
+    return '../assets/images/' + s;
+}
+
+function onProfitProductImgError(img) {
+    img.onerror = null;
+    img.classList.add('hidden');
+    const ph = img.parentElement && img.parentElement.querySelector('.profit-img-ph');
+    if (ph) {
+        ph.classList.remove('hidden');
+        ph.classList.add('flex');
+    }
 }
 
 function formatDate(dateString) {

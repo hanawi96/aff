@@ -153,6 +153,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             SELECT 
                 p.id as product_id,
                 p.name as product_name,
+                p.image_url as image_url,
                 COALESCE(s.total_sold, 0) as total_sold,
                 COALESCE(s.total_revenue, 0) as total_revenue,
                 COALESCE(s.total_cost, 0) as total_cost,
