@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Đơn hàng — Mobile</title>
 <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+<link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+/* Street input trong HierarchicalAddressSelector (shop dùng .checkout-form-input từ styles.css) */
+#mOrderAddressSelectorContainer .checkout-form-input{width:100%;padding:0.625rem 0.875rem;border:1px solid #e5e7eb;border-radius:0.75rem;font-size:0.875rem;background:#f9fafb;box-sizing:border-box}
+#mOrderAddressSelectorContainer .checkout-form-input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2);background:#fff}
 *{-webkit-tap-highlight-color:transparent}
 body{overscroll-behavior-y:contain}
 .tab-active{background:#6366f1;color:#fff!important;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
@@ -945,7 +949,6 @@ async function showEditOrder(id){
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
-  document.getElementById('cStreet').value=o.street_address||'';
   setPayment(o.payment_method??o.paymentMethod??'cod');
   document.getElementById('cNotes').value=o.notes||'';
   if(Number(o.shipping_fee)===0){
@@ -968,21 +971,8 @@ async function showEditOrder(id){
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   _populateCatFilter();
-  Promise.all([loadAddressData(), loadProductList(), loadShippingConfig()]).then(()=>{
-    // Prefill address dropdowns
-    if(o.province_id){
-      const pSel=document.getElementById('cProvince');
-      renderProvinces();
-      pSel.value=o.province_id;
-      onProvinceChange();
-      setTimeout(()=>{
-        if(o.district_id){
-          document.getElementById('cDistrict').value=o.district_id;
-          onDistrictChange();
-          setTimeout(()=>{if(o.ward_id)document.getElementById('cWard').value=o.ward_id;},50);
-        }
-      },50);
-    } else renderProvinces();
+  Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
+    await initMCreateAddressSelector(o);
     renderProductPicker();
     renderCart();
     setPayment(o.payment_method??o.paymentMethod??'cod');
@@ -1037,7 +1027,8 @@ async function changeStatus(id,status,code){
 }
 
 // ─── Create Order ───
-let createProducts=[], addressData=null, allProductsCache=[], allCategoriesCache=[], activeCategoryId='';
+let createProducts=[], allProductsCache=[], allCategoriesCache=[], activeCategoryId='';
+let mCreateAddressSelector=null;
 
 function showCreateOrder(){
   editOrderId=null;createProducts=[];activeCategoryId='';mDiscount=null;
@@ -1048,8 +1039,8 @@ function showCreateOrder(){
   document.body.style.overflow='hidden';
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
-  Promise.all([loadAddressData(), loadProductList(), loadShippingConfig()]).then(()=>{
-    renderProvinces();
+  Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
+    await initMCreateAddressSelector(null);
     renderProductPicker();
   });
 }
@@ -1059,7 +1050,46 @@ function _populateCatFilter(){
   allCategoriesCache.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});
 }
 
-function closeCreate(){editOrderId=null;mDiscount=null;document.getElementById('createPanel').classList.add('hidden');document.body.style.overflow=''}
+function destroyMCreateAddressSelector(){
+  if(mCreateAddressSelector){
+    try{mCreateAddressSelector.destroy();}catch(e){console.warn(e);}
+    mCreateAddressSelector=null;
+  }
+}
+async function initMCreateAddressSelector(orderForHydrate){
+  const box=document.getElementById('mOrderAddressSelectorContainer');
+  if(!box)return;
+  destroyMCreateAddressSelector();
+  box.innerHTML='<p class="text-sm text-gray-400 py-3 text-center">Đang tải địa chỉ...</p>';
+  try{
+    const { HierarchicalAddressSelector }=await import('../shop/assets/js/components/hierarchical-address-selector.js');
+    box.innerHTML='';
+    const sel=new HierarchicalAddressSelector('mOrderAddressSelectorContainer');
+    await sel.init();
+    mCreateAddressSelector=sel;
+    const disp=document.getElementById('addressSelectorDisplay');
+    disp?.addEventListener('click',()=>clearFieldError('mAddressFormBlock'));
+    document.getElementById('addressSearchInput')?.addEventListener('input',()=>clearFieldError('mAddressFormBlock'));
+    if(orderForHydrate&&orderForHydrate.province_id){
+      sel.hydrateFromCodes({
+        provinceCode:orderForHydrate.province_id,
+        districtCode:orderForHydrate.district_id,
+        wardCode:orderForHydrate.ward_id,
+        street:orderForHydrate.street_address
+      });
+    }
+    document.getElementById('streetInput')?.addEventListener('input',()=>clearFieldError('mAddressFormBlock'));
+  }catch(e){
+    console.error(e);
+    box.innerHTML='<p class="text-sm text-red-600 py-3 text-center px-2">Không tải được chọn địa chỉ. Kiểm tra mạng và tải lại trang.</p>';
+  }
+}
+function closeCreate(){
+  editOrderId=null;mDiscount=null;
+  document.getElementById('createPanel').classList.add('hidden');
+  document.body.style.overflow='';
+  destroyMCreateAddressSelector();
+}
 
 function buildCreateForm(isEdit=false){
   return`
@@ -1086,19 +1116,11 @@ function buildCreateForm(isEdit=false){
       </div>
     </div>
 
-    <!-- Địa chỉ -->
-    <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+    <!-- Địa chỉ (HierarchicalAddressSelector — tìm kiếm + cascade như mua ngay) -->
+    <div id="mAddressFormBlock" class="m-address-section bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Địa chỉ giao hàng</h3>
-      <select id="cProvince" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" onchange="onProvinceChange()">
-        <option value="">Tỉnh/Thành phố *</option>
-      </select>
-      <select id="cDistrict" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm" onchange="onDistrictChange()">
-        <option value="">Quận/Huyện *</option>
-      </select>
-      <select id="cWard" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
-        <option value="">Phường/Xã *</option>
-      </select>
-      <input id="cStreet" type="text" placeholder="Số nhà, tên đường" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+      <p class="text-xs text-gray-500 -mt-1">Chạm để chọn / tìm tỉnh → quận → phường; sau đó nhập số nhà (nếu có).</p>
+      <div id="mOrderAddressSelectorContainer" class="min-h-[52px]"></div>
     </div>
 
     <!-- Sản phẩm -->
@@ -1232,45 +1254,6 @@ function buildCreateForm(isEdit=false){
       </div>
     </div>
   </div>`;
-}
-
-// ─── Address ───
-async function loadAddressData(){
-  if(addressData)return;
-  const basePath=location.pathname.includes('/admin/')?'../assets/data/tree.json':'/assets/data/tree.json';
-  const r=await fetch(basePath);addressData=await r.json();
-}
-
-function renderProvinces(){
-  const sel=document.getElementById('cProvince');if(!sel||!addressData)return;
-  if(sel.options.length>1)return;
-  Object.entries(addressData).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,p])=>{
-    const opt=document.createElement('option');opt.value=id;opt.textContent=p.name;sel.appendChild(opt);
-  });
-}
-
-function onProvinceChange(){
-  const pid=document.getElementById('cProvince').value;
-  const dSel=document.getElementById('cDistrict');
-  const wSel=document.getElementById('cWard');
-  dSel.innerHTML='<option value="">Quận/Huyện *</option>';
-  wSel.innerHTML='<option value="">Phường/Xã *</option>';
-  if(!pid||!addressData?.[pid])return;
-  Object.entries(addressData[pid]['quan-huyen']||{}).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,d])=>{
-    const opt=document.createElement('option');opt.value=id;opt.textContent=d.name;dSel.appendChild(opt);
-  });
-}
-
-function onDistrictChange(){
-  const pid=document.getElementById('cProvince').value;
-  const did=document.getElementById('cDistrict').value;
-  const wSel=document.getElementById('cWard');
-  wSel.innerHTML='<option value="">Phường/Xã *</option>';
-  if(!pid||!did)return;
-  const dist=addressData?.[pid]?.['quan-huyen']?.[did];if(!dist)return;
-  Object.entries(dist['xa-phuong']||{}).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,w])=>{
-    const opt=document.createElement('option');opt.value=id;opt.textContent=w.name;wSel.appendChild(opt);
-  });
 }
 
 // ─── Products ───
@@ -1741,9 +1724,10 @@ function clearFieldError(id){
 async function submitOrder(){
   const name=document.getElementById('cName')?.value.trim();
   const phone=document.getElementById('cPhone')?.value.trim();
-  const provinceId=document.getElementById('cProvince')?.value;
-  const districtId=document.getElementById('cDistrict')?.value;
-  const wardId=document.getElementById('cWard')?.value;
+  const addr=mCreateAddressSelector?.getAddressData?.();
+  const provinceId=addr?.provinceCode||'';
+  const districtId=addr?.districtCode||'';
+  const wardId=addr?.wardCode||'';
 
   let firstErrEl=null;
   const addErr=(id,msg)=>{const el=setFieldError(id,msg);if(!firstErrEl&&el)firstErrEl=el;};
@@ -1751,9 +1735,10 @@ async function submitOrder(){
   if(!name)addErr('cName','Vui lòng nhập tên khách hàng');
   if(!phone)addErr('cPhone','Vui lòng nhập số điện thoại');
   else if(!/^(0\d{9}|\+84\d{9})$/.test(phone.replace(/\s/g,'')))addErr('cPhone','Số điện thoại không hợp lệ (VD: 0912345678)');
-  if(!provinceId)addErr('cProvince','Vui lòng chọn Tỉnh/Thành phố');
-  if(!districtId)addErr('cDistrict','Vui lòng chọn Quận/Huyện');
-  if(!wardId)addErr('cWard','Vui lòng chọn Phường/Xã');
+  if(!mCreateAddressSelector)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
+  else if(!provinceId)addErr('mAddressFormBlock','Vui lòng chọn Tỉnh/Thành phố');
+  else if(!districtId)addErr('mAddressFormBlock','Vui lòng chọn Quận/Huyện');
+  else if(!wardId)addErr('mAddressFormBlock','Vui lòng chọn Phường/Xã');
 
   const cartErrEl=document.getElementById('cartErrMsg');
   if(!createProducts.length){
@@ -1768,11 +1753,10 @@ async function submitOrder(){
     return;
   }
 
-  const pSel=document.getElementById('cProvince'),dSel=document.getElementById('cDistrict'),wSel=document.getElementById('cWard');
-  const street=document.getElementById('cStreet')?.value.trim()||'';
-  const pName=pSel.selectedOptions[0]?.text||'';
-  const dName=dSel.selectedOptions[0]?.text||'';
-  const wName=wSel.selectedOptions[0]?.text||'';
+  const street=(addr?.street||'').trim();
+  const pName=addr?.provinceName||'';
+  const dName=addr?.districtName||'';
+  const wName=addr?.wardName||'';
   const fullAddr=[street,wName,dName,pName].filter(Boolean).join(', ');
 
   const btn=document.getElementById('submitBtn');

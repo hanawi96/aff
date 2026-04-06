@@ -336,7 +336,8 @@ export class HierarchicalAddressSelector {
             
             // Check if we're inside a modal
             const modal = chipsWrapper.closest('.quick-checkout-modal');
-            
+            const createPanel = chipsWrapper.closest('#createPanel');
+
             if (modal) {
                 // Inside modal - scroll the modal body to bring input to top
                 const modalBody = modal.querySelector('.quick-checkout-body');
@@ -366,6 +367,20 @@ export class HierarchicalAddressSelector {
                             behavior: 'smooth' 
                         });
                     }
+                }
+            } else if (createPanel) {
+                // Admin mobile create/edit order panel (#createPanel is the scroll container)
+                const stickyHeader = createPanel.querySelector('.sticky.top-0');
+                const headerHeight = stickyHeader ? stickyHeader.offsetHeight : 56;
+                const anchor = chipsWrapper.closest('.m-address-section') || chipsWrapper.closest('.checkout-form-group');
+                if (anchor) {
+                    const pr = createPanel.getBoundingClientRect();
+                    const ar = anchor.getBoundingClientRect();
+                    const nextTop = createPanel.scrollTop + (ar.top - pr.top) - headerHeight - 10;
+                    createPanel.scrollTo({
+                        top: Math.max(0, nextTop),
+                        behavior: 'smooth'
+                    });
                 }
             } else {
                 // Not in modal - scroll the window (cart page)
@@ -635,7 +650,12 @@ export class HierarchicalAddressSelector {
                 return true;
             }
         }
-        
+
+        // Multi-word query (e.g. "ha tinh" for "Tỉnh Hà Tĩnh" → "tinh ha tinh") — không khớp từ đơn lẻ ở trên
+        if (text.includes(query)) {
+            return true;
+        }
+
         return false;
     }
     
@@ -1036,6 +1056,10 @@ export class HierarchicalAddressSelector {
         if (modal && !modal.classList.contains('hidden')) {
             return;
         }
+        const createPanel = document.getElementById('createPanel');
+        if (createPanel && !createPanel.classList.contains('hidden')) {
+            return;
+        }
         
         // Simple - exactly like modal does it
         document.body.style.overflow = 'hidden';
@@ -1048,6 +1072,10 @@ export class HierarchicalAddressSelector {
         // Check if we're in a modal
         const modal = document.querySelector('.quick-checkout-modal');
         if (modal && !modal.classList.contains('hidden')) {
+            return;
+        }
+        const createPanel = document.getElementById('createPanel');
+        if (createPanel && !createPanel.classList.contains('hidden')) {
             return;
         }
         
@@ -1068,6 +1096,73 @@ export class HierarchicalAddressSelector {
         this.renderList(this.currentLevel);
     }
     
+    /**
+     * Hydrate UI from saved codes (e.g. edit order) without opening dropdowns.
+     * Codes must match keys in tree.json (string-safe).
+     */
+    hydrateFromCodes({ provinceCode, districtCode, wardCode, street } = {}) {
+        const p = provinceCode != null && provinceCode !== '' ? String(provinceCode) : '';
+        if (!p || !this.normalizedData || this.normalizedData.length === 0) {
+            this.updateChipsDisplay();
+            this.updateFullAddress();
+            return;
+        }
+        const prov = this.normalizedData.find(x => x.code === p);
+        if (!prov) {
+            console.warn('hydrateFromCodes: province not found', p);
+            return;
+        }
+
+        this.provinceCode = p;
+        this.selectedProvince = prov;
+        this.districtCode = '';
+        this.selectedDistrict = null;
+        this.wardCode = '';
+        this.selectedWard = null;
+        this.currentLevel = 'district';
+
+        const d = districtCode != null && districtCode !== '' ? String(districtCode) : '';
+        if (d && prov.districts && prov.districts.length) {
+            const dist = prov.districts.find(x => x.code === d);
+            if (dist) {
+                this.districtCode = d;
+                this.selectedDistrict = dist;
+                this.currentLevel = 'ward';
+            }
+        }
+
+        const w = wardCode != null && wardCode !== '' ? String(wardCode) : '';
+        if (w && this.selectedDistrict && this.selectedDistrict.wards && this.selectedDistrict.wards.length) {
+            const wrd = this.selectedDistrict.wards.find(x => x.code === w);
+            if (wrd) {
+                this.wardCode = w;
+                this.selectedWard = wrd;
+                this.currentLevel = 'complete';
+            }
+        }
+
+        if (this.wardCode) {
+            this.showStreetInput();
+            this.street = street != null ? String(street).trim() : '';
+            const streetInput = document.getElementById('streetInput');
+            if (streetInput) {
+                streetInput.value = this.street;
+            }
+        } else {
+            this.hideStreetInput();
+        }
+
+        this.searchQuery = '';
+        const searchInput = document.getElementById('addressSearchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        this.updateChipsDisplay();
+        this.updateFullAddress();
+        this.closeDropdown();
+    }
+
     /**
      * Get address data
      */
