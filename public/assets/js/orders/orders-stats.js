@@ -1,7 +1,7 @@
 // Orders Statistics Functions
 // Extracted from orders.js for better code organization
 // NOTE: All functions remain at global scope for backward compatibility
-// DEPENDENCIES: Uses global variables from orders.js (filteredOrdersData, allOrdersData)
+// DEPENDENCIES: filteredOrdersData, allOrdersData, calculateOrderProfit() (orders-constants.js)
 
 // ============================================
 // UPDATE STATISTICS
@@ -24,19 +24,15 @@ function updateStats() {
         return sum + (order.total_amount || 0);
     }, 0);
 
-    // Calculate total commission - recalculate based on current CTV commission_rate if available
-    const totalCommission = dataToUse.reduce((sum, order) => {
-        // If order has CTV and current commission_rate, recalculate
-        if (order.referral_code && order.ctv_commission_rate !== undefined && order.ctv_commission_rate !== null) {
-            // Calculate product_total from total_amount - shipping_fee
-            const totalAmount = order.total_amount || 0;
-            const shippingFee = order.shipping_fee || 0;
-            const productTotal = totalAmount - shippingFee;
-            return sum + Math.round(productTotal * order.ctv_commission_rate);
-        }
-        // Otherwise use stored commission
-        return sum + (order.commission || 0);
-    }, 0);
+    // Lợi nhuận ròng: cộng calculateOrderProfit — cùng logic cột "Lãi ròng" và breakdown modal.
+    // Khớp getDetailedAnalytics: mỗi đơn = total_amount - (product_cost + shipping_cost + packaging_cost + commission + tax).
+    const totalProfit = dataToUse.reduce((sum, order) => sum + calculateOrderProfit(order), 0);
+    const profitValueClass =
+        totalProfit > 0
+            ? 'text-3xl font-bold text-emerald-600'
+            : totalProfit < 0
+              ? 'text-3xl font-bold text-red-600'
+              : 'text-3xl font-bold text-gray-600';
 
     // Calculate average order value
     const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
@@ -44,7 +40,7 @@ function updateStats() {
     // Update stats - Remove skeleton and add text
     updateStatElement('totalOrders', totalOrders, 'text-3xl font-bold text-blue-600');
     updateStatElement('totalRevenue', formatCurrency(totalRevenue), 'text-3xl font-bold text-green-600');
-    updateStatElement('totalCommission', formatCurrency(totalCommission), 'text-3xl font-bold text-orange-600');
+    updateStatElement('ordersDashboardProfit', formatCurrency(totalProfit), profitValueClass);
     updateStatElement('todayOrders', formatCurrency(avgOrderValue), 'text-3xl font-bold text-purple-600');
 
     // Update stat labels based on filter
@@ -119,7 +115,7 @@ function updateStatLabels() {
     // Update labels
     const totalOrdersLabel = document.getElementById('totalOrdersLabel');
     const totalRevenueLabel = document.getElementById('totalRevenueLabel');
-    const totalCommissionLabel = document.getElementById('totalCommissionLabel');
+    const ordersDashboardProfitLabel = document.getElementById('ordersDashboardProfitLabel');
     const todayOrdersLabel = document.getElementById('todayOrdersLabel');
 
     if (totalOrdersLabel) {
@@ -128,8 +124,8 @@ function updateStatLabels() {
     if (totalRevenueLabel) {
         totalRevenueLabel.textContent = periodLabel ? `${periodLabel} - Doanh thu` : 'Tổng doanh thu';
     }
-    if (totalCommissionLabel) {
-        totalCommissionLabel.textContent = periodLabel ? `${periodLabel} - Hoa hồng` : 'Tổng hoa hồng';
+    if (ordersDashboardProfitLabel) {
+        ordersDashboardProfitLabel.textContent = periodLabel ? `${periodLabel} - Lợi nhuận` : 'Lợi nhuận (Lãi ròng)';
     }
     if (todayOrdersLabel) {
         todayOrdersLabel.textContent = periodLabel ? `${periodLabel} - TB/đơn` : 'Giá trị TB/đơn';

@@ -148,28 +148,39 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             sample_orders: ordersWithCommission.results
         });
 
-        // Get top products - Simplified and optimized with full details
+        // Toàn bộ sản phẩm trong catalog; kỳ không bán → 0; sắp xếp bán nhiều trước
         const topProducts = await env.DB.prepare(`
             SELECT 
-                oi.product_id,
-                oi.product_name,
-                SUM(oi.quantity) as total_sold,
-                SUM(oi.product_price * oi.quantity) as total_revenue,
-                SUM(oi.product_cost * oi.quantity) as total_cost,
-                SUM((oi.product_price - oi.product_cost) * oi.quantity) as total_profit,
-                AVG(oi.product_price) as avg_price,
-                COUNT(DISTINCT oi.order_id) as order_count,
-                ROUND(
-                    (SUM((oi.product_price - oi.product_cost) * oi.quantity) * 100.0) / 
-                    NULLIF(SUM(oi.product_price * oi.quantity), 0), 
-                    2
-                ) as profit_margin
-            FROM order_items oi
-            JOIN orders o ON oi.order_id = o.id
-            WHERE o.created_at_unix >= ?${endClauseO}
-            GROUP BY oi.product_id, oi.product_name
-            ORDER BY total_sold DESC
-            LIMIT 10
+                p.id as product_id,
+                p.name as product_name,
+                COALESCE(s.total_sold, 0) as total_sold,
+                COALESCE(s.total_revenue, 0) as total_revenue,
+                COALESCE(s.total_cost, 0) as total_cost,
+                COALESCE(s.total_profit, 0) as total_profit,
+                COALESCE(s.avg_price, p.price) as avg_price,
+                COALESCE(s.order_count, 0) as order_count,
+                CASE
+                    WHEN COALESCE(s.total_revenue, 0) > 0 THEN
+                        ROUND(COALESCE(s.total_profit, 0) * 100.0 / s.total_revenue, 2)
+                    ELSE 0
+                END as profit_margin
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    oi.product_id,
+                    SUM(oi.quantity) as total_sold,
+                    SUM(oi.product_price * oi.quantity) as total_revenue,
+                    SUM(oi.product_cost * oi.quantity) as total_cost,
+                    SUM((oi.product_price - oi.product_cost) * oi.quantity) as total_profit,
+                    AVG(oi.product_price) as avg_price,
+                    COUNT(DISTINCT oi.order_id) as order_count
+                FROM order_items oi
+                INNER JOIN orders o ON oi.order_id = o.id
+                WHERE oi.product_id IS NOT NULL
+                  AND o.created_at_unix >= ?${endClauseO}
+                GROUP BY oi.product_id
+            ) s ON p.id = s.product_id
+            ORDER BY total_sold DESC, p.name COLLATE NOCASE ASC
         `).bind(...bindStartO).all();
 
         // Chart data — respects selected date range, hourly for single day

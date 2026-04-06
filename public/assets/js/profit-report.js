@@ -1,8 +1,18 @@
 // Product Analytics Dashboard
-let currentPeriod = 'week'; // Single source of truth
-let currentLimit = 9999; // Show all products
+let currentPeriod = 'today'; // Single source of truth (default on page load)
 let allProductsData = [];
 let currentSort = { column: null, direction: null }; // null, 'asc', 'desc'
+
+const PROFIT_REPORT_PRODUCTS_PAGE_SIZES = [2, 5, 10, 15, 20, 30, 50, 100];
+const PR_PRODS_PER_PAGE_LS = 'profit_report_products_per_page_v2';
+let profitReportProductsDataRev = 0;
+let profitReportProductsPage = 1;
+let profitReportProductsPerPage = (function loadPrProductsPerPage() {
+    const n = parseInt(localStorage.getItem(PR_PRODS_PER_PAGE_LS), 10);
+    return PROFIT_REPORT_PRODUCTS_PAGE_SIZES.includes(n) ? n : 20;
+})();
+let _prSortedView = null;
+let _prSortedViewKey = '';
 let customDateRange = null; // Store custom date range { startDate, endDate }
 
 // Chart variables
@@ -42,6 +52,12 @@ const ordersChartCache = {
     'half-year': { data: null, timestamp: 0 },
     year: { data: null, timestamp: 0 }
 };
+
+/** Tăng mỗi lần loadAllData — response cũ không được ghi đè summary/biểu đồ */
+let profitReportLoadGeneration = 0;
+function isProfitReportLoadStale(gen) {
+    return gen !== profitReportLoadGeneration;
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function () {
@@ -159,6 +175,7 @@ function changePeriod(period) {
 
 // Load all data - Optimized parallel loading
 async function loadAllData() {
+    const gen = ++profitReportLoadGeneration;
     console.log(`📊 Loading all data for period: ${currentPeriod}`);
     
     // Show loading states
@@ -166,10 +183,10 @@ async function loadAllData() {
     
     // Load data in parallel for better performance
     const promises = [
-        loadTopProducts(),
-        loadRevenueChart(),
-        loadProfitChart(),
-        loadOrdersChart()
+        loadTopProducts(gen),
+        loadRevenueChart(gen),
+        loadProfitChart(gen),
+        loadOrdersChart(gen)
     ];
     
     try {
@@ -242,8 +259,145 @@ function toggleSort(column) {
         }
     }
 
+    profitReportProductsPage = 1;
+    _prSortedViewKey = '';
     // Re-render table with sorted data
     renderTopProductsTable();
+}
+
+function invalidateProfitReportSortedView() {
+    _prSortedView = null;
+    _prSortedViewKey = '';
+}
+
+/** Mảng đã sort — cache theo (rev + sort) để lật trang không sort lại */
+function getSortedProductsView() {
+    const sk = `${profitReportProductsDataRev}|${currentSort.column ?? ''}|${currentSort.direction ?? ''}`;
+    if (_prSortedView && _prSortedViewKey === sk) return _prSortedView;
+    const sorted = allProductsData.length ? allProductsData.slice() : [];
+    if (currentSort.column && currentSort.direction) {
+        sorted.sort((a, b) => {
+            let aVal;
+            let bVal;
+            switch (currentSort.column) {
+                case 'quantity':
+                    aVal = a.total_sold || 0;
+                    bVal = b.total_sold || 0;
+                    break;
+                case 'revenue':
+                    aVal = a.total_revenue || 0;
+                    bVal = b.total_revenue || 0;
+                    break;
+                case 'cost':
+                    aVal = a.total_cost || 0;
+                    bVal = b.total_cost || 0;
+                    break;
+                case 'profit':
+                    aVal = a.total_profit || 0;
+                    bVal = b.total_profit || 0;
+                    break;
+                case 'margin':
+                    aVal = a.profit_margin || 0;
+                    bVal = b.profit_margin || 0;
+                    break;
+                default:
+                    return 0;
+            }
+            return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+    }
+    _prSortedView = sorted;
+    _prSortedViewKey = sk;
+    return sorted;
+}
+
+function setProfitReportProductsPerPage(val) {
+    const n = parseInt(val, 10);
+    if (!PROFIT_REPORT_PRODUCTS_PAGE_SIZES.includes(n)) return;
+    profitReportProductsPerPage = n;
+    try {
+        localStorage.setItem(PR_PRODS_PER_PAGE_LS, String(n));
+    } catch (e) { /* ignore */ }
+    const total = getSortedProductsView().length;
+    const totalPages = Math.max(1, Math.ceil(total / n));
+    if (profitReportProductsPage > totalPages) profitReportProductsPage = totalPages;
+    renderTopProductsTable();
+}
+
+function goProfitReportProductsPage(page) {
+    const sorted = getSortedProductsView();
+    const totalPages = Math.max(1, Math.ceil(sorted.length / profitReportProductsPerPage));
+    const p = Math.max(1, Math.min(totalPages, parseInt(page, 10) || 1));
+    profitReportProductsPage = p;
+    renderTopProductsTable();
+}
+
+function renderTopProductsPagination(totalItems, pageSize, currentPage, totalPages) {
+    const el = document.getElementById('topProductsPagination');
+    if (!el) return;
+    if (totalItems === 0) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+    }
+    el.classList.remove('hidden');
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalItems);
+    const opts = PROFIT_REPORT_PRODUCTS_PAGE_SIZES.map(
+        (o) => `<option value="${o}"${o === pageSize ? ' selected' : ''}>${o}</option>`
+    ).join('');
+    const prevDis = currentPage <= 1 ? ' disabled' : '';
+    const nextDis = currentPage >= totalPages ? ' disabled' : '';
+    const prevCls =
+        currentPage <= 1
+            ? 'text-slate-300 cursor-not-allowed'
+            : 'text-slate-700 hover:bg-white border-slate-300';
+    const nextCls =
+        currentPage >= totalPages
+            ? 'text-slate-300 cursor-not-allowed'
+            : 'text-slate-700 hover:bg-white border-slate-300';
+
+    let pagesHtml = '';
+    const maxVis = 5;
+    let s = Math.max(1, currentPage - Math.floor(maxVis / 2));
+    let e = Math.min(totalPages, s + maxVis - 1);
+    if (e - s < maxVis - 1) s = Math.max(1, e - maxVis + 1);
+    if (s > 1) {
+        pagesHtml += `<button type="button" onclick="goProfitReportProductsPage(1)" class="min-w-[2rem] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">1</button>`;
+        if (s > 2) pagesHtml += '<span class="px-1 text-slate-400">…</span>';
+    }
+    for (let i = s; i <= e; i++) {
+        if (i === currentPage) {
+            pagesHtml += `<span class="min-w-[2rem] rounded-md bg-indigo-600 px-2 py-1.5 text-center text-xs font-semibold text-white shadow-sm">${i}</span>`;
+        } else {
+            pagesHtml += `<button type="button" onclick="goProfitReportProductsPage(${i})" class="min-w-[2rem] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">${i}</button>`;
+        }
+    }
+    if (e < totalPages) {
+        if (e < totalPages - 1) pagesHtml += '<span class="px-1 text-slate-400">…</span>';
+        pagesHtml += `<button type="button" onclick="goProfitReportProductsPage(${totalPages})" class="min-w-[2rem] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">${totalPages}</button>`;
+    }
+
+    el.innerHTML = `<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <span class="tabular-nums"><span class="font-semibold text-slate-800">${start}–${end}</span><span class="mx-0.5 text-slate-300">/</span>${totalItems}</span>
+            <span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>
+            <label class="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                <span class="whitespace-nowrap">/ trang</span>
+                <select title="Số SP mỗi trang" aria-label="Số sản phẩm mỗi trang" onchange="setProfitReportProductsPerPage(this.value)"
+                    class="rounded-md border border-slate-200 bg-white py-1 pl-2 pr-8 text-xs font-medium text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/30">${opts}</select>
+            </label>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-1.5">
+            <button type="button" onclick="goProfitReportProductsPage(${currentPage - 1})"${prevDis} class="rounded-lg border bg-white px-2.5 py-1.5 text-sm font-medium shadow-sm transition-colors ${prevCls}" aria-label="Trang trước">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            ${pagesHtml}
+            <button type="button" onclick="goProfitReportProductsPage(${currentPage + 1})"${nextDis} class="rounded-lg border bg-white px-2.5 py-1.5 text-sm font-medium shadow-sm transition-colors ${nextCls}" aria-label="Trang sau">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>`;
 }
 
 // Refresh data - Clear all caches
@@ -257,7 +411,7 @@ function refreshData() {
 }
 
 // Load top products
-async function loadTopProducts() {
+async function loadTopProducts(gen) {
     try {
         // Skip cache for custom period (each custom date range is unique)
         if (currentPeriod !== 'custom') {
@@ -266,9 +420,13 @@ async function loadTopProducts() {
             const cache = dataCache[currentPeriod];
             
             if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                if (isProfitReportLoadStale(gen)) return;
                 console.log('📦 Using cached data for', currentPeriod, `(age: ${Math.round((now - cache.timestamp) / 1000)}s)`);
                 const cachedData = cache.data;
                 allProductsData = cachedData.top_products || [];
+                profitReportProductsDataRev++;
+                profitReportProductsPage = 1;
+                invalidateProfitReportSortedView();
                 updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
                 renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
                 renderTopProductsTable();
@@ -289,6 +447,7 @@ async function loadTopProducts() {
         );
 
         const overviewData = await overviewResponse.json();
+        if (isProfitReportLoadStale(gen)) return;
 
         if (overviewData.success) {
             // Cache the data for this period with timestamp (only for non-custom)
@@ -303,6 +462,9 @@ async function loadTopProducts() {
             
             // Use top_products from getDetailedAnalytics
             allProductsData = overviewData.top_products || [];
+            profitReportProductsDataRev++;
+            profitReportProductsPage = 1;
+            invalidateProfitReportSortedView();
             
             // Always render data (tables will handle empty state themselves)
             updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
@@ -312,6 +474,7 @@ async function loadTopProducts() {
             throw new Error('Failed to load data');
         }
     } catch (error) {
+        if (isProfitReportLoadStale(gen)) return;
         console.error('Error loading top products:', error);
         showToast('Không thể tải dữ liệu', 'error');
         hideSkeletonLoading();
@@ -554,11 +717,16 @@ function renderCostCharts(costs) {
     });
 }
 
-// Render top products table
+// Render top products table (phân trang client-side, cache sort)
 function renderTopProductsTable() {
     const tbody = document.getElementById('topProductsTable');
+    const pagEl = document.getElementById('topProductsPagination');
 
     if (allProductsData.length === 0) {
+        if (pagEl) {
+            pagEl.classList.add('hidden');
+            pagEl.innerHTML = '';
+        }
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="px-6 py-12 text-center">
@@ -573,47 +741,23 @@ function renderTopProductsTable() {
         return;
     }
 
-    // Sort data if needed
-    let sortedData = [...allProductsData];
-    if (currentSort.column && currentSort.direction) {
-        sortedData.sort((a, b) => {
-            let aVal, bVal;
-            switch (currentSort.column) {
-                case 'quantity':
-                    aVal = a.total_quantity || 0;
-                    bVal = b.total_quantity || 0;
-                    break;
-                case 'revenue':
-                    aVal = a.total_revenue || 0;
-                    bVal = b.total_revenue || 0;
-                    break;
-                case 'cost':
-                    aVal = a.total_cost || 0;
-                    bVal = b.total_cost || 0;
-                    break;
-                case 'profit':
-                    aVal = a.total_profit || 0;
-                    bVal = b.total_profit || 0;
-                    break;
-                case 'margin':
-                    aVal = a.profit_margin || 0;
-                    bVal = b.profit_margin || 0;
-                    break;
-                default:
-                    return 0;
-            }
-            return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
-        });
-    }
+    const sortedData = getSortedProductsView();
+    const totalItems = sortedData.length;
+    const pageSize = profitReportProductsPerPage;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    if (profitReportProductsPage > totalPages) profitReportProductsPage = totalPages;
+    if (profitReportProductsPage < 1) profitReportProductsPage = 1;
 
-    tbody.innerHTML = sortedData.map((product, index) => {
-        const rank = index + 1;
+    const startIdx = (profitReportProductsPage - 1) * pageSize;
+    const pageSlice = sortedData.slice(startIdx, startIdx + pageSize);
+
+    tbody.innerHTML = pageSlice.map((product, i) => {
+        const rank = startIdx + i + 1;
         const profitMargin = product.profit_margin || 0;
         const profitColor = profitMargin > 50 ? 'text-emerald-600' : profitMargin > 30 ? 'text-green-600' : 'text-yellow-600';
-        const profitBadgeBg = profitMargin > 50 ? 'bg-emerald-100' : profitMargin > 30 ? 'bg-green-100' : 'bg-yellow-100';
+        const name0 = (product.product_name && product.product_name.charAt(0)) ? product.product_name.charAt(0).toUpperCase() : '?';
 
-        // Medal for top 3
-        let rankDisplay = rank;
+        let rankDisplay = String(rank);
         if (rank === 1) rankDisplay = '🥇';
         else if (rank === 2) rankDisplay = '🥈';
         else if (rank === 3) rankDisplay = '🥉';
@@ -626,10 +770,10 @@ function renderTopProductsTable() {
                 <td class="px-6 py-4">
                     <div class="flex items-center">
                         <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">
-                            ${product.product_name.charAt(0).toUpperCase()}
+                            ${name0}
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-gray-900">${escapeHtml(product.product_name)}</div>
+                            <div class="text-sm font-medium text-gray-900">${escapeHtml(product.product_name || '')}</div>
                             <div class="text-xs text-gray-500">${product.order_count || 0} đơn hàng</div>
                         </div>
                     </div>
@@ -664,6 +808,8 @@ function renderTopProductsTable() {
             </tr>
         `;
     }).join('');
+
+    renderTopProductsPagination(totalItems, pageSize, profitReportProductsPage, totalPages);
 }
 
 // Show product detail modal
@@ -734,6 +880,11 @@ function closeProductModal() {
 
 // Skeleton loading functions - Simplified for better performance
 function showSkeletonLoading() {
+    const pag = document.getElementById('topProductsPagination');
+    if (pag) {
+        pag.classList.add('hidden');
+        pag.innerHTML = '';
+    }
     const tbody = document.getElementById('topProductsTable');
     tbody.innerHTML = `
         <tr>
@@ -753,6 +904,11 @@ function hideSkeletonLoading() {
 
 // Show empty state when no data found
 function showEmptyState() {
+    const pag = document.getElementById('topProductsPagination');
+    if (pag) {
+        pag.classList.add('hidden');
+        pag.innerHTML = '';
+    }
     const tbody = document.getElementById('topProductsTable');
     const costBreakdownBody = document.getElementById('costBreakdownBody');
     
@@ -828,7 +984,7 @@ function escapeHtml(text) {
 // ============================================
 
 // Load revenue chart data
-async function loadRevenueChart() {
+async function loadRevenueChart(gen) {
     try {
         // Show chart section
         showChart();
@@ -840,6 +996,7 @@ async function loadRevenueChart() {
             const cache = chartCache[currentPeriod];
             
             if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                if (isProfitReportLoadStale(gen)) return;
                 console.log('📦 Using cached chart data for', currentPeriod);
                 renderRevenueChart(cache.data);
                 return;
@@ -860,6 +1017,7 @@ async function loadRevenueChart() {
         // Fetch data
         const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`);
         const data = await response.json();
+        if (isProfitReportLoadStale(gen)) return;
         
         if (data.success) {
             // Cache data (only for non-custom periods)
@@ -876,6 +1034,7 @@ async function loadRevenueChart() {
         }
         
     } catch (error) {
+        if (isProfitReportLoadStale(gen)) return;
         console.error('❌ Error loading chart:', error);
         const loadingEl = document.getElementById('chartLoading');
         if (loadingEl) {
@@ -1131,9 +1290,8 @@ function formatCurrencyShort(amount) {
 // ============================================
 
 // Load orders chart data
-async function loadOrdersChart() {
+async function loadOrdersChart(gen) {
     try {
-        console.log('📊 Loading orders chart for period:', currentPeriod);
         showOrdersChart();
         
         // Skip cache for custom period
@@ -1143,6 +1301,7 @@ async function loadOrdersChart() {
             const cache = ordersChartCache[currentPeriod];
             
             if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                if (isProfitReportLoadStale(gen)) return;
                 console.log('📦 Using cached orders chart data for', currentPeriod);
                 renderOrdersChart(cache.data);
                 return;
@@ -1162,16 +1321,12 @@ async function loadOrdersChart() {
         const { startDateParam, endDateParam } = getDateRangeParams();
         const apiPeriod = getAPIPeriod();
         
-        // Fetch data
-        console.log('🌐 Fetching orders chart data from API...');
         const url = `${CONFIG.API_URL}?action=getOrdersChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`;
-        console.log('URL:', url);
         
         const response = await fetch(url);
-        console.log('Response status:', response.status);
         
         const data = await response.json();
-        console.log('Orders chart data:', data);
+        if (isProfitReportLoadStale(gen)) return;
         
         if (data.success) {
             // Cache data (only for non-custom periods)
@@ -1182,13 +1337,13 @@ async function loadOrdersChart() {
                 };
             }
             
-            console.log('✅ Orders chart data loaded successfully');
             renderOrdersChart(data);
         } else {
             throw new Error(data.error || 'Failed to load orders chart data');
         }
         
     } catch (error) {
+        if (isProfitReportLoadStale(gen)) return;
         console.error('❌ Error loading orders chart:', error);
         const loadingEl = document.getElementById('ordersChartLoading');
         if (loadingEl) {
@@ -1199,7 +1354,7 @@ async function loadOrdersChart() {
                     </svg>
                     <p class="text-gray-500">Không thể tải biểu đồ đơn hàng</p>
                     <p class="text-xs text-red-500 mt-2">${error.message}</p>
-                    <button onclick="loadOrdersChart()" class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">Thử lại</button>
+                    <button onclick="loadAllData()" class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">Thử lại</button>
                 </div>
             `;
         }
@@ -1438,7 +1593,7 @@ function showOrdersChart() {
 // ============================================
 
 // Load profit chart data
-async function loadProfitChart() {
+async function loadProfitChart(gen) {
     try {
         showProfitChart();
         
@@ -1449,6 +1604,7 @@ async function loadProfitChart() {
             const cache = chartCache[currentPeriod];
             
             if (cache.data && (now - cache.timestamp) < CACHE_TTL) {
+                if (isProfitReportLoadStale(gen)) return;
                 console.log('📦 Using cached profit chart data for', currentPeriod);
                 renderProfitChart(cache.data);
                 return;
@@ -1471,6 +1627,7 @@ async function loadProfitChart() {
         // Fetch data from revenue chart API (it includes profit data)
         const response = await fetch(`${CONFIG.API_URL}?action=getRevenueChart&period=${apiPeriod}${startDateParam}${endDateParam}&timestamp=${Date.now()}`);
         const data = await response.json();
+        if (isProfitReportLoadStale(gen)) return;
         
         if (data.success) {
             // Cache data (only for non-custom periods)
@@ -1487,6 +1644,7 @@ async function loadProfitChart() {
         }
         
     } catch (error) {
+        if (isProfitReportLoadStale(gen)) return;
         console.error('❌ Error loading profit chart:', error);
         const loadingEl = document.getElementById('profitChartLoading');
         if (loadingEl) {
@@ -2043,8 +2201,8 @@ function clearCustomDateProfit() {
     // Reset button label
     document.getElementById('customDateLabelProfit').textContent = 'Chọn ngày';
     
-    // Apply default filter (week)
-    changePeriod('week');
+    // Apply default filter (today)
+    changePeriod('today');
     
     // Close modal
     closeCustomDatePickerProfit();
