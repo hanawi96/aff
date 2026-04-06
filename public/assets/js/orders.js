@@ -18,7 +18,7 @@ function readSavedOrdersPageSize() {
         const n = parseInt(localStorage.getItem(ORDERS_PAGE_SIZE_STORAGE_KEY), 10);
         if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) return n;
     } catch (e) { /* ignore */ }
-    return 15;
+    return 20;
 }
 
 let itemsPerPage = readSavedOrdersPageSize();
