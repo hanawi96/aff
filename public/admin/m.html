@@ -333,13 +333,23 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 <!-- Danh mục sản phẩm (bottom sheet — màn tạo/sửa đơn) -->
 <div id="categorySheet" class="fixed inset-0 z-[61] hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeCategorySheet()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col shadow-2xl" style="max-height:min(72vh,520px)">
+  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col shadow-2xl" style="max-height:min(78vh,560px)">
     <div class="p-4 border-b border-gray-100 shrink-0">
       <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
-      <h3 class="font-bold text-gray-900 text-sm mb-3">Chọn danh mục</h3>
+      <h3 class="font-bold text-gray-900 text-sm">Chọn danh mục</h3>
+      <div class="flex items-center justify-between gap-3 mt-3 mb-2">
+        <span class="text-sm text-gray-700">Chọn nhiều danh mục</span>
+        <label class="toggle indigo shrink-0">
+          <input type="checkbox" id="categorySheetMultiToggle" onchange="onCategorySheetMultiToggle()">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
       <input id="categorySheetSearch" type="search" autocomplete="off" placeholder="Tìm danh mục..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white" oninput="renderCategorySheetList()">
     </div>
     <div id="categorySheetList" class="overflow-y-auto flex-1 p-3 space-y-1.5 min-h-0"></div>
+    <div id="categorySheetFooter" class="hidden shrink-0 p-3 pt-2 border-t border-gray-100 bg-white">
+      <button type="button" id="categorySheetConfirmBtn" onclick="confirmCategorySheetMulti()" class="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-40 disabled:active:scale-100">Xác nhận</button>
+    </div>
   </div>
 </div>
 
@@ -1045,7 +1055,7 @@ let editOrderId=null; // db id of order being edited
 async function showEditOrder(id){
   const o=allOrders.find(x=>x.id===id);if(!o)return;
   editOrderId=id;mDiscount=null;
-  createProducts=[];activeCategoryId='';
+  createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // Parse existing products into createProducts
   try{
     const prods=JSON.parse(o.products);
@@ -1144,10 +1154,14 @@ async function changeStatus(id,status,code){
 
 // ─── Create Order ───
 let createProducts=[], allProductsCache=[], allCategoriesCache=[], activeCategoryId='';
+/** null = lọc 1 DM qua activeCategoryId; mảng id (string) = lọc gộp OR nhiều DM */
+let activeCategoryMultiIds=null;
+let mCatSheetMultiMode=false;
+let mCatSheetPendingMulti=new Set();
 let mCreateAddressSelector=null;
 
 function showCreateOrder(){
-  editOrderId=null;createProducts=[];activeCategoryId='';mDiscount=null;
+  editOrderId=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // freeShip checkbox resets via buildCreateForm() re-render
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
@@ -1163,6 +1177,13 @@ function showCreateOrder(){
 }
 
 function getActiveCategoryDisplayName(){
+  if(activeCategoryMultiIds!==null&&activeCategoryMultiIds.length>0){
+    if(activeCategoryMultiIds.length===1){
+      const c=allCategoriesCache.find(x=>String(x.id)===String(activeCategoryMultiIds[0]));
+      return c?String(c.name):'1 danh mục';
+    }
+    return activeCategoryMultiIds.length+' danh mục';
+  }
   if(activeCategoryId===''||activeCategoryId==null)return'🔥 Bán chạy';
   const c=allCategoriesCache.find(x=>String(x.id)===String(activeCategoryId));
   return c?String(c.name):'Danh mục';
@@ -1195,12 +1216,18 @@ function renderCatPickerIcon(){
   if(!wrap)return;
   wrap.textContent='';
   const base='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white border border-gray-200 ';
-  if(activeCategoryId===''||activeCategoryId==null){
+  if(activeCategoryMultiIds!==null&&activeCategoryMultiIds.length>1){
+    wrap.className=base+'text-indigo-600 bg-indigo-50 text-xs font-bold';
+    wrap.textContent=String(activeCategoryMultiIds.length);
+    return;
+  }
+  const iconCatId=activeCategoryMultiIds!==null&&activeCategoryMultiIds.length===1?activeCategoryMultiIds[0]:activeCategoryId;
+  if(iconCatId===''||iconCatId==null){
     wrap.className=base+'text-indigo-600';
     wrap.innerHTML=M_CAT_PICKER_FOLDER_SVG;
     return;
   }
-  const c=allCategoriesCache.find(x=>String(x.id)===String(activeCategoryId));
+  const c=allCategoriesCache.find(x=>String(x.id)===String(iconCatId));
   const url=c&&c.image_url&&String(c.image_url).trim()?String(c.image_url).trim():'';
   if(url){
     wrap.className=base;
@@ -1234,22 +1261,133 @@ function openCategorySheet(){
   const sh=document.getElementById('categorySheet');if(!sh)return;
   sh.classList.remove('hidden');
   const inp=document.getElementById('categorySheetSearch');
-  if(inp){inp.value='';}
+  if(inp)inp.value='';
+  const appliedMulti=activeCategoryMultiIds!==null&&activeCategoryMultiIds.length>0;
+  mCatSheetMultiMode=appliedMulti;
+  mCatSheetPendingMulti=new Set();
+  if(appliedMulti)activeCategoryMultiIds.forEach(id=>mCatSheetPendingMulti.add(String(id)));
+  const tg=document.getElementById('categorySheetMultiToggle');
+  if(tg)tg.checked=mCatSheetMultiMode;
+  updateCategorySheetFooter();
   renderCategorySheetList();
   setTimeout(()=>{try{document.getElementById('categorySheetSearch')?.focus();}catch(_){}},200);
 }
 function closeCategorySheet(){
   document.getElementById('categorySheet')?.classList.add('hidden');
 }
+function updateCategorySheetFooter(){
+  const foot=document.getElementById('categorySheetFooter');
+  const btn=document.getElementById('categorySheetConfirmBtn');
+  if(!foot||!btn)return;
+  if(mCatSheetMultiMode){
+    foot.classList.remove('hidden');
+    const n=mCatSheetPendingMulti.size;
+    btn.textContent=n?'Xác nhận ('+n+')':'Xác nhận';
+    btn.disabled=!n;
+  }else{
+    foot.classList.add('hidden');
+    btn.disabled=false;
+  }
+}
+function onCategorySheetMultiToggle(){
+  const el=document.getElementById('categorySheetMultiToggle');
+  mCatSheetMultiMode=!!(el&&el.checked);
+  if(mCatSheetMultiMode){
+    mCatSheetPendingMulti=new Set();
+    if(activeCategoryMultiIds!==null&&activeCategoryMultiIds.length)activeCategoryMultiIds.forEach(x=>mCatSheetPendingMulti.add(String(x)));
+    else if(activeCategoryId)mCatSheetPendingMulti.add(String(activeCategoryId));
+  }else{
+    mCatSheetPendingMulti=new Set();
+    if(activeCategoryMultiIds!==null&&activeCategoryMultiIds.length){
+      activeCategoryId=String(activeCategoryMultiIds[0]);
+      activeCategoryMultiIds=null;
+      updateCatPickerLabel();
+      renderProductPicker();
+    }
+  }
+  updateCategorySheetFooter();
+  renderCategorySheetList();
+}
+function confirmCategorySheetMulti(){
+  if(!mCatSheetMultiMode)return;
+  if(mCatSheetPendingMulti.size===0){toast('Chọn ít nhất một danh mục');return;}
+  activeCategoryMultiIds=Array.from(mCatSheetPendingMulti);
+  activeCategoryId='';
+  updateCatPickerLabel();
+  closeCategorySheet();
+  renderProductPicker();
+}
 function selectCategorySheet(catId){
+  activeCategoryMultiIds=null;
   activeCategoryId=catId===undefined||catId===null?'':String(catId);
   updateCatPickerLabel();
   closeCategorySheet();
   renderProductPicker();
 }
+function refreshMCategoryMultiRow(row,idStr){
+  const sel=mCatSheetPendingMulti.has(idStr);
+  row.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
+  const chk=row.querySelector('.m-cat-chk');
+  if(chk){
+    chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded border '+(sel?'bg-indigo-600 border-indigo-600 text-white':'border-gray-300 bg-white');
+    chk.innerHTML=sel?'<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>':'';
+  }
+}
 function renderCategorySheetList(){
   const list=document.getElementById('categorySheetList');if(!list)return;
   const q=(document.getElementById('categorySheetSearch')?.value||'').toLowerCase().trim();
+  if(mCatSheetMultiMode){
+    const rows=allCategoriesCache.map(c=>({id:String(c.id),name:String(c.name||''),image_url:c.image_url&&String(c.image_url).trim()?String(c.image_url).trim():''}));
+    const filtered=q?rows.filter(r=>r.name.toLowerCase().includes(q)):rows;
+    list.innerHTML='';
+    if(!filtered.length){
+      list.innerHTML='<p class="text-center text-sm text-gray-400 py-10">Không có danh mục phù hợp</p>';
+      return;
+    }
+    const frag=document.createDocumentFragment();
+    filtered.forEach(r=>{
+      const idStr=String(r.id);
+      const sel=mCatSheetPendingMulti.has(idStr);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.setAttribute('data-mcatid',idStr);
+      btn.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
+      const chk=document.createElement('span');
+      chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded border '+(sel?'bg-indigo-600 border-indigo-600 text-white':'border-gray-300 bg-white');
+      if(sel)chk.innerHTML='<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+      const mark=document.createElement('span');
+      mark.className='relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50';
+      const imgUrl=r.image_url||'';
+      if(imgUrl){
+        const img=document.createElement('img');
+        img.src=imgUrl;
+        img.alt='';
+        img.className='h-full w-full object-cover';
+        img.loading='eager';
+        img.onerror=function(){
+          mark.textContent='';
+          mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
+          mark.innerHTML=M_CAT_TAG_SVG_SM;
+        };
+        mark.appendChild(img);
+      }else{
+        mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
+        mark.innerHTML=M_CAT_TAG_SVG_SM;
+      }
+      const txt=document.createElement('div');
+      txt.className='flex-1 min-w-0';
+      const t1=document.createElement('p');
+      t1.className='text-sm font-semibold text-gray-900 truncate';
+      t1.textContent=r.name;
+      txt.appendChild(t1);
+      btn.appendChild(chk);
+      btn.appendChild(mark);
+      btn.appendChild(txt);
+      frag.appendChild(btn);
+    });
+    list.appendChild(frag);
+    return;
+  }
   const rows=[{id:'',name:'🔥 Bán chạy',hint:'Sắp xếp theo lượt mua',image_url:''}];
   allCategoriesCache.forEach(c=>{
     const iu=c.image_url&&String(c.image_url).trim()?String(c.image_url).trim():'';
@@ -1316,6 +1454,22 @@ function renderCategorySheetList(){
     list.appendChild(btn);
   });
 }
+(function wireCategorySheetMultiClick(){
+  const list=document.getElementById('categorySheetList');
+  if(!list||list._mCatMultiWired)return;
+  list._mCatMultiWired=true;
+  list.addEventListener('click',function(ev){
+    if(!mCatSheetMultiMode)return;
+    const row=ev.target.closest('.cat-multi-row');
+    if(!row)return;
+    const id=row.getAttribute('data-mcatid');
+    if(id==null)return;
+    if(mCatSheetPendingMulti.has(id))mCatSheetPendingMulti.delete(id);
+    else mCatSheetPendingMulti.add(id);
+    refreshMCategoryMultiRow(row,id);
+    updateCategorySheetFooter();
+  });
+})();
 
 function destroyMCreateAddressSelector(){
   if(mCreateAddressSelector){
@@ -1572,11 +1726,20 @@ function resolveImgSrc(raw){
 
 function renderProductPicker(){
   const q=(document.getElementById('prodSearch')?.value||'').toLowerCase();
-  const catId=activeCategoryId;
   const list=document.getElementById('prodList');if(!list)return;
   let prods=allProductsCache;
-  if(catId){const cid=parseInt(catId);prods=prods.filter(p=>Array.isArray(p.category_ids)?p.category_ids.some(x=>parseInt(x)===cid):parseInt(p.category_id)===cid)}
-  else prods=[...prods].sort((a,b)=>(b.purchases||0)-(a.purchases||0));
+  if(activeCategoryMultiIds!==null){
+    if(activeCategoryMultiIds.length===0)prods=[];
+    else{
+      const idSet=new Set(activeCategoryMultiIds.map(x=>parseInt(String(x),10)).filter(n=>!Number.isNaN(n)));
+      prods=prods.filter(p=>Array.isArray(p.category_ids)?p.category_ids.some(x=>idSet.has(parseInt(x,10))):idSet.has(parseInt(p.category_id,10)));
+    }
+    prods=[...prods].sort((a,b)=>(b.purchases||0)-(a.purchases||0));
+  }else{
+    const catId=activeCategoryId;
+    if(catId){const cid=parseInt(catId);prods=prods.filter(p=>Array.isArray(p.category_ids)?p.category_ids.some(x=>parseInt(x)===cid):parseInt(p.category_id)===cid)}
+    else prods=[...prods].sort((a,b)=>(b.purchases||0)-(a.purchases||0));
+  }
   if(q)prods=prods.filter(p=>p.name.toLowerCase().includes(q));
   prods=prods.slice(0,20);
   list.innerHTML=prods.length?prods.map(p=>{
