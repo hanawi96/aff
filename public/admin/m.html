@@ -589,10 +589,15 @@ function renderCards(){
   });
   list.appendChild(frag);
   const remaining=filtered.length-slice.length;
-  more.classList.toggle('hidden',remaining<=0);
-  if(remaining>0){
-    const txt=document.getElementById('loadMoreText');
-    if(txt)txt.textContent=`Xem tiếp ${remaining} đơn`;
+  // Tab Thống kê: không hiển thị "Xem tiếp" (applyFilter/renderCards vẫn chạy sau loadOrders)
+  if(currentTab==='stats'){
+    more.classList.add('hidden');
+  }else{
+    more.classList.toggle('hidden',remaining<=0);
+    if(remaining>0){
+      const txt=document.getElementById('loadMoreText');
+      if(txt)txt.textContent=`Xem tiếp ${remaining} đơn`;
+    }
   }
 }
 
