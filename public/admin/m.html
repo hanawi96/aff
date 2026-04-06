@@ -237,7 +237,7 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
     <div id="detailContent" class="bg-gray-50">
       <div id="detailBootPlaceholder" class="hidden min-h-full">
         <div class="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-2">
-          <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 shrink-0" onclick="document.documentElement.classList.remove('m-order-deeplink');document.body.style.overflow='';document.getElementById('detailPanel').classList.add('hidden');document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('tab-active');});var p=document.querySelector('.tab[data-status=pending]');if(p)p.classList.add('tab-active');location.hash='pending';" aria-label="Quay lại">
+          <button type="button" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 shrink-0" onclick="document.documentElement.classList.remove('m-order-deeplink');document.body.style.overflow='';document.getElementById('detailPanel').classList.add('hidden');currentTab='pending';location.hash='pending';syncOrderListTabHighlight();" aria-label="Quay lại">
             <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
           <div class="flex-1 space-y-2 min-w-0">
@@ -353,6 +353,9 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 <script>
 // ─── State ───
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
+/** Khi đang tìm: null = mọi trạng thái; 'pending'|'shipped' = chỉ tab đang chọn */
+let searchListScope=null;
+let _prevSearchTrimmed='';
 const MAIN_TAB_IDS=new Set(['pending','shipped','stats']);
 const ORDER_HASH_RE=/^order\/(\d+)$/;
 function tabFromHash(){
@@ -432,8 +435,7 @@ function onAppHashChange(){
     document.documentElement.classList.remove('m-order-deeplink');
     document.getElementById('detailPanel').classList.add('hidden');
     document.body.style.overflow='';
-    const tb=document.querySelector('.tab[data-status="'+currentTab+'"]');
-    if(tb&&MAIN_TAB_IDS.has(currentTab)){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('tab-active'));tb.classList.add('tab-active');}
+    if(MAIN_TAB_IDS.has(currentTab))syncOrderListTabHighlight();
     setMainTabHash(currentTab);
     toast('Không tìm thấy đơn hàng');
     return;
@@ -459,9 +461,8 @@ function tryOpenOrderFromHash(){
     document.documentElement.classList.remove('m-order-deeplink');
     document.getElementById('detailPanel').classList.add('hidden');
     document.body.style.overflow='';
-    const pb=document.querySelector('.tab[data-status="pending"]');
-    if(pb){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('tab-active'));pb.classList.add('tab-active');}
     currentTab='pending';
+    syncOrderListTabHighlight();
     setMainTabHash(currentTab);
     toast('Không tìm thấy đơn hàng');
   }
@@ -484,12 +485,38 @@ async function loadOrders(){
   if(orderIdFromHash()!=null)tryOpenOrderFromHash();
 }
 
+function syncOrderListTabHighlight(){
+  const pBtn=document.querySelector('.tab[data-status="pending"]');
+  const sBtn=document.querySelector('.tab[data-status="shipped"]');
+  const stBtn=document.querySelector('.tab[data-status="stats"]');
+  if(!pBtn||!sBtn)return;
+  if(currentTab==='stats'){
+    pBtn.classList.remove('tab-active');
+    sBtn.classList.remove('tab-active');
+    if(stBtn)stBtn.classList.add('tab-active');
+    return;
+  }
+  if(stBtn)stBtn.classList.remove('tab-active');
+  const hasQ=searchTerm.trim().length>0;
+  pBtn.classList.remove('tab-active');
+  sBtn.classList.remove('tab-active');
+  if(hasQ){
+    if(searchListScope==='pending')pBtn.classList.add('tab-active');
+    else if(searchListScope==='shipped')sBtn.classList.add('tab-active');
+  }else{
+    if(currentTab==='pending')pBtn.classList.add('tab-active');
+    else if(currentTab==='shipped')sBtn.classList.add('tab-active');
+  }
+}
+
 function applyFilter(){
   const q=searchTerm.toLowerCase();
+  const hasQ=searchTerm.trim().length>0;
   filtered=allOrders.filter(o=>{
-    // Khi có từ khóa tìm kiếm: tìm trên tất cả trạng thái (pending + shipped)
-    // Khi không có từ khóa: lọc theo tab hiện tại
-    if(!q&&currentTab!=='all'&&currentTab!=='stats'&&(o.status||'pending')!==currentTab)return false;
+    if(currentTab==='stats')return true;
+    if(!hasQ){
+      if(currentTab!=='all'&&currentTab!=='stats'&&(o.status||'pending')!==currentTab)return false;
+    }else if(searchListScope!=null&&(o.status||'pending')!==searchListScope)return false;
     if(q){
       const s=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();
       if(!s.includes(q))return false;
@@ -497,7 +524,7 @@ function applyFilter(){
     return true;
   });
   // Tab Chờ xử lý: đơn đặt trước lên trên để gửi hàng trước; đơn mới xuống dưới (vẫn ưu tiên ⭐ trước).
-  const pendingFifo=currentTab==='pending'&&!q;
+  const pendingFifo=currentTab==='pending'&&!hasQ;
   filtered.sort((a,b)=>{
     const pr=(b.is_priority||0)-(a.is_priority||0);
     if(pr)return pr;
@@ -505,6 +532,7 @@ function applyFilter(){
     return(b.created_at_unix||0)-(a.created_at_unix||0);
   });
   page=1;
+  syncOrderListTabHighlight();
   renderCards();
   updateCounts();
 }
@@ -616,6 +644,8 @@ function switchTab(btn,opts){
   document.getElementById('orderHeaderBtns').classList.toggle('hidden',isStats);
   document.getElementById('statsHeaderBtns').classList.toggle('hidden',!isStats);
   if(isStats){
+    searchListScope=null;
+    _prevSearchTrimmed='';
     document.getElementById('searchBar')?.classList.add('hidden');
     document.getElementById('searchInput').value='';
     searchTerm='';
@@ -623,6 +653,9 @@ function switchTab(btn,opts){
     updateTabActive(currentPeriod);
     if(!statsInitialized){statsInitialized=true;loadData();}
   }else{
+    const q=(document.getElementById('searchInput')?.value||'').trim();
+    if(q.length>0&&(currentTab==='pending'||currentTab==='shipped'))searchListScope=currentTab;
+    else searchListScope=null;
     applyFilter();
     window.scrollTo(0,0);
   }
@@ -677,12 +710,27 @@ function initTabSwipe(){
 }
 
 let searchTimer;
-function onSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();applyFilter()},200)}
+function onSearch(){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{
+    const t=document.getElementById('searchInput').value.trim();
+    if(t.length>0&&_prevSearchTrimmed.length===0)searchListScope=null;
+    _prevSearchTrimmed=t;
+    searchTerm=t;
+    applyFilter();
+  },200);
+}
 function toggleSearch(){
   const bar=document.getElementById('searchBar');
   bar.classList.toggle('hidden');
   if(!bar.classList.contains('hidden'))document.getElementById('searchInput').focus();
-  else{document.getElementById('searchInput').value='';searchTerm='';applyFilter()}
+  else{
+    document.getElementById('searchInput').value='';
+    searchTerm='';
+    _prevSearchTrimmed='';
+    searchListScope=null;
+    applyFilter();
+  }
 }
 
 // ─── Detail Panel — sửa nhanh tổng tiền (optimistic UI, API updateAmount) ───
@@ -965,8 +1013,8 @@ function showDetail(id){
   if(document.documentElement.classList.contains('m-order-deeplink')){
     document.documentElement.classList.remove('m-order-deeplink');
     const tabForOrder=(o.status||'pending')==='shipped'?'shipped':'pending';
-    const tb=document.querySelector('.tab[data-status="'+tabForOrder+'"]');
-    if(tb){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('tab-active'));tb.classList.add('tab-active');currentTab=tabForOrder;}
+    currentTab=tabForOrder;
+    syncOrderListTabHighlight();
   }
   syncOrderDetailHash(id);
 }
