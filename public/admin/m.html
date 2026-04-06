@@ -1690,6 +1690,7 @@ async function loadProductList(){
 function resolveImgSrc(raw){
   if(!raw)return null;raw=raw.trim();
   if(raw.startsWith('http://')||raw.startsWith('https://'))return raw;
+  if(raw.startsWith('/'))return raw;
   if(raw.startsWith('./assets/'))return '../'+raw.substring(2);
   if(raw.startsWith('assets/'))return '../'+raw;
   return`../assets/images/${raw}`;
@@ -2691,6 +2692,151 @@ let _insightTab='products';
 const _geoCache={};
 let statsInitialized=false;
 
+const STATS_TOP_PROD_SIZES=[10,15,20,30,50,100];
+const STATS_TOP_PROD_LS='m_stats_top_products_per_page_v2';
+let _statsTopProductsData=[];
+let statsTopProdPage=1;
+let statsTopProdPerPage=(function(){
+  const n=parseInt(localStorage.getItem(STATS_TOP_PROD_LS),10);
+  return STATS_TOP_PROD_SIZES.includes(n)?n:10;
+})();
+
+function resolveStatsProductImg(raw){
+  if(raw==null)return '';
+  const s=String(raw).trim();
+  if(!s)return '';
+  if(s.startsWith('http://')||s.startsWith('https://'))return s;
+  if(s.startsWith('/'))return s;
+  return resolveImgSrc(s)||'';
+}
+function onStatsTopProdImgError(img){
+  img.onerror=null;
+  img.classList.add('hidden');
+  const ph=img.parentElement&&img.parentElement.querySelector('.stats-img-ph');
+  if(ph){ph.classList.remove('hidden');ph.classList.add('flex');}
+}
+function statsTopProductThumbHtml(p){
+  const name=(p.product_name||'').trim();
+  const ch=name?name.charAt(0).toUpperCase():'?';
+  const url=resolveStatsProductImg(p.image_url);
+  if(!url)return`<div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white ring-1 ring-white/20">${esc(ch)}</div>`;
+  return`<div class="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-200/80">
+    <img src="${esc(url)}" alt="" class="h-full w-full object-cover" loading="lazy" decoding="async" onerror="onStatsTopProdImgError(this)" />
+    <div class="stats-img-ph absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white">${esc(ch)}</div>
+  </div>`;
+}
+function buildStatsTopProductsPagerHtml(total,pageSize,curPage,totalPages){
+  const start=(curPage-1)*pageSize+1;
+  const end=Math.min(curPage*pageSize,total);
+  const opts=STATS_TOP_PROD_SIZES.map(o=>`<option value="${o}"${o===pageSize?' selected':''}>${o}</option>`).join('');
+  const prevDis=curPage<=1?' disabled':'';
+  const nextDis=curPage>=totalPages?' disabled':'';
+  let pages='';
+  const maxV=5;
+  let s=Math.max(1,curPage-Math.floor(maxV/2));
+  let e=Math.min(totalPages,s+maxV-1);
+  if(e-s<maxV-1)s=Math.max(1,e-maxV+1);
+  if(s>1){
+    pages+=`<button type="button" onclick="goStatsTopProdPage(1)" class="min-w-[1.75rem] rounded-md border border-gray-200 bg-white px-1.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm">1</button>`;
+    if(s>2)pages+='<span class="px-0.5 text-gray-400">…</span>';
+  }
+  for(let i=s;i<=e;i++){
+    if(i===curPage)pages+=`<span class="min-w-[1.75rem] rounded-md bg-indigo-600 px-1.5 py-1 text-center text-[11px] font-semibold text-white">${i}</span>`;
+    else pages+=`<button type="button" onclick="goStatsTopProdPage(${i})" class="min-w-[1.75rem] rounded-md border border-gray-200 bg-white px-1.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm">${i}</button>`;
+  }
+  if(e<totalPages){
+    if(e<totalPages-1)pages+='<span class="px-0.5 text-gray-400">…</span>';
+    pages+=`<button type="button" onclick="goStatsTopProdPage(${totalPages})" class="min-w-[1.75rem] rounded-md border border-gray-200 bg-white px-1.5 py-1 text-[11px] font-medium text-gray-700 shadow-sm">${totalPages}</button>`;
+  }
+  return`<div class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-600">
+      <span class="tabular-nums"><b class="text-gray-800">${start}–${end}</b><span class="mx-0.5 text-gray-300">/</span>${total}</span>
+      <label class="flex items-center gap-1 font-medium text-gray-500">SP/trang
+        <select title="Số SP mỗi trang" aria-label="Số sản phẩm mỗi trang" onchange="setStatsTopProdPerPage(this.value)" class="rounded-md border border-gray-200 bg-white py-0.5 pl-1.5 pr-6 text-[11px] font-semibold text-gray-800 shadow-sm">${opts}</select>
+      </label>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-1">
+      <button type="button" onclick="goStatsTopProdPage(${curPage-1})"${prevDis} class="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-700 shadow-sm disabled:opacity-40" aria-label="Trước"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+      ${pages}
+      <button type="button" onclick="goStatsTopProdPage(${curPage+1})"${nextDis} class="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-700 shadow-sm disabled:opacity-40" aria-label="Sau"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </div>`;
+}
+function renderStatsTopProductsView(){
+  const listEl=document.getElementById('statsTopProductsList');
+  const pagEl=document.getElementById('statsTopProductsPager');
+  if(!listEl)return;
+  const data=_statsTopProductsData;
+  if(!data.length){
+    listEl.innerHTML='<p class="px-4 py-6 text-sm text-gray-400 text-center">Chưa có dữ liệu sản phẩm</p>';
+    if(pagEl){pagEl.innerHTML='';pagEl.classList.add('hidden');}
+    return;
+  }
+  const ps=statsTopProdPerPage;
+  const total=data.length;
+  const totalPages=Math.max(1,Math.ceil(total/ps));
+  if(statsTopProdPage>totalPages)statsTopProdPage=totalPages;
+  if(statsTopProdPage<1)statsTopProdPage=1;
+  const start=(statsTopProdPage-1)*ps;
+  const slice=data.slice(start,start+ps);
+  listEl.innerHTML=slice.map((p,i)=>{
+    const rank=start+i+1;
+    const margin=p.profit_margin||0;
+    const barCol=margin>=30?'bg-green-400':margin>=15?'bg-yellow-400':'bg-red-400';
+    let rankDisp=String(rank);
+    if(rank===1)rankDisp='🥇';
+    else if(rank===2)rankDisp='🥈';
+    else if(rank===3)rankDisp='🥉';
+    const thumb=statsTopProductThumbHtml(p);
+    const rankInner=rank<=3?rankDisp:rank;
+    const rankCls=rank<=3?'bg-indigo-600 text-white text-sm':'bg-gray-100 text-gray-500 text-[11px]';
+    return`<div class="flex items-center gap-2.5 px-4 py-3 border-b border-gray-50 last:border-0">
+      ${thumb}
+      <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-bold ${rankCls}">${rankInner}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-800 truncate">${esc(p.product_name||'—')}</p>
+        <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+          <span>Bán: <b class="text-gray-600">${fmtN(p.total_sold)}</b></span>
+          <span>Lãi: <b class="${(p.total_profit||0)>=0?'text-green-600':'text-red-500'}">${fmtK(p.total_profit)}</b></span>
+        </div>
+        <div class="mt-1.5 bg-gray-100 rounded-full h-1 overflow-hidden">
+          <div class="bar h-1 ${barCol} rounded-full" style="width:${Math.min(margin,100)}%"></div>
+        </div>
+      </div>
+      <div class="text-right shrink-0">
+        <p class="text-sm font-bold text-gray-900">${fmtK(p.total_revenue)}</p>
+        <p class="text-[11px] font-semibold ${margin>=20?'text-green-600':'text-orange-500'}">${margin.toFixed(1)}%</p>
+      </div>
+    </div>`;
+  }).join('');
+  if(pagEl){
+    pagEl.classList.remove('hidden');
+    pagEl.innerHTML=buildStatsTopProductsPagerHtml(total,ps,statsTopProdPage,totalPages);
+  }
+  requestAnimationFrame(()=>{
+    listEl.querySelectorAll('.bar').forEach(b=>{
+      const w=b.style.width;b.style.width='0%';
+      requestAnimationFrame(()=>{b.style.width=w;});
+    });
+  });
+}
+function goStatsTopProdPage(p){
+  const total=_statsTopProductsData.length;
+  const totalPages=Math.max(1,Math.ceil(total/statsTopProdPerPage));
+  statsTopProdPage=Math.max(1,Math.min(totalPages,parseInt(p,10)||1));
+  renderStatsTopProductsView();
+}
+function setStatsTopProdPerPage(v){
+  const n=parseInt(v,10);
+  if(!STATS_TOP_PROD_SIZES.includes(n))return;
+  statsTopProdPerPage=n;
+  try{localStorage.setItem(STATS_TOP_PROD_LS,String(n));}catch(e){}
+  const total=_statsTopProductsData.length;
+  const tp=Math.max(1,Math.ceil(total/n));
+  if(statsTopProdPage>tp)statsTopProdPage=tp;
+  renderStatsTopProductsView();
+}
+
 function activateStatsTab(){
   const btn=document.querySelector('[data-status="stats"]');
   if(btn)switchTab(btn);
@@ -2782,27 +2928,8 @@ function renderAll(d,prev){
     {icon:'🧾',label:'Thuế',val:cb.tax},
   ].filter(r=>r.val>0);
   costRows.push({icon:'👥',label:'Hoa hồng CTV',val:(o.commission||0)});
-  const topProdHtml=topProds.length?topProds.map((p,i)=>{
-    const margin=p.profit_margin||0;
-    const barCol=margin>=30?'bg-green-400':margin>=15?'bg-yellow-400':'bg-red-400';
-    return`<div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0">
-      <span class="w-6 h-6 rounded-full ${i<3?'bg-indigo-600 text-white':'bg-gray-100 text-gray-500'} text-[11px] font-bold flex items-center justify-center shrink-0">${i+1}</span>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-gray-800 truncate">${p.product_name||'—'}</p>
-        <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
-          <span>Bán: <b class="text-gray-600">${fmtN(p.total_sold)}</b></span>
-          <span>Lãi: <b class="${(p.total_profit||0)>=0?'text-green-600':'text-red-500'}">${fmtK(p.total_profit)}</b></span>
-        </div>
-        <div class="mt-1.5 bg-gray-100 rounded-full h-1 overflow-hidden">
-          <div class="bar h-1 ${barCol} rounded-full" style="width:${Math.min(margin,100)}%"></div>
-        </div>
-      </div>
-      <div class="text-right shrink-0">
-        <p class="text-sm font-bold text-gray-900">${fmtK(p.total_revenue)}</p>
-        <p class="text-[11px] font-semibold ${margin>=20?'text-green-600':'text-orange-500'}">${margin.toFixed(1)}%</p>
-      </div>
-    </div>`;
-  }).join(''):'<p class="px-4 py-6 text-sm text-gray-400 text-center">Chưa có dữ liệu sản phẩm</p>';
+  _statsTopProductsData=topProds.slice();
+  statsTopProdPage=1;
   const _r=getDateRange();
   const chartHtml=_r?buildChart(d.daily_data||[],prev?.daily_data||[],_r,o,po):'';
   const html=`
@@ -2866,7 +2993,10 @@ function renderAll(d,prev){
           </button>
         </div>
       </div>
-      <div id="itab-products">${topProdHtml}</div>
+      <div id="itab-products">
+        <div id="statsTopProductsList"></div>
+        <div id="statsTopProductsPager" class="hidden border-t border-gray-100 bg-gray-50/80 px-3 py-2.5"></div>
+      </div>
       <div id="itab-geo" class="hidden">
         <div id="geoContent" class="divide-y divide-gray-50">
           <div class="px-4 py-8 text-center text-sm text-gray-400">Đang tải dữ liệu địa lý...</div>
@@ -2918,6 +3048,7 @@ function renderAll(d,prev){
   if(cEl)cEl.innerHTML=html;
   if(skEl)skEl.classList.add('hidden');
   if(cEl)cEl.classList.remove('hidden');
+  renderStatsTopProductsView();
   _insightTab='products';
   document.querySelectorAll('.i-tab').forEach(t=>{
     const active=t.dataset.itab==='products';
