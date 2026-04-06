@@ -243,7 +243,7 @@ export class BabyWeightModal {
         } else {
             // Baby weights: "Chưa sinh" + ranges + custom
             weights = [
-                { label: '❤️ Chưa sinh', value: 'unborn', icon: true },
+                { label: 'Chưa sinh', value: 'unborn', icon: true },
                 { label: '3-4kg', value: '3-4kg' },
                 { label: '4-6kg', value: '4-6kg' },
                 { label: '6-8kg', value: '6-8kg' },

@@ -3,7 +3,7 @@
 // ============================================
 
 import { escapeHtml } from '../../shared/utils/formatters.js';
-import { CONFIG, CATEGORY_IMAGES } from '../../shared/constants/config.js';
+import { CATEGORY_IMAGES } from '../../shared/constants/config.js';
 
 /**
  * Create category chip HTML (Handmade style)
@@ -15,12 +15,22 @@ export function createCategoryCard(category) {
         ? '<span class="category-chip-badge">Phổ biến</span>'
         : '';
 
+    const fromDb = category.image_url && String(category.image_url).trim()
+        ? String(category.image_url).trim()
+        : '';
+    const fallbackStatic = CATEGORY_IMAGES[category.name] || '';
+    const imageUrl = fromDb || fallbackStatic;
+
+    const iconMarkup = imageUrl
+        ? `<img src="${escapeHtml(imageUrl)}" alt="" class="category-chip-thumb" width="28" height="28" loading="lazy" decoding="async">`
+        : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                    <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                </svg>`;
+
     return `
         <button class="category-chip" onclick="window.categoryActions.filterByCategory(${category.id})" data-category-id="${category.id}">
             <span class="category-chip-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                    <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                </svg>
+                ${iconMarkup}
             </span>
             <span class="category-chip-name">${escapeHtml(category.name)}</span>
             ${popularBadge}

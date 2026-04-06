@@ -41,6 +41,164 @@ let allCategories = [];
 let filteredCategories = [];
 let currentCategory = null;
 let currentStatusFilter = '';
+let categoryModalSaving = false;
+let pendingCategoryImageFile = null;
+let pendingCategoryImagePreviewUrl = null;
+
+function escapeAttr(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;');
+}
+
+function resetPendingCategoryImage() {
+    if (pendingCategoryImagePreviewUrl) {
+        URL.revokeObjectURL(pendingCategoryImagePreviewUrl);
+        pendingCategoryImagePreviewUrl = null;
+    }
+    pendingCategoryImageFile = null;
+    const input = document.getElementById('categoryImageInput');
+    if (input) input.value = '';
+}
+
+function refreshCategoryUploadVisualState() {
+    const zone = document.getElementById('categoryImageDropZone');
+    const img = document.getElementById('categoryImagePreview');
+    if (!zone || !img) return;
+    const filled = !img.classList.contains('hidden') && Boolean(img.getAttribute('src'));
+    zone.classList.toggle('category-upload-zone--filled', filled);
+}
+
+function syncCategoryImagePreview() {
+    const hidden = document.getElementById('categoryImageUrl');
+    const img = document.getElementById('categoryImagePreview');
+    const placeholder = document.getElementById('categoryImagePlaceholder');
+    if (!img || !placeholder) return;
+    const url = (hidden && hidden.value) ? hidden.value.trim() : '';
+    if (url) {
+        img.src = url;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+    } else {
+        img.removeAttribute('src');
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+    }
+    refreshCategoryUploadVisualState();
+}
+
+/**
+ * @param {File} file
+ * @returns {boolean} true nếu đã áp dụng preview
+ */
+function applyCategoryImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        return false;
+    }
+
+    if (pendingCategoryImagePreviewUrl) {
+        URL.revokeObjectURL(pendingCategoryImagePreviewUrl);
+        pendingCategoryImagePreviewUrl = null;
+    }
+    pendingCategoryImageFile = file;
+    pendingCategoryImagePreviewUrl = URL.createObjectURL(file);
+
+    const img = document.getElementById('categoryImagePreview');
+    const placeholder = document.getElementById('categoryImagePlaceholder');
+    if (img && placeholder) {
+        img.src = pendingCategoryImagePreviewUrl;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+    }
+    refreshCategoryUploadVisualState();
+    return true;
+}
+
+async function uploadCategoryImageToR2(file) {
+    const ext = (file.name || '').split('.').pop() || 'jpg';
+    const timestamp = Date.now();
+    const filename = `categories/${timestamp}.${ext}`;
+
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('filename', filename);
+
+    const isLocalDev = ['127.0.0.1', 'localhost'].includes(location.hostname);
+    const uploadApiUrl = isLocalDev
+        ? 'https://ctv-api.yendev96.workers.dev/?action=uploadImage'
+        : `${API_URL}/?action=uploadImage`;
+
+    const response = await fetch(uploadApiUrl, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        let errMsg = `HTTP ${response.status}`;
+        try {
+            const e = await response.json();
+            errMsg = e.error || errMsg;
+        } catch (_) { /* ignore */ }
+        throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    if (!data.success || !data.url) {
+        throw new Error(data.error || 'Upload thất bại - không nhận được URL');
+    }
+    return data.url;
+}
+
+function handleCategoryImageFileChange(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!applyCategoryImageFile(file) && event.target) {
+        event.target.value = '';
+    }
+}
+
+function setupCategoryImageDropZone() {
+    const zone = document.getElementById('categoryImageDropZone');
+    if (!zone) return;
+
+    zone.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+    });
+
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        zone.classList.add('is-dragover');
+    });
+
+    zone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        const next = e.relatedTarget;
+        if (next && zone.contains(next)) return;
+        zone.classList.remove('is-dragover');
+    });
+
+    zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('is-dragover');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) {
+            applyCategoryImageFile(file);
+        }
+    });
+}
+
+function clearCategoryImage() {
+    resetPendingCategoryImage();
+    const hidden = document.getElementById('categoryImageUrl');
+    if (hidden) hidden.value = '';
+    syncCategoryImagePreview();
+}
 
 // ============================================
 // INITIALIZATION
@@ -48,6 +206,11 @@ let currentStatusFilter = '';
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
     setupEventListeners();
+    const imgInput = document.getElementById('categoryImageInput');
+    if (imgInput) {
+        imgInput.addEventListener('change', handleCategoryImageFileChange);
+    }
+    setupCategoryImageDropZone();
 });
 
 function setupEventListeners() {
@@ -102,37 +265,41 @@ async function loadCategories() {
     }
 }
 
+/**
+ * @returns {Promise<boolean>} true khi lưu thành công (modal đã đóng)
+ */
 async function saveCategory(categoryData) {
     try {
         const isEdit = !!categoryData.id;
         const action = isEdit ? 'updateCategory' : 'createCategory';
-        
-        // Add action to the data payload
+
         const payload = {
             action: action,
             ...categoryData
         };
         console.log('📤 [categories] save payload:', payload);
-        
+
         const response = await apiFetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        
+
         const data = await response.json();
         console.log('📥 [categories] save response:', data);
-        
+
         if (data.success) {
             showSuccess(isEdit ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục mới thành công!');
             closeCategoryModal();
             loadCategories();
-        } else {
-            showError(data.error || 'Không thể lưu danh mục');
+            return true;
         }
+        showError(data.error || 'Không thể lưu danh mục');
+        return false;
     } catch (error) {
         console.error('Error saving category:', error);
         showError('Lỗi khi lưu danh mục');
+        return false;
     }
 }
 
@@ -195,8 +362,13 @@ function renderCategories() {
         const canMoveUp = isActive && activeIndex > 0;
         const canMoveDown = isActive && activeIndex !== -1 && activeIndex < activeOrderedIds.length - 1;
         
+        const thumb = category.image_url
+            ? `<img src="${escapeAttr(category.image_url)}" alt="" class="mx-auto h-10 w-10 rounded-lg border border-slate-200 object-cover" loading="lazy">`
+            : '<span class="text-xs text-slate-400">—</span>';
+
         return `
             <tr class="transition-colors hover:bg-slate-50/80">
+                <td class="px-6 py-4 text-center">${thumb}</td>
                 <td class="px-6 py-4">
                     <span class="font-medium text-slate-900">${category.name}</span>
                 </td>
@@ -352,20 +524,52 @@ function updateStatusPresetUI() {
 // MODAL MANAGEMENT
 // ============================================
 
+function setCategoryModalSaving(isSaving) {
+    categoryModalSaving = isSaving;
+    const submit = document.getElementById('categorySubmitBtn');
+    const cancel = document.getElementById('categoryCancelBtn');
+    const closeBtn = document.getElementById('categoryModalCloseBtn');
+    const label = document.getElementById('categorySubmitLabel');
+    const spinner = document.getElementById('categorySubmitSpinner');
+    const form = document.getElementById('categoryForm');
+    if (submit) {
+        submit.disabled = isSaving;
+        submit.setAttribute('aria-busy', isSaving ? 'true' : 'false');
+    }
+    if (cancel) cancel.disabled = isSaving;
+    if (closeBtn) closeBtn.disabled = isSaving;
+    if (label) {
+        label.textContent = isSaving ? 'Đang lưu...' : 'Lưu';
+    }
+    if (spinner) spinner.classList.toggle('hidden', !isSaving);
+    if (form) form.setAttribute('aria-busy', isSaving ? 'true' : 'false');
+}
+
+function tryCloseCategoryModal() {
+    if (categoryModalSaving) return;
+    closeCategoryModal();
+}
+
 function showAddCategoryModal() {
+    setCategoryModalSaving(false);
     currentCategory = null;
     document.getElementById('modalTitle').textContent = 'Thêm danh mục mới';
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryActive').checked = true;
     document.getElementById('categoryFeatured').checked = false;
+    resetPendingCategoryImage();
+    const hidden = document.getElementById('categoryImageUrl');
+    if (hidden) hidden.value = '';
+    syncCategoryImagePreview();
     openModalOverlay('categoryModal');
 }
 
 function editCategory(id) {
     const category = allCategories.find(c => c.id === id);
     if (!category) return;
-    
+
+    setCategoryModalSaving(false);
     currentCategory = category;
     document.getElementById('modalTitle').textContent = 'Chỉnh sửa danh mục';
     
@@ -374,27 +578,64 @@ function editCategory(id) {
     document.getElementById('categoryDescription').value = category.description || '';
     document.getElementById('categoryActive').checked = category.is_active;
     document.getElementById('categoryFeatured').checked = !!category.is_featured;
+
+    resetPendingCategoryImage();
+    const hidden = document.getElementById('categoryImageUrl');
+    if (hidden) hidden.value = (category.image_url && String(category.image_url).trim()) ? String(category.image_url).trim() : '';
+    syncCategoryImagePreview();
     
     openModalOverlay('categoryModal');
 }
 
 function closeCategoryModal() {
+    resetPendingCategoryImage();
+    setCategoryModalSaving(false);
     closeModalOverlay('categoryModal');
     currentCategory = null;
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
-    
-    const categoryData = {
-        id: document.getElementById('categoryId').value || undefined,
-        name: document.getElementById('categoryName').value,
-        description: document.getElementById('categoryDescription').value || null,
-        is_active: document.getElementById('categoryActive').checked ? 1 : 0,
-        is_featured: document.getElementById('categoryFeatured').checked ? 1 : 0
-    };
-    
-    saveCategory(categoryData);
+    if (categoryModalSaving) return;
+
+    setCategoryModalSaving(true);
+
+    try {
+        const hiddenEl = document.getElementById('categoryImageUrl');
+        let imageUrl = hiddenEl ? hiddenEl.value.trim() : '';
+
+        if (pendingCategoryImageFile) {
+            try {
+                imageUrl = await uploadCategoryImageToR2(pendingCategoryImageFile);
+                resetPendingCategoryImage();
+                if (hiddenEl) hiddenEl.value = imageUrl;
+                syncCategoryImagePreview();
+            } catch (err) {
+                console.error('Category image upload failed:', err);
+                setCategoryModalSaving(false);
+                return;
+            }
+        }
+
+        const normalizedImageUrl = imageUrl ? imageUrl : null;
+
+        const categoryData = {
+            id: document.getElementById('categoryId').value || undefined,
+            name: document.getElementById('categoryName').value,
+            description: document.getElementById('categoryDescription').value || null,
+            is_active: document.getElementById('categoryActive').checked ? 1 : 0,
+            is_featured: document.getElementById('categoryFeatured').checked ? 1 : 0,
+            image_url: normalizedImageUrl
+        };
+
+        const ok = await saveCategory(categoryData);
+        if (!ok) {
+            setCategoryModalSaving(false);
+        }
+    } catch (e) {
+        console.error('handleFormSubmit:', e);
+        setCategoryModalSaving(false);
+    }
 }
 
 async function toggleFeaturedCategory(id, currentFeatured, name) {

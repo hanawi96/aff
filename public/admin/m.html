@@ -1114,14 +1114,70 @@ function getActiveCategoryDisplayName(){
   const c=allCategoriesCache.find(x=>String(x.id)===String(activeCategoryId));
   return c?String(c.name):'Danh mục';
 }
+/** Icon mặc định nút danh mục (Bán chạy) — heroicons folder-arrow-down */
+const M_CAT_PICKER_FOLDER_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6" aria-hidden="true"><path fill-rule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h15Zm-6.75-10.5a.75.75 0 0 0-1.5 0v4.19l-1.72-1.72a.75.75 0 0 0-1.06 1.06l3 3a.75.75 0 0 0 1.06 0l3-3a.75.75 0 1 0-1.06-1.06l-1.72 1.72V10.5Z" clip-rule="evenodd"/></svg>';
+/** Tag — danh mục chưa có ảnh */
+const M_CAT_TAG_SVG_SM='<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
+const M_CAT_TAG_SVG_MD='<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
+const M_CAT_CHECK_SVG_SM='<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+const M_CAT_FIRE_SVG_SM='<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/></svg>';
+const M_CAT_CHECK_BADGE_SVG='<svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+
+/** Tránh tải trễ do lazy + warm cache HTTP trước khi mở bottom sheet */
+const mCategoryImagePrefetchStarted=new Set();
+function prefetchCategorySheetImages(){
+  try{
+    (allCategoriesCache||[]).forEach(c=>{
+      const u=c.image_url&&String(c.image_url).trim();
+      if(!u||mCategoryImagePrefetchStarted.has(u))return;
+      mCategoryImagePrefetchStarted.add(u);
+      const im=new Image();
+      im.src=u;
+    });
+  }catch(_){}
+}
+
+function renderCatPickerIcon(){
+  const wrap=document.getElementById('catPickerIconWrap');
+  if(!wrap)return;
+  wrap.textContent='';
+  const base='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white border border-gray-200 ';
+  if(activeCategoryId===''||activeCategoryId==null){
+    wrap.className=base+'text-indigo-600';
+    wrap.innerHTML=M_CAT_PICKER_FOLDER_SVG;
+    return;
+  }
+  const c=allCategoriesCache.find(x=>String(x.id)===String(activeCategoryId));
+  const url=c&&c.image_url&&String(c.image_url).trim()?String(c.image_url).trim():'';
+  if(url){
+    wrap.className=base;
+    const img=document.createElement('img');
+    img.src=url;
+    img.alt='';
+    img.className='h-full w-full object-cover';
+    img.loading='eager';
+    if('fetchPriority' in img)img.fetchPriority='high';
+    img.onerror=function(){
+      wrap.className=base+'text-indigo-600';
+      wrap.textContent='';
+      wrap.innerHTML=M_CAT_TAG_SVG_MD;
+    };
+    wrap.appendChild(img);
+    return;
+  }
+  wrap.className=base+'text-indigo-600 bg-gray-50';
+  wrap.innerHTML=M_CAT_TAG_SVG_MD;
+}
 function updateCatPickerLabel(){
   const el=document.getElementById('catPickerLabel');
   if(el)el.textContent=getActiveCategoryDisplayName();
+  renderCatPickerIcon();
 }
 function _populateCatFilter(){
   updateCatPickerLabel();
 }
 function openCategorySheet(){
+  prefetchCategorySheetImages();
   const sh=document.getElementById('categorySheet');if(!sh)return;
   sh.classList.remove('hidden');
   const inp=document.getElementById('categorySheetSearch');
@@ -1141,8 +1197,11 @@ function selectCategorySheet(catId){
 function renderCategorySheetList(){
   const list=document.getElementById('categorySheetList');if(!list)return;
   const q=(document.getElementById('categorySheetSearch')?.value||'').toLowerCase().trim();
-  const rows=[{id:'',name:'🔥 Bán chạy',hint:'Sắp xếp theo lượt mua'}];
-  allCategoriesCache.forEach(c=>rows.push({id:String(c.id),name:String(c.name||''),hint:''}));
+  const rows=[{id:'',name:'🔥 Bán chạy',hint:'Sắp xếp theo lượt mua',image_url:''}];
+  allCategoriesCache.forEach(c=>{
+    const iu=c.image_url&&String(c.image_url).trim()?String(c.image_url).trim():'';
+    rows.push({id:String(c.id),name:String(c.name||''),hint:'',image_url:iu});
+  });
   const filtered=q?rows.filter(r=>r.name.toLowerCase().includes(q)||(r.hint&&r.hint.toLowerCase().includes(q))):rows;
   list.innerHTML='';
   if(!filtered.length){
@@ -1156,8 +1215,35 @@ function renderCategorySheetList(){
     btn.type='button';
     btn.className='w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(isSel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
     const mark=document.createElement('span');
-    mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg '+(isSel?'bg-indigo-600 text-white':'bg-gray-100 text-gray-500');
-    mark.innerHTML=isSel?'<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>':'<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
+    mark.className='relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border '+(isSel?'border-indigo-300 bg-white':'border-gray-200 bg-gray-50');
+    const imgUrl=r.image_url||'';
+    if(imgUrl){
+      const img=document.createElement('img');
+      img.src=imgUrl;
+      img.alt='';
+      img.className='h-full w-full object-cover';
+      img.loading='eager';
+      if('fetchPriority' in img)img.fetchPriority='high';
+      img.onerror=function(){
+        mark.textContent='';
+        mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border '+(isSel?'border-indigo-300 bg-indigo-600 text-white':'border-gray-200 bg-gray-100 text-gray-500');
+        mark.innerHTML=isSel?M_CAT_CHECK_SVG_SM:M_CAT_TAG_SVG_SM;
+      };
+      mark.appendChild(img);
+      if(isSel){
+        const badge=document.createElement('span');
+        badge.className='absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm ring-1 ring-white';
+        badge.innerHTML=M_CAT_CHECK_BADGE_SVG;
+        mark.appendChild(badge);
+      }
+    }else{
+      mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border '+(isSel?'border-indigo-200 bg-indigo-600 text-white':'border-gray-200 bg-gray-100 text-gray-500');
+      if(r.id===''){
+        mark.innerHTML=isSel?M_CAT_CHECK_SVG_SM:M_CAT_FIRE_SVG_SM;
+      }else{
+        mark.innerHTML=isSel?M_CAT_CHECK_SVG_SM:M_CAT_TAG_SVG_SM;
+      }
+    }
     const txt=document.createElement('div');
     txt.className='flex-1 min-w-0';
     const t1=document.createElement('p');
@@ -1277,8 +1363,8 @@ function buildCreateForm(isEdit=false){
           Tự nhập
         </button>
       </div>
-      <button type="button" id="catPickerRow" onclick="openCategorySheet()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-left active:scale-[0.99] transition-transform hover:border-indigo-200 hover:bg-indigo-50/20">
-        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-gray-100 text-base shrink-0 shadow-sm" aria-hidden="true">📂</span>
+      <button type="button" id="catPickerRow" onclick="openCategorySheet()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-left active:bg-gray-100">
+        <span id="catPickerIconWrap" class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white border border-gray-200 text-indigo-600" aria-hidden="true"></span>
         <div class="flex-1 min-w-0">
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Danh mục</p>
           <p id="catPickerLabel" class="text-sm font-semibold text-gray-900 truncate">🔥 Bán chạy</p>
@@ -1418,6 +1504,7 @@ async function loadProductList(){
     if(dc.success){
       allCategoriesCache=dc.categories||[];
       updateCatPickerLabel();
+      prefetchCategorySheetImages();
     }
   }catch{}
 }

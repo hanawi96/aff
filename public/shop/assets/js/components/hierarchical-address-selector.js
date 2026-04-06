@@ -123,6 +123,31 @@ export class HierarchicalAddressSelector {
     }
     
     /**
+     * Sort display names Vietnamese collation (quận/huyện, phường/xã, và tỉnh còn lại).
+     */
+    sortByViDisplayName(items) {
+        return [...items].sort((a, b) =>
+            String(a.name).localeCompare(String(b.name), 'vi', { sensitivity: 'base' })
+        );
+    }
+    
+    /**
+     * TP.HCM (79) và Hà Nội (01) lên đầu (theo thứ tự đó), còn lại theo tên.
+     */
+    compareProvincesDisplayOrder(a, b) {
+        const pri = (code) => {
+            const c = String(code);
+            if (c === '79') return 0;
+            if (c === '01') return 1;
+            return 100;
+        };
+        const pa = pri(a.code);
+        const pb = pri(b.code);
+        if (pa !== pb) return pa - pb;
+        return String(a.name).localeCompare(String(b.name), 'vi', { sensitivity: 'base' });
+    }
+    
+    /**
      * Prepare normalized data for fast searching
      * Pre-process all text to lowercase and remove diacritics
      */
@@ -136,22 +161,26 @@ export class HierarchicalAddressSelector {
         }
         
         this.normalizedData = provinces.map(province => {
-            const districts = addressService.getDistricts(province.code).map(district => {
-                const wards = addressService.getWards(province.code, district.code).map(ward => ({
-                    code: ward.code,
-                    name: ward.nameWithType,
-                    normalizedName: this.normalizeText(ward.nameWithType),
-                    level: 'ward'
-                }));
-                
-                return {
-                    code: district.code,
-                    name: district.nameWithType,
-                    normalizedName: this.normalizeText(district.nameWithType),
-                    wards: wards,
-                    level: 'district'
-                };
-            });
+            const districts = this.sortByViDisplayName(
+                addressService.getDistricts(province.code).map(district => {
+                    const wards = this.sortByViDisplayName(
+                        addressService.getWards(province.code, district.code).map(ward => ({
+                            code: ward.code,
+                            name: ward.nameWithType,
+                            normalizedName: this.normalizeText(ward.nameWithType),
+                            level: 'ward'
+                        }))
+                    );
+                    
+                    return {
+                        code: district.code,
+                        name: district.nameWithType,
+                        normalizedName: this.normalizeText(district.nameWithType),
+                        wards: wards,
+                        level: 'district'
+                    };
+                })
+            );
             
             return {
                 code: province.code,
@@ -161,6 +190,8 @@ export class HierarchicalAddressSelector {
                 level: 'province'
             };
         });
+        
+        this.normalizedData.sort((a, b) => this.compareProvincesDisplayOrder(a, b));
         
         console.log('✅ Normalized address data prepared:', this.normalizedData.length, 'provinces');
     }

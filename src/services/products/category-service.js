@@ -1,4 +1,5 @@
 import { jsonResponse } from '../../utils/response.js';
+import { deleteImageByUrl } from '../upload/image-upload.js';
 
 function parseDisplayOrderInput(rawValue) {
     if (rawValue === undefined || rawValue === null || rawValue === '') {
@@ -183,7 +184,7 @@ export async function createCategory(data, env, corsHeaders) {
 
         // Check if name already exists
         const existing = await env.DB.prepare(`
-            SELECT id, is_active FROM categories WHERE name = ?
+            SELECT id, is_active, image_url FROM categories WHERE name = ?
         `).bind(data.name).first();
 
         if (existing) {
@@ -200,14 +201,21 @@ export async function createCategory(data, env, corsHeaders) {
                 // Category exists but is inactive (soft deleted), reactivate it
                 const now = Math.floor(Date.now() / 1000);
                 await shiftOrdersForInsert(env, resolvedDisplayOrder, now);
+                let reactivatedImageUrl = existing.image_url ? String(existing.image_url).trim() : null;
+                if (data.image_url !== undefined) {
+                    reactivatedImageUrl = (data.image_url === null || data.image_url === '')
+                        ? null
+                        : String(data.image_url).trim() || null;
+                }
                 await env.DB.prepare(`
                     UPDATE categories
-                    SET description = ?, icon = ?, color = ?, display_order = ?, is_active = 1, is_featured = ?, updated_at_unix = ?
+                    SET description = ?, icon = ?, color = ?, image_url = ?, display_order = ?, is_active = 1, is_featured = ?, updated_at_unix = ?
                     WHERE id = ?
                 `).bind(
                     data.description || null,
                     data.icon || null,
                     data.color || null,
+                    reactivatedImageUrl,
                     resolvedDisplayOrder,
                     data.is_featured ? 1 : 0,
                     now,
@@ -226,15 +234,20 @@ export async function createCategory(data, env, corsHeaders) {
         const now = Math.floor(Date.now() / 1000);
         await shiftOrdersForInsert(env, resolvedDisplayOrder, now);
 
+        const newImageUrl = data.image_url !== undefined && data.image_url !== null && String(data.image_url).trim()
+            ? String(data.image_url).trim()
+            : null;
+
         // Insert category
         const result = await env.DB.prepare(`
-            INSERT INTO categories (name, description, icon, color, display_order, is_active, is_featured, created_at_unix, updated_at_unix)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO categories (name, description, icon, color, image_url, display_order, is_active, is_featured, created_at_unix, updated_at_unix)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.name,
             data.description || null,
             data.icon || null,
             data.color || null,
+            newImageUrl,
             resolvedDisplayOrder,
             data.is_active !== undefined ? data.is_active : 1,
             data.is_featured ? 1 : 0,
@@ -286,7 +299,7 @@ export async function updateCategory(data, env, corsHeaders) {
 
         // Check if category exists
         const existing = await env.DB.prepare(`
-            SELECT id, is_active, display_order FROM categories WHERE id = ?
+            SELECT id, is_active, display_order, image_url FROM categories WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -336,6 +349,7 @@ export async function updateCategory(data, env, corsHeaders) {
         // Build update query
         const updates = [];
         const values = [];
+        let oldCategoryImageToDelete = null;
 
         if (data.name !== undefined) {
             updates.push('name = ?');
@@ -365,6 +379,17 @@ export async function updateCategory(data, env, corsHeaders) {
             updates.push('is_featured = ?');
             values.push(data.is_featured ? 1 : 0);
         }
+        if (data.image_url !== undefined) {
+            const newVal = (data.image_url === null || data.image_url === '')
+                ? null
+                : String(data.image_url).trim() || null;
+            const oldUrl = existing.image_url ? String(existing.image_url).trim() : null;
+            if (oldUrl && oldUrl !== newVal) {
+                oldCategoryImageToDelete = oldUrl;
+            }
+            updates.push('image_url = ?');
+            values.push(newVal);
+        }
 
         updates.push('updated_at = CURRENT_TIMESTAMP');
         updates.push('updated_at_unix = ?');
@@ -384,6 +409,14 @@ export async function updateCategory(data, env, corsHeaders) {
             SET ${updates.join(', ')}
             WHERE id = ?
         `).bind(...values).run();
+
+        if (oldCategoryImageToDelete) {
+            try {
+                await deleteImageByUrl(env, oldCategoryImageToDelete);
+            } catch (deleteError) {
+                console.warn('⚠️ Failed to delete old category image:', deleteError);
+            }
+        }
 
         return jsonResponse({
             success: true,
@@ -411,7 +444,7 @@ export async function deleteCategory(data, env, corsHeaders) {
 
         // Check if category exists
         const existing = await env.DB.prepare(`
-            SELECT id FROM categories WHERE id = ?
+            SELECT id, image_url FROM categories WHERE id = ?
         `).bind(data.id).first();
 
         if (!existing) {
@@ -442,6 +475,15 @@ export async function deleteCategory(data, env, corsHeaders) {
             DELETE FROM categories
             WHERE id = ?
         `).bind(data.id).run();
+
+        const imageUrl = existing.image_url ? String(existing.image_url).trim() : '';
+        if (imageUrl) {
+            try {
+                await deleteImageByUrl(env, imageUrl);
+            } catch (deleteError) {
+                console.warn('⚠️ Failed to delete category image from R2:', deleteError);
+            }
+        }
 
         return jsonResponse({
             success: true,

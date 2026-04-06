@@ -50,6 +50,34 @@ export class ListAddressSelector {
             throw error;
         }
     }
+    
+    /** Tên dùng để sắp xếp (đồng bộ với hierarchical-address-selector: ưu tiên name_with_type). */
+    _addressItemSortLabel(item) {
+        return String(item.nameWithType || item.name || '');
+    }
+    
+    /** Quận/huyện, phường/xã: theo tên (locale vi). */
+    sortByViDisplayName(items) {
+        return [...items].sort((a, b) =>
+            this._addressItemSortLabel(a).localeCompare(this._addressItemSortLabel(b), 'vi', { sensitivity: 'base' })
+        );
+    }
+    
+    /** Tỉnh/TP: TP.HCM (79), Hà Nội (01) lên đầu, còn lại theo tên. */
+    sortProvincesForDisplay(provinces) {
+        const pri = (code) => {
+            const c = String(code);
+            if (c === '79') return 0;
+            if (c === '01') return 1;
+            return 100;
+        };
+        return [...provinces].sort((a, b) => {
+            const pa = pri(a.code);
+            const pb = pri(b.code);
+            if (pa !== pb) return pa - pb;
+            return this._addressItemSortLabel(a).localeCompare(this._addressItemSortLabel(b), 'vi', { sensitivity: 'base' });
+        });
+    }
 
     
     /**
@@ -185,11 +213,11 @@ export class ListAddressSelector {
         const searchQuery = searchInput?.value || '';
         
         if (this.currentLevel === 'province') {
-            items = addressService.getProvinces();
+            items = this.sortProvincesForDisplay(addressService.getProvinces());
         } else if (this.currentLevel === 'district' && this.provinceCode) {
-            items = addressService.getDistricts(this.provinceCode);
+            items = this.sortByViDisplayName(addressService.getDistricts(this.provinceCode));
         } else if (this.currentLevel === 'ward' && this.provinceCode && this.districtCode) {
-            items = addressService.getWards(this.provinceCode, this.districtCode);
+            items = this.sortByViDisplayName(addressService.getWards(this.provinceCode, this.districtCode));
         }
         
         const filtered = this.filterItems(items, searchQuery);
