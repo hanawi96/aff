@@ -10,7 +10,7 @@ import { CATEGORY_IMAGES } from '../../shared/constants/config.js';
  * @param {Object} category - Category data
  * @returns {string} HTML string
  */
-export function createCategoryCard(category) {
+export function createCategoryCard(category, index = 0) {
     const popularBadge = category.is_featured === 1 || category.is_featured === true
         ? '<span class="category-chip-badge">Phổ biến</span>'
         : '';
@@ -21,8 +21,10 @@ export function createCategoryCard(category) {
     const fallbackStatic = CATEGORY_IMAGES[category.name] || '';
     const imageUrl = fromDb || fallbackStatic;
 
+    // eager: chip nằm sớm trên trang chủ — tránh trễ do lazy + render trễ
+    const priorityAttr = index < 4 ? ' fetchpriority="high"' : '';
     const iconMarkup = imageUrl
-        ? `<img src="${escapeHtml(imageUrl)}" alt="" class="category-chip-thumb" width="28" height="28" loading="lazy" decoding="async">`
+        ? `<img src="${escapeHtml(imageUrl)}" alt="" class="category-chip-thumb" width="28" height="28" loading="eager" decoding="async"${priorityAttr}>`
         : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                     <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
                 </svg>`;
@@ -59,5 +61,5 @@ export function renderCategories(categories, containerId) {
         .filter(cat => cat.is_active === 1)
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     
-    container.innerHTML = activeCategories.map(createCategoryCard).join('');
+    container.innerHTML = activeCategories.map((cat, i) => createCategoryCard(cat, i)).join('');
 }

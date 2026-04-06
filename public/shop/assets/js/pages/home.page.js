@@ -157,13 +157,26 @@ export class HomePage {
             const categoryParam = urlParams.get('category');
             const productParam = urlParams.get('product');
             
+            // Tải danh mục song song với SP (không chặn first paint) — chip «sở thích của mẹ» hiện ảnh sớm hơn
+            const categoriesPromise = apiService.getAllCategories().catch((error) => {
+                console.warn('Categories load failed:', error);
+                return [];
+            });
+
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
             
             // Hide skeleton and show critical content
             this.showCriticalContent();
+
+            try {
+                this.categories = await categoriesPromise;
+                this.renderCategories();
+            } finally {
+                this.hideCategoriesSkeleton();
+            }
             
-            // Phase 2: Load remaining content in background
+            // Phase 2: Load remaining content in background (flash sale, …)
             this.loadRemainingContent();
             
             // Phase 3: Pre-load bundle products for quick checkout (in background)
@@ -395,17 +408,7 @@ export class HomePage {
      * Load remaining content in background (non-blocking)
      */
     async loadRemainingContent() {
-        // Load categories (not critical, can wait)
-        setTimeout(async () => {
-            try {
-                this.categories = await apiService.getAllCategories();
-                this.renderCategories();
-            } catch (error) {
-                console.warn('Categories load failed:', error);
-            } finally {
-                this.hideCategoriesSkeleton();
-            }
-        }, 100);
+        // Danh mục đã tải song song trong init() (trước loadRemainingContent)
 
         // Load flash sales after primary content is shown.
         setTimeout(async () => {
@@ -696,17 +699,13 @@ export class HomePage {
      * Render categories
      */
     renderCategories() {
-        if (this.categories.length > 0) {
-            // Initialize category actions if not already done
-            if (!this.categoryActions) {
-                this.categoryActions = new CategoryActions((categoryId) => {
-                    this.filterByCategory(categoryId);
-                });
-                window.categoryActions = this.categoryActions;
-            }
-            
-            renderCategories(this.categories, 'categoriesGrid');
+        if (this.categories.length > 0 && !this.categoryActions) {
+            this.categoryActions = new CategoryActions((categoryId) => {
+                this.filterByCategory(categoryId);
+            });
+            window.categoryActions = this.categoryActions;
         }
+        renderCategories(this.categories, 'categoriesGrid');
     }
     
     /**
