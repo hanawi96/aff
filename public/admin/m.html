@@ -264,6 +264,39 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
     <div id="createContent" class="bg-gray-50"></div>
   </div>
 </div>
+<!-- Mặt vỏ chọn địa chỉ (đồng bộ với HIERARCHICAL_ADDRESS_SHELL_HTML trong hierarchical-address-selector.js) — hiển thị tức thì trước khi module tải xong -->
+<template id="mOrderAddressShellTpl">
+<div class="hierarchical-address-selector">
+  <div class="address-chips-wrapper">
+    <div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+      <div class="address-chips" id="addressChips">
+        <span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>
+      </div>
+      <svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <div class="address-dropdown hidden" id="addressDropdown" role="listbox">
+      <div class="address-dropdown-search">
+        <svg class="search-icon-inside" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
+        </svg>
+        <input type="text" class="address-search-input" id="addressSearchInput" placeholder="Tìm nhanh địa chỉ..." autocomplete="off">
+      </div>
+      <div class="address-dropdown-content" id="addressDropdownContent">
+        <!-- Results will be rendered here -->
+      </div>
+    </div>
+  </div>
+  <div class="address-street-wrapper hidden" id="addressStreetWrapper">
+    <input type="text" class="checkout-form-input" id="streetInput" placeholder="Nhập số nhà, tên đường" aria-label="Số nhà, tên đường">
+  </div>
+  <div class="address-display hidden" id="addressDisplay" role="status" aria-live="polite">
+    <div class="address-display-label">📍 Địa chỉ đầy đủ:</div>
+    <div class="address-display-text">Vui lòng chọn địa chỉ</div>
+  </div>
+</div>
+</template>
 
 <!-- Discount Sheet -->
 <div id="discountSheet" class="fixed inset-0 z-[60] hidden">
@@ -342,6 +375,15 @@ const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 tex
 const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
 const ago=ts=>{if(!ts)return'';const sec=ts>1e10?ts/1000:ts,d=(Date.now()/1000-sec),m=d/60,h=m/60,dd=h/24;if(dd>=1)return Math.floor(dd)+'ngày';if(h>=1)return Math.floor(h)+'h';if(m>=1)return Math.floor(m)+'ph';return'vừa xong'};
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
+
+(function prefetchAddressShellAndTree(){
+  import('../shop/assets/js/components/hierarchical-address-selector.js').then(function(m){
+    if(m.HIERARCHICAL_ADDRESS_SHELL_HTML)window.HIERARCHICAL_ADDRESS_SHELL_HTML=m.HIERARCHICAL_ADDRESS_SHELL_HTML;
+  }).catch(function(){});
+  import('../shop/assets/js/shared/services/address.service.js').then(function(x){
+    return x.addressService.loadAddressData();
+  }).catch(function(){});
+})();
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded',()=>{
@@ -469,7 +511,14 @@ function renderCards(){
   // Remove old cards
   list.querySelectorAll('.order-card').forEach(el=>el.remove());
   
-  if(slice.length===0){empty.classList.remove('hidden');more.classList.add('hidden');return}
+  if(slice.length===0){
+    more.classList.add('hidden');
+    // Chưa tải xong danh sách — còn skeleton, không hiện "Không có đơn hàng nào"
+    const stillLoading=document.getElementById('skeletons');
+    if(stillLoading)empty.classList.add('hidden');
+    else empty.classList.remove('hidden');
+    return;
+  }
   empty.classList.add('hidden');
   
   const frag=document.createDocumentFragment();
@@ -946,6 +995,7 @@ async function showEditOrder(id){
   }catch{}
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm(true);
+  injectMOrderAddressShell();
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
@@ -1035,6 +1085,7 @@ function showCreateOrder(){
   // freeShip checkbox resets via buildCreateForm() re-render
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
+  injectMOrderAddressShell();
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   // Populate categories if already cached (subsequent opens)
@@ -1052,19 +1103,34 @@ function _populateCatFilter(){
 
 function destroyMCreateAddressSelector(){
   if(mCreateAddressSelector){
-    try{mCreateAddressSelector.destroy();}catch(e){console.warn(e);}
+    try{mCreateAddressSelector.cleanup();}catch(e){console.warn(e);}
     mCreateAddressSelector=null;
+  }
+}
+function injectMOrderAddressShell(){
+  const box=document.getElementById('mOrderAddressSelectorContainer');
+  if(!box||box.querySelector('.hierarchical-address-selector'))return;
+  if(window.HIERARCHICAL_ADDRESS_SHELL_HTML){
+    box.innerHTML=window.HIERARCHICAL_ADDRESS_SHELL_HTML;
+    return;
+  }
+  const tpl=document.getElementById('mOrderAddressShellTpl');
+  if(tpl&&tpl.content){
+    box.innerHTML='';
+    box.appendChild(tpl.content.cloneNode(true));
   }
 }
 async function initMCreateAddressSelector(orderForHydrate){
   const box=document.getElementById('mOrderAddressSelectorContainer');
   if(!box)return;
   destroyMCreateAddressSelector();
-  box.innerHTML='<p class="text-sm text-gray-400 py-3 text-center">Đang tải địa chỉ...</p>';
+  injectMOrderAddressShell();
   try{
-    const { HierarchicalAddressSelector }=await import('../shop/assets/js/components/hierarchical-address-selector.js');
-    box.innerHTML='';
-    const sel=new HierarchicalAddressSelector('mOrderAddressSelectorContainer');
+    const mod=await import('../shop/assets/js/components/hierarchical-address-selector.js');
+    if(mod.HIERARCHICAL_ADDRESS_SHELL_HTML)window.HIERARCHICAL_ADDRESS_SHELL_HTML=mod.HIERARCHICAL_ADDRESS_SHELL_HTML;
+    if(!box.querySelector('.hierarchical-address-selector')&&mod.HIERARCHICAL_ADDRESS_SHELL_HTML)
+      box.innerHTML=mod.HIERARCHICAL_ADDRESS_SHELL_HTML;
+    const sel=new mod.HierarchicalAddressSelector('mOrderAddressSelectorContainer');
     await sel.init();
     mCreateAddressSelector=sel;
     const disp=document.getElementById('addressSelectorDisplay');

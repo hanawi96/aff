@@ -4,6 +4,39 @@
 
 import { addressService } from '../shared/services/address.service.js';
 
+/** Static shell markup (admin m.html template #mOrderAddressShellTpl must stay in sync). */
+export const HIERARCHICAL_ADDRESS_SHELL_HTML =
+    '<div class="hierarchical-address-selector">' +
+    '<div class="address-chips-wrapper">' +
+    '<div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">' +
+    '<div class="address-chips" id="addressChips">' +
+    '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>' +
+    '</div>' +
+    '<svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
+    '<path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />' +
+    '</svg>' +
+    '</div>' +
+    '<div class="address-dropdown hidden" id="addressDropdown" role="listbox">' +
+    '<div class="address-dropdown-search">' +
+    '<svg class="search-icon-inside" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
+    '<path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />' +
+    '</svg>' +
+    '<input type="text" class="address-search-input" id="addressSearchInput" placeholder="Tìm nhanh địa chỉ..." autocomplete="off">' +
+    '</div>' +
+    '<div class="address-dropdown-content" id="addressDropdownContent">' +
+    '<!-- Results will be rendered here -->' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '<div class="address-street-wrapper hidden" id="addressStreetWrapper">' +
+    '<input type="text" class="checkout-form-input" id="streetInput" placeholder="Nhập số nhà, tên đường" aria-label="Số nhà, tên đường">' +
+    '</div>' +
+    '<div class="address-display hidden" id="addressDisplay" role="status" aria-live="polite">' +
+    '<div class="address-display-label">📍 Địa chỉ đầy đủ:</div>' +
+    '<div class="address-display-text">Vui lòng chọn địa chỉ</div>' +
+    '</div>' +
+    '</div>';
+
 /**
  * Hierarchical Address Selector with Smart Search
  * Allows users to search and select province > district > ward in one unified dropdown
@@ -150,62 +183,14 @@ export class HierarchicalAddressSelector {
     render() {
         const container = document.getElementById(this.containerId);
         if (!container) return;
-        
-        let html = '<div class="hierarchical-address-selector">';
-        
-        // Chips + Selector button wrapper (with dropdown inside for proper positioning)
-        html += '<div class="address-chips-wrapper">';
-        
-        // Clickable selector area (not an input)
-        html += '<div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">';
-        html += '<div class="address-chips" id="addressChips">';
-        html += '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>';
-        html += '</div>';
-        html += '<svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">';
-        html += '<path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />';
-        html += '</svg>';
-        html += '</div>';
-        
-        // Dropdown results (inside chips-wrapper for proper positioning)
-        html += '<div class="address-dropdown hidden" id="addressDropdown" role="listbox">';
-        
-        // Search input inside dropdown
-        html += '<div class="address-dropdown-search">';
-        html += '<svg class="search-icon-inside" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">';
-        html += '<path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />';
-        html += '</svg>';
-        html += '<input type="text" ';
-        html += 'class="address-search-input" ';
-        html += 'id="addressSearchInput" ';
-        html += 'placeholder="Tìm nhanh địa chỉ..." ';
-        html += 'autocomplete="off">';
-        html += '</div>';
-        
-        html += '<div class="address-dropdown-content" id="addressDropdownContent">';
-        html += '<!-- Results will be rendered here -->';
-        html += '</div>';
-        html += '</div>';
-        
-        html += '</div>'; // Close address-chips-wrapper
-        
-        // Street input (shown after ward selection)
-        html += '<div class="address-street-wrapper hidden" id="addressStreetWrapper">';
-        html += '<input type="text" ';
-        html += 'class="checkout-form-input" ';
-        html += 'id="streetInput" ';
-        html += 'placeholder="Nhập số nhà, tên đường" ';
-        html += 'aria-label="Số nhà, tên đường">';
-        html += '</div>';
-        
-        // Full address display
-        html += '<div class="address-display hidden" id="addressDisplay" role="status" aria-live="polite">';
-        html += '<div class="address-display-label">📍 Địa chỉ đầy đủ:</div>';
-        html += '<div class="address-display-text">Vui lòng chọn địa chỉ</div>';
-        html += '</div>';
-        
-        html += '</div>';
-        
-        container.innerHTML = html;
+
+        const shell = container.querySelector('.hierarchical-address-selector');
+        const display = container.querySelector('#addressSelectorDisplay');
+        if (shell && display) {
+            return;
+        }
+
+        container.innerHTML = HIERARCHICAL_ADDRESS_SHELL_HTML;
     }
     
     /**
