@@ -102,7 +102,7 @@ export async function createOrder(data, env, corsHeaders) {
                     discountAmount || 0,
                     orderDate // Unix timestamp (milliseconds) - same as order date
                 ).run();
-                console.log(`✅ Inserted discount usage: ${discountCode} - Order Amount: ${totalAmountNumber}, Discount: ${discountAmount}`);
+                console.log(`Inserted discount usage: ${discountCode} - Order Amount: ${totalAmountNumber}, Discount: ${discountAmount}`);
             } catch (discountError) {
                 console.error('⚠️ Error inserting discount usage:', discountError);
                 // Don't fail the order creation

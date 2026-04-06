@@ -1559,7 +1559,7 @@ async function sendNewCTV(chatId, env) {
         }
 
         const withOrders = newCTV.filter(c => c.order_count > 0).length;
-        message += `✅ Đã có đơn: ${withOrders}/${newCTV.length}`;
+        message += `Đã có đơn: ${withOrders}/${newCTV.length}`;
 
         await sendTelegramMessage(chatId, message, env);
 
@@ -1804,7 +1804,7 @@ async function findByPhone(chatId, phone, env) {
 
         if (ctv) {
             // Nếu là CTV, hiển thị thông tin CTV
-            console.log('✅ Found CTV, showing CTV info');
+            console.log('Found CTV, showing CTV info');
             await findCTVInfo(chatId, ctv.referral_code, env);
         } else {
             // Nếu không phải CTV, tìm lịch sử khách hàng

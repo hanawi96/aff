@@ -817,7 +817,7 @@ export async function excludeOrderCommission(data, env, corsHeaders) {
             }
         }
 
-        console.log(`✅ Đã loại hoa hồng đơn ${orderId} khỏi thanh toán`);
+        console.log(`Đã loại hoa hồng đơn ${orderId} khỏi thanh toán`);
 
         return jsonResponse({
             success: true,
@@ -884,7 +884,7 @@ export async function restoreOrderCommission(data, env, corsHeaders) {
             }, 500, corsHeaders);
         }
 
-        console.log(`✅ Đã khôi phục hoa hồng đơn ${orderId} vào danh sách thanh toán`);
+        console.log(`Đã khôi phục hoa hồng đơn ${orderId} vào danh sách thanh toán`);
 
         return jsonResponse({
             success: true,

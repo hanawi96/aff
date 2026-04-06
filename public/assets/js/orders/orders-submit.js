@@ -193,7 +193,7 @@ async function submitNewOrder() {
         console.log(`⏱️ Order ${isUpdate ? 'update' : 'create'} in ${duration}ms (${currentOrderProducts.length} products)`);
 
         if (response.ok && result.success) {
-            showToast(isUpdate ? '✅ Đã cập nhật đơn hàng!' : '✅ Tạo đơn hàng thành công!', 'success');
+            showToast(isUpdate ? 'Đã cập nhật đơn hàng!' : 'Tạo đơn hàng thành công!', 'success');
             
             // Learn from this address (async, don't wait)
             console.log('🔍 Learning check:', {
@@ -210,7 +210,7 @@ async function submitNewOrder() {
                     .then(result => {
                         console.log('📚 Learning result:', result);
                         if (result.success) {
-                            console.log('✅ Address learned:', result.keywords_saved, 'keywords');
+                            console.log('Address learned:', result.keywords_saved, 'keywords');
                         } else {
                             console.error('❌ Learning failed:', result);
                         }

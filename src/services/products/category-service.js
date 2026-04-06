@@ -261,7 +261,7 @@ export async function createCategory(data, env, corsHeaders) {
             FROM categories
             WHERE id = ?
         `).bind(categoryId).first();
-        console.log('✅ [createCategory] inserted category', inserted);
+        console.log('[createCategory] inserted category', inserted);
 
         const { results: topOrders } = await env.DB.prepare(`
             SELECT id, name, display_order

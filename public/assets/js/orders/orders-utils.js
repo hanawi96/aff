@@ -271,11 +271,19 @@ function showOrdersMissingSizeListModal() {
     const rows = entries.map(({ order, missing }) => {
         const code = escapeHtml(String(order.order_id || order.id || ''));
         const cust = escapeHtml(String(order.customer_name || '—'));
-        const names = missing.map((m) => escapeHtml(m)).join(', ');
+        const productBadges = missing
+            .map(
+                (m) =>
+                    `<span class="inline-block max-w-full rounded-lg border border-amber-200/90 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-snug text-amber-950 shadow-sm break-words">${escapeHtml(m)}</span>`
+            )
+            .join('');
+        const productsCell = `<div class="py-0.5">
+            <div class="flex flex-wrap gap-2 max-h-52 overflow-y-auto overscroll-y-contain pr-0.5 -mr-0.5 [scrollbar-gutter:stable]">${productBadges}</div>
+        </div>`;
         return `<tr class="border-b border-gray-100 hover:bg-amber-50/50">
-            <td class="py-2.5 px-3 text-sm font-semibold text-amber-900 whitespace-nowrap">${code}</td>
-            <td class="py-2.5 px-3 text-sm text-gray-800">${cust}</td>
-            <td class="py-2.5 px-3 text-sm text-gray-600">${names}</td>
+            <td class="align-top py-3 px-3 text-sm font-semibold text-amber-900 whitespace-nowrap">${code}</td>
+            <td class="align-top py-3 px-3 text-sm text-gray-800">${cust}</td>
+            <td class="align-top py-3 px-3 text-sm text-gray-700 min-w-[12rem]">${productsCell}</td>
         </tr>`;
     }).join('');
 
@@ -293,8 +301,8 @@ function showOrdersMissingSizeListModal() {
                     <table class="min-w-full text-left">
                         <thead class="bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                             <tr>
-                                <th class="py-2.5 px-3">Mã đơn</th>
-                                <th class="py-2.5 px-3">Khách hàng</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">Mã đơn</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">Khách hàng</th>
                                 <th class="py-2.5 px-3">Sản phẩm thiếu size</th>
                             </tr>
                         </thead>

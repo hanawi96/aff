@@ -148,7 +148,7 @@ export async function updateOrderProducts(data, env, corsHeaders) {
             WHERE id = ?
         `).bind(data.products, data.orderId).run();
 
-        console.log('✅ Updated order_items and total_amount for order:', data.orderId);
+        console.log('Updated order_items and total_amount for order:', data.orderId);
 
         return jsonResponse({
             success: true,
