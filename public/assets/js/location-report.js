@@ -10,6 +10,11 @@ let currentDistrictName = null;
 let allLocationData = [];
 let previousPeriodData = [];
 let currentSort = { column: 'revenue', direction: 'desc' };
+/** Phân trang bảng địa lý: 20 dòng / trang */
+const LOCATION_TABLE_PAGE_SIZE = 20;
+let locationTablePage = 1;
+let locationTableTotalPages = 1;
+let locationTableFilterTimer = null;
 let topChart = null;
 let pieChart = null;
 
@@ -705,6 +710,7 @@ function calculateDateRanges(period) {
 
 // Render location data (table + charts + stats)
 function renderLocationData() {
+    locationTablePage = 1;
     updateSummaryStats();
     renderInsights();
     renderLocationTable();
@@ -788,25 +794,42 @@ function showChange(elementId, current, previous) {
     element.innerHTML = `<span class="${color}">${arrow}${Math.abs(growth).toFixed(1)}%</span>`;
 }
 
-// Render location table
-function renderLocationTable() {
-    const tbody = document.getElementById('locationTableBody');
-    
-    if (allLocationData.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="9" class="px-6 py-16 text-center">
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">
-                    <svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-9 12.75-9 12.75S1.5 17.625 1.5 10.5a9 9 0 1118 0z" /></svg>
-                </div>
-                <p class="text-base font-semibold text-slate-800">Chưa có dữ liệu</p>
-                <p class="mt-2 text-sm text-slate-500">Thử chọn khoảng thời gian khác</p>
-            </td></tr>
-        `;
+function updateLocationTablePaginationUI(totalItems, page, pageSize, totalPages) {
+    const wrap = document.getElementById('locationTablePagination');
+    const info = document.getElementById('locationTablePaginationInfo');
+    const badge = document.getElementById('locationTablePageBadge');
+    const prevBtn = document.getElementById('locationTablePrevBtn');
+    const nextBtn = document.getElementById('locationTableNextBtn');
+    if (!wrap || !info || !badge || !prevBtn || !nextBtn) return;
+
+    if (totalItems <= pageSize) {
+        wrap.classList.add('hidden');
         return;
     }
+    wrap.classList.remove('hidden');
+    const from = (page - 1) * pageSize + 1;
+    const to = Math.min(page * pageSize, totalItems);
+    info.textContent = `Hiển thị ${from}–${to} trong ${totalItems} khu vực`;
+    badge.textContent = `${page} / ${totalPages}`;
+    prevBtn.disabled = page <= 1;
+    nextBtn.disabled = page >= totalPages;
+}
 
-    // Sort data
-    let sortedData = [...allLocationData];
+function locationTablePrevPage() {
+    if (locationTablePage <= 1) return;
+    locationTablePage--;
+    renderLocationTable();
+}
+
+function locationTableNextPage() {
+    if (locationTablePage >= locationTableTotalPages) return;
+    locationTablePage++;
+    renderLocationTable();
+}
+
+/** Sắp xếp bản sao allLocationData theo currentSort (dùng chung cho bảng phân trang). */
+function getSortedLocationTableRows() {
+    const sortedData = [...allLocationData];
     if (currentSort.column && currentSort.direction) {
         sortedData.sort((a, b) => {
             let aVal, bVal;
@@ -825,11 +848,68 @@ function renderLocationTable() {
             return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
         });
     }
+    return sortedData;
+}
 
-    const totalRevenue = allLocationData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
+// Render location table
+function renderLocationTable() {
+    const tbody = document.getElementById('locationTableBody');
+    const pag = document.getElementById('locationTablePagination');
 
-    tbody.innerHTML = sortedData.map((location, index) => {
-        const rank = index + 1;
+    if (allLocationData.length === 0) {
+        if (pag) pag.classList.add('hidden');
+        tbody.innerHTML = `
+            <tr><td colspan="9" class="px-6 py-16 text-center">
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">
+                    <svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-9 12.75-9 12.75S1.5 17.625 1.5 10.5a9 9 0 1118 0z" /></svg>
+                </div>
+                <p class="text-base font-semibold text-slate-800">Chưa có dữ liệu</p>
+                <p class="mt-2 text-sm text-slate-500">Thử chọn khoảng thời gian khác</p>
+            </td></tr>
+        `;
+        return;
+    }
+
+    const sortedData = getSortedLocationTableRows();
+    const rankById = new Map(sortedData.map((loc, i) => [String(loc.id), i + 1]));
+    const totalRevenue = sortedData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
+
+    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const filtered = q
+        ? sortedData.filter((loc) => {
+              const blob = [
+                  loc.name,
+                  loc.orders,
+                  loc.revenue,
+                  loc.customers,
+                  loc.avgValue,
+                  loc.growth
+              ]
+                  .join(' ')
+                  .toLowerCase();
+              return blob.includes(q);
+          })
+        : sortedData;
+
+    if (filtered.length === 0) {
+        if (pag) pag.classList.add('hidden');
+        tbody.innerHTML = `
+            <tr><td colspan="9" class="px-6 py-12 text-center text-sm text-slate-600">
+                Không có khu vực khớp “<span class="font-semibold text-slate-800">${escapeHtml(q)}</span>”. Thử từ khóa khác.
+            </td></tr>
+        `;
+        return;
+    }
+
+    locationTableTotalPages = Math.max(1, Math.ceil(filtered.length / LOCATION_TABLE_PAGE_SIZE));
+    if (locationTablePage > locationTableTotalPages) locationTablePage = locationTableTotalPages;
+    if (locationTablePage < 1) locationTablePage = 1;
+
+    const start = (locationTablePage - 1) * LOCATION_TABLE_PAGE_SIZE;
+    const pageRows = filtered.slice(start, start + LOCATION_TABLE_PAGE_SIZE);
+
+    tbody.innerHTML = pageRows.map((location, i) => {
+        const rank = rankById.get(String(location.id)) ?? start + i + 1;
         const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
         const revenuePercent = totalRevenue > 0 ? (location.revenue / totalRevenue * 100) : 0;
         const growth = location.growth || 0;
@@ -898,6 +978,13 @@ function renderLocationTable() {
             </tr>
         `;
     }).join('');
+
+    updateLocationTablePaginationUI(
+        filtered.length,
+        locationTablePage,
+        LOCATION_TABLE_PAGE_SIZE,
+        locationTableTotalPages
+    );
 }
 
 // Render charts
@@ -1074,18 +1161,18 @@ function toggleSort(column) {
         }
     }
 
+    locationTablePage = 1;
     renderLocationTable();
 }
 
-// Filter table by search
+// Filter table by search (phân trang + debounce nhẹ)
 function filterTable() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('#locationTableBody tr');
-    
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    });
+    clearTimeout(locationTableFilterTimer);
+    locationTableFilterTimer = setTimeout(() => {
+        locationTableFilterTimer = null;
+        locationTablePage = 1;
+        renderLocationTable();
+    }, 100);
 }
 
 // ============================================
@@ -1361,6 +1448,7 @@ function clearCustomDateLocation() {
 
 // Utility functions
 function showSkeletonLoading() {
+    document.getElementById('locationTablePagination')?.classList.add('hidden');
     const tbody = document.getElementById('locationTableBody');
     tbody.innerHTML = `
         <tr><td colspan="9" class="px-6 py-14 text-center">

@@ -1,11 +1,29 @@
 // Orders Pagination Functions
 // Extracted from orders.js for better code organization
 // NOTE: All functions remain at global scope for backward compatibility
-// DEPENDENCIES: Uses global variables from orders.js (currentPage, itemsPerPage, filteredOrdersData)
+// DEPENDENCIES: Uses global variables from orders.js (currentPage, itemsPerPage, filteredOrdersData, ORDERS_PAGE_SIZE_OPTIONS)
 
 // ============================================
 // PAGINATION RENDERING
 // ============================================
+
+/** Fallback nếu orders.js chưa gán ORDERS_PAGE_SIZE_OPTIONS (thứ tự script) */
+function getOrdersPageSizeOptions() {
+    return typeof ORDERS_PAGE_SIZE_OPTIONS !== 'undefined' && ORDERS_PAGE_SIZE_OPTIONS.length
+        ? ORDERS_PAGE_SIZE_OPTIONS
+        : [10, 15, 20, 30, 50, 100];
+}
+
+function buildOrdersPageSizeSelectHtml() {
+    const opts = getOrdersPageSizeOptions();
+    const optionsHtml = opts
+        .map((o) => `<option value="${o}"${o === itemsPerPage ? ' selected' : ''}>${o}</option>`)
+        .join('');
+    return `<select title="Số đơn mỗi trang" aria-label="Số đơn hàng mỗi trang" onchange="setOrdersItemsPerPage(this.value)"
+        class="shrink-0 rounded-md border border-gray-200 bg-white py-1 pl-2 pr-7 text-xs font-medium text-gray-700 shadow-sm focus:border-admin-primary focus:outline-none focus:ring-1 focus:ring-admin-primary/25 sm:text-sm">
+        ${optionsHtml}
+    </select>`;
+}
 
 /**
  * Render pagination controls
@@ -15,22 +33,30 @@ function renderPagination(totalPages) {
     const paginationContainer = document.getElementById('paginationContainer');
     if (!paginationContainer) return;
 
-    if (totalPages <= 1) {
+    if (!filteredOrdersData.length) {
         paginationContainer.innerHTML = '';
         return;
     }
 
-    let html = '<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">';
-
-    // Info text
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, filteredOrdersData.length);
-    html += `<div class="text-sm text-gray-700">
-        Hiển thị <span class="font-medium">${startItem}</span> đến <span class="font-medium">${endItem}</span> trong tổng số <span class="font-medium">${filteredOrdersData.length}</span> đơn hàng
-    </div>`;
+    const total = filteredOrdersData.length;
+    const infoHtml = `<span class="tabular-nums text-sm text-gray-500" title="Dải đang xem / tổng đơn (sau lọc)"><span class="font-semibold text-gray-800">${startItem}–${endItem}</span><span class="mx-0.5 text-gray-300">/</span>${total}</span>`;
+    const pageSizeHtml = buildOrdersPageSizeSelectHtml();
+
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/50 px-4 py-2.5">
+            <div class="flex flex-wrap items-center gap-2">${infoHtml}<span class="hidden text-gray-300 sm:inline" aria-hidden="true">|</span>${pageSizeHtml}</div>
+        </div>`;
+        return;
+    }
+
+    let html = `<div class="flex flex-col gap-2 border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">`;
+
+    html += `<div class="flex flex-wrap items-center gap-2">${infoHtml}<span class="hidden text-gray-300 sm:inline" aria-hidden="true">|</span>${pageSizeHtml}</div>`;
 
     // Pagination buttons
-    html += '<div class="flex items-center gap-2">';
+    html += '<div class="flex flex-wrap items-center gap-1.5">';
 
     // Previous button
     html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} 

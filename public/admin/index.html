@@ -675,8 +675,9 @@
                 </div>
 
                 <!-- Table Content -->
-                <div id="tableContent" class="hidden">
-                    <div class="overflow-x-auto">
+                <div id="tableContent" class="hidden min-w-0">
+                    <!-- overflow-y-hidden: tránh overflow-x-auto kéo theo overflow-y:auto (2 scrollbar dọc: bảng + trình duyệt) -->
+                    <div class="min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain">
                         <table class="w-full">
                             <thead class="bg-gray-50 border-b border-gray-200">
                                 <tr>
@@ -813,7 +814,7 @@
     <script defer src="../assets/js/orders/orders-smart-paste.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-constants.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-ui-states.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-pagination.js?v=1"></script>
+    <script defer src="../assets/js/orders/orders-pagination.js?v=3"></script>
     <script defer src="../assets/js/orders/orders-sorting.js?v=3"></script>
     <script defer src="../assets/js/orders/orders-stats.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-data-loader.js?v=7"></script>
@@ -844,7 +845,7 @@
     <script defer src="../assets/js/orders/orders-add-modal-helpers.js?v=20"></script>
     <script defer src="../assets/js/orders/orders-product-selection-modal.js?v=14"></script>
     <script defer src="../assets/js/orders/orders-submit.js?v=9"></script>
-    <script defer src="../assets/js/orders.js?v=30"></script>
+    <script defer src="../assets/js/orders.js?v=31"></script>
     <script defer src="../assets/js/auth-check.js"></script>
 </body>
 

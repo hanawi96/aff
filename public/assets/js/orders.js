@@ -7,7 +7,37 @@ let allOrdersData = [];
 let filteredOrdersData = [];
 let selectedOrderIds = new Set();
 let currentPage = 1;
-const itemsPerPage = 15;
+
+/** Lưu preference số đơn/trang (admin đơn hàng) */
+const ORDERS_PAGE_SIZE_STORAGE_KEY = 'admin_orders_items_per_page';
+/** Các mức hợp lệ — đồng bộ với orders-pagination.js */
+const ORDERS_PAGE_SIZE_OPTIONS = Object.freeze([10, 15, 20, 30, 50, 100]);
+
+function readSavedOrdersPageSize() {
+    try {
+        const n = parseInt(localStorage.getItem(ORDERS_PAGE_SIZE_STORAGE_KEY), 10);
+        if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) return n;
+    } catch (e) { /* ignore */ }
+    return 15;
+}
+
+let itemsPerPage = readSavedOrdersPageSize();
+
+/**
+ * Đổi số đơn hiển thị mỗi trang (gọi từ select phân trang).
+ * @param {string|number} value
+ */
+function setOrdersItemsPerPage(value) {
+    const v = parseInt(value, 10);
+    if (!ORDERS_PAGE_SIZE_OPTIONS.includes(v) || v === itemsPerPage) return;
+    itemsPerPage = v;
+    try {
+        localStorage.setItem(ORDERS_PAGE_SIZE_STORAGE_KEY, String(v));
+    } catch (e) { /* ignore quota / private mode */ }
+    const totalPages = Math.max(1, Math.ceil(filteredOrdersData.length / itemsPerPage) || 1);
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+    renderOrdersTable();
+}
 let dateSortOrder = 'none';
 let amountSortOrder = 'none';
 let packagingConfig = [];
