@@ -1850,7 +1850,8 @@ function sheetQty(d){
   const priceEl=document.getElementById('sheetPrice');
   if(priceEl){
     const unitPrice=parseFloat(priceEl.dataset.unitPrice)||0;
-    priceEl.value=Math.round(unitPrice*newQty);
+    const total=Math.round(unitPrice*newQty);
+    priceEl.value=total?total.toLocaleString('vi-VN'):'';
   }
 }
 
@@ -1980,9 +1981,9 @@ function openEditCartItem(i){
       <!-- Giá tiền -->
       <div>
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
-        <input id="sheetPrice" type="number" value="${(p.price||0)*(p.quantity||1)}" min="0" step="1000"
+        <input id="sheetPrice" type="text" inputmode="numeric" value="${((p.price||0)*(p.quantity||1)).toLocaleString('vi-VN')}" min="0"
           data-unit-price="${p.price||0}"
-          oninput="this.dataset.unitPrice=Math.round((parseFloat(this.value)||0)/Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1))"
+          oninput="(function(el){var raw=el.value.replace(/\./g,'').replace(/[^0-9]/g,'');var num=parseInt(raw)||0;var pos=el.selectionStart;el.value=num?num.toLocaleString('vi-VN'):'';el.dataset.unitPrice=Math.round(num/Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1))})(this)"
           class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
         <p class="text-xs text-gray-400 mt-1">Đơn giá: ${fmt(p.price)}</p>
       </div>
@@ -2032,7 +2033,7 @@ function openEditCartItem(i){
 function confirmEditCartItem(i){
   const p=createProducts[i];if(!p)return;
   const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
-  const totalPrice=Math.max(0,parseInt(document.getElementById('sheetPrice')?.value)||0);
+  const totalPrice=Math.max(0,parseInt((document.getElementById('sheetPrice')?.value||'').replace(/\./g,'').replace(/[^0-9]/g,''))||0);
   const price=qty>0?Math.round(totalPrice/qty):totalPrice;
   const sizeEl=document.getElementById('sheetSize');
   const sizeNull=sizeEl?.dataset.sizeNull==='1';
