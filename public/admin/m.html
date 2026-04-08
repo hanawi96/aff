@@ -360,6 +360,7 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 
 <script src="../assets/js/config.js"></script>
 <script defer src="../assets/js/auth-check.js"></script>
+<script defer src="../assets/js/orders/orders-smart-paste.js"></script>
 <script>
 // ─── State ───
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
@@ -401,13 +402,29 @@ const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 tex
 const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
 const ago=ts=>{if(!ts)return'';const sec=ts>1e10?ts/1000:ts,d=(Date.now()/1000-sec),m=d/60,h=m/60,dd=h/24;if(dd>=1)return Math.floor(dd)+'ngày';if(h>=1)return Math.floor(h)+'h';if(m>=1)return Math.floor(m)+'ph';return'vừa xong'};
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
+Object.defineProperty(window,'allOrdersData',{get:function(){return allOrders},configurable:true});
 
 (function prefetchAddressShellAndTree(){
   import('../shop/assets/js/components/hierarchical-address-selector.js').then(function(m){
     if(m.HIERARCHICAL_ADDRESS_SHELL_HTML)window.HIERARCHICAL_ADDRESS_SHELL_HTML=m.HIERARCHICAL_ADDRESS_SHELL_HTML;
   }).catch(function(){});
   import('../shop/assets/js/shared/services/address.service.js').then(function(x){
-    return x.addressService.loadAddressData();
+    return x.addressService.loadAddressData().then(function(td){
+      if(!td||window.addressSelector)return;
+      var data=[];
+      Object.entries(td).forEach(function(e){
+        var pc=e[0],pv=e[1],po={Id:pc,Name:pv.name_with_type,Districts:[]};
+        if(pv['quan-huyen'])Object.entries(pv['quan-huyen']).forEach(function(de){
+          var dc=de[0],dv=de[1],dobj={Id:dc,Name:dv.name_with_type,Wards:[]};
+          if(dv['xa-phuong'])Object.entries(dv['xa-phuong']).forEach(function(we){
+            dobj.Wards.push({Id:we[0],Name:we[1].name_with_type,Level:we[1].type});
+          });
+          po.Districts.push(dobj);
+        });
+        data.push(po);
+      });
+      window.addressSelector={data:data,loaded:true};
+    });
   }).catch(function(){});
 })();
 
@@ -1168,6 +1185,7 @@ function showCreateOrder(){
   injectMOrderAddressShell();
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
+  setTimeout(function(){var sp=document.getElementById('smartPasteInput');if(sp)sp.focus();},300);
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
@@ -1510,6 +1528,25 @@ function buildCreateForm(isEdit=false){
     <button id="submitBtn" onclick="submitOrder()" class="h-9 px-4 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white text-sm font-semibold rounded-xl flex items-center gap-1.5">${isEdit?'Lưu lại':'Tạo đơn'}</button>
   </div>
   <div class="px-4 pt-4 pb-10 space-y-4">
+
+    <!-- Smart Paste -->
+    <div id="smartPasteBlock" class="${isEdit?'hidden ':''}bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/80 p-3.5 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/></svg>
+          <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Dán nhanh</span>
+        </div>
+        <span class="text-[10px] text-indigo-400">Tên, SĐT, địa chỉ</span>
+      </div>
+      <textarea id="smartPasteInput" rows="2" placeholder="Dán thông tin khách hàng vào đây...&#10;VD: Nguyễn Văn A 0912345678 123 Nguyễn Trãi Q5 HCM" class="w-full px-3 py-2.5 bg-white/90 border border-indigo-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white resize-none leading-relaxed" onpaste="setTimeout(function(){handleMobileSmartPaste()},50)"></textarea>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="handleMobileSmartPaste()" id="smartPasteBtn" class="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl active:scale-95 transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+          Phân tích
+        </button>
+        <div id="smartPasteStatus" class="hidden text-xs flex-1"></div>
+      </div>
+    </div>
 
     <!-- Khách hàng -->
     <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
@@ -2253,6 +2290,66 @@ async function submitOrder(){
       }
     }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':'Lỗi tạo đơn'));
   }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.innerHTML=isEdit?'Lưu lại':'Tạo đơn'}
+}
+
+// ─── Smart Paste (mobile) ───
+let _smartParsing=false;
+async function handleMobileSmartPaste(){
+  const ta=document.getElementById('smartPasteInput');
+  const text=(ta?.value||'').trim();
+  if(!text||_smartParsing)return;
+  if(typeof smartParseCustomerInfo!=='function'){toast('Module phân tích chưa sẵn sàng, thử lại');return;}
+
+  _smartParsing=true;
+  const st=document.getElementById('smartPasteStatus');
+  st.className='text-xs text-indigo-600 flex items-center gap-1.5';
+  st.innerHTML='<svg class="animate-spin w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Đang phân tích...';
+  st.classList.remove('hidden');
+
+  await new Promise(function(r){setTimeout(r,20)});
+
+  try{
+    var result=await smartParseCustomerInfo(text);
+  }catch(e){
+    st.className='text-xs text-red-500';
+    st.textContent='Lỗi phân tích: '+e.message;
+    _smartParsing=false;return;
+  }
+
+  if(!result||!result.success){
+    st.className='text-xs text-red-500';
+    st.textContent=result?.error||'Không thể phân tích';
+    _smartParsing=false;return;
+  }
+
+  var d=result.data;
+  if(d.name){var el=document.getElementById('cName');if(el){el.value=d.name;clearFieldError('cName');}}
+  if(d.phone){var el2=document.getElementById('cPhone');if(el2){el2.value=d.phone;clearFieldError('cPhone');}}
+
+  if(d.address&&d.address.province&&mCreateAddressSelector){
+    try{
+      mCreateAddressSelector.hydrateFromCodes({
+        provinceCode:d.address.province.Id||'',
+        districtCode:d.address.district?d.address.district.Id:'',
+        wardCode:d.address.ward?d.address.ward.Id:'',
+        street:d.address.street||''
+      });
+      clearFieldError('mAddressFormBlock');
+    }catch(he){console.warn('hydrateFromCodes error:',he);}
+  }
+
+  var parts=[];
+  if(d.name)parts.push('Tên');
+  if(d.phone)parts.push('SĐT');
+  if(d.address&&d.address.province)parts.push('Địa chỉ');
+  var conf=result.confidence;
+  var confColor=conf==='high'?'text-emerald-600':conf==='medium'?'text-amber-600':'text-red-500';
+  var confIcon=conf==='high'?'<svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>':'<svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>';
+
+  st.className='text-xs '+confColor+' flex items-center gap-1.5';
+  st.innerHTML=confIcon+(parts.length?'Đã điền: '+parts.join(', '):'Không nhận diện được thông tin');
+
+  _smartParsing=false;
 }
 
 // ─── CTV ───
