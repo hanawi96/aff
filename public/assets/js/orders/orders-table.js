@@ -104,6 +104,11 @@ function renderOrdersTable() {
     // Render pagination
     renderPagination(totalPages);
 
+    // Sync header "select all" checkbox with current page state
+    const allCbs = tbody.querySelectorAll('.order-checkbox');
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    if (selectAllCb) selectAllCb.checked = allCbs.length > 0 && Array.from(allCbs).every(cb => cb.checked);
+
     showTable();
 }
 
@@ -137,6 +142,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
             <input type="checkbox" 
                    class="order-checkbox w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer" 
                    data-order-id="${order.id}"
+                   ${selectedOrderIds.has(Number(order.id)) ? 'checked' : ''}
                    onchange="handleOrderCheckbox(${order.id}, this.checked)">
             <span class="text-sm text-gray-500">${index}</span>
         </div>
