@@ -1981,9 +1981,10 @@ function openEditCartItem(i){
       <!-- Giá tiền -->
       <div>
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
-        <input id="sheetPrice" type="text" inputmode="numeric" value="${((p.price||0)*(p.quantity||1)).toLocaleString('vi-VN')}" min="0"
+        <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
+          value="${((p.price||0)*(p.quantity||1)).toLocaleString('vi-VN')}"
           data-unit-price="${p.price||0}"
-          oninput="(function(el){var raw=el.value.replace(/\./g,'').replace(/[^0-9]/g,'');var num=parseInt(raw)||0;var pos=el.selectionStart;el.value=num?num.toLocaleString('vi-VN'):'';el.dataset.unitPrice=Math.round(num/Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1))})(this)"
+          oninput="_fmtSheetPrice(this)"
           class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
         <p class="text-xs text-gray-400 mt-1">Đơn giá: ${fmt(p.price)}</p>
       </div>
@@ -2041,13 +2042,26 @@ function confirmEditCartItem(i){
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
   createProducts[i]={...p,quantity:qty,price,size,notes};
   closeProdSheet();renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();
-  autoUpdateFreeshipCheckbox();
   toast('Đã cập nhật sản phẩm');
+}
+
+// ─── Sheet Price Formatter (edit cart item) ───
+function _fmtSheetPrice(el){
+  const raw=el.value.replace(/\D/g,'');
+  const num=parseInt(raw,10)||0;
+  const oldLen=el.value.length;
+  const pos=el.selectionStart;
+  el.value=num?num.toLocaleString('vi-VN'):'';
+  const diff=el.value.length-oldLen;
+  requestAnimationFrame(()=>{
+    try{const np=Math.max(0,pos+diff);el.setSelectionRange(np,np);}catch(_){}
+  });
+  const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  el.dataset.unitPrice=num>0?Math.round(num/qty):0;
 }
 
 // ─── Custom Product ───
 function _fmtPriceInput(el){
-  // Remove non-digits, format with dots
   let v=el.value.replace(/\D/g,'');
   el.value=v?parseInt(v,10).toLocaleString('vi-VN'):'';
   _calcCustomProfit();
