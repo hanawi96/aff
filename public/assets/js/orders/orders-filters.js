@@ -234,9 +234,9 @@ function filterOrdersData(preservePage = false) {
         const normalizedStatus = statusMap[orderStatus] || orderStatus;
         const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
 
-        // Payment method filter
-        const orderPayment = (order.payment_method || 'cod').toLowerCase().trim();
-        const matchesPayment = paymentFilter === 'all' || orderPayment === paymentFilter;
+        // Payment method filter (bank_transfer trong DB vẫn khớp bộ lọc "bank")
+        const orderPaymentKey = orderPaymentApiKey(order.payment_method);
+        const matchesPayment = paymentFilter === 'all' || orderPaymentKey === paymentFilter;
 
         // CTV filter
         const orderCTV = (order.referral_code || '').toLowerCase().trim();

@@ -1430,7 +1430,7 @@ async function saveAmount(orderId, orderCode, referralCode) {
 // ============================================
 
 function editPaymentMethod(orderId, orderCode, currentMethod) {
-    const isCOD = currentMethod !== 'bank';
+    const isCOD = !isOrderBankPayment(currentMethod);
 
     const modal = document.createElement('div');
     modal.id = 'editPaymentMethodModal';

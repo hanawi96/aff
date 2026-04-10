@@ -307,7 +307,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const customerPhone = duplicateData?.customer_phone || '';
     const address = duplicateData?.address || '';
     const referralCode = duplicateData?.referral_code != null ? duplicateData.referral_code : '';
-    const paymentMethod = duplicateData?.payment_method || 'cod';
+    const paymentMethod = orderPaymentApiKey(duplicateData?.payment_method || 'cod');
     const orderNotesSeed = duplicateData?.notes || '';
     const orderStatusSeed = duplicateData?.status || 'pending';
 

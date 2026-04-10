@@ -43,7 +43,7 @@ async function submitNewOrder() {
     }
 
     // Collect form data
-    const paymentMethod = document.getElementById('newOrderPaymentMethod')?.value || 'cod';
+    const paymentMethod = orderPaymentApiKey(document.getElementById('newOrderPaymentMethod')?.value || 'cod');
     const status = document.getElementById('newOrderStatus')?.value || 'pending';
     const referralCode = document.getElementById('newOrderReferralCode')?.value.trim() || '';
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0;

@@ -57,6 +57,31 @@ function escapeHtml(text) {
 }
 
 // ============================================
+// PAYMENT METHOD (admin desktop ↔ mobile / shop)
+// DB có thể là "bank" (updatePaymentMethod) hoặc "bank_transfer" (form mobile, updateOrderFull).
+// Khớp logic normalize trên public/admin/m.html — một nơi dùng chung để hiển thị & lọc.
+// ============================================
+
+function normalizeOrderPaymentMethodStored(v) {
+    if (v == null || v === '') return 'cod';
+    if (typeof v === 'number') return v === 1 ? 'bank_transfer' : 'cod';
+    const s = String(v).trim().toLowerCase().replace(/\s+/g, '_');
+    if (s === 'bank_transfer' || s === 'bank' || s === 'transfer' || s === 'chuyen_khoan' || s === 'chuyển_khoản' || s === 'ck' || s === 'da_ck' || s === 'đã_ck') {
+        return 'bank_transfer';
+    }
+    return 'cod';
+}
+
+function isOrderBankPayment(v) {
+    return normalizeOrderPaymentMethodStored(v) === 'bank_transfer';
+}
+
+/** 'bank' | 'cod' — khớp API updatePaymentMethod và modal sửa trên desktop */
+function orderPaymentApiKey(v) {
+    return isOrderBankPayment(v) ? 'bank' : 'cod';
+}
+
+// ============================================
 // CURRENCY FORMATTING
 // ============================================
 

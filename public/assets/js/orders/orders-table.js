@@ -291,7 +291,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     // Giá trị (Total Amount - Doanh thu)
     const tdAmount = document.createElement('td');
     tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center';
-    const paymentMethod = (order.payment_method || 'cod').toLowerCase().trim();
+    const paymentApiKey = orderPaymentApiKey(order.payment_method);
     
     // Calculate total amount (doanh thu)
     const shippingFee = order.shipping_fee || 0;
@@ -303,8 +303,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         totalAmount = (order.product_total || 0) + shippingFee - discountAmount;
     }
     
-    // Determine color based on payment method
-    const isBankTransfer = paymentMethod === 'bank';
+    // Determine color based on payment method (bank và bank_transfer đều là CK)
+    const isBankTransfer = paymentApiKey === 'bank';
     
     tdAmount.innerHTML = `
         <div class="flex flex-col gap-1.5 items-center">
@@ -317,7 +317,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
                 </button>
             </div>
             <div class="group cursor-pointer inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${isBankTransfer ? 'text-green-600 font-medium hover:bg-green-50' : 'text-gray-500 hover:bg-gray-100'}"
-                 onclick="editPaymentMethod(${order.id}, '${escapeHtml(order.order_id)}', '${paymentMethod}')"
+                 onclick="editPaymentMethod(${order.id}, '${escapeHtml(order.order_id)}', '${paymentApiKey}')"
                  title="Đổi hình thức thanh toán">
                 <span class="text-xs">${isBankTransfer ? 'Đã CK' : 'COD'}</span>
                 <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">

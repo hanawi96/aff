@@ -116,7 +116,7 @@ function updateOrderSummary() {
     const codAmountEl = document.getElementById('orderCODAmount');
     const codNoteEl = document.getElementById('orderCODNote');
     
-    if (paymentMethod === 'bank') {
+    if (isOrderBankPayment(paymentMethod)) {
         // Đã chuyển khoản = COD 0đ
         codAmountEl.textContent = '0đ';
         codAmountEl.className = 'text-xl font-bold text-green-600';

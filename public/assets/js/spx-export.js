@@ -218,8 +218,7 @@ function createSPXExcelWorkbook(orders) {
         // Determine COD amount based on payment method
         // - If bank transfer: COD = 0 (already paid)
         // - If COD: COD = total_amount (collect on delivery)
-        const paymentMethod = order.payment_method || 'cod';
-        const isBankTransfer = paymentMethod === 'bank';
+        const isBankTransfer = isOrderBankPayment(order.payment_method);
         const codAmount = isBankTransfer ? 0 : (order.total_amount || 0);
         const collectCOD = isBankTransfer ? 'N' : 'Y';
         
