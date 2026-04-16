@@ -207,8 +207,8 @@ function createSPXExcelWorkbook(orders) {
             const productLines = products.map(product =>
                 formatSPXProductBracketLine(product.name, product.sizeOrWeight, product.quantity, product.notes)
             );
-            productText = productLines.join(' ----- ');
-            
+            productText = '[VÒNG DÂU TẰM] ' + productLines.join(' ----- ');
+
             // Add order notes if exists
             if (order.notes && order.notes.trim()) {
                 productText += ` ----- Lưu ý tổng: ${order.notes.trim()}`;

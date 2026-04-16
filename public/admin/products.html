@@ -263,18 +263,18 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center space-x-3">
-                        <button onclick="loadProducts()"
-                            class="p-2 text-gray-600 hover:text-admin-primary hover:bg-gray-100 rounded-lg transition-colors">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <div class="flex items-center gap-3">
+                        <a href="index.html#add-order"
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition-all hover:brightness-105 hover:shadow-lg shrink-0">
+                            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                        </button>
+                            Thêm đơn hàng
+                        </a>
                         <button onclick="showAddProductModal()"
-                            class="px-4 py-2 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-admin-primary to-admin-secondary px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition-all hover:brightness-105 hover:shadow-lg shrink-0">
+                            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             Thêm sản phẩm
                         </button>
@@ -441,130 +441,153 @@
                     </div>
 
                     <!-- Quick Sort Filters (Collapsible) -->
-                    <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <!-- Price Sort Panel -->
-                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div id="advancedFilters" class="hidden border-t border-gray-100 pt-4">
+                        <!-- Header row -->
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Sắp xếp &amp; Lọc nhanh</span>
+                            <button onclick="resetSort()"
+                                class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-500 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Đặt lại
+                            </button>
+                        </div>
+
+                        <!-- Sort grid: 3 columns -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+
+                            <!-- Giá bán -->
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50/70 transition-colors">
+                                <div class="flex items-center gap-2 w-24 flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-gray-900">Giá bán</h3>
+                                    <span class="text-sm font-semibold text-gray-700">Giá bán</span>
                                 </div>
-                                <div class="space-y-2">
-                                    <button onclick="sortByPrice('desc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-green-100 border border-green-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Cao → Thấp</span>
-                                        <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                <div class="flex gap-1.5 flex-1">
+                                    <button data-sort-field="price" data-sort-dir="desc" onclick="sortByPrice('desc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        Cao → Thấp
                                     </button>
-                                    <button onclick="sortByPrice('asc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-green-100 border border-green-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Thấp → Cao</span>
-                                        <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                        </svg>
+                                    <button data-sort-field="price" data-sort-dir="asc" onclick="sortByPrice('asc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                        Thấp → Cao
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Profit Margin Sort Panel -->
-                            <div class="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <!-- Tỷ suất -->
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50/70 transition-colors">
+                                <div class="flex items-center gap-2 w-24 flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-gray-900">Tỷ suất (%)</h3>
+                                    <span class="text-sm font-semibold text-gray-700">Tỷ suất</span>
                                 </div>
-                                <div class="space-y-2">
-                                    <button onclick="sortByMargin('desc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Cao → Thấp</span>
-                                        <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                <div class="flex gap-1.5 flex-1">
+                                    <button data-sort-field="margin" data-sort-dir="desc" onclick="sortByMargin('desc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        Cao → Thấp
                                     </button>
-                                    <button onclick="sortByMargin('asc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Thấp → Cao</span>
-                                        <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                        </svg>
+                                    <button data-sort-field="margin" data-sort-dir="asc" onclick="sortByMargin('asc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                        Thấp → Cao
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Net Profit Sort Panel -->
-                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <!-- Lãi ròng -->
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50/70 transition-colors">
+                                <div class="flex items-center gap-2 w-24 flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-gray-900">Lãi ròng</h3>
+                                    <span class="text-sm font-semibold text-gray-700">Lãi ròng</span>
                                 </div>
-                                <div class="space-y-2">
-                                    <button onclick="sortByProfit('desc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-blue-100 border border-blue-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Cao → Thấp</span>
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                <div class="flex gap-1.5 flex-1">
+                                    <button data-sort-field="profit" data-sort-dir="desc" onclick="sortByProfit('desc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        Cao → Thấp
                                     </button>
-                                    <button onclick="sortByProfit('asc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-blue-100 border border-blue-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Thấp → Cao</span>
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                        </svg>
+                                    <button data-sort-field="profit" data-sort-dir="asc" onclick="sortByProfit('asc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                        Thấp → Cao
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Best Selling Sort Panel (NEW) -->
-                            <div class="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-4">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <!-- Bán chạy -->
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50/70 transition-colors">
+                                <div class="flex items-center gap-2 w-24 flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                         </svg>
                                     </div>
-                                    <h3 class="font-bold text-gray-900">Bán chạy</h3>
+                                    <span class="text-sm font-semibold text-gray-700">Bán chạy</span>
                                 </div>
-                                <div class="space-y-2">
-                                    <button onclick="sortByPurchases('desc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-orange-100 border border-orange-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Nhiều → Ít</span>
-                                        <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                <div class="flex gap-1.5 flex-1">
+                                    <button data-sort-field="purchases" data-sort-dir="desc" onclick="sortByPurchases('desc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        Nhiều → Ít
                                     </button>
-                                    <button onclick="sortByPurchases('asc')" 
-                                        class="w-full px-4 py-2.5 bg-white hover:bg-orange-100 border border-orange-300 rounded-lg text-sm font-medium text-gray-700 transition-all flex items-center justify-between group">
-                                        <span>Ít → Nhiều</span>
-                                        <svg class="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                        </svg>
+                                    <button data-sort-field="purchases" data-sort-dir="asc" onclick="sortByPurchases('asc')"
+                                        class="sort-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                        Ít → Nhiều
                                     </button>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Reset Button -->
-                        <div class="mt-4 flex justify-center">
-                            <button onclick="resetSort()" 
-                                class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Đặt lại sắp xếp
-                            </button>
+                            <!-- Tồn kho — spans 2 cols to fit extra filter buttons -->
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50/70 transition-colors lg:col-span-2">
+                                <div class="flex items-center gap-2 w-24 flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-700">Tồn kho</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-1.5 flex-1">
+                                    <button data-sort-field="stock" data-sort-dir="desc" onclick="sortByStock('desc')"
+                                        class="sort-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        Nhiều → Ít
+                                    </button>
+                                    <button data-sort-field="stock" data-sort-dir="asc" onclick="sortByStock('asc')"
+                                        class="sort-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all">
+                                        <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                        Ít → Nhiều
+                                    </button>
+                                    <div class="w-px h-4 bg-gray-200 mx-0.5 self-center"></div>
+                                    <button data-stock-filter="out_of_stock" onclick="filterByStock('out_of_stock')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                                        Hết hàng
+                                    </button>
+                                    <button data-stock-filter="low_stock" onclick="filterByStock('low_stock')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 transition-all">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                                        Sắp hết ≤10
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>

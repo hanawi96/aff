@@ -70,6 +70,7 @@ let selectedCategory = null;
 let selectedProducts = [];
 let currentEditingOrderId = null;
 let currentEditingOrderCode = null;
+let currentEditingProductIndex = null; // null = add mode, number = replace mode
 
 // Load packaging config from database
 

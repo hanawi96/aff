@@ -323,6 +323,15 @@
 
                     <!-- Actions -->
                     <div class="flex items-center space-x-3">
+                        <!-- Quick Stats Button -->
+                        <button onclick="showQuickStatsModal()"
+                            class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 transition-all font-medium flex items-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Thống kê nhanh
+                        </button>
+
                         <!-- Export History Button -->
                         <button onclick="showExportHistoryModal()"
                             class="relative px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2">
@@ -800,6 +809,81 @@
         </div>
     </div>
 
+    <!-- Quick Stats Modal -->
+    <div id="quickStatsModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4"
+         style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px)"
+         onclick="if(event.target===this)closeQuickStatsModal()">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-bold text-slate-800">Thống kê nhanh</span>
+                </div>
+                <button onclick="closeQuickStatsModal()"
+                        class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Period Tabs -->
+            <div class="px-4 pt-3.5">
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button id="qsTab_today"     onclick="switchQuickPeriod('today')"
+                        class="flex-1 py-1.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition-all">Hôm nay</button>
+                    <button id="qsTab_yesterday" onclick="switchQuickPeriod('yesterday')"
+                        class="flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-all">Hôm qua</button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div id="qsGrid" class="px-4 pt-3 pb-1 grid grid-cols-2 gap-2">
+                <!-- Doanh thu - full width, nổi bật -->
+                <div class="col-span-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Doanh thu</p>
+                    <p id="qsRevenue" class="text-xl font-bold text-slate-800">—</p>
+                </div>
+                <!-- Chi phí -->
+                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Chi phí</p>
+                    <p id="qsCost" class="text-base font-bold text-slate-700">—</p>
+                </div>
+                <!-- Lợi nhuận — màu ngữ nghĩa: xanh/đỏ theo giá trị -->
+                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Lợi nhuận</p>
+                    <p id="qsProfit" class="text-base font-bold text-slate-700">—</p>
+                </div>
+                <!-- Tỷ suất — màu ngữ nghĩa theo ngưỡng -->
+                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Tỷ suất LN</p>
+                    <p id="qsMargin" class="text-base font-bold text-slate-700">—</p>
+                </div>
+                <!-- Đơn hàng -->
+                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Đơn hàng</p>
+                    <p id="qsOrders" class="text-base font-bold text-slate-800">—</p>
+                </div>
+                <!-- SP đã bán - full width -->
+                <div class="col-span-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">Sản phẩm đã bán</p>
+                    <p id="qsProducts" class="text-base font-bold text-slate-800">—</p>
+                </div>
+            </div>
+
+            <!-- Footer link -->
+            <div class="px-4 py-3 text-center">
+                <a href="profit-report.html" class="text-xs text-indigo-400 hover:text-indigo-600 font-medium transition-colors">
+                    Xem báo cáo chi tiết →
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script defer src="../assets/js/config.js"></script>
     <script defer src="../assets/js/toast-manager.js"></script>
     <script defer src="../assets/js/timezone-utils.js"></script>
@@ -834,7 +918,7 @@
     <script defer src="../assets/js/orders/orders-quick-add.js?v=4"></script>
     <script defer src="../assets/js/orders/orders-product-edit.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-custom-product-modal.js?v=4"></script>
-    <script defer src="../assets/js/orders/orders-timezone-utils.js?v=2"></script>
+    <script defer src="../assets/js/orders/orders-timezone-utils.js?v=3"></script>
     <script defer src="../assets/js/orders/orders-duplicate.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-url-handler.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-product-management.js?v=2"></script>
@@ -843,6 +927,7 @@
     <script defer src="../assets/js/orders/orders-submit.js?v=10"></script>
     <script defer src="../assets/js/orders.js?v=36"></script>
     <script defer src="../assets/js/auth-check.js"></script>
+    <script defer src="../assets/js/orders/orders-quick-stats.js"></script>
 </body>
 
 </html>

@@ -83,31 +83,27 @@ function getTodayDateString() {
 }
 
 /**
- * Get start of last 7 days in VN timezone (7 ngày qua, không phải tuần này)
- * Note: This overrides getVNStartOfWeek() from timezone-utils.js which returns "this week"
+ * Bắt đầu của cửa sổ "7 ngày" theo lịch VN: đúng 7 ngày dương lịch gần nhất, gồm hôm nay
+ * (00:00 ngày hôm nay − 6, đến 23:59:59 hôm nay — khớp bộ lọc orders-filters).
  */
 function getVNStartOfLast7Days() {
     const now = new Date();
     const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
     const today = new Date(vnDateStr + 'T00:00:00+07:00');
 
-    // Lùi lại 7 ngày (không phải tuần này, mà là 7 ngày qua)
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return sevenDaysAgo;
+    return new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
 }
 
 /**
- * Get start of last 30 days in VN timezone (30 ngày qua)
- * Note: This overrides getVNStartOfMonth() from timezone-utils.js which returns "this month"
+ * Bắt đầu của cửa sổ "30 ngày" theo lịch VN: đúng 30 ngày dương lịch gần nhất, gồm hôm nay
+ * (00:00 ngày hôm nay − 29, đến 23:59:59 hôm nay).
  */
 function getVNStartOfLast30Days() {
     const now = new Date();
     const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
     const today = new Date(vnDateStr + 'T00:00:00+07:00');
 
-    // Lùi lại 30 ngày
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return thirtyDaysAgo;
+    return new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
 }
 
 /**

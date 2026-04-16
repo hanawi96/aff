@@ -148,8 +148,11 @@ function closeProductSelectionModal() {
         selectedCategory = null;
         selectedProducts = [];
         Object.keys(productQuantities).forEach(key => delete productQuantities[key]);
+        Object.keys(productWeights).forEach(key => delete productWeights[key]);
+        Object.keys(productNotes).forEach(key => delete productNotes[key]);
         currentEditingOrderId = null;
         currentEditingOrderCode = null;
+        currentEditingProductIndex = null;
     }
 }
 
@@ -224,17 +227,36 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
 }
 
 function selectModalProduct(productId) {
-    const index = selectedProducts.indexOf(productId);
-    if (index > -1) {
-        selectedProducts.splice(index, 1);
-        delete productQuantities[productId];
-        delete productWeights[productId];
-        delete productNotes[productId];
+    // Replace mode: enforce single-select
+    if (currentEditingProductIndex !== null) {
+        const isAlreadySelected = selectedProducts.includes(productId);
+        // Clear all previous selections
+        selectedProducts.forEach(id => {
+            delete productQuantities[id];
+            delete productWeights[id];
+            delete productNotes[id];
+        });
+        selectedProducts = [];
+        if (!isAlreadySelected) {
+            selectedProducts = [productId];
+            productQuantities[productId] = 1;
+            productWeights[productId] = '';
+            productNotes[productId] = '';
+        }
     } else {
-        selectedProducts.push(productId);
-        productQuantities[productId] = 1;
-        productWeights[productId] = '';
-        productNotes[productId] = '';
+        // Add mode: multi-select
+        const index = selectedProducts.indexOf(productId);
+        if (index > -1) {
+            selectedProducts.splice(index, 1);
+            delete productQuantities[productId];
+            delete productWeights[productId];
+            delete productNotes[productId];
+        } else {
+            selectedProducts.push(productId);
+            productQuantities[productId] = 1;
+            productWeights[productId] = '';
+            productNotes[productId] = '';
+        }
     }
     updateSelectedProductsDisplay();
     const searchInput = document.getElementById('modalProductSearchInput');

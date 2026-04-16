@@ -21,252 +21,32 @@ let editModalUnitPrice = 0;
 let editModalUnitCost = 0;
 let editModalIsUpdating = false;
 
-// Edit product - show modal with all fields
+// Edit product - open product selection modal to replace
 function editProductName(productId, orderId, orderCode) {
-    // Find the order
     const order = allOrdersData.find(o => o.id === orderId);
-    if (!order) {
-        showToast('Không tìm thấy đơn hàng', 'error');
-        return;
-    }
+    if (!order) { showToast('Không tìm thấy đơn hàng', 'error'); return; }
 
-    // Parse products
     let products = [];
     try {
         products = JSON.parse(order.products);
     } catch (e) {
-        const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
+        const lines = order.products.split(/[,\n]/).map(l => l.trim()).filter(Boolean);
         products = lines.map(line => {
-            const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
-            if (match) {
-                return { name: match[1].trim(), quantity: parseInt(match[2]) };
-            }
-            return { name: line, quantity: 1 };
+            const m = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+            return m ? { name: m[1].trim(), quantity: parseInt(m[2]) } : { name: line, quantity: 1 };
         });
     }
 
-    // Find the product by matching the productId
     const span = document.getElementById(productId);
     if (!span) return;
-
     const currentName = span.textContent.trim();
-    const productIndex = products.findIndex(p => {
-        const pName = typeof p === 'string' ? p : p.name;
-        return pName === currentName;
-    });
-
-    if (productIndex === -1) {
-        showToast('Không tìm thấy sản phẩm', 'error');
-        return;
-    }
+    const productIndex = products.findIndex(p => (typeof p === 'string' ? p : p.name) === currentName);
+    if (productIndex === -1) { showToast('Không tìm thấy sản phẩm', 'error'); return; }
 
     const product = products[productIndex];
-    const quantity = typeof product === 'object' ? (product.quantity || 1) : 1;
+    const existingProductId = (typeof product === 'object' && product.product_id) ? product.product_id : null;
 
-    const productData = typeof product === 'string'
-        ? { name: product, quantity: 1, weight: '', size: '', price: '', cost_price: '', notes: '' }
-        : {
-            name: product.name || '',
-            quantity: quantity,
-            weight: product.weight || '',
-            size: product.size || '',
-            // IMPORTANT: price and cost_price are ALWAYS stored as UNIT prices (per item)
-            // DO NOT divide by quantity - they are already unit prices!
-            price: product.price || '',
-            cost_price: product.cost_price || '',
-            notes: product.notes || ''
-        };
-
-    // Smart detection: if weight contains "cm" or looks like size, swap them
-    if (productData.weight && !productData.size) {
-        const weightValue = productData.weight.toLowerCase();
-        // Check if it looks like a size (contains cm, size, tay, etc.)
-        if (weightValue.includes('cm') || weightValue.includes('size') || weightValue.includes('tay')) {
-            productData.size = productData.weight;
-            productData.weight = '';
-        }
-    }
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.id = 'editProductModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-
-
-    modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 rounded-t-xl">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Chỉnh sửa sản phẩm
-                    </h3>
-                    <button onclick="closeEditProductModal()" class="text-white/80 hover:text-white transition-colors">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <p class="text-sm text-white/80 mt-1">Đơn hàng: ${escapeHtml(orderCode)}</p>
-            </div>
-
-            <!-- Form -->
-            <div class="p-6 space-y-4">
-                <!-- Product Name -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Tên sản phẩm <span class="text-red-500">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        id="editProductName" 
-                        value="${escapeHtml(productData.name)}"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Nhập tên sản phẩm"
-                    />
-                </div>
-
-                <!-- Quantity and Size/Tay (2 columns) -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Số lượng <span class="text-red-500">*</span>
-                        </label>
-                        <input 
-                            type="number" 
-                            id="editProductQuantity" 
-                            value="${productData.quantity}"
-                            min="1"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Nhập số lượng"
-                            oninput="updateEditModalTotalPrices()"
-                        />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Size/Tay
-                        </label>
-                        <input 
-                            type="text" 
-                            id="editProductSize" 
-                            value="${escapeHtml(productData.size || productData.weight || '')}"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: Size M, 5kg..."
-                        />
-                    </div>
-                </div>
-
-
-                <!-- Price and Cost Price -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Giá bán <span class="text-xs text-gray-500 font-normal">(Tổng tiền)</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="editProductPrice" 
-                            inputmode="numeric"
-                            autocomplete="off"
-                            value=""
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="VD: 90.000"
-                            oninput="formatVnMoneyInput(this); onEditModalPriceOrCostInput('price');"
-                        />
-                        <div id="editProductPriceUnit" class="text-xs text-blue-600 font-semibold mt-1 hidden">
-                            Đơn giá: <span id="editProductPriceUnitValue">0đ</span>/sp
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            💰 Giá vốn <span class="text-xs text-gray-500 font-normal">(Tổng tiền)</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="editProductCostPrice" 
-                            value=""
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="Nhập giá vốn"
-                        />
-                        <div id="editProductCostUnit" class="text-xs text-orange-600 font-semibold mt-1 hidden">
-                            Đơn giá: <span id="editProductCostUnitValue">0đ</span>/sp
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Notes -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Ghi chú
-                    </label>
-                    <textarea 
-                        id="editProductNotes" 
-                        rows="2"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                        placeholder="Ghi chú thêm về sản phẩm..."
-                    >${escapeHtml(productData.notes)}</textarea>
-                </div>
-            </div>
-
-            <!-- Notice -->
-            <div class="px-6 py-3 bg-blue-50 border-t border-blue-100">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p class="text-sm text-blue-700"><span class="font-semibold">Lưu ý:</span> Thay đổi chỉ áp dụng cho sản phẩm trong đơn hàng này</p>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
-                <button 
-                    onclick="closeEditProductModal()" 
-                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                    Hủy
-                </button>
-                <button 
-                    onclick="saveProductChanges(${orderId}, ${productIndex}, '${escapeHtml(orderCode)}')" 
-                    class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Lưu thay đổi
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Initialize unit prices - productData.price and productData.cost_price are ALREADY unit prices
-    editModalUnitPrice = parsePrice(productData.price);
-    editModalUnitCost = parsePrice(productData.cost_price);
-
-    // Set input values to TOTAL prices (unit price × quantity)
-    setTimeout(() => {
-        const priceInput = document.getElementById('editProductPrice');
-        const costPriceInput = document.getElementById('editProductCostPrice');
-        
-        if (priceInput) {
-            priceInput.value = editModalUnitPrice > 0 ? formatVnIntegerString(editModalUnitPrice * quantity) : '';
-        }
-        if (costPriceInput) {
-            costPriceInput.value = editModalUnitCost > 0 ? formatVnIntegerString(editModalUnitCost * quantity) : '';
-        }
-        
-        updateEditModalTotalPrices();
-        document.getElementById('editProductName')?.focus();
-    }, 0);
-
-    // Close on Escape
-    const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeEditProductModal();
-            document.removeEventListener('keydown', escapeHandler);
-        }
-    };
-    document.addEventListener('keydown', escapeHandler);
+    showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId);
 }
 
 // Close edit product modal

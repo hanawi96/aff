@@ -55,7 +55,8 @@ function setBraceletTypePreset(value) {
 // Filter state
 let currentFilters = {
     categoryId: null,
-    searchTerm: ''
+    searchTerm: '',
+    stockFilter: null // null | 'out_of_stock' | 'low_stock'
 };
 
 // Sort state (null = mặc định: lượt bán cao → thấp)
@@ -448,6 +449,7 @@ function toggleFilters() {
 // Sort by price
 function sortByPrice(direction) {
     currentSort = { field: 'price', direction };
+    updateSortButtons();
     updateSortBadge();
     searchAndSort();
 }
@@ -455,6 +457,7 @@ function sortByPrice(direction) {
 // Sort by profit margin
 function sortByMargin(direction) {
     currentSort = { field: 'margin', direction };
+    updateSortButtons();
     updateSortBadge();
     searchAndSort();
 }
@@ -462,13 +465,68 @@ function sortByMargin(direction) {
 // Sort by net profit
 function sortByProfit(direction) {
     currentSort = { field: 'profit', direction };
+    updateSortButtons();
     updateSortBadge();
     searchAndSort();
+}
+
+// Sort by stock quantity
+function sortByStock(direction) {
+    currentSort = { field: 'stock', direction };
+    updateSortButtons();
+    updateSortBadge();
+    searchAndSort();
+}
+
+// Filter by stock level (toggle)
+function filterByStock(type) {
+    currentFilters.stockFilter = currentFilters.stockFilter === type ? null : type;
+    updateStockFilterButtons();
+    updateSortBadge();
+    searchAndSort();
+}
+
+// Update visual active state of all sort buttons
+function updateSortButtons() {
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        const field = btn.getAttribute('data-sort-field');
+        const dir = btn.getAttribute('data-sort-dir');
+        const isActive = field === currentSort.field && dir === currentSort.direction;
+
+        btn.classList.toggle('bg-indigo-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('border-indigo-600', isActive);
+        btn.classList.toggle('shadow-sm', isActive);
+        btn.classList.toggle('bg-white', !isActive);
+        btn.classList.toggle('text-gray-600', !isActive);
+        btn.classList.toggle('border-gray-200', !isActive);
+    });
+}
+
+// Update visual state of stock filter buttons
+function updateStockFilterButtons() {
+    document.querySelectorAll('[data-stock-filter]').forEach(btn => {
+        const type = btn.getAttribute('data-stock-filter');
+        const active = currentFilters.stockFilter === type;
+        const isOut = type === 'out_of_stock';
+
+        btn.classList.toggle('bg-red-600', active && isOut);
+        btn.classList.toggle('bg-amber-500', active && !isOut);
+        btn.classList.toggle('text-white', active);
+        btn.classList.toggle('border-transparent', active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.toggle('bg-white', !active);
+        btn.classList.toggle('text-gray-600', !active);
+        btn.classList.toggle('border-gray-200', !active);
+    });
 }
 
 // Reset sort
 function resetSort() {
     currentSort = { field: null, direction: null };
+    currentFilters.stockFilter = null;
+    updateSortButtons();
+    updateStockFilterButtons();
     updateSortBadge();
     searchAndSort();
 }
@@ -476,9 +534,9 @@ function resetSort() {
 // Update sort badge
 function updateSortBadge() {
     const badge = document.getElementById('filterBadge');
-
-    if (currentSort.field) {
-        badge.textContent = '1';
+    const activeCount = (currentSort.field ? 1 : 0) + (currentFilters.stockFilter ? 1 : 0);
+    if (activeCount > 0) {
+        badge.textContent = activeCount > 1 ? String(activeCount) : '1';
         badge.classList.remove('hidden');
     } else {
         badge.classList.add('hidden');
@@ -528,6 +586,16 @@ function searchAndSort(skipURLUpdate = false) {
         });
     }
 
+    // Apply stock filter
+    if (currentFilters.stockFilter === 'out_of_stock') {
+        results = results.filter(p => (p.stock_quantity || 0) === 0);
+    } else if (currentFilters.stockFilter === 'low_stock') {
+        results = results.filter(p => {
+            const s = p.stock_quantity || 0;
+            return s > 0 && s <= 10;
+        });
+    }
+
     // Apply sorting (mặc định: purchases desc)
     const sortField = currentSort.field || 'purchases';
     const sortDir = currentSort.direction || 'desc';
@@ -550,6 +618,10 @@ function searchAndSort(skipURLUpdate = false) {
             case 'purchases':
                 aVal = a.purchases || 0;
                 bVal = b.purchases || 0;
+                break;
+            case 'stock':
+                aVal = a.stock_quantity !== undefined ? (a.stock_quantity || 0) : 0;
+                bVal = b.stock_quantity !== undefined ? (b.stock_quantity || 0) : 0;
                 break;
             default:
                 return 0;
@@ -2879,41 +2951,43 @@ function hidePagination() {
 // Sort by Price
 function sortByPrice(direction) {
     currentSort = { field: 'price', direction };
-    console.log('📊 Sorting by price:', direction);
+    updateSortButtons();
+    updateSortBadge();
     searchAndSort();
-    showToast(`Đã sắp xếp theo giá ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
 }
 
 // Sort by Profit Margin
 function sortByMargin(direction) {
     currentSort = { field: 'margin', direction };
-    console.log('📊 Sorting by margin:', direction);
+    updateSortButtons();
+    updateSortBadge();
     searchAndSort();
-    showToast(`Đã sắp xếp theo tỷ suất ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
 }
 
 // Sort by Net Profit
 function sortByProfit(direction) {
     currentSort = { field: 'profit', direction };
-    console.log('📊 Sorting by profit:', direction);
+    updateSortButtons();
+    updateSortBadge();
     searchAndSort();
-    showToast(`Đã sắp xếp theo lãi ròng ${direction === 'desc' ? 'cao → thấp' : 'thấp → cao'}`, 'success');
 }
 
 // Sort by Purchases (Best Selling)
 function sortByPurchases(direction) {
     currentSort = { field: 'purchases', direction };
-    console.log('📊 Sorting by purchases:', direction);
+    updateSortButtons();
+    updateSortBadge();
     searchAndSort();
-    showToast(`Đã sắp xếp theo sản phẩm bán chạy ${direction === 'desc' ? 'nhiều → ít' : 'ít → nhiều'}`, 'success');
 }
 
 // Reset Sort
 function resetSort() {
     currentSort = { field: null, direction: null };
-    console.log('🔄 Reset sorting');
+    currentFilters.stockFilter = null;
+    updateSortButtons();
+    updateStockFilterButtons();
+    updateSortBadge();
     searchAndSort();
-    showToast('Đã đặt lại sắp xếp', 'info');
 }
 
 // Apply sorting to filtered products
