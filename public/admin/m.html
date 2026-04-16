@@ -263,9 +263,18 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 </div>
 
 <!-- Create Order Panel -->
-<div id="createPanel" class="fixed inset-0 z-50 hidden bg-gray-50 overflow-y-auto">
-  <div class="min-h-full max-w-lg mx-auto">
-    <div id="createContent" class="bg-gray-50"></div>
+<div id="createPanel" class="fixed inset-0 z-50 hidden flex flex-col bg-gray-50 overflow-hidden">
+  <div id="createScrollArea" class="flex-1 overflow-y-auto">
+    <div class="min-h-full max-w-lg mx-auto">
+      <div id="createContent" class="bg-gray-50"></div>
+    </div>
+  </div>
+  <!-- Sticky bottom submit bar -->
+  <div class="shrink-0 bg-white border-t border-gray-100 px-4 pt-3 pb-7 flex items-center gap-3">
+    <button onclick="closeCreate()" class="w-14 h-14 shrink-0 flex items-center justify-center rounded-2xl bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all text-gray-600">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <button id="submitBtn" onclick="submitOrder()" class="flex-1 py-4 bg-indigo-600 text-white font-bold text-base rounded-2xl active:scale-[0.98] transition-transform">Tạo đơn</button>
   </div>
 </div>
 <!-- Mặt vỏ chọn địa chỉ (đồng bộ với HIERARCHICAL_ADDRESS_SHELL_HTML trong hierarchical-address-selector.js) — hiển thị tức thì trước khi module tải xong -->
@@ -1252,6 +1261,9 @@ async function showEditOrder(id){
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm(true);
   injectMOrderAddressShell();
+  // Update bottom bar for edit mode
+  const sb=document.getElementById('submitBtn');
+  if(sb){sb.textContent='Cập nhật';sb.className='w-full py-4 bg-emerald-600 text-white font-bold text-base rounded-2xl active:scale-[0.98] transition-transform';}
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
@@ -1342,10 +1354,12 @@ let mCreateAddressSelector=null;
 
 function showCreateOrder(){
   editOrderId=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
-  // freeShip checkbox resets via buildCreateForm() re-render
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
+  // Reset bottom bar for create mode
+  const sb=document.getElementById('submitBtn');
+  if(sb){sb.textContent='Tạo đơn';sb.className='w-full py-4 bg-indigo-600 text-white font-bold text-base rounded-2xl active:scale-[0.98] transition-transform';}
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   setTimeout(function(){var sp=document.getElementById('smartPasteInput');if(sp)sp.focus();},300);
@@ -1682,15 +1696,7 @@ function closeCreate(){
 
 function buildCreateForm(isEdit=false){
   return`
-  <!-- Header -->
-  <div class="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
-    <button onclick="closeCreate()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100">
-      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-    </button>
-    <h2 class="font-bold text-gray-900 flex-1">${isEdit?'Sửa đơn hàng':'Tạo đơn hàng'}</h2>
-    <button id="submitBtn" onclick="submitOrder()" class="h-9 px-4 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white text-sm font-semibold rounded-xl flex items-center gap-1.5">${isEdit?'Lưu lại':'Tạo đơn'}</button>
-  </div>
-  <div class="px-4 pt-4 pb-10 space-y-4">
+  <div class="px-4 pt-4 pb-4 space-y-4">
 
     <!-- Smart Paste -->
     <div id="smartPasteBlock" class="${isEdit?'hidden ':''}bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/80 p-3.5 space-y-2">
@@ -1757,7 +1763,7 @@ function buildCreateForm(isEdit=false){
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Đã chọn</span>
             <span id="cartCount" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-1.5 py-0.5 rounded-full"></span>
-            <button onclick="(function(){const panel=document.getElementById('createPanel');const prod=document.getElementById('prodSection');if(panel&&prod){const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;const d=prod.getBoundingClientRect().top-panel.getBoundingClientRect().top-stickyH-8;panel.scrollBy({top:d,behavior:'smooth'});}})()" class="w-5 h-5 flex items-center justify-center rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 transition-colors" title="Thêm sản phẩm">
+            <button onclick="(function(){const panel=document.getElementById('createScrollArea');const prod=document.getElementById('prodSection');if(panel&&prod){const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;const d=prod.getBoundingClientRect().top-panel.getBoundingClientRect().top-stickyH-8;panel.scrollBy({top:d,behavior:'smooth'});}})()" class="w-5 h-5 flex items-center justify-center rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 transition-colors" title="Thêm sản phẩm">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
           </div>
@@ -2043,7 +2049,7 @@ function confirmAddProduct(id){
   renderCart();
   autoUpdateFreeshipCheckbox();
   requestAnimationFrame(()=>{
-    const panel=document.getElementById('createPanel');
+    const panel=document.getElementById('createScrollArea');
     const wrap=document.getElementById('cartWrap');
     if(panel&&wrap){
       const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;
@@ -2081,7 +2087,7 @@ function renderCart(){
     summary.innerHTML=rows.join('');
     summary.classList.remove('hidden');
   }
-  const scrollToProdList=`(function(){const panel=document.getElementById('createPanel');const prod=document.getElementById('prodSection');if(panel&&prod){const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;const d=prod.getBoundingClientRect().top-panel.getBoundingClientRect().top-stickyH-8;panel.scrollBy({top:d,behavior:'smooth'});}})()`;
+  const scrollToProdList=`(function(){const panel=document.getElementById('createScrollArea');const prod=document.getElementById('prodSection');if(panel&&prod){const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;const d=prod.getBoundingClientRect().top-panel.getBoundingClientRect().top-stickyH-8;panel.scrollBy({top:d,behavior:'smooth'});}})()`;
   list.innerHTML=createProducts.map((p,i)=>{
     const cached=p.product_id&&allProductsCache.find(x=>x.id==p.product_id);
     const imgSrc=resolveImgSrc(p.image_url||(cached&&cached.image_url)||null);
@@ -2358,7 +2364,7 @@ function confirmAddCustomProduct(){
   document.getElementById('cartErrMsg')?.classList.add('hidden');
   closeProdSheet();renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();
   requestAnimationFrame(()=>{
-    const panel=document.getElementById('createPanel');
+    const panel=document.getElementById('createScrollArea');
     const wrap=document.getElementById('cartWrap');
     if(panel&&wrap){
       const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;
@@ -2492,7 +2498,7 @@ async function submitOrder(){
         await loadOrders();
       }
     }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':'Lỗi tạo đơn'));
-  }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.innerHTML=isEdit?'Lưu lại':'Tạo đơn'}
+  }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent=isEdit?'Cập nhật':'Tạo đơn'}
 }
 
 // ─── Smart Paste (mobile) ───
