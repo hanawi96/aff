@@ -94,6 +94,19 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
         // Hide "Chọn tất cả" button in replace mode
         const selectAllBtn = document.getElementById('selectAllBtn');
         if (selectAllBtn) selectAllBtn.style.display = 'none';
+
+        // Auto-scroll to the pre-selected product, centered in the list container
+        if (existingProductId) {
+            const container = document.getElementById('modalProductsListContainer');
+            const productEl = document.getElementById(`modal_product_${existingProductId}`);
+            if (container && productEl) {
+                const cRect = container.getBoundingClientRect();
+                const pRect = productEl.getBoundingClientRect();
+                const scrollTo = container.scrollTop + pRect.top - cRect.top
+                                 - container.clientHeight / 2 + productEl.clientHeight / 2;
+                container.scrollTop = Math.max(0, scrollTo);
+            }
+        }
     }, 0);
 }
 

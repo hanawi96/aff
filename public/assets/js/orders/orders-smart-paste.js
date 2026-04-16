@@ -615,20 +615,23 @@ function extractLandmark(addressText) {
  * Extract phone number from text
  */
 function extractPhoneNumber(text) {
-    // Vietnamese phone patterns: 09x, 08x, 07x, 03x, 05x (10 digits)
-    const phoneRegex = /(?:0|\+84)([3|5|7|8|9])\d{8}/g;
-    const matches = text.match(phoneRegex);
-    
+    // Vietnamese phone: starts with 0 or +84, network prefix 3/5/7/8/9, total 10 digits
+    const phoneRegex = /(?:0|\+84)[35789]\d{8}/g;
+    let matches = text.match(phoneRegex);
+
     if (matches && matches.length > 0) {
-        // Normalize to 10 digits starting with 0
-        let phone = matches[0].replace(/\+84/, '0').replace(/\s/g, '');
-        return {
-            phone: phone,
-            confidence: 'high',
-            original: matches[0]
-        };
+        const phone = matches[0].replace(/\+84/, '0');
+        return { phone, confidence: 'high', original: matches[0] };
     }
-    
+
+    // Fallback: 9-digit number missing leading 0 (e.g. 984923405)
+    const fallbackRegex = /(?<!\d)[35789]\d{8}(?!\d)/g;
+    matches = text.match(fallbackRegex);
+    if (matches && matches.length > 0) {
+        const phone = '0' + matches[0];
+        return { phone, confidence: 'high', original: matches[0] };
+    }
+
     return null;
 }
 
@@ -685,8 +688,8 @@ function extractCustomerName(lines, phoneInfo) {
         const lower = line.toLowerCase();
         const normalized = removeVietnameseTones(lower);
         
-        // Skip if contains phone
-        if (phoneInfo && line.includes(phoneInfo.phone)) {
+        // Skip if contains phone (check both normalized and original 9-digit form)
+        if (phoneInfo && (line.includes(phoneInfo.phone) || (phoneInfo.original && line.includes(phoneInfo.original)))) {
             console.log(`  ✗ Skip (has phone): "${line}"`);
             return false;
         }
@@ -1152,7 +1155,13 @@ function _anchors(text) {
 
     var reW = new RegExp('\\b(?:ph\u01b0\u1eddng|phuong|th\u1ecb\\s+tr\u1ea5n|thi\\s+tran|tt\\.?|(?<!\\bthi\\s)(?<!\\bth\u1ecb\\s)(?:x\u00e3|xa))\\s+([^,\\n]{1,25}?)' + _ADMIN_LA, 'gi');
     reW.lastIndex = 0;
-    while ((m = reW.exec(text))) a.ward = m[1].trim().split(/\s*,/)[0].trim();
+    while ((m = reW.exec(text))) {
+        var wText = m[1].trim().split(/\s*,/)[0].trim();
+        // Ward names are typically 1-3 words; trim excess words (district/province info that leaked in)
+        var wWords = wText.split(/\s+/);
+        if (wWords.length > 3) wText = wWords.slice(0, 2).join(' ');
+        a.ward = wText;
+    }
 
     // Resolve "thành phố" candidates: province-level or district-level city?
     const provCities = new Set(['ho chi minh','ha noi','da nang','hai phong','can tho']);
@@ -1543,6 +1552,12 @@ async function smartParseCustomerInfo(text) {
             error: 'Không có dữ liệu để phân tích'
         };
     }
+
+    // Normalize phone number separators: 0984.923.405 → 0984923405, 0984-923-405 → 0984923405
+    // Run twice to handle patterns where matches are adjacent (e.g. 3 groups)
+    text = text
+        .replace(/(\d)[.\- ](\d)/g, '$1$2')
+        .replace(/(\d)[.\- ](\d)/g, '$1$2');
     
     // Ensure addressSelector is loaded (it should be loaded when modal opens)
     if (!window.addressSelector || !window.addressSelector.loaded) {
@@ -1599,9 +1614,14 @@ async function smartParseCustomerInfo(text) {
         })
         .map(line => {
             // Remove phone number from line if present
-            if (phoneInfo && line.includes(phoneInfo.phone)) {
+            // Also check phoneInfo.original for 9-digit fallback case (missing leading 0)
+            const phoneMatch = phoneInfo && (
+                line.includes(phoneInfo.phone) ? phoneInfo.phone :
+                (phoneInfo.original && line.includes(phoneInfo.original)) ? phoneInfo.original : null
+            );
+            if (phoneMatch) {
                 return line
-                    .replace(phoneInfo.phone, '')
+                    .replace(phoneMatch, '')
                     .replace(/[,.\-\s]+$/, '') // Remove trailing punctuation
                     .replace(/^[,.\-\s]+/, '') // Remove leading punctuation
                     .trim();
