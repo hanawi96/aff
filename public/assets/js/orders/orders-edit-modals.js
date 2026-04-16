@@ -1340,10 +1340,13 @@ function _calcFreeshipForProducts(productsArr) {
     const FREESHIP_CAT = 23;
     const BI_CHARM_CAT = 24;
 
+    const PRICE_FREESHIP_THRESHOLD = 120000;
+
     let totalQty = 0;
     let has23 = false, has24 = false;
     let qtyOtherMain = 0, non23Qty = 0;
     let onlyAllCat24 = productsArr.length > 0;
+    let hasHighValueNonCat23 = false;
 
     for (const p of productsArr) {
         const q = parseInt(p.quantity, 10) || 1;
@@ -1357,6 +1360,8 @@ function _calcFreeshipForProducts(productsArr) {
             onlyAllCat24 = false;
             non23Qty += q;
             qtyOtherMain += q;
+            const price = parseFloat(p.price) || 0;
+            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
             continue;
         }
 
@@ -1368,6 +1373,11 @@ function _calcFreeshipForProducts(productsArr) {
         if (!in23 && !in24) qtyOtherMain += q;
         if (!in23) non23Qty += q;
         if (!in24) onlyAllCat24 = false;
+
+        if (!in23) {
+            const price = parseFloat(p.price) || parseFloat(catalog.price) || parseFloat(catalog.sale_price) || 0;
+            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
+        }
     }
 
     onlyAllCat24 = onlyAllCat24 && has24 && !has23;
@@ -1377,5 +1387,6 @@ function _calcFreeshipForProducts(productsArr) {
     return !blocked && (
         (totalQty >= 2 && !exclusivelyCat23Only)
         || (has23 && non23Qty >= 1)
+        || hasHighValueNonCat23
     );
 }

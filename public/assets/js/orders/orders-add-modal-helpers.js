@@ -357,12 +357,15 @@ function autoUpdateFreeshipCheckbox() {
         return;
     }
 
+    const PRICE_FREESHIP_THRESHOLD = 120000;
+
     let totalQty = 0;
     let has23 = false;
     let has24 = false;
     let qtyOtherMain = 0;
     let non23Qty = 0;
     let onlyAllCat24 = currentOrderProducts.length > 0;
+    let hasHighValueNonCat23 = false;
 
     for (const p of currentOrderProducts) {
         const q = parseInt(p.quantity, 10) || 1;
@@ -376,6 +379,8 @@ function autoUpdateFreeshipCheckbox() {
             onlyAllCat24 = false;
             non23Qty += q;
             qtyOtherMain += q;
+            const price = parseFloat(p.price) || 0;
+            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
             continue;
         }
 
@@ -388,6 +393,11 @@ function autoUpdateFreeshipCheckbox() {
         if (otherMain) qtyOtherMain += q;
         if (!in23) non23Qty += q;
         if (!in24) onlyAllCat24 = false;
+
+        if (!in23) {
+            const price = parseFloat(p.price) || parseFloat(catalog.price) || parseFloat(catalog.sale_price) || 0;
+            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
+        }
     }
 
     onlyAllCat24 = onlyAllCat24 && has24 && !has23;
@@ -400,6 +410,7 @@ function autoUpdateFreeshipCheckbox() {
     const shouldAutoFreeship = !blocked && (
         (totalQty >= 2 && !exclusivelyCat23Only)
         || (has23 && non23Qty >= 1)
+        || hasHighValueNonCat23
     );
 
     if (checkbox.checked !== shouldAutoFreeship) {
