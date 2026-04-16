@@ -735,8 +735,20 @@ function applyFilter(){
 }
 
 function updateCounts(){
-  const c=s=>allOrders.filter(o=>(o.status||'pending')===s).length;
-  const set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n||''};
+  const hasActiveFilter=mPriorityFilter||mMissingSizeFilter||mTheTenBeFilter||searchTerm.trim().length>0;
+  const c=s=>{
+    if(!hasActiveFilter)return allOrders.filter(o=>(o.status||'pending')===s).length;
+    const q=searchTerm.toLowerCase();
+    return allOrders.filter(o=>{
+      if((o.status||'pending')!==s)return false;
+      if(q){const t=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();if(!t.includes(q))return false;}
+      if(mPriorityFilter&&o.is_priority!==1)return false;
+      if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
+      if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
+      return true;
+    }).length;
+  };
+  const set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n};
   set('countPending',c('pending'));set('countShipped',c('shipped'));
 }
 
