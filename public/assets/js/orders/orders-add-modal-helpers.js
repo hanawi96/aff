@@ -334,87 +334,13 @@ function renderOrderProducts() {
     autoUpdateFreeshipCheckbox();
 }
 
-/**
- * Miễn phí ship tự động (checkbox) — đồng bộ mỗi lần render giỏ (thêm / xóa / sửa):
- * Bật khi (!blocked) && (
- *   (tổng quantity >= 2 và giỏ KHÔNG phải chỉ toàn SP bán kèm cat 23)
- *   || (có cat 23 && có ít nhất 1 đơn vị không thuộc cat 23)
- * ).
- * Tắt khi điều kiện không còn đúng (vd. xóa SP chính, chỉ còn bán kèm).
- *
- * Block (luôn tắt freeship):
- * - Chỉ toàn "Bi, charm bạc" (24), không có 23.
- * - Chỉ 24 + chỉ 23, không có danh mục khác.
- */
 function autoUpdateFreeshipCheckbox() {
     const checkbox = document.getElementById('freeShippingCheckbox');
     if (!checkbox) return;
 
-    const FREESHIP_CAT = 23;
-    const BI_CHARM_CAT = 24;
-
-    if (currentOrderProducts.length === 0) {
-        return;
-    }
-
-    const PRICE_FREESHIP_THRESHOLD = 120000;
-
-    let totalQty = 0;
-    let has23 = false;
-    let has24 = false;
-    let qtyOtherMain = 0;
-    let non23Qty = 0;
-    let onlyAllCat24 = currentOrderProducts.length > 0;
-    let hasHighValueNonCat23 = false;
-
-    for (const p of currentOrderProducts) {
-        const q = parseInt(p.quantity, 10) || 1;
-        totalQty += q;
-
-        const catalog = (typeof allProductsList !== 'undefined')
-            ? allProductsList.find(cp => cp.id === (p.product_id || p.id))
-            : null;
-
-        if (!catalog) {
-            onlyAllCat24 = false;
-            non23Qty += q;
-            qtyOtherMain += q;
-            const price = parseFloat(p.price) || 0;
-            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
-            continue;
-        }
-
-        const in23 = productBelongsToCategory(catalog, FREESHIP_CAT);
-        const in24 = productBelongsToCategory(catalog, BI_CHARM_CAT);
-        const otherMain = !in23 && !in24;
-
-        if (in23) has23 = true;
-        if (in24) has24 = true;
-        if (otherMain) qtyOtherMain += q;
-        if (!in23) non23Qty += q;
-        if (!in24) onlyAllCat24 = false;
-
-        if (!in23) {
-            const price = parseFloat(p.price) || parseFloat(catalog.price) || parseFloat(catalog.sale_price) || 0;
-            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
-        }
-    }
-
-    onlyAllCat24 = onlyAllCat24 && has24 && !has23;
-
-    const stuck24Plus23Only = has24 && has23 && qtyOtherMain === 0;
-    const blocked = onlyAllCat24 || stuck24Plus23Only;
-
-    const exclusivelyCat23Only = has23 && non23Qty === 0;
-
-    const shouldAutoFreeship = !blocked && (
-        (totalQty >= 2 && !exclusivelyCat23Only)
-        || (has23 && non23Qty >= 1)
-        || hasHighValueNonCat23
-    );
-
-    if (checkbox.checked !== shouldAutoFreeship) {
-        checkbox.checked = shouldAutoFreeship;
+    const should = _shouldFreeship(currentOrderProducts);
+    if (checkbox.checked !== should) {
+        checkbox.checked = should;
         toggleFreeShipping();
     }
 }

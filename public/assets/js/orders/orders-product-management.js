@@ -332,7 +332,7 @@ async function replaceProductInExistingOrder() {
         const updatedProductsJson = JSON.stringify(products);
 
         // Recalculate shipping freeship condition
-        const shouldFreeship = _calcFreeshipForProducts(products);
+        const shouldFreeship = _shouldFreeship(products);
         const curFee = order.shipping_fee || 0;
         const curCost = order.shipping_cost || 0;
         const newShippingFee = shouldFreeship ? 0

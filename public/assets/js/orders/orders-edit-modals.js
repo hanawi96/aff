@@ -365,7 +365,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         // ── Tính lại shipping_fee theo điều kiện freeship ──
         const currentShippingFee  = order.shipping_fee  || 0;
         const currentShippingCost = order.shipping_cost || 0;
-        const shouldFreeship = _calcFreeshipForProducts(products);
+        const shouldFreeship = _shouldFreeship(products);
 
         let newShippingFee;
         if (shouldFreeship) {
@@ -1332,21 +1332,31 @@ async function savePaymentMethod(orderId, orderCode) {
 
 // ============================================
 // FREESHIP CALCULATION (mirror of autoUpdateFreeshipCheckbox)
-// Dùng khi edit sản phẩm để tính lại shipping_fee
-// ============================================
-function _calcFreeshipForProducts(productsArr) {
+/**
+ * Tính điều kiện freeship cho danh sách sản phẩm.
+ * Dùng chung cho cả tạo đơn mới (autoUpdateFreeshipCheckbox) và edit đơn cũ.
+ *
+ * Bật freeship khi (!blocked) && một trong:
+ *   - totalQty >= 2 và không phải chỉ toàn cat 23
+ *   - Có cat 23 + ít nhất 1 SP ngoài cat 23
+ *   - Có SP ngoài cat 23 với giá > 120.000đ
+ *
+ * Block (luôn false):
+ *   - Chỉ toàn cat 24 (Bi, charm bạc)
+ *   - Chỉ cat 24 + cat 23, không có danh mục chính nào khác
+ */
+function _shouldFreeship(productsArr) {
     if (!productsArr || productsArr.length === 0) return false;
 
     const FREESHIP_CAT = 23;
     const BI_CHARM_CAT = 24;
-
-    const PRICE_FREESHIP_THRESHOLD = 120000;
+    const PRICE_THRESHOLD = 120000;
 
     let totalQty = 0;
     let has23 = false, has24 = false;
     let qtyOtherMain = 0, non23Qty = 0;
-    let onlyAllCat24 = productsArr.length > 0;
-    let hasHighValueNonCat23 = false;
+    let onlyAllCat24 = true;
+    let hasHighValue = false;
 
     for (const p of productsArr) {
         const q = parseInt(p.quantity, 10) || 1;
@@ -1360,8 +1370,7 @@ function _calcFreeshipForProducts(productsArr) {
             onlyAllCat24 = false;
             non23Qty += q;
             qtyOtherMain += q;
-            const price = parseFloat(p.price) || 0;
-            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
+            if ((parseFloat(p.price) || 0) > PRICE_THRESHOLD) hasHighValue = true;
             continue;
         }
 
@@ -1376,17 +1385,16 @@ function _calcFreeshipForProducts(productsArr) {
 
         if (!in23) {
             const price = parseFloat(p.price) || parseFloat(catalog.price) || parseFloat(catalog.sale_price) || 0;
-            if (price > PRICE_FREESHIP_THRESHOLD) hasHighValueNonCat23 = true;
+            if (price > PRICE_THRESHOLD) hasHighValue = true;
         }
     }
 
-    onlyAllCat24 = onlyAllCat24 && has24 && !has23;
-    const blocked = onlyAllCat24 || (has24 && has23 && qtyOtherMain === 0);
-    const exclusivelyCat23Only = has23 && non23Qty === 0;
+    const blocked = (onlyAllCat24 && has24 && !has23)
+        || (has24 && has23 && qtyOtherMain === 0);
 
     return !blocked && (
-        (totalQty >= 2 && !exclusivelyCat23Only)
+        (totalQty >= 2 && !(has23 && non23Qty === 0))
         || (has23 && non23Qty >= 1)
-        || hasHighValueNonCat23
+        || hasHighValue
     );
 }
