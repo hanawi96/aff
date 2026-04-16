@@ -52,7 +52,7 @@ function showProductSelectionModalForOrder(orderId, orderCode) {
  * @param {number} productIndex - index of product to replace in order.products array
  * @param {number|null} existingProductId - product_id of current product (to pre-select)
  */
-function showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId) {
+function showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId, existingWeight = '', existingQty = 1, existingNotes = '') {
     currentEditingOrderId = orderId;
     currentEditingOrderCode = orderCode;
     currentEditingProductIndex = productIndex;
@@ -64,12 +64,12 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
     Object.keys(productWeights).forEach(k => delete productWeights[k]);
     Object.keys(productNotes).forEach(k => delete productNotes[k]);
 
-    // Pre-select current product if identifiable
+    // Pre-select current product with its existing values
     if (existingProductId) {
         selectedProducts = [existingProductId];
-        productQuantities[existingProductId] = 1;
-        productWeights[existingProductId] = '';
-        productNotes[existingProductId] = '';
+        productQuantities[existingProductId] = existingQty;
+        productWeights[existingProductId] = existingWeight; // null = "chưa có", '' = chưa nhập, 'Xkg' = giá trị
+        productNotes[existingProductId] = existingNotes;
     }
 
     showProductSelectionModal();

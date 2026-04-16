@@ -22,6 +22,7 @@ let editModalUnitCost = 0;
 let editModalIsUpdating = false;
 
 // Edit product - open product selection modal to replace
+// productId format: "product_{orderId}_{index}" — index encoded directly in ID
 function editProductName(productId, orderId, orderCode) {
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) { showToast('Không tìm thấy đơn hàng', 'error'); return; }
@@ -37,16 +38,21 @@ function editProductName(productId, orderId, orderCode) {
         });
     }
 
-    const span = document.getElementById(productId);
-    if (!span) return;
-    const currentName = span.textContent.trim();
-    const productIndex = products.findIndex(p => (typeof p === 'string' ? p : p.name) === currentName);
-    if (productIndex === -1) { showToast('Không tìm thấy sản phẩm', 'error'); return; }
+    // Extract index from productId ("product_{orderId}_{index}") — avoids findIndex by name
+    // which always returns the first duplicate when the same product appears multiple times
+    const productIndex = parseInt(productId.split('_').pop(), 10);
+    if (isNaN(productIndex) || productIndex < 0 || productIndex >= products.length) {
+        showToast('Không tìm thấy sản phẩm', 'error');
+        return;
+    }
 
     const product = products[productIndex];
     const existingProductId = (typeof product === 'object' && product.product_id) ? product.product_id : null;
+    const existingWeight    = typeof product === 'object' ? (product.size !== undefined ? product.size : (product.weight ?? '')) : '';
+    const existingQty       = typeof product === 'object' ? (parseInt(product.quantity, 10) || 1) : 1;
+    const existingNotes     = typeof product === 'object' ? (product.notes || '') : '';
 
-    showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId);
+    showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId, existingWeight, existingQty, existingNotes);
 }
 
 // Close edit product modal
