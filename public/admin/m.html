@@ -2476,24 +2476,21 @@ function _productInCat(p,catId){
 
 function autoUpdateFreeshipCheckbox(){
   const cb=document.getElementById('cFreeShip');if(!cb)return;
-  if(!createProducts.length)return;
-  let totalQty=0,has23=false,has24=false,qtyOtherMain=0,non23Qty=0;
-  let onlyAllCat24=createProducts.length>0;
+  if(!createProducts.length){if(cb.checked){cb.checked=false;onFreeShipChange();}return;}
+  const PRICE_THRESHOLD=120000;
+  let totalQty=0,has23=false,has24=false,qtyOtherMain=0,non23Qty=0,hasHighValue=false;
+  let onlyAllCat24=true;
   for(const p of createProducts){
     const q=parseInt(p.quantity,10)||1;totalQty+=q;
     const in23=_productInCat(p,FREESHIP_CAT);
     const in24=_productInCat(p,BI_CHARM_CAT);
-    const otherMain=!in23&&!in24;
     if(in23)has23=true;if(in24)has24=true;
-    if(otherMain)qtyOtherMain+=q;
+    if(!in23&&!in24)qtyOtherMain+=q;
     if(!in24)onlyAllCat24=false;
-    if(!in23)non23Qty+=q;
+    if(!in23){non23Qty+=q;if((parseFloat(p.price)||0)>PRICE_THRESHOLD)hasHighValue=true;}
   }
-  onlyAllCat24=onlyAllCat24&&has24&&!has23;
-  const stuck24Plus23Only=has24&&has23&&qtyOtherMain===0;
-  const blocked=onlyAllCat24||stuck24Plus23Only;
-  const exclusivelyCat23Only=has23&&non23Qty===0;
-  const should=!blocked&&((totalQty>=2&&!exclusivelyCat23Only)||(has23&&non23Qty>=1));
+  const blocked=(onlyAllCat24&&has24&&!has23)||(has24&&has23&&qtyOtherMain===0);
+  const should=!blocked&&((totalQty>=2&&!(has23&&non23Qty===0))||(has23&&non23Qty>=1)||hasHighValue);
   if(cb.checked!==should){cb.checked=should;onFreeShipChange();}
 }
 

@@ -284,28 +284,31 @@ async function deleteProduct(orderId, productIndex, orderCode) {
         // Remove the product at index
         products.splice(productIndex, 1);
 
-        // Convert back to JSON string
         const updatedProductsJson = JSON.stringify(products);
 
-        // Update in database via API
+        // Recalculate freeship after removing a product
+        const shouldFreeship = _shouldFreeship(products);
+        const curFee = order.shipping_fee || 0;
+        const newShippingFee = shouldFreeship ? 0
+            : (curFee === 0 ? _getCustomerShippingFee() : curFee);
+
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'updateOrderProducts',
                 orderId: orderId,
-                products: updatedProductsJson
+                products: updatedProductsJson,
+                shipping_fee: newShippingFee
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            // Update local data using helper function
             const updates = { products: updatedProductsJson };
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.shipping_fee  !== undefined) updates.shipping_fee  = data.shipping_fee;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
 

@@ -363,19 +363,10 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
         const updatedProductsJson = JSON.stringify(products);
 
         // ── Tính lại shipping_fee theo điều kiện freeship ──
-        const currentShippingFee  = order.shipping_fee  || 0;
-        const currentShippingCost = order.shipping_cost || 0;
+        const currentShippingFee = order.shipping_fee || 0;
         const shouldFreeship = _shouldFreeship(products);
-
-        let newShippingFee;
-        if (shouldFreeship) {
-            newShippingFee = 0; // Áp dụng miễn phí ship
-        } else if (currentShippingFee === 0 && currentShippingCost > 0) {
-            // Trước có freeship, giờ không còn → khôi phục phí ship thực
-            newShippingFee = currentShippingCost;
-        } else {
-            newShippingFee = currentShippingFee; // Giữ nguyên
-        }
+        const newShippingFee = shouldFreeship ? 0
+            : (currentShippingFee === 0 ? _getCustomerShippingFee() : currentShippingFee);
 
         // Update in database via API
         const response = await fetch(`${CONFIG.API_URL}`, {
@@ -1397,4 +1388,16 @@ function _shouldFreeship(productsArr) {
         || (has23 && non23Qty >= 1)
         || hasHighValue
     );
+}
+
+/**
+ * Lấy phí ship khách trả từ cấu hình (customer_shipping_fee).
+ * Dùng khi hủy freeship để khôi phục đúng mức phí khách trả, không phải phí thực tế.
+ */
+function _getCustomerShippingFee() {
+    if (typeof packagingConfig !== 'undefined' && packagingConfig.length > 0) {
+        const item = packagingConfig.find(i => i.item_name === 'customer_shipping_fee');
+        if (item) return item.item_cost;
+    }
+    return 30000; // fallback
 }

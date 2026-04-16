@@ -14,7 +14,6 @@ async function loadProductsAndCategories() {
     }
 
     try {
-        console.log('📥 Loading products and categories...');
         const [productsRes, categoriesRes] = await Promise.all([
             fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`),
             fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`)
@@ -207,24 +206,17 @@ async function saveProductsToExistingOrder() {
                 }
 
                 if (notes) newProduct.notes = notes;
-
-                console.log('📦 Adding product to order:', {
-                    name: product.name,
-                    category: categoryName,
-                    isAdultBracelet: isAdultBracelet,
-                    price: product.price,
-                    cost_price: product.cost_price,
-                    quantity: quantity,
-                    weightOrSize: wRaw,
-                    notes: notes,
-                    finalProduct: newProduct
-                });
-
                 products.push(newProduct);
             }
         });
 
         const updatedProductsJson = JSON.stringify(products);
+
+        // Recalculate freeship after adding new products
+        const shouldFreeship = _shouldFreeship(products);
+        const curFee = order.shipping_fee || 0;
+        const newShippingFee = shouldFreeship ? 0
+            : (curFee === 0 ? _getCustomerShippingFee() : curFee);
 
         // Update in database
         const response = await fetch(`${CONFIG.API_URL}`, {
@@ -233,16 +225,17 @@ async function saveProductsToExistingOrder() {
             body: JSON.stringify({
                 action: 'updateOrderProducts',
                 orderId: currentEditingOrderId,
-                products: updatedProductsJson
+                products: updatedProductsJson,
+                shipping_fee: newShippingFee
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            // Update local data using helper function
             const updates = { products: updatedProductsJson };
             if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.shipping_fee  !== undefined) updates.shipping_fee  = data.shipping_fee;
             if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
             if (data.commission !== undefined) updates.commission = data.commission;
 
@@ -334,9 +327,8 @@ async function replaceProductInExistingOrder() {
         // Recalculate shipping freeship condition
         const shouldFreeship = _shouldFreeship(products);
         const curFee = order.shipping_fee || 0;
-        const curCost = order.shipping_cost || 0;
         const newShippingFee = shouldFreeship ? 0
-            : (curFee === 0 && curCost > 0 ? curCost : curFee);
+            : (curFee === 0 ? _getCustomerShippingFee() : curFee);
 
         const response = await fetch(`${CONFIG.API_URL}`, {
             method: 'POST',
