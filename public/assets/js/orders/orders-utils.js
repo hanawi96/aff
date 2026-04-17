@@ -433,3 +433,67 @@ function formatDateTimeSplit(dateInput) {
         return { time: String(dateInput), date: '' };
     }
 }
+
+/**
+ * Milliseconds timestamp for order display (same parsing rules as formatDateTimeSplit).
+ * @param {string|number} dateInput
+ * @returns {number}
+ */
+function parseOrderTimestampMs(dateInput) {
+    if (dateInput == null || dateInput === '') return NaN;
+    try {
+        if (typeof dateInput === 'number' || /^\d+$/.test(String(dateInput))) {
+            return Number(dateInput);
+        }
+        return new Date(dateInput).getTime();
+    } catch (e) {
+        return NaN;
+    }
+}
+
+/**
+ * Vietnamese relative time: "Vừa xong", "N phút trước", "N giờ trước" (same calendar day in VN only).
+ * @param {number} eventMs
+ * @returns {string}
+ */
+function formatVietnameseRelativeAgo(eventMs) {
+    const now = Date.now();
+    let diffSec = Math.floor((now - eventMs) / 1000);
+    if (diffSec < 0) diffSec = 0;
+    if (diffSec < 45) return 'Vừa xong';
+    if (diffSec < 3600) {
+        const m = Math.max(1, Math.floor(diffSec / 60));
+        return `${m} phút trước`;
+    }
+    const h = Math.max(1, Math.floor(diffSec / 3600));
+    return `${h} giờ trước`;
+}
+
+/**
+ * Đặt / Gửi: trong cùng ngày lịch VN → tương đối; sang ngày khác → giờ + ngày như cũ.
+ * @param {string|number} dateInput
+ * @returns {{ isRelative: boolean, main: string, sub: string, title: string }}
+ */
+function formatOrderTimeDisplayParts(dateInput) {
+    const split = formatDateTimeSplit(dateInput);
+    const title = split.date ? `${split.time} · ${split.date}` : split.time;
+
+    const ms = parseOrderTimestampMs(dateInput);
+    if (!Number.isFinite(ms)) {
+        return { isRelative: false, main: split.time, sub: split.date, title };
+    }
+
+    const eventDayVN = new Date(ms).toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+    const todayVN = new Date().toLocaleDateString('en-CA', { timeZone: VIETNAM_TIMEZONE });
+
+    if (eventDayVN === todayVN) {
+        return {
+            isRelative: true,
+            main: formatVietnameseRelativeAgo(ms),
+            sub: '',
+            title
+        };
+    }
+
+    return { isRelative: false, main: split.time, sub: split.date, title };
+}

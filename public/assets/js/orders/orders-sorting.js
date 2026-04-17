@@ -116,46 +116,60 @@ function updateAmountSortIcon() {
 // ============================================
 
 /**
+ * Timestamp (ms) để sort theo cột ngày / mặc định.
+ * Với đã gửi / đang vận chuyển / đã giao: ưu tiên shipped_at_unix (thời gian gửi hàng).
+ */
+function getOrderSortTimestampMs(statusFilter, order) {
+    const preferShipTime =
+        statusFilter === 'shipped' ||
+        statusFilter === 'in_transit' ||
+        statusFilter === 'delivered';
+
+    if (preferShipTime && order.shipped_at_unix != null && order.shipped_at_unix !== '') {
+        const n = Number(order.shipped_at_unix);
+        if (Number.isFinite(n)) return n;
+    }
+
+    const raw = order.created_at_unix ?? order.created_at ?? order.order_date ?? 0;
+    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+    const t = new Date(raw).getTime();
+    return Number.isFinite(t) ? t : 0;
+}
+
+/**
  * Apply current sorting to filteredOrdersData
  * Sorting priority:
- * 1. Status: "pending" luôn lên trên, "shipped" xuống dưới (để tránh in thiếu đơn)
- * 2. Priority flag (is_priority = 1)
- * 3. User-selected sorting (amount or date)
+ * 1. Priority flag (is_priority = 1)
+ * 2. User-selected sorting (amount or date)
+ * 3. Default: shipped / in_transit / delivered → mới nhất theo thời gian gửi (shipped_at_unix); pending → FIFO theo đặt hàng
  */
 function applySorting() {
+    const currentStatusFilter = document.getElementById('statusFilter')?.value || 'pending';
+    const newestFirstStatuses = ['shipped', 'in_transit', 'delivered'];
+
     filteredOrdersData.sort((a, b) => {
-        // LEVEL 1: Đơn được đánh dấu ưu tiên luôn lên trên
         const priorityA = a.is_priority || 0;
         const priorityB = b.is_priority || 0;
         if (priorityA !== priorityB) {
             return priorityB - priorityA;
         }
 
-        // LEVEL 2: User-selected sorting (amount hoặc date)
         if (amountSortOrder !== 'none') {
             const amountA = a.total_amount || 0;
             const amountB = b.total_amount || 0;
             return amountSortOrder === 'desc' ? amountB - amountA : amountA - amountB;
         }
 
+        const ts = (o) => getOrderSortTimestampMs(currentStatusFilter, o);
+
         if (dateSortOrder !== 'none') {
-            const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
-            const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
-            return dateSortOrder === 'desc'
-                ? new Date(timestampB) - new Date(timestampA)
-                : new Date(timestampA) - new Date(timestampB);
+            const diff = ts(a) - ts(b);
+            return dateSortOrder === 'desc' ? -diff : diff;
         }
 
-        // Default sort depends on status filter:
-        // - "shipped" / "in_transit" / "delivered": mới nhất lên trên (gửi gần nhất dễ theo dõi)
-        // - Các trạng thái khác: cũ nhất lên trên (FIFO - đặt trước làm trước)
-        const currentStatusFilter = document.getElementById('statusFilter')?.value || 'pending';
-        const newestFirstStatuses = ['shipped', 'in_transit', 'delivered'];
-        const timestampA = a.created_at_unix || a.created_at || a.order_date || 0;
-        const timestampB = b.created_at_unix || b.created_at || b.order_date || 0;
         if (newestFirstStatuses.includes(currentStatusFilter)) {
-            return new Date(timestampB) - new Date(timestampA); // Mới nhất lên trên
+            return ts(b) - ts(a);
         }
-        return new Date(timestampA) - new Date(timestampB); // Cũ nhất lên trên (FIFO)
+        return ts(a) - ts(b);
     });
 }

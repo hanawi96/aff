@@ -200,6 +200,25 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         </div>
     ` : '';
 
+    let shippedTimeBlock = '';
+    if (order.shipped_at_unix) {
+        const shipParts = formatOrderTimeDisplayParts(order.shipped_at_unix);
+        const shipMain = escapeHtml(shipParts.main);
+        const shipTitle = escapeHtml(shipParts.title);
+        const shipBody = shipParts.isRelative
+            ? `<span class="text-sm font-semibold text-blue-700 leading-tight" title="${shipTitle}">${shipMain}</span>`
+            : (() => {
+                const hm = shipParts.main.slice(0, 5);
+                const line = `${hm} - ${shipParts.sub}`;
+                return `<span class="text-xs text-sky-700 font-medium leading-tight whitespace-nowrap text-center">${escapeHtml(line)}</span>`;
+            })();
+        shippedTimeBlock = `
+            <div class="mt-2 pt-2 border-t border-gray-100 w-full max-w-[9rem] mx-auto flex flex-col items-center gap-0.5">
+                <span class="text-[0.65rem] text-blue-600 uppercase tracking-wide font-medium">Gửi</span>
+                ${shipBody}
+            </div>`;
+    }
+
     tdOrderId.innerHTML = `
         <div class="flex flex-col gap-2 items-center">
             <div class="flex items-center gap-2">
@@ -212,6 +231,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
                 </button>
             </div>
             ${getStatusBadge(order.status, order.id, order.order_id)}
+            ${shippedTimeBlock}
         </div>
     `;
 
@@ -342,18 +362,22 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
         </div>
     `;
 
-    // Ngày đặt
+    // Ngày đặt (thời gian gửi nằm cột Mã đơn)
     const tdDate = document.createElement('td');
     tdDate.className = 'px-4 py-4 text-sm text-gray-500 text-center';
-    // Prefer created_at_unix (Vietnam time) over created_at (UTC time)
-    const timestamp = order.created_at_unix || order.created_at || order.order_date;
-    const dateTimeObj = formatDateTimeSplit(timestamp);
-    tdDate.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <span style="font-weight: 600; color: #374151; font-size: 0.875rem;">${dateTimeObj.time}</span>
-            <span style="font-size: 0.75rem; color: #9CA3AF;">${dateTimeObj.date}</span>
-        </div>
-    `;
+    const tsPlace = order.created_at_unix || order.created_at || order.order_date;
+    const placeParts = formatOrderTimeDisplayParts(tsPlace);
+    const placeMain = escapeHtml(placeParts.main);
+    const placeSub = escapeHtml(placeParts.sub);
+    const placeTitle = escapeHtml(placeParts.title);
+    tdDate.innerHTML = placeParts.isRelative
+        ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;" title="${placeTitle}">
+            <span style="font-weight: 600; color: #374151; font-size: 0.875rem;">${placeMain}</span>
+        </div>`
+        : `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <span style="font-weight: 600; color: #374151; font-size: 0.875rem;">${placeMain}</span>
+            <span style="font-size: 0.75rem; color: #9CA3AF;">${placeSub}</span>
+        </div>`;
 
     // Thao tác
     const tdActions = document.createElement('td');

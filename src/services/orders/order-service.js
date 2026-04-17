@@ -599,14 +599,17 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Update in database
-        const result = await env.DB.prepare(`
-            UPDATE orders 
-            SET status = ?
-            WHERE id = ?
-        `).bind(data.status, data.orderId).run();
+        const nowMs = Date.now();
+        // Khi chuyển sang shipped: ghi shipped_at_unix một lần (COALESCE — không ghi đè)
+        const row = await env.DB.prepare(`
+            UPDATE orders
+            SET status = ?1,
+                shipped_at_unix = CASE WHEN ?1 = 'shipped' THEN COALESCE(shipped_at_unix, ?2) ELSE shipped_at_unix END
+            WHERE id = ?3
+            RETURNING shipped_at_unix
+        `).bind(data.status, nowMs, data.orderId).first();
 
-        if (result.meta && result.meta.changes === 0) {
+        if (!row) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
@@ -617,7 +620,8 @@ export async function updateOrderStatus(data, env, corsHeaders) {
 
         return jsonResponse({
             success: true,
-            message: 'Đã cập nhật trạng thái đơn hàng'
+            message: 'Đã cập nhật trạng thái đơn hàng',
+            shipped_at_unix: row.shipped_at_unix ?? null
         }, 200, corsHeaders);
 
     } catch (error) {

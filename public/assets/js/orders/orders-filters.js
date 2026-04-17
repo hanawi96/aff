@@ -400,6 +400,15 @@ function selectStatusFilter(value, label) {
     document.getElementById('statusFilter').value = value;
     document.getElementById('statusFilterLabel').textContent = label;
     document.getElementById('statusFilterMenu')?.remove();
+
+    // Đã gửi hàng: sort mặc định theo thời gian gửi mới nhất (shipped_at_unix), không để sort theo giá trị đơn che mất
+    if (value === 'shipped') {
+        amountSortOrder = 'none';
+        dateSortOrder = 'desc';
+        if (typeof updateAmountSortIcon === 'function') updateAmountSortIcon();
+        if (typeof updateDateSortIcon === 'function') updateDateSortIcon();
+    }
+
     filterOrdersData();
 }
 

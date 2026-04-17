@@ -407,8 +407,11 @@ async function bulkUpdateStatus(newStatus, statusLabel) {
                 const data = await response.json();
                 if (data.success) {
                     successCount++;
-                    // Update local data
-                    updateOrderData(orderId, { status: newStatus });
+                    const patch = { status: newStatus };
+                    if (data.shipped_at_unix !== undefined && data.shipped_at_unix !== null) {
+                        patch.shipped_at_unix = data.shipped_at_unix;
+                    }
+                    updateOrderData(orderId, patch);
                 } else {
                     failCount++;
                 }

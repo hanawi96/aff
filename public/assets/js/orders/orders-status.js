@@ -155,6 +155,9 @@ async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, 
             const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
             if (orderIndex !== -1) {
                 allOrdersData[orderIndex].status = newStatus;
+                if (data.shipped_at_unix !== undefined && data.shipped_at_unix !== null) {
+                    allOrdersData[orderIndex].shipped_at_unix = data.shipped_at_unix;
+                }
             }
 
             // Áp lại bộ lọc hiện tại: đơn không còn khớp (vd. đã gửi khi đang lọc chưa gửi) sẽ biến mất ngay
