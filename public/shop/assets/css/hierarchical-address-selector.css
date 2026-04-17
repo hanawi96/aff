@@ -207,7 +207,7 @@
     overscroll-behavior: contain;
 }
 
-/* Mobile: Taller dropdown for easier scrolling */
+/* Mobile: tương tự desktop; chiều cao thực do flex + min-height:0 trên .address-dropdown-content */
 @media (max-width: 768px) {
     .address-dropdown {
         max-height: 60vh;
@@ -252,11 +252,13 @@
 
 .address-dropdown-content {
     overflow-y: auto;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0; /* flex: cần để vùng này co lại và bật cuộn nội bộ (mobile) */
     padding: 0.5rem;
     
     /* Force browser to treat like native scrolling */
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     
     /* Prevent overscroll bounce at top/bottom */
     overscroll-behavior-y: contain;

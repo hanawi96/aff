@@ -385,15 +385,17 @@ export class HierarchicalAddressSelector {
                     }
                 }
             } else if (createPanel) {
-                // Admin mobile create/edit order panel (#createPanel is the scroll container)
+                // Admin mobile: phần cuộn thật là #createScrollArea (createPanel overflow-hidden)
+                const scrollEl = document.getElementById('createScrollArea');
+                if (!scrollEl) return;
                 const stickyHeader = createPanel.querySelector('.sticky.top-0');
                 const headerHeight = stickyHeader ? stickyHeader.offsetHeight : 56;
                 const anchor = chipsWrapper.closest('.m-address-section') || chipsWrapper.closest('.checkout-form-group');
                 if (anchor) {
-                    const pr = createPanel.getBoundingClientRect();
+                    const pr = scrollEl.getBoundingClientRect();
                     const ar = anchor.getBoundingClientRect();
-                    const nextTop = createPanel.scrollTop + (ar.top - pr.top) - headerHeight - 10;
-                    createPanel.scrollTo({
+                    const nextTop = scrollEl.scrollTop + (ar.top - pr.top) - headerHeight - 10;
+                    scrollEl.scrollTo({
                         top: Math.max(0, nextTop),
                         behavior: 'smooth'
                     });
@@ -420,6 +422,17 @@ export class HierarchicalAddressSelector {
         
         // Unlock body scroll if it was locked
         this.unlockBodyScroll();
+        this._toggleCreateScrollLock(false);
+    }
+
+    /**
+     * Khóa cuộn #createScrollArea khi dropdown mở — tránh gesture cuộn vào panel cha thay vì danh sách địa chỉ (mobile admin).
+     */
+    _toggleCreateScrollLock(lock) {
+        if (this.containerId !== 'mOrderAddressSelectorContainer') return;
+        const scrollArea = document.getElementById('createScrollArea');
+        if (!scrollArea) return;
+        scrollArea.style.overflowY = lock ? 'hidden' : '';
     }
     
     /**
@@ -1022,6 +1035,8 @@ export class HierarchicalAddressSelector {
             document.dispatchEvent(new CustomEvent('addressDropdownToggle', {
                 detail: { isOpen: true, container }
             }));
+
+            this._toggleCreateScrollLock(true);
         }
         
         if (searchInput) {
@@ -1061,6 +1076,8 @@ export class HierarchicalAddressSelector {
         }
         
         this.focusedIndex = -1;
+
+        this._toggleCreateScrollLock(false);
     }
     
     /**
