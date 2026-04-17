@@ -228,17 +228,20 @@ export class HierarchicalAddressSelector {
         
         // Selector display click - open dropdown
         if (selectorDisplay) {
-            selectorDisplay.addEventListener('click', () => {
-                this.scrollInputIntoView();
-                this.performSearch();
-            });
-            
-            // Keyboard support
+            const openFromDisplay = () => {
+                if (this.containerId === 'mOrderAddressSelectorContainer') {
+                    this._scrollMOrderAddressBlockToTop();
+                    requestAnimationFrame(() => this.performSearch());
+                } else {
+                    this.scrollInputIntoView();
+                    this.performSearch();
+                }
+            };
+            selectorDisplay.addEventListener('click', openFromDisplay);
             selectorDisplay.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    this.scrollInputIntoView();
-                    this.performSearch();
+                    openFromDisplay();
                 }
             });
         }
@@ -250,6 +253,9 @@ export class HierarchicalAddressSelector {
             });
             
             searchInput.addEventListener('focus', () => {
+                if (this.containerId === 'mOrderAddressSelectorContainer') {
+                    this._scrollMOrderAddressBlockToTop();
+                }
                 this.performSearch();
             });
             
@@ -340,7 +346,6 @@ export class HierarchicalAddressSelector {
             
             // Check if we're inside a modal
             const modal = chipsWrapper.closest('.quick-checkout-modal');
-            const createPanel = chipsWrapper.closest('#createPanel');
 
             if (modal) {
                 // Inside modal - scroll the modal body to bring input to top
@@ -372,22 +377,6 @@ export class HierarchicalAddressSelector {
                         });
                     }
                 }
-            } else if (createPanel) {
-                // Admin mobile: phần cuộn thật là #createScrollArea (createPanel overflow-hidden)
-                const scrollEl = document.getElementById('createScrollArea');
-                if (!scrollEl) return;
-                const stickyHeader = createPanel.querySelector('.sticky.top-0');
-                const headerHeight = stickyHeader ? stickyHeader.offsetHeight : 56;
-                const anchor = chipsWrapper.closest('.m-address-section') || chipsWrapper.closest('.checkout-form-group');
-                if (anchor) {
-                    const pr = scrollEl.getBoundingClientRect();
-                    const ar = anchor.getBoundingClientRect();
-                    const nextTop = scrollEl.scrollTop + (ar.top - pr.top) - headerHeight - 10;
-                    scrollEl.scrollTo({
-                        top: Math.max(0, nextTop),
-                        behavior: 'smooth'
-                    });
-                }
             } else {
                 // Not in modal - scroll the window (cart page)
                 const elementPosition = chipsWrapper.getBoundingClientRect().top;
@@ -396,6 +385,27 @@ export class HierarchicalAddressSelector {
                 window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
             }
         }, this.KEYBOARD_DELAY);
+    }
+
+    /**
+     * Mobile admin (m.html): cuộn cả khối #mAddressFormBlock lên sát đầu #createScrollArea
+     * (dưới sticky nếu có) để dropdown địa chỉ có tối đa không gian hiển thị.
+     */
+    _scrollMOrderAddressBlockToTop() {
+        if (this.containerId !== 'mOrderAddressSelectorContainer') return;
+        const scrollEl = document.getElementById('createScrollArea');
+        const block = document.getElementById('mAddressFormBlock');
+        if (!scrollEl || !block || scrollEl.clientHeight <= 0) return;
+        const sticky = scrollEl.querySelector('.sticky');
+        const headerH = sticky ? sticky.offsetHeight : 0;
+        const gap = 8;
+        const pr = scrollEl.getBoundingClientRect();
+        const ar = block.getBoundingClientRect();
+        let nextTop = scrollEl.scrollTop + (ar.top - pr.top) - headerH - gap;
+        const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+        nextTop = Math.max(0, Math.min(nextTop, maxScroll));
+        if (Math.abs(nextTop - scrollEl.scrollTop) < 2) return;
+        scrollEl.scrollTo({ top: nextTop, behavior: 'auto' });
     }
     
     /**
@@ -525,6 +535,9 @@ export class HierarchicalAddressSelector {
         
         searchInput.value = '';
         this.renderList(level);
+        if (this.containerId === 'mOrderAddressSelectorContainer') {
+            this._scrollMOrderAddressBlockToTop();
+        }
         this.openDropdown();
         setTimeout(() => searchInput.focus(), this.FOCUS_DELAY);
     }
