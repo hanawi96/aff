@@ -407,6 +407,71 @@ export class HierarchicalAddressSelector {
         if (Math.abs(nextTop - scrollEl.scrollTop) < 2) return;
         scrollEl.scrollTo({ top: nextTop, behavior: 'auto' });
     }
+
+    /**
+     * m.html tạo đơn: giới hạn chiều cao dropdown theo khoảng trống thực tế tới footer cố định (#createPanel > .shrink-0),
+     * tránh danh sách bị che bởi nút "Tạo đơn".
+     */
+    _syncMCreateDropdownMaxHeight() {
+        if (this.containerId !== 'mOrderAddressSelectorContainer') return;
+        const panel = document.getElementById('createPanel');
+        const dd = document.getElementById('addressDropdown');
+        if (!panel || panel.classList.contains('hidden') || !dd || dd.classList.contains('hidden')) return;
+        const footer = panel.querySelector(':scope > .shrink-0');
+        if (!footer) return;
+        const gap = 8;
+        const dr = dd.getBoundingClientRect();
+        const fr = footer.getBoundingClientRect();
+        let maxH = fr.top - dr.top - gap;
+        if (maxH < 120) maxH = 120;
+        const cap = Math.floor(window.innerHeight * 0.92);
+        if (maxH > cap) maxH = cap;
+        dd.style.maxHeight = `${Math.floor(maxH)}px`;
+    }
+
+    _requestMCreateDropdownHeightSync() {
+        if (this.containerId !== 'mOrderAddressSelectorContainer' || !this.isDropdownOpen) return;
+        requestAnimationFrame(() => this._syncMCreateDropdownMaxHeight());
+    }
+
+    _bindMCreateDropdownLayoutListeners() {
+        if (this.containerId !== 'mOrderAddressSelectorContainer') return;
+        this._unbindMCreateDropdownLayoutListeners();
+        const sync = () => {
+            if (this._mCreateDDFooterRaf) cancelAnimationFrame(this._mCreateDDFooterRaf);
+            this._mCreateDDFooterRaf = requestAnimationFrame(() => {
+                this._mCreateDDFooterRaf = 0;
+                this._syncMCreateDropdownMaxHeight();
+            });
+        };
+        this._mCreateDDFooterSync = sync;
+        const scrollEl = document.getElementById('createScrollArea');
+        this._mCreateDDFooterScrollEl = scrollEl || null;
+        if (scrollEl) scrollEl.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', sync);
+            window.visualViewport.addEventListener('scroll', sync);
+        }
+    }
+
+    _unbindMCreateDropdownLayoutListeners() {
+        const sync = this._mCreateDDFooterSync;
+        if (!sync) return;
+        const scrollEl = this._mCreateDDFooterScrollEl;
+        if (scrollEl) scrollEl.removeEventListener('scroll', sync);
+        window.removeEventListener('resize', sync);
+        if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', sync);
+            window.visualViewport.removeEventListener('scroll', sync);
+        }
+        this._mCreateDDFooterSync = null;
+        this._mCreateDDFooterScrollEl = null;
+        if (this._mCreateDDFooterRaf) {
+            cancelAnimationFrame(this._mCreateDDFooterRaf);
+            this._mCreateDDFooterRaf = 0;
+        }
+    }
     
     /**
      * Cleanup event listeners
@@ -418,6 +483,9 @@ export class HierarchicalAddressSelector {
         
         clearTimeout(this.searchDebounceTimer);
         
+        this._unbindMCreateDropdownLayoutListeners();
+        const dd = document.getElementById('addressDropdown');
+        if (dd) dd.style.maxHeight = '';
         this._toggleCreateScrollLock(false);
     }
 
@@ -734,6 +802,7 @@ export class HierarchicalAddressSelector {
         
         if (results.length === 0) {
             content.innerHTML = '<div class="address-dropdown-empty">Không tìm thấy địa chỉ phù hợp</div>';
+            this._requestMCreateDropdownHeightSync();
             return;
         }
         
@@ -757,6 +826,7 @@ export class HierarchicalAddressSelector {
         html += '</div>';
         
         content.innerHTML = html;
+        this._requestMCreateDropdownHeightSync();
     }
     
     /**
@@ -881,6 +951,7 @@ export class HierarchicalAddressSelector {
         
         content.innerHTML = `<div class="address-dropdown-header">${header}</div>
             <div class="address-dropdown-list" role="listbox">${itemsHtml}</div>`;
+        this._requestMCreateDropdownHeightSync();
     }
     
     renderProvinces() {
@@ -998,6 +1069,14 @@ export class HierarchicalAddressSelector {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
             this._toggleCreateScrollLock(true);
+            if (this.containerId === 'mOrderAddressSelectorContainer') {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        this._syncMCreateDropdownMaxHeight();
+                        this._bindMCreateDropdownLayoutListeners();
+                    });
+                });
+            }
         }
         
         if (searchInput) {
@@ -1017,7 +1096,9 @@ export class HierarchicalAddressSelector {
         const searchInput = document.getElementById('addressSearchInput');
         const selectorDisplay = document.getElementById('addressSelectorDisplay');
         
+        this._unbindMCreateDropdownLayoutListeners();
         if (dropdown) {
+            dropdown.style.maxHeight = '';
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
         }
