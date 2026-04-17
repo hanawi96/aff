@@ -230,13 +230,13 @@ async function copySPXFormatExecute(orderId) {
                     ? '[VÒNG DÂU TẰM] - ' + productLines.join(' ----- ')
                     : '';
 
-                // Add order notes if exists and has multiple products
-                if (products.length >= 2 && order.notes && order.notes.trim()) {
-                    productsText += ` ----- Lưu ý tổng: ${order.notes.trim()}`;
-                }
             } catch (e) {
                 // Fallback to raw text
                 productsText = order.products;
+            }
+            // Lưu ý đơn hàng (khác lưu ý từng SP trong ngoặc [])
+            if (productsText && order.notes && String(order.notes).trim()) {
+                productsText += ` - LƯU Ý: ${String(order.notes).trim()}`;
             }
         }
 

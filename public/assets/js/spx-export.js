@@ -201,19 +201,16 @@ function createSPXExcelWorkbook(orders) {
         const address = parseAddressForExport(order);
         const products = parseProducts(order.products);
         
-        // Format all products into one line (与 Copy SPX Format 一致)
+        // Format all products into one line — chỉ SP + lưu ý từng SP trong ngoặc; lưu ý đơn → cột "Lưu ý giao hàng"
         let productText = '';
         if (products.length > 0) {
             const productLines = products.map(product =>
                 formatSPXProductBracketLine(product.name, product.sizeOrWeight, product.quantity, product.notes)
             );
             productText = '[VÒNG DÂU TẰM] - ' + productLines.join(' ----- ');
-
-            // Add order notes if exists
-            if (order.notes && order.notes.trim()) {
-                productText += ` ----- Lưu ý tổng: ${order.notes.trim()}`;
-            }
         }
+        const orderDeliveryNote =
+            order.notes && String(order.notes).trim() ? String(order.notes).trim() : '';
         
         // Determine COD amount based on payment method
         // - If bank transfer: COD = 0 (already paid)
@@ -251,7 +248,7 @@ function createSPXExcelWorkbook(orders) {
             'Số tiền COD': codAmount,
             'bưu gửi giá trị cao (Y/N)': '',
             '*Hình thức thanh Toán': 'Người gửi trả',
-            'Lưu ý giao hàng': '',
+            'Lưu ý giao hàng': orderDeliveryNote,
             'Nhắc nhở điền đúng số tiền COD': '',
             'Đơn chỉ hoàn thành nếu ở dưới hiện "Đủ điều kiện"': ''
         };
