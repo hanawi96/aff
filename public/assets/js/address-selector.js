@@ -81,8 +81,13 @@ class AddressSelector {
                 this.data.push(provinceObj);
             });
             
-            // Sort provinces by code
-            this.data.sort((a, b) => a.Id.localeCompare(b.Id));
+            // Sort provinces: TP.HCM (79) → Hà Nội (01) → còn lại theo tên tiếng Việt
+            this.data.sort((a, b) => {
+                const pri = (id) => id === '79' ? 0 : id === '01' ? 1 : 2;
+                const pa = pri(a.Id), pb = pri(b.Id);
+                if (pa !== pb) return pa - pb;
+                return a.Name.localeCompare(b.Name, 'vi', { sensitivity: 'base' });
+            });
             
             this.loaded = true;
             console.log('✅ Loaded tree.json:', {
@@ -122,7 +127,10 @@ class AddressSelector {
 
         const province = this.provinceMap.get(provinceId);
         if (province) {
-            province.Districts.forEach(district => {
+            const sorted = [...province.Districts].sort((a, b) =>
+                a.Name.localeCompare(b.Name, 'vi', { sensitivity: 'base' })
+            );
+            sorted.forEach(district => {
                 const option = document.createElement('option');
                 option.value = district.Id;
                 option.textContent = district.Name;
@@ -146,7 +154,10 @@ class AddressSelector {
         const district = this.districtMap.get(districtKey);
         
         if (district) {
-            district.Wards.forEach(ward => {
+            const sorted = [...district.Wards].sort((a, b) =>
+                a.Name.localeCompare(b.Name, 'vi', { sensitivity: 'base' })
+            );
+            sorted.forEach(ward => {
                 const option = document.createElement('option');
                 option.value = ward.Id;
                 option.textContent = ward.Name;
