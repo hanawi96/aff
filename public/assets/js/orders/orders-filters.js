@@ -71,16 +71,29 @@ function buildSearchIndex() {
     searchIndexCache = allOrdersData.map(order => {
         // Parse products once and cache
         let productNames = [];
+        let productNotes = [];
         try {
             const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
             if (Array.isArray(products)) {
-                productNames = products.map(p => removeVietnameseTones((p.name || '').toLowerCase()));
+                products.forEach(p => {
+                    if (typeof p === 'object' && p !== null) {
+                        productNames.push(removeVietnameseTones((p.name || '').toLowerCase()));
+                        const lineNote = (p.notes || '').trim();
+                        if (lineNote) {
+                            productNotes.push(removeVietnameseTones(lineNote.toLowerCase()));
+                        }
+                    } else if (typeof p === 'string') {
+                        productNames.push(removeVietnameseTones(p.toLowerCase()));
+                    }
+                });
             }
         } catch (e) {
             // Fallback: use raw string
             productNames = [removeVietnameseTones((order.products || '').toLowerCase())];
         }
-        
+
+        const orderNotesNorm = removeVietnameseTones((order.notes || '').toLowerCase());
+
         return {
             id: order.id,
             // Pre-normalized fields for fast search
@@ -91,6 +104,8 @@ function buildSearchIndex() {
             ctvCode: (order.referral_code || '').toLowerCase(),
             address: removeVietnameseTones((order.address || '').toLowerCase()),
             products: productNames,
+            orderNotes: orderNotesNorm,
+            productNotes,
             // Keep reference to original order
             order: order
         };
@@ -200,8 +215,13 @@ function filterOrdersData(preservePage = false) {
                 
                 // Product search: check cached product names
                 const matchProducts = cached.products.some(p => p.includes(normalizedSearchTerm));
-                
-                matchesSearch = matchOrderId || matchCustomerName || matchPhone || matchCTV || matchAddress || matchProducts;
+
+                // Lưu ý đơn hàng + lưu ý từng dòng sản phẩm (đã chuẩn hoá không dấu)
+                const matchOrderNotes = cached.orderNotes && cached.orderNotes.includes(normalizedSearchTerm);
+                const matchProductNotes = Array.isArray(cached.productNotes) && cached.productNotes.some(n => n.includes(normalizedSearchTerm));
+
+                matchesSearch = matchOrderId || matchCustomerName || matchPhone || matchCTV || matchAddress || matchProducts
+                    || matchOrderNotes || matchProductNotes;
             } else {
                 // Fallback: shouldn't happen, but handle gracefully
                 matchesSearch = true;

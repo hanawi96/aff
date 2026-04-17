@@ -349,7 +349,6 @@ function showCustomProductModalForOrderEdit(orderId, orderCode, productIndex, pr
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-white">Chỉnh sửa sản phẩm tùy chỉnh</h3>
-                            <p class="text-white/80 text-sm">Không có trong danh mục kho — chỉnh tên, giá, SL, cân/size, lưu ý</p>
                         </div>
                     </div>
                     <button type="button" onclick="closeCustomOrderLineEditModal()" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 transition-all">

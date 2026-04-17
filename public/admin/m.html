@@ -96,7 +96,7 @@ html.m-create-deeplink>body>header{display:none!important}
   </div>
   <!-- Search bar (hidden) -->
   <div id="searchBar" class="hidden mt-3">
-    <input id="searchInput" type="search" placeholder="Tìm tên, SĐT, mã đơn..." class="w-full px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="onSearch()">
+    <input id="searchInput" type="search" placeholder="Tên, SĐT, mã đơn, SP, lưu ý đơn / SP..." class="w-full px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="onSearch()">
   </div>
 </header>
 
@@ -910,16 +910,52 @@ function mShipOrCreateTs(o){
   return Number(o.created_at_unix)||0;
 }
 
+/** Chuỗi tìm kiếm gộp: mã đơn, KH, SĐT, địa chỉ, lưu ý đơn, tên + lưu ý từng dòng SP */
+function mOrderSearchHaystack(o){
+  const parts=[o.order_id,o.customer_name,o.customer_phone,o.address||'',o.notes||''];
+  try{
+    const prods=typeof o.products==='string'?JSON.parse(o.products):o.products;
+    if(Array.isArray(prods)){
+      prods.forEach(p=>{
+        if(typeof p==='object'&&p!==null){
+          if(p.name)parts.push(String(p.name));
+          if(p.notes)parts.push(String(p.notes));
+        }else if(typeof p==='string'){
+          parts.push(p);
+        }
+      });
+    }
+  }catch(_){
+    if(o.products)parts.push(String(o.products));
+  }
+  return parts.join(' ').toLowerCase();
+}
+
+/** Đang ở tab Thống kê mà có từ khóa tìm → chuyển sang danh sách đơn, ẩn thống kê, bỏ highlight tab stats */
+function leaveStatsForOrderSearch(){
+  if(currentTab!=='stats')return;
+  currentTab='pending';
+  searchListScope=null;
+  document.getElementById('m-tab-boot')?.remove();
+  document.getElementById('orderList')?.classList.remove('hidden');
+  document.getElementById('statsView')?.classList.add('hidden');
+  document.getElementById('searchBar')?.classList.remove('hidden');
+  setMainTabHash('pending');
+  window.scrollTo(0,0);
+}
+
 function applyFilter(){
   const q=searchTerm.toLowerCase();
   const hasQ=searchTerm.trim().length>0;
+  if(hasQ&&currentTab==='stats')leaveStatsForOrderSearch();
+
   filtered=allOrders.filter(o=>{
-    if(currentTab==='stats')return true;
+    if(currentTab==='stats'&&!hasQ)return true;
     if(!hasQ){
       if(currentTab!=='all'&&currentTab!=='stats'&&(o.status||'pending')!==currentTab)return false;
     }else if(searchListScope!=null&&(o.status||'pending')!==searchListScope)return false;
     if(q){
-      const s=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();
+      const s=mOrderSearchHaystack(o);
       if(!s.includes(q))return false;
     }
     if(mPriorityFilter&&o.is_priority!==1)return false;
@@ -953,7 +989,7 @@ function updateCounts(){
     const q=searchTerm.toLowerCase();
     return allOrders.filter(o=>{
       if((o.status||'pending')!==s)return false;
-      if(q){const t=`${o.order_id} ${o.customer_name} ${o.customer_phone} ${o.address||''}`.toLowerCase();if(!t.includes(q))return false;}
+      if(q){const t=mOrderSearchHaystack(o);if(!t.includes(q))return false;}
       if(mPriorityFilter&&o.is_priority!==1)return false;
       if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
       if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
@@ -1082,6 +1118,8 @@ function switchTab(btn,opts){
     window.scrollTo(0,0);
     updateTabActive(currentPeriod);
     if(!statsInitialized){statsInitialized=true;loadData();}
+    // Cập nhật badge Chờ xử lý / Đã gửi về tổng thật (không còn số theo kết quả tìm kiếm trước đó)
+    applyFilter();
   }else{
     const q=(document.getElementById('searchInput')?.value||'').trim();
     if(q.length>0&&(currentTab==='pending'||currentTab==='shipped'))searchListScope=currentTab;
