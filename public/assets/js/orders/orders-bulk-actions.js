@@ -408,7 +408,7 @@ async function bulkUpdateStatus(newStatus, statusLabel) {
                 if (data.success) {
                     successCount++;
                     const patch = { status: newStatus };
-                    if (data.shipped_at_unix !== undefined && data.shipped_at_unix !== null) {
+                    if (Object.prototype.hasOwnProperty.call(data, 'shipped_at_unix')) {
                         patch.shipped_at_unix = data.shipped_at_unix;
                     }
                     updateOrderData(orderId, patch);

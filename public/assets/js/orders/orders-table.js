@@ -201,7 +201,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     ` : '';
 
     let shippedTimeBlock = '';
-    if (order.shipped_at_unix) {
+    if (orderShouldShowShipTime(order)) {
         const shipParts = formatOrderTimeDisplayParts(order.shipped_at_unix);
         const shipMain = escapeHtml(shipParts.main);
         const shipTitle = escapeHtml(shipParts.title);

@@ -62,6 +62,27 @@ function escapeHtml(text) {
 // Khớp logic normalize trên public/admin/m.html — một nơi dùng chung để hiển thị & lọc.
 // ============================================
 
+/** Chuẩn hóa status từ DB/UI (VN hoặc slug) → slug dùng cho lọc/hiển thị */
+function normalizeOrderStatusSlug(status) {
+    const s = (status == null ? '' : String(status)).toLowerCase().trim();
+    const statusMap = {
+        'mới': 'pending',
+        'chờ xử lý': 'pending',
+        'đã gửi hàng': 'shipped',
+        'đang vận chuyển': 'in_transit',
+        'đã giao hàng': 'delivered',
+        'giao hàng thất bại': 'failed'
+    };
+    return statusMap[s] || s;
+}
+
+/** Chỉ hiện block thời gian gửi khi đơn đang ở trạng thái đã gửi / vận chuyển / đã giao */
+function orderShouldShowShipTime(order) {
+    if (!order || !order.shipped_at_unix) return false;
+    const slug = normalizeOrderStatusSlug(order.status);
+    return slug === 'shipped' || slug === 'in_transit' || slug === 'delivered';
+}
+
 function normalizeOrderPaymentMethodStored(v) {
     if (v == null || v === '') return 'cod';
     if (typeof v === 'number') return v === 1 ? 'bank_transfer' : 'cod';
