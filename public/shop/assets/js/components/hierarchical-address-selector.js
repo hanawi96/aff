@@ -66,9 +66,6 @@ export class HierarchicalAddressSelector {
         // Single flag for preventing dropdown close during interactions
         this.isInteracting = false;
         
-        // Save scroll position when locking body
-        this.savedScrollPosition = 0;
-        
         // Keyboard navigation
         this.focusedIndex = -1;
         this.resultItems = [];
@@ -104,8 +101,6 @@ export class HierarchicalAddressSelector {
             this.prepareNormalizedData();
             this.render();
             this.setupEventListeners();
-            
-            console.log('✅ HierarchicalAddressSelector initialized');
         } catch (error) {
             console.error('❌ Error initializing HierarchicalAddressSelector:', error);
             
@@ -192,8 +187,6 @@ export class HierarchicalAddressSelector {
         });
         
         this.normalizedData.sort((a, b) => this.compareProvincesDisplayOrder(a, b));
-        
-        console.log('✅ Normalized address data prepared:', this.normalizedData.length, 'provinces');
     }
     
     /**
@@ -238,7 +231,6 @@ export class HierarchicalAddressSelector {
             selectorDisplay.addEventListener('click', () => {
                 this.scrollInputIntoView();
                 this.performSearch();
-                this.openDropdown();
             });
             
             // Keyboard support
@@ -247,7 +239,6 @@ export class HierarchicalAddressSelector {
                     e.preventDefault();
                     this.scrollInputIntoView();
                     this.performSearch();
-                    this.openDropdown();
                 }
             });
         }
@@ -300,7 +291,6 @@ export class HierarchicalAddressSelector {
                 
                 const action = target.dataset.action;
                 const code = target.dataset.code;
-                const level = target.dataset.level;
                 
                 if (action === 'select-province') {
                     this.selectProvince(code);
@@ -308,8 +298,6 @@ export class HierarchicalAddressSelector {
                     this.selectDistrict(code);
                 } else if (action === 'select-ward') {
                     this.selectWard(code);
-                } else if (action === 'goto-level') {
-                    this.goToLevel(level);
                 } else if (action === 'select-result') {
                     this.selectResult(target);
                 }
@@ -420,8 +408,6 @@ export class HierarchicalAddressSelector {
         
         clearTimeout(this.searchDebounceTimer);
         
-        // Unlock body scroll if it was locked
-        this.unlockBodyScroll();
         this._toggleCreateScrollLock(false);
     }
 
@@ -882,8 +868,6 @@ export class HierarchicalAddressSelector {
         
         content.innerHTML = `<div class="address-dropdown-header">${header}</div>
             <div class="address-dropdown-list" role="listbox">${itemsHtml}</div>`;
-        
-        if (action !== 'select-province') this.openDropdown();
     }
     
     renderProvinces() {
@@ -905,8 +889,6 @@ export class HierarchicalAddressSelector {
      */
     updateChipsDisplay() {
         const chipsContainer = document.getElementById('addressChips');
-        const placeholder = chipsContainer?.querySelector('.address-placeholder');
-        
         if (!chipsContainer) return;
         
         const chips = [];
@@ -936,33 +918,6 @@ export class HierarchicalAddressSelector {
         } else {
             chipsContainer.innerHTML = '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>';
         }
-    }
-    
-    /**
-     * Navigate to a specific level (unused - can be removed if not needed)
-     */
-    goToLevel(level) {
-        const resetMap = {
-            province: () => {
-                this.districtCode = '';
-                this.wardCode = '';
-                this.selectedDistrict = null;
-                this.selectedWard = null;
-                this.currentLevel = 'district';
-                this.renderDistricts();
-            },
-            district: () => {
-                this.wardCode = '';
-                this.selectedWard = null;
-                this.currentLevel = 'ward';
-                this.renderWards();
-            }
-        };
-        
-        resetMap[level]?.();
-        this.updateChipsDisplay();
-        this.updateFullAddress();
-        this.hideStreetInput();
     }
     
     /**
@@ -1029,13 +984,6 @@ export class HierarchicalAddressSelector {
         if (dropdown) {
             dropdown.classList.remove('hidden');
             this.isDropdownOpen = true;
-            
-            // Dispatch event for modal to handle scroll
-            const container = document.getElementById(this.containerId);
-            document.dispatchEvent(new CustomEvent('addressDropdownToggle', {
-                detail: { isOpen: true, container }
-            }));
-
             this._toggleCreateScrollLock(true);
         }
         
@@ -1059,12 +1007,6 @@ export class HierarchicalAddressSelector {
         if (dropdown) {
             dropdown.classList.add('hidden');
             this.isDropdownOpen = false;
-            
-            // Dispatch event for modal to handle scroll
-            const container = document.getElementById(this.containerId);
-            document.dispatchEvent(new CustomEvent('addressDropdownToggle', {
-                detail: { isOpen: false, container }
-            }));
         }
         
         if (searchInput) {
@@ -1078,55 +1020,6 @@ export class HierarchicalAddressSelector {
         this.focusedIndex = -1;
 
         this._toggleCreateScrollLock(false);
-    }
-    
-    /**
-     * Lock body scroll (prevent page scroll when dropdown is open)
-     */
-    lockBodyScroll() {
-        // Check if we're in a modal (modal already locks body)
-        const modal = document.querySelector('.quick-checkout-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            return;
-        }
-        const createPanel = document.getElementById('createPanel');
-        if (createPanel && !createPanel.classList.contains('hidden')) {
-            return;
-        }
-        
-        // Simple - exactly like modal does it
-        document.body.style.overflow = 'hidden';
-    }
-    
-    /**
-     * Unlock body scroll
-     */
-    unlockBodyScroll() {
-        // Check if we're in a modal
-        const modal = document.querySelector('.quick-checkout-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            return;
-        }
-        const createPanel = document.getElementById('createPanel');
-        if (createPanel && !createPanel.classList.contains('hidden')) {
-            return;
-        }
-        
-        // Simple - exactly like modal does it
-        document.body.style.overflow = '';
-    }
-    
-    /**
-     * Clear search (unused - can be removed)
-     */
-    clearSearch() {
-        const searchInput = document.getElementById('addressSearchInput');
-        if (searchInput) {
-            searchInput.value = '';
-            this.searchQuery = '';
-            searchInput.focus();
-        }
-        this.renderList(this.currentLevel);
     }
     
     /**
@@ -1253,7 +1146,6 @@ export class HierarchicalAddressSelector {
         
         const searchInput = document.getElementById('addressSearchInput');
         const streetInput = document.getElementById('streetInput');
-        const clearBtn = document.getElementById('addressSearchClear');
         
         if (searchInput) searchInput.value = '';
         if (streetInput) streetInput.value = '';

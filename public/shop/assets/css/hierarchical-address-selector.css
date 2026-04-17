@@ -538,22 +538,6 @@
     outline-offset: 2px;
 }
 
-/* Remove unused animation classes */
-
-/* Body scroll lock when address dropdown is open (cart page only, NOT in modal) */
-body.address-dropdown-open:not(.modal-open) {
-    /* DON'T use overflow: hidden - it prevents dropdown from scrolling! */
-    /* Use position: fixed instead to lock scroll but allow child elements to scroll */
-    position: fixed;
-    width: 100%;
-    overflow-y: scroll; /* Keep scrollbar space */
-}
-
-html.address-dropdown-open:not(.modal-open) {
-    /* Prevent iOS Safari bounce */
-    overflow: hidden;
-}
-
 /* When dropdown is inside modal, keep it simple with absolute positioning */
 .address-modal .address-dropdown {
     /* Increase max-height to show more items */
