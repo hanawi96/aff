@@ -1592,21 +1592,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Chuyển URL R2 trực tiếp (pub-...r2.dev) sang Worker proxy để load ảnh qua Worker.
-// Cần thiết cho local dev: file được upload vào R2 simulation của Wrangler,
-// nhưng URL pub-...r2.dev trỏ đến Cloudflare cloud (file không tồn tại ở đó).
-// Worker proxy (?action=getR2Image&key=...) serve file từ R2 simulation cục bộ.
-// Trong production Worker cũng serve được từ R2 thật → hoạt động đúng ở cả 2 môi trường.
+// URL pub-...r2.dev là public R2 bucket URL — truy cập trực tiếp từ mọi môi trường (local & production).
 function getQrDisplayUrl(rawUrl) {
     if (!rawUrl) return null;
-    const R2_DOMAIN = 'pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
-    if (rawUrl.includes(R2_DOMAIN)) {
-        const idx = rawUrl.indexOf(R2_DOMAIN + '/');
-        if (idx !== -1) {
-            const key = rawUrl.substring(idx + R2_DOMAIN.length + 1);
-            return `${CONFIG.API_URL}/?action=getR2Image&key=${encodeURIComponent(key)}`;
-        }
-    }
     return rawUrl;
 }
 
