@@ -225,8 +225,10 @@ async function copySPXFormatExecute(orderId) {
                     return formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes);
                 });
 
-                // Join products with " ----- " separator (on same line)
-                productsText = productLines.join(' ----- ');
+                // Join products with " ----- " separator; tiền tố thương hiệu trước block SP đầu (đồng bộ Excel SPX)
+                productsText = productLines.length
+                    ? '[VÒNG DÂU TẰM] - ' + productLines.join(' ----- ')
+                    : '';
 
                 // Add order notes if exists and has multiple products
                 if (products.length >= 2 && order.notes && order.notes.trim()) {
