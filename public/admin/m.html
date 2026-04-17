@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+html{background-color:#f9fafb}
 /* Street input trong HierarchicalAddressSelector (shop dùng .checkout-form-input từ styles.css) */
 #mOrderAddressSelectorContainer .checkout-form-input{width:100%;padding:0.625rem 0.875rem;border:1px solid #e5e7eb;border-radius:0.75rem;font-size:0.875rem;background:#f9fafb;box-sizing:border-box}
 #mOrderAddressSelectorContainer .checkout-form-input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2);background:#fff}
@@ -54,7 +55,24 @@ html.m-order-deeplink #loadMore,
 html.m-order-deeplink #orderStatusTabs{display:none!important}
 html.m-order-deeplink #detailPanel{display:block!important}
 html.m-order-deeplink #detailBootPlaceholder{display:block!important}
+/* Deep link #edit/id, #create: tránh flash danh sách + skeleton — full-screen create panel + placeholder */
+html.m-create-deeplink body{overflow:hidden}
+html.m-create-deeplink #orderList,
+html.m-create-deeplink #loadMore,
+html.m-create-deeplink #orderStatusTabs{display:none!important}
+html.m-create-deeplink #createPanel{display:flex!important;flex-direction:column}
+html.m-create-deeplink #createBootPlaceholder{display:block!important}
+/* Overlay (#createPanel / #detailPanel) nằm cuối body — trước khi parse tới đó, ẩn header list để không flash "Đơn hàng" */
+html.m-order-deeplink>body>header,
+html.m-create-deeplink>body>header{display:none!important}
 </style>
+<script>
+(function(){
+  var r=(location.hash||'').replace(/^#/,'').toLowerCase();
+  if(/^order\/\d+$/.test(r))document.documentElement.classList.add('m-order-deeplink');
+  else if(/^edit\/\d+$/.test(r)||r==='create'||r==='new')document.documentElement.classList.add('m-create-deeplink');
+})();
+</script>
 </head>
 <body class="bg-gray-50 min-h-screen max-w-lg mx-auto">
 
@@ -108,7 +126,10 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 (function(){
   var r=(location.hash||'').replace(/^#/,'').toLowerCase();
   if(/^order\/\d+$/.test(r)){
-    document.documentElement.classList.add('m-order-deeplink');
+    document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('tab-active');});
+    return;
+  }
+  if(/^edit\/\d+$/.test(r)||r==='create'||r==='new'){
     document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('tab-active');});
     return;
   }
@@ -266,17 +287,45 @@ html.m-order-deeplink #detailBootPlaceholder{display:block!important}
 <div id="createPanel" class="fixed inset-0 z-50 hidden flex flex-col bg-gray-50 overflow-hidden">
   <div id="createScrollArea" class="flex-1 overflow-y-auto">
     <div class="min-h-full max-w-lg mx-auto">
+      <div id="createBootPlaceholder" class="hidden px-4 pt-6 pb-4">
+        <div class="space-y-4">
+          <div class="skeleton h-7 w-40 rounded-lg"></div>
+          <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+            <div class="skeleton h-3 w-28 rounded"></div>
+            <div class="skeleton h-10 rounded-xl"></div>
+            <div class="skeleton h-10 rounded-xl"></div>
+          </div>
+          <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+            <div class="skeleton h-3 w-36 rounded"></div>
+            <div class="skeleton h-[52px] rounded-xl"></div>
+          </div>
+          <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+            <div class="skeleton h-3 w-24 rounded"></div>
+            <div class="skeleton h-24 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
       <div id="createContent" class="bg-gray-50"></div>
     </div>
   </div>
-  <!-- Sticky bottom submit bar -->
-  <div class="shrink-0 bg-white border-t border-gray-100 px-4 py-2.5 flex items-center gap-2.5">
+  <!-- Sticky bottom submit bar (max-w-lg giống cột form — fixed panel full màn hình trên desktop) -->
+  <div class="shrink-0 w-full max-w-lg self-center bg-white border-t border-gray-100 px-4 py-2.5 flex items-center gap-2.5">
     <button onclick="closeCreate()" class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all text-gray-600">
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
     </button>
     <button id="submitBtn" onclick="submitOrder()" class="flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform">Tạo đơn</button>
   </div>
 </div>
+<script>
+(function(){
+  var r=(location.hash||'').replace(/^#/,'').toLowerCase();
+  if(!/^edit\/\d+$/.test(r))return;
+  var sb=document.getElementById('submitBtn');
+  if(!sb)return;
+  sb.textContent='Cập nhật';
+  sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
+})();
+</script>
 <!-- Mặt vỏ chọn địa chỉ (đồng bộ với HIERARCHICAL_ADDRESS_SHELL_HTML trong hierarchical-address-selector.js) — hiển thị tức thì trước khi module tải xong -->
 <template id="mOrderAddressShellTpl">
 <div class="hierarchical-address-selector">
@@ -592,14 +641,25 @@ function showTheTenBeNotes(orderId){
 let _prevSearchTrimmed='';
 const MAIN_TAB_IDS=new Set(['pending','shipped','stats']);
 const ORDER_HASH_RE=/^order\/(\d+)$/;
+const CREATE_HASH_RE=/^(create|new)$/;
+const EDIT_HASH_RE=/^edit\/(\d+)$/;
 function tabFromHash(){
   const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
-  return MAIN_TAB_IDS.has(raw)?raw:'pending';
+  return MAIN_TAB_IDS.has(raw)?raw:null;
 }
 function orderIdFromHash(){
   const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
   const m=raw.match(ORDER_HASH_RE);
   return m?+m[1]:null;
+}
+function editIdFromHash(){
+  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
+  const m=raw.match(EDIT_HASH_RE);
+  return m?+m[1]:null;
+}
+function isCreateRouteHash(){
+  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
+  return CREATE_HASH_RE.test(raw);
 }
 function setMainTabHash(tab){
   if(!MAIN_TAB_IDS.has(tab))return;
@@ -611,11 +671,21 @@ function syncOrderDetailHash(id){
   const want=`#order/${id}`;
   if(location.hash!==want)history.replaceState(null,'',location.pathname+location.search+want);
 }
+function syncCreateHash(){
+  const want='#create';
+  if(location.hash!==want)history.replaceState(null,'',location.pathname+location.search+want);
+}
+function syncEditHash(id){
+  const want=`#edit/${id}`;
+  if(location.hash!==want)history.replaceState(null,'',location.pathname+location.search+want);
+}
 function fixInvalidMainHash(){
   const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
   if(!raw)return;
   if(MAIN_TAB_IDS.has(raw))return;
   if(ORDER_HASH_RE.test(raw))return;
+  if(CREATE_HASH_RE.test(raw))return;
+  if(EDIT_HASH_RE.test(raw))return;
   setMainTabHash('pending');
 }
 let detailOpenOrderId=null;
@@ -654,7 +724,8 @@ Object.defineProperty(window,'allOrdersData',{get:function(){return allOrders},c
 // ─── Init ───
 document.addEventListener('DOMContentLoaded',()=>{
   fixInvalidMainHash();
-  currentTab=tabFromHash();
+  const _th=tabFromHash();
+  currentTab=_th!=null?_th:'pending';
   if(currentTab==='stats'){
     document.getElementById('orderList')?.classList.add('hidden');
     document.getElementById('loadMore')?.classList.add('hidden');
@@ -674,14 +745,26 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 async function bootOrdersAndDeepLink(){
   await Promise.all([loadOrdersInternal(),loadProductList()]);
-  tryOpenOrderFromHash();
+  if(orderIdFromHash()!=null){
+    tryOpenOrderFromHash();
+    return;
+  }
+  if(editIdFromHash()!=null){
+    tryOpenEditFromHash();
+    return;
+  }
+  if(isCreateRouteHash())tryOpenCreateFromHash();
 }
 function onAppHashChange(){
   const oid=orderIdFromHash();
   if(oid!=null){
     if(detailOpenOrderId===oid)return;
     const o=allOrders.find(x=>x.id==oid);
-    if(o){showDetail(o.id);return;}
+    if(o){
+      closeCreatePanelOnly();
+      showDetail(o.id);
+      return;
+    }
     document.documentElement.classList.remove('m-order-deeplink');
     document.getElementById('detailPanel').classList.add('hidden');
     document.body.style.overflow='';
@@ -690,14 +773,44 @@ function onAppHashChange(){
     toast('Không tìm thấy đơn hàng');
     return;
   }
+  const eid=editIdFromHash();
+  if(eid!=null){
+    const cp=document.getElementById('createPanel');
+    if(editOrderId===eid&&cp&&!cp.classList.contains('hidden'))return;
+    const o=allOrders.find(x=>x.id==eid);
+    if(o){
+      document.getElementById('detailPanel').classList.add('hidden');
+      detailOpenOrderId=null;
+      document.body.style.overflow='';
+      showEditOrder(o.id);
+      return;
+    }
+    clearCreateDeeplinkBoot();
+    document.getElementById('createPanel')?.classList.add('hidden');
+    document.body.style.overflow='';
+    toast('Không tìm thấy đơn hàng');
+    setMainTabHash(currentTab);
+    return;
+  }
+  if(isCreateRouteHash()){
+    const cp=document.getElementById('createPanel');
+    if(cp&&!cp.classList.contains('hidden')&&editOrderId===null)return;
+    document.getElementById('detailPanel').classList.add('hidden');
+    detailOpenOrderId=null;
+    document.body.style.overflow='';
+    showCreateOrder();
+    return;
+  }
   const dp=document.getElementById('detailPanel');
   if(dp&&!dp.classList.contains('hidden')){
     detailOpenOrderId=null;
     dp.classList.add('hidden');
     document.body.style.overflow='';
   }
+  const cp=document.getElementById('createPanel');
+  if(cp&&!cp.classList.contains('hidden'))closeCreate();
   const t=tabFromHash();
-  if(t!==currentTab){
+  if(t!=null&&t!==currentTab){
     const b=document.querySelector(`.tab[data-status="${t}"]`);
     if(b)switchTab(b,{skipUrl:true});
   }
@@ -706,8 +819,10 @@ function tryOpenOrderFromHash(){
   const oid=orderIdFromHash();
   if(oid==null)return;
   const o=allOrders.find(x=>x.id==oid);
-  if(o)showDetail(o.id);
-  else{
+  if(o){
+    closeCreatePanelOnly();
+    showDetail(o.id);
+  }else{
     document.documentElement.classList.remove('m-order-deeplink');
     document.getElementById('detailPanel').classList.add('hidden');
     document.body.style.overflow='';
@@ -715,6 +830,23 @@ function tryOpenOrderFromHash(){
     syncOrderListTabHighlight();
     setMainTabHash(currentTab);
     toast('Không tìm thấy đơn hàng');
+  }
+}
+function tryOpenCreateFromHash(){
+  if(!isCreateRouteHash())return;
+  showCreateOrder();
+}
+function tryOpenEditFromHash(){
+  const id=editIdFromHash();
+  if(id==null)return;
+  const o=allOrders.find(x=>x.id==id);
+  if(o)showEditOrder(o.id);
+  else{
+    clearCreateDeeplinkBoot();
+    document.getElementById('createPanel')?.classList.add('hidden');
+    document.body.style.overflow='';
+    toast('Không tìm thấy đơn hàng');
+    setMainTabHash(currentTab);
   }
 }
 
@@ -733,6 +865,12 @@ async function loadOrdersInternal(){
 async function loadOrders(){
   await loadOrdersInternal();
   if(orderIdFromHash()!=null)tryOpenOrderFromHash();
+  else if(editIdFromHash()!=null)tryOpenEditFromHash();
+  else if(isCreateRouteHash())tryOpenCreateFromHash();
+}
+function clearCreateDeeplinkBoot(){
+  document.documentElement.classList.remove('m-create-deeplink');
+  document.getElementById('createBootPlaceholder')?.classList.add('hidden');
 }
 
 function syncOrderListTabHighlight(){
@@ -1074,6 +1212,8 @@ function applyQuickEditOrderPayment(apiMethod){
 
 function showDetail(id){
   const o=allOrders.find(x=>x.id==id);if(!o)return;
+  const _cpc=document.getElementById('createPanel');
+  if(_cpc&&!_cpc.classList.contains('hidden'))closeCreatePanelOnly();
   detailOpenOrderId=id;
   const panel=document.getElementById('detailPanel');
   const content=document.getElementById('detailContent');
@@ -1249,7 +1389,10 @@ async function confirmDeleteOrder(id,orderId){
 let editOrderId=null; // db id of order being edited
 
 async function showEditOrder(id){
-  const o=allOrders.find(x=>x.id===id);if(!o)return;
+  const o=allOrders.find(x=>x.id===id);
+  if(!o){clearCreateDeeplinkBoot();return;}
+  document.getElementById('detailPanel')?.classList.add('hidden');
+  detailOpenOrderId=null;
   editOrderId=id;mDiscount=null;
   createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // Parse existing products into createProducts
@@ -1268,6 +1411,9 @@ async function showEditOrder(id){
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm(true);
   injectMOrderAddressShell();
+  document.getElementById('createPanel').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  clearCreateDeeplinkBoot();
   // Update bottom bar for edit mode
   const sb=document.getElementById('submitBtn');
   if(sb){sb.textContent='Cập nhật';sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
@@ -1293,8 +1439,6 @@ async function showEditOrder(id){
     const ctv=allCTVCache.find(c=>(c.referralCode||c.referral_code)===o.referral_code);
     if(ctv)setCTVSelected(ctv);
   }
-  document.getElementById('createPanel').classList.remove('hidden');
-  document.body.style.overflow='hidden';
   _populateCatFilter();
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
     await initMCreateAddressSelector(o);
@@ -1302,6 +1446,7 @@ async function showEditOrder(id){
     renderCart();
     setPayment(o.payment_method??o.paymentMethod??'cod');
   });
+  syncEditHash(id);
 }
 
 async function togglePriority(id){
@@ -1360,15 +1505,18 @@ let mCatSheetPendingMulti=new Set();
 let mCreateAddressSelector=null;
 
 function showCreateOrder(){
+  document.getElementById('detailPanel')?.classList.add('hidden');
+  detailOpenOrderId=null;
   editOrderId=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
+  document.getElementById('createPanel').classList.remove('hidden');
+  document.body.style.overflow='hidden';
+  clearCreateDeeplinkBoot();
   // Reset bottom bar for create mode
   const sb=document.getElementById('submitBtn');
   if(sb){sb.textContent='Tạo đơn';sb.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
-  document.getElementById('createPanel').classList.remove('hidden');
-  document.body.style.overflow='hidden';
   setTimeout(function(){var sp=document.getElementById('smartPasteInput');if(sp)sp.focus();},300);
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
@@ -1376,6 +1524,7 @@ function showCreateOrder(){
     await initMCreateAddressSelector(null);
     renderProductPicker();
   });
+  syncCreateHash();
 }
 
 function getActiveCategoryDisplayName(){
@@ -1693,12 +1842,18 @@ async function initMCreateAddressSelector(orderForHydrate){
     box.innerHTML='<p class="text-sm text-red-600 py-3 text-center px-2">Không tải được chọn địa chỉ. Kiểm tra mạng và tải lại trang.</p>';
   }
 }
-function closeCreate(){
+function closeCreatePanelOnly(){
   editOrderId=null;mDiscount=null;
   closeCategorySheet();
+  clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
   document.body.style.overflow='';
   destroyMCreateAddressSelector();
+}
+function closeCreate(){
+  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
+  closeCreatePanelOnly();
+  if(CREATE_HASH_RE.test(raw)||EDIT_HASH_RE.test(raw))setMainTabHash(currentTab);
 }
 
 function buildCreateForm(isEdit=false){
@@ -1740,7 +1895,6 @@ function buildCreateForm(isEdit=false){
     <!-- Địa chỉ (HierarchicalAddressSelector — tìm kiếm + cascade như mua ngay) -->
     <div id="mAddressFormBlock" class="m-address-section bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Địa chỉ giao hàng</h3>
-      <p class="text-xs text-gray-500 -mt-1">Chạm để chọn / tìm tỉnh → quận → phường; sau đó nhập số nhà (nếu có).</p>
       <div id="mOrderAddressSelectorContainer" class="min-h-[52px]"></div>
     </div>
 

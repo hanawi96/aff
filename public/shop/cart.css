@@ -35,6 +35,10 @@
     --z-notification: 1090;
 }
 
+html {
+    background-color: var(--warm);
+}
+
 body > header.sticky {
     top: 0 !important;
 }
