@@ -13,6 +13,8 @@ let priorityFilterActive = false; // Track priority filter state
 let missingSizeFilterActive = false;
 /** Chỉ hiện đơn có ít nhất 1 sản phẩm thuộc danh mục "Mix thẻ tên bé" (category id 21) */
 let theTenBeFilterActive = false;
+/** Chỉ hiện đơn có lưu ý đơn hoặc lưu ý ít nhất một dòng SP */
+let hasNotesFilterActive = false;
 let allCTVList = []; // Cache CTV list for filter dropdown
 // Note: allProductsList is declared in orders.js
 
@@ -57,10 +59,24 @@ function orderHasTheTenBeProduct(order) {
     }
 }
 
+/** Fallback khi thiếu cache (hiếm) — đồng bộ logic với hasAnyNotes trong buildSearchIndex */
+function orderHasAnyNotesFallback(order) {
+    if (order.notes && String(order.notes).trim()) return true;
+    try {
+        const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
+        if (!Array.isArray(products)) return false;
+        return products.some(p => typeof p === 'object' && p !== null && p.notes && String(p.notes).trim());
+    } catch {
+        return false;
+    }
+}
+
 // ============================================
 // SEARCH INDEX CACHE (Performance Optimization)
 // ============================================
 let searchIndexCache = null;
+/** Map order.id → cache row — tra cứu O(1) khi lọc / tìm */
+let searchIndexById = new Map();
 let searchIndexVersion = 0; // Track data version to invalidate cache
 
 /**
@@ -93,6 +109,7 @@ function buildSearchIndex() {
         }
 
         const orderNotesNorm = removeVietnameseTones((order.notes || '').toLowerCase());
+        const hasAnyNotes = !!(order.notes && String(order.notes).trim()) || productNotes.length > 0;
 
         return {
             id: order.id,
@@ -106,11 +123,13 @@ function buildSearchIndex() {
             products: productNames,
             orderNotes: orderNotesNorm,
             productNotes,
+            hasAnyNotes,
             // Keep reference to original order
             order: order
         };
     });
-    
+
+    searchIndexById = new Map(searchIndexCache.map(c => [c.id, c]));
     searchIndexVersion++;
 }
 
@@ -119,6 +138,7 @@ function buildSearchIndex() {
  */
 function invalidateSearchCache() {
     searchIndexCache = null;
+    searchIndexById = new Map();
 }
 
 // ============================================
@@ -191,13 +211,13 @@ function filterOrdersData(preservePage = false) {
     }
 
     filteredOrdersData = allOrdersData.filter(order => {
+        const cached = searchIndexById.get(order.id);
+
         // ============================================
         // OPTIMIZED SEARCH FILTER
         // ============================================
         let matchesSearch = !searchTerm;
         if (searchTerm) {
-            // Find cached index entry
-            const cached = searchIndexCache.find(c => c.id === order.id);
             if (cached) {
                 const normalizedSearchTerm = removeVietnameseTones(searchTerm);
                 
@@ -240,6 +260,11 @@ function filterOrdersData(preservePage = false) {
 
         // Bộ lọc "Thẻ tên bé" — đơn có ≥1 SP thuộc danh mục Mix thẻ tên bé (cat 21)
         const matchesTheTenBe = !theTenBeFilterActive || orderHasTheTenBeProduct(order);
+
+        // Bộ lọc "Có lưu ý" — cache.hasAnyNotes (O(1))
+        const matchesHasNotes = !hasNotesFilterActive || (cached
+            ? cached.hasAnyNotes
+            : orderHasAnyNotesFallback(order));
 
         // Status filter
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
@@ -307,7 +332,7 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesStatus && matchesPayment && matchesCTV && matchesDate;
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
     // Apply sorting
@@ -983,6 +1008,36 @@ function toggleMissingSizeFilter() {
         button.classList.add('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
         icon.classList.remove('text-amber-600');
         icon.classList.add('text-gray-500');
+    }
+
+    filterOrdersData();
+}
+
+/**
+ * Chỉ đơn có ghi chú đơn hàng hoặc ghi chú ít nhất một dòng sản phẩm
+ */
+function toggleHasNotesFilter() {
+    const button = document.getElementById('hasNotesFilterBtn');
+    if (!button) return;
+    const icon = button.querySelector('svg');
+    const label = button.querySelector('span');
+
+    hasNotesFilterActive = !hasNotesFilterActive;
+
+    if (hasNotesFilterActive) {
+        button.classList.remove('border-gray-300', 'hover:bg-indigo-50', 'hover:border-indigo-300');
+        button.classList.add('bg-indigo-50', 'border-indigo-500', 'ring-1', 'ring-indigo-200');
+        icon.classList.remove('text-gray-500');
+        icon.classList.add('text-indigo-600');
+        label.classList.remove('text-gray-700');
+        label.classList.add('text-indigo-700', 'font-semibold');
+    } else {
+        button.classList.remove('bg-indigo-50', 'border-indigo-500', 'ring-1', 'ring-indigo-200');
+        button.classList.add('border-gray-300', 'hover:bg-indigo-50', 'hover:border-indigo-300');
+        icon.classList.remove('text-indigo-600');
+        icon.classList.add('text-gray-500');
+        label.classList.remove('text-indigo-700', 'font-semibold');
+        label.classList.add('text-gray-700');
     }
 
     filterOrdersData();

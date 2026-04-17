@@ -417,7 +417,7 @@ let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
 /** Khi đang tìm: null = mọi trạng thái; 'pending'|'shipped' = chỉ tab đang chọn */
 let searchListScope=null;
 // ─── Filter state ───
-let mPriorityFilter=false, mMissingSizeFilter=false, mTheTenBeFilter=false;
+let mPriorityFilter=false, mMissingSizeFilter=false, mTheTenBeFilter=false, mHasNotesFilter=false;
 let mDateSort=null; // null | 'newest' | 'oldest'
 
 function _orderHasMissingSize(o){
@@ -444,8 +444,18 @@ function _orderHasTheTenBe(o){
   }catch{return false;}
 }
 
+/** Lưu ý đơn hoặc lưu ý ít nhất một dòng SP (đồng bộ desktop hasNotesFilter) */
+function _orderHasAnyNotes(o){
+  if(o.notes&&String(o.notes).trim())return true;
+  try{
+    const prods=typeof o.products==='string'?JSON.parse(o.products):o.products;
+    if(!Array.isArray(prods))return false;
+    return prods.some(p=>typeof p==='object'&&p&&p.notes&&String(p.notes).trim());
+  }catch{return false;}
+}
+
 function _updateFilterBadge(){
-  const cnt=(mPriorityFilter?1:0)+(mMissingSizeFilter?1:0)+(mTheTenBeFilter?1:0)+(mDateSort?1:0);
+  const cnt=(mPriorityFilter?1:0)+(mMissingSizeFilter?1:0)+(mTheTenBeFilter?1:0)+(mHasNotesFilter?1:0)+(mDateSort?1:0);
   const badge=document.getElementById('mFilterBadge');
   if(!badge)return;
   if(cnt>0){badge.textContent=cnt;badge.classList.remove('hidden');}
@@ -466,6 +476,7 @@ function activateMFilter(key){
   if(key==='priority')mPriorityFilter=true;
   else if(key==='size')mMissingSizeFilter=true;
   else if(key==='thetbe')mTheTenBeFilter=true;
+  else if(key==='notes')mHasNotesFilter=true;
   _updateFilterBadge();
   _syncMFilterBtnStyle(key,true);
   applyFilter();
@@ -475,6 +486,7 @@ function deactivateMFilter(key){
   if(key==='priority')mPriorityFilter=false;
   else if(key==='size')mMissingSizeFilter=false;
   else if(key==='thetbe')mTheTenBeFilter=false;
+  else if(key==='notes')mHasNotesFilter=false;
   _updateFilterBadge();
   _syncMFilterBtnStyle(key,false);
   applyFilter();
@@ -485,10 +497,8 @@ function openMFilterSheet(){
   if(!sheet)return;
   sheet.classList.remove('hidden');
   document.body.style.overflow='hidden';
-  ['priority','size','thetbe'].forEach(k=>{
-    const active=k==='priority'?mPriorityFilter:k==='size'?mMissingSizeFilter:mTheTenBeFilter;
-    _syncMFilterBtnStyle(k,active);
-  });
+  const mfActive={priority:mPriorityFilter,size:mMissingSizeFilter,thetbe:mTheTenBeFilter,notes:mHasNotesFilter};
+  ['priority','size','thetbe','notes'].forEach(k=>_syncMFilterBtnStyle(k,!!mfActive[k]));
   _syncDateSortBtns();
 }
 
@@ -525,9 +535,9 @@ function clearMDateSort(){
 }
 
 function resetMFilters(){
-  mPriorityFilter=false;mMissingSizeFilter=false;mTheTenBeFilter=false;mDateSort=null;
+  mPriorityFilter=false;mMissingSizeFilter=false;mTheTenBeFilter=false;mHasNotesFilter=false;mDateSort=null;
   _updateFilterBadge();
-  ['priority','size','thetbe'].forEach(k=>_syncMFilterBtnStyle(k,false));
+  ['priority','size','thetbe','notes'].forEach(k=>_syncMFilterBtnStyle(k,false));
   _syncDateSortBtns();
   applyFilter();
 }
@@ -961,6 +971,7 @@ function applyFilter(){
     if(mPriorityFilter&&o.is_priority!==1)return false;
     if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
     if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
+    if(mHasNotesFilter&&!_orderHasAnyNotes(o))return false;
     return true;
   });
   // Sắp xếp: ưu tiên ⭐ luôn lên đầu; tab Đã gửi → theo thời gian gửi mới nhất trước
@@ -983,7 +994,7 @@ function applyFilter(){
 }
 
 function updateCounts(){
-  const hasActiveFilter=mPriorityFilter||mMissingSizeFilter||mTheTenBeFilter||searchTerm.trim().length>0;
+  const hasActiveFilter=mPriorityFilter||mMissingSizeFilter||mTheTenBeFilter||mHasNotesFilter||searchTerm.trim().length>0;
   const c=s=>{
     if(!hasActiveFilter)return allOrders.filter(o=>(o.status||'pending')===s).length;
     const q=searchTerm.toLowerCase();
@@ -993,6 +1004,7 @@ function updateCounts(){
       if(mPriorityFilter&&o.is_priority!==1)return false;
       if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
       if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
+      if(mHasNotesFilter&&!_orderHasAnyNotes(o))return false;
       return true;
     }).length;
   };
@@ -4038,12 +4050,12 @@ function updateTabActive(p){
   </div>
 </div>
 
-<!-- ─── Mobile Filter Bottom Sheet ─── -->
-<div id="mFilterSheet" class="hidden fixed inset-0 z-[9999] flex flex-col justify-end">
-  <!-- Backdrop -->
+<!-- ─── Mobile Filter Bottom Sheet (cùng max-w-lg với trang, không tràn full màn hình desktop) ─── -->
+<div id="mFilterSheet" class="hidden fixed inset-0 z-[9999]">
   <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeMFilterSheet()"></div>
-  <!-- Sheet -->
-  <div class="relative bg-white rounded-t-2xl shadow-2xl px-4 pt-4 pb-8 safe-area-bottom">
+  <div class="absolute inset-x-0 bottom-0 z-10 flex justify-center pointer-events-none">
+    <div class="w-full max-w-lg pointer-events-auto">
+      <div class="relative bg-white rounded-t-2xl shadow-2xl px-4 pt-4 pb-8 safe-area-bottom">
     <!-- Handle -->
     <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
     <!-- Header -->
@@ -4097,6 +4109,23 @@ function updateTabActive(p){
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
+
+      <!-- Có lưu ý -->
+      <div id="mfBtn_notes" onclick="activateMFilter('notes')"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm transition-all hover:bg-gray-50 cursor-pointer">
+        <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 shrink-0">
+          <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+        </span>
+        <div class="flex-1 text-left">
+          <div class="font-semibold">Có lưu ý</div>
+          <div class="text-xs opacity-60 mt-0.5">Ghi chú đơn hoặc ghi chú trên sản phẩm</div>
+        </div>
+        <button id="mfX_notes" onclick="event.stopPropagation();deactivateMFilter('notes')" class="hidden w-6 h-6 flex items-center justify-center rounded-full bg-red-100 text-red-500 shrink-0 hover:bg-red-200 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Divider -->
@@ -4137,6 +4166,8 @@ function updateTabActive(p){
     <button onclick="closeMFilterSheet()" class="mt-4 w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl text-sm active:scale-[0.98] transition-transform">
       Áp dụng
     </button>
+      </div>
+    </div>
   </div>
 </div>
 </body>
