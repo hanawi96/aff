@@ -497,10 +497,68 @@ function resetMFilters(){
 // Legacy: kept for compatibility
 function toggleMFilter(key){activateMFilter(key);}
 
+function _setNotesModalStyle(mode){
+  const iconWrap=document.getElementById('theTenBeModalIconWrap');
+  const titleEl=document.getElementById('theTenBeModalTitle');
+  if(mode==='order'){
+    if(iconWrap){iconWrap.className='w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-100';iconWrap.innerHTML=`<svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>`;}
+    if(titleEl)titleEl.textContent='Lưu ý đơn hàng';
+  }else{
+    if(iconWrap){iconWrap.className='w-7 h-7 flex items-center justify-center rounded-lg bg-pink-100';iconWrap.innerHTML=`<svg class="w-4 h-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>`;}
+    if(titleEl)titleEl.textContent='Lưu ý thẻ tên bé';
+  }
+}
+
+function showOrderNotes(orderId){
+  const o=allOrders.find(x=>x.id===orderId);
+  if(!o)return;
+  let prodNotes=[];
+  try{
+    const prods=JSON.parse(o.products);
+    prods.forEach(p=>{
+      if(p.notes&&p.notes.trim()){
+        prodNotes.push({name:p.name||'Sản phẩm',note:p.notes.trim()});
+      }
+    });
+  }catch{}
+  const orderNote=(o.notes||'').trim();
+  const titleEl=document.getElementById('theTenBeModalTitle');
+  let body='';
+  if(!orderNote&&prodNotes.length===0){
+    body='<p class="text-sm text-gray-400 italic text-center py-2">Không có lưu ý nào.</p>';
+  }else{
+    if(orderNote){
+      body+=`<div class="${prodNotes.length?'mb-2':''}">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+          <p class="text-sm text-amber-800 font-semibold leading-snug">${esc(orderNote)}</p>
+        </div>
+      </div>`;
+    }
+    if(prodNotes.length>0){
+      body+=`<div class="flex flex-col gap-2">`;
+      prodNotes.forEach(item=>{
+        body+=`<div class="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
+          <p class="text-[11px] text-indigo-500 font-bold mb-1 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>${esc(item.name)}</p>
+          <p class="text-sm text-indigo-800 font-semibold leading-snug">${esc(item.note)}</p>
+        </div>`;
+      });
+      body+=`</div>`;
+    }
+  }
+  _setNotesModalStyle('order');
+  if(titleEl){
+    if(orderNote&&prodNotes.length>0) titleEl.textContent='Tất cả lưu ý';
+    else if(prodNotes.length>0) titleEl.textContent='Lưu ý sản phẩm';
+    else titleEl.textContent='Lưu ý đơn hàng';
+  }
+  const modal=document.getElementById('theTenBeModal');
+  const content=document.getElementById('theTenBeModalContent');
+  if(modal&&content){content.innerHTML=body;modal.classList.remove('hidden');}
+}
+
 function showTheTenBeNotes(orderId){
   const o=allOrders.find(x=>x.id===orderId);
   if(!o)return;
-  // Collect product notes (from "thẻ tên" products) and order notes
   let prodNotes=[];
   try{
     const prods=JSON.parse(o.products);
@@ -511,7 +569,6 @@ function showTheTenBeNotes(orderId){
     });
   }catch{}
   const orderNote=(o.notes||'').trim();
-  // Build modal content
   let body='';
   if(prodNotes.length===0&&!orderNote){
     body='<p class="text-sm text-gray-400 italic text-center py-2">Không có lưu ý nào.</p>';
@@ -527,6 +584,7 @@ function showTheTenBeNotes(orderId){
       body+=`<div><p class="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Ghi chú đơn hàng</p><div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5"><p class="text-sm text-amber-700 font-semibold leading-snug">${esc(orderNote)}</p></div></div>`;
     }
   }
+  _setNotesModalStyle('thetbe');
   const modal=document.getElementById('theTenBeModal');
   const content=document.getElementById('theTenBeModalContent');
   if(modal&&content){content.innerHTML=body;modal.classList.remove('hidden');}
@@ -775,7 +833,7 @@ function renderCards(){
   slice.forEach(o=>{
     const card=document.createElement('div');
     const isPri=o.is_priority===1;
-    let hasNoSize=false,hasTheTenBe=false;
+    let hasNoSize=false,hasTheTenBe=false,hasProdNotes=false;
     let prods='';
     try{
       const p=JSON.parse(o.products);
@@ -783,7 +841,9 @@ function renderCards(){
       const _norm=v=>{const s=String(v??'').trim().toLowerCase();return(s&&s!=='chưa có'&&s!=='chua co'&&s!=='chua có')?s:null;};
       hasNoSize=p.some(x=>!_norm(x.size)&&!_norm(x.weight));
       hasTheTenBe=p.some(x=>(x.name||'').toLowerCase().includes('thẻ tên'));
+      hasProdNotes=p.some(x=>x.notes&&x.notes.trim());
     }catch{}
+    const hasAnyNote=hasProdNotes||!!(o.notes&&o.notes.trim());
     const bgClass=isPri?'bg-yellow-50/60':hasNoSize?'bg-orange-50/60':'bg-white';
     const borderLeft=isPri?'border-l-[3px] border-l-yellow-400':'';
     card.className=`order-card ${bgClass} px-4 py-3.5 fade-up ${borderLeft}`;
@@ -817,6 +877,7 @@ function renderCards(){
             ${isPri?'<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded-md">⭐ Ưu tiên</span>':''}
             ${hasNoSize?'<span class="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-md">Chưa có size</span>':''}
             ${hasTheTenBe?`<button onclick="event.stopPropagation();showTheTenBeNotes(${o.id})" class="text-[10px] font-bold text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-md active:scale-95 transition-transform">Thẻ tên</button>`:''}
+            ${hasAnyNote?`<button onclick="event.stopPropagation();showOrderNotes(${o.id})" class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-md active:scale-95 transition-transform"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>Lưu ý</button>`:''}
           </div>
           <div class="flex items-center gap-0.5 shrink-0 -mr-1.5">
             <button onclick="event.stopPropagation();togglePriority(${o.id})" class="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">${starSvg}</button>
@@ -3741,10 +3802,10 @@ function updateTabActive(p){
     <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
-        <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-pink-100">
+        <span id="theTenBeModalIconWrap" class="w-7 h-7 flex items-center justify-center rounded-lg bg-pink-100">
           <svg class="w-4 h-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
         </span>
-        <h3 class="text-base font-bold text-gray-900">Lưu ý thẻ tên bé</h3>
+        <h3 id="theTenBeModalTitle" class="text-base font-bold text-gray-900">Lưu ý thẻ tên bé</h3>
       </div>
       <button onclick="document.getElementById('theTenBeModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
