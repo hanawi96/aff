@@ -2006,7 +2006,10 @@ function openProdSheet(id){
         <input id="sheetNotes" type="text" placeholder="VD: giao trước 5h, đóng gói cẩn thận..." class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
       </div>
       <!-- Add button -->
-      <button onclick="confirmAddProduct(${id})" class="w-full py-3.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm">${inCartItems.length>0?'Thêm size khác vào đơn':'Thêm vào đơn'}</button>
+      <div class="flex items-center gap-2">
+        <button onclick="closeProdSheet()" class="flex items-center justify-center gap-1 px-4 py-3.5 bg-gray-100 text-gray-500 font-semibold rounded-xl text-sm shrink-0 hover:bg-gray-200 transition-colors"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg></button>
+        <button onclick="confirmAddProduct(${id})" class="flex-1 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm">${inCartItems.length>0?'Thêm vào đơn':'Thêm vào đơn'}</button>
+      </div>
     </div>`;
 
   // Populate quick size chips
@@ -2355,9 +2358,10 @@ function openCustomProductSheet(){
           class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
       </div>
       <!-- Buttons -->
-      <button onclick="confirmAddCustomProduct()" class="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition-colors">
-        Thêm vào đơn
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="closeProdSheet()" class="flex items-center justify-center gap-1 px-4 py-3.5 bg-gray-100 text-gray-500 font-semibold rounded-xl text-sm shrink-0 hover:bg-gray-200 transition-colors"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg></button>
+        <button onclick="confirmAddCustomProduct()" class="flex-1 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-sm transition-colors">Thêm vào đơn</button>
+      </div>
     </div>`;
   document.getElementById('prodSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
