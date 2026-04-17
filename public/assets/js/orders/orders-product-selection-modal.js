@@ -118,7 +118,7 @@ function showProductSelectionModal() {
             </div>
             <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3 border-t border-gray-200 flex-shrink-0">
                 <button onclick="closeProductSelectionModal()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium">Hủy</button>
-                <button onclick="addProductFromModal()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">Thêm vào đơn</button>
+                <button type="button" id="productModalConfirmBtn" onclick="addProductFromModal()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all font-medium min-w-[140px] inline-flex items-center justify-center">Thêm vào đơn</button>
             </div>
         </div>
     `;
@@ -371,6 +371,7 @@ function setupModalProductSearch() {
 }
 
 function addProductFromModal() {
+    if (document.getElementById('productModalConfirmBtn')?.dataset.loading === '1') return;
     if (currentEditingOrderId) {
         saveProductsToExistingOrder();
         return;

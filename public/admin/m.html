@@ -93,14 +93,6 @@ html.m-create-deeplink>body>header{display:none!important}
         Tạo đơn
       </button>
     </div>
-    <div class="flex items-center gap-2 hidden" id="statsHeaderBtns">
-      <button onclick="showCreateOrder()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100" title="Tạo đơn hàng">
-        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      </button>
-      <button onclick="doRefresh()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100" title="Làm mới">
-        <svg id="refreshIcon" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
-    </div>
   </div>
   <!-- Search bar (hidden) -->
   <div id="searchBar" class="hidden mt-3">
@@ -145,10 +137,6 @@ html.m-create-deeplink>body>header{display:none!important}
   var b=document.querySelector('.tab[data-status="'+t+'"]');
   if(b)b.classList.add('tab-active');
   if(t==='stats'){
-    var ht=document.getElementById('headerTitle');
-    if(ht)ht.textContent='Thống kê';
-    document.getElementById('orderHeaderBtns')?.classList.add('hidden');
-    document.getElementById('statsHeaderBtns')?.classList.remove('hidden');
     document.getElementById('searchBar')?.classList.add('hidden');
   }
 })();
@@ -693,7 +681,19 @@ const PAGE_SIZE=20;
 const API=()=>(typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://127.0.0.1:8787');
 const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800',dot:'bg-amber-400'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800',dot:'bg-blue-400'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800',dot:'bg-emerald-400'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800',dot:'bg-red-400'}};
 const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
-const ago=ts=>{if(!ts)return'';const sec=ts>1e10?ts/1000:ts,d=(Date.now()/1000-sec),m=d/60,h=m/60,dd=h/24;if(dd>=1)return Math.floor(dd)+'ngày';if(h>=1)return Math.floor(h)+'h';if(m>=1)return Math.floor(m)+'ph';return'vừa xong'};
+const ago=ts=>{
+  if(ts==null||ts==='')return'';
+  const n=Number(ts);
+  if(!Number.isFinite(n))return'';
+  const sec=n>1e10?n/1000:n;
+  let d=Date.now()/1000-sec;
+  if(d<0)d=0;
+  const mins=d/60,hrs=mins/60,days=hrs/24;
+  if(days>=1)return Math.floor(days)+' ngày trước';
+  if(hrs>=1)return Math.floor(hrs)+' giờ trước';
+  if(mins>=1)return Math.floor(mins)+' phút trước';
+  return'vừa xong';
+};
 function mOrderTimeLabel(ts){if(ts==null||ts==='')return'—';try{const ms=Number(ts)>1e12?Number(ts):Number(ts)*1000;return new Date(ms).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return'—'}}
 function mOrderShowsShipTime(o){if(!o||!o.shipped_at_unix)return false;const s=String(o.status||'pending').toLowerCase().trim();const m={'mới':'pending','chờ xử lý':'pending','đã gửi hàng':'shipped','đang vận chuyển':'in_transit','đã giao hàng':'delivered','giao hàng thất bại':'failed'};const slug=m[s]||s;return slug==='shipped'||slug==='in_transit'||slug==='delivered';}
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
@@ -899,6 +899,17 @@ function syncOrderListTabHighlight(){
   }
 }
 
+/** Tab Đã gửi: sort theo thời gian gửi (shipped_at_unix), không có thì theo đặt hàng */
+function mShipOrCreateTs(o){
+  if(!o)return 0;
+  const s=o.shipped_at_unix;
+  if(s!=null&&s!==''){
+    const n=Number(s);
+    if(Number.isFinite(n))return n;
+  }
+  return Number(o.created_at_unix)||0;
+}
+
 function applyFilter(){
   const q=searchTerm.toLowerCase();
   const hasQ=searchTerm.trim().length>0;
@@ -916,15 +927,18 @@ function applyFilter(){
     if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
     return true;
   });
-  // Sắp xếp: ưu tiên ⭐ luôn lên đầu, sau đó theo date sort filter hoặc mặc định
+  // Sắp xếp: ưu tiên ⭐ luôn lên đầu; tab Đã gửi → theo thời gian gửi mới nhất trước
   const pendingFifo=!mDateSort&&currentTab==='pending'&&!hasQ;
+  const onShippedTab=(!hasQ&&currentTab==='shipped')||(hasQ&&searchListScope==='shipped');
   filtered.sort((a,b)=>{
     const pr=(b.is_priority||0)-(a.is_priority||0);
     if(pr)return pr;
-    if(mDateSort==='newest')return(b.created_at_unix||0)-(a.created_at_unix||0);
-    if(mDateSort==='oldest')return(a.created_at_unix||0)-(b.created_at_unix||0);
-    if(pendingFifo)return(a.created_at_unix||0)-(b.created_at_unix||0);
-    return(b.created_at_unix||0)-(a.created_at_unix||0);
+    const ts=(o)=>onShippedTab?mShipOrCreateTs(o):(Number(o.created_at_unix)||0);
+    if(mDateSort==='newest')return ts(b)-ts(a);
+    if(mDateSort==='oldest')return ts(a)-ts(b);
+    if(pendingFifo)return(Number(a.created_at_unix)||0)-(Number(b.created_at_unix)||0);
+    if(onShippedTab)return ts(b)-ts(a);
+    return(Number(b.created_at_unix)||0)-(Number(a.created_at_unix)||0);
   });
   page=1;
   syncOrderListTabHighlight();
@@ -989,18 +1003,25 @@ function renderCards(){
     card.className=`order-card ${bgClass} px-4 py-3.5 fade-up ${borderLeft}`;
     card.setAttribute('data-id',o.id);
     const st=STATUS[o.status||'pending']||STATUS.pending;
+    const shipListLabel=o.shipped_at_unix?ago(o.shipped_at_unix):'chưa có';
+    const shipListClass=o.shipped_at_unix?'text-blue-600 font-medium':'text-gray-400';
+    const payCls=normalizePaymentMethod(o.payment_method)==='bank_transfer'?'text-green-600':'text-gray-900';
     const starSvg=isPri
       ?`<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
       :`<svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`;
     card.innerHTML=`
       <div class="cursor-pointer" onclick="showDetail(${o.id})">
-        <!-- Hàng 1: Tên | Tiền + thời gian -->
-        <div class="flex items-start justify-between gap-2 mb-1.5">
-          <span class="flex items-center gap-1.5 flex-1 min-w-0">
+        <!-- Hàng 1–2: Tên | tiền; thời gian gửi (dưới tên) | thời gian đặt (dưới tiền) -->
+        <div class="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 mb-1.5 items-start">
+          <div class="flex items-center gap-1.5 min-w-0">
             <span class="w-2 h-2 rounded-full shrink-0 ${st.dot||'bg-gray-400'}"></span>
             <span class="text-sm font-bold text-gray-900 truncate">${esc(o.customer_name)}</span>
-          </span>
-          <span class="shrink-0 text-sm font-bold ${normalizePaymentMethod(o.payment_method)==='bank_transfer'?'text-green-600':'text-gray-900'} whitespace-nowrap text-right leading-tight">${fmt(o.total_amount)} <span class="text-[11px] font-normal text-gray-400 block mt-0.5">Đặt ${ago(o.created_at_unix)}${mOrderShowsShipTime(o)?`<span class="text-blue-600 font-medium"> · Gửi ${ago(o.shipped_at_unix)}</span>`:''}</span></span>
+          </div>
+          <span class="text-sm font-bold ${payCls} whitespace-nowrap text-right leading-none">${fmt(o.total_amount)}</span>
+          <div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate">
+            <span class="${shipListClass}">${esc(shipListLabel)}</span>
+          </div>
+          <div class="text-[11px] font-normal text-gray-400 text-right leading-tight self-end">${esc(ago(o.created_at_unix))}</div>
         </div>
         <!-- Hàng 2: SĐT + sản phẩm -->
         <div class="mb-2">
@@ -1052,9 +1073,6 @@ function switchTab(btn,opts){
   document.getElementById('orderList').classList.toggle('hidden',isStats);
   if(isStats)document.getElementById('loadMore').classList.add('hidden');
   document.getElementById('statsView').classList.toggle('hidden',!isStats);
-  document.getElementById('headerTitle').textContent=isStats?'Thống kê':'Đơn hàng';
-  document.getElementById('orderHeaderBtns').classList.toggle('hidden',isStats);
-  document.getElementById('statsHeaderBtns').classList.toggle('hidden',!isStats);
   if(isStats){
     searchListScope=null;
     _prevSearchTrimmed='';
@@ -1499,7 +1517,7 @@ async function changeStatus(id,status,code){
     const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateOrderStatus',orderId:id,status})});
     const d=await r.json();
     if(d.success){
-      const o=allOrders.find(x=>x.id===id);
+      const o=allOrders.find(x=>String(x.id)===String(id));
       if(o){
         o.status=status;
         if(Object.prototype.hasOwnProperty.call(d,'shipped_at_unix'))o.shipped_at_unix=d.shipped_at_unix;
@@ -3379,19 +3397,12 @@ function cmp(cur,prev){
   return`<span class="ml-1.5 inline-flex items-center text-[10px] font-semibold ${up?'text-green-500':'text-red-400'}">${up?'↑':'↓'}${ds}%</span>`;
 }
 
-async function doRefresh(){
-  const ck=currentPeriod==='custom'&&customRange?`c_${customRange.startDate}_${customRange.endDate}`:currentPeriod;
-  delete cache[ck];loadData();
-}
-
 async function loadData(){
   const cacheKey=currentPeriod==='custom'&&customRange?`c_${customRange.startDate}_${customRange.endDate}`:currentPeriod;
   if(cache[cacheKey]){renderAll(cache[cacheKey].cur,cache[cacheKey].prev);return;}
   const skEl=document.getElementById('skeleton');if(skEl)skEl.classList.remove('hidden');
   const ctEl=document.getElementById('statsContent');if(ctEl)ctEl.classList.add('hidden');
   const emEl=document.getElementById('statsErr');if(emEl)emEl.classList.add('hidden');
-  const icon=document.getElementById('refreshIcon');
-  icon?.classList.add('animate-spin');
   try{
     const range=getDateRange();
     if(!range)throw new Error('Không xác định khoảng thời gian');
@@ -3406,7 +3417,7 @@ async function loadData(){
   }catch(e){
     const sk=document.getElementById('skeleton');if(sk)sk.classList.add('hidden');
     const em=document.getElementById('statsErr');if(em){em.textContent='Lỗi: '+e.message;em.classList.remove('hidden');}
-  }finally{icon?.classList.remove('animate-spin');}
+  }
 }
 
 function renderAll(d,prev){

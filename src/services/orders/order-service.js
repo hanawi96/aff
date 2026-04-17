@@ -600,11 +600,13 @@ export async function updateOrderStatus(data, env, corsHeaders) {
         }
 
         const nowMs = Date.now();
-        // shipped: ghi shipped_at_unix một lần (COALESCE). pending/processing/cancelled: xóa — đơn coi như chưa gửi.
+        // Từ chờ xử lý / đang xử lý → shipped: luôn ghi mốc gửi = now (tránh shipped_at cũ còn sót khi chưa NULL hết).
+        // Các lần shipped khác: giữ COALESCE. pending/processing/cancelled: xóa mốc gửi.
         const row = await env.DB.prepare(`
             UPDATE orders
             SET status = ?1,
                 shipped_at_unix = CASE
+                    WHEN ?1 = 'shipped' AND status IN ('pending', 'processing') THEN ?2
                     WHEN ?1 = 'shipped' THEN COALESCE(shipped_at_unix, ?2)
                     WHEN ?1 IN ('pending', 'processing', 'cancelled') THEN NULL
                     ELSE shipped_at_unix

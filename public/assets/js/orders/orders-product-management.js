@@ -86,7 +86,7 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
         }
 
         // Update confirm button text
-        const confirmBtn = modal.querySelector('button[onclick="addProductFromModal()"]');
+        const confirmBtn = document.getElementById('productModalConfirmBtn');
         if (confirmBtn) {
             confirmBtn.textContent = 'Cập nhật';
         }
@@ -271,10 +271,36 @@ async function saveProductsToExistingOrder() {
     }
 }
 
+const PRODUCT_MODAL_LOADING_SVG = '<svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+
+function setProductModalConfirmLoading(loading) {
+    const btn = document.getElementById('productModalConfirmBtn');
+    if (!btn) return;
+    if (loading) {
+        if (btn.dataset.loading === '1') return;
+        btn.dataset.loading = '1';
+        btn.dataset.prevHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add('cursor-wait', 'opacity-95');
+        btn.innerHTML = `<span class="inline-flex items-center justify-center gap-2">${PRODUCT_MODAL_LOADING_SVG}<span>Đang cập nhật...</span></span>`;
+    } else {
+        delete btn.dataset.loading;
+        btn.disabled = false;
+        btn.classList.remove('cursor-wait', 'opacity-95');
+        if (btn.dataset.prevHtml !== undefined) {
+            btn.innerHTML = btn.dataset.prevHtml;
+            delete btn.dataset.prevHtml;
+        }
+    }
+}
+
 /**
  * Replace a specific product in an existing order (replace mode)
  */
 async function replaceProductInExistingOrder() {
+    const confirmBtn = document.getElementById('productModalConfirmBtn');
+    if (confirmBtn?.dataset.loading === '1') return;
+
     const productId = selectedProducts[0];
     const newProduct = allProductsList.find(p => p.id === productId);
     if (!newProduct) { showToast('Không tìm thấy sản phẩm', 'error'); return; }
@@ -296,8 +322,7 @@ async function replaceProductInExistingOrder() {
     const notes = productNotes[productId] || '';
     const wRaw = productWeights[productId];
 
-    const replaceId = `replace-product-${currentEditingOrderId}`;
-    showToast('Đang thay thế sản phẩm...', 'info', 0, replaceId);
+    setProductModalConfirmLoading(true);
 
     try {
         const orderIndex = allOrdersData.findIndex(o => o.id === currentEditingOrderId);
@@ -367,11 +392,12 @@ async function replaceProductInExistingOrder() {
         updateStats();
         renderOrdersTable();
         closeProductSelectionModal();
-        showToast(`Đã thay thế sản phẩm cho đơn ${currentEditingOrderCode}`, 'success', null, replaceId);
+        showToast('Cập nhật đơn hàng thành công', 'success');
 
         currentEditingProductIndex = null;
     } catch (error) {
         console.error('Error replacing product:', error);
-        showToast('Không thể thay thế sản phẩm: ' + error.message, 'error', null, replaceId);
+        setProductModalConfirmLoading(false);
+        showToast('Không thể thay thế sản phẩm: ' + error.message, 'error');
     }
 }

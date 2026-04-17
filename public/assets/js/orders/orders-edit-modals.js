@@ -23,7 +23,7 @@ let editModalIsUpdating = false;
 
 // Edit product - open product selection modal to replace
 // productId format: "product_{orderId}_{index}" — index encoded directly in ID
-function editProductName(productId, orderId, orderCode) {
+async function editProductName(productId, orderId, orderCode) {
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) { showToast('Không tìm thấy đơn hàng', 'error'); return; }
 
@@ -46,13 +46,40 @@ function editProductName(productId, orderId, orderCode) {
         return;
     }
 
-    const product = products[productIndex];
-    const existingProductId = (typeof product === 'object' && product.product_id) ? product.product_id : null;
-    const existingWeight    = typeof product === 'object' ? (product.size !== undefined ? product.size : (product.weight ?? '')) : '';
-    const existingQty       = typeof product === 'object' ? (parseInt(product.quantity, 10) || 1) : 1;
-    const existingNotes     = typeof product === 'object' ? (product.notes || '') : '';
+    let product = products[productIndex];
+    if (typeof product === 'string') {
+        const m = product.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+        product = m ? { name: m[1].trim(), quantity: parseInt(m[2], 10) } : { name: product, quantity: 1 };
+    } else if (!product || typeof product !== 'object') {
+        product = { name: '', quantity: 1 };
+    }
 
-    showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId, existingWeight, existingQty, existingNotes);
+    if (typeof loadProductsAndCategories === 'function') {
+        await loadProductsAndCategories();
+    }
+
+    const rawPid = product.product_id != null && product.product_id !== '' ? Number(product.product_id) : NaN;
+    const existingNumericId = Number.isFinite(rawPid) ? rawPid : null;
+    const inCatalog = existingNumericId != null
+        && Array.isArray(allProductsList)
+        && allProductsList.some((p) => Number(p.id) === existingNumericId);
+
+    const existingWeight = product.size !== undefined && product.size !== null && product.size !== ''
+        ? product.size
+        : (product.weight ?? '');
+    const existingQty = parseInt(product.quantity, 10) || 1;
+    const existingNotes = product.notes || '';
+
+    if (inCatalog) {
+        showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingNumericId, existingWeight, existingQty, existingNotes);
+        return;
+    }
+
+    if (typeof showCustomProductModalForOrderEdit === 'function') {
+        showCustomProductModalForOrderEdit(orderId, orderCode, productIndex, product);
+    } else {
+        showToast('Không mở được form sản phẩm tùy chỉnh', 'error');
+    }
 }
 
 // Close edit product modal
