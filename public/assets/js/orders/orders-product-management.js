@@ -82,13 +82,13 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
         // Update header title
         const header = modal.querySelector('h3');
         if (header) {
-            header.innerHTML = `<svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Thay thế sản phẩm`;
+            header.innerHTML = `<svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Chỉnh sửa sản phẩm`;
         }
 
         // Update confirm button text
         const confirmBtn = modal.querySelector('button[onclick="addProductFromModal()"]');
         if (confirmBtn) {
-            confirmBtn.textContent = 'Thay thế sản phẩm';
+            confirmBtn.textContent = 'Cập nhật';
         }
 
         // Hide "Chọn tất cả" button in replace mode

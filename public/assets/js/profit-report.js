@@ -516,9 +516,16 @@ function updateSummaryStats(overview, costs) {
     const commissionPercent = (overview.total_revenue > 0 && commission > 0) ? (commission / overview.total_revenue * 100) : 0;
     document.getElementById('commissionPercent').textContent = `${commissionPercent.toFixed(1)}% doanh thu`;
 
-    // Use total_cost from backend (already calculated)
-    document.getElementById('totalAllCosts').textContent = formatCurrency(overview.total_cost);
-    document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(overview.avg_cost_per_order)}/đơn`;
+    // Tính từ costBreakdown — đồng nhất với bảng "Chi phí chi tiết"
+    const summaryTotalCost = costs ? (
+        (costs.product_cost || 0) + (costs.shipping_cost || 0) + (costs.commission || 0) +
+        (costs.tax || 0) + (costs.bag_zip || 0) + (costs.bag_red || 0) +
+        (costs.box_shipping || 0) + (costs.red_string || 0) + (costs.thank_card || 0) +
+        (costs.paper_print || 0) + (costs.labor_cost || 0)
+    ) : overview.total_cost;
+    const summaryAvgCost = overview.total_orders > 0 ? summaryTotalCost / overview.total_orders : 0;
+    document.getElementById('totalAllCosts').textContent = formatCurrency(summaryTotalCost);
+    document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(summaryAvgCost)}/đơn`;
 
     // Update unique customers stats
     const uniqueCustomers = overview.unique_customers || 0;
