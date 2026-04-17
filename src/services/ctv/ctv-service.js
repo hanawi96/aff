@@ -56,8 +56,8 @@ export async function registerCTV(data, env, corsHeaders) {
         // Auto-migrate: thêm cột QR nếu chưa có
         await migrateCTVQrColumns(env);
 
-        // Commission rate mặc định 10%, có thể custom khi đăng ký
-        const commissionRate = data.commissionRate || 0.1;
+        // Commission rate mặc định 12% (đúng với quảng cáo trên trang đăng ký)
+        const commissionRate = data.commissionRate || 0.12;
 
         // 1. Lưu vào Turso Database
         console.log('💾 Preparing to insert with values:', {

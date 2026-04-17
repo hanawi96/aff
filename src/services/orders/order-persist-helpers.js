@@ -27,7 +27,7 @@ export async function computeOrderSnapshot(data, env) {
         if (ctvData && isStatusValid) {
             validReferralCode = ctvData.referral_code;
             ctvPhone = ctvData.phone || null;
-            finalCommissionRate = ctvData.commission_rate || 0.1;
+            finalCommissionRate = ctvData.commission_rate || 0.12;
             const shippingFee = data.shipping_fee || data.shippingFee || 0;
             const revenue = totalAmountNumber - shippingFee;
             finalCommission = Math.round(revenue * finalCommissionRate);
