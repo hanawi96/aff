@@ -14,6 +14,29 @@
 // DISCOUNT CODE FUNCTIONS
 // ============================================
 
+/** Đồng bộ với mobile m.html (calcDiscountAmount) */
+function calcOrderDiscountAmount(d, orderTotal, shipFee) {
+    if (!d) return 0;
+    if (d.type === 'fixed') return Math.min(d.discount_value || 0, orderTotal);
+    if (d.type === 'percentage') {
+        const amt = Math.round((d.discount_value || 0) / 100 * orderTotal);
+        return d.max_discount_amount ? Math.min(amt, d.max_discount_amount) : amt;
+    }
+    if (d.type === 'freeship') return shipFee || 0;
+    if (d.type === 'gift') return 0;
+    return 0;
+}
+
+/** Mã lưu DB khi giảm thủ công — đồng bộ mobile m.html */
+const DESK_MANUAL_DISCOUNT_CODE = 'GG_THU_CONG';
+
+function isDeskManualStoredCode(code) {
+    const c = String(code || '').trim();
+    if (!c) return false;
+    if (c === DESK_MANUAL_DISCOUNT_CODE) return true;
+    return c === 'GG_THỦ_CÔNG';
+}
+
 // Apply discount code
 // excludeOrderId: optional order_id (display ID) to exclude from usage checks when editing
 async function applyDiscountCode(excludeOrderId) {
@@ -68,27 +91,21 @@ async function applyDiscountCode(excludeOrderId) {
 
         if (data.success && data.discount) {
             const discount = data.discount;
-
-            // Calculate discount amount based on type
-            let discountAmount = 0;
-
-            if (discount.type === 'fixed') {
-                discountAmount = discount.discount_value || 0;
-            } else if (discount.type === 'percentage') {
-                discountAmount = Math.round(orderAmount * (discount.discount_value / 100));
-                // Apply max discount limit if set
-                if (discount.max_discount_amount && discountAmount > discount.max_discount_amount) {
-                    discountAmount = discount.max_discount_amount;
-                }
-            } else if (discount.type === 'freeship') {
-                discountAmount = shippingFee; // Free shipping = discount shipping fee
-            }
+            const discountAmount = calcOrderDiscountAmount(discount, orderAmount, shippingFee);
 
             // Store discount data
             document.getElementById('appliedDiscountId').value = discount.id;
             document.getElementById('appliedDiscountCode').value = discount.code;
             document.getElementById('appliedDiscountAmount').value = discountAmount;
             document.getElementById('appliedDiscountType').value = discount.type;
+            const srcEl = document.getElementById('appliedDiscountSource');
+            if (srcEl) srcEl.value = 'coupon';
+            const mk = document.getElementById('appliedDiscountManualKind');
+            const mv = document.getElementById('appliedDiscountManualValue');
+            const mr = document.getElementById('appliedDiscountRoundPay');
+            if (mk) mk.value = '';
+            if (mv) mv.value = '';
+            if (mr) mr.value = '0';
 
             // Show success state
             showDiscountSuccess(discount, discountAmount);
@@ -112,6 +129,14 @@ function removeDiscountCode() {
     document.getElementById('appliedDiscountAmount').value = '0';
     document.getElementById('appliedDiscountType').value = '';
     document.getElementById('newOrderDiscountCode').value = '';
+    const srcEl = document.getElementById('appliedDiscountSource');
+    if (srcEl) srcEl.value = '';
+    const mk = document.getElementById('appliedDiscountManualKind');
+    const mv = document.getElementById('appliedDiscountManualValue');
+    const mr = document.getElementById('appliedDiscountRoundPay');
+    if (mk) mk.value = '';
+    if (mv) mv.value = '';
+    if (mr) mr.value = '0';
 
     // Hide discount status
     document.getElementById('discountStatus').classList.add('hidden');
@@ -144,10 +169,11 @@ function showDiscountSuccess(discount, discountAmount) {
     const errorDiv = document.getElementById('discountError');
 
     // Update success content - Compact version
-    document.getElementById('discountTitle').textContent = discount.code;
+    document.getElementById('discountTitle').textContent =
+        (discount.title && String(discount.title).trim()) ? discount.title : discount.code;
 
     let description = '';
-    if (discount.type === 'custom') {
+    if (discount.type === 'custom' || discount.type === 'manual') {
         description = discount.title || 'Giảm giá tùy chỉnh';
     } else if (discount.type === 'fixed') {
         description = `Giảm ${formatCurrency(discount.discount_value)}`;

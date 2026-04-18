@@ -410,6 +410,7 @@ function toggleStatusFilter(event) {
     normalizeDesktopStatusFilterHidden();
     const currentValue = document.getElementById('statusFilter').value;
     const button = event.currentTarget;
+    const wrap = button.parentElement;
 
     const menu = document.createElement('div');
     menu.id = 'statusFilterMenu';
@@ -419,6 +420,7 @@ function toggleStatusFilter(event) {
 
     menu.innerHTML = statuses.map(s => `
         <button 
+            type="button"
             onclick="selectStatusFilter('${s.value}', '${s.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
         >
@@ -432,13 +434,12 @@ function toggleStatusFilter(event) {
         </button>
     `).join('');
 
-    button.style.position = 'relative';
-    button.appendChild(menu);
+    wrap.appendChild(menu);
 
     // Close when clicking outside
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
-            if (!button.contains(e.target)) {
+            if (!wrap.contains(e.target)) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }
@@ -497,6 +498,7 @@ function togglePaymentFilter(event) {
 
     const currentValue = document.getElementById('paymentFilter').value;
     const button = event.currentTarget;
+    const wrap = button.parentElement;
 
     const menu = document.createElement('div');
     menu.id = 'paymentFilterMenu';
@@ -506,6 +508,7 @@ function togglePaymentFilter(event) {
 
     menu.innerHTML = paymentMethods.map(p => `
         <button 
+            type="button"
             onclick="selectPaymentFilter('${p.value}', '${p.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${p.value === currentValue ? 'bg-blue-50' : ''}"
         >
@@ -519,13 +522,12 @@ function togglePaymentFilter(event) {
         </button>
     `).join('');
 
-    button.style.position = 'relative';
-    button.appendChild(menu);
+    wrap.appendChild(menu);
 
     // Close when clicking outside
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
-            if (!button.contains(e.target)) {
+            if (!wrap.contains(e.target)) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }
@@ -567,6 +569,7 @@ function toggleCTVFilter(event) {
     }
 
     const button = event.currentTarget;
+    const wrap = button.parentElement;
     const currentValue = document.getElementById('ctvFilter').value;
 
     // Count orders
@@ -590,6 +593,7 @@ function toggleCTVFilter(event) {
 
     menu.innerHTML = options.map(opt => `
         <button 
+            type="button"
             onclick="selectCTVFilter('${opt.value}', '${opt.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${opt.value === currentValue ? 'bg-blue-50' : ''}"
         >
@@ -606,13 +610,12 @@ function toggleCTVFilter(event) {
         </button>
     `).join('');
 
-    button.style.position = 'relative';
-    button.appendChild(menu);
+    wrap.appendChild(menu);
 
     // Close when clicking outside
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
-            if (!button.contains(e.target)) {
+            if (!wrap.contains(e.target)) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
             }

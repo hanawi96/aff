@@ -100,10 +100,30 @@ async function submitNewOrder() {
             : null
     ) || wardSelect?.selectedOptions[0]?.text) || null;
 
-    // Get discount data
-    const discountId = document.getElementById('appliedDiscountId')?.value || null;
-    const discountCode = document.getElementById('appliedDiscountCode')?.value || null;
+    // Get discount data (giảm thủ công: không gửi discount_id — đồng bộ mobile)
+    let discountId = document.getElementById('appliedDiscountId')?.value?.trim() || null;
+    if (!discountId) discountId = null;
+    let discountCode = document.getElementById('appliedDiscountCode')?.value?.trim() || null;
+    if (!discountCode) discountCode = null;
     const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value) || 0;
+    const discSource = document.getElementById('appliedDiscountSource')?.value || '';
+    if (
+        discSource === 'manual' ||
+        (typeof isDeskManualStoredCode === 'function' && discountCode && isDeskManualStoredCode(discountCode))
+    ) {
+        discountId = null;
+        if (discountAmount > 0) {
+            discountCode =
+                typeof DESK_MANUAL_DISCOUNT_CODE !== 'undefined' ? DESK_MANUAL_DISCOUNT_CODE : discountCode;
+        } else {
+            discountCode = null;
+        }
+    }
+
+    if (discountAmount <= 0) {
+        discountId = null;
+        discountCode = null;
+    }
 
     // CRITICAL: Sanitize products to ensure prices are numbers before saving
     const sanitizedProducts = currentOrderProducts.map(product => {

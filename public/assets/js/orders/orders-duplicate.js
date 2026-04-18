@@ -2,55 +2,14 @@
 // ORDER DUPLICATION & FULL EDIT SEED
 // ============================================
 
-/**
- * Parse products JSON (or legacy text) and enrich with product_id from API.
- */
-async function parseOrderProductsForModal(order) {
-    let products = [];
+function parseOrderProductsFromOrderField(order) {
     try {
-        products = JSON.parse(order.products);
-        const productNames = products.map(p => p.name).filter(Boolean);
-        let productIdMap = {};
-
-        // Look up product IDs from preloaded list first (no API call)
-        if (productNames.length > 0 && typeof allProductsList !== 'undefined' && allProductsList.length > 0) {
-            allProductsList.forEach(p => {
-                if (p.name && productNames.includes(p.name)) {
-                    productIdMap[p.name] = p.id;
-                }
-            });
-        }
-
-        // Fallback to API only if local lookup missed some
-        const missingNames = productNames.filter(n => !productIdMap[n]);
-        if (missingNames.length > 0) {
-            try {
-                const response = await fetch(`${CONFIG.API_URL}?action=getProductsByNames&names=${encodeURIComponent(JSON.stringify(missingNames))}`);
-                const data = await response.json();
-                if (data.success && data.products) {
-                    data.products.forEach(p => { productIdMap[p.name] = p.id; });
-                }
-            } catch (e) {
-                console.warn('Could not lookup product IDs:', e);
-            }
-        }
-
-        products = products.map(product => {
-            const cleanProduct = { ...product };
-            if (cleanProduct.price !== undefined && cleanProduct.price !== null) {
-                cleanProduct.price = parsePrice(cleanProduct.price);
-            }
-            if (cleanProduct.cost_price !== undefined && cleanProduct.cost_price !== null) {
-                cleanProduct.cost_price = parsePrice(cleanProduct.cost_price);
-            }
-            if (!cleanProduct.product_id && cleanProduct.name && productIdMap[cleanProduct.name]) {
-                cleanProduct.product_id = productIdMap[cleanProduct.name];
-            }
-            return cleanProduct;
-        });
+        const products = JSON.parse(order.products);
+        if (!Array.isArray(products)) throw new Error('not array');
+        return products;
     } catch (e) {
         const lines = order.products.split(/[,\n]/).map(line => line.trim()).filter(line => line);
-        products = lines.map(line => {
+        return lines.map(line => {
             const match = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
             if (match) {
                 return { name: match[1].trim(), quantity: parseInt(match[2], 10) };
@@ -58,14 +17,77 @@ async function parseOrderProductsForModal(order) {
             return { name: line, quantity: 1 };
         });
     }
-    return products;
+}
+
+function buildLocalProductIdMapByNames(productNames) {
+    const productIdMap = {};
+    if (productNames.length > 0 && typeof allProductsList !== 'undefined' && allProductsList.length > 0) {
+        allProductsList.forEach(p => {
+            if (p.name && productNames.includes(p.name)) {
+                productIdMap[p.name] = p.id;
+            }
+        });
+    }
+    return productIdMap;
+}
+
+function applyProductPricingAndIds(products, productIdMap) {
+    return products.map(product => {
+        const cleanProduct = { ...product };
+        if (cleanProduct.price !== undefined && cleanProduct.price !== null) {
+            cleanProduct.price = parsePrice(cleanProduct.price);
+        }
+        if (cleanProduct.cost_price !== undefined && cleanProduct.cost_price !== null) {
+            cleanProduct.cost_price = parsePrice(cleanProduct.cost_price);
+        }
+        if (!cleanProduct.product_id && cleanProduct.name && productIdMap[cleanProduct.name]) {
+            cleanProduct.product_id = productIdMap[cleanProduct.name];
+        }
+        return cleanProduct;
+    });
+}
+
+async function fetchRemoteProductIdsIntoMap(productNames, productIdMap) {
+    const missingNames = productNames.filter(n => !productIdMap[n]);
+    if (missingNames.length === 0) return;
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getProductsByNames&names=${encodeURIComponent(JSON.stringify(missingNames))}`);
+        const data = await response.json();
+        if (data.success && data.products) {
+            data.products.forEach(p => { productIdMap[p.name] = p.id; });
+        }
+    } catch (e) {
+        console.warn('Could not lookup product IDs:', e);
+    }
+}
+
+/** Chỉ cache local — không await mạng; dùng để mở modal sửa đơn ngay. */
+function parseOrderProductsForModalSync(order) {
+    const raw = parseOrderProductsFromOrderField(order);
+    const productNames = raw.map(p => p.name).filter(Boolean);
+    const productIdMap = buildLocalProductIdMapByNames(productNames);
+    return applyProductPricingAndIds(raw, productIdMap);
+}
+
+/**
+ * Parse products JSON (or legacy text) and enrich with product_id from API.
+ */
+async function parseOrderProductsForModal(order) {
+    const raw = parseOrderProductsFromOrderField(order);
+    const productNames = raw.map(p => p.name).filter(Boolean);
+    const productIdMap = buildLocalProductIdMapByNames(productNames);
+    await fetchRemoteProductIdsIntoMap(productNames, productIdMap);
+    return applyProductPricingAndIds(raw, productIdMap);
 }
 
 /**
  * @param {'duplicate'|'edit'} mode
+ * @param {{ deferRemoteProductLookup?: boolean }} [opts] — edit: true = không chờ API getProductsByNames (mở modal tức thì)
  */
-async function buildOrderModalSeed(order, mode) {
-    const products = await parseOrderProductsForModal(order);
+async function buildOrderModalSeed(order, mode, opts = {}) {
+    const products = opts.deferRemoteProductLookup
+        ? parseOrderProductsForModalSync(order)
+        : await parseOrderProductsForModal(order);
     const base = {
         customer_name: order.customer_name,
         customer_phone: order.customer_phone,
@@ -112,7 +134,9 @@ async function buildOrderModalSeed(order, mode) {
         planned_send_at_unix: order.planned_send_at_unix ?? null,
         discount_code: order.discount_code || '',
         discount_amount: order.discount_amount || 0,
-        discount_id: discountId,
+        discount_id: discountId || (order.discount_id != null && order.discount_id !== ''
+            ? String(order.discount_id)
+            : ''),
         order_display_id: order.order_id || ''
     };
 }
@@ -138,9 +162,20 @@ async function editFullOrder(orderId) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
     }
+    // Không chặn UI: discount + lookup product_id từ xa chạy song song / sau khi modal đã hiện
     if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') {
-        await loadActiveDiscounts();
+        void loadActiveDiscounts();
     }
-    const seed = await buildOrderModalSeed(order, 'edit');
+    const seed = await buildOrderModalSeed(order, 'edit', { deferRemoteProductLookup: true });
     showAddOrderModal(seed, { mode: 'edit', editOrderDbId: order.id });
+
+    const orderIdStr = String(order.id);
+    void parseOrderProductsForModal(order).then((enriched) => {
+        const modal = document.getElementById('addOrderModal');
+        const hid = document.getElementById('orderFormEditDbId');
+        if (!modal || !hid || String(hid.value).trim() !== orderIdStr) return;
+        currentOrderProducts = enriched;
+        if (typeof renderOrderProducts === 'function') renderOrderProducts();
+        if (typeof updateOrderSummary === 'function') updateOrderSummary();
+    }).catch((err) => console.warn('Deferred product enrich:', err));
 }

@@ -596,20 +596,16 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                     <input 
                                         type="text" 
                                         id="newOrderDiscountCode" 
-                                        placeholder="Nhập mã hoặc chọn từ danh sách" 
+                                        placeholder="NHẬP MÃ HOẶC CHỌN TỪ DANH SÁCH" 
                                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase font-medium"
                                         oninput="this.value = this.value.toUpperCase()"
                                     />
-                                    <!-- Discount Dropdown - Dropup (mở lên trên) -->
-                                    <div id="discountDropdown" class="hidden absolute bottom-full left-0 mb-1 w-[600px] bg-white rounded-xl shadow-2xl border-2 border-purple-200 max-h-[400px] overflow-y-auto" style="z-index: 1000;">
-                                        <div id="discountDropdownContent"></div>
-                                    </div>
                                 </div>
                                 <button 
                                     type="button"
-                                    onclick="toggleDiscountDropdown(event)"
+                                    onclick="openDesktopDiscountSheet(event)"
                                     class="px-3 py-1.5 bg-white border border-purple-300 text-purple-600 text-sm font-semibold rounded-lg hover:bg-purple-50 transition-all flex items-center gap-1.5 whitespace-nowrap"
-                                    title="Chọn mã từ danh sách"
+                                    title="Chọn ưu đãi (mã có sẵn / giảm tùy chỉnh)"
                                 >
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -627,6 +623,13 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                     Áp dụng
                                 </button>
                             </div>
+                            <p class="text-[11px] text-gray-500 leading-snug mt-2 flex flex-wrap items-center gap-x-1">
+                                <span>Chọn</span>
+                                <button type="button" class="font-semibold text-purple-600 hover:text-purple-800" onclick="openDesktopDiscountSheet(event, 'codes')">mã có sẵn</button>
+                                <span>hoặc</span>
+                                <button type="button" class="font-semibold text-purple-600 hover:text-purple-800" onclick="openDesktopDiscountSheet(event, 'manual')">giảm tùy chỉnh</button>
+                                <span>— chỉ một hình thức.</span>
+                            </p>
 
                             <!-- Discount Status Display -->
                             <div id="discountStatus" class="mt-2 hidden">
@@ -679,6 +682,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <input type="hidden" id="appliedDiscountCode" value="" />
                             <input type="hidden" id="appliedDiscountAmount" value="0" />
                             <input type="hidden" id="appliedDiscountType" value="" />
+                            <input type="hidden" id="appliedDiscountSource" value="" />
+                            <input type="hidden" id="appliedDiscountManualKind" value="" />
+                            <input type="hidden" id="appliedDiscountManualValue" value="" />
+                            <input type="hidden" id="appliedDiscountRoundPay" value="0" />
                         </div>
 
                         <div>
@@ -963,29 +970,62 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
         setupShippingCostSync();
         initAddressSelector(duplicateData);
 
-        if (duplicateData?.discount_code) {
+        if (duplicateData?.discount_code || (duplicateData?.discount_amount > 0 && isEdit)) {
             const discountInput = document.getElementById('newOrderDiscountCode');
             if (discountInput) {
-                const discountCode = String(duplicateData.discount_code).toUpperCase();
-                discountInput.value = discountCode;
+                const rawCode = String(duplicateData.discount_code || '').trim();
+                const discountCode = rawCode.toUpperCase();
+                const discountAmount = duplicateData.discount_amount || 0;
+                const isManualStored =
+                    typeof isDeskManualStoredCode === 'function' &&
+                    (isDeskManualStoredCode(rawCode) || isDeskManualStoredCode(discountCode));
 
-                if (isEdit) {
-                    const discountAmount = duplicateData.discount_amount || 0;
-                    const discountInfo = allDiscountsList.find(d =>
-                        String(d.code || d.discount_code || '').toUpperCase() === discountCode
-                    );
-                    document.getElementById('appliedDiscountId').value = duplicateData.discount_id || (discountInfo?.id || '');
-                    document.getElementById('appliedDiscountCode').value = discountCode;
+                if ((isManualStored || (!rawCode && discountAmount > 0 && isEdit)) && discountAmount > 0) {
+                    discountInput.value = '';
+                    document.getElementById('appliedDiscountId').value = '';
+                    document.getElementById('appliedDiscountCode').value = DESK_MANUAL_DISCOUNT_CODE;
                     document.getElementById('appliedDiscountAmount').value = discountAmount;
-                    document.getElementById('appliedDiscountType').value = discountInfo?.type || '';
-                    const discount = discountInfo || { code: discountCode, type: 'custom', title: 'Giảm giá' };
-                    showDiscountSuccess(discount, discountAmount);
-                } else {
-                    const hid = document.getElementById('appliedDiscountId');
-                    if (hid && duplicateData.discount_id) {
-                        hid.value = String(duplicateData.discount_id);
+                    document.getElementById('appliedDiscountType').value = 'manual';
+                    const srcEl = document.getElementById('appliedDiscountSource');
+                    if (srcEl) srcEl.value = 'manual';
+                    document.getElementById('appliedDiscountManualKind').value = 'fixed';
+                    document.getElementById('appliedDiscountManualValue').value = String(discountAmount);
+                    document.getElementById('appliedDiscountRoundPay').value = '0';
+                    showDiscountSuccess(
+                        {
+                            code: DESK_MANUAL_DISCOUNT_CODE,
+                            type: 'manual',
+                            title: 'Giảm cố định · thủ công',
+                        },
+                        discountAmount
+                    );
+                } else if (rawCode) {
+                    discountInput.value = discountCode;
+
+                    if (isEdit) {
+                        const discountInfo = allDiscountsList.find(
+                            (d) => String(d.code || d.discount_code || '').toUpperCase() === discountCode
+                        );
+                        document.getElementById('appliedDiscountId').value =
+                            duplicateData.discount_id || (discountInfo?.id || '');
+                        document.getElementById('appliedDiscountCode').value = discountCode;
+                        document.getElementById('appliedDiscountAmount').value = discountAmount;
+                        document.getElementById('appliedDiscountType').value = discountInfo?.type || '';
+                        const srcEl = document.getElementById('appliedDiscountSource');
+                        if (srcEl) srcEl.value = discountInfo ? 'coupon' : '';
+                        const discount = discountInfo || {
+                            code: discountCode,
+                            type: 'custom',
+                            title: 'Giảm giá',
+                        };
+                        showDiscountSuccess(discount, discountAmount);
+                    } else {
+                        const hid = document.getElementById('appliedDiscountId');
+                        if (hid && duplicateData.discount_id) {
+                            hid.value = String(duplicateData.discount_id);
+                        }
+                        applyDiscountCode();
                     }
-                    applyDiscountCode();
                 }
             }
         }

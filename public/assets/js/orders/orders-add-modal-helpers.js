@@ -26,6 +26,9 @@ function updatePackagingItemsDisplay() {
  * Calculates totals, discounts, costs, and profit
  */
 function updateOrderSummary() {
+    if (typeof recalcDesktopManualDiscount === 'function') recalcDesktopManualDiscount();
+    if (typeof maybeRefreshDesktopDiscountSheet === 'function') maybeRefreshDesktopDiscountSheet();
+
     // Get values from inputs
     const shippingFeeInput = document.getElementById('newOrderShippingFee');
     const shippingCostInput = document.getElementById('newOrderShippingCost');
@@ -332,6 +335,7 @@ function renderOrderProducts() {
 
     // Sau khi render xong → kiểm tra và auto-check freeship nếu đủ điều kiện
     autoUpdateFreeshipCheckbox();
+    updateOrderSummary();
 }
 
 function autoUpdateFreeshipCheckbox() {
