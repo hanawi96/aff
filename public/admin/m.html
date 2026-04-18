@@ -112,6 +112,9 @@ html.m-create-deeplink>body>header{display:none!important}
     <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500" data-status="pending" onclick="switchTab(this)">
       Chờ xử lý <span id="countPending" class="ml-1 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
     </button>
+    <button class="tab flex-1 py-2 text-center text-xs font-medium rounded-lg text-gray-500 leading-tight" data-status="send_later" onclick="switchTab(this)">
+      Gửi sau <span id="countSendLater" class="ml-0.5 text-[10px] bg-sky-100 text-sky-800 px-1 py-0.5 rounded-full align-middle"></span>
+    </button>
     <button class="tab flex-1 py-2 text-center text-sm rounded-lg text-gray-500" data-status="shipped" onclick="switchTab(this)">
       Đã gửi <span id="countShipped" class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"></span>
     </button>
@@ -131,7 +134,7 @@ html.m-create-deeplink>body>header{display:none!important}
     document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('tab-active');});
     return;
   }
-  var ok={pending:1,shipped:1,stats:1};
+  var ok={pending:1,send_later:1,shipped:1,stats:1};
   var t=ok[r]?r:'pending';
   if(t==='stats'){
     var st=document.createElement('style');
@@ -729,7 +732,7 @@ function showTheTenBeNotes(orderId){
   if(modal&&content){content.innerHTML=body;modal.classList.remove('hidden');}
 }
 let _prevSearchTrimmed='';
-const MAIN_TAB_IDS=new Set(['pending','shipped','stats']);
+const MAIN_TAB_IDS=new Set(['pending','send_later','shipped','stats']);
 const ORDER_HASH_RE=/^order\/(\d+)$/;
 const CREATE_HASH_RE=/^(create|new)$/;
 const EDIT_HASH_RE=/^edit\/(\d+)$/;
@@ -781,7 +784,7 @@ function fixInvalidMainHash(){
 let detailOpenOrderId=null;
 const PAGE_SIZE=20;
 const API=()=>(typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://127.0.0.1:8787');
-const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800',dot:'bg-amber-400'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800',dot:'bg-blue-400'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800',dot:'bg-emerald-400'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800',dot:'bg-red-400'}};
+const STATUS={pending:{label:'Chờ xử lý',color:'amber',bg:'bg-amber-100 text-amber-800',dot:'bg-amber-400'},send_later:{label:'Gửi sau',color:'sky',bg:'bg-sky-100 text-sky-800',dot:'bg-sky-500'},shipped:{label:'Đã gửi',color:'blue',bg:'bg-blue-100 text-blue-800',dot:'bg-blue-400'},delivered:{label:'Đã giao',color:'emerald',bg:'bg-emerald-100 text-emerald-800',dot:'bg-emerald-400'},cancelled:{label:'Đã hủy',color:'red',bg:'bg-red-100 text-red-800',dot:'bg-red-400'}};
 const fmt=n=>{if(!n&&n!==0)return'0đ';return n.toLocaleString('vi-VN')+'đ'};
 const ago=ts=>{
   if(ts==null||ts==='')return'';
@@ -797,6 +800,23 @@ const ago=ts=>{
   return'vừa xong';
 };
 function mOrderTimeLabel(ts){if(ts==null||ts==='')return'—';try{const ms=Number(ts)>1e12?Number(ts):Number(ts)*1000;return new Date(ms).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return'—'}}
+function mFormatPlannedInput(ms){
+  if(ms==null||ms==='')return'';
+  var n=Number(ms);
+  if(!Number.isFinite(n))return'';
+  if(n>0&&n<1e12)n*=1000;
+  var d=new Date(n);
+  if(Number.isNaN(d.getTime()))return'';
+  var pad=function(x){return String(x).padStart(2,'0');};
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function onMobileSendLaterToggle(){
+  const cb=document.getElementById('mSendLaterChk');
+  const w=document.getElementById('mSendLaterFields');
+  if(!cb||!w)return;
+  if(cb.checked)w.classList.remove('hidden');
+  else w.classList.add('hidden');
+}
 function mOrderShowsShipTime(o){if(!o||!o.shipped_at_unix)return false;const s=String(o.status||'pending').toLowerCase().trim();const m={'mới':'pending','chờ xử lý':'pending','đã gửi hàng':'shipped','đang vận chuyển':'in_transit','đã giao hàng':'delivered','giao hàng thất bại':'failed'};const slug=m[s]||s;return slug==='shipped'||slug==='in_transit'||slug==='delivered';}
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
 Object.defineProperty(window,'allOrdersData',{get:function(){return allOrders},configurable:true});
@@ -980,11 +1000,13 @@ function clearCreateDeeplinkBoot(){
 
 function syncOrderListTabHighlight(){
   const pBtn=document.querySelector('.tab[data-status="pending"]');
+  const slBtn=document.querySelector('.tab[data-status="send_later"]');
   const sBtn=document.querySelector('.tab[data-status="shipped"]');
   const stBtn=document.querySelector('.tab[data-status="stats"]');
   if(!pBtn||!sBtn)return;
   if(currentTab==='stats'){
     pBtn.classList.remove('tab-active');
+    if(slBtn)slBtn.classList.remove('tab-active');
     sBtn.classList.remove('tab-active');
     if(stBtn)stBtn.classList.add('tab-active');
     return;
@@ -992,12 +1014,15 @@ function syncOrderListTabHighlight(){
   if(stBtn)stBtn.classList.remove('tab-active');
   const hasQ=searchTerm.trim().length>0;
   pBtn.classList.remove('tab-active');
+  if(slBtn)slBtn.classList.remove('tab-active');
   sBtn.classList.remove('tab-active');
   if(hasQ){
     if(searchListScope==='pending')pBtn.classList.add('tab-active');
+    else if(searchListScope==='send_later'&&slBtn)slBtn.classList.add('tab-active');
     else if(searchListScope==='shipped')sBtn.classList.add('tab-active');
   }else{
     if(currentTab==='pending')pBtn.classList.add('tab-active');
+    else if(currentTab==='send_later'&&slBtn)slBtn.classList.add('tab-active');
     else if(currentTab==='shipped')sBtn.classList.add('tab-active');
   }
 }
@@ -1012,10 +1037,20 @@ function mShipOrCreateTs(o){
   }
   return Number(o.created_at_unix)||0;
 }
+function mPlannedOrCreateTs(o){
+  if(!o)return 0;
+  const p=o.planned_send_at_unix;
+  if(p!=null&&p!==''){
+    const n=Number(p);
+    if(Number.isFinite(n))return n;
+  }
+  return Number(o.created_at_unix)||0;
+}
 
 /** Chuỗi tìm kiếm gộp: mã đơn, KH, SĐT, địa chỉ, lưu ý đơn, tên + lưu ý từng dòng SP */
 function mOrderSearchHaystack(o){
   const parts=[o.order_id,o.customer_name,o.customer_phone,o.address||'',o.notes||''];
+  if(o.planned_send_at_unix)parts.push(mOrderTimeLabel(o.planned_send_at_unix));
   try{
     const prods=typeof o.products==='string'?JSON.parse(o.products):o.products;
     if(Array.isArray(prods)){
@@ -1070,14 +1105,15 @@ function applyFilter(){
   // Sắp xếp: ưu tiên ⭐ luôn lên đầu; tab Đã gửi → theo thời gian gửi mới nhất trước
   const pendingFifo=!mDateSort&&currentTab==='pending'&&!hasQ;
   const onShippedTab=(!hasQ&&currentTab==='shipped')||(hasQ&&searchListScope==='shipped');
+  const onSendLaterTab=(!hasQ&&currentTab==='send_later')||(hasQ&&searchListScope==='send_later');
   filtered.sort((a,b)=>{
     const pr=(b.is_priority||0)-(a.is_priority||0);
     if(pr)return pr;
-    const ts=(o)=>onShippedTab?mShipOrCreateTs(o):(Number(o.created_at_unix)||0);
+    const ts=(o)=>onShippedTab?mShipOrCreateTs(o):onSendLaterTab?mPlannedOrCreateTs(o):(Number(o.created_at_unix)||0);
     if(mDateSort==='newest')return ts(b)-ts(a);
     if(mDateSort==='oldest')return ts(a)-ts(b);
     if(pendingFifo)return(Number(a.created_at_unix)||0)-(Number(b.created_at_unix)||0);
-    if(onShippedTab)return ts(b)-ts(a);
+    if(onShippedTab||onSendLaterTab)return ts(b)-ts(a);
     return(Number(b.created_at_unix)||0)-(Number(a.created_at_unix)||0);
   });
   page=1;
@@ -1102,7 +1138,7 @@ function updateCounts(){
     }).length;
   };
   const set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n};
-  set('countPending',c('pending'));set('countShipped',c('shipped'));
+  set('countPending',c('pending'));set('countSendLater',c('send_later'));set('countShipped',c('shipped'));
 }
 
 function renderCards(){
@@ -1127,6 +1163,7 @@ function renderCards(){
   const frag=document.createDocumentFragment();
   const hasQSearch=searchTerm.trim().length>0;
   const showShipTimeRow=(!hasQSearch&&currentTab==='shipped')||(hasQSearch&&searchListScope==='shipped');
+  const showPlannedRow=(!hasQSearch&&currentTab==='send_later')||(hasQSearch&&searchListScope==='send_later');
   slice.forEach(o=>{
     const card=document.createElement('div');
     const isPri=o.is_priority===1;
@@ -1148,6 +1185,8 @@ function renderCards(){
     const st=STATUS[o.status||'pending']||STATUS.pending;
     const shipListLabel=o.shipped_at_unix?ago(o.shipped_at_unix):'chưa có';
     const shipListClass=o.shipped_at_unix?'text-blue-600 font-medium':'text-gray-400';
+    const plannedListLabel=o.planned_send_at_unix?mOrderTimeLabel(o.planned_send_at_unix):'chưa chọn';
+    const plannedListClass=o.planned_send_at_unix?'text-sky-600 font-medium':'text-gray-400';
     const payCls=normalizePaymentMethod(o.payment_method)==='bank_transfer'?'text-green-600':'text-gray-900';
     const starSvg=isPri
       ?`<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
@@ -1161,7 +1200,7 @@ function renderCards(){
             <span class="text-sm font-bold text-gray-900 truncate">${esc(o.customer_name)}</span>
           </div>
           <span class="text-sm font-bold ${payCls} whitespace-nowrap text-right leading-none">${fmt(o.total_amount)}</span>
-          ${showShipTimeRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${shipListClass}">${esc(shipListLabel)}</span></div>`:`<div class="pl-3.5 min-h-[1em]" aria-hidden="true"></div>`}
+          ${showShipTimeRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${shipListClass}">${esc(shipListLabel)}</span></div>`:showPlannedRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${plannedListClass}">${esc(plannedListLabel)}</span></div>`:`<div class="pl-3.5 min-h-[1em]" aria-hidden="true"></div>`}
           <div class="text-[11px] font-normal text-gray-400 text-right leading-tight self-end">${esc(ago(o.created_at_unix))}</div>
         </div>
         <!-- Hàng 2: SĐT + sản phẩm -->
@@ -1227,7 +1266,7 @@ function switchTab(btn,opts){
     applyFilter();
   }else{
     const q=(document.getElementById('searchInput')?.value||'').trim();
-    if(q.length>0&&(currentTab==='pending'||currentTab==='shipped'))searchListScope=currentTab;
+    if(q.length>0&&(currentTab==='pending'||currentTab==='send_later'||currentTab==='shipped'))searchListScope=currentTab;
     else searchListScope=null;
     applyFilter();
     window.scrollTo(0,0);
@@ -1236,7 +1275,7 @@ function switchTab(btn,opts){
 }
 
 // Vuốt ngang đổi tab (pending → shipped → stats): passive, không scroll-jank
-const SWIPE_TAB_ORDER=['pending','shipped','stats'];
+const SWIPE_TAB_ORDER=['pending','send_later','shipped','stats'];
 const SWIPE_TAB_MIN=56,SWIPE_TAB_RATIO=1.2;
 let _swTabX,_swTabY,_swTabTrack;
 function swipeTabOverlayHit(el){
@@ -1473,6 +1512,7 @@ function showDetail(id){
         <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Thời gian</h3>
         <div class="bg-gray-50 rounded-xl p-3 space-y-1.5">
           <p class="text-xs text-gray-600">Đặt: <span class="font-semibold text-gray-900">${mOrderTimeLabel(o.created_at_unix)}</span></p>
+          ${(o.status||'')==='send_later'&&o.planned_send_at_unix?`<p class="text-xs text-sky-700">Dự kiến gửi: <span class="font-semibold">${mOrderTimeLabel(o.planned_send_at_unix)}</span></p>`:''}
           ${mOrderShowsShipTime(o)?`<p class="text-xs text-blue-700">Gửi: <span class="font-semibold">${mOrderTimeLabel(o.shipped_at_unix)}</span></p>`:''}
         </div>
       </div>
@@ -1528,7 +1568,8 @@ function showDetail(id){
   document.body.style.overflow='hidden';
   if(document.documentElement.classList.contains('m-order-deeplink')){
     document.documentElement.classList.remove('m-order-deeplink');
-    const tabForOrder=(o.status||'pending')==='shipped'?'shipped':'pending';
+    const st0=o.status||'pending';
+    const tabForOrder=st0==='shipped'?'shipped':st0==='send_later'?'send_later':'pending';
     currentTab=tabForOrder;
     syncOrderListTabHighlight();
   }
@@ -1592,6 +1633,18 @@ async function showEditOrder(id){
   document.getElementById('cPhone').value=o.customer_phone||'';
   setPayment(o.payment_method??o.paymentMethod??'cod');
   document.getElementById('cNotes').value=o.notes||'';
+  const mSl=document.getElementById('mSendLaterChk');
+  const mSlf=document.getElementById('mSendLaterFields');
+  const mPl=document.getElementById('mPlannedSendAt');
+  if(o.status==='send_later'){
+    if(mSl)mSl.checked=true;
+    if(mSlf)mSlf.classList.remove('hidden');
+    if(mPl&&o.planned_send_at_unix)mPl.value=mFormatPlannedInput(o.planned_send_at_unix);
+  }else{
+    if(mSl)mSl.checked=false;
+    if(mSlf)mSlf.classList.add('hidden');
+    if(mPl)mPl.value='';
+  }
   if(Number(o.shipping_fee)===0){
     const cb=document.getElementById('cFreeShip');
     if(cb){cb.checked=true;onFreeShipChange();}
@@ -2244,6 +2297,18 @@ function buildCreateForm(isEdit=false){
         </p>
       </div>
 
+      <!-- Gửi sau -->
+      <div class="border-b border-gray-100 px-4 py-3 space-y-2">
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input type="checkbox" id="mSendLaterChk" class="mt-0.5 w-4 h-4 text-sky-600 border-gray-300 rounded shrink-0" onchange="onMobileSendLaterToggle()">
+          <span class="text-sm font-medium text-gray-900 leading-snug">Gửi sau <span class="block text-[10px] font-normal text-gray-500 mt-0.5">Đơn vào tab «Gửi sau», chưa tính là đã gửi.</span></span>
+        </label>
+        <div id="mSendLaterFields" class="hidden space-y-1.5 pl-6">
+          <label class="block text-xs font-medium text-gray-600">Ngày giờ dự kiến gửi <span class="text-red-500">*</span></label>
+          <input type="datetime-local" id="mPlannedSendAt" class="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/30">
+        </div>
+      </div>
+
       <!-- Ghi chú -->
       <div class="flex items-center px-4 py-3 gap-2.5">
         <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -2833,6 +2898,35 @@ async function submitOrder(){
     ?[street,wName,dName,pName].filter(Boolean).join(', ')
     :(existingOrder?.address||[street,wName,dName,pName].filter(Boolean).join(', '));
 
+  const mSendLater=document.getElementById('mSendLaterChk')?.checked;
+  let outStatus;
+  let plannedSendUnix=null;
+  if(mSendLater){
+    outStatus='send_later';
+    const pdt=(document.getElementById('mPlannedSendAt')?.value||'').trim();
+    if(!pdt){
+      addErr('mPlannedSendAt','Vui lòng chọn ngày giờ dự kiến gửi');
+    }else{
+      plannedSendUnix=new Date(pdt).getTime();
+      if(!Number.isFinite(plannedSendUnix)){
+        addErr('mPlannedSendAt','Ngày giờ không hợp lệ');
+      }
+    }
+  }else if(isEdit){
+    const prev=existingOrder?.status||'pending';
+    outStatus=prev==='send_later'?'pending':prev;
+    plannedSendUnix=null;
+  }else{
+    outStatus='pending';
+    plannedSendUnix=null;
+  }
+  if(firstErrEl){
+    firstErrEl.scrollIntoView({behavior:'smooth',block:'center'});
+    firstErrEl.classList.add('err-shake');
+    setTimeout(()=>firstErrEl.classList.remove('err-shake'),400);
+    return;
+  }
+
   const btn=document.getElementById('submitBtn');
   btn.disabled=true;btn.innerHTML=`<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${isEdit?'Đang cập nhật...':'Đang tạo...'}</span>`;
   recalcManualDiscount();
@@ -2865,8 +2959,8 @@ async function submitOrder(){
     discount_amount:discAmt,
     is_priority:existingOrder?.is_priority||0,
     ...(isEdit
-      ?{orderDbId:editOrderId,status:existingOrder?.status||'pending',orderDate:existingOrder?.created_at_unix||Date.now()}
-      :{orderId:'DH'+Date.now(),orderDate:Date.now(),status:'pending'})
+      ?{orderDbId:editOrderId,status:outStatus,orderDate:existingOrder?.created_at_unix||Date.now(),planned_send_at_unix:plannedSendUnix}
+      :{orderId:'DH'+Date.now(),orderDate:Date.now(),status:outStatus,planned_send_at_unix:plannedSendUnix})
   };
   try{
     const url=isEdit?`${API()}/api/order/update`:`${API()}/api/order/create`;
@@ -2890,7 +2984,9 @@ async function submitOrder(){
             discount_id:dcCoupon?mDiscount?.id:null,
             notes:document.getElementById('cNotes')?.value.trim()||null,
             referral_code:document.getElementById('cReferral')?.value.trim()||existingOrder?.referral_code||null,
-            products:JSON.stringify(createProducts)
+            products:JSON.stringify(createProducts),
+            status:outStatus,
+            planned_send_at_unix:plannedSendUnix
           };
         }
         const savedId=editOrderId; // lưu lại trước khi closeCreate() xóa editOrderId

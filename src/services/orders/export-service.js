@@ -144,7 +144,7 @@ export async function markExportDownloaded(exportId, env) {
                         ELSE COALESCE(shipped_at_unix, ?)
                     END
                 WHERE id = ?
-                  AND status NOT IN ('shipped', 'in_transit', 'delivered', 'failed')
+                  AND status NOT IN ('shipped', 'in_transit', 'delivered', 'failed', 'send_later')
             `).bind(now, now, orderId).run();
 
             if (shipRes.meta && shipRes.meta.changes > 0) {

@@ -130,6 +130,11 @@ function getOrderSortTimestampMs(statusFilter, order) {
         if (Number.isFinite(n)) return n;
     }
 
+    if (statusFilter === 'send_later' && order.planned_send_at_unix != null && order.planned_send_at_unix !== '') {
+        const p = Number(order.planned_send_at_unix);
+        if (Number.isFinite(p)) return p;
+    }
+
     const raw = order.created_at_unix ?? order.created_at ?? order.order_date ?? 0;
     if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
     const t = new Date(raw).getTime();
@@ -145,7 +150,7 @@ function getOrderSortTimestampMs(statusFilter, order) {
  */
 function applySorting() {
     const currentStatusFilter = document.getElementById('statusFilter')?.value || 'pending';
-    const newestFirstStatuses = ['shipped', 'in_transit', 'delivered'];
+    const newestFirstStatuses = ['shipped', 'in_transit', 'delivered', 'send_later'];
 
     filteredOrdersData.sort((a, b) => {
         const priorityA = a.is_priority || 0;

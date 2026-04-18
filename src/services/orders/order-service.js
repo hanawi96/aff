@@ -19,6 +19,17 @@ export async function createOrder(data, env, corsHeaders) {
         const orderDate = data.orderDate || new Date().getTime();
         const orderTimestamp = new Date(orderDate).getTime();
 
+        const rawPlanned = data.planned_send_at_unix ?? data.plannedSendAtUnix;
+        let plannedSendAtUnix = null;
+        if (rawPlanned != null && rawPlanned !== '') {
+            const n = Number(rawPlanned);
+            if (Number.isFinite(n)) plannedSendAtUnix = Math.round(n);
+        }
+        const incomingStatus = String(data.status || 'pending').toLowerCase().trim();
+        if (incomingStatus === 'send_later' && !plannedSendAtUnix) {
+            return jsonResponse({ success: false, error: 'Đơn gửi sau cần chọn ngày giờ dự kiến gửi' }, 400, corsHeaders);
+        }
+
         const result = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, customer_name, customer_phone,
@@ -28,8 +39,9 @@ export async function createOrder(data, env, corsHeaders) {
                 tax_amount, tax_rate, created_at_unix,
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
-                discount_code, discount_amount, is_priority
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                discount_code, discount_amount, is_priority,
+                planned_send_at_unix
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             data.customer.name,
@@ -60,7 +72,8 @@ export async function createOrder(data, env, corsHeaders) {
             data.street_address || null,
             snap.discountCode,
             snap.discountAmount,
-            snap.isPriority
+            snap.isPriority,
+            incomingStatus === 'send_later' ? plannedSendAtUnix : null
         ).run();
 
         if (!result.success) {
@@ -211,6 +224,18 @@ export async function updateOrderFull(data, env, corsHeaders) {
             ? data.orderDate
             : (existing.created_at_unix || Date.now());
 
+        const rawPlanned = data.planned_send_at_unix ?? data.plannedSendAtUnix;
+        let plannedSendAtUnix = null;
+        if (rawPlanned != null && rawPlanned !== '') {
+            const n = Number(rawPlanned);
+            if (Number.isFinite(n)) plannedSendAtUnix = Math.round(n);
+        }
+        const incomingStatus = String(data.status || 'pending').toLowerCase().trim();
+        if (incomingStatus === 'send_later' && !plannedSendAtUnix) {
+            return jsonResponse({ success: false, error: 'Đơn gửi sau cần chọn ngày giờ dự kiến gửi' }, 400, corsHeaders);
+        }
+        const finalPlanned = incomingStatus === 'send_later' ? plannedSendAtUnix : null;
+
         await env.DB.prepare(`
             UPDATE orders SET
                 customer_name = ?, customer_phone = ?,
@@ -220,7 +245,8 @@ export async function updateOrderFull(data, env, corsHeaders) {
                 tax_amount = ?, tax_rate = ?,
                 province_id = ?, province_name = ?, district_id = ?, district_name = ?,
                 ward_id = ?, ward_name = ?, street_address = ?,
-                discount_code = ?, discount_amount = ?, is_priority = ?
+                discount_code = ?, discount_amount = ?, is_priority = ?,
+                planned_send_at_unix = ?
             WHERE id = ?
         `).bind(
             data.customer.name,
@@ -251,6 +277,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
             snap.discountCode,
             snap.discountAmount,
             snap.isPriority,
+            finalPlanned,
             orderDbId
         ).run();
 
@@ -590,8 +617,8 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Validate status
-        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        // Validate status (send_later chỉ đặt qua tạo/sửa đơn đầy đủ, không qua API này)
+        const validStatuses = ['pending', 'processing', 'shipped', 'in_transit', 'delivered', 'failed', 'cancelled'];
         if (!validStatuses.includes(data.status)) {
             return jsonResponse({
                 success: false,
@@ -600,16 +627,20 @@ export async function updateOrderStatus(data, env, corsHeaders) {
         }
 
         const nowMs = Date.now();
-        // Từ chờ xử lý / đang xử lý → shipped: luôn ghi mốc gửi = now (tránh shipped_at cũ còn sót khi chưa NULL hết).
+        // Từ chờ xử lý / đang xử lý / gửi sau → shipped: luôn ghi mốc gửi = now (tránh shipped_at cũ còn sót khi chưa NULL hết).
         // Các lần shipped khác: giữ COALESCE. pending/processing/cancelled: xóa mốc gửi.
         const row = await env.DB.prepare(`
             UPDATE orders
             SET status = ?1,
                 shipped_at_unix = CASE
-                    WHEN ?1 = 'shipped' AND status IN ('pending', 'processing') THEN ?2
+                    WHEN ?1 = 'shipped' AND status IN ('pending', 'processing', 'send_later') THEN ?2
                     WHEN ?1 = 'shipped' THEN COALESCE(shipped_at_unix, ?2)
                     WHEN ?1 IN ('pending', 'processing', 'cancelled') THEN NULL
                     ELSE shipped_at_unix
+                END,
+                planned_send_at_unix = CASE
+                    WHEN status = 'send_later' AND ?1 <> 'send_later' THEN NULL
+                    ELSE planned_send_at_unix
                 END
             WHERE id = ?3
             RETURNING shipped_at_unix

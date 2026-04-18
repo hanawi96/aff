@@ -44,7 +44,27 @@ async function submitNewOrder() {
 
     // Collect form data
     const paymentMethod = orderPaymentApiKey(document.getElementById('newOrderPaymentMethod')?.value || 'cod');
-    const status = document.getElementById('newOrderStatus')?.value || 'pending';
+    const sendLaterCb = document.getElementById('newOrderSendLater');
+    let status = document.getElementById('newOrderStatus')?.value || 'pending';
+    let planned_send_at_unix = null;
+    if (sendLaterCb?.checked) {
+        const dt = document.getElementById('newOrderPlannedSendAt')?.value?.trim();
+        if (!dt) {
+            showToast('Vui lòng chọn ngày giờ dự kiến gửi', 'warning');
+            document.getElementById('newOrderPlannedSendAt')?.focus();
+            return;
+        }
+        const t = new Date(dt).getTime();
+        if (!Number.isFinite(t)) {
+            showToast('Ngày giờ dự kiến gửi không hợp lệ', 'warning');
+            document.getElementById('newOrderPlannedSendAt')?.focus();
+            return;
+        }
+        planned_send_at_unix = t;
+        status = 'send_later';
+    } else {
+        planned_send_at_unix = null;
+    }
     const referralCode = document.getElementById('newOrderReferralCode')?.value.trim() || '';
     const shippingFee = parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0;
     const shippingCost = parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0;
@@ -137,6 +157,7 @@ async function submitNewOrder() {
         paymentMethod: paymentMethod,
         payment_method: paymentMethod,
         status: status,
+        planned_send_at_unix: planned_send_at_unix,
         referralCode: referralCode || null,
         shippingFee: shippingFee,
         shipping_fee: shippingFee,
@@ -151,7 +172,8 @@ async function submitNewOrder() {
         discount_code: discountCode,
         discountAmount: discountAmount,
         discount_amount: discountAmount,
-        is_priority: isPriority
+        is_priority: isPriority,
+        isPriority: isPriority
     };
 
     if (!isUpdate) {

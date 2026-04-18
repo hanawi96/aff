@@ -1,5 +1,14 @@
 import { normalizeOrderItemSize } from '../../utils/order-item-size.js';
 
+/** 0 | 1 cho cột is_priority — không dùng `|| 0` vì mất nhánh isPriority / kiểu lạ từ client. */
+function normalizeOrderIsPriority(data) {
+    const raw = data.is_priority ?? data.isPriority;
+    if (raw === true || raw === 1 || raw === '1') return 1;
+    const n = Number(raw);
+    if (n === 1) return 1;
+    return 0;
+}
+
 /**
  * Tính toán đầy đủ giá trị lưu DB + dòng order_items (dùng chung create / update đơn).
  */
@@ -131,7 +140,7 @@ export async function computeOrderSnapshot(data, env) {
     const discountCode = data.discountCode || data.discount_code || null;
     const discountAmount = data.discountAmount || data.discount_amount || 0;
     const discountId = data.discountId || data.discount_id || null;
-    const isPriority = data.is_priority || 0;
+    const isPriority = normalizeOrderIsPriority(data);
 
     const itemsData = [];
     for (const item of data.cart) {

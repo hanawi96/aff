@@ -10,6 +10,11 @@ function getStatusBadge(status, orderId, orderCode, order) {
             color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />`
         },
+        'send_later': {
+            label: 'Gửi sau',
+            color: 'bg-sky-100 text-sky-800 border-sky-300',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />`
+        },
         'shipped': {
             label: 'Đã gửi hàng',
             color: 'bg-blue-100 text-blue-700 border-blue-300',
@@ -37,10 +42,25 @@ function getStatusBadge(status, orderId, orderCode, order) {
 
     const filterVal = document.getElementById('statusFilter')?.value || '';
     const onShippedListFilter = filterVal === 'shipped';
+    const onSendLaterListFilter = filterVal === 'send_later';
 
     let label = config.label;
     let badgeTitle = '';
-    if (onShippedListFilter && currentStatus === 'shipped') {
+    if (onSendLaterListFilter && currentStatus === 'send_later') {
+        if (order && order.planned_send_at_unix) {
+            const parts = formatOrderTimeDisplayParts(order.planned_send_at_unix);
+            badgeTitle = parts.title || '';
+            if (parts.isRelative) {
+                label = parts.main;
+            } else {
+                const hm = (parts.main || '').slice(0, 5);
+                label = parts.sub ? `${hm} · ${parts.sub}` : parts.main;
+            }
+        } else {
+            label = 'Chưa chọn ngày gửi';
+            badgeTitle = 'Thiếu planned_send_at_unix';
+        }
+    } else if (onShippedListFilter && currentStatus === 'shipped') {
         if (order && order.shipped_at_unix) {
             const parts = formatOrderTimeDisplayParts(order.shipped_at_unix);
             badgeTitle = parts.title || '';
@@ -83,12 +103,10 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
         return;
     }
 
+    // Đồng bộ với bộ lọc desktop: chỉ đổi nhanh chờ xử lý ↔ đã gửi (không dùng in_transit / delivered / failed từ menu)
     const statuses = [
         { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
-        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
-        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
-        { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
-        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' }
     ];
 
     // Get the badge element position
@@ -103,7 +121,7 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
 
     // Calculate position - check if there's enough space below
     const spaceBelow = window.innerHeight - rect.bottom;
-    const menuHeight = 250; // Estimated menu height
+    const menuHeight = 120; // Estimated menu height (ít mục hơn)
 
     if (spaceBelow < menuHeight && rect.top > menuHeight) {
         // Show above
@@ -192,10 +210,13 @@ async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, 
                 // Get status label
                 const statusLabels = {
                     'pending': 'Chờ xử lý',
+                    'processing': 'Đang xử lý',
                     'shipped': 'Đã gửi hàng',
                     'in_transit': 'Đang vận chuyển',
                     'delivered': 'Đã giao hàng',
-                    'failed': 'Giao hàng thất bại'
+                    'failed': 'Giao hàng thất bại',
+                    'cancelled': 'Đã hủy',
+                    'send_later': 'Gửi sau'
                 };
 
                 showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success', null, updateId);

@@ -106,9 +106,10 @@ async function buildOrderModalSeed(order, mode) {
     return {
         ...base,
         referral_code: order.referral_code || '',
-        is_priority: order.is_priority === 1,
+        is_priority: Number(order.is_priority) === 1,
         notes: order.notes || '',
         status: order.status || 'pending',
+        planned_send_at_unix: order.planned_send_at_unix ?? null,
         discount_code: order.discount_code || '',
         discount_amount: order.discount_amount || 0,
         discount_id: discountId,

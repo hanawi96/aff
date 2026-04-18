@@ -311,6 +311,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const paymentMethod = orderPaymentApiKey(duplicateData?.payment_method || 'cod');
     const orderNotesSeed = duplicateData?.notes || '';
     const orderStatusSeed = duplicateData?.status || 'pending';
+    const sendLaterRevertStatus =
+        !isEdit && duplicateData
+            ? 'pending'
+            : (orderStatusSeed === 'send_later' ? 'pending' : orderStatusSeed);
 
     // Get customer shipping fee from cost_config
     let shippingFee = duplicateData?.shipping_fee;
@@ -341,6 +345,8 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
         totalRevenue: totalRevenue,
         productCount: currentOrderProducts.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0)
     };
+
+    document.getElementById('addOrderModal')?.remove();
 
     const modal = document.createElement('div');
     modal.id = 'addOrderModal';
@@ -495,7 +501,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         <!-- Priority Checkbox -->
                         <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="newOrderPriority" class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500" ${duplicateData && duplicateData.is_priority ? 'checked' : ''} />
+                                <input type="checkbox" id="newOrderPriority" class="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500" ${duplicateData != null && Number(duplicateData.is_priority) === 1 ? 'checked' : ''} />
                                 <span class="text-sm font-medium text-gray-800 flex items-center gap-1.5">
                                     <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -506,7 +512,19 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <p class="text-xs text-gray-600 mt-1.5 ml-6">Đơn ưu tiên sẽ hiển thị đầu tiên trong danh sách</p>
                         </div>
 
-                        <input type="hidden" id="newOrderStatus" value="${escapeHtml(orderStatusSeed)}" />
+                        <div class="bg-sky-50 rounded-lg p-3 border border-sky-200">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="newOrderSendLater" class="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500" onchange="toggleNewOrderSendLater()" ${duplicateData && duplicateData.status === 'send_later' ? 'checked' : ''} />
+                                <span class="text-sm font-medium text-gray-800">Gửi sau</span>
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1.5 ml-6">Đơn vào trạng thái «Gửi sau», có ngày dự kiến gửi — chưa tính là đã gửi hàng.</p>
+                            <div id="newOrderSendLaterWrap" class="mt-2 space-y-1.5 ${duplicateData && duplicateData.status === 'send_later' ? '' : 'hidden'}">
+                                <label class="block text-xs font-medium text-gray-700">Ngày giờ dự kiến gửi <span class="text-red-500">*</span></label>
+                                <input type="datetime-local" id="newOrderPlannedSendAt" class="w-full px-3 py-2 text-sm border border-sky-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white" />
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="newOrderStatus" value="${escapeHtml(orderStatusSeed)}" data-revert-status="${escapeHtml(sendLaterRevertStatus)}" />
 
                         <style>
                             .payment-method-btn {
@@ -980,6 +998,19 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
             }
         }
 
+        const plannedInp = document.getElementById('newOrderPlannedSendAt');
+        if (plannedInp && duplicateData?.planned_send_at_unix) {
+            plannedInp.value = formatPlannedSendLocalInput(duplicateData.planned_send_at_unix);
+        }
+        if (duplicateData?.status === 'send_later') {
+            const sl = document.getElementById('newOrderSendLater');
+            const wrap = document.getElementById('newOrderSendLaterWrap');
+            const st = document.getElementById('newOrderStatus');
+            if (sl) sl.checked = true;
+            if (wrap) wrap.classList.remove('hidden');
+            if (st) st.value = 'send_later';
+        }
+
         if (currentOrderProducts.length > 0) {
             renderOrderProducts();
         }
@@ -999,6 +1030,33 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
 
         document.getElementById('newOrderCustomerName')?.focus();
     }, 0);
+}
+
+function formatPlannedSendLocalInput(ms) {
+    if (ms == null || ms === '') return '';
+    let n = Number(ms);
+    if (!Number.isFinite(n)) return '';
+    // DB / API có thể trả unix giây hoặc ms — datetime-local cần Date đúng ms
+    if (n > 0 && n < 1e12) n *= 1000;
+    const d = new Date(n);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (x) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toggleNewOrderSendLater() {
+    const cb = document.getElementById('newOrderSendLater');
+    const wrap = document.getElementById('newOrderSendLaterWrap');
+    const statusEl = document.getElementById('newOrderStatus');
+    if (!cb || !wrap || !statusEl) return;
+    const revert = statusEl.getAttribute('data-revert-status') || 'pending';
+    if (cb.checked) {
+        wrap.classList.remove('hidden');
+        statusEl.value = 'send_later';
+    } else {
+        wrap.classList.add('hidden');
+        statusEl.value = revert;
+    }
 }
 
 // Toggle free shipping

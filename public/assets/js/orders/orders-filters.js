@@ -153,11 +153,22 @@ let _prevSearchInputHadText = false;
 const ORDER_STATUS_FILTER_LABELS = {
     all: 'Tất cả trạng thái',
     pending: 'Chưa gửi hàng',
-    shipped: 'Đã gửi hàng',
-    in_transit: 'Đang vận chuyển',
-    delivered: 'Đã giao hàng',
-    failed: 'Giao hàng thất bại'
+    send_later: 'Gửi sau',
+    shipped: 'Đã gửi hàng'
 };
+
+/** Đã bỏ khỏi dropdown lọc desktop — nếu còn giá trị cũ trong DOM thì coi như «Chưa gửi hàng». */
+const REMOVED_DESKTOP_STATUS_FILTER_VALUES = new Set(['in_transit', 'delivered', 'failed']);
+
+function normalizeDesktopStatusFilterHidden() {
+    const hidden = document.getElementById('statusFilter');
+    const labelEl = document.getElementById('statusFilterLabel');
+    if (!hidden) return;
+    const v = (hidden.value || 'pending').toLowerCase().trim();
+    if (!REMOVED_DESKTOP_STATUS_FILTER_VALUES.has(v)) return;
+    hidden.value = 'pending';
+    if (labelEl) labelEl.textContent = ORDER_STATUS_FILTER_LABELS.pending;
+}
 
 /**
  * Vừa bắt đầu nhập tìm → chuyển dropdown sang «Tất cả trạng thái» (một lần).
@@ -195,6 +206,7 @@ function syncStatusFilterWithSearchInput() {
  */
 function filterOrdersData(preservePage = false) {
     syncStatusFilterWithSearchInput();
+    normalizeDesktopStatusFilterHidden();
 
     const pageBeforeFilter = preservePage ? currentPage : null;
     const searchRaw = document.getElementById('searchInput')?.value || '';
@@ -392,11 +404,10 @@ function toggleStatusFilter(event) {
         { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
         { value: 'pending', label: 'Chưa gửi hàng', color: 'yellow' },
         { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
-        { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
-        { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
-        { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }
+        { value: 'send_later', label: 'Gửi sau', color: 'sky' }
     ];
 
+    normalizeDesktopStatusFilterHidden();
     const currentValue = document.getElementById('statusFilter').value;
     const button = event.currentTarget;
 
@@ -447,7 +458,7 @@ function selectStatusFilter(value, label) {
     document.getElementById('statusFilterMenu')?.remove();
 
     // Đã gửi hàng: sort mặc định theo thời gian gửi mới nhất (shipped_at_unix), không để sort theo giá trị đơn che mất
-    if (value === 'shipped') {
+    if (value === 'shipped' || value === 'send_later') {
         amountSortOrder = 'none';
         dateSortOrder = 'desc';
         if (typeof updateAmountSortIcon === 'function') updateAmountSortIcon();
