@@ -55,6 +55,11 @@ const tests = [
     { addr: 'So nha 23, Ap 1, xa Tan Loc, Thoi Binh',       exp: ['Ca Mau','Thoi Binh','Tan Loc'] },
     { addr: 'khu pho Hai Son phuong Phuoc hoa thi xa Phu My brvt', exp: ['Ba Ria','Phu My','Phuoc Hoa'] },
     { addr: '567/12 Xo Viet Nghe Tinh B/Thanh',             exp: ['Ho Chi Minh','Binh Thanh'] },
+    { addr: '567/12 Xô Viết Nghệ Tĩnh B/Thạnh',             exp: ['Ho Chi Minh','Binh Thanh'] },
+    // Tỉnh có TP trùng tên (Bắc Ninh): không được gán nhầm TP tỉnh thay cho TP Từ Sơn
+    { addr: '175 Minh Khai - Đông Ngàn- Từ Sơn - Bắc Ninh', exp: ['Bac Ninh', 'Tu Son', 'Dong Ngan'] },
+    // Dấu phẩy dính + gộp "huyện tỉnh" không phân tách: Phường Ninh Hiệp, TX Ninh Hòa, Khánh Hòa
+    { addr: 'Hùng hữu mai tdp 10, nguyên trường tộ, ninh hiệp,ninh hòa khanh hòa', exp: ['Khanh Hoa', 'Ninh Hoa', 'Ninh Hiep'] },
 ];
 
 (async () => {

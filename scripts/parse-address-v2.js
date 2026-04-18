@@ -36,6 +36,22 @@ function _bare(name) {
         .trim();
 }
 
+function _stripTrailingProvinceSuffix(seg, province) {
+    if (!seg || !province) return seg;
+    var sw = seg.trim().split(/\s+/).filter(Boolean);
+    if (sw.length < 2) return seg;
+    var pb = _bare(province.Name);
+    if (!pb) return seg;
+    for (var n = Math.min(3, sw.length - 1); n >= 1; n--) {
+        var tail = sw.slice(-n).join(' ');
+        if (_bare(tail) === pb) {
+            var head = sw.slice(0, -n).join(' ').trim();
+            return head || seg;
+        }
+    }
+    return seg;
+}
+
 // Province abbreviation map: normalized abbrev → province.Id from tree.json
 const _PA = {
     'hcm':'79','tphcm':'79','tp hcm':'79','tp.hcm':'79','sai gon':'79','saigon':'79','sg':'79',
@@ -125,10 +141,11 @@ const _SUBWARD_RE = /\b(\u1ea5p|\u1ea1p|ap|x\u00f3m|xom|th\u00f4n|thon|t\u1ed5 d
 
 function _expand(text, data) {
     text = text.normalize('NFC').replace(/\u00A0/g, ' ');
+    text = text.replace(/,(\S)/g, ', $1');
     text = text.replace(/\s*[-\u2013\u2014|]\s*/g, ', ');
 
-    // Slash abbreviations
-    text = text.replace(/\b([\w\u00C0-\u024F]+)\/([\w\u00C0-\u024F]+)\b/g, function(m) {
+    // Slash abbreviations (\u1E00-\u1EFF: ký tự tiếng Việt ngoài \u024F — vd "Thạnh" sau dấu /)
+    text = text.replace(/\b([\w\u00C0-\u024F\u1E00-\u1EFF]+)\/([\w\u00C0-\u024F\u1E00-\u1EFF]+)\b/g, function(m) {
         const k = _nn(m).replace(/\s/g, '/');
         const mapped = _DA[k] || _DA[m.toLowerCase()];
         if (mapped) {
@@ -343,7 +360,7 @@ function _fallback(text, data) {
             if (!p) continue;
             out.province = p;
             if (pi > 0) {
-                const d = _match(segs[pi - 1], p.Districts, 0.75);
+                const d = _match(_stripTrailingProvinceSuffix(segs[pi - 1], p), p.Districts, 0.75);
                 if (d) { out.district = d; if (pi > 1) out.ward = _match(segs[pi - 2], d.Wards, 0.73); }
             }
             return out;
@@ -360,7 +377,7 @@ function _fallback(text, data) {
             const rem = words.slice(0, s).concat(words.slice(s + n));
             for (let dn = Math.min(3, rem.length); dn >= 1; dn--) {
                 for (let ds = rem.length - dn; ds >= 0; ds--) {
-                    const d = _match(rem.slice(ds, ds + dn).join(' '), p.Districts, 0.78);
+                    const d = _match(_stripTrailingProvinceSuffix(rem.slice(ds, ds + dn).join(' '), p), p.Districts, 0.78);
                     if (!d) continue;
                     out.district = d;
                     const rem2 = rem.slice(0, ds).concat(rem.slice(ds + dn));
@@ -405,16 +422,26 @@ function _partialFallback(text, data, province, district) {
     var segs = text.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
     var words = text.split(/\s+/).filter(Boolean);
 
+    function _sameBareAsProvince(seg) {
+        return !!(province && seg && _bare(seg) === _bare(province.Name));
+    }
+    function _sameBareAsDistrict(seg, dist) {
+        return !!(dist && seg && _bare(seg) === _bare(dist.Name));
+    }
+
     if (province && !district) {
         // Scan right-to-left: district is usually closer to the province (at end)
         for (var si = segs.length - 1; si >= 0; si--) {
-            var d = _match(segs[si], province.Districts, 0.78);
+            if (_sameBareAsProvince(segs[si])) continue;
+            var d = _match(_stripTrailingProvinceSuffix(segs[si], province), province.Districts, 0.78);
             if (d) { result.district = d; break; }
         }
         if (!result.district) {
             for (var n = Math.min(3, words.length); n >= 1; n--) {
                 for (var i = 0; i <= words.length - n; i++) {
-                    var d2 = _match(words.slice(i, i + n).join(' '), province.Districts, 0.78);
+                    var cand = words.slice(i, i + n).join(' ');
+                    if (_sameBareAsProvince(cand)) continue;
+                    var d2 = _match(_stripTrailingProvinceSuffix(cand, province), province.Districts, 0.78);
                     if (d2) { result.district = d2; break; }
                 }
                 if (result.district) break;
@@ -425,13 +452,18 @@ function _partialFallback(text, data, province, district) {
     var dist = result.district;
     if (dist) {
         for (var si2 = 0; si2 < segs.length; si2++) {
+            if (_sameBareAsProvince(segs[si2])) continue;
+            if (_sameBareAsDistrict(segs[si2], dist)) continue;
             var w = _match(segs[si2], dist.Wards, 0.73);
             if (w) { result.ward = w; break; }
         }
         if (!result.ward) {
             for (var n2 = Math.min(3, words.length); n2 >= 1; n2--) {
                 for (var i2 = 0; i2 <= words.length - n2; i2++) {
-                    var w2 = _match(words.slice(i2, i2 + n2).join(' '), dist.Wards, 0.75);
+                    var candW = words.slice(i2, i2 + n2).join(' ');
+                    if (_sameBareAsProvince(candW)) continue;
+                    if (_sameBareAsDistrict(candW, dist)) continue;
+                    var w2 = _match(candW, dist.Wards, 0.75);
                     if (w2) { result.ward = w2; break; }
                 }
                 if (result.ward) break;
