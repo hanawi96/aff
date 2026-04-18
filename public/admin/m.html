@@ -378,21 +378,29 @@ html.m-create-deeplink>body>header{display:none!important}
       <div id="discountPanelManual" class="flex-1 min-h-0 flex flex-col">
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3">
           <div class="rounded-xl border border-violet-100/90 bg-gradient-to-br from-white via-violet-50/30 to-white p-3 shadow-sm">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-600 shrink-0">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              </span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-gray-900">Giảm nhanh</p>
-                <p class="text-[10px] text-gray-500 leading-snug">Chọn %, bấm <span class="font-semibold text-gray-700">Áp dụng</span> dưới cùng.</p>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-600 shrink-0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-gray-900">Giảm nhanh</p>
+                  <p class="text-[10px] text-gray-500 leading-snug">Chọn %, bấm <span class="font-semibold text-gray-700">Áp dụng</span> dưới cùng.</p>
+                </div>
               </div>
+              <button type="button" onclick="manualDiscQuick(0)" title="Đặt lại giảm nhanh" aria-label="Đặt lại giảm nhanh" class="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-gray-400 hover:text-violet-600 active:scale-[0.98]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+              </button>
             </div>
             <div class="flex flex-wrap gap-1.5" id="manualDiscChipRow">
-              <button type="button" onclick="manualDiscQuick(0)" data-mp="0" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">—</button>
-              <button type="button" onclick="manualDiscQuick(5)" data-mp="5" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">5%</button>
-              <button type="button" onclick="manualDiscQuick(10)" data-mp="10" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">10%</button>
-              <button type="button" onclick="manualDiscQuick(15)" data-mp="15" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">15%</button>
+              <button type="button" onclick="manualDiscQuick(5)" data-mp="5" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">-5%</button>
+              <button type="button" onclick="manualDiscQuick(10)" data-mp="10" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">-10%</button>
+              <button type="button" onclick="manualDiscQuick(15)" data-mp="15" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">-15%</button>
             </div>
+            <p class="text-[10px] text-gray-400 mt-2 leading-snug">Gợi ý chẵn chục nghìn (theo tổng đơn)</p>
+            <div class="flex flex-wrap gap-1.5 mt-1" id="manualCashSuggestRow"></div>
           </div>
           <div class="rounded-xl border border-gray-200/90 bg-white p-3 shadow-sm">
             <p class="text-xs font-bold text-gray-900 mb-0.5">Nhập theo ý bạn</p>
@@ -1550,7 +1558,7 @@ async function showEditOrder(id){
   if(!o){clearCreateDeeplinkBoot();return;}
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
-  editOrderId=id;mDiscount=null;manualSheetQuickSel=null;
+  editOrderId=id;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
   createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // Parse existing products into createProducts
   try{
@@ -1684,7 +1692,7 @@ function showCreateOrder(){
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
-  requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;setManualInputMode('percent');_syncManualChips();});
+  requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('percent');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
@@ -2017,7 +2025,7 @@ async function initMCreateAddressSelector(orderForHydrate){
   }
 }
 function closeCreatePanelOnly(){
-  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;
+  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
   closeCategorySheet();
   clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
@@ -3110,6 +3118,8 @@ const M_MANUAL_DISCOUNT_CODE='GG_THU_CONG';
 let mManualInputMode='percent';
 /** Gợi ý % trong sheet (5|10|15) trước khi bấm Áp dụng — null = không chọn nhanh */
 let manualSheetQuickSel=null;
+/** Gợi ý tiền chẵn (đ) — null = không chọn chip gợi ý */
+let manualSheetFixSel=null;
 
 /** Tăng giảm giá để số khách trả (base−disc) xuống bội 1.000đ gần nhất (làm tròn xuống). */
 function applyRoundPayToThousand(base,disc){
@@ -3127,6 +3137,15 @@ function getCreateOrderBaseTotal(){
   return prod+ship;
 }
 function clampDisc(amt,base){const b=Math.max(0,Math.round(base));return Math.max(0,Math.min(Math.round(amt),b));}
+
+/** 3 mức giảm cố định (đ) để đơn còn chẵn chục nghìn: n, n+10, n+20 (nghìn), n = hàng đơn vị của tổng (nhãn −9.000đ, −19.000đ…). */
+function computeCashSuggestDiscounts(base){
+  const b=Math.max(0,Math.round(base));
+  if(b<1000)return[];
+  const k=Math.floor(b/1000)%10;
+  const n0=k===0?10:k;
+  return[n0,n0+10,n0+20].map(n=>{const amt=n*1000;return{label:`-${fmt(amt)}`,amt};});
+}
 function parseMoneyInput(val){
   const n=String(val||'').replace(/\./g,'').replace(/,/g,'').replace(/\s/g,'');
   const x=parseInt(n,10);
@@ -3168,6 +3187,7 @@ function clearCouponUI(){
   const c=document.getElementById('cDiscountCode');if(c)c.value='';
 }
 function setManualInputMode(mode){
+  if(mode==='percent')manualSheetFixSel=null;
   mManualInputMode=mode==='fixed'?'fixed':'percent';
   const a=mManualInputMode==='percent';
   const onP='px-2.5 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5';
@@ -3181,13 +3201,12 @@ function setManualInputMode(mode){
 }
 function onManualSheetInput(){
   manualSheetQuickSel=null;
+  manualSheetFixSel=null;
   _syncManualChips();
   updateDiscountSheetOrderSummary();
 }
 function _syncManualChips(){
   const row=document.getElementById('manualDiscChipRow');if(!row)return;
-  const inp=document.getElementById('mManualValInput');
-  const raw=(inp?.value||'').trim();
   const pctMode=mManualInputMode==='percent';
   const clsOn='manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border-2 border-violet-500 bg-violet-50 text-violet-800 shadow-sm active:scale-[0.98]';
   const clsOff='manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]';
@@ -3195,8 +3214,7 @@ function _syncManualChips(){
     const v=b.getAttribute('data-mp');
     const n=v==='0'?0:parseInt(v,10);
     let on=false;
-    if(n===0)on=!mDiscount&&!manualSheetQuickSel&&!raw;
-    else on=pctMode&&manualSheetQuickSel===n;
+    if(n!==0)on=pctMode&&manualSheetQuickSel===n;
     b.className=on?clsOn:clsOff;
   });
 }
@@ -3216,12 +3234,43 @@ function getManualSheetDraftPreview(base){
     const disc=clampDisc(pct/100*b,b);
     return{mode:'percent',pct,disc,remain:Math.max(0,b-disc)};
   }
+  if(manualSheetFixSel!=null){
+    const disc=clampDisc(manualSheetFixSel,b);
+    if(disc<=0)return null;
+    return{mode:'fixed',pct:null,disc,remain:Math.max(0,b-disc)};
+  }
   const raw=(document.getElementById('mManualValInput')?.value||'').trim();
   if(!raw)return null;
   const v=parseMoneyInput(raw);
   if(v<=0)return null;
   const disc=clampDisc(v,b);
   return{mode:'fixed',pct:null,disc,remain:Math.max(0,b-disc)};
+}
+
+function renderManualCashSuggestChips(){
+  const row=document.getElementById('manualCashSuggestRow');
+  if(!row)return;
+  const b=Math.max(0,Math.round(getCreateOrderBaseTotal()));
+  const opts=computeCashSuggestDiscounts(b);
+  if(!opts.length){row.innerHTML='';return;}
+  const clsOn='manual-cash-sug px-3 py-1.5 rounded-lg text-xs font-semibold border-2 border-violet-500 bg-violet-50 text-violet-800 shadow-sm active:scale-[0.98]';
+  const clsOff='manual-cash-sug px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]';
+  row.innerHTML=opts.map(o=>{
+    const dis=o.amt>=b;
+    const sel=manualSheetFixSel===o.amt&&!dis;
+    const cls=(sel?clsOn:clsOff)+(dis?' opacity-40 cursor-not-allowed':'');
+    if(dis)return`<button type="button" disabled class="${cls}">${esc(o.label)}</button>`;
+    return`<button type="button" onclick="manualCashSuggest(${o.amt})" class="${cls}">${esc(o.label)}</button>`;
+  }).join('');
+}
+
+function manualCashSuggest(amt){
+  const b=Math.max(0,Math.round(getCreateOrderBaseTotal()));
+  if(amt>=b){toast('Chọn mức nhỏ hơn tổng đơn');return;}
+  manualSheetFixSel=amt;
+  manualSheetQuickSel=null;
+  const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
+  setManualInputMode('fixed');
 }
 
 function updateDiscountSheetOrderSummary(){
@@ -3247,6 +3296,7 @@ function updateDiscountSheetOrderSummary(){
     <span class="text-xs text-gray-500">Tổng đơn</span>
     <span class="text-lg font-bold text-gray-900 tabular-nums tracking-tight">${fmt(b)}</span>
   </div>${preview}`;
+  renderManualCashSuggestChips();
 }
 
 function maybeRefreshDiscountSheetSummary(){
@@ -3259,6 +3309,7 @@ function maybeRefreshDiscountSheetSummary(){
 
 function hydrateManualSheetDraft(){
   manualSheetQuickSel=null;
+  manualSheetFixSel=null;
   const inp=document.getElementById('mManualValInput');
   if(inp)inp.value='';
   const rchk=document.getElementById('discountSheetRoundChk');
@@ -3291,12 +3342,13 @@ function setDiscountSheetTab(tab){
   document.getElementById('discountPanelSearchWrap')?.classList.toggle('hidden',isManual);
   document.getElementById('discountPanelCodes')?.classList.toggle('hidden',isManual);
   document.getElementById('discountPanelManual')?.classList.toggle('hidden',!isManual);
-  if(isManual){hydrateManualSheetDraft();if(!manualSheetQuickSel)setTimeout(()=>document.getElementById('mManualValInput')?.focus(),50);}
+  if(isManual){hydrateManualSheetDraft();if(!manualSheetQuickSel&&!manualSheetFixSel)setTimeout(()=>document.getElementById('mManualValInput')?.focus(),50);}
 }
 
 function manualDiscQuick(pct){
   if(pct===0){
     manualSheetQuickSel=null;
+    manualSheetFixSel=null;
     const chk=document.getElementById('discountSheetRoundChk');if(chk)chk.checked=false;
     const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
     if(mDiscount?.source==='manual'){
@@ -3312,6 +3364,7 @@ function manualDiscQuick(pct){
   const base=getCreateOrderBaseTotal();
   if(base<=0){toast('Thêm sản phẩm trước khi giảm giá');return;}
   manualSheetQuickSel=pct;
+  manualSheetFixSel=null;
   const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
   setManualInputMode('percent');
   _syncManualChips();
@@ -3322,7 +3375,7 @@ function commitManualDiscountSheet(){
   const base=getCreateOrderBaseTotal();
   if(base<=0){toast('Thêm sản phẩm trước');return;}
   const raw=(document.getElementById('mManualValInput')?.value||'').trim();
-  if(!raw&&!manualSheetQuickSel){toast('Chọn % nhanh hoặc nhập số');return;}
+  if(!raw&&!manualSheetQuickSel&&manualSheetFixSel==null){toast('Chọn gợi ý hoặc nhập số');return;}
   clearCouponUI();
   const want=document.getElementById('discountSheetRoundChk')?.checked;
   if(raw){
@@ -3338,13 +3391,19 @@ function commitManualDiscountSheet(){
       if(want)amt=applyRoundPayToThousand(base,amt);
       mDiscount={source:'manual',manualKind:'fixed',manualValue:v,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
     }
-  }else{
+  }else if(manualSheetQuickSel){
     const pct=manualSheetQuickSel;
     let amt=clampDisc(pct/100*base,base);
     if(want)amt=applyRoundPayToThousand(base,amt);
     mDiscount={source:'manual',manualKind:'percent',manualValue:pct,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
+  }else{
+    const v=manualSheetFixSel;
+    let amt=clampDisc(v,base);
+    if(want)amt=applyRoundPayToThousand(base,amt);
+    mDiscount={source:'manual',manualKind:'fixed',manualValue:v,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
   }
   manualSheetQuickSel=null;
+  manualSheetFixSel=null;
   showDiscountApplied();
   _syncManualChips();
   closeDiscountSheet();
@@ -3384,6 +3443,7 @@ async function applyMobileDiscount(){
     if(d.success&&d.discount){
       const amount=calcDiscountAmount(d.discount,orderTotal+shipFee,shipFee);
       manualSheetQuickSel=null;
+      manualSheetFixSel=null;
       const rchk=document.getElementById('discountSheetRoundChk');if(rchk)rchk.checked=false;
       mDiscount={source:'coupon',id:d.discount.id,code:d.discount.code,amount,type:d.discount.type,title:d.discount.title};
       showDiscountApplied();
@@ -3406,6 +3466,7 @@ function showDiscountApplied(){
 function clearMobileDiscount(){
   mDiscount=null;
   manualSheetQuickSel=null;
+  manualSheetFixSel=null;
   const rchk=document.getElementById('discountSheetRoundChk');if(rchk)rchk.checked=false;
   document.getElementById('cDiscountCode').value='';
   const el=document.getElementById('discountApplied');
