@@ -475,7 +475,7 @@ html.m-create-deeplink>body>header{display:none!important}
       </div>
       <input id="categorySheetSearch" type="search" autocomplete="off" placeholder="Tìm danh mục..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white" oninput="renderCategorySheetList()">
     </div>
-    <div id="categorySheetList" class="overflow-y-auto flex-1 p-3 space-y-1.5 min-h-0"></div>
+    <div id="categorySheetList" class="overflow-y-auto flex-1 p-3 space-y-2 min-h-0"></div>
     <div id="categorySheetFooter" class="hidden shrink-0 p-3 pt-2 border-t border-gray-100 bg-white">
       <button type="button" id="categorySheetConfirmBtn" onclick="confirmCategorySheetMulti()" class="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-40 disabled:active:scale-100">Xác nhận</button>
     </div>
@@ -1727,13 +1727,11 @@ function getActiveCategoryDisplayName(){
   return c?String(c.name):'Danh mục';
 }
 /** Icon mặc định nút danh mục (Bán chạy) — heroicons folder-arrow-down */
-const M_CAT_PICKER_FOLDER_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6" aria-hidden="true"><path fill-rule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h15Zm-6.75-10.5a.75.75 0 0 0-1.5 0v4.19l-1.72-1.72a.75.75 0 0 0-1.06 1.06l3 3a.75.75 0 0 0 1.06 0l3-3a.75.75 0 1 0-1.06-1.06l-1.72 1.72V10.5Z" clip-rule="evenodd"/></svg>';
+const M_CAT_PICKER_FOLDER_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5" aria-hidden="true"><path fill-rule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h15Zm-6.75-10.5a.75.75 0 0 0-1.5 0v4.19l-1.72-1.72a.75.75 0 0 0-1.06 1.06l3 3a.75.75 0 0 0 1.06 0l3-3a.75.75 0 1 0-1.06-1.06l-1.72 1.72V10.5Z" clip-rule="evenodd"/></svg>';
 /** Tag — danh mục chưa có ảnh */
 const M_CAT_TAG_SVG_SM='<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
-const M_CAT_TAG_SVG_MD='<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
-/** Check cạnh phải hàng danh mục (không đè lên ảnh) */
-const M_CAT_ROW_CHECK_RIGHT='<svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>';
-
+/** Tag trên hàng chọn DM form tạo đơn (khi đã chọn 1 DM) — kích thước nhỏ */
+const M_CAT_TAG_SVG_PICKER='<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>';
 /** Tránh tải trễ do lazy + warm cache HTTP trước khi mở bottom sheet */
 const mCategoryImagePrefetchStarted=new Set();
 function prefetchCategorySheetImages(){
@@ -1752,21 +1750,21 @@ function renderCatPickerIcon(){
   const wrap=document.getElementById('catPickerIconWrap');
   if(!wrap)return;
   wrap.textContent='';
-  const base='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white border border-gray-200 ';
+  const basePick='flex shrink-0 items-center justify-center overflow-hidden rounded-full border leading-none ';
   if(activeCategoryMultiIds!==null&&activeCategoryMultiIds.length>1){
-    wrap.className=base+'text-indigo-600 bg-indigo-50 text-xs font-bold';
+    wrap.className=basePick+'h-6 w-6 border-violet-200 bg-violet-100 text-violet-700 text-[10px] font-bold';
     wrap.textContent=String(activeCategoryMultiIds.length);
     return;
   }
   const iconCatId=activeCategoryMultiIds!==null&&activeCategoryMultiIds.length===1?activeCategoryMultiIds[0]:activeCategoryId;
   if(iconCatId===''||iconCatId==null){
-    wrap.className=base+'text-indigo-600';
+    wrap.className=basePick+'h-7 w-7 border-gray-200 bg-white text-indigo-600';
     wrap.innerHTML=M_CAT_PICKER_FOLDER_SVG;
     return;
   }
   /* Luôn icon (tag) — không dùng ảnh DM trên hàng chọn, tránh nhầm với ảnh SP */
-  wrap.className=base+'text-indigo-600 bg-gray-50';
-  wrap.innerHTML=M_CAT_TAG_SVG_MD;
+  wrap.className=basePick+'h-6 w-6 border-violet-200 bg-violet-100 text-violet-600';
+  wrap.innerHTML=M_CAT_TAG_SVG_PICKER;
 }
 function updateCatPickerLabel(){
   const el=document.getElementById('catPickerLabel');
@@ -1844,13 +1842,26 @@ function selectCategorySheet(catId){
   closeCategorySheet();
   renderProductPicker();
 }
+/** Bỏ lọc danh mục → mặc định xem sản phẩm theo bán chạy (sort purchases); giữ sheet mở. */
+function clearCategoryFilterKeepSheetOpen(){
+  activeCategoryMultiIds=null;
+  activeCategoryId='';
+  updateCatPickerLabel();
+  renderProductPicker();
+  renderCategorySheetList();
+}
 function refreshMCategoryMultiRow(row,idStr){
   const sel=mCatSheetPendingMulti.has(idStr);
-  row.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
+  row.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-gray-200 bg-violet-100':'border-gray-100 bg-white active:bg-gray-50');
   const chk=row.querySelector('.m-cat-chk');
   if(chk){
-    chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded border '+(sel?'bg-indigo-600 border-indigo-600 text-white':'border-gray-300 bg-white');
-    chk.innerHTML=sel?'<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>':'';
+    chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded-full border '+(sel?'border-violet-600 bg-violet-600 text-white':'border-gray-300 bg-white');
+    chk.innerHTML=sel?'<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>':'';
+  }
+  const thumb=row.querySelector('.m-cat-thumb');
+  if(thumb){
+    const hasImg=!!thumb.querySelector('img');
+    thumb.className='m-cat-thumb relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200 '+(hasImg?'bg-gray-50':'bg-gray-100 text-gray-500');
   }
 }
 function renderCategorySheetList(){
@@ -1871,12 +1882,12 @@ function renderCategorySheetList(){
       const btn=document.createElement('button');
       btn.type='button';
       btn.setAttribute('data-mcatid',idStr);
-      btn.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
+      btn.className='cat-multi-row w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(sel?'border-gray-200 bg-violet-100':'border-gray-100 bg-white active:bg-gray-50');
       const chk=document.createElement('span');
-      chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded border '+(sel?'bg-indigo-600 border-indigo-600 text-white':'border-gray-300 bg-white');
-      if(sel)chk.innerHTML='<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+      chk.className='m-cat-chk flex h-5 w-5 shrink-0 items-center justify-center rounded-full border '+(sel?'border-violet-600 bg-violet-600 text-white':'border-gray-300 bg-white');
+      if(sel)chk.innerHTML='<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
       const mark=document.createElement('span');
-      mark.className='relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50';
+      mark.className='m-cat-thumb relative flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50';
       const imgUrl=r.image_url||'';
       if(imgUrl){
         const img=document.createElement('img');
@@ -1886,23 +1897,25 @@ function renderCategorySheetList(){
         img.loading='eager';
         img.onerror=function(){
           mark.textContent='';
-          mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
+          mark.className='m-cat-thumb flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
           mark.innerHTML=M_CAT_TAG_SVG_SM;
+          refreshMCategoryMultiRow(btn,idStr);
         };
         mark.appendChild(img);
       }else{
-        mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
+        mark.className='m-cat-thumb flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
         mark.innerHTML=M_CAT_TAG_SVG_SM;
       }
       const txt=document.createElement('div');
       txt.className='flex-1 min-w-0';
       const t1=document.createElement('p');
-      t1.className='text-sm font-semibold text-gray-900 truncate';
+      t1.className='m-cat-title text-sm font-semibold text-gray-900 truncate';
       t1.textContent=r.name;
       txt.appendChild(t1);
       btn.appendChild(chk);
       btn.appendChild(mark);
       btn.appendChild(txt);
+      refreshMCategoryMultiRow(btn,idStr);
       frag.appendChild(btn);
     });
     list.appendChild(frag);
@@ -1922,11 +1935,13 @@ function renderCategorySheetList(){
   const cur=activeCategoryId===null||activeCategoryId===undefined?'':String(activeCategoryId);
   filtered.forEach(r=>{
     const isSel=String(r.id)===cur;
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors '+(isSel?'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200':'border-gray-100 bg-white active:bg-gray-50');
+    const wrap=document.createElement('div');
+    wrap.className='flex w-full items-stretch overflow-hidden rounded-xl border transition-colors '+(isSel?'border-gray-200 bg-violet-100':'border-gray-100 bg-white hover:border-gray-200');
+    const mainBtn=document.createElement('button');
+    mainBtn.type='button';
+    mainBtn.className='flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3 text-left active:bg-black/[0.03]';
     const mark=document.createElement('span');
-    mark.className='flex h-9 w-9 shrink-0 overflow-hidden rounded-lg border '+(isSel?'border-indigo-300 bg-white':'border-gray-200 bg-gray-50');
+    mark.className='m-cat-thumb flex h-9 w-9 shrink-0 overflow-hidden items-center justify-center rounded-lg border border-gray-200 bg-gray-50';
     const imgUrl=r.image_url||'';
     if(imgUrl){
       const img=document.createElement('img');
@@ -1937,12 +1952,12 @@ function renderCategorySheetList(){
       if('fetchPriority' in img)img.fetchPriority='high';
       img.onerror=function(){
         mark.textContent='';
-        mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border '+(isSel?'border-indigo-300 bg-indigo-50 text-indigo-600':'border-gray-200 bg-gray-100 text-gray-500');
+        mark.className='m-cat-thumb flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
         mark.innerHTML=M_CAT_TAG_SVG_SM;
       };
       mark.appendChild(img);
     }else{
-      mark.className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border '+(isSel?'border-indigo-300 bg-indigo-50 text-indigo-600':'border-gray-200 bg-gray-100 text-gray-500');
+      mark.className='m-cat-thumb flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-500';
       mark.innerHTML=M_CAT_TAG_SVG_SM;
     }
     const txt=document.createElement('div');
@@ -1951,16 +1966,22 @@ function renderCategorySheetList(){
     t1.className='text-sm font-semibold text-gray-900 truncate';
     t1.textContent=r.name;
     txt.appendChild(t1);
-    const trail=document.createElement('span');
-    trail.className='flex h-9 w-9 shrink-0 items-center justify-center';
-    trail.innerHTML=isSel?M_CAT_ROW_CHECK_RIGHT:'';
-    trail.setAttribute('aria-hidden','true');
-    btn.appendChild(mark);
-    btn.appendChild(txt);
-    btn.appendChild(trail);
+    mainBtn.appendChild(mark);
+    mainBtn.appendChild(txt);
     const rid=r.id;
-    btn.addEventListener('click',()=>selectCategorySheet(rid));
-    list.appendChild(btn);
+    mainBtn.addEventListener('click',()=>selectCategorySheet(rid));
+    wrap.appendChild(mainBtn);
+    if(isSel){
+      const xBtn=document.createElement('button');
+      xBtn.type='button';
+      xBtn.title='Bỏ chọn danh mục';
+      xBtn.setAttribute('aria-label','Bỏ chọn danh mục');
+      xBtn.className='shrink-0 self-center mr-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200/90 bg-white text-gray-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500 active:scale-95';
+      xBtn.innerHTML='<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+      xBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();clearCategoryFilterKeepSheetOpen();});
+      wrap.appendChild(xBtn);
+    }
+    list.appendChild(wrap);
   });
 }
 (function wireCategorySheetMultiClick(){
@@ -2095,10 +2116,9 @@ function buildCreateForm(isEdit=false){
           Tự nhập
         </button>
       </div>
-      <button type="button" id="catPickerRow" onclick="openCategorySheet()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-left active:bg-gray-100">
-        <span id="catPickerIconWrap" class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white border border-gray-200 text-indigo-600" aria-hidden="true"></span>
+      <button type="button" id="catPickerRow" onclick="openCategorySheet()" class="w-full flex items-center gap-2.5 px-3 py-2.5 bg-gray-50/90 border border-gray-200/90 rounded-xl text-left transition-colors hover:bg-gray-50 active:bg-gray-100/80">
+        <span id="catPickerIconWrap" class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white text-indigo-600" aria-hidden="true"></span>
         <div class="flex-1 min-w-0">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Danh mục</p>
           <p id="catPickerLabel" class="text-sm font-semibold text-gray-900 truncate">🔥 Bán chạy</p>
         </div>
         <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
@@ -2195,11 +2215,11 @@ function buildCreateForm(isEdit=false){
         </div>
       </div>
 
-      <!-- Mã giảm giá -->
+      <!-- Ưu đãi -->
       <div class="border-b border-gray-100 px-4 py-3 space-y-2">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-          <input id="cDiscountCode" type="text" placeholder="Mã giảm giá" class="flex-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-gray-400 uppercase font-medium" oninput="this.value=this.value.toUpperCase()">
+          <input id="cDiscountCode" type="text" placeholder="Ưu đãi" class="flex-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-gray-400 font-medium" oninput="this.value=this.value.toUpperCase()">
           <button type="button" onclick="openDiscountSheet()" class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-violet-50 text-gray-400 hover:text-violet-600 transition-colors" title="Chọn mã">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           </button>
