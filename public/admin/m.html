@@ -354,16 +354,64 @@ html.m-create-deeplink>body>header{display:none!important}
 </div>
 </template>
 
-<!-- Discount Sheet -->
+<!-- Discount Sheet (tab: mã hệ thống · giảm tùy chỉnh — ids chip/manual dùng chung với JS) -->
 <div id="discountSheet" class="fixed inset-0 z-[60] hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeDiscountSheet()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col" style="max-height:80vh">
-    <div class="p-4 border-b border-gray-100 shrink-0">
-      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3"></div>
-      <h3 class="font-bold text-gray-900 text-sm mb-3">Chọn mã giảm giá</h3>
-      <input id="discountSearch" type="search" placeholder="Tìm mã, tên..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30" oninput="renderDiscountSheetList()">
+  <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-2xl sheet-up flex flex-col shadow-2xl shadow-gray-900/10 max-h-[min(92dvh,720px)]">
+    <div class="shrink-0 border-b border-gray-100 bg-white rounded-t-2xl px-3 pt-2 pb-2">
+      <div class="w-9 h-1 bg-gray-200 rounded-full mx-auto mb-2"></div>
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <h3 class="font-bold text-gray-900 text-sm tracking-tight">Giảm giá</h3>
+      </div>
+      <div class="flex p-0.5 rounded-xl bg-gray-100 gap-0.5 mb-2" role="tablist">
+        <button type="button" id="discountTabCodes" role="tab" aria-selected="true" onclick="setDiscountSheetTab('codes')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-violet-700 shadow-sm ring-1 ring-black/5">Mã giảm giá</button>
+        <button type="button" id="discountTabManual" role="tab" aria-selected="false" onclick="setDiscountSheetTab('manual')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">Tùy chỉnh</button>
+      </div>
+      <div id="discountPanelSearchWrap">
+        <input id="discountSearch" type="search" placeholder="Tìm mã, tên…" autocomplete="off" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="renderDiscountSheetList()">
+      </div>
     </div>
-    <div id="discountSheetList" class="overflow-y-auto flex-1 p-3 space-y-1.5"></div>
+    <div class="flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50/80">
+      <div id="discountPanelCodes" class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2">
+        <div id="discountSheetList" class="space-y-1.5"></div>
+      </div>
+      <div id="discountPanelManual" class="hidden flex-1 min-h-0 flex flex-col">
+        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3">
+          <div class="rounded-xl border border-violet-100/90 bg-gradient-to-br from-white via-violet-50/30 to-white p-3 shadow-sm">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-600 shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-gray-900">Giảm nhanh</p>
+                <p class="text-[10px] text-gray-500 leading-snug">Chọn %, bấm <span class="font-semibold text-gray-700">Áp dụng</span> dưới cùng.</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5" id="manualDiscChipRow">
+              <button type="button" onclick="manualDiscQuick(0)" data-mp="0" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">—</button>
+              <button type="button" onclick="manualDiscQuick(5)" data-mp="5" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">5%</button>
+              <button type="button" onclick="manualDiscQuick(10)" data-mp="10" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">10%</button>
+              <button type="button" onclick="manualDiscQuick(15)" data-mp="15" class="manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]">15%</button>
+            </div>
+          </div>
+          <div class="rounded-xl border border-gray-200/90 bg-white p-3 shadow-sm">
+            <p class="text-xs font-bold text-gray-900 mb-0.5">Nhập theo ý bạn</p>
+            <p class="text-[10px] text-gray-500 mb-2">% hoặc đ — cùng nút áp dụng dưới.</p>
+            <div class="flex gap-1.5 items-stretch">
+              <div class="flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shrink-0">
+                <button type="button" id="mManBtnPct" onclick="setManualInputMode('percent')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5">%</button>
+                <button type="button" id="mManBtnVnd" onclick="setManualInputMode('fixed')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md text-gray-500">đ</button>
+              </div>
+              <input type="text" id="mManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 8 hoặc 50000" class="flex-1 min-w-0 px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="onManualSheetInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();commitManualDiscountSheet();}">
+            </div>
+          </div>
+        </div>
+        <div id="discountSheetManualFooter" class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div id="discountSheetOrderSummary" class="mb-2"></div>
+          <button type="button" onclick="commitManualDiscountSheet()" class="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow-md shadow-gray-900/20 active:scale-[0.99] transition-transform">Áp dụng giảm giá</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1490,7 +1538,7 @@ async function showEditOrder(id){
   if(!o){clearCreateDeeplinkBoot();return;}
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
-  editOrderId=id;mDiscount=null;
+  editOrderId=id;mDiscount=null;manualSheetQuickSel=null;
   createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // Parse existing products into createProducts
   try{
@@ -1523,10 +1571,22 @@ async function showEditOrder(id){
     const cb=document.getElementById('cFreeShip');
     if(cb){cb.checked=true;onFreeShipChange();}
   }
-  if(o.discount_code){
-    document.getElementById('cDiscountCode').value=o.discount_code;
-    mDiscount={id:o.discount_id||null,code:o.discount_code,amount:o.discount_amount||0,type:'',title:'Đã áp dụng'};
+  const da=Math.max(0,Number(o.discount_amount)||0);
+  if(o.discount_code||da>0){
+    const code=o.discount_code||'';
+    if(code===M_MANUAL_DISCOUNT_CODE||code==='GG_TH\u1ee6_C\u00d4NG'){
+      document.getElementById('cDiscountCode').value='';
+      mDiscount={source:'manual',manualKind:'fixed',manualValue:da,amount:da,title:'Giảm thủ công'};
+    }else if(code){
+      document.getElementById('cDiscountCode').value=code;
+      mDiscount={source:'coupon',id:o.discount_id||null,code,amount:da,type:'',title:'Đã áp dụng'};
+    }else if(da>0){
+      document.getElementById('cDiscountCode').value='';
+      mDiscount={source:'manual',manualKind:'fixed',manualValue:da,amount:da,title:'Giảm thủ công'};
+    }
     showDiscountApplied();
+    _syncManualChips();
+    setManualInputMode('percent');
   }
   if(o.referral_code){
     document.getElementById('ctvCheck').checked=true;
@@ -1608,10 +1668,11 @@ let mCreateAddressSelector=null;
 function showCreateOrder(){
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
-  editOrderId=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
+  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
+  requestAnimationFrame(()=>{setManualInputMode('percent');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
@@ -1944,7 +2005,7 @@ async function initMCreateAddressSelector(orderForHydrate){
   }
 }
 function closeCreatePanelOnly(){
-  editOrderId=null;mDiscount=null;
+  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;
   closeCategorySheet();
   clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
@@ -2120,7 +2181,7 @@ function buildCreateForm(isEdit=false){
           <button type="button" onclick="applyMobileDiscount()" class="shrink-0 px-3 py-1.5 bg-violet-600 text-white text-xs font-semibold rounded-lg hover:bg-violet-700 transition-colors">Áp dụng</button>
         </div>
         <div id="discountApplied" class="hidden items-center gap-2.5 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2">
-          <div class="w-7 h-7 rounded-full bg-violet-200 text-violet-700 text-xs font-bold flex items-center justify-center shrink-0">%</div>
+          <div id="discountAppliedIcon" class="w-7 h-7 rounded-full bg-violet-200 text-violet-700 text-xs font-bold flex items-center justify-center shrink-0">%</div>
           <div class="flex-1 min-w-0">
             <p class="text-xs font-semibold text-gray-900" id="discountAppliedLabel"></p>
             <p class="text-xs text-violet-600 font-medium" id="discountAppliedAmount"></p>
@@ -2129,6 +2190,13 @@ function buildCreateForm(isEdit=false){
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
+        <p class="text-[10px] text-gray-400 leading-snug pt-1.5 flex flex-wrap items-center gap-x-1 border-t border-gray-100">
+          <span>Chọn</span>
+          <button type="button" class="font-semibold text-violet-600 active:opacity-75" onclick="openDiscountSheet('codes')">mã có sẵn</button>
+          <span>hoặc</span>
+          <button type="button" class="font-semibold text-violet-600 active:opacity-75" onclick="openDiscountSheet('manual')">giảm tùy chỉnh</button>
+          <span>— chỉ một hình thức.</span>
+        </p>
       </div>
 
       <!-- Ghi chú -->
@@ -2340,8 +2408,10 @@ function renderCart(){
   const totalEl=document.getElementById('cartTotal');
   const countEl=document.getElementById('cartCount');
   if(!wrap||!list)return;
-  if(!createProducts.length){wrap.classList.add('hidden');return}
+  if(!createProducts.length){wrap.classList.add('hidden');maybeRefreshDiscountSheetSummary();return}
   wrap.classList.remove('hidden');
+  recalcManualDiscount();
+  if(mDiscount)syncDiscountAppliedPanel();
   const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
   const totalQty=createProducts.reduce((s,p)=>s+(p.quantity||1),0);
   const isFreeShip=document.getElementById('cFreeShip')?.checked;
@@ -2356,7 +2426,10 @@ function renderCart(){
     const rows=[];
     rows.push(`<div class="flex justify-between text-xs text-gray-500"><span>Sản phẩm</span><span>${fmt(prodTotal)}</span></div>`);
     rows.push(`<div class="flex justify-between text-xs ${isFreeShip?'text-green-600':'text-gray-500'}"><span>Phí vận chuyển</span><span>${isFreeShip?'Miễn phí':fmt(shipFee)}</span></div>`);
-    if(discountAmt>0)rows.push(`<div class="flex justify-between text-xs text-violet-600"><span>Giảm giá (${mDiscount?.code||''})</span><span>-${fmt(discountAmt)}</span></div>`);
+    if(discountAmt>0){
+      const gl=mDiscount?.source==='manual'?'Giảm thủ công':`Giảm giá (${mDiscount?.code||''})`;
+      rows.push(`<div class="flex justify-between text-xs text-violet-600"><span>${gl}</span><span>-${fmt(discountAmt)}</span></div>`);
+    }
     rows.push(`<div class="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-100"><span>Tổng đơn</span><span class="text-indigo-600">${fmt(grandTotal)}</span></div>`);
     summary.innerHTML=rows.join('');
     summary.classList.remove('hidden');
@@ -2408,6 +2481,7 @@ function renderCart(){
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
     Thêm sản phẩm
   </button>`;
+  maybeRefreshDiscountSheetSummary();
 }
 
 function changeQty(i,d){createProducts[i].quantity=Math.max(1,createProducts[i].quantity+d);renderCart();autoUpdateFreeshipCheckbox();}
@@ -2716,9 +2790,14 @@ async function submitOrder(){
 
   const btn=document.getElementById('submitBtn');
   btn.disabled=true;btn.innerHTML=`<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${isEdit?'Đang cập nhật...':'Đang tạo...'}</span>`;
+  recalcManualDiscount();
   const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
   const shipFee=getShipFee(isEdit?existingOrder:null);
+  const discAmt=Math.max(0,Number(mDiscount?.amount)||0);
+  const payTotal=Math.max(0,prodTotal+shipFee-discAmt);
   const paymentMethod=document.getElementById('cPayment')?.value||'cod';
+  const dcCoupon=mDiscount?.source==='coupon';
+  const dcManual=mDiscount?.source==='manual'&&discAmt>0;
   const body={
     customer:{name,phone},
     address:fullAddr,
@@ -2731,14 +2810,14 @@ async function submitOrder(){
     shippingFee:shipFee,shipping_fee:shipFee,
     shippingCost:getShipCost(isEdit?existingOrder:null),
     shipping_cost:getShipCost(isEdit?existingOrder:null),
-    total:prodTotal+shipFee,totalAmount:prodTotal+shipFee,
+    total:payTotal,totalAmount:payTotal,
     cart:createProducts,
     notes:document.getElementById('cNotes')?.value.trim()||null,
-    discount_id:mDiscount?.id||existingOrder?.discount_id||null,
-    discountCode:mDiscount?.code||existingOrder?.discount_code||null,
-    discount_code:mDiscount?.code||existingOrder?.discount_code||null,
-    discountAmount:mDiscount?.amount||existingOrder?.discount_amount||0,
-    discount_amount:mDiscount?.amount||existingOrder?.discount_amount||0,
+    discount_id:dcCoupon?mDiscount?.id:null,
+    discountCode:dcCoupon?mDiscount?.code:(dcManual?M_MANUAL_DISCOUNT_CODE:null),
+    discount_code:dcCoupon?mDiscount?.code:(dcManual?M_MANUAL_DISCOUNT_CODE:null),
+    discountAmount:discAmt,
+    discount_amount:discAmt,
     is_priority:existingOrder?.is_priority||0,
     ...(isEdit
       ?{orderDbId:editOrderId,status:existingOrder?.status||'pending',orderDate:existingOrder?.created_at_unix||Date.now()}
@@ -2753,7 +2832,6 @@ async function submitOrder(){
         // Patch allOrders immediately — no wait for server reload
         const idx=allOrders.findIndex(x=>x.id===editOrderId);
         if(idx>=0){
-          const discAmt=mDiscount?.amount||existingOrder?.discount_amount||0;
           allOrders[idx]={
             ...allOrders[idx],
             customer_name:name,
@@ -2761,9 +2839,10 @@ async function submitOrder(){
             address:fullAddr,
             payment_method:paymentMethod,
             shipping_fee:shipFee,
-            total_amount:prodTotal+shipFee-discAmt,
+            total_amount:payTotal,
             discount_amount:discAmt,
-            discount_code:mDiscount?.code||existingOrder?.discount_code||null,
+            discount_code:dcCoupon?mDiscount?.code:(dcManual?M_MANUAL_DISCOUNT_CODE:null),
+            discount_id:dcCoupon?mDiscount?.id:null,
             notes:document.getElementById('cNotes')?.value.trim()||null,
             referral_code:document.getElementById('cReferral')?.value.trim()||existingOrder?.referral_code||null,
             products:JSON.stringify(createProducts)
@@ -3013,7 +3092,189 @@ function getShipCost(existingOrder){
 }
 
 // ─── Discount ───
-let allDiscountsCache=[], mDiscount=null; // {id,code,amount,type,title}
+let allDiscountsCache=[], mDiscount=null;
+/** Mã lưu DB khi giảm thủ công (không có discount_id → không ghi discount_usage) */
+const M_MANUAL_DISCOUNT_CODE='GG_THU_CONG';
+let mManualInputMode='percent';
+/** Gợi ý % trong sheet (5|10|15) trước khi bấm Áp dụng — null = không chọn nhanh */
+let manualSheetQuickSel=null;
+
+function getCreateOrderBaseTotal(){
+  const prod=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const ship=document.getElementById('cFreeShip')?.checked?0:DEFAULT_SHIP_FEE;
+  return prod+ship;
+}
+function clampDisc(amt,base){const b=Math.max(0,Math.round(base));return Math.max(0,Math.min(Math.round(amt),b));}
+function parseMoneyInput(val){
+  const n=String(val||'').replace(/\./g,'').replace(/,/g,'').replace(/\s/g,'');
+  const x=parseInt(n,10);
+  return Number.isFinite(x)&&x>=0?x:0;
+}
+function recalcManualDiscount(){
+  if(!mDiscount||mDiscount.source!=='manual')return;
+  const base=getCreateOrderBaseTotal();
+  const md=mDiscount;
+  if(base<=0){
+    if(md.amount!==0)mDiscount={...md,amount:0};
+    return;
+  }
+  let amt=0;
+  if(md.manualKind==='percent')amt=clampDisc((md.manualValue||0)/100*base,base);
+  else amt=clampDisc(md.manualValue||0,base);
+  if(amt!==md.amount)mDiscount={...md,amount:amt};
+}
+
+/** Đồng bộ badge giảm giá với mDiscount (không gọi renderCart — tránh vòng lặp với showDiscountApplied). */
+function syncDiscountAppliedPanel(){
+  if(!mDiscount)return;
+  const ic=document.getElementById('discountAppliedIcon');
+  const isMan=mDiscount.source==='manual';
+  if(ic)ic.textContent=isMan&&(mDiscount.manualKind==='fixed')?'đ':'%';
+  const lbl=document.getElementById('discountAppliedLabel');
+  const amtEl=document.getElementById('discountAppliedAmount');
+  if(lbl)lbl.textContent=isMan
+    ?(mDiscount.manualKind==='percent'?`Giảm ${mDiscount.manualValue}% · thủ công`:`Giảm cố định · thủ công`)
+    :`${mDiscount.code} · ${mDiscount.title||''}`;
+  if(amtEl)amtEl.textContent=mDiscount.amount>0?`-${fmt(mDiscount.amount)}`:'Đã áp dụng';
+}
+
+function clearCouponUI(){
+  const c=document.getElementById('cDiscountCode');if(c)c.value='';
+}
+function setManualInputMode(mode){
+  mManualInputMode=mode==='fixed'?'fixed':'percent';
+  const a=mManualInputMode==='percent';
+  const onP='px-2.5 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5';
+  const off='px-2.5 py-1.5 text-[11px] font-bold rounded-md text-gray-500';
+  const bp=document.getElementById('mManBtnPct'),bv=document.getElementById('mManBtnVnd');
+  if(bp)bp.className=a?onP:off;
+  if(bv)bv.className=!a?onP:off;
+  const ph=document.getElementById('mManualValInput');if(ph)ph.placeholder=a?'VD: 8':'VD: 50000';
+  _syncManualChips();
+  updateDiscountSheetOrderSummary();
+}
+function onManualSheetInput(){
+  manualSheetQuickSel=null;
+  _syncManualChips();
+  updateDiscountSheetOrderSummary();
+}
+function _syncManualChips(){
+  const row=document.getElementById('manualDiscChipRow');if(!row)return;
+  const inp=document.getElementById('mManualValInput');
+  const raw=(inp?.value||'').trim();
+  const pctMode=mManualInputMode==='percent';
+  const clsOn='manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border-2 border-violet-500 bg-violet-50 text-violet-800 shadow-sm active:scale-[0.98]';
+  const clsOff='manual-chip min-w-[2.5rem] justify-center flex px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200/90 bg-white text-gray-600 shadow-sm active:scale-[0.98]';
+  row.querySelectorAll('.manual-chip').forEach(b=>{
+    const v=b.getAttribute('data-mp');
+    const n=v==='0'?0:parseInt(v,10);
+    let on=false;
+    if(n===0)on=!mDiscount&&!manualSheetQuickSel&&!raw;
+    else on=pctMode&&manualSheetQuickSel===n;
+    b.className=on?clsOn:clsOff;
+  });
+}
+
+function updateDiscountSheetOrderSummary(){
+  const wrap=document.getElementById('discountSheetOrderSummary');
+  if(!wrap)return;
+  const base=getCreateOrderBaseTotal();
+  wrap.innerHTML=`<div class="flex items-center justify-between gap-3">
+    <span class="text-xs text-gray-500">Tổng đơn</span>
+    <span class="text-lg font-bold text-gray-900 tabular-nums tracking-tight">${fmt(base)}</span>
+  </div>`;
+}
+
+function maybeRefreshDiscountSheetSummary(){
+  const sh=document.getElementById('discountSheet');
+  if(!sh||sh.classList.contains('hidden'))return;
+  const mp=document.getElementById('discountPanelManual');
+  if(!mp||mp.classList.contains('hidden'))return;
+  updateDiscountSheetOrderSummary();
+}
+
+function hydrateManualSheetDraft(){
+  manualSheetQuickSel=null;
+  const inp=document.getElementById('mManualValInput');
+  if(inp)inp.value='';
+  if(mDiscount?.source==='manual'){
+    if(mDiscount.manualKind==='fixed'){
+      setManualInputMode('fixed');
+      if(inp)inp.value=String(mDiscount.manualValue||'');
+    }else{
+      const v=Number(mDiscount.manualValue);
+      if([5,10,15].includes(v)){manualSheetQuickSel=v;setManualInputMode('percent');}
+      else{
+        setManualInputMode('percent');
+        if(inp)inp.value=String(mDiscount.manualValue);
+      }
+    }
+  }else setManualInputMode('percent');
+  _syncManualChips();
+  updateDiscountSheetOrderSummary();
+}
+
+/** Tab trong bottom sheet giảm giá: codes | manual */
+function setDiscountSheetTab(tab){
+  const isManual=tab==='manual';
+  const c=document.getElementById('discountTabCodes'), m=document.getElementById('discountTabManual');
+  const active=' flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-violet-700 shadow-sm ring-1 ring-black/5';
+  const idle=' flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700';
+  if(c){c.setAttribute('aria-selected',!isManual);c.className='discount-sheet-tab'+(!isManual?active:idle);}
+  if(m){m.setAttribute('aria-selected',isManual);m.className='discount-sheet-tab'+(isManual?active:idle);}
+  document.getElementById('discountPanelSearchWrap')?.classList.toggle('hidden',isManual);
+  document.getElementById('discountPanelCodes')?.classList.toggle('hidden',isManual);
+  document.getElementById('discountPanelManual')?.classList.toggle('hidden',!isManual);
+  if(isManual){hydrateManualSheetDraft();if(!manualSheetQuickSel)setTimeout(()=>document.getElementById('mManualValInput')?.focus(),50);}
+}
+
+function manualDiscQuick(pct){
+  if(pct===0){
+    manualSheetQuickSel=null;
+    const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
+    if(mDiscount?.source==='manual'){
+      mDiscount=null;
+      clearCouponUI();
+      const el=document.getElementById('discountApplied');if(el){el.classList.add('hidden');el.classList.remove('flex');}
+      if(createProducts.length)renderCart();
+    }
+    _syncManualChips();
+    updateDiscountSheetOrderSummary();
+    return;
+  }
+  const base=getCreateOrderBaseTotal();
+  if(base<=0){toast('Thêm sản phẩm trước khi giảm giá');return;}
+  manualSheetQuickSel=pct;
+  const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
+  setManualInputMode('percent');
+  _syncManualChips();
+  updateDiscountSheetOrderSummary();
+}
+
+function commitManualDiscountSheet(){
+  const base=getCreateOrderBaseTotal();
+  if(base<=0){toast('Thêm sản phẩm trước');return;}
+  const raw=(document.getElementById('mManualValInput')?.value||'').trim();
+  if(!raw&&!manualSheetQuickSel){toast('Chọn % nhanh hoặc nhập số');return;}
+  clearCouponUI();
+  if(raw){
+    if(mManualInputMode==='percent'){
+      const p=parseFloat(raw.replace(/,/g,'.').replace(/\s/g,''));
+      if(!Number.isFinite(p)||p<=0||p>100){toast('% từ 0,01 đến 100');return;}
+      mDiscount={source:'manual',manualKind:'percent',manualValue:p,amount:clampDisc(p/100*base,base),title:'Giảm thủ công'};
+    }else{
+      const v=parseMoneyInput(raw);if(v<=0){toast('Số tiền không hợp lệ');return;}
+      mDiscount={source:'manual',manualKind:'fixed',manualValue:v,amount:clampDisc(v,base),title:'Giảm thủ công'};
+    }
+  }else{
+    const pct=manualSheetQuickSel;
+    mDiscount={source:'manual',manualKind:'percent',manualValue:pct,amount:clampDisc(pct/100*base,base),title:'Giảm thủ công'};
+  }
+  manualSheetQuickSel=null;
+  showDiscountApplied();
+  _syncManualChips();
+  closeDiscountSheet();
+}
 
 function calcDiscountAmount(d, orderTotal, shipFee){
   if(d.type==='fixed') return Math.min(d.discount_value||0, orderTotal);
@@ -3048,8 +3309,12 @@ async function applyMobileDiscount(){
     const d=await r.json();
     if(d.success&&d.discount){
       const amount=calcDiscountAmount(d.discount,orderTotal+shipFee,shipFee);
-      mDiscount={id:d.discount.id,code:d.discount.code,amount,type:d.discount.type,title:d.discount.title};
+      manualSheetQuickSel=null;
+      mDiscount={source:'coupon',id:d.discount.id,code:d.discount.code,amount,type:d.discount.type,title:d.discount.title};
       showDiscountApplied();
+      _syncManualChips();
+      setManualInputMode(mManualInputMode);
+      closeDiscountSheet();
       toast(`Áp dụng thành công: ${discountValueText(d.discount)}`);
     }else{toast(d.error||'Mã không hợp lệ');}
   }catch{toast('Lỗi kiểm tra mã giảm giá');}
@@ -3057,8 +3322,7 @@ async function applyMobileDiscount(){
 
 function showDiscountApplied(){
   if(!mDiscount)return;
-  document.getElementById('discountAppliedLabel').textContent=`${mDiscount.code} · ${mDiscount.title||''}`;
-  document.getElementById('discountAppliedAmount').textContent=mDiscount.amount>0?`Giảm ${fmt(mDiscount.amount)}`:'Đã áp dụng';
+  syncDiscountAppliedPanel();
   const el=document.getElementById('discountApplied');
   el.classList.remove('hidden');el.classList.add('flex');
   if(createProducts.length)renderCart();
@@ -3066,13 +3330,16 @@ function showDiscountApplied(){
 
 function clearMobileDiscount(){
   mDiscount=null;
+  manualSheetQuickSel=null;
   document.getElementById('cDiscountCode').value='';
   const el=document.getElementById('discountApplied');
   el.classList.add('hidden');el.classList.remove('flex');
+  _syncManualChips();
   if(createProducts.length)renderCart();
 }
 
-async function openDiscountSheet(){
+async function openDiscountSheet(prefTab){
+  setDiscountSheetTab(prefTab==='manual'?'manual':'codes');
   document.getElementById('discountSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
   document.getElementById('discountSearch').value='';
@@ -3103,7 +3370,7 @@ function renderDiscountSheetList(){
     const valTxt=discountValueText(d);
     const minTxt=d.min_order_amount?`Tối thiểu ${fmt(d.min_order_amount)}`:'';
     const useTxt=d.max_total_uses?`Còn ${(d.max_total_uses-(d.usage_count||0))} lượt`:'';
-    return`<button onclick="pickDiscount('${esc(d.code)}')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-violet-50 border border-transparent hover:border-violet-100 text-left transition-colors">
+    return`<button onclick="pickDiscount('${esc(d.code)}')" class="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-md hover:shadow-violet-500/5 text-left transition-all duration-200 active:scale-[0.995]">
       <div class="shrink-0 w-10 h-10 rounded-xl ${badge} border flex items-center justify-center" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
