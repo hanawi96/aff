@@ -364,18 +364,18 @@ html.m-create-deeplink>body>header{display:none!important}
         <h3 class="font-bold text-gray-900 text-sm tracking-tight">Giảm giá</h3>
       </div>
       <div class="flex p-0.5 rounded-xl bg-gray-100 gap-0.5 mb-2" role="tablist">
-        <button type="button" id="discountTabCodes" role="tab" aria-selected="true" onclick="setDiscountSheetTab('codes')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-violet-700 shadow-sm ring-1 ring-black/5">Mã giảm giá</button>
-        <button type="button" id="discountTabManual" role="tab" aria-selected="false" onclick="setDiscountSheetTab('manual')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">Tùy chỉnh</button>
+        <button type="button" id="discountTabManual" role="tab" aria-selected="true" onclick="setDiscountSheetTab('manual')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-violet-700 shadow-sm ring-1 ring-black/5">Tùy chỉnh</button>
+        <button type="button" id="discountTabCodes" role="tab" aria-selected="false" onclick="setDiscountSheetTab('codes')" class="discount-sheet-tab flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">Mã giảm giá</button>
       </div>
-      <div id="discountPanelSearchWrap">
+      <div id="discountPanelSearchWrap" class="hidden">
         <input id="discountSearch" type="search" placeholder="Tìm mã, tên…" autocomplete="off" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="renderDiscountSheetList()">
       </div>
     </div>
     <div class="flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50/80">
-      <div id="discountPanelCodes" class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2">
+      <div id="discountPanelCodes" class="hidden flex-1 min-h-0 overflow-y-auto overscroll-contain p-2">
         <div id="discountSheetList" class="space-y-1.5"></div>
       </div>
-      <div id="discountPanelManual" class="hidden flex-1 min-h-0 flex flex-col">
+      <div id="discountPanelManual" class="flex-1 min-h-0 flex flex-col">
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-3">
           <div class="rounded-xl border border-violet-100/90 bg-gradient-to-br from-white via-violet-50/30 to-white p-3 shadow-sm">
             <div class="flex items-center gap-2 mb-2">
@@ -405,9 +405,21 @@ html.m-create-deeplink>body>header{display:none!important}
               <input type="text" id="mManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 8 hoặc 50000" class="flex-1 min-w-0 px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="onManualSheetInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();commitManualDiscountSheet();}">
             </div>
           </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+            <div id="discountSheetOrderSummary"></div>
+            <div class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100">
+              <div class="min-w-0 pr-2">
+                <p class="text-xs font-semibold text-gray-800">Làm chẵn tiền</p>
+                <p class="text-[10px] text-gray-400 leading-snug">Đơn còn xuống chục nghìn (350.550→350.000)</p>
+              </div>
+              <label class="toggle indigo shrink-0">
+                <input type="checkbox" id="discountSheetRoundChk" onchange="updateDiscountSheetOrderSummary()">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
         </div>
-        <div id="discountSheetManualFooter" class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <div id="discountSheetOrderSummary" class="mb-2"></div>
+        <div id="discountSheetManualFooter" class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(0,0,0,0.06)]">
           <button type="button" onclick="commitManualDiscountSheet()" class="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow-md shadow-gray-900/20 active:scale-[0.99] transition-transform">Áp dụng giảm giá</button>
         </div>
       </div>
@@ -1672,7 +1684,7 @@ function showCreateOrder(){
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
-  requestAnimationFrame(()=>{setManualInputMode('percent');_syncManualChips();});
+  requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;setManualInputMode('percent');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
@@ -3099,6 +3111,16 @@ let mManualInputMode='percent';
 /** Gợi ý % trong sheet (5|10|15) trước khi bấm Áp dụng — null = không chọn nhanh */
 let manualSheetQuickSel=null;
 
+/** Tăng giảm giá để số khách trả (base−disc) xuống bội 1.000đ gần nhất (làm tròn xuống). */
+function applyRoundPayToThousand(base,disc){
+  const b=Math.max(0,Math.round(base));
+  const d=clampDisc(disc,b);
+  if(b<=0)return d;
+  const pay=Math.max(0,b-d);
+  const target=Math.floor(pay/1000)*1000;
+  return clampDisc(b-target,b);
+}
+
 function getCreateOrderBaseTotal(){
   const prod=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
   const ship=document.getElementById('cFreeShip')?.checked?0:DEFAULT_SHIP_FEE;
@@ -3121,6 +3143,7 @@ function recalcManualDiscount(){
   let amt=0;
   if(md.manualKind==='percent')amt=clampDisc((md.manualValue||0)/100*base,base);
   else amt=clampDisc(md.manualValue||0,base);
+  if(md.roundPayToThousand)amt=applyRoundPayToThousand(base,amt);
   if(amt!==md.amount)mDiscount={...md,amount:amt};
 }
 
@@ -3132,9 +3155,12 @@ function syncDiscountAppliedPanel(){
   if(ic)ic.textContent=isMan&&(mDiscount.manualKind==='fixed')?'đ':'%';
   const lbl=document.getElementById('discountAppliedLabel');
   const amtEl=document.getElementById('discountAppliedAmount');
-  if(lbl)lbl.textContent=isMan
-    ?(mDiscount.manualKind==='percent'?`Giảm ${mDiscount.manualValue}% · thủ công`:`Giảm cố định · thủ công`)
-    :`${mDiscount.code} · ${mDiscount.title||''}`;
+  if(lbl){
+    const ch=mDiscount.roundPayToThousand?' · chẵn':'';
+    lbl.textContent=isMan
+      ?(mDiscount.manualKind==='percent'?`Giảm ${mDiscount.manualValue}% · thủ công${ch}`:`Giảm cố định · thủ công${ch}`)
+      :`${mDiscount.code} · ${mDiscount.title||''}`;
+  }
   if(amtEl)amtEl.textContent=mDiscount.amount>0?`-${fmt(mDiscount.amount)}`:'Đã áp dụng';
 }
 
@@ -3175,14 +3201,52 @@ function _syncManualChips(){
   });
 }
 
+/** Nháp giảm trong sheet: % (chip/ô) hoặc số tiền (đ). */
+function getManualSheetDraftPreview(base){
+  if(base<=0)return null;
+  const b=Math.max(0,Math.round(base));
+  if(mManualInputMode==='percent'){
+    const raw=(document.getElementById('mManualValInput')?.value||'').trim();
+    let pct=null;
+    if(raw){
+      const p=parseFloat(raw.replace(/,/g,'.').replace(/\s/g,''));
+      if(Number.isFinite(p)&&p>0&&p<=100)pct=p;
+    }else if(manualSheetQuickSel)pct=manualSheetQuickSel;
+    if(pct==null)return null;
+    const disc=clampDisc(pct/100*b,b);
+    return{mode:'percent',pct,disc,remain:Math.max(0,b-disc)};
+  }
+  const raw=(document.getElementById('mManualValInput')?.value||'').trim();
+  if(!raw)return null;
+  const v=parseMoneyInput(raw);
+  if(v<=0)return null;
+  const disc=clampDisc(v,b);
+  return{mode:'fixed',pct:null,disc,remain:Math.max(0,b-disc)};
+}
+
 function updateDiscountSheetOrderSummary(){
   const wrap=document.getElementById('discountSheetOrderSummary');
   if(!wrap)return;
   const base=getCreateOrderBaseTotal();
+  const b=Math.max(0,Math.round(base));
+  const want=document.getElementById('discountSheetRoundChk')?.checked;
+  const pv=getManualSheetDraftPreview(base);
+  let preview='';
+  if(pv&&pv.disc>0){
+    const remain0=pv.remain;
+    const remainR=want?Math.floor(remain0/1000)*1000:remain0;
+    const extra=want&&remain0>remainR?(remain0-remainR):0;
+    const pctLab=pv.mode==='percent'?(Number.isInteger(pv.pct)?String(pv.pct):String(pv.pct)):'';
+    const line1=pv.mode==='percent'
+      ?`<div class="flex justify-between items-center text-xs"><span class="text-gray-500">Giảm (${pctLab}%)</span><span class="font-semibold text-violet-600 tabular-nums">−${fmt(pv.disc)}</span></div>`
+      :`<div class="flex justify-between items-center text-xs"><span class="text-gray-500">Giảm</span><span class="font-semibold text-violet-600 tabular-nums">−${fmt(pv.disc)}</span></div>`;
+    const lineCh=extra>0?`<div class="flex justify-between items-center text-xs mt-0.5"><span class="text-gray-500">Chẵn thêm</span><span class="font-semibold text-violet-600 tabular-nums">−${fmt(extra)}</span></div>`:'';
+    preview=`<div class="mt-2 pt-2 border-t border-gray-100 space-y-0.5">${line1}${lineCh}<div class="flex justify-between items-center text-xs pt-0.5"><span class="text-gray-500">Đơn còn</span><span class="font-bold text-gray-900 tabular-nums">${fmt(remainR)}</span></div></div>`;
+  }
   wrap.innerHTML=`<div class="flex items-center justify-between gap-3">
     <span class="text-xs text-gray-500">Tổng đơn</span>
-    <span class="text-lg font-bold text-gray-900 tabular-nums tracking-tight">${fmt(base)}</span>
-  </div>`;
+    <span class="text-lg font-bold text-gray-900 tabular-nums tracking-tight">${fmt(b)}</span>
+  </div>${preview}`;
 }
 
 function maybeRefreshDiscountSheetSummary(){
@@ -3197,6 +3261,8 @@ function hydrateManualSheetDraft(){
   manualSheetQuickSel=null;
   const inp=document.getElementById('mManualValInput');
   if(inp)inp.value='';
+  const rchk=document.getElementById('discountSheetRoundChk');
+  if(rchk)rchk.checked=!!(mDiscount?.source==='manual'&&mDiscount.roundPayToThousand);
   if(mDiscount?.source==='manual'){
     if(mDiscount.manualKind==='fixed'){
       setManualInputMode('fixed');
@@ -3231,6 +3297,7 @@ function setDiscountSheetTab(tab){
 function manualDiscQuick(pct){
   if(pct===0){
     manualSheetQuickSel=null;
+    const chk=document.getElementById('discountSheetRoundChk');if(chk)chk.checked=false;
     const inp=document.getElementById('mManualValInput');if(inp)inp.value='';
     if(mDiscount?.source==='manual'){
       mDiscount=null;
@@ -3257,18 +3324,25 @@ function commitManualDiscountSheet(){
   const raw=(document.getElementById('mManualValInput')?.value||'').trim();
   if(!raw&&!manualSheetQuickSel){toast('Chọn % nhanh hoặc nhập số');return;}
   clearCouponUI();
+  const want=document.getElementById('discountSheetRoundChk')?.checked;
   if(raw){
     if(mManualInputMode==='percent'){
       const p=parseFloat(raw.replace(/,/g,'.').replace(/\s/g,''));
       if(!Number.isFinite(p)||p<=0||p>100){toast('% từ 0,01 đến 100');return;}
-      mDiscount={source:'manual',manualKind:'percent',manualValue:p,amount:clampDisc(p/100*base,base),title:'Giảm thủ công'};
+      let amt=clampDisc(p/100*base,base);
+      if(want)amt=applyRoundPayToThousand(base,amt);
+      mDiscount={source:'manual',manualKind:'percent',manualValue:p,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
     }else{
       const v=parseMoneyInput(raw);if(v<=0){toast('Số tiền không hợp lệ');return;}
-      mDiscount={source:'manual',manualKind:'fixed',manualValue:v,amount:clampDisc(v,base),title:'Giảm thủ công'};
+      let amt=clampDisc(v,base);
+      if(want)amt=applyRoundPayToThousand(base,amt);
+      mDiscount={source:'manual',manualKind:'fixed',manualValue:v,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
     }
   }else{
     const pct=manualSheetQuickSel;
-    mDiscount={source:'manual',manualKind:'percent',manualValue:pct,amount:clampDisc(pct/100*base,base),title:'Giảm thủ công'};
+    let amt=clampDisc(pct/100*base,base);
+    if(want)amt=applyRoundPayToThousand(base,amt);
+    mDiscount={source:'manual',manualKind:'percent',manualValue:pct,amount:amt,title:'Giảm thủ công',roundPayToThousand:!!want};
   }
   manualSheetQuickSel=null;
   showDiscountApplied();
@@ -3310,6 +3384,7 @@ async function applyMobileDiscount(){
     if(d.success&&d.discount){
       const amount=calcDiscountAmount(d.discount,orderTotal+shipFee,shipFee);
       manualSheetQuickSel=null;
+      const rchk=document.getElementById('discountSheetRoundChk');if(rchk)rchk.checked=false;
       mDiscount={source:'coupon',id:d.discount.id,code:d.discount.code,amount,type:d.discount.type,title:d.discount.title};
       showDiscountApplied();
       _syncManualChips();
@@ -3331,6 +3406,7 @@ function showDiscountApplied(){
 function clearMobileDiscount(){
   mDiscount=null;
   manualSheetQuickSel=null;
+  const rchk=document.getElementById('discountSheetRoundChk');if(rchk)rchk.checked=false;
   document.getElementById('cDiscountCode').value='';
   const el=document.getElementById('discountApplied');
   el.classList.add('hidden');el.classList.remove('flex');
@@ -3339,7 +3415,7 @@ function clearMobileDiscount(){
 }
 
 async function openDiscountSheet(prefTab){
-  setDiscountSheetTab(prefTab==='manual'?'manual':'codes');
+  setDiscountSheetTab(prefTab==='codes'?'codes':'manual');
   document.getElementById('discountSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
   document.getElementById('discountSearch').value='';
