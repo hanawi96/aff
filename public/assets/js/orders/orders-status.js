@@ -2,8 +2,8 @@
 // Handles status badge display and status updates
 // NOTE: All functions are global scope for compatibility with existing code
 
-// Get status badge HTML
-function getStatusBadge(status, orderId, orderCode) {
+// Get status badge HTML (order tùy chọn — dùng khi lọc "Đã gửi hàng" để hiện mốc gửi trên badge)
+function getStatusBadge(status, orderId, orderCode, order) {
     const statusConfig = {
         'pending': {
             label: 'Chờ xử lý',
@@ -35,14 +35,36 @@ function getStatusBadge(status, orderId, orderCode) {
     const currentStatus = status || 'pending';
     const config = statusConfig[currentStatus] || statusConfig['pending'];
 
+    const filterVal = document.getElementById('statusFilter')?.value || '';
+    const onShippedListFilter = filterVal === 'shipped';
+
+    let label = config.label;
+    let badgeTitle = '';
+    if (onShippedListFilter && currentStatus === 'shipped') {
+        if (order && order.shipped_at_unix) {
+            const parts = formatOrderTimeDisplayParts(order.shipped_at_unix);
+            badgeTitle = parts.title || '';
+            if (parts.isRelative) {
+                label = parts.main;
+            } else {
+                const hm = (parts.main || '').slice(0, 5);
+                label = parts.sub ? `${hm} · ${parts.sub}` : parts.main;
+            }
+        } else {
+            label = 'Chưa có mốc gửi';
+            badgeTitle = 'Chưa ghi shipped_at_unix';
+        }
+    }
+
     return `
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${config.color} cursor-pointer hover:shadow-md transition-all group" 
-             onclick="showStatusMenu(${orderId}, '${escapeHtml(orderCode)}', '${currentStatus}', event)">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${config.color} cursor-pointer hover:shadow-md transition-all group max-w-[12rem]" 
+             onclick="showStatusMenu(${orderId}, '${escapeHtml(orderCode)}', '${currentStatus}', event)"
+             title="${escapeHtml(badgeTitle || config.label)}">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 ${config.icon}
             </svg>
-            <span class="text-xs font-semibold whitespace-nowrap">${config.label}</span>
-            <svg class="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span class="text-xs font-semibold whitespace-nowrap truncate min-w-0">${escapeHtml(label)}</span>
+            <svg class="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
         </span>

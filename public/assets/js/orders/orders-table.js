@@ -201,7 +201,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     ` : '';
 
     let shippedTimeBlock = '';
-    if (orderShouldShowShipTime(order)) {
+    const onShippedListFilter = (document.getElementById('statusFilter')?.value || '') === 'shipped';
+    if (orderShouldShowShipTime(order) && !onShippedListFilter) {
         const shipParts = formatOrderTimeDisplayParts(order.shipped_at_unix);
         const shipMain = escapeHtml(shipParts.main);
         const shipTitle = escapeHtml(shipParts.title);
@@ -230,7 +231,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
                     </svg>
                 </button>
             </div>
-            ${getStatusBadge(order.status, order.id, order.order_id)}
+            ${getStatusBadge(order.status, order.id, order.order_id, order)}
             ${shippedTimeBlock}
         </div>
     `;

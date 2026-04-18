@@ -1125,6 +1125,8 @@ function renderCards(){
   empty.classList.add('hidden');
   
   const frag=document.createDocumentFragment();
+  const hasQSearch=searchTerm.trim().length>0;
+  const showShipTimeRow=(!hasQSearch&&currentTab==='shipped')||(hasQSearch&&searchListScope==='shipped');
   slice.forEach(o=>{
     const card=document.createElement('div');
     const isPri=o.is_priority===1;
@@ -1159,9 +1161,7 @@ function renderCards(){
             <span class="text-sm font-bold text-gray-900 truncate">${esc(o.customer_name)}</span>
           </div>
           <span class="text-sm font-bold ${payCls} whitespace-nowrap text-right leading-none">${fmt(o.total_amount)}</span>
-          <div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate">
-            <span class="${shipListClass}">${esc(shipListLabel)}</span>
-          </div>
+          ${showShipTimeRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${shipListClass}">${esc(shipListLabel)}</span></div>`:`<div class="pl-3.5 min-h-[1em]" aria-hidden="true"></div>`}
           <div class="text-[11px] font-normal text-gray-400 text-right leading-tight self-end">${esc(ago(o.created_at_unix))}</div>
         </div>
         <!-- Hàng 2: SĐT + sản phẩm -->

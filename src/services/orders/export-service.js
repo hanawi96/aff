@@ -134,28 +134,24 @@ export async function markExportDownloaded(exportId, env) {
 
     for (const orderId of orderIds) {
         try {
-            // Check current status
-            const order = await env.DB.prepare(`
-                SELECT status FROM orders WHERE id = ?
-            `).bind(orderId).first();
+            // Đồng bộ với order-service.updateOrderStatus: ghi shipped_at_unix (ms) khi chuyển sang shipped
+            const shipRes = await env.DB.prepare(`
+                UPDATE orders
+                SET status = 'shipped',
+                    is_priority = 0,
+                    shipped_at_unix = CASE
+                        WHEN status IN ('pending', 'processing') THEN ?
+                        ELSE COALESCE(shipped_at_unix, ?)
+                    END
+                WHERE id = ?
+                  AND status NOT IN ('shipped', 'in_transit', 'delivered', 'failed')
+            `).bind(now, now, orderId).run();
 
-            if (order && order.status !== 'shipped' && order.status !== 'in_transit' && 
-                order.status !== 'delivered' && order.status !== 'failed') {
-                
-                // Update status to "shipped" AND remove priority flag
-                await env.DB.prepare(`
-                    UPDATE orders 
-                    SET status = 'shipped', is_priority = 0 
-                    WHERE id = ?
-                `).bind(orderId).run();
-                
+            if (shipRes.meta && shipRes.meta.changes > 0) {
                 updatedCount++;
-            } else if (order) {
-                // Order already shipped/delivered, just remove priority flag
+            } else {
                 await env.DB.prepare(`
-                    UPDATE orders 
-                    SET is_priority = 0 
-                    WHERE id = ?
+                    UPDATE orders SET is_priority = 0 WHERE id = ? AND is_priority != 0
                 `).bind(orderId).run();
             }
         } catch (err) {
