@@ -427,8 +427,13 @@ html.m-create-deeplink>body>header{display:none!important}
             </div>
           </div>
         </div>
-        <div id="discountSheetManualFooter" class="shrink-0 border-t border-gray-200 bg-white px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(0,0,0,0.06)]">
-          <button type="button" onclick="commitManualDiscountSheet()" class="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow-md shadow-gray-900/20 active:scale-[0.99] transition-transform">Áp dụng giảm giá</button>
+        <div id="discountSheetManualFooter" class="shrink-0 border-t border-gray-200 bg-white px-4 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(0,0,0,0.06)]">
+          <div class="flex items-center gap-2.5">
+            <button type="button" onclick="closeDiscountSheet()" class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all text-gray-600" title="Đóng" aria-label="Đóng">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+            <button type="button" onclick="commitManualDiscountSheet()" class="flex-1 min-w-0 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-transform">Áp dụng giảm giá</button>
+          </div>
         </div>
       </div>
     </div>
