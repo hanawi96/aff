@@ -68,6 +68,7 @@ async function loadOrdersData() {
 
         if (data.success) {
             allOrdersData = data.orders || [];
+            if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
 
             // Build search index for fast searching
             buildSearchIndex();

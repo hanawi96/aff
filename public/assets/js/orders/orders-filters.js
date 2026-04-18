@@ -361,6 +361,10 @@ function filterOrdersData(preservePage = false) {
     updateStats();
 
     renderOrdersTable();
+
+    if (typeof updateSendLaterUrgentBanner === 'function') {
+        requestAnimationFrame(() => updateSendLaterUrgentBanner());
+    }
 }
 
 // ============================================

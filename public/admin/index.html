@@ -430,6 +430,41 @@
                 </div>
             </div>
 
+            <!-- Nhắc đơn "Gửi sau" — bấm icon mắt để mở modal danh sách -->
+            <div id="sendLaterUrgentWrap" class="mb-5 hidden rounded-xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-orange-50/80 to-amber-50 px-4 py-3 shadow-sm">
+                <div class="flex w-full items-center gap-3">
+                    <button type="button" id="sendLaterUrgentEyeBtn"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 ring-1 ring-amber-200/80 transition-colors hover:bg-amber-200/80 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                        aria-haspopup="dialog" aria-controls="sendLaterUrgentDialog" aria-expanded="false"
+                        title="Xem danh sách đơn gửi sau cần làm">
+                        <span class="sr-only">Xem danh sách đơn gửi sau cần làm</span>
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                    <p id="sendLaterUrgentText" class="min-w-0 flex-1 text-sm font-semibold text-amber-950"></p>
+                </div>
+            </div>
+
+            <div id="sendLaterUrgentModal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-4" aria-hidden="true">
+                <div id="sendLaterUrgentModalBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true"></div>
+                <div id="sendLaterUrgentDialog" class="relative z-10 flex max-h-[min(28rem,85vh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-amber-200/90 bg-white shadow-2xl ring-1 ring-black/5"
+                    role="dialog" aria-modal="true" aria-labelledby="sendLaterUrgentModalTitle">
+                    <div class="flex shrink-0 items-center justify-between gap-3 border-b border-amber-100 bg-gradient-to-r from-amber-50/90 to-orange-50/60 px-4 py-3">
+                        <h2 id="sendLaterUrgentModalTitle" class="text-base font-semibold text-amber-950">Đơn gửi sau cần làm</h2>
+                        <button type="button" id="sendLaterUrgentModalClose"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-amber-900/80 transition-colors hover:bg-amber-100 hover:text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                            aria-label="Đóng">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="sendLaterUrgentList" class="flex flex-col gap-0.5 overflow-y-auto p-3"></div>
+                </div>
+            </div>
+
             <!-- Search & Filter -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -911,8 +946,8 @@
     <script defer src="../assets/js/orders/orders-pagination.js?v=3"></script>
     <script defer src="../assets/js/orders/orders-sorting.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-stats.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-data-loader.js?v=10"></script>
-    <script defer src="../assets/js/orders/orders-filters.js?v=15"></script>
+    <script defer src="../assets/js/orders/orders-data-loader.js?v=11"></script>
+    <script defer src="../assets/js/orders/orders-filters.js?v=16"></script>
     <script defer src="../assets/js/orders/orders-bulk-actions.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-export-history.js?v=25"></script>
     <script defer src="../assets/js/orders/orders-priority.js?v=2"></script>
@@ -934,6 +969,7 @@
     <script defer src="../assets/js/orders/orders-product-edit.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-custom-product-modal.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-timezone-utils.js?v=3"></script>
+    <script defer src="../assets/js/orders/orders-send-later-reminder.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-duplicate.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-url-handler.js?v=2"></script>
     <script defer src="../assets/js/orders/orders-product-management.js?v=8"></script>
