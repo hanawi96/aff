@@ -6,22 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thống Kê Đơn Hàng - Admin</title>
     <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'admin-primary': '#6366f1',
-                        'admin-secondary': '#8b5cf6',
-                        'admin-success': '#10b981',
-                        'admin-warning': '#f59e0b',
-                        'admin-danger': '#ef4444',
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
+    <link rel="stylesheet" href="../assets/css/admin-tailwind-built.css?v=1">
     <style>
         html{background-color:#f9fafb}
         /* NO ANIMATIONS - Keep it simple and fast */
@@ -933,52 +919,8 @@
         </div>
     </div>
 
-    <script defer src="../assets/js/config.js"></script>
-    <script defer src="../assets/js/toast-manager.js"></script>
-    <script defer src="../assets/js/timezone-utils.js"></script>
-    <script defer src="../assets/js/address-selector.js"></script>
-    <script defer src="../assets/js/orders/orders-utils.js?v=9"></script>
-    <script defer src="../assets/js/spx-export.js?v=9"></script>
-    <script defer src="../assets/js/orders/orders-address-learning.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-smart-paste.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-constants.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-ui-states.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-pagination.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-sorting.js?v=5"></script>
-    <script defer src="../assets/js/orders/orders-stats.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-data-loader.js?v=11"></script>
-    <script defer src="../assets/js/orders/orders-filters.js?v=16"></script>
-    <script defer src="../assets/js/orders/orders-bulk-actions.js?v=5"></script>
-    <script defer src="../assets/js/orders/orders-export-history.js?v=25"></script>
-    <script defer src="../assets/js/orders/orders-priority.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-table.js?v=15"></script>
-    <script defer src="../assets/js/orders/orders-status.js?v=5"></script>
-    <script defer src="../assets/js/orders/orders-products-display.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-profit-modal.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-ctv-modal.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-delete-modals.js?v=4"></script>
-    <script defer src="../assets/js/orders/orders-edit-modals.js?v=21"></script>
-    <script defer src="../assets/js/orders/orders-customer.js?v=4"></script>
-    <script defer src="../assets/js/orders/orders-chart.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-discount.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-discount-selector.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-discount-desktop-sheet.js?v=6"></script>
-    <script defer src="../assets/js/orders/orders-ctv.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-address.js?v=1"></script>
-    <script defer src="../assets/js/orders/orders-quick-add.js?v=4"></script>
-    <script defer src="../assets/js/orders/orders-product-edit.js?v=5"></script>
-    <script defer src="../assets/js/orders/orders-custom-product-modal.js?v=5"></script>
-    <script defer src="../assets/js/orders/orders-timezone-utils.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-send-later-reminder.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-duplicate.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-url-handler.js?v=2"></script>
-    <script defer src="../assets/js/orders/orders-product-management.js?v=8"></script>
-    <script defer src="../assets/js/orders/orders-add-modal-helpers.js?v=23"></script>
-    <script defer src="../assets/js/orders/orders-product-selection-modal.js?v=14"></script>
-    <script defer src="../assets/js/orders/orders-submit.js?v=11"></script>
-    <script defer src="../assets/js/orders.js?v=37"></script>
-    <script defer src="../assets/js/auth-check.js"></script>
-    <script defer src="../assets/js/orders/orders-quick-stats.js"></script>
+    <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=4"></script>
 </body>
 
 </html>

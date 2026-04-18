@@ -1,17 +1,37 @@
 /**
- * Banner nhắc đơn trạng thái "Gửi sau": trong cửa sổ 7 ngày lịch VN trước ngày dự kiến gửi, hoặc đã quá ngày dự kiến mà vẫn gửi sau.
- * Chỉ quét allOrdersData (O(n) mỗi lần refilter) — không API thêm. Có cache chữ ký để tránh DOM thừa.
- * Danh sách hiển thị trong modal (bấm icon mắt).
+ * Banner nhắc đơn "Gửi sau": từ đầu ngày VN (ngày dự kiến − 7) đến hết ngày dự kiến, hoặc đã quá ngày dự kiến mà vẫn send_later.
+ * Chỉ quét nặng khi ngày VN / dữ liệu đơn send_later đổi (cache input stamp). getVNStartOfToday một lần / lần quét.
  */
 
 const _SEND_LATER_DAY_MS = 86400000;
 
 let _sendLaterUrgentSig = '';
+let _sendLaterInputStampCache = '';
 let _sendLaterModalOpen = false;
 let _sendLaterBannerBound = false;
 
 function resetSendLaterUrgentBannerCache() {
     _sendLaterUrgentSig = '';
+    _sendLaterInputStampCache = '';
+}
+
+/** Fingerprint nhẹ: chỉ đơn send_later + ngày VN (đổi khi qua ngày hoặc sửa id/planned). */
+function _computeSendLaterInputStamp(rows) {
+    const day =
+        typeof getTodayDateString === 'function' ? getTodayDateString() : '';
+    if (!Array.isArray(rows) || rows.length === 0) {
+        return `${day}|0`;
+    }
+    let h = rows.length | 0;
+    for (let i = 0; i < rows.length; i++) {
+        const o = rows[i];
+        if (String(o.status || '').toLowerCase().trim() !== 'send_later') continue;
+        const id = Number(o.id) | 0;
+        const p = parseOrderTimestampMs(o.planned_send_at_unix);
+        const pm = Number.isFinite(p) ? p | 0 : 0;
+        h = (((h << 5) - h + id) | 0) ^ pm;
+    }
+    return `${day}|${h}`;
 }
 
 function _plannedDayBoundsVN(plannedMs) {
@@ -26,31 +46,30 @@ function _plannedDayBoundsVN(plannedMs) {
     return { pStart, pEnd };
 }
 
-function orderNeedsSendLaterAction(order) {
+/** null nếu không cần nhắc; { plannedMs } nếu cần. `todayStart` = getVNStartOfToday().getTime() (gọi 1 lần ngoài vòng lặp). */
+function _sendLaterUrgentEntry(order, todayStart) {
     const st = String(order.status || '')
         .toLowerCase()
         .trim();
-    if (st !== 'send_later') return false;
+    if (st !== 'send_later') return null;
     const plannedMs = parseOrderTimestampMs(order.planned_send_at_unix);
-    if (!Number.isFinite(plannedMs) || plannedMs <= 0) return false;
+    if (!Number.isFinite(plannedMs) || plannedMs <= 0) return null;
     const bounds = _plannedDayBoundsVN(plannedMs);
-    if (!bounds) return false;
-    const { pStart, pEnd } = bounds;
-    const winStart = pStart - 7 * _SEND_LATER_DAY_MS;
-    const todayStart = getVNStartOfToday().getTime();
-    if (todayStart >= winStart && todayStart <= pEnd) return true;
-    if (todayStart > pEnd) return true;
-    return false;
+    if (!bounds) return null;
+    const winStart = bounds.pStart - 7 * _SEND_LATER_DAY_MS;
+    if (todayStart < winStart) return null;
+    return { plannedMs };
 }
 
 function collectSendLaterUrgentOrders(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return [];
+    const todayStart = getVNStartOfToday().getTime();
     const out = [];
     for (let i = 0; i < rows.length; i++) {
         const o = rows[i];
-        if (!orderNeedsSendLaterAction(o)) continue;
-        const plannedMs = parseOrderTimestampMs(o.planned_send_at_unix);
-        out.push({ order: o, plannedMs });
+        const entry = _sendLaterUrgentEntry(o, todayStart);
+        if (!entry) continue;
+        out.push({ order: o, plannedMs: entry.plannedMs });
     }
     out.sort((a, b) => a.plannedMs - b.plannedMs);
     return out;
@@ -58,14 +77,14 @@ function collectSendLaterUrgentOrders(rows) {
 
 function closeSendLaterUrgentModal() {
     const modal = document.getElementById('sendLaterUrgentModal');
+    if (modal?.classList.contains('hidden') && !_sendLaterModalOpen) return;
+
     const eye = document.getElementById('sendLaterUrgentEyeBtn');
     if (modal) {
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
     }
-    if (eye) {
-        eye.setAttribute('aria-expanded', 'false');
-    }
+    if (eye) eye.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('overflow-hidden');
     _sendLaterModalOpen = false;
 }
@@ -143,6 +162,12 @@ function updateSendLaterUrgentBanner() {
         return;
     }
 
+    const inputStamp = _computeSendLaterInputStamp(allOrdersData);
+    if (inputStamp === _sendLaterInputStampCache) {
+        return;
+    }
+    _sendLaterInputStampCache = inputStamp;
+
     const urgent = collectSendLaterUrgentOrders(allOrdersData);
     const sig = urgent.length + '#' + urgent.map((u) => `${u.order.id}:${u.plannedMs}`).join(',');
     if (sig === _sendLaterUrgentSig) return;
@@ -178,15 +203,6 @@ function updateSendLaterUrgentBanner() {
             </button>`;
         })
         .join('');
-
-    list.querySelectorAll('.send-later-urgent-item').forEach((btn) => {
-        btn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            const oid = Number(btn.getAttribute('data-order-id'));
-            closeSendLaterUrgentModal();
-            focusSendLaterOrderInTable(oid);
-        });
-    });
 }
 
 function initSendLaterUrgentBanner() {
@@ -195,7 +211,8 @@ function initSendLaterUrgentBanner() {
     const modal = document.getElementById('sendLaterUrgentModal');
     const backdrop = document.getElementById('sendLaterUrgentModalBackdrop');
     const closeBtn = document.getElementById('sendLaterUrgentModalClose');
-    if (!eye || !modal || !backdrop || !closeBtn) return;
+    const list = document.getElementById('sendLaterUrgentList');
+    if (!eye || !modal || !backdrop || !closeBtn || !list) return;
     _sendLaterBannerBound = true;
 
     eye.addEventListener('click', (e) => {
@@ -205,6 +222,15 @@ function initSendLaterUrgentBanner() {
 
     backdrop.addEventListener('click', () => closeSendLaterUrgentModal());
     closeBtn.addEventListener('click', () => closeSendLaterUrgentModal());
+
+    list.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.send-later-urgent-item');
+        if (!btn || !list.contains(btn)) return;
+        const oid = Number(btn.getAttribute('data-order-id'));
+        if (!Number.isFinite(oid)) return;
+        closeSendLaterUrgentModal();
+        focusSendLaterOrderInTable(oid);
+    });
 
     document.addEventListener('keydown', _onSendLaterUrgentEscape);
 }

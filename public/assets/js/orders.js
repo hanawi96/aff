@@ -80,20 +80,19 @@ let currentEditingProductIndex = null; // null = add mode, number = replace mode
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    // CRITICAL: Only these 2 are needed for initial table render
     setupEventListeners();
-    loadOrdersData();
     checkUrlHash();
 
-    // DEFERRED: Non-critical data — load after table has rendered
-    setTimeout(() => {
-        loadCurrentTaxRate();
-        loadPackagingConfig();
-        updateExportHistoryBadge();
-        if (allProductsList.length === 0) loadProductsAndCategories();
-        if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') loadActiveDiscounts();
-        if (window.addressSelector && !window.addressSelector.loaded) window.addressSelector.init();
-    }, 800);
+    // Đơn hàng: vẫn điều khiển showLoading/hideLoading — không chặn các fetch phụ bên dưới.
+    void loadOrdersData();
+
+    // Song song ngay từ đầu (trước đây trễ 800ms): giảm tổng thời gian tới khi modal/thêm đơn có đủ dữ liệu.
+    void loadCurrentTaxRate();
+    void loadPackagingConfig();
+    void updateExportHistoryBadge();
+    if (allProductsList.length === 0) void loadProductsAndCategories();
+    if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') void loadActiveDiscounts();
+    if (window.addressSelector && !window.addressSelector.loaded) window.addressSelector.init();
 
     setInterval(updateExportHistoryBadge, 30000);
 });

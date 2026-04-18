@@ -1,0 +1,7 @@
+/**
+ * Nguồn Tailwind cho trang admin đơn — build:
+ *   npm run build:admin-css
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
