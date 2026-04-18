@@ -438,12 +438,17 @@
                         <div class="relative">
                             <input type="text" id="searchInput"
                                 placeholder="Mã đơn, KH, SĐT, CTV, sản phẩm, lưu ý đơn / lưu ý từng SP..."
-                                class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
-                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
+                                class="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
+                            <button type="button" id="searchInputClearBtn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" title="Xóa ô tìm" aria-label="Xóa ô tìm kiếm">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -906,7 +911,7 @@
     <script defer src="../assets/js/orders/orders-pagination.js?v=3"></script>
     <script defer src="../assets/js/orders/orders-sorting.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-stats.js?v=3"></script>
-    <script defer src="../assets/js/orders/orders-data-loader.js?v=9"></script>
+    <script defer src="../assets/js/orders/orders-data-loader.js?v=10"></script>
     <script defer src="../assets/js/orders/orders-filters.js?v=15"></script>
     <script defer src="../assets/js/orders/orders-bulk-actions.js?v=5"></script>
     <script defer src="../assets/js/orders/orders-export-history.js?v=25"></script>

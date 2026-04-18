@@ -393,6 +393,15 @@ async function saveOrderNotes(orderId, orderCode) {
 // EVENT LISTENERS
 // ============================================
 
+function syncOrdersSearchClearButton() {
+    const inp = document.getElementById('searchInput');
+    const btn = document.getElementById('searchInputClearBtn');
+    if (!inp || !btn) return;
+    const has = (inp.value && inp.value.trim().length > 0);
+    btn.classList.toggle('hidden', !has);
+    btn.setAttribute('aria-hidden', has ? 'false' : 'true');
+}
+
 // Setup event listeners
 function setupEventListeners() {
     // Create debounced search function (150ms for faster response)
@@ -401,8 +410,24 @@ function setupEventListeners() {
     // Use event delegation on document to ensure events work even if elements are re-rendered
     document.addEventListener('input', function (e) {
         if (e.target.id === 'searchInput') {
+            syncOrdersSearchClearButton();
             debouncedSearch();
         }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#searchInputClearBtn')) return;
+        e.preventDefault();
+        const inp = document.getElementById('searchInput');
+        if (!inp) return;
+        inp.value = '';
+        syncOrdersSearchClearButton();
+        try {
+            filterOrdersData();
+        } catch (err) {
+            console.error('❌ Error in filterOrdersData() after clear search:', err);
+        }
+        inp.focus();
     });
 
     document.addEventListener('change', function (e) {
@@ -420,4 +445,6 @@ function setupEventListeners() {
             }
         }
     });
+
+    syncOrdersSearchClearButton();
 }
