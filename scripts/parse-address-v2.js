@@ -36,6 +36,13 @@ function _bare(name) {
         .trim();
 }
 
+/** Hai chuỗi bare chỉ gồm chữ số: coi khớp theo giá trị (vd "6" vs "06"). */
+function _bareNumericEqual(a, b) {
+    if (!a || !b) return false;
+    if (!/^\d+$/.test(a) || !/^\d+$/.test(b)) return false;
+    return parseInt(a, 10) === parseInt(b, 10);
+}
+
 function _stripTrailingProvinceSuffix(seg, province) {
     if (!seg || !province) return seg;
     var sw = seg.trim().split(/\s+/).filter(Boolean);
@@ -157,6 +164,9 @@ function _expand(text, data) {
         return m;
     });
 
+    // P9Q10 dính liền — xử lý trước Q/P tách (không có \b giữa số phường và quận)
+    text = text.replace(/\b([PF])\.?(\d{1,2})(?=[qQ]\.?\d{1,2}\b)/gi, 'Ph\u01b0\u1eddng $2 ');
+
     // Q.8 / Q8 / Q 8
     text = text.replace(/\bQ\.?\s*(\d{1,2})\b/gi, 'Qu\u1eadn $1');
     // P.15 / F.3 / P15 (numeric wards)
@@ -271,7 +281,7 @@ function _match(cand, items, thr) {
     let best = null, bScore = 0;
     for (const item of items) {
         const iN = _bare(item.Name);
-        if (cn === iN) return item;
+        if (cn === iN || _bareNumericEqual(cn, iN)) return item;
         let score = 0;
         if (cn.length >= 2 && iN.includes(cn)) score = cn.length / iN.length * 0.95;
         else if (iN.length >= 2 && cn.includes(iN)) score = iN.length / cn.length * 0.90;
@@ -310,7 +320,7 @@ function _globalDist(cand, data, province, thr) {
     for (const prov of list) {
         for (const dist of (prov.Districts || [])) {
             const dn = _bare(dist.Name);
-            let score = cn === dn ? 1 : 0;
+            let score = (cn === dn || _bareNumericEqual(cn, dn)) ? 1 : 0;
             if (!score && (dn.includes(cn) || cn.includes(dn)))
                 score = Math.min(cn.length, dn.length) / Math.max(cn.length, dn.length) * 0.92;
             if (!score) {
@@ -333,7 +343,7 @@ function _globalWard(cand, data, province, district, thr) {
         for (const dist of (district ? [district] : (prov.Districts || []))) {
             for (const ward of (dist.Wards || [])) {
                 const wn = _bare(ward.Name);
-                let score = cn === wn ? 1 : 0;
+                let score = (cn === wn || _bareNumericEqual(cn, wn)) ? 1 : 0;
                 if (!score && (wn.includes(cn) || cn.includes(wn)))
                     score = Math.min(cn.length, wn.length) / Math.max(cn.length, wn.length) * 0.90;
                 if (!score) {

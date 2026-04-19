@@ -60,6 +60,10 @@ const tests = [
     { addr: '175 Minh Khai - Đông Ngàn- Từ Sơn - Bắc Ninh', exp: ['Bac Ninh', 'Tu Son', 'Dong Ngan'] },
     // Dấu phẩy dính + gộp "huyện tỉnh" không phân tách: Phường Ninh Hiệp, TX Ninh Hòa, Khánh Hòa
     { addr: 'Hùng hữu mai tdp 10, nguyên trường tộ, ninh hiệp,ninh hòa khanh hòa', exp: ['Khanh Hoa', 'Ninh Hoa', 'Ninh Hiep'] },
+    // p6,q8: dữ liệu HCMC dùng Phường 06 — khớp số "6" với "06"
+    { addr: '47/11 Bùi Minh Trực p6,q8 , tpHCM', exp: ['Ho Chi Minh', 'Quan 8', '06'] },
+    // p9q10 dính liền (không khoảng) — vẫn tách được phường + quận
+    { addr: '249/11 Lý Thái Tổ p9q10 tphcm', exp: ['Ho Chi Minh', 'Quan 10', '09'] },
 ];
 
 (async () => {

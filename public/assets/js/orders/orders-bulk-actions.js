@@ -232,6 +232,15 @@ function showShippedOrdersConfirmModal(shippedCount, allSelectedOrders) {
 }
 
 /**
+ * Đóng modal xác nhận export (không export), xóa pending
+ */
+function closeShippedOrdersConfirmModal() {
+    const modal = document.getElementById('shippedOrdersConfirmModal');
+    if (modal) modal.classList.add('hidden');
+    window.pendingExportOrders = null;
+}
+
+/**
  * Continue export all orders (including shipped)
  */
 async function continueExportAll() {

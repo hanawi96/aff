@@ -201,16 +201,17 @@ function createSPXExcelWorkbook(orders) {
         const address = parseAddressForExport(order);
         const products = parseProducts(order.products);
         
-        // Format all products into one line — chỉ SP + lưu ý từng SP trong ngoặc; lưu ý đơn → cột "Lưu ý giao hàng"
-        let productText = '';
-        if (products.length > 0) {
-            const productLines = products.map(product =>
-                formatSPXProductBracketLine(product.name, product.sizeOrWeight, product.quantity, product.notes)
-            );
-            productText = '[VÒNG DÂU TẰM] - ' + productLines.join(' ----- ');
-        }
         const orderDeliveryNote =
             order.notes && String(order.notes).trim() ? String(order.notes).trim() : '';
+        const productBracketLines = products.map(product =>
+            formatSPXProductBracketLine(
+                product.name,
+                product.sizeOrWeight,
+                product.quantity,
+                product.notes
+            )
+        );
+        const productText = buildSPXProductColumnText(productBracketLines, orderDeliveryNote);
         
         // Determine COD amount based on payment method
         // - If bank transfer: COD = 0 (already paid)

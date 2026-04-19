@@ -214,8 +214,10 @@ async function copySPXFormatExecute(orderId) {
                     });
                 }
 
-                // Format each product
-                const productLines = products.map((product) => {
+                const orderNotesTrim =
+                    order.notes && String(order.notes).trim() ? String(order.notes).trim() : '';
+
+                const productBracketLines = products.map((product) => {
                     const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
                     const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
                     const size = typeof product === 'object' && product.size ? product.size : null;
@@ -226,18 +228,11 @@ async function copySPXFormatExecute(orderId) {
                     return formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes);
                 });
 
-                // Join products with " ----- " separator; tiền tố thương hiệu trước block SP đầu (đồng bộ Excel SPX)
-                productsText = productLines.length
-                    ? '[VÒNG DÂU TẰM] - ' + productLines.join(' ----- ')
-                    : '';
+                productsText = buildSPXProductColumnText(productBracketLines, orderNotesTrim);
 
             } catch (e) {
                 // Fallback to raw text
                 productsText = order.products;
-            }
-            // Lưu ý đơn hàng (khác lưu ý từng SP trong ngoặc [])
-            if (productsText && order.notes && String(order.notes).trim()) {
-                productsText += ` - LƯU Ý: ${String(order.notes).trim()}`;
             }
         }
 

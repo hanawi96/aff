@@ -215,19 +215,43 @@ function getSPXSizeLabel(sizeOrWeight) {
     return 'Chưa có';
 }
 
+/** Giữa các ngoặc sản phẩm: khoảng trắng + năm dấu gạch + khoảng trắng. */
+const SPX_INTER_PRODUCT_SEP = ' ----- ';
+/** Trước khối lưu ý cả đơn: khoảng trắng + ba dấu gạch + khoảng trắng. */
+const SPX_BEFORE_ORDER_NOTE = ' --- ';
+
 /**
  * SPX 单行括号格式（Copy SPX / Excel 商品列一致）：[Tên -- Size: … - Số lượng: n]
+ * Chỉ lưu ý từng sản phẩm (nhãn LƯU Ý:); lưu ý cả đơn gắn một lần ở cuối qua buildSPXProductColumnText.
  * @param {string} name - 商品原名（不再拼接「cho bé Xkg」）
  * @param {string|number|null|undefined} sizeOrWeight
  * @param {number} quantity
- * @param {string|null|undefined} notes
+ * @param {string|null|undefined} notes - lưu ý từng dòng sản phẩm
  */
 function formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes) {
     const baseName = (name || 'Sản phẩm').trim() || 'Sản phẩm';
     const sizeLabel = getSPXSizeLabel(sizeOrWeight);
     let line = `${baseName} -- Size: ${sizeLabel} - Số lượng: ${quantity}`;
-    if (notes) line += ` - Lưu ý: ${notes}`;
+    if (notes) line += ` - LƯU Ý: ${notes}`;
     return `[${line}]`;
+}
+
+/**
+ * Cột *Tên sản phẩm* / copy SPX: tiền tố thương hiệu + từng SP (-----) + một khối [LƯU Ý TỔNG: …] (---) nếu có ghi chú đơn.
+ * @param {string[]} productBracketLines - kết quả formatSPXProductBracketLine từng phần tử
+ * @param {string} [orderNoteTrimmed] - ghi chú đơn (đã trim), có thể rỗng
+ */
+function buildSPXProductColumnText(productBracketLines, orderNoteTrimmed) {
+    const order = orderNoteTrimmed && String(orderNoteTrimmed).trim() ? String(orderNoteTrimmed).trim() : '';
+    let t = '';
+    if (productBracketLines && productBracketLines.length > 0) {
+        t = '[VÒNG DÂU TẰM] - ' + productBracketLines.join(SPX_INTER_PRODUCT_SEP);
+    }
+    if (order) {
+        const block = '[LƯU Ý TỔNG: ' + order + ']';
+        t = t ? t + SPX_BEFORE_ORDER_NOTE + block : block;
+    }
+    return t;
 }
 
 /**
