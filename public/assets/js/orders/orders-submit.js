@@ -270,11 +270,13 @@ async function submitNewOrder() {
             closeAddOrderModal(true);
             if (typeof clearOrderDraft === 'function') clearOrderDraft();
             
-            // Reload orders data
-            loadOrdersData();
+            // Reload orders data; nếu đơn vừa lưu là "Gửi sau" (tạo mới hoặc sửa) → bộ lọc "Gửi sau"
+            await loadOrdersData();
+            if (status === 'send_later' && typeof selectStatusFilter === 'function') {
+                selectStatusFilter('send_later', 'Gửi sau');
+            }
             
-            // Show success animation or redirect
-            console.log('✅ Order created:', result.order);
+            console.log('✅ Order saved:', result.order);
         } else {
             throw new Error(result.message || result.error || (isUpdate ? 'Không thể cập nhật đơn hàng' : 'Không thể tạo đơn hàng'));
         }
