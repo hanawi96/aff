@@ -87,6 +87,14 @@ function parseAddressForExport(order) {
 }
 
 /**
+ * SPX Excel: cột Tỉnh/TP chỉ cần tên địa danh, không kèm "Tỉnh " / "Thành phố ".
+ */
+function stripProvinceAdministrativePrefix(name) {
+    if (!name || typeof name !== 'string') return '';
+    return name.trim().replace(/^(?:Thành [Pp]hố|Tỉnh)\s+/u, '');
+}
+
+/**
  * Parse products JSON to product list（商品名保持原名，与 Copy SPX 共用 formatSPXProductBracketLine）
  */
 function parseProducts(productsJson) {
@@ -225,7 +233,7 @@ function createSPXExcelWorkbook(orders) {
             '*Mã đơn hàng': order.order_id || '',
             '*Tên người nhận': order.customer_name || '',
             '*Số điện thoại': order.customer_phone || '',
-            '*Tỉnh/Thành Phố': address.province,
+            '*Tỉnh/Thành Phố': stripProvinceAdministrativePrefix(address.province),
             '*Quận/Huyện': address.district,
             '*Xã/Phường': address.ward,
             '*Địa chỉ chi tiết': address.detail,
