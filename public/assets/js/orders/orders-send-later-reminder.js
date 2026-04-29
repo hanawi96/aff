@@ -136,7 +136,7 @@ function focusSendLaterOrderInTable(orderId) {
         return;
     }
 
-    const ipp = typeof itemsPerPage === 'number' && itemsPerPage > 0 ? itemsPerPage : 15;
+    const ipp = typeof itemsPerPage === 'number' && itemsPerPage > 0 ? itemsPerPage : 30;
     const totalPages = Math.max(1, Math.ceil(filteredOrdersData.length / ipp) || 1);
     currentPage = Math.min(totalPages, Math.floor(idx / ipp) + 1);
 

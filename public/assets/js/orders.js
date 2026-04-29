@@ -9,26 +9,43 @@ let selectedOrderIds = new Set();
 let currentPage = 1;
 
 /** Lưu preference số đơn/trang (admin đơn hàng) */
-const ORDERS_PAGE_SIZE_STORAGE_KEY = 'admin_orders_items_per_page_v2';
-/** Khóa cũ — nhiều máy còn lưu "10" nên đọc một lần rồi chuyển sang v2 */
+const ORDERS_PAGE_SIZE_STORAGE_KEY = 'admin_orders_items_per_page_v3';
+/** Khóa v2 — migrate một lần sang v3 */
+const ORDERS_PAGE_SIZE_V2_KEY = 'admin_orders_items_per_page_v2';
+/** Khóa rất cũ */
 const ORDERS_PAGE_SIZE_LEGACY_KEY = 'admin_orders_items_per_page';
-const ORDERS_PAGE_SIZE_DEFAULT = 15;
+const ORDERS_PAGE_SIZE_DEFAULT = 30;
 /** Các mức hợp lệ — đồng bộ với orders-pagination.js */
 const ORDERS_PAGE_SIZE_OPTIONS = Object.freeze([10, 15, 20, 30, 50, 100]);
 
+function migrateOrdersPageSizeToV3(n) {
+    // 10 = mặc định cũ; 100 = thường chọn tối đa — đưa về mặc định mới 30 đơn/trang
+    if (n === 10 || n === 100) return ORDERS_PAGE_SIZE_DEFAULT;
+    return n;
+}
+
 function readSavedOrdersPageSize() {
     try {
-        const rawV2 = localStorage.getItem(ORDERS_PAGE_SIZE_STORAGE_KEY);
+        const rawV3 = localStorage.getItem(ORDERS_PAGE_SIZE_STORAGE_KEY);
+        if (rawV3 != null && rawV3 !== '') {
+            const n = parseInt(rawV3, 10);
+            if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) return n;
+        }
+        const rawV2 = localStorage.getItem(ORDERS_PAGE_SIZE_V2_KEY);
         if (rawV2 != null && rawV2 !== '') {
             const n = parseInt(rawV2, 10);
-            if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) return n;
+            if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) {
+                const migrated = migrateOrdersPageSizeToV3(n);
+                localStorage.setItem(ORDERS_PAGE_SIZE_STORAGE_KEY, String(migrated));
+                localStorage.removeItem(ORDERS_PAGE_SIZE_V2_KEY);
+                return migrated;
+            }
         }
         const rawLegacy = localStorage.getItem(ORDERS_PAGE_SIZE_LEGACY_KEY);
         if (rawLegacy != null && rawLegacy !== '') {
             const n = parseInt(rawLegacy, 10);
             if (Number.isFinite(n) && ORDERS_PAGE_SIZE_OPTIONS.includes(n)) {
-                // 10 thường là mặc định/ghi nhớ cũ — nâng lên 15; các mức khác giữ nguyên
-                const migrated = n === 10 ? ORDERS_PAGE_SIZE_DEFAULT : n;
+                const migrated = migrateOrdersPageSizeToV3(n);
                 localStorage.setItem(ORDERS_PAGE_SIZE_STORAGE_KEY, String(migrated));
                 localStorage.removeItem(ORDERS_PAGE_SIZE_LEGACY_KEY);
                 return migrated;
@@ -50,6 +67,7 @@ function setOrdersItemsPerPage(value) {
     itemsPerPage = v;
     try {
         localStorage.setItem(ORDERS_PAGE_SIZE_STORAGE_KEY, String(v));
+        localStorage.removeItem(ORDERS_PAGE_SIZE_V2_KEY);
         localStorage.removeItem(ORDERS_PAGE_SIZE_LEGACY_KEY);
     } catch (e) { /* ignore quota / private mode */ }
     const totalPages = Math.max(1, Math.ceil(filteredOrdersData.length / itemsPerPage) || 1);
