@@ -1398,7 +1398,9 @@ function _partialFallback(text, data, province, district) {
 
     var dist = result.district;
     if (dist) {
-        for (var si2 = 0; si2 < segs.length; si2++) {
+        // Scan RIGHT-TO-LEFT: ward sits between street (left) and district (right)
+        // Scanning from district side avoids fuzzy-matching the street/thôn name first
+        for (var si2 = segs.length - 1; si2 >= 0; si2--) {
             if (_sameBareAsProvince(segs[si2])) continue;
             if (_sameBareAsDistrict(segs[si2], dist)) continue;
             var w = _match(segs[si2], dist.Wards, 0.73);
@@ -1406,7 +1408,7 @@ function _partialFallback(text, data, province, district) {
         }
         if (!result.ward) {
             for (var n2 = Math.min(3, words.length); n2 >= 1; n2--) {
-                for (var i2 = 0; i2 <= words.length - n2; i2++) {
+                for (var i2 = words.length - n2; i2 >= 0; i2--) {
                     var candW = words.slice(i2, i2 + n2).join(' ');
                     if (_sameBareAsProvince(candW)) continue;
                     if (_sameBareAsDistrict(candW, dist)) continue;
