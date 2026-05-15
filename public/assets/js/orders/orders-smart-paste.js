@@ -1156,7 +1156,7 @@ var _ADMIN_LA = '(?='
     + 'tinh|t\u1ec9nh'
     + '|thanh\\s+pho|th\u00e0nh\\s+ph\u1ed1|tp\\.?'
     + '|quan|qu\u1eadn'
-    + '|huyen|h\u01b0y\u1ec7n'
+    + '|huyen|huy\u1ec7n'
     + '|thi\\s+xa|th\u1ecb\\s+x\u00e3|tx\\.?'
     + '|phuong|ph\u01b0\u1eddng'
     + '|xa|x\u00e3'
@@ -1178,7 +1178,7 @@ function _anchors(text) {
     reTP.lastIndex = 0;
     while ((m = reTP.exec(text))) tpCands.push(m[1].trim().split(/\s*,/)[0].trim());
 
-    var reD = new RegExp('\\b(?:qu\u1eadn|quan|h\u01b0y\u1ec7n|huyen|th\u1ecb\\s+x\u00e3|thi\\s+xa|tx\\.?)\\s+([^,\\n]{1,25}?)' + _ADMIN_LA, 'gi');
+    var reD = new RegExp('\\b(?:qu\u1eadn|quan|huy\u1ec7n|huyen|th\u1ecb\\s+x\u00e3|thi\\s+xa|tx\\.?)\\s+([^,\\n]{1,25}?)' + _ADMIN_LA, 'gi');
     reD.lastIndex = 0;
     while ((m = reD.exec(text))) a.district = m[1].trim().split(/\s*,/)[0].trim();
 

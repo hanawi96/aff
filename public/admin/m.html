@@ -2422,7 +2422,17 @@ function openProdSheet(id){
       <div class="flex items-center gap-3">
         ${imgHtml}
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-gray-900 text-sm">${esc(p.name)}</p>
+          <div class="flex items-center gap-1" id="sheetNameDisplay">
+            <p class="font-semibold text-gray-900 text-sm flex-1 min-w-0 leading-snug" id="sheetNameText">${esc(p.name)}</p>
+            <button type="button" onclick="_toggleSheetNameEdit()" class="shrink-0 p-1 rounded-lg text-gray-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors" title="Sửa tên sản phẩm">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+          </div>
+          <input id="sheetCustomName" type="text" value="${esc(p.name)}"
+            class="hidden w-full px-2.5 py-1.5 bg-white border border-indigo-400 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            placeholder="Tên sản phẩm..."
+            onblur="_applySheetNameEdit(this)"
+            onkeydown="if(event.key==='Enter'||event.key==='Escape')this.blur()">
           <p class="text-xs text-gray-400 mt-0.5">Giá gốc: ${fmt(p.price)}</p>
         </div>
       </div>
@@ -2515,10 +2525,12 @@ function confirmAddProduct(id){
   const sizeNull=sizeEl?.dataset.sizeNull==='1';
   const size=sizeNull?null:(sizeEl?.value.trim()||null);
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
+  const customNameEl=document.getElementById('sheetCustomName');
+  const productName=(customNameEl?.value.trim())||p.name;
   // Merge if exact same product + same size + same notes; else push new entry (supports multi-size)
   const existing=createProducts.find(x=>x.product_id===p.id&&(x.size||null)===(size||null)&&(x.notes||null)===(notes||null));
-  if(existing){existing.quantity+=qty;if(unitPrice!==p.price)existing.price=unitPrice;}
-  else{createProducts.push({product_id:p.id,name:p.name,price:unitPrice,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});}
+  if(existing){existing.quantity+=qty;if(unitPrice!==p.price)existing.price=unitPrice;if(productName!==p.name)existing.name=productName;}
+  else{createProducts.push({product_id:p.id,name:productName,price:unitPrice,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});}
   document.getElementById('cartErrMsg')?.classList.add('hidden');
   closeProdSheet();
   renderProductPicker();
@@ -2715,6 +2727,24 @@ function confirmEditCartItem(i){
 }
 
 // ─── Sheet Price Formatter (edit cart item) ───
+function _toggleSheetNameEdit(){
+  const display=document.getElementById('sheetNameDisplay');
+  const input=document.getElementById('sheetCustomName');
+  if(!display||!input)return;
+  display.classList.add('hidden');
+  input.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+function _applySheetNameEdit(input){
+  const val=input.value.trim();
+  const nameText=document.getElementById('sheetNameText');
+  const display=document.getElementById('sheetNameDisplay');
+  if(!val){input.value=nameText?.textContent||'';}
+  else if(nameText){nameText.textContent=val;}
+  input.classList.add('hidden');
+  display?.classList.remove('hidden');
+}
 function _fmtSheetPrice(el){
   const raw=el.value.replace(/\D/g,'');
   const num=parseInt(raw,10)||0;
