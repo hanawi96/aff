@@ -169,7 +169,27 @@ async function deleteOrder(orderId, orderCode) {
 // ============================================
 
 // Confirm delete product
-function confirmDeleteProduct(orderId, productIndex, orderCode, productName) {
+function confirmDeleteProduct(orderId, productIndex, orderCode) {
+    // Look up productName & product count từ allOrdersData (tránh vỡ onclick khi tên có dấu nháy đơn)
+    let productName = 'Sản phẩm';
+    const _order = allOrdersData.find(o => o.id === orderId);
+    if (_order) {
+        let _count = 1;
+        try {
+            const _prods = JSON.parse(_order.products);
+            _count = Array.isArray(_prods) ? _prods.length : 1;
+            if (Array.isArray(_prods) && _prods[productIndex]) {
+                productName = (typeof _prods[productIndex] === 'string')
+                    ? _prods[productIndex]
+                    : (_prods[productIndex].name || 'Sản phẩm');
+            }
+        } catch(_) {}
+        if (_count <= 1) {
+            showToast('Không thể xóa vì chỉ có 1 sản phẩm duy nhất', 'warning');
+            return;
+        }
+    }
+
     // Create confirmation modal
     const modal = document.createElement('div');
     modal.id = 'confirmDeleteProductModal';
@@ -247,10 +267,6 @@ async function deleteProduct(orderId, productIndex, orderCode) {
     // Close modal
     closeConfirmDeleteProductModal();
 
-    // Show loading toast với ID
-    const deleteId = `delete-product-${orderId}-${productIndex}`;
-    showToast('Đang xóa sản phẩm...', 'info', 0, deleteId);
-
     try {
         // Find the order in allOrdersData
         const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
@@ -277,7 +293,7 @@ async function deleteProduct(orderId, productIndex, orderCode) {
 
         // Check if there's only one product
         if (products.length <= 1) {
-            showToast('Không thể xóa sản phẩm cuối cùng. Hãy xóa toàn bộ đơn hàng nếu cần.', 'warning');
+            showToast('Không thể xóa vì chỉ có 1 sản phẩm duy nhất', 'warning');
             return;
         }
 
@@ -317,13 +333,13 @@ async function deleteProduct(orderId, productIndex, orderCode) {
             // Re-render the table to show updated products
             renderOrdersTable();
 
-            showToast(`Đã xóa sản phẩm khỏi đơn ${orderCode}`, 'success', null, deleteId);
+            showToast(`Đã xóa sản phẩm khỏi đơn ${orderCode}`, 'success');
         } else {
             throw new Error(data.error || 'Không thể xóa sản phẩm');
         }
 
     } catch (error) {
         console.error('Error deleting product:', error);
-        showToast('Không thể xóa sản phẩm: ' + error.message, 'error', null, deleteId);
+        showToast('Không thể xóa sản phẩm: ' + error.message, 'error');
     }
 }

@@ -251,7 +251,7 @@ ${order.address || 'N/A'}`;
 
         // Batch update: status + priority (render only once at the end)
         const currentStatus = order.status || 'pending';
-        const needsStatusUpdate = currentStatus !== 'shipped' && currentStatus !== 'in_transit' && currentStatus !== 'delivered' && currentStatus !== 'failed' && currentStatus !== 'send_later';
+        const needsStatusUpdate = currentStatus !== 'shipped' && currentStatus !== 'in_transit' && currentStatus !== 'delivered' && currentStatus !== 'failed';
         const needsPriorityRemoval = order.is_priority === 1;
 
         // Update status (skip render)
