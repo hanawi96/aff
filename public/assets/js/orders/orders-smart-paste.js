@@ -1382,8 +1382,10 @@ function _partialFallback(text, data, province, district) {
             if (d) { result.district = d; break; }
         }
         if (!result.district) {
+            // Scan RIGHT-TO-LEFT: district is typically closer to the province (at end)
+            // Prevents a fuzzy match on the left from preempting an exact match on the right
             for (var n = Math.min(3, words.length); n >= 1; n--) {
-                for (var i = 0; i <= words.length - n; i++) {
+                for (var i = words.length - n; i >= 0; i--) {
                     var cand = words.slice(i, i + n).join(' ');
                     if (_sameBareAsProvince(cand)) continue;
                     var d2 = _match(_stripTrailingProvinceSuffix(cand, province), province.Districts, 0.78);
