@@ -307,8 +307,11 @@ function filterOrdersData(preservePage = false) {
         // Date filter
         let matchesDate = true;
         if (dateFilter !== 'all') {
-            // Prefer created_at_unix (Vietnam time) over created_at (UTC time)
-            const timestamp = order.created_at_unix || order.created_at || order.order_date;
+            // Với đã gửi / đang vận chuyển / đã giao: filter theo ngày GỬI (shipped_at_unix),
+            // nhất quán với sort trong getOrderSortTimestampMs. Fallback về ngày tạo nếu chưa có.
+            const isShippedGroup = statusFilter === 'shipped' || statusFilter === 'in_transit' || statusFilter === 'delivered';
+            const shippedTs = isShippedGroup ? (order.shipped_at_unix || order.shipped_at || null) : null;
+            const timestamp = shippedTs || order.created_at_unix || order.created_at || order.order_date;
             const orderDate = new Date(typeof timestamp === 'number' ? timestamp : timestamp);
 
             if (dateFilter === 'today') {
