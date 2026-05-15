@@ -867,6 +867,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('hashchange',onAppHashChange);
   initTabSwipe();
   _syncDateSortBtns();
+  window.addEventListener('beforeunload',_saveDraft);
+  window.addEventListener('pagehide',_saveDraft);
 });
 async function bootOrdersAndDeepLink(){
   await Promise.all([loadOrdersInternal(),loadProductList()]);
@@ -1758,11 +1760,19 @@ function showCreateOrder(){
   const sb=document.getElementById('submitBtn');
   if(sb){sb.disabled=false;sb.textContent='Tạo đơn';sb.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
   setTimeout(function(){var sp=document.getElementById('smartPasteInput');if(sp)sp.focus();},300);
+  // Restore draft on first open after page load
+  let _draftAddr=null;
+  if(!_createDraftChecked){
+    _createDraftChecked=true;
+    const _draft=_tryRestoreDraft();
+    if(_draft){_applyDraftToForm(_draft);_draftAddr=_draft.address||null;}
+  }
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
-    await initMCreateAddressSelector(null);
+    await initMCreateAddressSelector(_draftAddr);
     renderProductPicker();
+    if(_draftAddr)renderCart();
   });
   syncCreateHash();
 }
@@ -2413,7 +2423,7 @@ function openProdSheet(id){
         ${imgHtml}
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-gray-900 text-sm">${esc(p.name)}</p>
-          <p class="text-sm font-bold text-indigo-600 mt-0.5">${fmt(p.price)}</p>
+          <p class="text-xs text-gray-400 mt-0.5">Giá gốc: ${fmt(p.price)}</p>
         </div>
       </div>
       ${alreadyInCartHtml}
@@ -2425,6 +2435,16 @@ function openProdSheet(id){
           <input id="sheetQty" type="number" value="1" min="1" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
           <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">+</button>
         </div>
+      </div>
+      <!-- Giá tiền -->
+      <div>
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
+        <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
+          value="${(p.price||0).toLocaleString('vi-VN')}"
+          data-unit-price="${p.price||0}"
+          oninput="_fmtSheetPrice(this)"
+          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        <p class="text-xs text-gray-400 mt-1">Tổng cho số lượng đã chọn — chỉnh trực tiếp nếu cần</p>
       </div>
       <!-- Size -->
       <div>
@@ -2441,7 +2461,7 @@ function openProdSheet(id){
       <!-- Add button -->
       <div class="flex items-center gap-2">
         <button onclick="closeProdSheet()" class="flex items-center justify-center gap-1 px-4 py-3.5 bg-gray-100 text-gray-500 font-semibold rounded-xl text-sm shrink-0 hover:bg-gray-200 transition-colors"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg></button>
-        <button onclick="confirmAddProduct(${id})" class="flex-1 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm">${inCartItems.length>0?'Thêm vào đơn':'Thêm vào đơn'}</button>
+        <button onclick="confirmAddProduct(${id})" class="flex-1 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl text-sm">Thêm vào đơn</button>
       </div>
     </div>`;
 
@@ -2488,14 +2508,17 @@ function closeProdSheet(){
 function confirmAddProduct(id){
   const p=allProductsCache.find(x=>x.id==id);if(!p)return;
   const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  const priceEl=document.getElementById('sheetPrice');
+  const totalPrice=priceEl?Math.max(0,parseInt((priceEl.value||'').replace(/[^0-9]/g,''))||0):0;
+  const unitPrice=totalPrice>0?(qty>0?Math.round(totalPrice/qty):totalPrice):p.price;
   const sizeEl=document.getElementById('sheetSize');
   const sizeNull=sizeEl?.dataset.sizeNull==='1';
   const size=sizeNull?null:(sizeEl?.value.trim()||null);
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
   // Merge if exact same product + same size + same notes; else push new entry (supports multi-size)
   const existing=createProducts.find(x=>x.product_id===p.id&&(x.size||null)===(size||null)&&(x.notes||null)===(notes||null));
-  if(existing){existing.quantity+=qty;}
-  else{createProducts.push({product_id:p.id,name:p.name,price:p.price,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});}
+  if(existing){existing.quantity+=qty;if(unitPrice!==p.price)existing.price=unitPrice;}
+  else{createProducts.push({product_id:p.id,name:p.name,price:unitPrice,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});}
   document.getElementById('cartErrMsg')?.classList.add('hidden');
   closeProdSheet();
   renderProductPicker();
@@ -2997,11 +3020,64 @@ async function submitOrder(){
         loadOrders();         // sync server ngầm, không await
       }else{
         closeCreate();
+        _clearDraft();
         toast('Tạo đơn hàng thành công!');
         await loadOrders();
       }
     }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':'Lỗi tạo đơn'));
   }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent=isEdit?'Cập nhật':'Tạo đơn';btn.className=`flex-1 py-3 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform`;}
+}
+
+// ─── Draft persistence (create mode only) ───
+const M_DRAFT_KEY='m_order_create_draft';
+let _createDraftChecked=false;
+function _saveDraft(){
+  if(editOrderId!==null)return;
+  const cp=document.getElementById('createPanel');
+  if(!cp||cp.classList.contains('hidden'))return;
+  const el=id=>document.getElementById(id);
+  const draft={
+    name:el('cName')?.value||'',
+    phone:el('cPhone')?.value||'',
+    notes:el('cNotes')?.value||'',
+    payment:el('cPayment')?.value||'cod',
+    freeShip:!!el('cFreeShip')?.checked,
+    ctvCheck:!!el('ctvCheck')?.checked,
+    referral:el('cReferral')?.value||'',
+    sendLater:!!el('mSendLaterChk')?.checked,
+    plannedAt:el('mPlannedSendAt')?.value||'',
+    products:createProducts.slice(),
+    discount:mDiscount,
+    ts:Date.now()
+  };
+  const addr=mCreateAddressSelector?.getAddressData?.();
+  if(addr?.provinceCode)draft.address={province_id:addr.provinceCode,district_id:addr.districtCode,ward_id:addr.wardCode,street_address:addr.street||''};
+  try{localStorage.setItem(M_DRAFT_KEY,JSON.stringify(draft));}catch(_){}
+}
+function _clearDraft(){try{localStorage.removeItem(M_DRAFT_KEY);}catch(_){}}
+function _tryRestoreDraft(){
+  try{
+    const raw=localStorage.getItem(M_DRAFT_KEY);
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    if(!d||(Date.now()-(d.ts||0))>86400000){_clearDraft();return null;}
+    return d;
+  }catch(_){_clearDraft();return null;}
+}
+function _applyDraftToForm(d){
+  if(!d)return;
+  const el=id=>document.getElementById(id);
+  if(d.name){const e=el('cName');if(e)e.value=d.name;}
+  if(d.phone){const e=el('cPhone');if(e)e.value=d.phone;}
+  if(d.notes){const e=el('cNotes');if(e)e.value=d.notes;}
+  if(d.payment)setPayment(d.payment);
+  if(d.freeShip){const e=el('cFreeShip');if(e){e.checked=true;onFreeShipChange();}}
+  if(d.ctvCheck){const e=el('ctvCheck');if(e){e.checked=true;toggleCTVSection();}}
+  if(d.referral){const e=el('cReferral');if(e)e.value=d.referral;}
+  if(d.sendLater){const e=el('mSendLaterChk');if(e){e.checked=true;onMobileSendLaterToggle();}}
+  if(d.plannedAt){const e=el('mPlannedSendAt');if(e)e.value=d.plannedAt;}
+  if(d.products?.length)createProducts=d.products.slice();
+  if(d.discount){mDiscount=d.discount;showDiscountApplied();}
 }
 
 // ─── Smart Paste (mobile) ───
