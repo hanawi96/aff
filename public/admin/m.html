@@ -1627,7 +1627,7 @@ async function showEditOrder(id){
   clearCreateDeeplinkBoot();
   // Update bottom bar for edit mode
   const sb=document.getElementById('submitBtn');
-  if(sb){sb.textContent='Cập nhật';sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
+  if(sb){sb.disabled=false;sb.textContent='Cập nhật';sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
@@ -1756,7 +1756,7 @@ function showCreateOrder(){
   clearCreateDeeplinkBoot();
   // Reset bottom bar for create mode
   const sb=document.getElementById('submitBtn');
-  if(sb){sb.textContent='Tạo đơn';sb.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
+  if(sb){sb.disabled=false;sb.textContent='Tạo đơn';sb.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
   setTimeout(function(){var sp=document.getElementById('smartPasteInput');if(sp)sp.focus();},300);
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
