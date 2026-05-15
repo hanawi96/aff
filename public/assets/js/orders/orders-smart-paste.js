@@ -1072,6 +1072,9 @@ function _expand(text, data) {
     // "phường X,quận Y" / "ninh hiệp,ninh hòa" — bắt buộc có khoảng trắng sau dấu phẩy để tách từ đúng
     text = text.replace(/,(\S)/g, ', $1');
     text = text.replace(/\s*[-\u2013\u2014|]\s*/g, ', ');
+    // Dấu chấm dùng làm dấu phân cách địa chỉ: "từ. TừKế" / "từdài.từkế" → "từ, TừKế"
+    // Chỉ áp dụng khi từ trước dấu chấm có ≥3 ký tự (bảo toàn viết tắt Q. P. TP. tx. p.)
+    text = text.replace(/([A-Za-z\u00C0-\u024F\u1E00-\u1EFF]{3,})\.\s*([A-Za-z\u00C0-\u024F\u1E00-\u1EFF])/g, '$1, $2');
 
     // Slash abbreviations (Latin Extended Additional \u1E00-\u1EFF: ạ, ế… — tránh khớp "B/Th" thay vì "B/Thạnh")
     text = text.replace(/\b([\w\u00C0-\u024F\u1E00-\u1EFF]+)\/([\w\u00C0-\u024F\u1E00-\u1EFF]+)\b/g, function(m) {
