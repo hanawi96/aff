@@ -1113,6 +1113,8 @@ function _expand(text, data) {
     while (i < tokens.length) {
         let matched = false;
         for (let n = Math.min(3, tokens.length - i); n >= 1; n--) {
+            // Don't cross comma boundaries: skip if any intermediate token contains a comma
+            if (n > 1 && tokens.slice(i, i + n - 1).some(function(t) { return t.indexOf(',') !== -1; })) continue;
             const key = _nn(tokens.slice(i, i + n).join(' '));
             const pid = _PA[key];
             if (pid) {
@@ -1419,7 +1421,7 @@ function _extractStreet(expanded, province, district, ward, subward) {
     let s = expanded;
     s = s.replace(/\b(?:t\u1ec9nh|tinh)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:th\u00e0nh ph\u1ed1|thanh pho|tp\.?)\s+[^,]+/gi, ' ');
-    s = s.replace(/\b(?:qu\u1eadn|quan|h\u01b0y\u1ec7n|huyen|th\u1ecb x\u00e3|thi xa|tx\.?)\s+[^,]+/gi, ' ');
+    s = s.replace(/\b(?:qu\u1eadn|quan|huy\u1ec7n|huyen|th\u1ecb x\u00e3|thi xa|tx\.?)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:ph\u01b0\u1eddng|phuong|x\u00e3|xa|th\u1ecb tr\u1ea5n|thi tran|tt\.?)\s+[^,]+/gi, ' ');
     function safe(n) { return n ? n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') : ''; }
     if (province) s = s.replace(new RegExp(safe(province.Name), 'gi'), ' ');
