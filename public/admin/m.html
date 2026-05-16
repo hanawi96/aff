@@ -14,9 +14,9 @@ html{background-color:#f9fafb}
 #mOrderAddressSelectorContainer .checkout-form-input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2);background:#fff}
 *{-webkit-tap-highlight-color:transparent}
 body{overscroll-behavior-y:contain}
-.tab-active{background:#6366f1;color:#fff!important;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
-.tab-active span{background:#fff!important;color:#6366f1!important;}
-.tab{transition:all .15s ease}
+.tab-active{color:#4f46e5!important;font-weight:700;background:#fff!important;box-shadow:0 1px 5px rgba(0,0,0,.13)!important;}
+.tab-active .tab-badge{background:#6366f1!important;color:#fff!important;}
+.tab{transition:all .18s ease}
 .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.2s infinite}
 @keyframes sk{to{background-position:-200% 0}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -107,23 +107,23 @@ html.m-create-deeplink>body>header{display:none!important}
 </header>
 
 <!-- Status Tabs -->
-<div id="orderStatusTabs" class="sticky top-[60px] z-30 bg-white border-gray-200 px-3 py-2">
-  <div class="flex gap-1.5 bg-gray-100 rounded-xl p-1">
-    <button class="tab flex-1 py-2 flex flex-col items-center gap-0.5 text-sm font-medium rounded-lg text-gray-500" data-status="pending" onclick="switchTab(this)">
-      <span>Chưa gửi</span>
-      <span id="countPending" class="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full"></span>
+<div id="orderStatusTabs" class="sticky top-[60px] z-30 bg-white border-b border-gray-200 px-3 py-2">
+  <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+    <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="pending" onclick="switchTab(this)">
+      <span class="leading-none whitespace-nowrap">Chưa gửi</span>
+      <span id="countPending" class="tab-badge text-[11px] font-semibold bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center"></span>
     </button>
-    <button class="tab flex-1 py-2 flex flex-col items-center gap-0.5 text-sm font-medium rounded-lg text-gray-500" data-status="send_later" onclick="switchTab(this)">
-      <span>Gửi sau</span>
-      <span id="countSendLater" class="text-xs bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded-full"></span>
+    <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="send_later" onclick="switchTab(this)">
+      <span class="leading-none whitespace-nowrap">Gửi sau</span>
+      <span id="countSendLater" class="tab-badge text-[11px] font-semibold bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center"></span>
     </button>
-    <button class="tab flex-1 py-2 flex flex-col items-center gap-0.5 text-sm font-medium rounded-lg text-gray-500" data-status="shipped" onclick="switchTab(this)">
-      <span>Đã gửi</span>
-      <span id="countShipped" class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"></span>
+    <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="shipped" onclick="switchTab(this)">
+      <span class="leading-none whitespace-nowrap">Đã gửi</span>
+      <span id="countShipped" class="tab-badge text-[11px] font-semibold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center"></span>
     </button>
-    <button class="tab flex-1 py-2 flex flex-col items-center justify-center text-sm font-medium rounded-lg text-gray-500" data-status="stats" onclick="switchTab(this)">
-      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      <span>Thống kê</span>
+    <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="stats" onclick="switchTab(this)">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span class="leading-none whitespace-nowrap">Thống kê</span>
     </button>
   </div>
 </div>
