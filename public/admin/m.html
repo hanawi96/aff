@@ -2513,19 +2513,38 @@ function openProdSheet(id){
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số lượng</label>
         <div class="flex items-center gap-3 mt-2">
           <button onclick="sheetQty(-1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">−</button>
-          <input id="sheetQty" type="number" value="1" min="1" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+          <input id="sheetQty" type="number" value="1" min="1" oninput="_onSheetQtyInput()" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
           <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">+</button>
         </div>
       </div>
-      <!-- Giá tiền -->
+      <!-- Giá bán + Giá vốn (một hàng) -->
       <div>
-        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
-        <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
-          value="${(p.price||0).toLocaleString('vi-VN')}"
-          data-unit-price="${p.price||0}"
-          oninput="_fmtSheetPrice(this)"
-          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
-        <p class="text-xs text-gray-400 mt-1">Tổng cho số lượng đã chọn — chỉnh trực tiếp nếu cần</p>
+        <div class="flex gap-2 items-end">
+          <div class="flex-1 min-w-0">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Giá bán</label>
+            <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
+              value="${(p.price||0).toLocaleString('vi-VN')}"
+              data-unit-price="${p.price||0}"
+              oninput="_fmtSheetPrice(this)"
+              class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+          </div>
+          <div class="flex-1 min-w-0">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Giá vốn</label>
+            <div class="mt-1 flex gap-1 items-center">
+              <input id="sheetCost" type="text" inputmode="numeric" autocomplete="off" disabled
+                value="${((Number(p.cost_price)||0)).toLocaleString('vi-VN')}"
+                data-unit-cost="${Number(p.cost_price)||0}"
+                oninput="_fmtSheetCost(this)"
+                class="flex-1 min-w-0 px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white enabled:bg-gray-50">
+              <button type="button" id="sheetCostUnlockBtn" onclick="_toggleSheetCostEdit()" class="shrink-0 p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Cho phép sửa giá vốn" aria-label="Sửa giá vốn" aria-pressed="false">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="sheetLineProfitWrap" class="mt-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+          <p id="sheetLineProfit" class="text-xs font-medium text-gray-600"></p>
+        </div>
       </div>
       <!-- Size -->
       <div>
@@ -2566,6 +2585,7 @@ function openProdSheet(id){
 
   document.getElementById('prodSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
+  _updateSheetLineProfit();
   setTimeout(()=>document.getElementById('sheetQty')?.focus(),100);
 }
 
@@ -2579,6 +2599,8 @@ function sheetQty(d){
     const total=Math.round(unitPrice*newQty);
     priceEl.value=total?total.toLocaleString('vi-VN'):'';
   }
+  _syncSheetCostDisplayFromUnit();
+  _updateSheetLineProfit();
 }
 
 function closeProdSheet(){
@@ -2598,10 +2620,11 @@ function confirmAddProduct(id){
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
   const customNameEl=document.getElementById('sheetCustomName');
   const productName=(customNameEl?.value.trim())||p.name;
+  const costVal=_sheetCostUnitFromInputs(document.getElementById('sheetCost'),qty);
   // Merge if exact same product + same size + same notes; else push new entry (supports multi-size)
   const existing=createProducts.find(x=>x.product_id===p.id&&(x.size||null)===(size||null)&&(x.notes||null)===(notes||null));
-  if(existing){existing.quantity+=qty;if(unitPrice!==p.price)existing.price=unitPrice;if(productName!==p.name)existing.name=productName;}
-  else{createProducts.push({product_id:p.id,name:productName,price:unitPrice,cost_price:p.cost_price||0,image_url:p.image_url||'',quantity:qty,size,notes});}
+  if(existing){existing.quantity+=qty;if(unitPrice!==p.price)existing.price=unitPrice;if(productName!==p.name)existing.name=productName;existing.cost_price=costVal;}
+  else{createProducts.push({product_id:p.id,name:productName,price:unitPrice,cost_price:costVal,image_url:p.image_url||'',quantity:qty,size,notes});}
   document.getElementById('cartErrMsg')?.classList.add('hidden');
   closeProdSheet();
   renderProductPicker();
@@ -2733,19 +2756,38 @@ function openEditCartItem(i){
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số lượng</label>
         <div class="flex items-center gap-3 mt-2">
           <button onclick="sheetQty(-1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">−</button>
-          <input id="sheetQty" type="number" value="${p.quantity||1}" min="1" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+          <input id="sheetQty" type="number" value="${p.quantity||1}" min="1" oninput="_onSheetQtyInput()" class="w-16 h-10 text-center border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
           <button onclick="sheetQty(1)" class="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center">+</button>
         </div>
       </div>
-      <!-- Giá tiền -->
+      <!-- Giá bán + Giá vốn (một hàng) -->
       <div>
-        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Giá tiền (đ)</label>
-        <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
-          value="${((p.price||0)*(p.quantity||1)).toLocaleString('vi-VN')}"
-          data-unit-price="${p.price||0}"
-          oninput="_fmtSheetPrice(this)"
-          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
-        <p class="text-xs text-gray-400 mt-1">Đơn giá: ${fmt(p.price)}</p>
+        <div class="flex gap-2 items-end">
+          <div class="flex-1 min-w-0">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Giá bán</label>
+            <input id="sheetPrice" type="text" inputmode="numeric" autocomplete="off"
+              value="${((p.price||0)*(p.quantity||1)).toLocaleString('vi-VN')}"
+              data-unit-price="${p.price||0}"
+              oninput="_fmtSheetPrice(this)"
+              class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+          </div>
+          <div class="flex-1 min-w-0">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Giá vốn</label>
+            <div class="mt-1 flex gap-1 items-center">
+              <input id="sheetCost" type="text" inputmode="numeric" autocomplete="off" disabled
+                value="${((Number(p.cost_price)||0)*(p.quantity||1)).toLocaleString('vi-VN')}"
+                data-unit-cost="${Number(p.cost_price)||0}"
+                oninput="_fmtSheetCost(this)"
+                class="flex-1 min-w-0 px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-700 disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white enabled:bg-gray-50">
+              <button type="button" id="sheetCostUnlockBtn" onclick="_toggleSheetCostEdit()" class="shrink-0 p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Cho phép sửa giá vốn" aria-label="Sửa giá vốn" aria-pressed="false">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="sheetLineProfitWrap" class="mt-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+          <p id="sheetLineProfit" class="text-xs font-medium text-gray-600"></p>
+        </div>
       </div>
       <!-- Size -->
       <div>
@@ -2788,6 +2830,7 @@ function openEditCartItem(i){
 
   document.getElementById('prodSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
+  _updateSheetLineProfit();
 }
 
 function confirmEditCartItem(i){
@@ -2805,7 +2848,8 @@ function confirmEditCartItem(i){
   const sizeNull=sizeEl?.dataset.sizeNull==='1';
   const size=sizeNull?null:(sizeEl?.value.trim()||p.size||null);
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
-  createProducts[i]={...p,name:newName,quantity:qty,price,size,notes};
+  const costVal=_sheetCostUnitFromInputs(document.getElementById('sheetCost'),qty);
+  createProducts[i]={...p,name:newName,quantity:qty,price,size,notes,cost_price:costVal};
   closeProdSheet();renderProductPicker();renderCart();autoUpdateFreeshipCheckbox();
   toast('Đã cập nhật sản phẩm');
 }
@@ -2855,6 +2899,90 @@ function _fmtSheetPrice(el){
   });
   const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
   el.dataset.unitPrice=num>0?Math.round(num/qty):0;
+  _updateSheetLineProfit();
+}
+function _fmtSheetCost(el){
+  if(!el)return;
+  const raw=el.value.replace(/\D/g,'');
+  const num=raw?parseInt(raw,10):0;
+  const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
+  el.dataset.unitCost=qty>0?Math.round(num/qty):0;
+  el.value=num?num.toLocaleString('vi-VN'):'0';
+  _updateSheetLineProfit();
+}
+function _parseSheetMoney(el){
+  if(!el)return 0;
+  return Math.max(0,parseInt(String(el.value||'').replace(/\D/g,''),10)||0);
+}
+/** Ô #sheetCost hiển thị tổng vốn (đơn giá vốn × SL); dataset.unitCost = đơn giá vốn (lưu vào giỏ). */
+function _syncSheetCostDisplayFromUnit(){
+  const el=document.getElementById('sheetCost');
+  const qtyEl=document.getElementById('sheetQty');
+  if(!el||!qtyEl)return;
+  const qty=Math.max(1,parseInt(String(qtyEl.value),10)||1);
+  let u=parseFloat(el.dataset.unitCost);
+  if(!Number.isFinite(u)||u<0)u=0;
+  const tot=Math.round(u*qty);
+  el.value=tot?tot.toLocaleString('vi-VN'):'0';
+}
+function _sheetCostUnitFromInputs(costEl,qty){
+  const q=Math.max(1,parseInt(String(qty==null?1:qty),10)||1);
+  if(!costEl)return 0;
+  const fromDs=parseFloat(costEl.dataset.unitCost);
+  if(Number.isFinite(fromDs)&&fromDs>=0)return Math.round(fromDs);
+  const tot=_parseSheetMoney(costEl);
+  return q>0?Math.round(tot/q):Math.round(tot);
+}
+function _updateSheetLineProfit(){
+  const main=document.getElementById('sheetLineProfit');
+  const wrap=document.getElementById('sheetLineProfitWrap');
+  if(!main)return;
+  const priceEl=document.getElementById('sheetPrice');
+  const costEl=document.getElementById('sheetCost');
+  const totalSale=priceEl?Math.max(0,parseInt(String(priceEl.value||'').replace(/\D/g,''),10)||0):0;
+  const totalCost=_parseSheetMoney(costEl);
+  const profit=Math.round(totalSale-totalCost);
+  const base='mt-1.5 rounded-xl border px-3 py-2 transition-colors';
+  if(wrap){
+    if(profit>0){
+      wrap.className=base+' border-emerald-100 bg-emerald-50/90';
+    }else if(profit<0){
+      wrap.className=base+' border-rose-100 bg-rose-50/90';
+    }else{
+      wrap.className=base+' border-gray-100 bg-gray-50';
+    }
+  }
+  const loss=profit<0;
+  main.className='text-xs font-bold '+(loss?'text-rose-800':(profit>0?'text-emerald-800':'text-gray-600'));
+  main.textContent=(loss?'Lỗ dòng (trên đơn): ':'Lãi dòng (trên đơn): ')+fmt(Math.abs(profit));
+}
+function _onSheetQtyInput(){
+  const el=document.getElementById('sheetQty');if(!el)return;
+  let q=parseInt(String(el.value).replace(/\D/g,''),10);
+  if(!Number.isFinite(q)||q<1)q=1;
+  el.value=q;
+  const priceEl=document.getElementById('sheetPrice');
+  if(priceEl){
+    const unit=parseFloat(priceEl.dataset.unitPrice)||0;
+    const total=Math.round(unit*q);
+    priceEl.value=total?total.toLocaleString('vi-VN'):'';
+  }
+  _syncSheetCostDisplayFromUnit();
+  _updateSheetLineProfit();
+}
+function _toggleSheetCostEdit(){
+  const c=document.getElementById('sheetCost');
+  const btn=document.getElementById('sheetCostUnlockBtn');
+  if(!c)return;
+  if(c.disabled){
+    c.disabled=false;
+    if(btn){btn.classList.add('text-indigo-600','bg-indigo-50');btn.setAttribute('aria-pressed','true');}
+    c.focus();
+    try{c.select();}catch(_){}
+  }else{
+    c.disabled=true;
+    if(btn){btn.classList.remove('text-indigo-600','bg-indigo-50');btn.setAttribute('aria-pressed','false');}
+  }
 }
 
 // ─── Custom Product ───
