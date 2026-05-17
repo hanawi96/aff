@@ -814,6 +814,20 @@ const ago=ts=>{
   return'vừa xong';
 };
 function mOrderTimeLabel(ts){if(ts==null||ts==='')return'—';try{const ms=Number(ts)>1e12?Number(ts):Number(ts)*1000;return new Date(ms).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return'—'}}
+/** Viết hoa chữ cái đầu mỗi từ (tên khách) — dùng locale vi-VN. */
+function mTitleCaseCustomerName(s){
+  const t=String(s||'').trim();
+  if(!t)return'';
+  return t.split(/\s+/).filter(Boolean).map(seg=>{
+    if(!seg)return'';
+    return seg.charAt(0).toLocaleUpperCase('vi-VN')+seg.slice(1).toLocaleLowerCase('vi-VN');
+  }).join(' ');
+}
+function mTitleCaseCustomerNameField(el){
+  if(!el)return;
+  const next=mTitleCaseCustomerName(el.value);
+  if(next!==el.value)el.value=next;
+}
 function mFormatPlannedInput(ms){
   if(ms==null||ms==='')return'';
   var n=Number(ms);
@@ -2220,7 +2234,7 @@ function buildCreateForm(isEdit=false){
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khách hàng</h3>
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2">
-          <input id="cName" type="text" placeholder="Tên khách hàng *" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+          <input id="cName" type="text" placeholder="Tên khách hàng *" autocomplete="name" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white" onblur="mTitleCaseCustomerNameField(this)">
         </div>
         <div class="col-span-2">
           <input id="cPhone" type="tel" placeholder="Số điện thoại *" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
@@ -2968,7 +2982,9 @@ function clearFieldError(id){
 }
 
 async function submitOrder(){
-  const name=document.getElementById('cName')?.value.trim();
+  const nameEl=document.getElementById('cName');
+  let name=mTitleCaseCustomerName(nameEl?.value||'');
+  if(nameEl&&name)nameEl.value=name;
   const phone=document.getElementById('cPhone')?.value.trim();
 
   // isEdit / xem trước sao chép — existingOrder phục vụ fallback địa chỉ & trạng thái form
@@ -3230,7 +3246,7 @@ function _tryRestoreDraft(){
 function _applyDraftToForm(d){
   if(!d)return;
   const el=id=>document.getElementById(id);
-  if(d.name){const e=el('cName');if(e)e.value=d.name;}
+  if(d.name){const e=el('cName');if(e)e.value=mTitleCaseCustomerName(d.name);}
   if(d.phone){const e=el('cPhone');if(e)e.value=d.phone;}
   if(d.notes){const e=el('cNotes');if(e)e.value=d.notes;}
   if(d.payment)setPayment(d.payment);
@@ -3274,7 +3290,7 @@ async function handleMobileSmartPaste(){
   }
 
   var d=result.data;
-  if(d.name){var el=document.getElementById('cName');if(el){el.value=d.name;clearFieldError('cName');}}
+  if(d.name){var el=document.getElementById('cName');if(el){el.value=mTitleCaseCustomerName(d.name);clearFieldError('cName');}}
   if(d.phone){var el2=document.getElementById('cPhone');if(el2){el2.value=d.phone;clearFieldError('cPhone');}}
 
   if(d.address&&d.address.province&&mCreateAddressSelector){
