@@ -491,6 +491,14 @@ html.m-create-deeplink>body>header{display:none!important}
   </div>
 </div>
 
+<!-- Popup nhỏ: đang sao chép đơn -->
+<div id="mDupOrderOverlay" class="fixed inset-0 z-[70] hidden flex items-center justify-center px-4 bg-black/25 backdrop-blur-[1px]" aria-hidden="true" role="status">
+  <div class="bg-white rounded-2xl shadow-xl border border-gray-100 px-5 py-4 flex items-center gap-3.5 max-w-[min(20rem,calc(100vw-2rem))] w-full fade-up">
+    <svg class="animate-spin h-5 w-5 shrink-0 text-indigo-600" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+    <span class="text-sm font-medium text-gray-800 leading-snug">Đang sao chép đơn hàng...</span>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] hidden">
   <div class="bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-xl whitespace-nowrap"></div>
@@ -1230,6 +1238,9 @@ function renderCards(){
           </div>
           <div class="flex items-center gap-0.5 shrink-0 -mr-1.5">
             <button onclick="event.stopPropagation();togglePriority(${o.id})" class="p-1.5 rounded-lg hover:bg-yellow-50 transition-colors">${starSvg}</button>
+            <button type="button" onclick="event.stopPropagation();openDuplicateOrderPreview(${o.id})" class="p-1.5 rounded-lg text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Sao chép đơn (xem trước)" aria-label="Chuẩn bị sao chép đơn hàng">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
             <button onclick="event.stopPropagation();deleteOrderCard(${o.id},'${esc(o.order_id)}')" class="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-gray-300 hover:text-red-400"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
           </div>
         </div>
@@ -1491,6 +1502,9 @@ function showDetail(id){
         <span class="${st.bg} text-[11px] px-2 py-0.5 rounded-full font-medium">${st.label}</span>
       </div>
       <button onclick="togglePriority(${o.id})" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-yellow-50 transition-colors shrink-0" title="${isPri?'Bỏ ưu tiên':'Đánh dấu ưu tiên'}">${detailStarSvg}</button>
+      <button type="button" onclick="openDuplicateOrderPreview(${o.id})" class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-colors shrink-0" title="Sao chép đơn (xem trước, bấm Sao chép để tạo đơn mới)" aria-label="Chuẩn bị sao chép đơn hàng">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      </button>
       <button onclick="showEditOrder(${o.id})" class="h-9 px-3.5 bg-indigo-600 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shrink-0">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
         Sửa
@@ -1624,14 +1638,25 @@ async function confirmDeleteOrder(id,orderId){
   }catch(e){toast('Lỗi: '+e.message)}
 }
 
-let editOrderId=null; // db id of order being edited
+let editOrderId=null; // db id đơn đang sửa (đã tồn tại trên server)
+/** Khi mở từ icon sao chép: form giống sửa đơn nhưng chưa tạo đơn mới; bấm nút «Sao chép» mới gọi API. */
+let duplicatePreviewSourceId=null;
 
-async function showEditOrder(id){
+async function showEditOrder(id,opts){
+  opts=opts||{};
+  const dupPreview=!!opts.duplicatePreview;
   const o=allOrders.find(x=>x.id===id);
   if(!o){clearCreateDeeplinkBoot();return;}
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
-  editOrderId=id;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
+  if(dupPreview){
+    editOrderId=null;
+    duplicatePreviewSourceId=id;
+  }else{
+    editOrderId=id;
+    duplicatePreviewSourceId=null;
+  }
+  mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
   createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   // Parse existing products into createProducts
   try{
@@ -1652,9 +1677,18 @@ async function showEditOrder(id){
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
-  // Update bottom bar for edit mode
+  // Nút gửi: sửa đơn / xem trước sao chép
   const sb=document.getElementById('submitBtn');
-  if(sb){sb.disabled=false;sb.textContent='Cập nhật';sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';}
+  if(sb){
+    sb.disabled=false;
+    if(dupPreview){
+      sb.textContent='Sao chép';
+      sb.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
+    }else{
+      sb.textContent='Cập nhật';
+      sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
+    }
+  }
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
@@ -1708,7 +1742,13 @@ async function showEditOrder(id){
     renderCart();
     setPayment(o.payment_method??o.paymentMethod??'cod');
   });
-  syncEditHash(id);
+  if(dupPreview)setMainTabHash(currentTab);
+  else syncEditHash(id);
+}
+
+function openDuplicateOrderPreview(sourceDbId){
+  closeDetail();
+  showEditOrder(sourceDbId,{duplicatePreview:true});
 }
 
 async function togglePriority(id){
@@ -1773,7 +1813,7 @@ let mCreateAddressSelector=null;
 function showCreateOrder(){
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
-  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
+  editOrderId=null;duplicatePreviewSourceId=null;mDiscount=null;manualSheetQuickSel=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
@@ -2139,7 +2179,7 @@ async function initMCreateAddressSelector(orderForHydrate){
   }
 }
 function closeCreatePanelOnly(){
-  editOrderId=null;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
+  editOrderId=null;duplicatePreviewSourceId=null;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
   closeCategorySheet();
   clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
@@ -2931,16 +2971,19 @@ async function submitOrder(){
   const name=document.getElementById('cName')?.value.trim();
   const phone=document.getElementById('cPhone')?.value.trim();
 
-  // isEdit/existingOrder declared early so address fallbacks work
+  // isEdit / xem trước sao chép — existingOrder phục vụ fallback địa chỉ & trạng thái form
   const isEdit=!!editOrderId;
-  const existingOrder=isEdit?allOrders.find(x=>x.id===editOrderId):null;
+  const isDupPreview=duplicatePreviewSourceId!=null;
+  const existingOrder=isEdit
+    ?allOrders.find(x=>x.id===editOrderId)
+    :(isDupPreview?allOrders.find(x=>x.id===duplicatePreviewSourceId):null);
 
   const addr=mCreateAddressSelector?.getAddressData?.();
   // In edit mode: fall back to existing order's codes if selector failed to hydrate
   // (happens when province_id format doesn't match tree.json, or hydration was skipped)
-  const provinceId=addr?.provinceCode||(isEdit?existingOrder?.province_id||'':'');
-  const districtId=addr?.districtCode||(isEdit?existingOrder?.district_id||'':'');
-  const wardId=addr?.wardCode||(isEdit?existingOrder?.ward_id||'':'');
+  const provinceId=addr?.provinceCode||((isEdit||isDupPreview)?(existingOrder?.province_id||''):'');
+  const districtId=addr?.districtCode||((isEdit||isDupPreview)?(existingOrder?.district_id||''):'');
+  const wardId=addr?.wardCode||((isEdit||isDupPreview)?(existingOrder?.ward_id||''):'');
 
   let firstErrEl=null;
   const addErr=(id,msg)=>{const el=setFieldError(id,msg);if(!firstErrEl&&el)firstErrEl=el;};
@@ -2968,10 +3011,10 @@ async function submitOrder(){
 
   // Address fields: use selector value if available, else fall back to existing order data
   const selectorHasAddr=!!(addr?.provinceCode);
-  const street=(addr?.street||(isEdit?existingOrder?.street_address||'':'')).trim();
-  const pName=addr?.provinceName||(isEdit?existingOrder?.province_name||'':'');
-  const dName=addr?.districtName||(isEdit?existingOrder?.district_name||'':'');
-  const wName=addr?.wardName||(isEdit?existingOrder?.ward_name||'':'');
+  const street=(addr?.street||((isEdit||isDupPreview)?(existingOrder?.street_address||''):'')).trim();
+  const pName=addr?.provinceName||((isEdit||isDupPreview)?(existingOrder?.province_name||''):'');
+  const dName=addr?.districtName||((isEdit||isDupPreview)?(existingOrder?.district_name||''):'');
+  const wName=addr?.wardName||((isEdit||isDupPreview)?(existingOrder?.ward_name||''):'');
   const fullAddr=selectorHasAddr
     ?[street,wName,dName,pName].filter(Boolean).join(', ')
     :(existingOrder?.address||[street,wName,dName,pName].filter(Boolean).join(', '));
@@ -2990,7 +3033,7 @@ async function submitOrder(){
         addErr('mPlannedSendAt','Ngày giờ không hợp lệ');
       }
     }
-  }else if(isEdit){
+  }else if(isEdit||isDupPreview){
     const prev=existingOrder?.status||'pending';
     outStatus=prev==='send_later'?'pending':prev;
     plannedSendUnix=null;
@@ -3005,11 +3048,75 @@ async function submitOrder(){
     return;
   }
 
+  if(duplicatePreviewSourceId!=null){
+    const srcId=duplicatePreviewSourceId;
+    const btn0=document.getElementById('submitBtn');
+    const dupOv=document.getElementById('mDupOrderOverlay');
+    function showDupOv(){if(dupOv){dupOv.classList.remove('hidden');dupOv.setAttribute('aria-hidden','false');}}
+    function hideDupOv(){if(dupOv){dupOv.classList.add('hidden');dupOv.setAttribute('aria-hidden','true');}}
+    if(btn0){
+      btn0.disabled=true;
+      btn0.innerHTML='<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Đang sao chép...</span>';
+    }
+    showDupOv();
+    try{
+      const r=await fetch(`${API()}/api/order/duplicate`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({sourceOrderDbId:srcId})
+      });
+      let d={};
+      try{d=await r.json();}catch(_){}
+      if(!r.ok||!d.success)throw new Error(d.error||d.message||('HTTP '+r.status));
+      const newId=d.orderDbId;
+      if(newId==null||newId==='')throw new Error('Server không trả orderDbId');
+      if(d.order&&typeof d.order==='object'){
+        const oid=Number(d.order.id);
+        const ix=allOrders.findIndex(x=>Number(x.id)===oid);
+        if(ix>=0)allOrders[ix]=d.order;
+        else allOrders.unshift(d.order);
+      }else{
+        await loadOrders();
+      }
+      duplicatePreviewSourceId=null;
+      closeCreatePanelOnly();
+      hideDupOv();
+      const rawHash=(location.hash||'').replace(/^#/,'').toLowerCase();
+      if(CREATE_HASH_RE.test(rawHash)||EDIT_HASH_RE.test(rawHash))setMainTabHash(currentTab);
+      const mergedRow=d.order&&typeof d.order==='object'?d.order:allOrders.find(x=>Number(x.id)===Number(newId));
+      const st0=String(mergedRow&&(mergedRow.status||'pending')).toLowerCase();
+      if(st0==='send_later')currentTab='send_later';
+      else if(st0==='shipped')currentTab='shipped';
+      else currentTab='pending';
+      mDateSort='newest';
+      _updateFilterBadge();
+      _syncDateSortBtns();
+      syncOrderListTabHighlight();
+      setMainTabHash(currentTab);
+      applyFilter();
+      toast('Đã sao chép đơn');
+      loadOrdersInternal().catch(function(){});
+      requestAnimationFrame(function(){
+        const card=document.querySelector('.order-card[data-id="'+String(newId)+'"]');
+        if(card)card.scrollIntoView({behavior:'smooth',block:'nearest'});
+      });
+    }catch(e){
+      hideDupOv();
+      toast('Lỗi: '+(e.message||String(e)));
+      if(btn0){
+        btn0.disabled=false;
+        btn0.textContent='Sao chép';
+        btn0.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
+      }
+    }
+    return;
+  }
+
   const btn=document.getElementById('submitBtn');
   btn.disabled=true;btn.innerHTML=`<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${isEdit?'Đang cập nhật...':'Đang tạo...'}</span>`;
   recalcManualDiscount();
   const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
-  const shipFee=getShipFee(isEdit?existingOrder:null);
+  const shipFee=getShipFee((isEdit||isDupPreview)?existingOrder:null);
   const discAmt=Math.max(0,Number(mDiscount?.amount)||0);
   const payTotal=Math.max(0,prodTotal+shipFee-discAmt);
   const paymentMethod=document.getElementById('cPayment')?.value||'cod';
@@ -3025,8 +3132,8 @@ async function submitOrder(){
     paymentMethod,payment_method:paymentMethod,
     referralCode:document.getElementById('cReferral')?.value.trim()||null,
     shippingFee:shipFee,shipping_fee:shipFee,
-    shippingCost:getShipCost(isEdit?existingOrder:null),
-    shipping_cost:getShipCost(isEdit?existingOrder:null),
+    shippingCost:getShipCost((isEdit||isDupPreview)?existingOrder:null),
+    shipping_cost:getShipCost((isEdit||isDupPreview)?existingOrder:null),
     total:payTotal,totalAmount:payTotal,
     cart:createProducts,
     notes:document.getElementById('cNotes')?.value.trim()||null,
@@ -3088,6 +3195,7 @@ const M_DRAFT_KEY='m_order_create_draft';
 let _createDraftChecked=false;
 function _saveDraft(){
   if(editOrderId!==null)return;
+  if(duplicatePreviewSourceId!=null)return;
   const cp=document.getElementById('createPanel');
   if(!cp||cp.classList.contains('hidden'))return;
   const el=id=>document.getElementById(id);

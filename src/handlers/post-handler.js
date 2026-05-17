@@ -26,6 +26,7 @@ import {
 // Orders
 import { 
     createOrder,
+    duplicateOrderByDbId,
     updateOrderFull,
     updateOrderNotes,
     updateCustomerInfo,
@@ -417,6 +418,10 @@ export async function handlePost(path, request, env, corsHeaders) {
 
     if (path === '/api/order/update') {
         return await updateOrderFull(data, env, corsHeaders);
+    }
+
+    if (path === '/api/order/duplicate') {
+        return await duplicateOrderByDbId(data, env, corsHeaders);
     }
     
     if (path === '/api/ctv/update-commission') {
