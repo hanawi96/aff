@@ -416,20 +416,19 @@
                 </div>
             </div>
 
-            <!-- Nhắc đơn "Gửi sau" — bấm icon mắt để mở modal danh sách -->
-            <div id="sendLaterUrgentWrap" class="mb-5 hidden rounded-xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-orange-50/80 to-amber-50 px-4 py-3 shadow-sm">
-                <div class="flex w-full items-center gap-3">
-                    <button type="button" id="sendLaterUrgentEyeBtn"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 ring-1 ring-amber-200/80 transition-colors hover:bg-amber-200/80 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-                        aria-haspopup="dialog" aria-controls="sendLaterUrgentDialog" aria-expanded="false"
-                        title="Xem danh sách đơn gửi sau cần làm">
-                        <span class="sr-only">Xem danh sách đơn gửi sau cần làm</span>
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
-                    <p id="sendLaterUrgentText" class="min-w-0 flex-1 text-sm font-semibold text-amber-950"></p>
+            <!-- Thanh thông báo: đơn gửi sau cần làm -->
+            <div id="notificationBar" class="mb-5 hidden">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div id="sendLaterUrgentWrap" class="hidden">
+                        <button type="button" id="sendLaterUrgentEyeBtn"
+                            class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
+                            title="Hiển thị đơn gửi sau cần làm trong bảng">
+                            <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span id="sendLaterUrgentText" class="whitespace-nowrap"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -482,6 +481,17 @@
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" stroke="currentColor" stroke-width="1.5"/>
                             </svg>
                             <span class="text-gray-700">Ưu tiên</span>
+                        </button>
+
+                        <!-- Export Priority Orders Button -->
+                        <button id="exportPriorityBtn" onclick="exportPriorityOrders()"
+                            class="hidden inline-flex items-center gap-1.5 px-3 py-2.5 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-400 transition-all text-sm font-medium text-yellow-800"
+                            title="Export tất cả đơn ưu tiên ra Excel">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Export ưu tiên</span>
+                            <span id="exportPriorityCount" class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-yellow-500 text-white text-xs font-bold">0</span>
                         </button>
 
                         <!-- Lọc đơn có sản phẩm chưa có cân/size -->
@@ -599,26 +609,10 @@
             </div>
 
             <!-- Orders Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="ordersTableSection" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <!-- Table Header -->
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <h2 class="text-lg font-semibold text-gray-900">Danh Sách Đơn Hàng</h2>
-                </div>
-
-                <!-- Banner: đơn còn SP thiếu cân/size (cập nhật theo dữ liệu, không phụ thuộc bộ lọc) -->
-                <div id="ordersMissingSizeBanner" class="hidden px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-sm text-amber-950 flex-1 min-w-0">
-                        <span class="font-semibold">Lưu ý:</span>
-                        <span id="ordersMissingSizeBannerText">Có 0 đơn hàng chưa có cân nặng</span>
-                    </p>
-                    <button type="button" onclick="showOrdersMissingSizeListModal()" title="Xem danh sách đơn"
-                        class="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-100 transition-colors"
-                        aria-label="Xem danh sách">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
                 </div>
 
                 <!-- Loading State -->

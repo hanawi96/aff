@@ -283,19 +283,27 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdAddress.className = 'px-4 py-4 text-center';
     tdAddress.style.minWidth = '350px';
     tdAddress.style.maxWidth = '500px';
-    // Reconstruct full address (name_with_type) from IDs when available,
-    // so "Phường 19, Quận Bình Thạnh, Thành phố Hồ Chí Minh" is always shown correctly
-    let address = order.address || 'Chưa có địa chỉ';
-    if (order.province_id && order.district_id && window.addressSelector?.loaded) {
+    let address = '';
+    if (order.province_id && window.addressSelector?.loaded) {
         const pId = String(order.province_id);
-        const dId = String(order.district_id);
         const wId = order.ward_id ? String(order.ward_id) : '';
-        const reconstructed = window.addressSelector.generateFullAddress(
-            order.street_address || '',
-            pId, dId, wId
-        );
-        if (reconstructed) address = reconstructed;
+        const parts = [order.street_address || ''];
+        const wardName = wId ? window.addressSelector.getWardName(pId, wId) : '';
+        if (wardName) {
+            parts.push(wardName);
+        } else if (order.ward_name) {
+            parts.push(order.ward_name);
+        }
+        if (order.district_name) parts.push(order.district_name);
+        const provinceName = window.addressSelector.getProvinceName(pId);
+        if (provinceName) {
+            parts.push(provinceName);
+        } else if (order.province_name) {
+            parts.push(order.province_name);
+        }
+        address = parts.filter(Boolean).join(', ');
     }
+    if (!address) address = order.address || 'Chưa có địa chỉ';
     tdAddress.innerHTML = `
         <div class="group flex items-start gap-2 cursor-pointer hover:bg-amber-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editAddress(${order.id}, '${escapeHtml(order.order_id)}')">
             <p class="text-sm text-gray-700 line-clamp-3 text-left flex-1 min-w-0" title="${escapeHtml(address)}">
@@ -318,7 +326,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
 
     // Giá trị (Total Amount - Doanh thu)
     const tdAmount = document.createElement('td');
-    tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center';
+    tdAmount.className = 'px-4 py-4 whitespace-nowrap text-center group';
     const paymentApiKey = orderPaymentApiKey(order.payment_method);
     
     // Calculate total amount (doanh thu)
@@ -333,24 +341,38 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     
     // Determine color based on payment method (bank và bank_transfer đều là CK)
     const isBankTransfer = paymentApiKey === 'bank';
-    
+    const depositAmount = getOrderDepositAmount(order);
+    const codCollect = getOrderCodCollectAmount(order);
+
+    const amountColor = isBankTransfer ? 'text-green-600' : 'text-gray-900';
+    const payPillClass = isBankTransfer
+        ? 'text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-px rounded'
+        : 'text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-px rounded';
+    const payPillLabel = isBankTransfer ? 'CK' : 'COD';
+
+    let amountSubLine = '';
+    if (!isBankTransfer && depositAmount > 0) {
+        amountSubLine = `<p class="text-[10px] text-gray-400 leading-tight mt-0.5 tabular-nums">cọc ${formatCurrency(depositAmount)} → thu ${formatCurrency(codCollect)}</p>`;
+    }
+
     tdAmount.innerHTML = `
-        <div class="flex flex-col gap-1.5 items-center">
-            <div class="group cursor-pointer hover:bg-green-50 rounded-lg px-3 py-2 transition-colors inline-flex items-center gap-2" onclick="editAmount(${order.id}, '${escapeHtml(order.order_id)}')">
-                <span class="text-sm font-bold ${isBankTransfer ? 'text-green-600' : 'text-orange-600'}">${formatCurrency(totalAmount)}</span>
-                <button class="opacity-0 group-hover:opacity-100 transition-opacity ${isBankTransfer ? 'text-green-600 hover:text-green-700' : 'text-orange-600 hover:text-orange-700'}" title="Chỉnh sửa giá trị">
+        <div class="flex flex-col items-center gap-0.5">
+            <div class="inline-flex items-center gap-1">
+                <div class="flex flex-col items-center">
+                    <div class="inline-flex items-center gap-1.5">
+                        <span class="text-sm font-semibold tabular-nums ${amountColor}">${formatCurrency(totalAmount)}</span>
+                        <span class="${payPillClass}">${payPillLabel}</span>
+                    </div>
+                    ${amountSubLine}
+                </div>
+                <button type="button"
+                    onclick="editOrderPaymentSummary(${order.id}, '${escapeHtml(order.order_id)}')"
+                    class="order-amount-edit-btn p-1 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0"
+                    title="Sửa thanh toán &amp; giá trị">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                 </button>
-            </div>
-            <div class="group cursor-pointer inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${isBankTransfer ? 'text-green-600 font-medium hover:bg-green-50' : 'text-gray-500 hover:bg-gray-100'}"
-                 onclick="editPaymentMethod(${order.id}, '${escapeHtml(order.order_id)}', '${paymentApiKey}')"
-                 title="Đổi hình thức thanh toán">
-                <span class="text-xs">${isBankTransfer ? 'Đã CK' : 'COD'}</span>
-                <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
             </div>
         </div>
     `;

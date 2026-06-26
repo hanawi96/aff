@@ -103,6 +103,107 @@ function orderPaymentApiKey(v) {
 }
 
 // ============================================
+// DEPOSIT / COD (tiền cọc — khớp backend deposit_amount)
+// ============================================
+
+/** Tiền cọc đã thu (VNĐ). Mặc định 0 nếu không có. */
+function getOrderDepositAmount(order) {
+    if (order == null) return 0;
+    if (typeof order === 'number') return Math.max(0, Math.round(order));
+    const raw = order.deposit_amount ?? order.depositAmount ?? 0;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
+/** Số tiền COD thu khi giao = total_amount − deposit (0 nếu chuyển khoản). */
+function getOrderCodCollectAmount(order) {
+    if (!order) return 0;
+    const pm = order.payment_method ?? order.paymentMethod ?? 'cod';
+    if (isOrderBankPayment(pm)) return 0;
+    const total = Math.max(0, Math.round(Number(order.total_amount ?? order.totalAmount ?? 0) || 0));
+    const deposit = getOrderDepositAmount(order);
+    return Math.max(0, total - deposit);
+}
+
+/** Badge HTML «Cọc Xđ» — rỗng nếu không có cọc. */
+function formatDepositBadge(order) {
+    const deposit = getOrderDepositAmount(order);
+    if (deposit <= 0) return '';
+    const label = typeof formatCurrency === 'function' ? formatCurrency(deposit) : `${deposit}đ`;
+    return `<span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800 ring-1 ring-sky-200/80" title="Tiền đã cọc trước">Cọc ${escapeHtml(label)}</span>`;
+}
+
+/**
+ * Gợi ý 1–2 mức cọc: khách cọc phần lẻ, COD thu bội 100.000đ.
+ * Bỏ qua mức cọc quá thấp (< 8% đơn hoặc < 38.000đ).
+ */
+function getSmartDepositPresets(total) {
+    const t = Math.max(0, Math.round(Number(total) || 0));
+    const ROUND = 100_000;
+    if (t < ROUND + 38_000) return [];
+
+    const minDeposit = Math.max(38_000, Math.round(t * 0.08));
+    const baseCod = Math.floor(t / ROUND) * ROUND;
+    if (baseCod <= 0) return [];
+
+    const filtered = [];
+    const seen = new Set();
+    for (let k = 0; k < 4; k++) {
+        const cod = baseCod - k * ROUND;
+        if (cod <= 0) break;
+        const dep = t - cod;
+        if (dep <= 0 || dep >= t || dep < minDeposit || seen.has(dep)) continue;
+        seen.add(dep);
+        filtered.push(dep);
+        if (filtered.length >= 2) break;
+    }
+    return filtered;
+}
+
+function applyDepositPresetAmount(inputId, amount, onChange) {
+    const input = document.getElementById(inputId);
+    if (!input || !amount) return;
+    if (input.type === 'number') {
+        input.value = String(amount);
+    } else {
+        input.value = formatVnIntegerString(amount);
+        if (typeof formatVnMoneyInput === 'function') formatVnMoneyInput(input);
+    }
+    if (typeof onChange === 'function') onChange();
+}
+
+/** Render nút gợi ý cọc nhanh (ẩn nếu không có preset). */
+function updateDepositPresetButtons(opts) {
+    const containerId = opts?.containerId || 'newOrderDepositPresets';
+    const inputId = opts?.inputId || 'newOrderDepositAmount';
+    const onPick = opts?.onChange || opts?.onPick || null;
+    const total = Math.max(0, Math.round(Number(opts?.total) || 0));
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const presets = getSmartDepositPresets(total);
+    if (!presets.length) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = `
+        <p class="text-[10px] text-gray-500 mb-1.5">Gợi ý cọc nhanh:</p>
+        <div class="flex flex-wrap gap-1.5">
+            ${presets.map((amt) => {
+                const label = formatCurrency(amt);
+                return `<button type="button" class="deposit-preset-btn px-2.5 py-1 rounded-lg text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors" data-amount="${amt}">${escapeHtml(label)}</button>`;
+            }).join('')}
+        </div>`;
+
+    container.querySelectorAll('.deposit-preset-btn').forEach((btn) => {
+        btn.onclick = () => applyDepositPresetAmount(inputId, Number(btn.dataset.amount), onPick);
+    });
+}
+
+// ============================================
 // CURRENCY FORMATTING
 // ============================================
 
@@ -303,92 +404,6 @@ function computeOrdersWithMissingSize() {
         if (missing.length > 0) out.push({ order, missing });
     }
     return out;
-}
-
-/**
- * Cập nhật dòng "Lưu ý" phía trên bảng đơn (ẩn nếu không có đơn thiếu size)
- */
-function updateMissingSizeBanner() {
-    const wrap = document.getElementById('ordersMissingSizeBanner');
-    const textEl = document.getElementById('ordersMissingSizeBannerText');
-    if (!wrap || !textEl) return;
-    const n = computeOrdersWithMissingSize().length;
-    if (n === 0) {
-        wrap.classList.add('hidden');
-        return;
-    }
-    textEl.textContent = `Có ${n} đơn hàng chưa có cân nặng`;
-    wrap.classList.remove('hidden');
-}
-
-/**
- * Modal danh sách đơn thiếu cân/size (bấm icon mắt trên banner)
- */
-function showOrdersMissingSizeListModal() {
-    const entries = computeOrdersWithMissingSize();
-    const modalId = 'ordersMissingSizeListModal';
-    document.getElementById(modalId)?.remove();
-
-    if (entries.length === 0) {
-        showToast('Không còn đơn nào thiếu cân/size', 'info');
-        return;
-    }
-
-    const overlay = document.createElement('div');
-    overlay.id = modalId;
-    overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
-
-    const rows = entries.map(({ order, missing }) => {
-        const code = escapeHtml(String(order.order_id || order.id || ''));
-        const cust = escapeHtml(String(order.customer_name || '—'));
-        const productBadges = missing
-            .map(
-                (m) =>
-                    `<span class="inline-block max-w-full rounded-lg border border-amber-200/90 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-snug text-amber-950 shadow-sm break-words">${escapeHtml(m)}</span>`
-            )
-            .join('');
-        const productsCell = `<div class="py-0.5">
-            <div class="flex flex-wrap gap-2 max-h-52 overflow-y-auto overscroll-y-contain pr-0.5 -mr-0.5 [scrollbar-gutter:stable]">${productBadges}</div>
-        </div>`;
-        return `<tr class="border-b border-gray-100 hover:bg-amber-50/50">
-            <td class="align-top py-3 px-3 text-sm font-semibold text-amber-900 whitespace-nowrap">${code}</td>
-            <td class="align-top py-3 px-3 text-sm text-gray-800">${cust}</td>
-            <td class="align-top py-3 px-3 text-sm text-gray-700 min-w-[12rem]">${productsCell}</td>
-        </tr>`;
-    }).join('');
-
-    overlay.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[88vh] overflow-hidden border border-amber-200 flex flex-col" role="dialog" aria-modal="true">
-            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg font-bold text-white">Đơn hàng chưa đủ cân / size</h3>
-                <button type="button" class="orders-missing-list-close text-white/90 hover:text-white p-1 rounded-lg hover:bg-white/10" aria-label="Đóng">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-4 overflow-y-auto flex-1">
-                <p class="text-sm text-gray-600 mb-3">Tổng <strong>${entries.length}</strong> đơn — sản phẩm thiếu cân hoặc size:</p>
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="min-w-full text-left">
-                        <thead class="bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                            <tr>
-                                <th class="py-2.5 px-3 whitespace-nowrap">Mã đơn</th>
-                                <th class="py-2.5 px-3 whitespace-nowrap">Khách hàng</th>
-                                <th class="py-2.5 px-3">Sản phẩm thiếu size</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">${rows}</tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const close = () => overlay.remove();
-    overlay.querySelector('.orders-missing-list-close').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) close();
-    });
-    document.body.appendChild(overlay);
 }
 
 /**

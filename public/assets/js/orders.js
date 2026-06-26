@@ -326,6 +326,13 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const address = duplicateData?.address || '';
     const referralCode = duplicateData?.referral_code != null ? duplicateData.referral_code : '';
     const paymentMethod = orderPaymentApiKey(duplicateData?.payment_method || 'cod');
+    const depositSeed = getOrderDepositAmount(duplicateData);
+    const showDepositPanel = paymentMethod !== 'bank' && depositSeed > 0;
+    const depositWrapClass = showDepositPanel ? '' : 'hidden';
+    const depositInputValue = paymentMethod === 'bank' ? '' : (depositSeed > 0 ? String(depositSeed) : '');
+    const codBtnActive = paymentMethod === 'cod' && !showDepositPanel;
+    const bankBtnActive = paymentMethod === 'bank';
+    const depositBtnActive = showDepositPanel;
     const orderNotesSeed = duplicateData?.notes || '';
     const orderStatusSeed = duplicateData?.status || 'pending';
     const sendLaterRevertStatus =
@@ -356,10 +363,15 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
         return sum + (price * qty);
     }, 0);
     const totalRevenue = productTotal + shippingFee;
+    const initialCodAmount = isOrderBankPayment(paymentMethod)
+        ? 0
+        : Math.max(0, totalRevenue - depositSeed);
     const initialSummary = {
         productTotal: productTotal,
         shippingFee: shippingFee,
         totalRevenue: totalRevenue,
+        codCollect: initialCodAmount,
+        deposit: depositSeed,
         productCount: currentOrderProducts.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0)
     };
 
@@ -452,7 +464,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <input type="text" id="newOrderCustomerName" value="${escapeHtml(customerName)}" placeholder="Nhập tên khách hàng" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                         </div>
 
-                        <!-- Địa chỉ giao hàng 4 cấp -->
+                        <!-- Địa chỉ giao hàng 2 cấp -->
                         <div class="bg-blue-50 rounded-lg p-3 space-y-2">
                             <label class="block text-sm font-semibold text-gray-800 mb-2">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
                             
@@ -463,18 +475,13 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                     </select>
                                 </div>
                                 <div>
-                                    <select id="newOrderDistrict" disabled class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
-                                        <option value="">-- Chọn Quận/Huyện --</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <select id="newOrderWard" disabled class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
                                         <option value="">-- Chọn Phường/Xã --</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                </div>
+                            </div>
+                            <div>
+                                <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                             </div>
                             
                             <div class="mt-2 p-2 bg-white rounded border border-blue-200">
@@ -498,21 +505,38 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Thanh toán</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-btn ${paymentMethod === 'cod' ? 'active' : ''} flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all font-medium text-sm">
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-btn payment-pm-btn payment-btn-cod ${codBtnActive ? 'active' : ''} flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                     <span>COD</span>
                                 </button>
-                                <button type="button" onclick="selectPaymentMethodDirect('bank')" id="paymentBtn_bank" class="payment-method-btn ${paymentMethod === 'bank' ? 'active' : ''} flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all font-medium text-sm">
+                                <button type="button" onclick="selectPaymentMethodDirect('bank')" id="paymentBtn_bank" class="payment-method-btn payment-pm-btn payment-btn-bank ${bankBtnActive ? 'active' : ''} flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>Đã chuyển khoản</span>
+                                    <span>Đã CK</span>
+                                </button>
+                                <button type="button" onclick="selectPaymentMethodDirect('deposit')" id="paymentBtn_deposit" class="payment-method-btn payment-deposit-btn payment-btn-deposit ${depositBtnActive ? 'active' : ''} flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>Cọc trước</span>
                                 </button>
                             </div>
                             <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
+                            <div id="newOrderDepositWrap" class="mt-2 ${depositWrapClass}">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Số tiền cọc</label>
+                                <div id="newOrderDepositPresets" class="hidden mb-1.5"></div>
+                                <div class="relative">
+                                    <input type="number" id="newOrderDepositAmount" min="0" step="1000" value="${depositInputValue}"
+                                        class="w-full pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        oninput="updateOrderSummary()" placeholder="0" />
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">đ</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Khách đã chuyển/cọc trước — COD chỉ thu phần còn lại</p>
+                            </div>
                         </div>
 
                         <!-- Priority Checkbox -->
@@ -546,20 +570,32 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         <style>
                             .payment-method-btn {
                                 border-color: #d1d5db;
-                                background: white;
+                                background: #fff;
                                 color: #6b7280;
                             }
-                            .payment-method-btn:hover {
+                            .payment-method-btn:hover:not(.active) {
                                 border-color: #9ca3af;
                                 background: #f9fafb;
                             }
-                            .payment-method-btn.active {
-                                border-color: #3b82f6;
-                                background: #eff6ff;
-                                color: #2563eb;
+                            .payment-btn-cod.active,
+                            .payment-btn-bank.active {
+                                border-color: #2563eb;
+                                background: #dbeafe;
+                                color: #1d4ed8;
+                                font-weight: 600;
                             }
-                            .payment-method-btn.active svg {
-                                color: #2563eb;
+                            .payment-btn-cod.active svg,
+                            .payment-btn-bank.active svg {
+                                color: #1d4ed8;
+                            }
+                            .payment-btn-deposit.active {
+                                border-color: #ea580c;
+                                background: #ffedd5;
+                                color: #c2410c;
+                                font-weight: 600;
+                            }
+                            .payment-btn-deposit.active svg {
+                                color: #c2410c;
                             }
                         </style>
 
@@ -829,6 +865,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                         </div>
                                         <span id="orderDiscountAmount" class="text-purple-600 font-semibold">-0đ</span>
                                     </div>
+                                    <div id="orderDepositRow" class="${depositSeed > 0 && !isOrderBankPayment(paymentMethod) ? '' : 'hidden'} flex justify-between items-center text-xs mt-1">
+                                        <span class="text-sky-700 font-medium">Đã cọc</span>
+                                        <span id="orderDepositAmountDisplay" class="text-sky-700 font-semibold">${depositSeed > 0 ? formatCurrency(depositSeed) : '0đ'}</span>
+                                    </div>
                                 </div>
                                 
                                 <!-- Tiền COD (Thu hộ) -->
@@ -840,7 +880,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                             </svg>
                                             <span class="text-xs font-semibold text-gray-700">Tiền COD (Thu hộ)</span>
                                         </div>
-                                        <span id="orderCODAmount" class="text-xl font-bold text-orange-600">${formatCurrency(initialSummary.totalRevenue)}</span>
+                                        <span id="orderCODAmount" class="text-xl font-bold text-orange-600">${formatCurrency(initialSummary.codCollect)}</span>
                                     </div>
                                     <p id="orderCODNote" class="text-xs text-gray-500 mt-1 hidden">✓ Đã thanh toán qua chuyển khoản</p>
                                 </div>
@@ -1174,12 +1214,14 @@ function _saveOrderDraft() {
         customer_phone: phone,
         address: document.getElementById('newOrderAddress')?.value || '',
         province_id: document.getElementById('newOrderProvince')?.value || '',
-        district_id: document.getElementById('newOrderDistrict')?.value || '',
         ward_id: document.getElementById('newOrderWard')?.value || '',
         street_address: document.getElementById('newOrderStreetAddress')?.value || '',
         shipping_fee: parseFloat(document.getElementById('newOrderShippingFee')?.value) || 0,
         shipping_cost: parseFloat(document.getElementById('newOrderShippingCost')?.value) || 0,
         payment_method: document.getElementById('newOrderPaymentMethod')?.value || 'cod',
+        deposit_amount: typeof getNewOrderDepositAmount === 'function'
+            ? getNewOrderDepositAmount()
+            : (parsePrice(document.getElementById('newOrderDepositAmount')?.value) || 0),
         referral_code: document.getElementById('newOrderReferralCode')?.value || '',
         notes: document.getElementById('newOrderNotes')?.value || '',
         is_priority: document.getElementById('newOrderPriority')?.checked || false,
@@ -1299,32 +1341,36 @@ function togglePaymentDropdown(event) {
     }, 10);
 }
 
-// Select payment method directly (for button preset)
+// Chọn hình thức thanh toán — COD | Đã CK | Cọc trước (loại trừ lẫn nhau)
 function selectPaymentMethodDirect(method) {
-    // Update hidden input
-    document.getElementById('newOrderPaymentMethod').value = method;
-    
-    // Update button states
-    document.querySelectorAll('.payment-method-btn').forEach(btn => {
+    const pmInput = document.getElementById('newOrderPaymentMethod');
+    const wrap = document.getElementById('newOrderDepositWrap');
+    const depositBtn = document.getElementById('paymentBtn_deposit');
+    if (!pmInput) return;
+
+    document.querySelectorAll('.payment-pm-btn, .payment-deposit-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.getElementById(`paymentBtn_${method}`).classList.add('active');
-    
-    // Update order summary
+
+    if (method === 'deposit') {
+        pmInput.value = 'cod';
+        wrap?.classList.remove('hidden');
+        depositBtn?.classList.add('active');
+        setTimeout(() => document.getElementById('newOrderDepositAmount')?.focus(), 50);
+    } else {
+        pmInput.value = method;
+        wrap?.classList.add('hidden');
+        document.getElementById(`paymentBtn_${method}`)?.classList.add('active');
+    }
+
     updateOrderSummary();
 }
 
 // Select payment method (legacy for dropdown - can be removed if not used elsewhere)
 function selectPaymentMethod(value, label, color) {
-    document.getElementById('newOrderPaymentMethod').value = value;
-    document.getElementById('selectedPaymentText').innerHTML = `
-        <span class="w-2 h-2 rounded-full bg-${color}-500"></span>
-        <span>${label}</span>
-    `;
+    selectPaymentMethodDirect(value);
     const menu = document.getElementById('paymentDropdownMenu');
     if (menu) menu.remove();
-    
-    // Update order summary when payment method changes
     updateOrderSummary();
 }
 

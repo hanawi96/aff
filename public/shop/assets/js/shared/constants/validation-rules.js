@@ -45,8 +45,8 @@ export const checkoutValidationRules = {
     },
     
     district: {
-        required: true,
-        message: 'Vui lòng chọn Quận/Huyện'
+        required: false,
+        message: 'Quận/Huyện (không bắt buộc)'
     },
     
     ward: {

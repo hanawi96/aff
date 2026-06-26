@@ -561,6 +561,9 @@ async function bulkTogglePriority(setPriority) {
         // Re-sort and re-render to move priority orders to top
         applySorting();
         renderOrdersTable();
+        if (typeof updateExportPriorityButton === 'function') {
+            updateExportPriorityButton();
+        }
         
         // Clear selection
         clearSelection();
@@ -574,5 +577,68 @@ async function bulkTogglePriority(setPriority) {
     } catch (error) {
         console.error('Error bulk toggling priority:', error);
         showToast(`Lỗi: ${error.message}`, 'error', null, 'bulk-priority');
+    }
+}
+
+/**
+ * Export all priority orders — reuses the full export flow
+ * (checks missing size/weight, shipped orders, etc.)
+ */
+async function exportPriorityOrders() {
+    const priorityOrders = Array.isArray(allOrdersData)
+        ? allOrdersData.filter(o => o.is_priority === 1)
+        : [];
+
+    if (priorityOrders.length === 0) {
+        showToast('Không có đơn ưu tiên nào để export', 'warning');
+        return;
+    }
+
+    try {
+        if (typeof XLSX === 'undefined') {
+            await loadXLSXLibrary();
+        }
+
+        const missingEntries = [];
+        for (const order of priorityOrders) {
+            const missing = getOrderProductsMissingSizeWeight(order);
+            if (missing.length > 0) missingEntries.push({ order, missing });
+        }
+
+        if (missingEntries.length > 0) {
+            showBulkExportMissingSizeModal(missingEntries, () => {
+                proceedBulkExportFlow(priorityOrders).catch(err => {
+                    console.error('Error exporting priority orders:', err);
+                    showToast('Lỗi: ' + err.message, 'error');
+                });
+            });
+            return;
+        }
+
+        await proceedBulkExportFlow(priorityOrders);
+    } catch (error) {
+        console.error('Error exporting priority orders:', error);
+        showToast('Lỗi: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Show/hide the "Export ưu tiên" button based on current priority order count.
+ * Called after data loads or priority changes.
+ */
+function updateExportPriorityButton() {
+    const btn = document.getElementById('exportPriorityBtn');
+    const countEl = document.getElementById('exportPriorityCount');
+    if (!btn) return;
+
+    const n = Array.isArray(allOrdersData)
+        ? allOrdersData.filter(o => o.is_priority === 1).length
+        : 0;
+
+    if (n === 0) {
+        btn.classList.add('hidden');
+    } else {
+        btn.classList.remove('hidden');
+        if (countEl) countEl.textContent = n;
     }
 }

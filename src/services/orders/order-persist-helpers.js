@@ -9,6 +9,53 @@ function normalizeOrderIsPriority(data) {
     return 0;
 }
 
+function parseMoneyInt(value) {
+    if (value == null || value === '') return 0;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.max(0, Math.round(value));
+    }
+    const n = parseInt(String(value).replace(/[^\d]/g, ''), 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function validationError(message) {
+    const err = new Error(message);
+    err.code = 'VALIDATION';
+    return err;
+}
+
+/** COD thu khi giao = 0 nếu chuyển khoản; ngược lại total − deposit. */
+export function isBankPaymentMethod(paymentMethod) {
+    const pm = String(paymentMethod || 'cod').toLowerCase().trim();
+    return pm === 'bank' || pm === 'bank_transfer' || pm === 'transfer';
+}
+
+export function computeCodCollectAmount(totalAmount, depositAmount, paymentMethod) {
+    if (isBankPaymentMethod(paymentMethod)) return 0;
+    const total = Math.max(0, Math.round(Number(totalAmount) || 0));
+    const deposit = Math.max(0, Math.round(Number(depositAmount) || 0));
+    return Math.max(0, total - deposit);
+}
+
+/**
+ * Chuẩn hóa deposit_amount: CK → 0; COD → [0, total).
+ * @throws {Error} code VALIDATION nếu không hợp lệ
+ */
+export function normalizeDepositAmount(totalAmount, rawDeposit, paymentMethod) {
+    const total = Math.max(0, Math.round(Number(totalAmount) || 0));
+    if (isBankPaymentMethod(paymentMethod)) return 0;
+
+    const deposit = parseMoneyInt(rawDeposit);
+    if (deposit === 0) return 0;
+    if (total <= 0) {
+        throw validationError('Không thể nhập tiền cọc khi giá trị đơn bằng 0');
+    }
+    if (deposit >= total) {
+        throw validationError('Tiền cọc phải nhỏ hơn giá trị đơn hàng');
+    }
+    return deposit;
+}
+
 /**
  * Tính toán đầy đủ giá trị lưu DB + dòng order_items (dùng chung create / update đơn).
  */
@@ -141,6 +188,12 @@ export async function computeOrderSnapshot(data, env) {
     const discountAmount = data.discountAmount || data.discount_amount || 0;
     const discountId = data.discountId || data.discount_id || null;
     const isPriority = normalizeOrderIsPriority(data);
+    const paymentMethod = data.paymentMethod || data.payment_method || 'cod';
+    const depositAmount = normalizeDepositAmount(
+        totalAmountNumber,
+        data.deposit_amount ?? data.depositAmount,
+        paymentMethod
+    );
 
     const itemsData = [];
     for (const item of data.cart) {
@@ -190,6 +243,7 @@ export async function computeOrderSnapshot(data, env) {
         discountAmount,
         discountId,
         isPriority,
+        depositAmount,
         itemsData
     };
 }

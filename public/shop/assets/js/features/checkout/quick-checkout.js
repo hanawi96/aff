@@ -169,19 +169,12 @@ export class QuickCheckout {
     setupAddressAutoClear() {
         setTimeout(() => {
             const provinceSelect = document.getElementById('provinceSelect');
-            const districtSelect = document.getElementById('districtSelect');
             const wardSelect = document.getElementById('wardSelect');
             const streetInput = document.getElementById('streetInput');
             
             if (provinceSelect) {
                 provinceSelect.addEventListener('change', () => {
                     errorDisplayService.clearError('provinceSelect');
-                });
-            }
-            
-            if (districtSelect) {
-                districtSelect.addEventListener('change', () => {
-                    errorDisplayService.clearError('districtSelect');
                 });
             }
             
@@ -2064,9 +2057,7 @@ export class QuickCheckout {
             
             showToast(addressValidation.message, 'error');
             
-            // Địa chỉ phân cấp (HierarchicalAddressSelector): không có provinceSelect/districtSelect/wardSelect trong DOM
             const needAddressPick = !this.addressSelector.provinceCode ||
-                !this.addressSelector.districtCode ||
                 !this.addressSelector.wardCode;
             let scrollFieldId = 'addressSelectorDisplay';
             if (needAddressPick) {
@@ -2211,8 +2202,8 @@ export class QuickCheckout {
             address: addressData.fullAddress,
             province_id: addressData.provinceCode,
             province_name: addressData.provinceName,
-            district_id: addressData.districtCode,
-            district_name: addressData.districtName,
+            district_id: null,
+            district_name: null,
             ward_id: addressData.wardCode,
             ward_name: addressData.wardName,
             street_address: addressData.street,
@@ -2334,7 +2325,6 @@ export class QuickCheckout {
         document.addEventListener('change', (e) => {
             const target = e.target;
             if (target.id === 'provinceSelect' || 
-                target.id === 'districtSelect' || 
                 target.id === 'wardSelect' || 
                 target.id === 'streetInput') {
                 debouncedSave();

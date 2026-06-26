@@ -133,24 +133,12 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
                 console.log('✅ [AutoFill] Filled customer name:', data.customer.name);
             }
 
-            // Fill address 4 levels using address selector
-            console.log('🏠 [AutoFill] Checking address selector...');
-            console.log('  - window.addressSelector exists:', !!window.addressSelector);
-            console.log('  - lastOrder.province_id:', lastOrder.province_id);
-            console.log('  - lastOrder.district_id:', lastOrder.district_id);
-            console.log('  - lastOrder.ward_id:', lastOrder.ward_id);
-            console.log('  - lastOrder.street_address:', lastOrder.street_address);
-            
+            // Fill address 2 levels using address selector
             if (window.addressSelector && lastOrder.province_id) {
-                console.log('🔧 [AutoFill] Using address selector to set address...');
-                
-                // Use address selector to set values
                 window.addressSelector.setAddress({
                     province_id: lastOrder.province_id,
-                    district_id: lastOrder.district_id,
                     ward_id: lastOrder.ward_id
                 });
-                console.log('✅ [AutoFill] Called setAddress()');
 
                 // Fill street address
                 if (lastOrder.street_address) {

@@ -497,6 +497,7 @@ html.m-create-deeplink>body>header{display:none!important}
 </div>
 
 <script src="../assets/js/config.js"></script>
+<script src="../assets/js/orders/orders-utils.js"></script>
 <script defer src="../assets/js/auth-check.js"></script>
 <script defer src="../assets/js/orders/orders-smart-paste.js"></script>
 <script>
@@ -849,14 +850,11 @@ Object.defineProperty(window,'allOrdersData',{get:function(){return allOrders},c
     return x.addressService.loadAddressData().then(function(td){
       if(!td||window.addressSelector)return;
       var data=[];
-      Object.entries(td).forEach(function(e){
-        var pc=e[0],pv=e[1],po={Id:pc,Name:pv.name_with_type,Districts:[]};
-        if(pv['quan-huyen'])Object.entries(pv['quan-huyen']).forEach(function(de){
-          var dc=de[0],dv=de[1],dobj={Id:dc,Name:dv.name_with_type,Wards:[]};
-          if(dv['xa-phuong'])Object.entries(dv['xa-phuong']).forEach(function(we){
-            dobj.Wards.push({Id:we[0],Name:we[1].name_with_type,Level:we[1].type});
-          });
-          po.Districts.push(dobj);
+      Object.keys(td).forEach(function(pc){
+        var pv=td[pc];
+        var po={Id:pc,Name:pv.fullName,Wards:[]};
+        if(pv.wards)pv.wards.forEach(function(w){
+          po.Wards.push({Id:w.code,Name:w.fullName,Level:w.type});
         });
         data.push(po);
       });
@@ -1210,6 +1208,9 @@ function renderCards(){
     const plannedListLabel=o.planned_send_at_unix?mOrderTimeLabel(o.planned_send_at_unix):'chưa chọn';
     const plannedListClass=o.planned_send_at_unix?'text-sky-600 font-medium':'text-gray-400';
     const payCls=normalizePaymentMethod(o.payment_method)==='bank_transfer'?'text-green-600':'text-gray-900';
+    const depAmt=mGetDepositAmount(o);
+    const codAmt=mGetCodCollectAmount(o);
+    const isBankPay=normalizePaymentMethod(o.payment_method)==='bank_transfer';
     const starSvg=isPri
       ?`<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
       :`<svg class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`;
@@ -1221,7 +1222,10 @@ function renderCards(){
             <span class="w-2 h-2 rounded-full shrink-0 ${st.dot||'bg-gray-400'}"></span>
             <span class="text-sm font-bold text-gray-900 truncate">${esc(o.customer_name)}</span>
           </div>
-          <span class="text-sm font-bold ${payCls} whitespace-nowrap text-right leading-none">${fmt(o.total_amount)}</span>
+          <div class="text-right leading-none">
+            <span class="text-sm font-bold ${payCls} whitespace-nowrap">${fmt(o.total_amount)}</span>
+            ${!isBankPay?`<span class="block text-[10px] font-medium text-orange-600 mt-0.5">COD ${fmt(codAmt)}</span>`:''}
+          </div>
           ${showShipTimeRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${shipListClass}">${esc(shipListLabel)}</span></div>`:showPlannedRow?`<div class="min-w-0 text-[11px] font-normal text-gray-400 pl-3.5 leading-tight truncate"><span class="${plannedListClass}">${esc(plannedListLabel)}</span></div>`:`<div class="pl-3.5 min-h-[1em]" aria-hidden="true"></div>`}
           <div class="text-[11px] font-normal text-gray-400 text-right leading-tight self-end">${esc(ago(o.created_at_unix))}</div>
         </div>
@@ -1238,6 +1242,7 @@ function renderCards(){
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] font-medium ${st.bg} px-2 py-0.5 rounded-full">${st.label}</span>
             ${isPri?'<span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-200 px-1.5 py-0.5 rounded-md">⭐ Ưu tiên</span>':''}
+            ${depAmt>0?`<span class="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md">Cọc ${fmt(depAmt)}</span>`:''}
             ${hasNoSize?'<span class="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-md">Chưa có size</span>':''}
             ${hasTheTenBe?`<button onclick="event.stopPropagation();showTheTenBeNotes(${o.id})" class="text-[10px] font-bold text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-md active:scale-95 transition-transform">Thẻ tên</button>`:''}
             ${hasAnyNote?`<button onclick="event.stopPropagation();showOrderNotes(${o.id})" class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-md active:scale-95 transition-transform"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>Lưu ý</button>`:''}
@@ -1420,6 +1425,7 @@ function applyQuickEditOrderPayment(apiMethod){
   const prevStored=o.payment_method;
   const optimisticNorm=apiMethod==='bank'?'bank_transfer':'cod';
   o.payment_method=optimisticNorm;
+  if(apiMethod==='bank')o.deposit_amount=0;
   syncDetailPaymentLabel();
   cancelQuickEditOrderPayment();
   applyFilter();renderCards();
@@ -1445,6 +1451,9 @@ function showDetail(id){
   const panel=document.getElementById('detailPanel');
   const content=document.getElementById('detailContent');
   const st=STATUS[o.status||'pending']||STATUS.pending;
+  const depAmt=mGetDepositAmount(o);
+  const codAmt=mGetCodCollectAmount(o);
+  const isBankPay=normalizePaymentMethod(o.payment_method)==='bank_transfer';
   let prodHtml='';
   try{
     const prods=JSON.parse(o.products);
@@ -1596,6 +1605,16 @@ function showDetail(id){
           <p id="detailCommissionAmount" class="text-base font-bold text-gray-900 mt-0.5">${fmt(o.commission)}</p>
         </div>
       </div>
+      ${!isBankPay?`
+      <div class="bg-orange-50/80 border border-orange-100 rounded-xl p-3 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-xs text-gray-500">Thu COD khi giao</p>
+          <p id="detailCodAmount" class="text-base font-bold text-orange-600 mt-0.5">${fmt(codAmt)}</p>
+          ${depAmt>0?`<p id="detailDepositLabel" class="text-xs text-sky-600 mt-0.5">Đã cọc ${fmt(depAmt)}</p>`:`<p id="detailDepositLabel" class="hidden text-xs text-sky-600 mt-0.5"></p>`}
+        </div>
+        <button type="button" onclick="beginQuickEditOrderDeposit()" class="shrink-0 px-3 py-2 rounded-lg bg-white border border-orange-200 text-orange-700 text-xs font-semibold active:scale-95">Sửa cọc</button>
+      </div>
+      `:''}
       ${o.notes?`<div><h3 class="text-xs font-semibold text-gray-400 uppercase mb-1">Ghi chú</h3><p class="text-sm text-gray-700 bg-amber-50 p-3 rounded-xl">${esc(o.notes)}</p></div>`:''}
       <div>
         <div class="flex items-center gap-2 mb-3">
@@ -1698,7 +1717,12 @@ async function showEditOrder(id,opts){
   // Prefill customer fields
   document.getElementById('cName').value=o.customer_name||'';
   document.getElementById('cPhone').value=o.customer_phone||'';
-  setPayment(o.payment_method??o.paymentMethod??'cod');
+  const depEl=document.getElementById('cDeposit');
+  const depAmt=dupPreview?0:mGetDepositAmount(o);
+  const pm=normalizePaymentMethod(o.payment_method??o.paymentMethod??'cod');
+  if(depEl)depEl.value=depAmt>0?String(depAmt):'';
+  if(depAmt>0&&pm!=='bank_transfer')setPayment('deposit');
+  else setPayment(pm);
   document.getElementById('cNotes').value=o.notes||'';
   const mSl=document.getElementById('mSendLaterChk');
   const mSlf=document.getElementById('mSendLaterFields');
@@ -1746,7 +1770,12 @@ async function showEditOrder(id,opts){
     await initMCreateAddressSelector(o);
     renderProductPicker();
     renderCart();
-    setPayment(o.payment_method??o.paymentMethod??'cod');
+    const depEl2=document.getElementById('cDeposit');
+    const depAmt2=dupPreview?0:mGetDepositAmount(o);
+    const pm2=normalizePaymentMethod(o.payment_method??o.paymentMethod??'cod');
+    if(depEl2)depEl2.value=depAmt2>0?String(depAmt2):'';
+    if(depAmt2>0&&pm2!=='bank_transfer')setPayment('deposit');
+    else setPayment(pm2);
   });
   if(dupPreview)setMainTabHash(currentTab);
   else syncEditHash(id);
@@ -1823,6 +1852,7 @@ function showCreateOrder(){
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
+  setPayment('cod');
   requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('percent');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
@@ -2173,7 +2203,6 @@ async function initMCreateAddressSelector(orderForHydrate){
     if(orderForHydrate&&orderForHydrate.province_id){
       sel.hydrateFromCodes({
         provinceCode:orderForHydrate.province_id,
-        districtCode:orderForHydrate.district_id,
         wardCode:orderForHydrate.ward_id,
         street:orderForHydrate.street_address
       });
@@ -2290,14 +2319,24 @@ function buildCreateForm(isEdit=false){
         </div>
         <input type="hidden" id="cPayment" value="cod">
         <div class="flex gap-2" id="paymentBtns">
-          <button type="button" onclick="setPayment('cod')" class="pay-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all border-orange-400 bg-orange-50 text-orange-700" data-val="cod">
+          <button type="button" onclick="setPayment('cod')" class="pay-btn flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-semibold border-2 transition-all border-orange-400 bg-orange-50 text-orange-700" data-val="cod">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             COD
           </button>
-          <button type="button" onclick="setPayment('bank_transfer')" class="pay-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all border-gray-200 bg-white text-gray-500" data-val="bank_transfer">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-            Chuyển khoản
+          <button type="button" onclick="setPayment('bank_transfer')" class="pay-btn flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-semibold border-2 transition-all border-gray-200 bg-white text-gray-500" data-val="bank_transfer">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Đã CK
           </button>
+          <button type="button" onclick="setPayment('deposit')" class="pay-btn flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-semibold border-2 transition-all border-gray-200 bg-white text-gray-500" data-val="deposit">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Cọc trước
+          </button>
+        </div>
+        <div id="cDepositWrap" class="mt-2.5 hidden">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Số tiền cọc</label>
+          <div id="cDepositPresets" class="hidden mb-1.5"></div>
+          <input type="text" id="cDeposit" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:bg-white" oninput="onDepositInput()">
+          <p class="text-[10px] text-gray-400 mt-1">Khách đã cọc — COD chỉ thu phần còn lại</p>
         </div>
       </div>
 
@@ -2647,7 +2686,12 @@ function renderCart(){
   const totalEl=document.getElementById('cartTotal');
   const countEl=document.getElementById('cartCount');
   if(!wrap||!list)return;
-  if(!createProducts.length){wrap.classList.add('hidden');maybeRefreshDiscountSheetSummary();return}
+  if(!createProducts.length){
+    wrap.classList.add('hidden');
+    maybeRefreshDiscountSheetSummary();
+    mUpdateDepositPresets();
+    return;
+  }
   wrap.classList.remove('hidden');
   recalcManualDiscount();
   if(mDiscount)syncDiscountAppliedPanel();
@@ -2669,10 +2713,20 @@ function renderCart(){
       const gl=mDiscount?.source==='manual'?'Giảm thủ công':`Giảm giá (${mDiscount?.code||''})`;
       rows.push(`<div class="flex justify-between text-xs text-violet-600"><span>${gl}</span><span>-${fmt(discountAmt)}</span></div>`);
     }
+    const depositAmt=mGetDepositFromInput();
+    const isBank=normalizePaymentMethod(document.getElementById('cPayment')?.value)==='bank_transfer';
+    const codCollect=Math.max(0,grandTotal-depositAmt);
+    if(depositAmt>0){
+      rows.push(`<div class="flex justify-between text-xs text-sky-600"><span>Đã cọc</span><span>${fmt(depositAmt)}</span></div>`);
+    }
     rows.push(`<div class="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-100"><span>Tổng đơn</span><span class="text-indigo-600">${fmt(grandTotal)}</span></div>`);
+    if(!isBank){
+      rows.push(`<div class="flex justify-between text-xs font-semibold text-orange-600"><span>Thu COD</span><span>${fmt(codCollect)}</span></div>`);
+    }
     summary.innerHTML=rows.join('');
     summary.classList.remove('hidden');
   }
+  mUpdateDepositPresets();
   const scrollToProdList=`(function(){const panel=document.getElementById('createScrollArea');const prod=document.getElementById('prodSection');if(panel&&prod){const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;const d=prod.getBoundingClientRect().top-panel.getBoundingClientRect().top-stickyH-8;panel.scrollBy({top:d,behavior:'smooth'});}})()`;
   list.innerHTML=createProducts.map((p,i)=>{
     const cached=p.product_id&&allProductsCache.find(x=>x.id==p.product_id);
@@ -3145,7 +3199,6 @@ async function submitOrder(){
   // In edit mode: fall back to existing order's codes if selector failed to hydrate
   // (happens when province_id format doesn't match tree.json, or hydration was skipped)
   const provinceId=addr?.provinceCode||((isEdit||isDupPreview)?(existingOrder?.province_id||''):'');
-  const districtId=addr?.districtCode||((isEdit||isDupPreview)?(existingOrder?.district_id||''):'');
   const wardId=addr?.wardCode||((isEdit||isDupPreview)?(existingOrder?.ward_id||''):'');
 
   let firstErrEl=null;
@@ -3156,7 +3209,6 @@ async function submitOrder(){
   else if(!/^(0\d{9}|\+84\d{9})$/.test(phone.replace(/\s/g,'')))addErr('cPhone','Số điện thoại không hợp lệ (VD: 0912345678)');
   if(!mCreateAddressSelector)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
   else if(!provinceId)addErr('mAddressFormBlock','Vui lòng chọn Tỉnh/Thành phố');
-  else if(!districtId)addErr('mAddressFormBlock','Vui lòng chọn Quận/Huyện');
   else if(!wardId)addErr('mAddressFormBlock','Vui lòng chọn Phường/Xã');
 
   const cartErrEl=document.getElementById('cartErrMsg');
@@ -3176,11 +3228,10 @@ async function submitOrder(){
   const selectorHasAddr=!!(addr?.provinceCode);
   const street=(addr?.street||((isEdit||isDupPreview)?(existingOrder?.street_address||''):'')).trim();
   const pName=addr?.provinceName||((isEdit||isDupPreview)?(existingOrder?.province_name||''):'');
-  const dName=addr?.districtName||((isEdit||isDupPreview)?(existingOrder?.district_name||''):'');
   const wName=addr?.wardName||((isEdit||isDupPreview)?(existingOrder?.ward_name||''):'');
   const fullAddr=selectorHasAddr
-    ?[street,wName,dName,pName].filter(Boolean).join(', ')
-    :(existingOrder?.address||[street,wName,dName,pName].filter(Boolean).join(', '));
+    ?[street,wName,pName].filter(Boolean).join(', ')
+    :(existingOrder?.address||[street,wName,pName].filter(Boolean).join(', '));
 
   const mSendLater=document.getElementById('mSendLaterChk')?.checked;
   let outStatus;
@@ -3277,13 +3328,23 @@ async function submitOrder(){
   const discAmt=Math.max(0,Number(mDiscount?.amount)||0);
   const payTotal=Math.max(0,prodTotal+shipFee-discAmt);
   const paymentMethod=document.getElementById('cPayment')?.value||'cod';
+  const depositAmt=mGetDepositFromInput();
+  if(depositAmt>0&&depositAmt>=payTotal){
+    toast('Tiền cọc phải nhỏ hơn giá trị đơn hàng');
+    const depEl=document.getElementById('cDeposit');
+    depEl?.focus();
+    btn.disabled=false;
+    btn.textContent=isEdit?'Cập nhật':'Tạo đơn';
+    btn.className=`flex-1 py-3 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform`;
+    return;
+  }
   const dcCoupon=mDiscount?.source==='coupon';
   const dcManual=mDiscount?.source==='manual'&&discAmt>0;
   const body={
     customer:{name,phone},
     address:fullAddr,
     province_id:provinceId,province_name:pName,
-    district_id:districtId,district_name:dName,
+    district_id:null,district_name:null,
     ward_id:wardId,ward_name:wName,
     street_address:street,
     paymentMethod,payment_method:paymentMethod,
@@ -3299,6 +3360,8 @@ async function submitOrder(){
     discount_code:dcCoupon?mDiscount?.code:(dcManual?M_MANUAL_DISCOUNT_CODE:null),
     discountAmount:discAmt,
     discount_amount:discAmt,
+    deposit_amount:depositAmt,
+    depositAmount:depositAmt,
     is_priority:existingOrder?.is_priority||0,
     ...(isEdit
       ?{orderDbId:editOrderId,status:outStatus,orderDate:existingOrder?.created_at_unix||Date.now(),planned_send_at_unix:plannedSendUnix}
@@ -3326,6 +3389,7 @@ async function submitOrder(){
             discount_id:dcCoupon?mDiscount?.id:null,
             notes:document.getElementById('cNotes')?.value.trim()||null,
             referral_code:document.getElementById('cReferral')?.value.trim()||existingOrder?.referral_code||null,
+            deposit_amount:depositAmt,
             products:JSON.stringify(createProducts),
             status:outStatus,
             planned_send_at_unix:plannedSendUnix
@@ -3360,7 +3424,8 @@ function _saveDraft(){
     name:el('cName')?.value||'',
     phone:el('cPhone')?.value||'',
     notes:el('cNotes')?.value||'',
-    payment:el('cPayment')?.value||'cod',
+    payment:mIsDepositPanelOpen()?'deposit':(el('cPayment')?.value||'cod'),
+    deposit:el('cDeposit')?.value||'',
     freeShip:!!el('cFreeShip')?.checked,
     ctvCheck:!!el('ctvCheck')?.checked,
     referral:el('cReferral')?.value||'',
@@ -3371,7 +3436,7 @@ function _saveDraft(){
     ts:Date.now()
   };
   const addr=mCreateAddressSelector?.getAddressData?.();
-  if(addr?.provinceCode)draft.address={province_id:addr.provinceCode,district_id:addr.districtCode,ward_id:addr.wardCode,street_address:addr.street||''};
+  if(addr?.provinceCode)draft.address={province_id:addr.provinceCode,ward_id:addr.wardCode,street_address:addr.street||''};
   try{localStorage.setItem(M_DRAFT_KEY,JSON.stringify(draft));}catch(_){}
 }
 function _clearDraft(){try{localStorage.removeItem(M_DRAFT_KEY);}catch(_){}}
@@ -3390,7 +3455,13 @@ function _applyDraftToForm(d){
   if(d.name){const e=el('cName');if(e)e.value=mTitleCaseCustomerName(d.name);}
   if(d.phone){const e=el('cPhone');if(e)e.value=d.phone;}
   if(d.notes){const e=el('cNotes');if(e)e.value=d.notes;}
-  if(d.payment)setPayment(d.payment);
+  if(d.payment==='deposit'||(d.deposit&&normalizePaymentMethod(d.payment||'cod')!=='bank_transfer')){
+    setPayment('deposit');
+    if(d.deposit){const e=el('cDeposit');if(e)e.value=d.deposit;}
+  }else if(d.payment){
+    setPayment(d.payment);
+    if(d.deposit){const e=el('cDeposit');if(e)e.value=d.deposit;}
+  }
   if(d.freeShip){const e=el('cFreeShip');if(e){e.checked=true;onFreeShipChange();}}
   if(d.ctvCheck){const e=el('ctvCheck');if(e){e.checked=true;toggleCTVSection();}}
   if(d.referral){const e=el('cReferral');if(e)e.value=d.referral;}
@@ -3438,7 +3509,6 @@ async function handleMobileSmartPaste(){
     try{
       mCreateAddressSelector.hydrateFromCodes({
         provinceCode:d.address.province.Id||'',
-        districtCode:d.address.district?d.address.district.Id:'',
         wardCode:d.address.ward?d.address.ward.Id:'',
         street:d.address.street||''
       });
@@ -3597,24 +3667,181 @@ function normalizePaymentMethod(v){
   if(s==='bank_transfer'||s==='bank'||s==='transfer'||s==='chuyen_khoan'||s==='chuyển_khoản'||s==='ck'||s==='da_ck'||s==='đã_ck')return'bank_transfer';
   return'cod';
 }
-function setPayment(val){
-  val=normalizePaymentMethod(val);
-  const hid=document.getElementById('cPayment');if(!hid)return;
-  hid.value=val;
-  document.querySelectorAll('#paymentBtns .pay-btn').forEach(b=>{
-    const active=b.dataset.val===val;
-    if(b.dataset.val==='cod'){
-      b.className=`pay-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${active?'border-orange-400 bg-orange-50 text-orange-700':'border-gray-200 bg-white text-gray-500'}`;
-    }else{
-      b.className=`pay-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${active?'border-green-400 bg-green-50 text-green-700':'border-gray-200 bg-white text-gray-500'}`;
+function mGetDepositAmount(o){
+  if(o==null)return 0;
+  const raw=o.deposit_amount??o.depositAmount??0;
+  const n=Number(raw);
+  return Number.isFinite(n)&&n>0?Math.round(n):0;
+}
+function mGetCodCollectAmount(o){
+  if(!o)return 0;
+  if(normalizePaymentMethod(o.payment_method)==='bank_transfer')return 0;
+  const total=Math.max(0,Math.round(Number(o.total_amount??o.totalAmount??0)||0));
+  return Math.max(0,total-mGetDepositAmount(o));
+}
+function mIsDepositPanelOpen(){
+  const wrap=document.getElementById('cDepositWrap');
+  return!!(wrap&&!wrap.classList.contains('hidden'));
+}
+function mGetDepositFromInput(){
+  if(!mIsDepositPanelOpen())return 0;
+  return Math.max(0,parseMoneyInput(document.getElementById('cDeposit')?.value));
+}
+function mGetCreateOrderGrandTotal(){
+  const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
+  const isFreeShip=document.getElementById('cFreeShip')?.checked;
+  const shipFee=isFreeShip?0:DEFAULT_SHIP_FEE;
+  const discountAmt=Math.max(0,Number(mDiscount?.amount)||0);
+  return Math.max(0,prodTotal+shipFee-discountAmt);
+}
+function mUpdateDepositPresets(){
+  mEnsureDepositPresetHelpers();
+  const pw=document.getElementById('cDepositPresets');
+  if(!pw)return;
+  if(typeof updateDepositPresetButtons!=='function'){
+    pw.innerHTML='';
+    pw.classList.add('hidden');
+    return;
+  }
+  const grandTotal=mGetCreateOrderGrandTotal();
+  if(mIsDepositPanelOpen()&&grandTotal>0){
+    updateDepositPresetButtons({
+      containerId:'cDepositPresets',
+      inputId:'cDeposit',
+      total:grandTotal,
+      onChange:()=>{mUpdateDepositPresets();if(createProducts.length)renderCart();}
+    });
+  }else{
+    pw.innerHTML='';
+    pw.classList.add('hidden');
+  }
+}
+function mPayBtnClass(val,active){
+  const base='pay-btn flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-semibold border-2 transition-all';
+  const off='border-gray-200 bg-white text-gray-500';
+  if(val==='cod')return`${base} ${active?'border-orange-400 bg-orange-50 text-orange-700':off}`;
+  if(val==='bank_transfer')return`${base} ${active?'border-green-400 bg-green-50 text-green-700':off}`;
+  return`${base} ${active?'border-amber-500 bg-amber-50 text-amber-700':off}`;
+}
+function mEnsureDepositPresetHelpers(){
+  if(typeof getSmartDepositPresets==='function'&&typeof updateDepositPresetButtons==='function')return;
+  window.getSmartDepositPresets=function(total){
+    const t=Math.max(0,Math.round(Number(total)||0));
+    const ROUND=100000;
+    if(t<ROUND+38000)return[];
+    const minDeposit=Math.max(38000,Math.round(t*0.08));
+    const baseCod=Math.floor(t/ROUND)*ROUND;
+    if(baseCod<=0)return[];
+    const filtered=[],seen=new Set();
+    for(let k=0;k<4;k++){
+      const cod=baseCod-k*ROUND;
+      if(cod<=0)break;
+      const dep=t-cod;
+      if(dep<=0||dep>=t||dep<minDeposit||seen.has(dep))continue;
+      seen.add(dep);filtered.push(dep);
+      if(filtered.length>=2)break;
     }
+    return filtered;
+  };
+  window.applyDepositPresetAmount=function(inputId,amount,onChange){
+    const input=document.getElementById(inputId);
+    if(!input||!amount)return;
+    const s=amount.toLocaleString('vi-VN');
+    input.value=s;
+    if(typeof onChange==='function')onChange();
+  };
+  window.updateDepositPresetButtons=function(opts){
+    const containerId=opts?.containerId||'cDepositPresets';
+    const inputId=opts?.inputId||'cDeposit';
+    const onPick=opts?.onChange||opts?.onPick||null;
+    const total=Math.max(0,Math.round(Number(opts?.total)||0));
+    const container=document.getElementById(containerId);
+    if(!container)return;
+    const presets=getSmartDepositPresets(total);
+    if(!presets.length){container.innerHTML='';container.classList.add('hidden');return;}
+    container.classList.remove('hidden');
+    container.innerHTML=`<p class="text-[10px] text-gray-500 mb-1.5">Gợi ý cọc nhanh:</p><div class="flex flex-wrap gap-1.5">${presets.map(amt=>`<button type="button" class="deposit-preset-btn px-2.5 py-1 rounded-lg text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700 active:bg-orange-100" data-amount="${amt}">${fmt(amt)}</button>`).join('')}</div>`;
+    container.querySelectorAll('.deposit-preset-btn').forEach(btn=>{
+      btn.onclick=()=>applyDepositPresetAmount(inputId,Number(btn.dataset.amount),onPick);
+    });
+  };
+}
+mEnsureDepositPresetHelpers();
+function onDepositInput(){
+  if(createProducts.length)renderCart();
+}
+function beginQuickEditOrderDeposit(){
+  const id=detailOpenOrderId;if(!id)return;
+  const o=allOrders.find(x=>x.id==id);if(!o)return;
+  if(normalizePaymentMethod(o.payment_method)==='bank_transfer'){toast('Đơn CK không có tiền cọc');return;}
+  const total=o.total_amount||0;
+  const cur=mGetDepositAmount(o);
+  document.getElementById('mDepositEditOverlay')?.remove();
+  const ov=document.createElement('div');
+  ov.id='mDepositEditOverlay';
+  ov.className='fixed inset-0 z-[120] bg-black/50 flex items-end justify-center p-4';
+  ov.innerHTML=`
+    <div class="bg-white rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <h3 class="text-base font-bold text-gray-900">Tiền cọc trước</h3>
+      <p class="text-xs text-gray-500">Giá trị đơn ${fmt(total)} — COD thu phần còn lại</p>
+      <input id="mDepositEditInput" type="text" inputmode="numeric" value="${cur>0?cur.toLocaleString('vi-VN'):''}" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" placeholder="0">
+      <div class="flex gap-2">
+        <button type="button" onclick="closeQuickEditOrderDeposit()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm">Hủy</button>
+        <button type="button" onclick="saveQuickEditOrderDeposit(${total})" class="flex-1 py-2.5 rounded-xl bg-sky-600 text-white font-semibold text-sm">Lưu</button>
+      </div>
+    </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)closeQuickEditOrderDeposit();});
+  document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('mDepositEditInput')?.focus(),50);
+}
+function closeQuickEditOrderDeposit(){
+  document.getElementById('mDepositEditOverlay')?.remove();
+}
+async function saveQuickEditOrderDeposit(totalAmount){
+  const id=detailOpenOrderId;if(!id)return;
+  const newDeposit=parseMoneyInput(document.getElementById('mDepositEditInput')?.value);
+  if(newDeposit>0&&newDeposit>=totalAmount){
+    toast('Tiền cọc phải nhỏ hơn giá trị đơn');
+    return;
+  }
+  closeQuickEditOrderDeposit();
+  try{
+    const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateDepositAmount',orderId:id,depositAmount:newDeposit})});
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Lỗi lưu');
+    const o=allOrders.find(x=>x.id==id);
+    if(o)o.deposit_amount=d.deposit_amount??newDeposit;
+    applyFilter();renderCards();
+    if(detailOpenOrderId===id)showDetail(id);
+    toast(newDeposit>0?`Đã cập nhật cọc ${fmt(newDeposit)}`:'Đã xóa tiền cọc');
+  }catch(e){toast('Lỗi: '+e.message);}
+}
+function setPayment(val){
+  const mode=val==='deposit'?'deposit':normalizePaymentMethod(val);
+  const hid=document.getElementById('cPayment');
+  const wrap=document.getElementById('cDepositWrap');
+  if(!hid)return;
+  hid.value=mode==='deposit'?'cod':mode;
+  document.querySelectorAll('#paymentBtns .pay-btn').forEach(b=>{
+    const bVal=b.dataset.val;
+    const active=mode==='deposit'?bVal==='deposit':bVal===mode;
+    b.className=mPayBtnClass(bVal,active);
   });
+  if(mode==='deposit'){
+    wrap?.classList.remove('hidden');
+    setTimeout(()=>document.getElementById('cDeposit')?.focus(),50);
+  }else{
+    wrap?.classList.add('hidden');
+  }
+  mUpdateDepositPresets();
+  if(createProducts.length)renderCart();
 }
 
 function onFreeShipChange(){
   const cb=document.getElementById('cFreeShip');
   const hint=document.getElementById('freeShipHint');
   if(hint)hint.textContent=cb?.checked?'Khách không trả phí ship':'Tự động theo sản phẩm';
+  mUpdateDepositPresets();
   if(createProducts.length)renderCart();
 }
 

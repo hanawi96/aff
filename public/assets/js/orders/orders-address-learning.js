@@ -142,15 +142,15 @@ function extractAddressKeywords(streetAddress) {
  * Search learning database for ward prediction
  */
 async function searchAddressLearning(keywords, districtId) {
-    if (!keywords || keywords.length === 0 || !districtId) {
+    if (!keywords || keywords.length === 0) {
         return { found: false };
     }
-    
+
     try {
         const keywordsParam = keywords.join(',');
-        const response = await fetch(
-            `${API_BASE_URL}?action=searchAddressLearning&keywords=${encodeURIComponent(keywordsParam)}&district_id=${districtId}`
-        );
+        let url = `${API_BASE_URL}?action=searchAddressLearning&keywords=${encodeURIComponent(keywordsParam)}`;
+        if (districtId) url += `&district_id=${districtId}`;
+        const response = await fetch(url);
         
         if (!response.ok) {
             console.error('Search learning API error:', response.status);
@@ -169,10 +169,10 @@ async function searchAddressLearning(keywords, districtId) {
  * Learn from new address (save to database)
  */
 async function learnFromAddress(streetAddress, districtId, wardId, wardName) {
-    if (!streetAddress || !districtId || !wardId || !wardName) {
+    if (!streetAddress || !wardId || !wardName) {
         return { success: false };
     }
-    
+
     try {
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
@@ -182,7 +182,7 @@ async function learnFromAddress(streetAddress, districtId, wardId, wardName) {
             body: JSON.stringify({
                 action: 'learnAddress',
                 street_address: streetAddress,
-                district_id: districtId,
+                district_id: districtId || null,
                 ward_id: wardId,
                 ward_name: wardName
             })

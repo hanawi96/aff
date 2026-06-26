@@ -21,6 +21,18 @@ function updatePackagingItemsDisplay() {
     `).join('');
 }
 
+/** Panel cọc đang mở (user đã bấm "Cọc trước"). */
+function isNewOrderDepositPanelOpen() {
+    const wrap = document.getElementById('newOrderDepositWrap');
+    return !!(wrap && !wrap.classList.contains('hidden'));
+}
+
+/** Tiền cọc thực tế khi tạo/sửa đơn — chỉ tính khi chọn "Cọc trước". */
+function getNewOrderDepositAmount() {
+    if (!isNewOrderDepositPanelOpen()) return 0;
+    return parsePrice(document.getElementById('newOrderDepositAmount')?.value) || 0;
+}
+
 /**
  * Update order summary and profit preview
  * Calculates totals, discounts, costs, and profit
@@ -114,21 +126,39 @@ function updateOrderSummary() {
     document.getElementById('orderProductTotal').textContent = formatCurrency(productTotal);
     document.getElementById('orderShippingFee').textContent = formatCurrency(shippingFee);
     
-    // Update COD amount based on payment method
+    // Update COD amount based on payment method & deposit
     const paymentMethod = document.getElementById('newOrderPaymentMethod')?.value || 'cod';
     const codAmountEl = document.getElementById('orderCODAmount');
     const codNoteEl = document.getElementById('orderCODNote');
-    
+    const deposit = getNewOrderDepositAmount();
+    const codCollect = Math.max(0, totalRevenue - deposit);
+
+    const depositRow = document.getElementById('orderDepositRow');
+    if (deposit > 0 && depositRow) {
+        depositRow.classList.remove('hidden');
+        document.getElementById('orderDepositAmountDisplay').textContent = formatCurrency(deposit);
+    } else if (depositRow) {
+        depositRow.classList.add('hidden');
+    }
+
     if (isOrderBankPayment(paymentMethod)) {
-        // Đã chuyển khoản = COD 0đ
         codAmountEl.textContent = '0đ';
         codAmountEl.className = 'text-xl font-bold text-green-600';
         codNoteEl.classList.remove('hidden');
     } else {
-        // COD = Thu tiền khi giao
-        codAmountEl.textContent = formatCurrency(totalRevenue);
+        codAmountEl.textContent = formatCurrency(codCollect);
         codAmountEl.className = 'text-xl font-bold text-orange-600';
         codNoteEl.classList.add('hidden');
+    }
+
+    if (isNewOrderDepositPanelOpen() && totalRevenue > 0) {
+        updateDepositPresetButtons({ total: totalRevenue, onChange: updateOrderSummary });
+    } else {
+        const presetWrap = document.getElementById('newOrderDepositPresets');
+        if (presetWrap) {
+            presetWrap.innerHTML = '';
+            presetWrap.classList.add('hidden');
+        }
     }
 
     // Show/hide discount row

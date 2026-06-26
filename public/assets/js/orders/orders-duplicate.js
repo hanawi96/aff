@@ -93,7 +93,6 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
         customer_phone: order.customer_phone,
         address: order.address,
         province_id: order.province_id,
-        district_id: order.district_id,
         ward_id: order.ward_id,
         street_address: order.street_address,
         payment_method: order.payment_method,
@@ -111,7 +110,8 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
             status: 'pending',
             discount_code: '',
             discount_amount: 0,
-            discount_id: ''
+            discount_id: '',
+            deposit_amount: 0
         };
     }
 
@@ -137,6 +137,7 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
         discount_id: discountId || (order.discount_id != null && order.discount_id !== ''
             ? String(order.discount_id)
             : ''),
+        deposit_amount: getOrderDepositAmount(order),
         order_display_id: order.order_id || ''
     };
 }

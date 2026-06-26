@@ -7,27 +7,24 @@
  * PRIORITY 3: Parse old address string (backward compatibility)
  */
 function parseAddressForExport(order) {
-    // PRIORITY 1: Use IDs to look up full names (name_with_type) from tree.json
-    // This ensures "Phường 19", "Quận Bình Thạnh", "Thành phố Hồ Chí Minh" etc.
-    if (order.province_id && order.district_id && window.addressSelector?.loaded) {
+    // PRIORITY 1: Use IDs to look up full names from tree_2.json (2 cấp)
+    if (order.province_id && window.addressSelector?.loaded) {
         const pId = String(order.province_id);
-        const dId = String(order.district_id);
         const wId = order.ward_id ? String(order.ward_id) : '';
         const pName = window.addressSelector.getProvinceName(pId);
-        const dName = window.addressSelector.getDistrictName(pId, dId);
-        const wName = wId ? window.addressSelector.getWardName(pId, dId, wId) : '';
-        if (pName || dName) {
+        const wName = wId ? window.addressSelector.getWardName(pId, wId) : '';
+        if (pName) {
             return {
                 province: pName || order.province_name || '',
-                district: dName || order.district_name || '',
+                district: order.district_name || '',
                 ward: wName || order.ward_name || '',
                 detail: order.street_address || ''
             };
         }
     }
 
-    // PRIORITY 2: Use stored structured address fields (may be short names)
-    if (order.province_name || order.district_name || order.ward_name || order.street_address) {
+    // PRIORITY 2: Use stored structured address fields
+    if (order.province_name || order.ward_name || order.street_address) {
         return {
             province: order.province_name || '',
             district: order.district_name || '',
@@ -221,11 +218,10 @@ function createSPXExcelWorkbook(orders) {
         );
         const productText = buildSPXProductColumnText(productBracketLines, orderDeliveryNote);
         
-        // Determine COD amount based on payment method
-        // - If bank transfer: COD = 0 (already paid)
-        // - If COD: COD = total_amount (collect on delivery)
+        // COD: thu khi giao = total − cọc (CK → 0). Giá trị đơn hàng = full total_amount.
         const isBankTransfer = isOrderBankPayment(order.payment_method);
-        const codAmount = isBankTransfer ? 0 : (order.total_amount || 0);
+        const orderValue = order.total_amount || 0;
+        const codAmount = getOrderCodCollectAmount(order);
         const collectCOD = isBankTransfer ? 'N' : 'Y';
         
         // Create single row per order
@@ -233,7 +229,7 @@ function createSPXExcelWorkbook(orders) {
             '*Mã đơn hàng': order.order_id || '',
             '*Tên người nhận': order.customer_name || '',
             '*Số điện thoại': order.customer_phone || '',
-            '*Tỉnh/Thành Phố': stripProvinceAdministrativePrefix(address.province),
+            '*Tỉnh/Thành Phố': address.province,
             '*Quận/Huyện': address.district,
             '*Xã/Phường': address.ward,
             '*Địa chỉ chi tiết': address.detail,
@@ -247,7 +243,7 @@ function createSPXExcelWorkbook(orders) {
             'Chiều rộng (CM)': 10,
             'Chiều cao (CM)': 5,
             'Mã khách hàng': '',
-            '*Giá trị đơn hàng': order.total_amount || 0,
+            '*Giá trị đơn hàng': orderValue,
             '*Giao hàng một phần (Y/N)': 'N',
             '*Cho phép thử hàng (Y/N)': 'Y',
             '*Cho xem hàng, không cho thử (Y/N)': 'Y',
@@ -264,53 +260,81 @@ function createSPXExcelWorkbook(orders) {
         rows.push(row);
     });
 
-    // Create workbook
+    const is2Level = !orders.some(o => o.district_name || o.district_id);
+
+    if (is2Level) {
+        rows.forEach(row => { delete row['*Quận/Huyện']; });
+    }
+
     const wb = XLSX.utils.book_new();
-    
-    // Create worksheet from data
     const ws = XLSX.utils.json_to_sheet(rows);
-    
-    // Set column widths for better readability
-    const colWidths = [
-        { wch: 15 },  // Mã đơn hàng
-        { wch: 20 },  // Tên người nhận
-        { wch: 12 },  // SĐT
-        { wch: 18 },  // Tỉnh/TP
-        { wch: 18 },  // Quận/Huyện
-        { wch: 18 },  // Xã/Phường
-        { wch: 30 },  // Địa chỉ chi tiết
-        { wch: 15 },  // Lưu ý địa chỉ
-        { wch: 12 },  // Mã bưu chính
-        { wch: 25 },  // Tên sản phẩm
-        { wch: 10 },  // Số lượng
-        { wch: 12 },  // Giá tiền
-        { wch: 12 },  // Cân nặng
-        { wch: 10 },  // Dài
-        { wch: 10 },  // Rộng
-        { wch: 10 },  // Cao
-        { wch: 12 },  // Mã KH
-        { wch: 12 },  // Giá trị đơn
-        { wch: 12 },  // Giao 1 phần
-        { wch: 12 },  // Thử hàng
-        { wch: 12 },  // Xem hàng
-        { wch: 12 },  // Phí từ chối
-        { wch: 12 },  // Số tiền phí
-        { wch: 10 },  // Thu COD
-        { wch: 12 },  // Số tiền COD
-        { wch: 12 },  // Giá trị cao
-        { wch: 15 },  // Hình thức TT
-        { wch: 20 },  // Lưu ý giao
-        { wch: 15 },  // Nhắc nhở
-        { wch: 15 }   // Đủ điều kiện
-    ];
-    ws['!cols'] = colWidths;
-    
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Tạo đơn');
-    
-    // Generate filename with timestamp
+
+    if (is2Level) {
+        const colWidths = [
+            { wch: 15 },  // Mã đơn hàng
+            { wch: 20 },  // Tên người nhận
+            { wch: 12 },  // SĐT
+            { wch: 22 },  // Tỉnh/TP
+            { wch: 22 },  // Xã/Phường
+            { wch: 30 },  // Địa chỉ chi tiết
+            { wch: 15 },  // Lưu ý địa chỉ
+            { wch: 12 },  // Mã bưu chính
+            { wch: 25 },  // Tên sản phẩm
+            { wch: 10 }, { wch: 12 }, { wch: 12 },
+            { wch: 10 }, { wch: 10 }, { wch: 10 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 12 }, { wch: 10 }, { wch: 12 },
+            { wch: 12 }, { wch: 15 }, { wch: 20 },
+            { wch: 15 }, { wch: 15 }
+        ];
+        ws['!cols'] = colWidths;
+        XLSX.utils.book_append_sheet(wb, ws, 'Tạo đơn (địa chỉ mới)');
+
+        _appendAddressValidationSheets2Level(wb);
+    } else {
+        const colWidths = [
+            { wch: 15 }, { wch: 20 }, { wch: 12 },
+            { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 30 },
+            { wch: 15 }, { wch: 12 }, { wch: 25 },
+            { wch: 10 }, { wch: 12 }, { wch: 12 },
+            { wch: 10 }, { wch: 10 }, { wch: 10 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 12 }, { wch: 10 }, { wch: 12 },
+            { wch: 12 }, { wch: 15 }, { wch: 20 },
+            { wch: 15 }, { wch: 15 }
+        ];
+        ws['!cols'] = colWidths;
+        XLSX.utils.book_append_sheet(wb, ws, 'Tạo đơn');
+    }
+
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `SPX_DonHang_${timestamp}_${orders.length}don.xlsx`;
-    
+
     return { wb, filename, orderIds };
+}
+
+function _appendAddressValidationSheets2Level(wb) {
+    if (!window.addressSelector?.loaded) return;
+
+    const stateRows = [];
+    const cityRows = [];
+
+    window.addressSelector.data.forEach(province => {
+        const pName = province.Name || '';
+        stateRows.push({ State: pName });
+
+        province.Wards.forEach(ward => {
+            cityRows.push({ State: pName, City: ward.Name || '' });
+        });
+    });
+
+    const wsState = XLSX.utils.json_to_sheet(stateRows);
+    wsState['!cols'] = [{ wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, wsState, 'State_list(2)');
+
+    const wsCity = XLSX.utils.json_to_sheet(cityRows);
+    wsCity['!cols'] = [{ wch: 25 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, wsCity, 'City_list(2)');
 }

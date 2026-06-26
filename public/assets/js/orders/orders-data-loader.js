@@ -78,8 +78,8 @@ async function loadOrdersData() {
             filterOrdersData();
             updateDateSortIcon();
             updateAmountSortIcon();
-            if (typeof updateMissingSizeBanner === 'function') {
-                updateMissingSizeBanner();
+            if (typeof updateExportPriorityButton === 'function') {
+                updateExportPriorityButton();
             }
             hideLoading();
         } else {

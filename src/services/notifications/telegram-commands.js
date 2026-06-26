@@ -4,6 +4,7 @@
  */
 
 import { sendDailyReport } from './daily-report.js';
+import { formatTelegramDepositLines } from './telegram-service.js';
 
 // Vietnam timezone offset (UTC+7)
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -852,6 +853,12 @@ async function findOrder(chatId, orderId, env) {
         
         const paymentMethod = order.payment_method === 'cod' ? 'COD' : 'Chuyển khoản';
         message += `💳 ${paymentMethod}\n`;
+        const depositLines = formatTelegramDepositLines({
+            totalAmount: order.total_amount,
+            depositAmount: order.deposit_amount,
+            paymentMethod: order.payment_method
+        });
+        if (depositLines) message += depositLines;
         message += `📅 ${dateStr}\n\n`;
 
         // Parse products

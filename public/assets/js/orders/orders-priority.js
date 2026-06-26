@@ -41,6 +41,10 @@ async function toggleOrderPriority(orderId, currentPriority, silent = false, ski
         if (!skipRender) {
             filterOrdersData(true);
         }
+
+        if (typeof updateExportPriorityButton === 'function') {
+            updateExportPriorityButton();
+        }
         
         // Show toast only if not silent
         if (!silent) {

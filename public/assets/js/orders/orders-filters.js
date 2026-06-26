@@ -15,6 +15,9 @@ let missingSizeFilterActive = false;
 let theTenBeFilterActive = false;
 /** Chỉ hiện đơn có lưu ý đơn hoặc lưu ý ít nhất một dòng SP */
 let hasNotesFilterActive = false;
+/** Chỉ hiện đơn gửi sau cần làm (từ badge thông báo) */
+let sendLaterUrgentFilterActive = false;
+let sendLaterUrgentFilterIds = null;
 let allCTVList = []; // Cache CTV list for filter dropdown
 // Note: allProductsList is declared in orders.js
 
@@ -278,6 +281,11 @@ function filterOrdersData(preservePage = false) {
             ? cached.hasAnyNotes
             : orderHasAnyNotesFallback(order));
 
+        let matchesSendLaterUrgent = true;
+        if (sendLaterUrgentFilterActive && sendLaterUrgentFilterIds) {
+            matchesSendLaterUrgent = sendLaterUrgentFilterIds.has(Number(order.id));
+        }
+
         // Status filter
         const orderStatus = (order.status || 'pending').toLowerCase().trim();
         const statusMap = {
@@ -347,7 +355,7 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesStatus && matchesPayment && matchesCTV && matchesDate;
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCTV && matchesDate;
     });
 
     // Apply sorting
@@ -1012,25 +1020,80 @@ function togglePriorityFilter() {
 /**
  * Bật/tắt bộ lọc chỉ đơn có sản phẩm chưa có cân hoặc size
  */
-function toggleMissingSizeFilter() {
+function _setMissingSizeFilterUI(active) {
     const button = document.getElementById('missingSizeFilterBtn');
     if (!button) return;
     const icon = button.querySelector('svg');
 
-    missingSizeFilterActive = !missingSizeFilterActive;
-
-    if (missingSizeFilterActive) {
+    if (active) {
         button.classList.remove('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
         button.classList.add('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
-        icon.classList.remove('text-gray-500');
-        icon.classList.add('text-amber-600');
+        icon?.classList.remove('text-gray-500');
+        icon?.classList.add('text-amber-600');
     } else {
         button.classList.remove('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
         button.classList.add('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
-        icon.classList.remove('text-amber-600');
-        icon.classList.add('text-gray-500');
+        icon?.classList.remove('text-amber-600');
+        icon?.classList.add('text-gray-500');
     }
+}
 
+function setSendLaterUrgentChipUI(active) {
+    const btn = document.getElementById('sendLaterUrgentEyeBtn');
+    if (!btn) return;
+    btn.classList.toggle('ring-2', active);
+    btn.classList.toggle('ring-amber-500', active);
+    btn.classList.toggle('shadow-md', active);
+    btn.classList.toggle('bg-amber-100', active);
+}
+
+function clearSendLaterUrgentTableFilter() {
+    sendLaterUrgentFilterActive = false;
+    sendLaterUrgentFilterIds = null;
+    setSendLaterUrgentChipUI(false);
+}
+
+function _clearSearchForNotificationFilter() {
+    const si = document.getElementById('searchInput');
+    if (si) si.value = '';
+    document.getElementById('searchInputClearBtn')?.classList.add('hidden');
+
+    const statusH = document.getElementById('statusFilter');
+    const statusLb = document.getElementById('statusFilterLabel');
+    if (statusH) statusH.value = 'all';
+    if (statusLb) statusLb.textContent = 'Tất cả trạng thái';
+
+    _resetDateFilterToAll();
+}
+
+function _resetDateFilterToAll() {
+    const dateFilter = document.getElementById('dateFilter');
+    if (dateFilter && dateFilter.value !== 'all') {
+        dateFilter.value = 'all';
+        document.getElementById('customDateStart').value = '';
+        document.getElementById('customDateEnd').value = '';
+        const customLabel = document.getElementById('customDateLabel');
+        if (customLabel) customLabel.textContent = 'Chọn ngày';
+        document.querySelectorAll('.date-preset-btn').forEach((btn) => btn.classList.remove('active'));
+        document.querySelector('.date-preset-btn[onclick*="\'all\'"]')?.classList.add('active');
+    }
+}
+
+function scrollToOrdersTable() {
+    requestAnimationFrame(() => {
+        const section = document.getElementById('ordersTableSection');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+}
+
+function toggleMissingSizeFilter() {
+    missingSizeFilterActive = !missingSizeFilterActive;
+    _setMissingSizeFilterUI(missingSizeFilterActive);
+    if (missingSizeFilterActive) {
+        clearSendLaterUrgentTableFilter();
+    }
     filterOrdersData();
 }
 

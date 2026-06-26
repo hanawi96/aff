@@ -284,19 +284,12 @@ const cart = {
         // Wait for address selector to be ready
         setTimeout(() => {
             const provinceSelect = document.getElementById('provinceSelect');
-            const districtSelect = document.getElementById('districtSelect');
             const wardSelect = document.getElementById('wardSelect');
             const streetInput = document.getElementById('streetInput');
             
             if (provinceSelect) {
                 provinceSelect.addEventListener('change', () => {
                     errorDisplayService.clearError('provinceSelect');
-                });
-            }
-            
-            if (districtSelect) {
-                districtSelect.addEventListener('change', () => {
-                    errorDisplayService.clearError('districtSelect');
                 });
             }
             
@@ -399,22 +392,14 @@ const cart = {
             
             await waitFor(500);
             
-            const districtSelect = document.getElementById('cartDistrict');
-            if (districtSelect && districtSelect.options.length > 1) {
-                districtSelect.selectedIndex = 1;
-                districtSelect.dispatchEvent(new Event('change'));
-                
-                await waitFor(500);
-                
-                const wardSelect = document.getElementById('cartWard');
-                if (wardSelect && wardSelect.options.length > 1) {
-                    wardSelect.selectedIndex = 1;
-                }
-                
-                const streetInput = document.getElementById('cartStreet');
-                if (streetInput && !streetInput.value) {
-                    streetInput.value = 'Số 123, Ngõ 456';
-                }
+            const wardSelect = document.getElementById('cartWard');
+            if (wardSelect && wardSelect.options.length > 1) {
+                wardSelect.selectedIndex = 1;
+            }
+            
+            const streetInput = document.getElementById('cartStreet');
+            if (streetInput && !streetInput.value) {
+                streetInput.value = 'Số 123, Ngõ 456';
             }
         }
     },
@@ -1242,8 +1227,6 @@ const cart = {
             // Determine which field has error and show inline message
             if (!addressData.provinceCode) {
                 errorDisplayService.showError('provinceSelect', 'Vui lòng chọn Tỉnh/Thành phố');
-            } else if (!addressData.districtCode) {
-                errorDisplayService.showError('districtSelect', 'Vui lòng chọn Quận/Huyện');
             } else if (!addressData.wardCode) {
                 errorDisplayService.showError('wardSelect', 'Vui lòng chọn Phường/Xã');
             } else if (!addressData.street) {
@@ -1260,7 +1243,6 @@ const cart = {
         
         // Clear any address errors if validation passed
         errorDisplayService.clearError('provinceSelect');
-        errorDisplayService.clearError('districtSelect');
         errorDisplayService.clearError('wardSelect');
         errorDisplayService.clearError('streetInput');
         
@@ -1314,8 +1296,8 @@ const cart = {
             address: addressData.fullAddress,
             province_id: addressData.provinceCode,
             province_name: addressData.provinceName,
-            district_id: addressData.districtCode,
-            district_name: addressData.districtName,
+            district_id: null,
+            district_name: null,
             ward_id: addressData.wardCode,
             ward_name: addressData.wardName,
             street_address: addressData.street,

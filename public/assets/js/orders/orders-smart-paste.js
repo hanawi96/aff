@@ -1941,91 +1941,52 @@ async function applyParsedDataToForm(parsedData) {
         document.getElementById('newOrderCustomerName').value = data.name;
     }
     
-    // Get address form elements (declare outside to use in toast logic)
+    // Get address form elements (2 cấp: Tỉnh → Phường)
     const provinceSelect = document.getElementById('newOrderProvince');
-    const districtSelect = document.getElementById('newOrderDistrict');
     const wardSelect = document.getElementById('newOrderWard');
     const streetInput = document.getElementById('newOrderStreetAddress');
-    
+
     // Apply address - Wait for addressSelector to be ready
     if (data.address.province) {
-        console.log('✅ Province found:', data.address.province.Name, 'ID:', data.address.province.Id);
-        
-        // Ensure addressSelector is loaded
         if (!window.addressSelector || !window.addressSelector.loaded) {
-            console.log('⏳ Waiting for addressSelector to load...');
-            // Wait up to 2 seconds for addressSelector
             let attempts = 0;
             while ((!window.addressSelector || !window.addressSelector.loaded) && attempts < 20) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
-            
             if (!window.addressSelector || !window.addressSelector.loaded) {
                 console.error('❌ AddressSelector failed to load');
                 return;
             }
         }
-        
-        // Set province
+
         provinceSelect.value = data.address.province.Id;
-        console.log('✅ Province set to:', provinceSelect.value);
-        
-        // Render districts for this province
-        if (data.address.district) {
-            window.addressSelector.renderDistricts(districtSelect, data.address.province.Id);
-            
-            // Wait for render to complete
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            // Set district
-            districtSelect.value = data.address.district.Id;
-            console.log('✅ District set to:', districtSelect.value);
-            
-            // IMPORTANT: Always render wards when district is set (even if ward not found)
-            // This allows user to manually select ward from dropdown
-            window.addressSelector.renderWards(wardSelect, data.address.province.Id, data.address.district.Id);
-            
-            // Wait for render to complete
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            // Set ward if found
-            if (data.address.ward) {
-                wardSelect.value = data.address.ward.Id;
-                clearWardSuggestions();
-                console.log('✅ Ward set to:', wardSelect.value);
-            } else {
-                console.log('⚠️ Ward not found, rendering suggestions...');
-                renderWardSuggestions(data.address.district, data.address.fullText);
-            }
-        } else if (data.address.province) {
-            // Province found but no district - still render districts for manual selection
-            window.addressSelector.renderDistricts(districtSelect, data.address.province.Id);
-            console.log('⚠️ District not found, but dropdown is enabled for manual selection');
+
+        // Render wards directly from province (2 cấp)
+        window.addressSelector.renderWards(wardSelect, data.address.province.Id);
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Try to set ward if found by parser
+        if (data.address.ward) {
+            wardSelect.value = data.address.ward.Id;
+            clearWardSuggestions();
         }
-        
-        // Set street address
+
         if (data.address.street) {
             streetInput.value = data.address.street;
         }
-        
-        // Update address preview
+
         const fullAddress = window.addressSelector.generateFullAddress(
             streetInput.value,
             provinceSelect.value,
-            districtSelect.value,
             wardSelect.value
         );
-        
+
         const addressPreview = document.getElementById('newOrderAddressPreview');
         const hiddenAddress = document.getElementById('newOrderAddress');
-        
+
         if (addressPreview) addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
         if (hiddenAddress) hiddenAddress.value = fullAddress;
-        
-        console.log('✅ Full address:', fullAddress);
-    } else {
-        console.warn('⚠️ No province found in parsed data');
     }
 
     // Hiển thị confidence trực quan trên các dropdown

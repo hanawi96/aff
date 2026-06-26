@@ -72,31 +72,22 @@ async function submitNewOrder() {
     const priorityCheckbox = document.getElementById('newOrderPriority');
     const isPriority = priorityCheckbox?.checked ? 1 : 0;
 
-    // Get address data (IDs are now strings in database - no conversion needed)
+    // Get address data (2 cấp: Tỉnh/TP → Phường/Xã)
     const provinceSelect = document.getElementById('newOrderProvince');
-    const districtSelect = document.getElementById('newOrderDistrict');
     const wardSelect = document.getElementById('newOrderWard');
-    
-    // Get string values directly (already in correct format)
+
     const provinceId = provinceSelect?.value?.trim() || null;
-    const districtId = districtSelect?.value?.trim() || null;
     const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
-    
-    // Get full names (name_with_type) — prefer addressSelector lookup by ID for accuracy
+
     const provinceName = (provinceId && (
         window.addressSelector?.loaded
             ? window.addressSelector.getProvinceName(provinceId)
             : null
     ) || provinceSelect?.selectedOptions[0]?.text) || null;
-    const districtName = (districtId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getDistrictName(provinceId, districtId)
-            : null
-    ) || districtSelect?.selectedOptions[0]?.text) || null;
     const wardName = (wardId && (
         window.addressSelector?.loaded
-            ? window.addressSelector.getWardName(provinceId, districtId, wardId)
+            ? window.addressSelector.getWardName(provinceId, wardId)
             : null
     ) || wardSelect?.selectedOptions[0]?.text) || null;
 
@@ -157,6 +148,13 @@ async function submitNewOrder() {
 
     const totalAmount = productTotal + shippingFee - discountAmount;
 
+    let depositAmount = getNewOrderDepositAmount();
+    if (depositAmount > 0 && depositAmount >= totalAmount) {
+        showToast('Tiền cọc phải nhỏ hơn giá trị đơn hàng', 'warning');
+        document.getElementById('newOrderDepositAmount')?.focus();
+        return;
+    }
+
     const editDbIdRaw = document.getElementById('orderFormEditDbId')?.value?.trim();
     const isUpdate = !!editDbIdRaw;
 
@@ -169,8 +167,8 @@ async function submitNewOrder() {
         address: address,
         province_id: provinceId,
         province_name: provinceName,
-        district_id: districtId,
-        district_name: districtName,
+        district_id: null,
+        district_name: null,
         ward_id: wardId,
         ward_name: wardName,
         street_address: streetAddress,
@@ -192,6 +190,8 @@ async function submitNewOrder() {
         discount_code: discountCode,
         discountAmount: discountAmount,
         discount_amount: discountAmount,
+        deposit_amount: depositAmount,
+        depositAmount: depositAmount,
         is_priority: isPriority,
         isPriority: isPriority
     };
@@ -238,33 +238,10 @@ async function submitNewOrder() {
             showToast(isUpdate ? 'Đã cập nhật đơn hàng!' : 'Tạo đơn hàng thành công!', 'success');
             
             // Learn from this address (async, don't wait)
-            console.log('🔍 Learning check:', {
-                streetAddress,
-                districtId,
-                wardId,
-                wardName,
-                hasFunction: typeof learnFromAddress !== 'undefined'
-            });
-            
-            if (!isUpdate && streetAddress && districtId && wardId && wardName) {
-                console.log('📚 Calling learnFromAddress...');
-                learnFromAddress(streetAddress, parseInt(districtId, 10), parseInt(wardId, 10), wardName)
-                    .then(result => {
-                        console.log('📚 Learning result:', result);
-                        if (result.success) {
-                            console.log('Address learned:', result.keywords_saved, 'keywords');
-                        } else {
-                            console.error('❌ Learning failed:', result);
-                        }
-                    })
+            if (!isUpdate && streetAddress && wardId && wardName) {
+                learnFromAddress(streetAddress, null, parseInt(wardId, 10), wardName)
+                    .then(r => { if (r.success) console.log('📚 Address learned:', r.keywords_saved, 'keywords'); })
                     .catch(err => console.error('❌ Learning error:', err));
-            } else if (!isUpdate) {
-                console.warn('⚠️ Missing data for learning:', {
-                    hasStreet: !!streetAddress,
-                    hasDistrict: !!districtId,
-                    hasWard: !!wardId,
-                    hasWardName: !!wardName
-                });
             }
             
             closeAddOrderModal(true);

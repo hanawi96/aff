@@ -32,6 +32,7 @@ import {
     updateCustomerInfo,
     updateAddress,
     updateAmount,
+    updateDepositAmount,
     updatePaymentMethod,
     deleteOrder,
     updateOrderStatus,
@@ -499,7 +500,9 @@ export async function handlePost(path, request, env, corsHeaders) {
                     ward_name: data.ward_name,
                     street_address: data.street_address,
                     // Priority
-                    is_priority: data.is_priority || 0
+                    is_priority: data.is_priority || 0,
+                    deposit_amount: data.deposit_amount ?? data.depositAmount ?? 0,
+                    depositAmount: data.depositAmount ?? data.deposit_amount ?? 0
                 };
                 return await createOrder(orderData, env, corsHeaders);
             case 'updateOrderProducts':
@@ -512,6 +515,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateAddress(data, env, corsHeaders);
             case 'updateAmount':
                 return await updateAmount(data, env, corsHeaders);
+            case 'updateDepositAmount':
+                return await updateDepositAmount(data, env, corsHeaders);
             case 'updatePaymentMethod':
                 return await updatePaymentMethod(data, env, corsHeaders);
             case 'deleteOrder':

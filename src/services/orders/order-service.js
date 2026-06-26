@@ -1,6 +1,6 @@
 import { jsonResponse } from '../../utils/response.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
-import { computeOrderSnapshot, insertOrderLineItems } from './order-persist-helpers.js';
+import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount } from './order-persist-helpers.js';
 
 // Create new order - Main order creation function
 export async function createOrder(data, env, corsHeaders) {
@@ -40,8 +40,8 @@ export async function createOrder(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             data.customer.name,
@@ -73,7 +73,8 @@ export async function createOrder(data, env, corsHeaders) {
             snap.discountCode,
             snap.discountAmount,
             snap.isPriority,
-            incomingStatus === 'send_later' ? plannedSendAtUnix : null
+            incomingStatus === 'send_later' ? plannedSendAtUnix : null,
+            snap.depositAmount
         ).run();
 
         if (!result.success) {
@@ -135,6 +136,8 @@ export async function createOrder(data, env, corsHeaders) {
             },
             cart: data.cart,
             total: data.total || `${totalAmountNumber.toLocaleString('vi-VN')}đ`,
+            totalAmount: totalAmountNumber,
+            depositAmount: snap.depositAmount || 0,
             paymentMethod: data.paymentMethod || 'cod',
             referralCode: snap.validReferralCode || '',
             referralCommission: snap.finalCommission || 0,
@@ -187,6 +190,9 @@ export async function createOrder(data, env, corsHeaders) {
 
     } catch (error) {
         console.error('Error creating order:', error);
+        if (error.code === 'VALIDATION') {
+            return jsonResponse({ success: false, error: error.message }, 400, corsHeaders);
+        }
         return jsonResponse({
             success: false,
             error: error.message
@@ -246,7 +252,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
                 province_id = ?, province_name = ?, district_id = ?, district_name = ?,
                 ward_id = ?, ward_name = ?, street_address = ?,
                 discount_code = ?, discount_amount = ?, is_priority = ?,
-                planned_send_at_unix = ?
+                planned_send_at_unix = ?, deposit_amount = ?
             WHERE id = ?
         `).bind(
             data.customer.name,
@@ -278,6 +284,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
             snap.discountAmount,
             snap.isPriority,
             finalPlanned,
+            snap.depositAmount,
             orderDbId
         ).run();
 
@@ -319,6 +326,9 @@ export async function updateOrderFull(data, env, corsHeaders) {
         }, 200, corsHeaders);
     } catch (error) {
         console.error('Error updating order:', error);
+        if (error.code === 'VALIDATION') {
+            return jsonResponse({ success: false, error: error.message }, 400, corsHeaders);
+        }
         return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
     }
 }
@@ -526,8 +536,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             newOrderId,
             orderData.customer.name,
@@ -559,7 +569,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             snap.discountCode,
             snap.discountAmount,
             snap.isPriority,
-            finalPlanned
+            finalPlanned,
+            0
         ).run();
 
         if (!result.success) {
@@ -807,29 +818,46 @@ export async function updateAmount(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Validate amount
-        if (data.totalAmount <= 0) {
+        const newTotal = Math.round(Number(data.totalAmount));
+        if (!Number.isFinite(newTotal) || newTotal <= 0) {
             return jsonResponse({
                 success: false,
                 error: 'Giá trị đơn hàng phải lớn hơn 0'
             }, 400, corsHeaders);
         }
 
-        if (data.totalAmount > 1000000000) {
+        if (newTotal > 1000000000) {
             return jsonResponse({
                 success: false,
                 error: 'Giá trị đơn hàng quá lớn'
             }, 400, corsHeaders);
         }
 
-        // Update both total_amount and commission
-        // When user manually edits order value, we update the orders table directly
+        const existing = await env.DB.prepare(`
+            SELECT id, deposit_amount FROM orders WHERE id = ?
+        `).bind(data.orderId).first();
+
+        if (!existing) {
+            return jsonResponse({
+                success: false,
+                error: 'Không tìm thấy đơn hàng'
+            }, 404, corsHeaders);
+        }
+
+        const deposit = Math.max(0, Math.round(Number(existing.deposit_amount) || 0));
+        if (deposit > 0 && newTotal <= deposit) {
+            return jsonResponse({
+                success: false,
+                error: `Giá trị đơn phải lớn hơn tiền cọc (${deposit.toLocaleString('vi-VN')}đ). Hãy giảm tiền cọc trước.`
+            }, 400, corsHeaders);
+        }
+
         const result = await env.DB.prepare(`
             UPDATE orders 
             SET total_amount = ?,
                 commission = ?
             WHERE id = ?
-        `).bind(data.totalAmount, data.commission || 0, data.orderId).run();
+        `).bind(newTotal, data.commission || 0, data.orderId).run();
 
         if (result.meta && result.meta.changes === 0) {
             return jsonResponse({
@@ -837,8 +865,6 @@ export async function updateAmount(data, env, corsHeaders) {
                 error: 'Không tìm thấy đơn hàng'
             }, 404, corsHeaders);
         }
-
-        console.log('✅ Updated commission in database:', data.orderId);
 
         return jsonResponse({
             success: true,
@@ -854,6 +880,62 @@ export async function updateAmount(data, env, corsHeaders) {
     }
 }
 
+// Update deposit amount (tiền cọc trước)
+export async function updateDepositAmount(data, env, corsHeaders) {
+    try {
+        if (!data.orderId) {
+            return jsonResponse({ success: false, error: 'Thiếu orderId' }, 400, corsHeaders);
+        }
+        if (data.depositAmount === undefined && data.deposit_amount === undefined) {
+            return jsonResponse({ success: false, error: 'Thiếu depositAmount' }, 400, corsHeaders);
+        }
+
+        const order = await env.DB.prepare(`
+            SELECT id, total_amount, payment_method, deposit_amount
+            FROM orders WHERE id = ?
+        `).bind(data.orderId).first();
+
+        if (!order) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        let depositAmount;
+        try {
+            depositAmount = normalizeDepositAmount(
+                order.total_amount,
+                data.depositAmount ?? data.deposit_amount,
+                order.payment_method
+            );
+        } catch (err) {
+            if (err.code === 'VALIDATION') {
+                return jsonResponse({ success: false, error: err.message }, 400, corsHeaders);
+            }
+            throw err;
+        }
+
+        const result = await env.DB.prepare(`
+            UPDATE orders SET deposit_amount = ? WHERE id = ?
+        `).bind(depositAmount, data.orderId).run();
+
+        if (result.meta && result.meta.changes === 0) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        const codCollect = computeCodCollectAmount(order.total_amount, depositAmount, order.payment_method);
+
+        return jsonResponse({
+            success: true,
+            message: depositAmount > 0 ? 'Đã cập nhật tiền cọc' : 'Đã xóa tiền cọc',
+            deposit_amount: depositAmount,
+            cod_collect_amount: codCollect
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating deposit amount:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 // Update payment method
 export async function updatePaymentMethod(data, env, corsHeaders) {
     try {
@@ -866,9 +948,13 @@ export async function updatePaymentMethod(data, env, corsHeaders) {
             return jsonResponse({ success: false, error: 'Hình thức thanh toán không hợp lệ' }, 400, corsHeaders);
         }
 
+        const clearDeposit = isBankPaymentMethod(data.paymentMethod);
         const result = await env.DB.prepare(`
-            UPDATE orders SET payment_method = ? WHERE id = ?
-        `).bind(data.paymentMethod, data.orderId).run();
+            UPDATE orders
+            SET payment_method = ?,
+                deposit_amount = CASE WHEN ? THEN 0 ELSE deposit_amount END
+            WHERE id = ?
+        `).bind(data.paymentMethod, clearDeposit ? 1 : 0, data.orderId).run();
 
         if (result.meta && result.meta.changes === 0) {
             return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);

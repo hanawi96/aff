@@ -709,7 +709,7 @@ async function editAddress(orderId, orderCode) {
 
             <!-- Form -->
             <div class="p-6 space-y-4">
-                <!-- Address 4 levels -->
+                <!-- Address 2 levels -->
                 <div class="bg-blue-50 rounded-lg p-4 space-y-3">
                     <label class="block text-sm font-semibold text-gray-800 mb-2">
                         Địa chỉ giao hàng <span class="text-red-500">*</span>
@@ -722,20 +722,17 @@ async function editAddress(orderId, orderCode) {
                             </select>
                         </div>
                         <div>
-                            <select id="editOrderDistrict" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                <option value="">-- Chọn Quận/Huyện --</option>
-                            </select>
-                        </div>
-                        <div>
                             <select id="editOrderWard" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
                                 <option value="">-- Chọn Phường/Xã --</option>
                             </select>
                         </div>
-                        <div>
-                            <input type="text" id="editOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
-                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <input type="text" id="editOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
                     </div>
                     
+                    <div id="editOrderOldAddressInfo" class="hidden mt-2 p-2 bg-amber-50 rounded border border-amber-300 text-xs text-amber-800"></div>
+
                     <div class="mt-2 p-2 bg-white rounded border border-blue-200">
                         <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
                         <p id="editOrderAddressPreview" class="text-sm text-gray-800 font-medium">Vui lòng chọn địa chỉ</p>
@@ -761,79 +758,69 @@ async function editAddress(orderId, orderCode) {
 
     document.body.appendChild(modal);
 
-    // Setup address selector
+    // Setup address selector (2 cấp)
     const provinceSelect = document.getElementById('editOrderProvince');
-    const districtSelect = document.getElementById('editOrderDistrict');
     const wardSelect = document.getElementById('editOrderWard');
     const streetInput = document.getElementById('editOrderStreetAddress');
     const addressPreview = document.getElementById('editOrderAddressPreview');
 
-    // Render provinces
     window.addressSelector.renderProvinces(provinceSelect);
 
-    // Set current address if available
+    let isLegacyAddress = false;
+    const oldAddressInfo = document.getElementById('editOrderOldAddressInfo');
+
     if (order.province_id) {
-        // IDs are now stored as strings in database (already padded)
         const provinceId = String(order.province_id);
-        const districtId = order.district_id ? String(order.district_id) : null;
         const wardId = order.ward_id ? String(order.ward_id) : null;
 
-        // Set province first
         provinceSelect.value = provinceId;
-        
-        // Render districts and set value
-        if (districtId) {
-            window.addressSelector.renderDistricts(districtSelect, provinceId);
-            // Use setTimeout to ensure options are rendered before setting value
+        window.addressSelector.renderWards(wardSelect, provinceId);
+
+        if (wardId) {
             setTimeout(() => {
-                districtSelect.value = districtId;
-                
-                // Render wards and set value
-                if (wardId) {
-                    window.addressSelector.renderWards(wardSelect, provinceId, districtId);
-                    // Use setTimeout again for ward
-                    setTimeout(() => {
-                        wardSelect.value = wardId;
-                        // Update preview after all values are set
-                        updateAddressPreview();
-                    }, 50);
+                wardSelect.value = wardId;
+                if (wardSelect.value !== wardId) {
+                    isLegacyAddress = true;
+                    if (oldAddressInfo) {
+                        const parts = [order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
+                        oldAddressInfo.innerHTML = '<span class="text-amber-700 font-medium">Địa chỉ cũ (3 cấp):</span> ' + parts.join(', ');
+                        oldAddressInfo.classList.remove('hidden');
+                    }
                 }
+                updateAddressPreview();
             }, 50);
         }
-        
+
         if (order.street_address) {
             streetInput.value = order.street_address;
         }
     }
 
-    // Update preview function
     function updateAddressPreview() {
-        const provinceId = provinceSelect.value;
-        const districtId = districtSelect.value;
-        const wardId = wardSelect.value;
+        const pId = provinceSelect.value;
+        const wId = wardSelect.value;
         const street = streetInput.value;
 
-        const fullAddress = window.addressSelector.generateFullAddress(
-            street,
-            provinceId,
-            districtId,
-            wardId
-        );
+        if (isLegacyAddress && !wId) {
+            const parts = [street || order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
+            addressPreview.textContent = parts.join(', ') || 'Vui lòng chọn địa chỉ';
+            return;
+        }
 
+        if (wId) isLegacyAddress = false;
+        if (oldAddressInfo) oldAddressInfo.classList.add('hidden');
+
+        const fullAddress = window.addressSelector.generateFullAddress(street, pId, wId);
         addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
     }
 
-    // Setup cascade
     window.addressSelector.setupCascade(
         provinceSelect,
-        districtSelect,
         wardSelect,
         updateAddressPreview
     );
 
     streetInput.addEventListener('input', updateAddressPreview);
-
-    // Note: Don't call updateAddressPreview() here - it will be called after ward is set in setTimeout
 
     // Close on Escape
     const escapeHandler = (e) => {
@@ -855,51 +842,48 @@ function closeEditAddressModal() {
 
 // Save address
 async function saveAddress(orderId, orderCode) {
-    // Get values from form
+    // Get values from form (2 cấp)
     const provinceSelect = document.getElementById('editOrderProvince');
-    const districtSelect = document.getElementById('editOrderDistrict');
     const wardSelect = document.getElementById('editOrderWard');
     const streetInput = document.getElementById('editOrderStreetAddress');
 
-    // Get IDs - now stored as strings in database (no conversion needed)
     const provinceId = provinceSelect?.value?.trim() || null;
-    const districtId = districtSelect?.value?.trim() || null;
     const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = streetInput?.value?.trim() || null;
 
-    // Get full names (name_with_type) — prefer addressSelector lookup by ID for accuracy
-    const provinceName = (provinceId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getProvinceName(provinceId)
-            : null
-    ) || provinceSelect?.selectedOptions[0]?.text) || null;
-    const districtName = (districtId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getDistrictName(provinceId, districtId)
-            : null
-    ) || districtSelect?.selectedOptions[0]?.text) || null;
-    const wardName = (wardId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getWardName(provinceId, districtId, wardId)
-            : null
-    ) || wardSelect?.selectedOptions[0]?.text) || null;
+    const order = allOrdersData.find(o => o.id === orderId);
 
-    // Generate full address
-    const fullAddress = window.addressSelector.generateFullAddress(
-        streetAddress,
-        provinceId,
-        districtId,
-        wardId
-    );
+    let provinceName, wardName, districtId, districtName, fullAddress;
 
-    // Validate
-    if (!fullAddress || fullAddress === 'Vui lòng chọn địa chỉ') {
-        showToast('Vui lòng chọn địa chỉ đầy đủ', 'error');
+    if (wardId) {
+        provinceName = (provinceId && window.addressSelector?.loaded
+            ? window.addressSelector.getProvinceName(provinceId) : null)
+            || provinceSelect?.selectedOptions[0]?.text || null;
+        wardName = (window.addressSelector?.loaded
+            ? window.addressSelector.getWardName(provinceId, wardId) : null)
+            || wardSelect?.selectedOptions[0]?.text || null;
+        districtId = null;
+        districtName = null;
+        fullAddress = window.addressSelector.generateFullAddress(streetAddress, provinceId, wardId);
+    } else if (order && order.ward_id) {
+        provinceName = order.province_name || null;
+        wardName = order.ward_name || null;
+        districtId = order.district_id || null;
+        districtName = order.district_name || null;
+        const parts = [streetAddress || order.street_address, wardName, districtName, provinceName].filter(Boolean);
+        fullAddress = parts.join(', ');
+    } else {
+        showToast('Vui lòng chọn Phường/Xã', 'error');
         return;
     }
 
-    if (!provinceId || !districtId || !wardId) {
-        showToast('Vui lòng chọn đầy đủ Tỉnh/Quận/Xã', 'error');
+    if (!provinceId) {
+        showToast('Vui lòng chọn Tỉnh/Thành phố', 'error');
+        return;
+    }
+
+    if (!fullAddress) {
+        showToast('Vui lòng chọn địa chỉ đầy đủ', 'error');
         return;
     }
 
@@ -927,9 +911,9 @@ async function saveAddress(orderId, orderCode) {
                 address: fullAddress,
                 province_id: provinceId,
                 province_name: provinceName,
-                district_id: districtId,
-                district_name: districtName,
-                ward_id: wardId,
+                district_id: districtId || null,
+                district_name: districtName || null,
+                ward_id: wardId || (order?.ward_id || null),
                 ward_name: wardName,
                 street_address: streetAddress
             })
@@ -942,9 +926,9 @@ async function saveAddress(orderId, orderCode) {
             allOrdersData[orderIndex].address = fullAddress;
             allOrdersData[orderIndex].province_id = provinceId;
             allOrdersData[orderIndex].province_name = provinceName;
-            allOrdersData[orderIndex].district_id = districtId;
-            allOrdersData[orderIndex].district_name = districtName;
-            allOrdersData[orderIndex].ward_id = wardId;
+            allOrdersData[orderIndex].district_id = districtId || null;
+            allOrdersData[orderIndex].district_name = districtName || null;
+            allOrdersData[orderIndex].ward_id = wardId || (order?.ward_id || null);
             allOrdersData[orderIndex].ward_name = wardName;
             allOrdersData[orderIndex].street_address = streetAddress;
 
@@ -954,8 +938,8 @@ async function saveAddress(orderId, orderCode) {
                 filteredOrdersData[filteredIndex].address = fullAddress;
                 filteredOrdersData[filteredIndex].province_id = provinceId;
                 filteredOrdersData[filteredIndex].province_name = provinceName;
-                filteredOrdersData[filteredIndex].district_id = districtId;
-                filteredOrdersData[filteredIndex].district_name = districtName;
+                filteredOrdersData[filteredIndex].district_id = null;
+                filteredOrdersData[filteredIndex].district_name = null;
                 filteredOrdersData[filteredIndex].ward_id = wardId;
                 filteredOrdersData[filteredIndex].ward_name = wardName;
                 filteredOrdersData[filteredIndex].street_address = streetAddress;
@@ -977,381 +961,27 @@ async function saveAddress(orderId, orderCode) {
 
 
 // ============================================
-// EDIT AMOUNT
+// EDIT AMOUNT / DEPOSIT / PAYMENT — unified (orders-payment-summary-modal.js)
 // ============================================
 
-// Edit amount
 function editAmount(orderId, orderCode) {
-    // Find the order
-    const order = allOrdersData.find(o => o.id === orderId);
-    if (!order) {
-        showToast('Không tìm thấy đơn hàng', 'error');
-        return;
-    }
-
-    const currentAmount = order.total_amount || 0;
-    const referralCode = order.referral_code;
-    const currentCommission = order.commission || 0;
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.id = 'editAmountModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-
-    modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-xl">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Chỉnh sửa giá trị đơn hàng
-                    </h3>
-                    <button onclick="closeEditAmountModal()" class="text-white/80 hover:text-white transition-colors">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <p class="text-sm text-white/80 mt-1">Đơn hàng: ${escapeHtml(orderCode)}</p>
-            </div>
-
-            <!-- Form -->
-            <div class="p-6 space-y-4">
-                <!-- Current Amount Display -->
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
-                    <p class="text-xs text-green-600 font-medium mb-1">Giá trị hiện tại</p>
-                    <p class="text-2xl font-bold text-green-700">${formatCurrency(currentAmount)}</p>
-                    ${referralCode ? `
-                        <div class="mt-2 pt-2 border-t border-green-200">
-                            <p class="text-xs text-orange-600 font-medium">Hoa hồng CTV: <span class="font-bold">${formatCurrency(currentCommission)}</span></p>
-                        </div>
-                    ` : ''}
-                </div>
-
-                <!-- New Amount Input -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Giá trị mới <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <input 
-                            type="text" 
-                            id="editAmountInput" 
-                            inputmode="numeric"
-                            autocomplete="off"
-                            value="${currentAmount > 0 ? formatVnIntegerString(currentAmount) : ''}"
-                            class="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            placeholder="VD: 598.000"
-                            oninput="formatVnMoneyInput(this); updateAmountPreview(${referralCode ? 'true' : 'false'})"
-                        />
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 text-sm font-medium">đ</span>
-                        </div>
-                    </div>
-                    <p class="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Số tiền tự định dạng kiểu 90.000 (dấu chấm phân cách nghìn)
-                    </p>
-                </div>
-
-                <!-- Preview -->
-                <div id="amountPreview" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">Giá trị mới:</span>
-                        <span class="text-lg font-bold text-green-600">${formatCurrency(currentAmount)}</span>
-                    </div>
-                    ${referralCode ? `
-                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                            <span class="text-sm text-gray-600">Hoa hồng CTV mới:</span>
-                            <span class="text-lg font-bold text-orange-600" id="commissionPreview">${formatCurrency(currentCommission)}</span>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
-                <button 
-                    onclick="closeEditAmountModal()" 
-                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                    Hủy
-                </button>
-                <button 
-                    onclick="saveAmount(${orderId}, '${escapeHtml(orderCode)}', ${referralCode ? `'${escapeHtml(referralCode)}'` : 'null'})" 
-                    class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Lưu thay đổi
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Focus input immediately
-    const input = document.getElementById('editAmountInput');
-    if (input) {
-        input.focus();
-        input.select();
-    }
-
-    // Close on Escape
-    const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeEditAmountModal();
-            document.removeEventListener('keydown', escapeHandler);
-        }
-    };
-    document.addEventListener('keydown', escapeHandler);
-
+    editOrderPaymentSummary(orderId, orderCode);
 }
 
-// Update amount preview
-function updateAmountPreview(hasReferral) {
-    const input = document.getElementById('editAmountInput');
-    const preview = document.getElementById('amountPreview');
-
-    if (!input || !preview) return;
-
-    const newAmount = parsePrice(input.value) || 0;
-
-    // Update amount display
-    const amountDisplay = preview.querySelector('.text-green-600');
-    if (amountDisplay) {
-        amountDisplay.textContent = formatCurrency(newAmount);
-    }
-
-    // Update commission if has referral
-    if (hasReferral) {
-        const commissionPreview = document.getElementById('commissionPreview');
-        if (commissionPreview) {
-            // Calculate commission (10% default)
-            const newCommission = newAmount * 0.1;
-            commissionPreview.textContent = formatCurrency(newCommission);
-        }
-    }
+function editDeposit(orderId, orderCode) {
+    editOrderPaymentSummary(orderId, orderCode);
 }
 
-// Close edit amount modal
+function editPaymentMethod(orderId, orderCode, _currentMethod) {
+    editOrderPaymentSummary(orderId, orderCode);
+}
+
 function closeEditAmountModal() {
-    const modal = document.getElementById('editAmountModal');
-    if (modal) {
-        modal.remove();
-    }
+    closeEditPaymentSummaryModal();
 }
 
-// Save amount
-async function saveAmount(orderId, orderCode, referralCode) {
-    // Get value from form
-    const amountInput = document.getElementById('editAmountInput');
-    const newAmount = amountInput ? parsePrice(amountInput.value) : 0;
-
-    // Validate
-    if (newAmount <= 0) {
-        showToast('Giá trị đơn hàng phải lớn hơn 0', 'error');
-        return;
-    }
-
-    if (newAmount > 1000000000) {
-        showToast('Giá trị đơn hàng quá lớn', 'error');
-        return;
-    }
-
-    // Calculate new commission if has referral
-    let newCommission = 0;
-    if (referralCode) {
-        newCommission = newAmount * 0.1; // 10% commission
-    }
-
-    // Close modal and show loading toast với ID
-    closeEditAmountModal();
-    const saveId = `save-amount-${orderId}`;
-    showToast('Đang lưu thay đổi...', 'info', 0, saveId);
-
-    try {
-        // Find the order in allOrdersData
-        const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
-        if (orderIndex === -1) {
-            throw new Error('Không tìm thấy đơn hàng');
-        }
-
-        // Update in database via API
-        const response = await fetch(`${CONFIG.API_URL}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'updateAmount',
-                orderId: orderId,
-                totalAmount: newAmount,
-                commission: newCommission
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Update local data
-            allOrdersData[orderIndex].total_amount = newAmount;
-            allOrdersData[orderIndex].commission = newCommission;
-
-            // Update filtered data if exists
-            const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-            if (filteredIndex !== -1) {
-                filteredOrdersData[filteredIndex].total_amount = newAmount;
-                filteredOrdersData[filteredIndex].commission = newCommission;
-            }
-
-            // Update stats
-            updateStats();
-
-            // Re-render the table to show updated info
-            renderOrdersTable();
-
-            showToast(`Đã cập nhật giá trị cho đơn ${orderCode}`, 'success', null, saveId);
-        } else {
-            throw new Error(data.error || 'Không thể cập nhật');
-        }
-
-    } catch (error) {
-        console.error('Error saving amount:', error);
-        showToast('Không thể cập nhật giá trị đơn hàng: ' + error.message, 'error', null, saveId);
-    }
-}
-
-// ============================================
-// EDIT PAYMENT METHOD MODAL
-// ============================================
-
-function editPaymentMethod(orderId, orderCode, currentMethod) {
-    const isCOD = !isOrderBankPayment(currentMethod);
-
-    const modal = document.createElement('div');
-    modal.id = 'editPaymentMethodModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
-    modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-1 ring-black/5">
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15">
-                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                        </span>
-                        Hình thức thanh toán
-                    </h3>
-                    <p class="text-sm text-blue-100 mt-2 pl-11">Đơn hàng: <span class="font-medium text-white">${escapeHtml(orderCode)}</span></p>
-                </div>
-                <button type="button" onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="shrink-0 rounded-lg p-1.5 text-white/90 hover:bg-white/15 hover:text-white transition-colors" aria-label="Đóng">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="px-5 pt-4 pb-2">
-                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Chọn một phương thức</p>
-            </div>
-            <div class="px-5 pb-5 space-y-2.5">
-                <label class="block cursor-pointer select-none">
-                    <input type="radio" name="paymentMethod" value="cod" ${isCOD ? 'checked' : ''} class="peer sr-only">
-                    <div class="relative flex items-center gap-4 rounded-xl border-2 border-slate-200/90 bg-slate-50/40 p-4 shadow-sm transition-all duration-200 ease-out
-                        hover:border-slate-300 hover:bg-white hover:shadow-md
-                        peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2
-                        peer-checked:border-amber-500 peer-checked:bg-gradient-to-br peer-checked:from-amber-50 peer-checked:to-white peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-amber-500/20
-                        peer-checked:[&_.pm-pay-icon]:bg-amber-500 peer-checked:[&_.pm-pay-icon]:text-white peer-checked:[&_.pm-pay-icon]:shadow-inner
-                        peer-checked:[&_.pm-pay-dot]:border-amber-500 peer-checked:[&_.pm-pay-dot]:bg-amber-500
-                        peer-checked:[&_.pm-dot-pip]:scale-100 peer-checked:[&_.pm-dot-pip]:opacity-100">
-                        <span class="pm-pay-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-all duration-200 shadow-sm">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                            </svg>
-                        </span>
-                        <span class="min-w-0 flex-1">
-                            <span class="block font-semibold text-gray-900">COD</span>
-                            <span class="mt-0.5 block text-sm text-gray-500 leading-snug">Thanh toán khi nhận hàng</span>
-                        </span>
-                        <span class="pm-pay-dot relative flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white transition-all duration-200">
-                            <span class="pm-dot-pip h-2 w-2 rounded-full bg-white scale-0 opacity-0 transition-all duration-200"></span>
-                        </span>
-                    </div>
-                </label>
-                <label class="block cursor-pointer select-none">
-                    <input type="radio" name="paymentMethod" value="bank" ${!isCOD ? 'checked' : ''} class="peer sr-only">
-                    <div class="relative flex items-center gap-4 rounded-xl border-2 border-slate-200/90 bg-slate-50/40 p-4 shadow-sm transition-all duration-200 ease-out
-                        hover:border-slate-300 hover:bg-white hover:shadow-md
-                        peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-600 peer-focus-visible:ring-offset-2
-                        peer-checked:border-emerald-600 peer-checked:bg-gradient-to-br peer-checked:from-emerald-50 peer-checked:to-white peer-checked:shadow-md peer-checked:ring-1 peer-checked:ring-emerald-600/20
-                        peer-checked:[&_.pm-pay-icon]:bg-emerald-600 peer-checked:[&_.pm-pay-icon]:text-white peer-checked:[&_.pm-pay-icon]:shadow-inner
-                        peer-checked:[&_.pm-pay-dot]:border-emerald-600 peer-checked:[&_.pm-pay-dot]:bg-emerald-600
-                        peer-checked:[&_.pm-dot-pip]:scale-100 peer-checked:[&_.pm-dot-pip]:opacity-100">
-                        <span class="pm-pay-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 transition-all duration-200 shadow-sm">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m0 0V4.875A1.125 1.125 0 0018.75 3.75H5.25a1.125 1.125 0 00-1.125 1.125V21M9 9v6m6-6v6M12 3v18" />
-                            </svg>
-                        </span>
-                        <span class="min-w-0 flex-1">
-                            <span class="block font-semibold text-gray-900">Chuyển khoản</span>
-                            <span class="mt-0.5 block text-sm text-gray-500 leading-snug">Khách đã thanh toán qua CK</span>
-                        </span>
-                        <span class="pm-pay-dot relative flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white transition-all duration-200">
-                            <span class="pm-dot-pip h-2 w-2 rounded-full bg-white scale-0 opacity-0 transition-all duration-200"></span>
-                        </span>
-                    </div>
-                </label>
-            </div>
-            <div class="px-5 py-4 flex gap-3 border-t border-slate-100 bg-slate-50/50">
-                <button type="button" onclick="document.getElementById('editPaymentMethodModal')?.remove()" class="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 hover:bg-white font-medium text-sm transition-colors shadow-sm">Huỷ</button>
-                <button type="button" onclick="savePaymentMethod(${orderId}, '${escapeHtml(orderCode)}')" class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Lưu</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-}
-
-async function savePaymentMethod(orderId, orderCode) {
-    const selected = document.querySelector('#editPaymentMethodModal input[name="paymentMethod"]:checked');
-    if (!selected) return;
-    const newMethod = selected.value;
-
-    document.getElementById('editPaymentMethodModal')?.remove();
-    const saveId = `save-pm-${orderId}`;
-    showToast('Đang lưu...', 'info', 0, saveId);
-
-    try {
-        const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
-        if (orderIndex === -1) throw new Error('Không tìm thấy đơn hàng');
-
-        const response = await fetch(`${CONFIG.API_URL}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'updatePaymentMethod', orderId, paymentMethod: newMethod })
-        });
-
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Không thể cập nhật');
-
-        allOrdersData[orderIndex].payment_method = newMethod;
-        const filteredIndex = filteredOrdersData.findIndex(o => o.id === orderId);
-        if (filteredIndex !== -1) filteredOrdersData[filteredIndex].payment_method = newMethod;
-
-        renderOrdersTable();
-        showToast(`Đã đổi sang ${newMethod === 'bank' ? 'Chuyển khoản' : 'COD'} cho đơn ${orderCode}`, 'success', null, saveId);
-    } catch (error) {
-        console.error('Error saving payment method:', error);
-        showToast('Không thể cập nhật: ' + error.message, 'error', null, saveId);
-    }
+function closeEditDepositModal() {
+    closeEditPaymentSummaryModal();
 }
 
 // ============================================

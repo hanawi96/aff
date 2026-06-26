@@ -3,6 +3,22 @@
  * Gửi thông báo đơn hàng mới qua Telegram Bot
  */
 
+import { computeCodCollectAmount, isBankPaymentMethod } from '../orders/order-persist-helpers.js';
+
+/**
+ * Dòng HTML Telegram cho cọc / COD thu hộ (rỗng nếu không có cọc hoặc đơn CK).
+ */
+export function formatTelegramDepositLines({ totalAmount, depositAmount, paymentMethod }) {
+    const deposit = Math.max(0, Math.round(Number(depositAmount) || 0));
+    if (deposit <= 0) return '';
+    if (isBankPaymentMethod(paymentMethod)) return '';
+    const total = Math.max(0, Math.round(Number(totalAmount) || 0));
+    const cod = computeCodCollectAmount(total, deposit, paymentMethod);
+    let lines = `💵 Đã cọc: <b>${deposit.toLocaleString('vi-VN')}đ</b>\n`;
+    lines += `📦 Thu COD: <b>${cod.toLocaleString('vi-VN')}đ</b>\n`;
+    return lines;
+}
+
 /**
  * Gửi thông báo đơn hàng mới qua Telegram
  * @param {Object} orderData - Dữ liệu đơn hàng
@@ -107,7 +123,16 @@ function createTelegramMessage(orderData) {
     
     // Phương thức thanh toán
     const paymentMethod = getPaymentMethodText(orderData.paymentMethod);
-    message += `💳 Thanh toán: ${paymentMethod}\n\n`;
+    message += `💳 Thanh toán: ${paymentMethod}\n`;
+
+    const depositLines = formatTelegramDepositLines({
+        totalAmount: orderData.totalAmount ?? orderData.total_amount ?? orderData.total,
+        depositAmount: orderData.depositAmount ?? orderData.deposit_amount,
+        paymentMethod: orderData.paymentMethod ?? orderData.payment_method
+    });
+    if (depositLines) message += depositLines;
+
+    message += `\n`;
 
     // Thông tin khách hàng
     message += `👤 <b>KHÁCH HÀNG</b>\n`;
@@ -174,6 +199,7 @@ function getPaymentMethodText(paymentMethod) {
     switch (paymentMethod) {
         case 'cod':
             return "COD (Thanh toán khi nhận)";
+        case 'bank':
         case 'bank_transfer':
             return "Chuyển khoản ngân hàng";
         default:

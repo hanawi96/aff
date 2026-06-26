@@ -69,6 +69,9 @@ function showProfitBreakdown(orderId) {
     // revenue = productTotal + shippingFee - discountAmount
     const discountAmount = order.discount_amount || 0;
     const revenue = totalAmount + shippingFee - discountAmount;
+    const depositAmount = getOrderDepositAmount(order);
+    const codCollect = getOrderCodCollectAmount(order);
+    const isBank = isOrderBankPayment(order.payment_method);
 
     // Use saved tax_amount if available, otherwise calculate
     const tax = order.tax_amount || Math.round(revenue * (order.tax_rate || COST_CONSTANTS.TAX_RATE));
@@ -140,6 +143,41 @@ function showProfitBreakdown(orderId) {
                             <span class="font-bold text-gray-900">Tổng doanh thu</span>
                             <span class="text-lg font-bold text-green-600">${formatCurrency(revenue)}</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Thanh toán / COD -->
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <h4 class="font-semibold text-gray-900">Thu hộ / Cọc</h4>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 space-y-2 border border-orange-100">
+                        ${isBank ? `
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Hình thức</span>
+                            <span class="font-semibold text-green-700">Đã chuyển khoản</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Khách đã thanh toán đủ — không thu COD khi giao.</p>
+                        ` : `
+                        ${depositAmount > 0 ? `
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-sky-700 font-medium">Đã cọc trước</span>
+                            <span class="font-semibold text-sky-700">${formatCurrency(depositAmount)}</span>
+                        </div>
+                        ` : ''}
+                        <div class="flex justify-between items-center ${depositAmount > 0 ? 'pt-2 border-t border-orange-200' : ''}">
+                            <span class="text-sm font-medium text-gray-700">Thu COD khi giao</span>
+                            <span class="text-lg font-bold text-orange-600">${formatCurrency(codCollect)}</span>
+                        </div>
+                        ${depositAmount > 0 ? `
+                        <p class="text-xs text-gray-500">${formatCurrency(revenue)} − ${formatCurrency(depositAmount)} cọc = ${formatCurrency(codCollect)} COD</p>
+                        ` : ''}
+                        `}
                     </div>
                 </div>
 

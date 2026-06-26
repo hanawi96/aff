@@ -39,6 +39,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-ctv-modal.js',
     'public/assets/js/orders/orders-delete-modals.js',
     'public/assets/js/orders/orders-edit-modals.js',
+    'public/assets/js/orders/orders-payment-summary-modal.js',
     'public/assets/js/orders/orders-customer.js',
     'public/assets/js/orders/orders-chart.js',
     'public/assets/js/orders/orders-discount.js',

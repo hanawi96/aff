@@ -46,7 +46,7 @@ function getStatusBadge(status, orderId, orderCode, order) {
 
     let label = config.label;
     let badgeTitle = '';
-    if (onSendLaterListFilter && currentStatus === 'send_later') {
+    if (currentStatus === 'send_later') {
         if (order && order.planned_send_at_unix) {
             const parts = formatOrderTimeDisplayParts(order.planned_send_at_unix);
             badgeTitle = parts.title || '';

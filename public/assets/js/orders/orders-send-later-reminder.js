@@ -179,6 +179,10 @@ function updateSendLaterUrgentBanner() {
 
     if (!urgent.length) {
         wrap.classList.add('hidden');
+        if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) {
+            clearSendLaterUrgentTableFilter();
+            if (typeof filterOrdersData === 'function') filterOrdersData();
+        }
         closeSendLaterUrgentModal();
         list.innerHTML = '';
         return;
@@ -186,8 +190,13 @@ function updateSendLaterUrgentBanner() {
 
     wrap.classList.remove('hidden');
     const n = urgent.length;
-    txt.textContent =
-        n === 1 ? 'Có 1 đơn gửi sau cần phải làm' : `Có ${n} đơn hàng gửi sau cần làm`;
+    txt.textContent = `${n} đơn gửi sau cần làm`;
+    _syncNotificationBar();
+
+    if (sendLaterUrgentFilterActive) {
+        sendLaterUrgentFilterIds = new Set(urgent.map((u) => Number(u.order.id)));
+        if (typeof filterOrdersData === 'function') filterOrdersData(true);
+    }
 
     list.innerHTML = urgent
         .map(({ order }) => {
@@ -205,6 +214,33 @@ function updateSendLaterUrgentBanner() {
         .join('');
 }
 
+function applySendLaterUrgentFilterFromBadge() {
+    const urgent = collectSendLaterUrgentOrders(allOrdersData || []);
+    if (!urgent.length) {
+        showToast('Không còn đơn gửi sau cần làm', 'info');
+        return;
+    }
+
+    if (sendLaterUrgentFilterActive) {
+        clearSendLaterUrgentTableFilter();
+        filterOrdersData();
+        showToast('Đã bỏ lọc đơn gửi sau cần làm', 'info', 2000);
+        return;
+    }
+
+    _clearSearchForNotificationFilter();
+    missingSizeFilterActive = false;
+    if (typeof _setMissingSizeFilterUI === 'function') _setMissingSizeFilterUI(false);
+
+    sendLaterUrgentFilterActive = true;
+    sendLaterUrgentFilterIds = new Set(urgent.map((u) => Number(u.order.id)));
+    setSendLaterUrgentChipUI(true);
+
+    filterOrdersData();
+    scrollToOrdersTable();
+    showToast(`Đang hiển thị ${urgent.length} đơn gửi sau cần làm`, 'info', 2500);
+}
+
 function initSendLaterUrgentBanner() {
     if (_sendLaterBannerBound) return;
     const eye = document.getElementById('sendLaterUrgentEyeBtn');
@@ -217,7 +253,7 @@ function initSendLaterUrgentBanner() {
 
     eye.addEventListener('click', (e) => {
         e.stopPropagation();
-        openSendLaterUrgentModal();
+        applySendLaterUrgentFilterFromBadge();
     });
 
     backdrop.addEventListener('click', () => closeSendLaterUrgentModal());
@@ -236,3 +272,11 @@ function initSendLaterUrgentBanner() {
 }
 
 initSendLaterUrgentBanner();
+
+function _syncNotificationBar() {
+    const bar = document.getElementById('notificationBar');
+    const sendLater = document.getElementById('sendLaterUrgentWrap');
+    if (!bar || !sendLater) return;
+    if (sendLater.classList.contains('hidden')) bar.classList.add('hidden');
+    else bar.classList.remove('hidden');
+}

@@ -1,7 +1,6 @@
 /**
- * Orders Address Selector
- * Extracted from orders.js
- * 
+ * Orders Address Selector (2 cấp: Tỉnh/TP → Phường/Xã)
+ *
  * Dependencies:
  * - window.addressSelector from address-selector.js
  */
@@ -11,42 +10,29 @@
 // ============================================
 
 async function initAddressSelector(duplicateData = null) {
-    // Init address selector module
     if (!window.addressSelector.loaded) {
         await window.addressSelector.init();
     }
 
     const provinceSelect = document.getElementById('newOrderProvince');
-    const districtSelect = document.getElementById('newOrderDistrict');
     const wardSelect = document.getElementById('newOrderWard');
     const streetInput = document.getElementById('newOrderStreetAddress');
     const addressPreview = document.getElementById('newOrderAddressPreview');
     const hiddenAddress = document.getElementById('newOrderAddress');
 
-    // Render provinces
     window.addressSelector.renderProvinces(provinceSelect);
 
-    // If duplicating/restoring order with address IDs, set them
     if (duplicateData?.province_id) {
         const provinceId = String(duplicateData.province_id);
-        const districtId = duplicateData.district_id ? String(duplicateData.district_id) : null;
         const wardId = duplicateData.ward_id ? String(duplicateData.ward_id) : null;
 
         provinceSelect.value = provinceId;
+        window.addressSelector.renderWards(wardSelect, provinceId);
 
-        // Always render districts so the dropdown is enabled and populated
-        window.addressSelector.renderDistricts(districtSelect, provinceId);
-
-        if (districtId) {
+        if (wardId) {
             setTimeout(() => {
-                districtSelect.value = districtId;
-                window.addressSelector.renderWards(wardSelect, provinceId, districtId);
-                if (wardId) {
-                    setTimeout(() => {
-                        wardSelect.value = wardId;
-                        updateAddressPreview();
-                    }, 50);
-                }
+                wardSelect.value = wardId;
+                updateAddressPreview();
             }, 50);
         }
 
@@ -55,17 +41,14 @@ async function initAddressSelector(duplicateData = null) {
         }
     }
 
-    // Update preview function
     function updateAddressPreview() {
         const provinceId = provinceSelect.value;
-        const districtId = districtSelect.value;
         const wardId = wardSelect.value;
         const street = streetInput.value;
 
         const fullAddress = window.addressSelector.generateFullAddress(
             street,
             provinceId,
-            districtId,
             wardId
         );
 
@@ -73,16 +56,11 @@ async function initAddressSelector(duplicateData = null) {
         hiddenAddress.value = fullAddress;
     }
 
-    // Setup cascade
     window.addressSelector.setupCascade(
         provinceSelect,
-        districtSelect,
         wardSelect,
         updateAddressPreview
     );
 
-    // Street address input
     streetInput.addEventListener('input', updateAddressPreview);
-
-    // Note: updateAddressPreview() is called inside setTimeout after ward is set
 }
