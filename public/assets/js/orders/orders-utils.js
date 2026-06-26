@@ -102,6 +102,41 @@ function orderPaymentApiKey(v) {
     return isOrderBankPayment(v) ? 'bank' : 'cod';
 }
 
+/** Chỉ giữ chữ số (SĐT, ô tìm). */
+function extractPhoneDigits(str) {
+    return (str ?? '').toString().replace(/\D/g, '');
+}
+
+/** Chuẩn hóa SĐT VN để so khớp: 84… → 0…, thiếu số 0 đầu. */
+function normalizeVNPhoneDigitsForSearch(digits) {
+    let d = extractPhoneDigits(digits);
+    if (!d) return '';
+    if (d.startsWith('84') && d.length >= 11) d = '0' + d.slice(2);
+    else if (d.length === 9 && /^[35789]/.test(d)) d = '0' + d;
+    return d;
+}
+
+/**
+ * Ô tìm có dạng SĐT: chỉ chữ số và dấu phân cách (. - + ( ) khoảng trắng).
+ * Không áp dụng cho mã đơn có chữ (DH…) hay tên khách hàng.
+ */
+function isPhoneLikeSearchQuery(raw) {
+    const s = (raw ?? '').trim();
+    if (!s) return false;
+    const digits = extractPhoneDigits(s);
+    if (digits.length < 3) return false;
+    return /^[\d\s.\-+()]+$/.test(s);
+}
+
+/** Khớp SĐT đơn với từ khóa tìm (khi nhận diện là SĐT). */
+function orderPhoneMatchesSearchQuery(customerPhone, rawQuery) {
+    if (!isPhoneLikeSearchQuery(rawQuery)) return false;
+    const needle = normalizeVNPhoneDigitsForSearch(rawQuery);
+    if (needle.length < 3) return false;
+    const hay = normalizeVNPhoneDigitsForSearch(customerPhone);
+    return hay.includes(needle);
+}
+
 // ============================================
 // DEPOSIT / COD (tiền cọc — khớp backend deposit_amount)
 // ============================================

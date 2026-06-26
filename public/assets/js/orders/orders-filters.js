@@ -121,6 +121,7 @@ function buildSearchIndex() {
             customerName: removeVietnameseTones((order.customer_name || '').toLowerCase()),
             customerNameOriginal: (order.customer_name || '').toLowerCase(),
             phone: order.customer_phone || '',
+            phoneDigits: normalizeVNPhoneDigitsForSearch(order.customer_phone || ''),
             ctvCode: (order.referral_code || '').toLowerCase(),
             address: removeVietnameseTones((order.address || '').toLowerCase()),
             products: productNames,
@@ -214,6 +215,9 @@ function filterOrdersData(preservePage = false) {
     const pageBeforeFilter = preservePage ? currentPage : null;
     const searchRaw = document.getElementById('searchInput')?.value || '';
     const searchTerm = searchRaw.toLowerCase();
+    const searchPhoneDigits = isPhoneLikeSearchQuery(searchRaw)
+        ? normalizeVNPhoneDigitsForSearch(searchRaw)
+        : '';
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
@@ -239,7 +243,9 @@ function filterOrdersData(preservePage = false) {
                 // Primary fields (always search)
                 const matchOrderId = cached.orderId.includes(searchTerm);
                 const matchCustomerName = cached.customerName.includes(normalizedSearchTerm);
-                const matchPhone = cached.phone.includes(searchTerm);
+                const matchPhone = searchPhoneDigits
+                    ? (searchPhoneDigits.length >= 3 && cached.phoneDigits.includes(searchPhoneDigits))
+                    : cached.phone.includes(searchTerm);
                 const matchCTV = cached.ctvCode.includes(searchTerm);
                 
                 // Smart address search: only if term is long enough or has spaces

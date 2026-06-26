@@ -1089,6 +1089,14 @@ function mOrderSearchHaystack(o){
   return parts.join(' ').toLowerCase();
 }
 
+/** Tìm đơn — hỗ trợ SĐT có dấu chấm/khoảng trắng (0386.190596 → 0386190596). */
+function mOrderMatchesSearch(o, rawQuery){
+  const q=(rawQuery||'').trim().toLowerCase();
+  if(!q)return true;
+  if(typeof orderPhoneMatchesSearchQuery==='function'&&orderPhoneMatchesSearchQuery(o.customer_phone,rawQuery))return true;
+  return mOrderSearchHaystack(o).includes(q);
+}
+
 /** Đang ở tab Thống kê mà có từ khóa tìm → chuyển sang danh sách đơn, ẩn thống kê, bỏ highlight tab stats */
 function leaveStatsForOrderSearch(){
   if(currentTab!=='stats')return;
@@ -1113,8 +1121,7 @@ function applyFilter(){
       if(currentTab!=='all'&&currentTab!=='stats'&&(o.status||'pending')!==currentTab)return false;
     }else if(searchListScope!=null&&(o.status||'pending')!==searchListScope)return false;
     if(q){
-      const s=mOrderSearchHaystack(o);
-      if(!s.includes(q))return false;
+      if(!mOrderMatchesSearch(o,searchTerm))return false;
     }
     if(mPriorityFilter&&o.is_priority!==1)return false;
     if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
@@ -1149,7 +1156,7 @@ function updateCounts(){
     const q=searchTerm.toLowerCase();
     return allOrders.filter(o=>{
       if((o.status||'pending')!==s)return false;
-      if(q){const t=mOrderSearchHaystack(o);if(!t.includes(q))return false;}
+      if(q){if(!mOrderMatchesSearch(o,searchTerm))return false;}
       if(mPriorityFilter&&o.is_priority!==1)return false;
       if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
       if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
