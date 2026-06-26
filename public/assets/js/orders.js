@@ -493,17 +493,6 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã CTV (tùy chọn)</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="newOrderReferralCode" data-ctv-input value="${escapeHtml(referralCode)}" placeholder="Nhập mã hoặc chọn từ danh sách" class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                <button type="button" onclick="openCTVPickerModal()" class="flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap">
-                                    Danh sách
-                                </button>
-                            </div>
-                            <div id="ctvVerifyStatus"></div>
-                        </div>
-
-                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Thanh toán</label>
                             <div class="grid grid-cols-3 gap-2">
                                 <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-btn payment-pm-btn payment-btn-cod ${codBtnActive ? 'active' : ''} flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
@@ -739,6 +728,17 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <input type="hidden" id="appliedDiscountManualKind" value="" />
                             <input type="hidden" id="appliedDiscountManualValue" value="" />
                             <input type="hidden" id="appliedDiscountRoundPay" value="0" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã CTV (tùy chọn)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="newOrderReferralCode" data-ctv-input value="${escapeHtml(referralCode)}" placeholder="Nhập mã hoặc chọn từ danh sách" class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                <button type="button" onclick="openCTVPickerModal()" class="flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap">
+                                    Danh sách
+                                </button>
+                            </div>
+                            <div id="ctvVerifyStatus"></div>
                         </div>
 
                         <div>

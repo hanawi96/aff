@@ -352,7 +352,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
 
     let amountSubLine = '';
     if (!isBankTransfer && depositAmount > 0) {
-        amountSubLine = `<p class="text-[10px] text-gray-400 leading-tight mt-0.5 tabular-nums">cọc ${formatCurrency(depositAmount)} → thu ${formatCurrency(codCollect)}</p>`;
+        amountSubLine = `<p class="text-[11px] text-orange-600 font-medium leading-tight mt-0.5 tabular-nums">cọc ${formatCurrency(depositAmount)} → thu ${formatCurrency(codCollect)}</p>`;
     }
 
     tdAmount.innerHTML = `
