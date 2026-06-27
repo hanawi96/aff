@@ -180,7 +180,7 @@ function updateQuickSelectDayChips() {
     }
 
     const chipClass =
-        'quick-select-day-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40';
+        'quick-select-day-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-sm font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40';
 
     wrap.classList.remove('hidden');
     wrap.innerHTML = bundles.map((b) => {
