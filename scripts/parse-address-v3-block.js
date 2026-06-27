@@ -129,6 +129,23 @@ const _LEGACY_HCM_BARE = new Set([
 const _NOISE_RE = /\b(noi dai|keo dai|mo rong|viet nam|vietnam|n\u1ed1i d\u00e0i|k\u00e9o d\u00e0i|m\u1edf r\u1ed9ng)\b/gi;
 const _SUBWARD_RE = /\b(\u1ea5p|\u1ea1p|ap|x\u00f3m|xom|th\u00f4n|thon|t\u1ed5 d\u00e2n ph\u1ed1|to dan pho|t\u1ed5|to|kh\u00f3m|khom|khu ph\u1ed1|khu pho|tdp|ng\u00f5|ngo|h\u1ebem|hem)\s+(\d[\w/]*)\b/gi;
 
+const _UNI_LETTER = /[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/;
+
+function _expandPfNumber(m, num, offset, str) {
+    if (arguments.length === 5) {
+        num = arguments[2];
+        offset = arguments[3];
+        str = arguments[4];
+    }
+    if (offset > 0 && _UNI_LETTER.test(str[offset - 1])) return m;
+    return 'Ph\u01b0\u1eddng ' + num;
+}
+
+function _expandQNumber(m, num, offset, str) {
+    if (offset > 0 && _UNI_LETTER.test(str[offset - 1])) return m;
+    return 'Qu\u1eadn ' + num;
+}
+
 function _findProvinceByWardNeedle(needle, data) {
     const cn = _nn(needle);
     if (!cn) return null;
@@ -309,9 +326,16 @@ function _expand(text, data) {
     text = text.replace(/\s*[-\u2013\u2014|]\s*/g, ', ');
     text = text.replace(/([A-Za-z\u00C0-\u024F\u1E00-\u1EFF]{3,})\.\s*([A-Za-z\u00C0-\u024F\u1E00-\u1EFF])/g, '$1, $2');
 
-    text = text.replace(/\b([PF])\.?(\d{1,2})(?=[qQ]\.?\d{1,2}\b)/gi, 'Ph\u01b0\u1eddng $2 ');
-    text = text.replace(/\bQ\.?\s*(\d{1,2})\b/gi, 'Qu\u1eadn $1');
-    text = text.replace(/\b[PF]\.?\s*(\d{1,2})\b/gi, 'Ph\u01b0\u1eddng $1');
+    text = text.replace(/\b([PF])\.?(\d{1,2})(?=[qQ]\.?\d{1,2}\b)/gi, function (m, _p, n, offset, str) {
+        return _expandPfNumber(m, n, offset, str) + ' ';
+    });
+    text = text.replace(/\bQ\.?\s*(\d{1,2})\b/gi, _expandQNumber);
+    text = text.replace(/\b[PF]\.?\s*(\d{1,2})\b/gi, _expandPfNumber);
+
+    text = text.replace(
+        /\b(?:tp\.?|th\u00e0nh ph\u1ed1|thanh pho)\s+(hcm|tphcm|sg|sai\s*gon|saigon)\b/gi,
+        '$1'
+    );
     text = text.replace(/\b[pP]\.\s?([A-Z][a-zA-Z\u00C0-\u024F]*(?:\s+[A-Z][a-zA-Z\u00C0-\u024F]*){0,2})\b/g,
         'Ph\u01b0\u1eddng $1');
 
@@ -333,7 +357,10 @@ function _expand(text, data) {
             for (let k = 1; k <= Math.min(3, tokens.length - j - 1); k++) protectedIdx.add(j + k);
         }
         if (/^(phuong|ph\u01b0\u1eddng|xa|x\u00e3|thi tran|th\u1ecb tr\u1ea5n|tt)$/i.test(tk)) {
-            for (let k = 1; k <= Math.min(3, tokens.length - j - 1); k++) protectedIdx.add(j + k);
+            for (let k = 1; k <= Math.min(2, tokens.length - j - 1); k++) protectedIdx.add(j + k);
+        }
+        if (/^(\u1ea5p|\u1ea1p|ap|x\u00f3m|xom|th\u00f4n|thon|khu ph\u1ed1|khu pho|tdp|ng\u00f5|ngo)$/i.test(tk)) {
+            for (let k = 1; k <= Math.min(2, tokens.length - j - 1); k++) protectedIdx.add(j + k);
         }
     }
     const out = [];

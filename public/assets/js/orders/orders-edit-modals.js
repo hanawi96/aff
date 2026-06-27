@@ -669,16 +669,81 @@ async function saveCustomerInfo(orderId, orderCode) {
 
 // Edit address
 async function editAddress(orderId, orderCode) {
-    // Find the order
     const order = allOrdersData.find(o => o.id === orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
     }
 
-    // Load address data if not loaded
     if (!window.addressSelector.loaded) {
         await window.addressSelector.init();
+    }
+
+    const isLegacyAddress = window.addressSelector.isLegacyOrderAddress(order);
+
+    if (isLegacyAddress) {
+        const fullAddress = window.addressSelector.formatOrderDisplayAddress(order);
+        const modal = document.createElement('div');
+        modal.id = 'editAddressModal';
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+        modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 rounded-t-xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Địa chỉ giao hàng
+                    </h3>
+                    <button onclick="closeEditAddressModal()" class="text-white/80 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-white/80 mt-1">Đơn hàng: ${escapeHtml(orderCode)}</p>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
+                    <svg class="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div class="text-sm text-amber-900">
+                        <p class="font-semibold">Địa chỉ hành chính cũ (3 cấp)</p>
+                        <p class="mt-1 text-amber-800">Đơn này lưu theo hệ Tỉnh / Quận-Huyện / Phường-Xã trước khi chuyển sang 2 cấp. Không thể chỉnh sửa địa chỉ tại đây.</p>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p class="text-xs font-medium text-gray-500 mb-1">Địa chỉ hiện tại</p>
+                    <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(fullAddress)}</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end">
+                <button
+                    onclick="closeEditAddressModal()"
+                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Đóng
+                </button>
+            </div>
+        </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeEditAddressModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        return;
     }
 
     // Create modal
@@ -730,8 +795,6 @@ async function editAddress(orderId, orderCode) {
                     <div class="mt-2">
                         <input type="text" id="editOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
                     </div>
-                    
-                    <div id="editOrderOldAddressInfo" class="hidden mt-2 p-2 bg-amber-50 rounded border border-amber-300 text-xs text-amber-800"></div>
 
                     <div class="mt-2 p-2 bg-white rounded border border-blue-200">
                         <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
@@ -758,16 +821,12 @@ async function editAddress(orderId, orderCode) {
 
     document.body.appendChild(modal);
 
-    // Setup address selector (2 cấp)
     const provinceSelect = document.getElementById('editOrderProvince');
     const wardSelect = document.getElementById('editOrderWard');
     const streetInput = document.getElementById('editOrderStreetAddress');
     const addressPreview = document.getElementById('editOrderAddressPreview');
 
     window.addressSelector.renderProvinces(provinceSelect);
-
-    let isLegacyAddress = false;
-    const oldAddressInfo = document.getElementById('editOrderOldAddressInfo');
 
     if (order.province_id) {
         const provinceId = String(order.province_id);
@@ -779,14 +838,6 @@ async function editAddress(orderId, orderCode) {
         if (wardId) {
             setTimeout(() => {
                 wardSelect.value = wardId;
-                if (wardSelect.value !== wardId) {
-                    isLegacyAddress = true;
-                    if (oldAddressInfo) {
-                        const parts = [order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
-                        oldAddressInfo.innerHTML = '<span class="text-amber-700 font-medium">Địa chỉ cũ (3 cấp):</span> ' + parts.join(', ');
-                        oldAddressInfo.classList.remove('hidden');
-                    }
-                }
                 updateAddressPreview();
             }, 50);
         }
@@ -800,19 +851,11 @@ async function editAddress(orderId, orderCode) {
         const pId = provinceSelect.value;
         const wId = wardSelect.value;
         const street = streetInput.value;
-
-        if (isLegacyAddress && !wId) {
-            const parts = [street || order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
-            addressPreview.textContent = parts.join(', ') || 'Vui lòng chọn địa chỉ';
-            return;
-        }
-
-        if (wId) isLegacyAddress = false;
-        if (oldAddressInfo) oldAddressInfo.classList.add('hidden');
-
         const fullAddress = window.addressSelector.generateFullAddress(street, pId, wId);
         addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
     }
+
+    updateAddressPreview();
 
     window.addressSelector.setupCascade(
         provinceSelect,
@@ -822,7 +865,6 @@ async function editAddress(orderId, orderCode) {
 
     streetInput.addEventListener('input', updateAddressPreview);
 
-    // Close on Escape
     const escapeHandler = (e) => {
         if (e.key === 'Escape') {
             closeEditAddressModal();
@@ -865,13 +907,6 @@ async function saveAddress(orderId, orderCode) {
         districtId = null;
         districtName = null;
         fullAddress = window.addressSelector.generateFullAddress(streetAddress, provinceId, wardId);
-    } else if (order && order.ward_id) {
-        provinceName = order.province_name || null;
-        wardName = order.ward_name || null;
-        districtId = order.district_id || null;
-        districtName = order.district_name || null;
-        const parts = [streetAddress || order.street_address, wardName, districtName, provinceName].filter(Boolean);
-        fullAddress = parts.join(', ');
     } else {
         showToast('Vui lòng chọn Phường/Xã', 'error');
         return;

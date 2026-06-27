@@ -416,7 +416,7 @@
                 </div>
             </div>
 
-            <!-- Thanh thông báo: đơn gửi sau cần làm -->
+            <!-- Thanh thông báo: đơn gửi sau + chọn nhanh export -->
             <div id="notificationBar" class="mb-5 hidden">
                 <div class="flex flex-wrap items-center gap-2">
                     <div id="sendLaterUrgentWrap" class="hidden">
@@ -428,6 +428,27 @@
                             </svg>
                             <span id="sendLaterUrgentText" class="whitespace-nowrap"></span>
                         </button>
+                    </div>
+                    <div id="quickSelectOrdersWrap"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm shadow-sm"
+                        title="Chọn nhanh số lượng đơn hàng trong danh sách đang lọc (để export)">
+                        <span class="whitespace-nowrap text-xs font-medium text-gray-500">Chọn nhanh SL đơn hàng</span>
+                        <button type="button" data-quick-select="10" onclick="selectQuickOrders(10)"
+                            class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
+                            title="Chọn 10 đơn đầu danh sách đang lọc">10 đơn</button>
+                        <button type="button" data-quick-select="15" onclick="selectQuickOrders(15)"
+                            class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
+                            title="Chọn 15 đơn đầu danh sách đang lọc">15 đơn</button>
+                        <button type="button" data-quick-select="20" onclick="selectQuickOrders(20)"
+                            class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
+                            title="Chọn 20 đơn đầu danh sách đang lọc">20 đơn</button>
+                        <span class="mx-0.5 h-4 w-px bg-gray-200" aria-hidden="true"></span>
+                        <button type="button" data-quick-select="page" onclick="selectQuickOrders(0, 'page')"
+                            class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
+                            title="Chọn tất cả đơn trên trang hiện tại">cả trang</button>
+                        <span class="mx-0.5 h-4 w-px bg-gray-200" aria-hidden="true"></span>
+                        <span class="whitespace-nowrap text-xs font-medium text-gray-500">Theo ngày</span>
+                        <div id="quickSelectDayChips" class="inline-flex flex-wrap items-center gap-1 hidden"></div>
                     </div>
                 </div>
             </div>
@@ -924,7 +945,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=14"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=22"></script>
 </body>
 
 </html>

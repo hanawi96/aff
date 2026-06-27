@@ -284,24 +284,11 @@ function createOrderRow(order, index, pageIndex, totalPageItems) {
     tdAddress.style.minWidth = '350px';
     tdAddress.style.maxWidth = '500px';
     let address = '';
-    if (order.province_id && window.addressSelector?.loaded) {
-        const pId = String(order.province_id);
-        const wId = order.ward_id ? String(order.ward_id) : '';
-        const parts = [order.street_address || ''];
-        const wardName = wId ? window.addressSelector.getWardName(pId, wId) : '';
-        if (wardName) {
-            parts.push(wardName);
-        } else if (order.ward_name) {
-            parts.push(order.ward_name);
-        }
-        if (order.district_name) parts.push(order.district_name);
-        const provinceName = window.addressSelector.getProvinceName(pId);
-        if (provinceName) {
-            parts.push(provinceName);
-        } else if (order.province_name) {
-            parts.push(order.province_name);
-        }
-        address = parts.filter(Boolean).join(', ');
+    if (window.addressSelector?.loaded) {
+        address = window.addressSelector.formatOrderDisplayAddress(order);
+    } else {
+        const parts = [order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
+        address = parts.join(', ') || order.address || '';
     }
     if (!address) address = order.address || 'Chưa có địa chỉ';
     tdAddress.innerHTML = `

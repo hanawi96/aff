@@ -16,6 +16,8 @@ function handleOrderCheckbox(orderId, isChecked) {
     } else {
         selectedOrderIds.delete(orderId);
     }
+    _setQuickSelectActive(null);
+    syncQuickSelectDayChipStates();
     updateBulkActionsUI();
 }
 
@@ -33,8 +35,13 @@ function toggleSelectAll(checked) {
             selectedOrderIds.delete(orderId);
         }
     });
+    if (!checked) _setQuickSelectActive(null);
+    syncQuickSelectDayChipStates();
     updateBulkActionsUI();
 }
+
+let _bulkBarHideTimer = null;
+let _quickSelectActiveKey = null;
 
 /**
  * Update bulk actions UI based on selection count
@@ -44,10 +51,14 @@ function updateBulkActionsUI() {
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCount = document.getElementById('selectedCount');
 
+    if (_bulkBarHideTimer != null) {
+        clearTimeout(_bulkBarHideTimer);
+        _bulkBarHideTimer = null;
+    }
+
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
         if (bulkActionsBar) {
-            // Show with smooth animation
             bulkActionsBar.classList.remove('hidden');
             bulkActionsBar.style.opacity = '0';
             bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
@@ -58,25 +69,228 @@ function updateBulkActionsUI() {
                 bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
             });
         }
-    } else {
-        if (bulkActionsBar) {
-            bulkActionsBar.style.opacity = '0';
-            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
-            setTimeout(() => {
-                bulkActionsBar.classList.add('hidden');
-            }, 300);
-        }
+    } else if (bulkActionsBar) {
+        bulkActionsBar.style.opacity = '0';
+        bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
+        _bulkBarHideTimer = setTimeout(() => {
+            bulkActionsBar.classList.add('hidden');
+            _bulkBarHideTimer = null;
+        }, 300);
     }
 }
 
 /**
  * Clear all selections
+ * @param {{ skipUI?: boolean }} [options]
  */
-function clearSelection() {
+function clearSelection(options = {}) {
     selectedOrderIds.clear();
     document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = false);
     const selectAllCb = document.getElementById('selectAllCheckbox');
     if (selectAllCb) selectAllCb.checked = false;
+    _setQuickSelectActive(null);
+    if (!options.skipUI) updateBulkActionsUI();
+    syncQuickSelectDayChipStates();
+}
+
+/**
+ * Highlight chip chọn nhanh (10 / 15 / 20 / page)
+ */
+function _setQuickSelectActive(key) {
+    _quickSelectActiveKey = key;
+    document.querySelectorAll('.quick-select-btn').forEach((btn) => {
+        const active = key != null && btn.dataset.quickSelect === String(key);
+        btn.classList.toggle('border-purple-300', active);
+        btn.classList.toggle('bg-purple-100', active);
+        btn.classList.toggle('text-purple-800', active);
+    });
+}
+
+/**
+ * Rút gọn DD/MM/YYYY → D/M (cùng năm) hoặc D/M/YYYY
+ */
+function _formatQuickSelectVNDate(ddmmyyyy) {
+    const parts = String(ddmmyyyy || '').split('/');
+    if (parts.length !== 3) return ddmmyyyy;
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const y = parseInt(parts[2], 10);
+    const todayParts = formatDateTimeSplit(Date.now()).date.split('/');
+    const todayYear = parseInt(todayParts[2], 10);
+    if (y === todayYear) return `${d}/${m}`;
+    return `${d}/${m}/${y}`;
+}
+
+/**
+ * Ngày đặt hàng (lịch VN) của đơn — dùng created_at, không dùng shipped_at.
+ */
+function _getOrderPlaceDayVN(order) {
+    const raw = order.created_at_unix ?? order.created_at ?? order.order_date;
+    const ms = parseOrderTimestampMs(raw);
+    if (!Number.isFinite(ms)) return null;
+    const { date } = formatDateTimeSplit(ms);
+    return date || null;
+}
+
+/**
+ * Gom đơn theo ngày đặt (lịch VN), sắp cũ → mới, tối đa N ngày.
+ */
+const QUICK_SELECT_MAX_DAY_CHIPS = 7;
+
+function getOrderDayBundles(orders) {
+    if (!Array.isArray(orders) || !orders.length) return [];
+
+    const map = new Map();
+    for (const o of orders) {
+        const day = _getOrderPlaceDayVN(o);
+        if (!day) continue;
+        if (!map.has(day)) map.set(day, []);
+        map.get(day).push(o);
+    }
+
+    const bundles = [];
+    for (const [dateLabel, matched] of map.entries()) {
+        const raw = matched[0].created_at_unix ?? matched[0].created_at ?? matched[0].order_date;
+        const sortMs = parseOrderTimestampMs(raw);
+        bundles.push({
+            dateLabel,
+            shortLabel: _formatQuickSelectVNDate(dateLabel),
+            count: matched.length,
+            orders: matched,
+            sortMs: Number.isFinite(sortMs) ? sortMs : 0,
+        });
+    }
+
+    bundles.sort((a, b) => a.sortMs - b.sortMs);
+    return bundles.slice(0, QUICK_SELECT_MAX_DAY_CHIPS);
+}
+
+/**
+ * Render chip từng ngày đặt hàng trong danh sách đang lọc.
+ */
+function updateQuickSelectDayChips() {
+    const wrap = document.getElementById('quickSelectDayChips');
+    if (!wrap) return;
+
+    const bundles = getOrderDayBundles(filteredOrdersData);
+    if (!bundles.length) {
+        wrap.innerHTML = '';
+        wrap.classList.add('hidden');
+        return;
+    }
+
+    const chipClass =
+        'quick-select-day-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-xs font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40';
+
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = bundles.map((b) => {
+        const day = escapeHtml(b.dateLabel);
+        const label = escapeHtml(`${b.shortLabel} (${b.count} đơn)`);
+        const title = escapeHtml(`Bấm để chọn/bỏ chọn ${b.count} đơn đặt ngày ${b.dateLabel}`);
+        return `<button type="button" class="${chipClass}" data-order-day="${day}" title="${title}">${label}</button>`;
+    }).join('');
+
+    syncQuickSelectDayChipStates();
+}
+
+function updateQuickSelectOldestDateChip() {
+    updateQuickSelectDayChips();
+}
+
+/**
+ * Đồng bộ highlight chip ngày theo selection hiện tại.
+ */
+function syncQuickSelectDayChipStates() {
+    const bundles = getOrderDayBundles(filteredOrdersData);
+    const bundleByDay = new Map(bundles.map((b) => [b.dateLabel, b]));
+
+    document.querySelectorAll('.quick-select-day-btn').forEach((btn) => {
+        const bundle = bundleByDay.get(btn.dataset.orderDay);
+        if (!bundle) return;
+
+        const ids = bundle.orders.map((o) => Number(o.id));
+        const allSelected = ids.length > 0 && ids.every((id) => selectedOrderIds.has(id));
+        const someSelected = ids.some((id) => selectedOrderIds.has(id));
+
+        btn.classList.toggle('border-purple-300', allSelected);
+        btn.classList.toggle('bg-purple-100', allSelected);
+        btn.classList.toggle('text-purple-800', allSelected);
+        btn.classList.toggle('border-purple-200', someSelected && !allSelected);
+        btn.classList.toggle('bg-purple-50', someSelected && !allSelected);
+    });
+}
+
+/**
+ * Bật/tắt chọn tất cả đơn của một ngày — cộng dồn với các ngày khác.
+ */
+function toggleQuickSelectDay(dayKey) {
+    const bundle = getOrderDayBundles(filteredOrdersData).find((b) => b.dateLabel === dayKey);
+    if (!bundle?.orders.length) return;
+
+    const ids = bundle.orders.map((o) => Number(o.id));
+    const allSelected = ids.every((id) => selectedOrderIds.has(id));
+
+    if (allSelected) {
+        ids.forEach((id) => selectedOrderIds.delete(id));
+    } else {
+        ids.forEach((id) => selectedOrderIds.add(id));
+    }
+
+    _setQuickSelectActive(null);
+    syncQuickSelectDayChipStates();
+    renderOrdersTable();
+    updateBulkActionsUI();
+}
+
+function initQuickSelectDayChips() {
+    if (initQuickSelectDayChips._bound) return;
+    initQuickSelectDayChips._bound = true;
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.quick-select-day-btn');
+        if (!btn || !btn.dataset.orderDay) return;
+        e.preventDefault();
+        toggleQuickSelectDay(btn.dataset.orderDay);
+    });
+}
+
+initQuickSelectDayChips();
+
+/**
+ * Chọn nhanh N đơn đầu danh sách đang lọc (replace selection), hoặc cả trang hiện tại.
+ * @param {number} count — 10, 15, 20 (bỏ qua khi mode === 'page')
+ * @param {'page'|undefined} mode
+ */
+function selectQuickOrders(count, mode) {
+    if (!filteredOrdersData?.length) return;
+
+    const key = mode === 'page' ? 'page' : String(Math.max(1, parseInt(count, 10) || 0));
+
+    if (_quickSelectActiveKey === key) {
+        clearSelection();
+        renderOrdersTable();
+        return;
+    }
+
+    clearSelection({ skipUI: true });
+
+    if (mode === 'page') {
+        toggleSelectAll(true);
+        _setQuickSelectActive('page');
+        return;
+    }
+
+    const n = Math.max(1, parseInt(count, 10) || 0);
+    const picked = filteredOrdersData.slice(0, n);
+    picked.forEach((o) => selectedOrderIds.add(Number(o.id)));
+
+    if (typeof currentPage !== 'undefined' && currentPage !== 1) {
+        currentPage = 1;
+    }
+
+    _setQuickSelectActive(key);
+    syncQuickSelectDayChipStates();
+    renderOrdersTable();
     updateBulkActionsUI();
 }
 

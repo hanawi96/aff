@@ -115,6 +115,77 @@ class AddressSelector {
         return this.wardMap.get(key)?.Name || '';
     }
 
+    /** Chuẩn hóa tên tỉnh/phường để so khớp (bỏ tiền tố Tỉnh/TP, dấu). */
+    _normAddrName(name) {
+        if (!name) return '';
+        return String(name)
+            .toLowerCase()
+            .replace(/^(tỉnh|tinh|thành phố|thanh pho|tp\.?)\s+/i, '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\u0111/g, 'd')
+            .trim();
+    }
+
+    /**
+     * Đơn lưu theo hệ 3 cấp cũ (hoặc ID tỉnh/phường không còn khớp tree_2).
+     * VD: province_id 26 = Vĩnh Phúc (cũ) nhưng tree_2 code 26 = Lai Châu.
+     */
+    isLegacyOrderAddress(order) {
+        if (!order) return false;
+        if (order.district_id || order.district_name) return true;
+        if (!order.province_id) return false;
+        if (!this.loaded) return !!(order.province_name || order.ward_name);
+
+        const pId = String(order.province_id);
+        const wId = order.ward_id ? String(order.ward_id) : '';
+        if (!wId) return true;
+
+        const wardKey = `${pId}-${wId}`;
+        if (!this.wardMap.has(wardKey)) return true;
+
+        if (order.province_name) {
+            const fromTree = this.getProvinceName(pId);
+            if (fromTree && this._normAddrName(order.province_name) !== this._normAddrName(fromTree)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Ghép địa chỉ hiển thị: legacy dùng tên đã lưu DB, mới dùng tree_2. */
+    formatOrderDisplayAddress(order) {
+        if (!order) return 'Chưa có địa chỉ';
+
+        if (this.isLegacyOrderAddress(order)) {
+            const legacy = [
+                order.street_address,
+                order.ward_name,
+                order.district_name,
+                order.province_name
+            ].filter(Boolean).join(', ');
+            return legacy || order.address || 'Chưa có địa chỉ';
+        }
+
+        if (order.province_id && this.loaded) {
+            const pId = String(order.province_id);
+            const wId = order.ward_id ? String(order.ward_id) : '';
+            const parts = [order.street_address || ''];
+            if (wId) {
+                const w = this.getWardName(pId, wId);
+                if (w) parts.push(w);
+                else if (order.ward_name) parts.push(order.ward_name);
+            }
+            const p = this.getProvinceName(pId);
+            if (p) parts.push(p);
+            else if (order.province_name) parts.push(order.province_name);
+            const built = parts.filter(Boolean).join(', ');
+            if (built) return built;
+        }
+
+        return order.address || 'Chưa có địa chỉ';
+    }
+
     generateFullAddress(streetAddress, provinceId, wardId) {
         const parts = [
             streetAddress,

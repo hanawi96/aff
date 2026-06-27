@@ -7,15 +7,15 @@
  * PRIORITY 3: Parse old address string (backward compatibility)
  */
 function parseAddressForExport(order) {
-    // PRIORITY 1: Use IDs to look up full names from tree_2.json (2 cấp)
-    if (order.province_id && window.addressSelector?.loaded) {
+    if (order.province_id && window.addressSelector?.loaded
+        && !window.addressSelector.isLegacyOrderAddress(order)) {
         const pId = String(order.province_id);
         const wId = order.ward_id ? String(order.ward_id) : '';
         const pName = window.addressSelector.getProvinceName(pId);
         const wName = wId ? window.addressSelector.getWardName(pId, wId) : '';
-        if (pName) {
+        if (pName && (!wId || wName)) {
             return {
-                province: pName || order.province_name || '',
+                province: pName,
                 district: order.district_name || '',
                 ward: wName || order.ward_name || '',
                 detail: order.street_address || ''
@@ -23,7 +23,7 @@ function parseAddressForExport(order) {
         }
     }
 
-    // PRIORITY 2: Use stored structured address fields
+    // Địa chỉ 3 cấp cũ hoặc ID không khớp tree_2 — dùng tên đã lưu
     if (order.province_name || order.ward_name || order.street_address) {
         return {
             province: order.province_name || '',

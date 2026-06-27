@@ -58,6 +58,7 @@ const tests = [
     { addr: 'khu pho Hai Son phuong Phuoc hoa thi xa Phu My brvt', exp: ['Ho Chi Minh', 'Phuoc Hoa'] },
     { addr: 'ngõ 268, 2/20 trần quang khải, Phường Nam Định, Tỉnh Ninh Bình', exp: ['Ninh Bình', 'Nam Định'] },
     { addr: 'Đội 4 ấp đông kim, Xã Thống Nhất, Tỉnh Đồng Nai', exp: ['Đồng Nai', 'Thống Nhất'] },
+    { addr: '47/5A, đường 417, ấp 5, xã Củ Chi, TP HCM', exp: ['Ho Chi Minh', 'Cu Chi'] },
 ];
 
 (async () => {

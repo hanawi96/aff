@@ -275,8 +275,6 @@ initSendLaterUrgentBanner();
 
 function _syncNotificationBar() {
     const bar = document.getElementById('notificationBar');
-    const sendLater = document.getElementById('sendLaterUrgentWrap');
-    if (!bar || !sendLater) return;
-    if (sendLater.classList.contains('hidden')) bar.classList.add('hidden');
-    else bar.classList.remove('hidden');
+    if (!bar) return;
+    // Thanh luôn hiện khi bảng đơn đang mở (showTable); chỉ badge gửi sau ẩn/hiện riêng
 }

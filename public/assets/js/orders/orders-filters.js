@@ -382,6 +382,10 @@ function filterOrdersData(preservePage = false) {
     if (typeof updateSendLaterUrgentBanner === 'function') {
         updateSendLaterUrgentBanner();
     }
+
+    if (typeof updateQuickSelectDayChips === 'function') {
+        updateQuickSelectDayChips();
+    }
 }
 
 // ============================================

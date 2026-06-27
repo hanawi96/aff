@@ -32,6 +32,8 @@ function hideLoading() {
 function showTable() {
     document.getElementById('tableContent').classList.remove('hidden');
     document.getElementById('emptyState').classList.add('hidden');
+    const bar = document.getElementById('notificationBar');
+    if (bar) bar.classList.remove('hidden');
 }
 
 /**
