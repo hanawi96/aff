@@ -17,8 +17,8 @@ function handleOrderCheckbox(orderId, isChecked) {
         selectedOrderIds.delete(orderId);
     }
     _setQuickSelectActive(null);
-    syncQuickSelectDayChipStates();
     updateBulkActionsUI();
+    scheduleSyncQuickSelectDayChipStates();
 }
 
 /**
@@ -36,15 +36,17 @@ function toggleSelectAll(checked) {
         }
     });
     if (!checked) _setQuickSelectActive(null);
-    syncQuickSelectDayChipStates();
     updateBulkActionsUI();
+    scheduleSyncQuickSelectDayChipStates();
 }
 
 let _bulkBarHideTimer = null;
+let _bulkBarVisible = false;
+let _syncDayChipsRaf = null;
 let _quickSelectActiveKey = null;
 
 /**
- * Update bulk actions UI based on selection count
+ * Update bulk actions UI — chỉ animate lần đầu hiện / lần cuối ẩn; tick thêm checkbox chỉ đổi số.
  */
 function updateBulkActionsUI() {
     const count = selectedOrderIds.size;
@@ -56,27 +58,42 @@ function updateBulkActionsUI() {
         _bulkBarHideTimer = null;
     }
 
+    if (!bulkActionsBar) return;
+
     if (count > 0) {
         if (selectedCount) selectedCount.textContent = count;
-        if (bulkActionsBar) {
-            bulkActionsBar.classList.remove('hidden');
-            bulkActionsBar.style.opacity = '0';
-            bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
 
-            requestAnimationFrame(() => {
-                bulkActionsBar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                bulkActionsBar.style.opacity = '1';
-                bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
-            });
-        }
-    } else if (bulkActionsBar) {
-        bulkActionsBar.style.opacity = '0';
-        bulkActionsBar.style.transform = 'translateX(-50%) translateY(20px)';
-        _bulkBarHideTimer = setTimeout(() => {
-            bulkActionsBar.classList.add('hidden');
-            _bulkBarHideTimer = null;
-        }, 300);
+        if (_bulkBarVisible) return;
+
+        _bulkBarVisible = true;
+        bulkActionsBar.classList.remove('hidden');
+        bulkActionsBar.style.transition = 'opacity 0.12s ease-out, transform 0.12s ease-out';
+        bulkActionsBar.style.opacity = '1';
+        bulkActionsBar.style.transform = 'translateX(-50%) translateY(0)';
+        return;
     }
+
+    if (!_bulkBarVisible) return;
+
+    _bulkBarVisible = false;
+    bulkActionsBar.style.transition = 'opacity 0.1s ease-in';
+    bulkActionsBar.style.opacity = '0';
+    _bulkBarHideTimer = setTimeout(() => {
+        bulkActionsBar.classList.add('hidden');
+        bulkActionsBar.style.transition = '';
+        bulkActionsBar.style.opacity = '';
+        _bulkBarHideTimer = null;
+    }, 100);
+}
+
+function scheduleSyncQuickSelectDayChipStates() {
+    if (_syncDayChipsRaf != null) cancelAnimationFrame(_syncDayChipsRaf);
+    _syncDayChipsRaf = requestAnimationFrame(() => {
+        _syncDayChipsRaf = null;
+        if (document.querySelector('.quick-select-day-btn')) {
+            syncQuickSelectDayChipStates();
+        }
+    });
 }
 
 /**
@@ -237,8 +254,8 @@ function toggleQuickSelectDay(dayKey) {
     }
 
     _setQuickSelectActive(null);
-    syncQuickSelectDayChipStates();
-    renderOrdersTable();
+    scheduleSyncQuickSelectDayChipStates();
+    syncOrderTableSelection();
     updateBulkActionsUI();
 }
 
@@ -268,7 +285,7 @@ function selectQuickOrders(count, mode) {
 
     if (_quickSelectActiveKey === key) {
         clearSelection();
-        renderOrdersTable();
+        syncOrderTableSelection();
         return;
     }
 
@@ -280,6 +297,7 @@ function selectQuickOrders(count, mode) {
         return;
     }
 
+    const pageBefore = currentPage;
     const n = Math.max(1, parseInt(count, 10) || 0);
     const picked = filteredOrdersData.slice(0, n);
     picked.forEach((o) => selectedOrderIds.add(Number(o.id)));
@@ -289,8 +307,13 @@ function selectQuickOrders(count, mode) {
     }
 
     _setQuickSelectActive(key);
-    syncQuickSelectDayChipStates();
-    renderOrdersTable();
+    scheduleSyncQuickSelectDayChipStates();
+
+    if (pageBefore !== currentPage) {
+        renderOrdersTable({ skipRowAnimation: true });
+    } else {
+        syncOrderTableSelection();
+    }
     updateBulkActionsUI();
 }
 

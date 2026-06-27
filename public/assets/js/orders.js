@@ -74,7 +74,7 @@ function setOrdersItemsPerPage(value) {
     currentPage = Math.min(Math.max(1, currentPage), totalPages);
     renderOrdersTable();
 }
-let dateSortOrder = 'none';
+let dateSortOrder = 'asc';
 let amountSortOrder = 'none';
 let packagingConfig = [];
 

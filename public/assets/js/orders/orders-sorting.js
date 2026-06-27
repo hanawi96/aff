@@ -8,29 +8,16 @@
 // ============================================
 
 /**
- * Toggle date sort order (desc -> asc -> none -> desc)
+ * Toggle date sort order (asc <-> desc). Mặc định asc (cũ nhất trước).
  */
 function toggleDateSort() {
-    // Reset amount sort
     amountSortOrder = 'none';
     updateAmountSortIcon();
 
-    // Cycle through: desc -> asc -> none -> desc
-    if (dateSortOrder === 'desc') {
-        dateSortOrder = 'asc';
-    } else if (dateSortOrder === 'asc') {
-        dateSortOrder = 'none';
-    } else {
-        dateSortOrder = 'desc';
-    }
+    dateSortOrder = dateSortOrder === 'desc' ? 'asc' : 'desc';
 
-    // Update icon
     updateDateSortIcon();
-
-    // Apply sort
     applySorting();
-
-    // Reset to first page
     currentPage = 1;
     renderOrdersTable();
 }
@@ -44,17 +31,11 @@ function updateDateSortIcon() {
 
     if (dateSortOrder === 'desc') {
         icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
-        icon.classList.remove('text-gray-400');
-        icon.classList.add('text-admin-primary');
-    } else if (dateSortOrder === 'asc') {
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />';
-        icon.classList.remove('text-gray-400');
-        icon.classList.add('text-admin-primary');
     } else {
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />';
-        icon.classList.remove('text-admin-primary');
-        icon.classList.add('text-gray-400');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />';
     }
+    icon.classList.remove('text-gray-400');
+    icon.classList.add('text-admin-primary');
 }
 
 // ============================================
@@ -62,53 +43,45 @@ function updateDateSortIcon() {
 // ============================================
 
 /**
- * Toggle amount sort order (desc -> asc -> none -> desc)
+ * Toggle amount sort (desc <-> asc). Lần đầu bấm: desc (lớn nhất trước).
  */
 function toggleAmountSort() {
-    // Reset date sort
-    dateSortOrder = 'none';
+    dateSortOrder = 'asc';
     updateDateSortIcon();
 
-    // Cycle through: desc -> asc -> none -> desc
-    if (amountSortOrder === 'desc') {
-        amountSortOrder = 'asc';
-    } else if (amountSortOrder === 'asc') {
-        amountSortOrder = 'none';
-    } else {
+    if (amountSortOrder === 'none') {
         amountSortOrder = 'desc';
+    } else {
+        amountSortOrder = amountSortOrder === 'desc' ? 'asc' : 'desc';
     }
 
-    // Update icon
     updateAmountSortIcon();
-
-    // Apply sort
     applySorting();
-
-    // Reset to first page
     currentPage = 1;
     renderOrdersTable();
 }
 
 /**
- * Update amount sort icon based on current sort order
+ * Update amount sort icon (xám khi chưa sort giá trị; xanh khi desc/asc).
  */
 function updateAmountSortIcon() {
     const icon = document.getElementById('amountSortIcon');
     if (!icon) return;
 
-    if (amountSortOrder === 'desc') {
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
-        icon.classList.remove('text-gray-400');
-        icon.classList.add('text-green-500');
-    } else if (amountSortOrder === 'asc') {
-        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />';
-        icon.classList.remove('text-gray-400');
-        icon.classList.add('text-green-500');
-    } else {
+    if (amountSortOrder === 'none') {
         icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />';
         icon.classList.remove('text-green-500');
         icon.classList.add('text-gray-400');
+        return;
     }
+
+    if (amountSortOrder === 'desc') {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+    } else {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />';
+    }
+    icon.classList.remove('text-gray-400');
+    icon.classList.add('text-green-500');
 }
 
 // ============================================
@@ -146,11 +119,10 @@ function getOrderSortTimestampMs(statusFilter, order) {
  * Sorting priority:
  * 1. Priority flag (is_priority = 1)
  * 2. User-selected sorting (amount or date)
- * 3. Default: shipped / in_transit / delivered → mới nhất theo thời gian gửi (shipped_at_unix); pending → FIFO theo đặt hàng
+ * 3. Default date sort: asc / desc (dateSortOrder, mặc định asc)
  */
 function applySorting() {
     const currentStatusFilter = document.getElementById('statusFilter')?.value || 'pending';
-    const newestFirstStatuses = ['shipped', 'in_transit', 'delivered', 'send_later'];
 
     filteredOrdersData.sort((a, b) => {
         const priorityA = a.is_priority || 0;
@@ -166,15 +138,7 @@ function applySorting() {
         }
 
         const ts = (o) => getOrderSortTimestampMs(currentStatusFilter, o);
-
-        if (dateSortOrder !== 'none') {
-            const diff = ts(a) - ts(b);
-            return dateSortOrder === 'desc' ? -diff : diff;
-        }
-
-        if (newestFirstStatuses.includes(currentStatusFilter)) {
-            return ts(b) - ts(a);
-        }
-        return ts(a) - ts(b);
+        const diff = ts(a) - ts(b);
+        return dateSortOrder === 'desc' ? -diff : diff;
     });
 }

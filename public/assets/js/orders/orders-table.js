@@ -69,8 +69,9 @@ function getCustomerBadge(customerPhone) {
 
 /**
  * Render orders table with current filtered data
+ * @param {{ skipRowAnimation?: boolean }} [options]
  */
-function renderOrdersTable() {
+function renderOrdersTable(options = {}) {
     const tbody = document.getElementById('ordersTableBody');
 
     if (!tbody) {
@@ -97,19 +98,34 @@ function renderOrdersTable() {
     // Render rows for current page
     pageData.forEach((order, index) => {
         const globalIndex = startIndex + index + 1;
-        const row = createOrderRow(order, globalIndex, index, pageData.length);
+        const row = createOrderRow(order, globalIndex, index, pageData.length, options);
         tbody.appendChild(row);
     });
 
     // Render pagination
     renderPagination(totalPages);
 
-    // Sync header "select all" checkbox with current page state
-    const allCbs = tbody.querySelectorAll('.order-checkbox');
-    const selectAllCb = document.getElementById('selectAllCheckbox');
-    if (selectAllCb) selectAllCb.checked = allCbs.length > 0 && Array.from(allCbs).every(cb => cb.checked);
-
+    syncOrderTableSelection();
     showTable();
+}
+
+/**
+ * Chỉ cập nhật trạng thái checkbox — không rebuild bảng (dùng khi chỉ đổi selection).
+ */
+function syncOrderTableSelection() {
+    const tbody = document.getElementById('ordersTableBody');
+    if (!tbody) return;
+
+    const checkboxes = tbody.querySelectorAll('.order-checkbox');
+    checkboxes.forEach((cb) => {
+        const orderId = Number(cb.dataset.orderId);
+        cb.checked = selectedOrderIds.has(orderId);
+    });
+
+    const selectAllCb = document.getElementById('selectAllCheckbox');
+    if (selectAllCb) {
+        selectAllCb.checked = checkboxes.length > 0 && Array.from(checkboxes).every((cb) => cb.checked);
+    }
 }
 
 // ============================================
@@ -119,9 +135,9 @@ function renderOrdersTable() {
 /**
  * Create a single order row element
  */
-function createOrderRow(order, index, pageIndex, totalPageItems) {
+function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
     const tr = document.createElement('tr');
-    tr.className = 'transition-colors fade-in';
+    tr.className = options.skipRowAnimation ? 'transition-colors' : 'transition-colors fade-in';
     tr.setAttribute('data-order-id', order.id);
     
     // Apply priority styling
