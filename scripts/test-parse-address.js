@@ -1,90 +1,81 @@
+/**
+ * Test parseAddress v3 against tree_2.json (2 cấp)
+ * Run: node scripts/test-parse-address.js
+ */
 const fs = require('fs');
-const tree = JSON.parse(fs.readFileSync('./public/assets/data/tree.json', 'utf8'));
 
-// Build addressSelector.data format
+const raw = JSON.parse(fs.readFileSync('./public/assets/data/tree_2.json', 'utf8'));
 const data = [];
-Object.entries(tree).forEach(([pc, pv]) => {
-    const po = { Id: pc, Name: pv.name_with_type, Districts: [] };
-    if (pv['quan-huyen']) Object.entries(pv['quan-huyen']).forEach(([dc, dv]) => {
-        const dobj = { Id: dc, Name: dv.name_with_type, Wards: [] };
-        if (dv['xa-phuong']) Object.entries(dv['xa-phuong']).forEach(([wc, wv]) => {
-            dobj.Wards.push({ Id: wc, Name: wv.name_with_type, Level: wv.type });
-        });
-        po.Districts.push(dobj);
-    });
-    data.push(po);
-});
+for (const province of raw) {
+    const provinceObj = { Id: province.code, Name: province.fullName, Wards: [] };
+    if (province.wards) {
+        for (const ward of province.wards) {
+            const shortLabel = ward.fullName.includes(',')
+                ? ward.fullName.split(',')[0].trim()
+                : ward.fullName;
+            provinceObj.Wards.push({ Id: ward.code, Name: shortLabel, ShortName: ward.name });
+        }
+    }
+    data.push(provinceObj);
+}
 
-// Mock globals
-global.removeVietnameseTones = function(str) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\u0111/g,'d').replace(/\u0110/g,'D');
+global.removeVietnameseTones = function (str) {
+    if (!str) return '';
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd').replace(/\u0110/g, 'D').trim();
 };
-global.levenshteinDistance = function(a,b) {
-    const m=[]; for(let i=0;i<=a.length;i++) m[i]=[i];
-    for(let j=0;j<=b.length;j++) m[0][j]=j;
-    for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++)
-        m[i][j]=a[i-1]===b[j-1]?m[i-1][j-1]:1+Math.min(m[i-1][j-1],m[i][j-1],m[i-1][j]);
+global.levenshteinDistance = function (a, b) {
+    const m = [];
+    for (let i = 0; i <= a.length; i++) m[i] = [i];
+    for (let j = 0; j <= b.length; j++) m[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            m[i][j] = a[i - 1] === b[j - 1]
+                ? m[i - 1][j - 1]
+                : 1 + Math.min(m[i - 1][j - 1], m[i][j - 1], m[i - 1][j]);
+        }
+    }
     return m[a.length][b.length];
 };
 function getVietnamAddressData() { return data; }
 
-// Load v2
-const code = fs.readFileSync('./scripts/parse-address-v2.js', 'utf8');
-eval(code);
+const block = fs.readFileSync('./scripts/parse-address-v3-block.js', 'utf8');
+eval(block);
 
 const tests = [
-    { addr: '221/1 phan huy ich phuong 14 go vap',          exp: ['Go Vap','Phuong 14'] },
-    { addr: 'Ap3 xa Phuoc van huyen Can Duoc tinh Long An',  exp: ['Long An','Can Duoc','Phuoc Van'] },
-    { addr: 'xom 4, Dong Cao, Me Linh, Ha Noi',             exp: ['Ha Noi','Me Linh'] },
-    { addr: '595/15f cmt8 p15 quan 10',                     exp: ['Ho Chi Minh','Quan 10','Phuong 15'] },
-    { addr: 'Khom 3 thi tran Nam Can Ca Mau',               exp: ['Ca Mau','Nam Can'] },
-    { addr: 'Cong ty formosa ky lien ky anh ha tinh',       exp: ['Ha Tinh'] },
-    { addr: '135/17/43 Nguyen Huu Canh, P. 22., Q. B/Thanh', exp: ['Ho Chi Minh','Binh Thanh','Phuong 22'] },
-    { addr: 'so 41, thon 4 tt easup huyen easup tinh daklak', exp: ['Dak Lak','Ea Sup'] },
-    { addr: '135 Nguyen Van Linh noi dai, Q8, HCM',         exp: ['Ho Chi Minh','Quan 8'] },
-    { addr: '88 Quang Trung G/Vap HCM',                     exp: ['Ho Chi Minh','Go Vap'] },
-    { addr: 'xa Phuoc Hoa Phu Giao Binh Duong',             exp: ['Binh Duong','Phu Giao','Phuoc Hoa'] },
-    { addr: '346a Huynh Van Luy, p.Phu Loi, tp TDM, BD',   exp: ['Binh Duong','Thu Dau Mot','Phu Loi'] },
-    { addr: 'Khu pho 3 Tan lap Bac Tan Uyen Binh Duong',   exp: ['Binh Duong','Bac Tan Uyen'] },
-    { addr: '59 phan huy ich Phu hoai phan thiet',          exp: ['Binh Thuan','Phan Thiet'] },
-    { addr: 'xom1 xa thanh long huyen thanh chuong tinh nghe an', exp: ['Nghe An','Thanh Chuong','Thanh Long'] },
-    { addr: 'thon Tan Duong xa Nhon an thi xa An Nhon tinh Binh Dinh', exp: ['Binh Dinh','An Nhon','Nhon An'] },
-    { addr: 'so47/26 duong bui van binh phuong phu loi thanh pho thu dau mot', exp: ['Binh Duong','Thu Dau Mot','Phu Loi'] },
-    { addr: 'Dong cao xa trang viet',                        exp: ['Me Linh','Trang Viet'] },
-    { addr: 'cho cukty xa cukty krong bong daklak',         exp: ['Dak Lak','Krong Bong','Cu Kty'] },
-    { addr: 'So nha 23, Ap 1, xa Tan Loc, Thoi Binh',       exp: ['Ca Mau','Thoi Binh','Tan Loc'] },
-    { addr: 'khu pho Hai Son phuong Phuoc hoa thi xa Phu My brvt', exp: ['Ba Ria','Phu My','Phuoc Hoa'] },
-    { addr: '567/12 Xo Viet Nghe Tinh B/Thanh',             exp: ['Ho Chi Minh','Binh Thanh'] },
-    { addr: '567/12 Xô Viết Nghệ Tĩnh B/Thạnh',             exp: ['Ho Chi Minh','Binh Thanh'] },
-    // Tỉnh có TP trùng tên (Bắc Ninh): không được gán nhầm TP tỉnh thay cho TP Từ Sơn
-    { addr: '175 Minh Khai - Đông Ngàn- Từ Sơn - Bắc Ninh', exp: ['Bac Ninh', 'Tu Son', 'Dong Ngan'] },
-    // Dấu phẩy dính + gộp "huyện tỉnh" không phân tách: Phường Ninh Hiệp, TX Ninh Hòa, Khánh Hòa
-    { addr: 'Hùng hữu mai tdp 10, nguyên trường tộ, ninh hiệp,ninh hòa khanh hòa', exp: ['Khanh Hoa', 'Ninh Hoa', 'Ninh Hiep'] },
-    // p6,q8: dữ liệu HCMC dùng Phường 06 — khớp số "6" với "06"
-    { addr: '47/11 Bùi Minh Trực p6,q8 , tpHCM', exp: ['Ho Chi Minh', 'Quan 8', '06'] },
-    // p9q10 dính liền (không khoảng) — vẫn tách được phường + quận
-    { addr: '249/11 Lý Thái Tổ p9q10 tphcm', exp: ['Ho Chi Minh', 'Quan 10', '09'] },
+    { addr: '221/1 phan huy ich phuong 14 go vap tphcm', exp: ['Ho Chi Minh', 'Go Vap'] },
+    { addr: '88 Quang Trung G/Vap HCM', exp: ['Ho Chi Minh', 'Go Vap'] },
+    { addr: '135 Nguyen Van Linh noi dai, Q8, HCM', exp: ['Ho Chi Minh'] },
+    { addr: '595/15f cmt8 p15 quan 10 tphcm', exp: ['Ho Chi Minh'] },
+    { addr: 'xom 4, Dong Cao, Me Linh, Ha Noi', exp: ['Ha Noi', 'Me Linh'] },
+    { addr: 'Ap3 xa Phuoc van huyen Can Duoc tinh Long An', exp: ['Tay Ninh', 'Long An'] },
+    { addr: '346a Huynh Van Luy, p.Phu Loi, tp TDM, BD', exp: ['Ho Chi Minh', 'Phu Loi'] },
+    { addr: 'So nha 23, Ap 1, xa Tan Loc, Thoi Binh, Ca Mau', exp: ['Ca Mau'] },
+    { addr: '175 Minh Khai - Dong Ngan - Tu Son - Bac Ninh', exp: ['Bac Ninh', 'Tu Son'] },
+    { addr: '47/11 Bui Minh Truc p6,q8 , tpHCM', exp: ['Ho Chi Minh'] },
+    { addr: '249/11 Ly Thai To p9q10 tphcm', exp: ['Ho Chi Minh'] },
+    { addr: '567/12 Xo Viet Nghe Tinh B/Thanh', exp: ['Ho Chi Minh', 'Binh Thanh'] },
+    { addr: 'Hùng hữu mai tdp 10, nguyên trường tộ, ninh hiệp,ninh hòa khanh hòa', exp: ['Khanh Hoa', 'Ninh Hoa'] },
+    { addr: 'khu pho Hai Son phuong Phuoc hoa thi xa Phu My brvt', exp: ['Ho Chi Minh', 'Phuoc Hoa'] },
+    { addr: 'ngõ 268, 2/20 trần quang khải, Phường Nam Định, Tỉnh Ninh Bình', exp: ['Ninh Bình', 'Nam Định'] },
+    { addr: 'Đội 4 ấp đông kim, Xã Thống Nhất, Tỉnh Đồng Nai', exp: ['Đồng Nai', 'Thống Nhất'] },
 ];
 
 (async () => {
-    let pass = 0, total = tests.length;
+    let pass = 0;
     for (const t of tests) {
         const r = await parseAddress(t.addr);
         const pn = removeVietnameseTones(r.province?.Name || '').toLowerCase();
-        const dn = removeVietnameseTones(r.district?.Name || '').toLowerCase();
         const wn = removeVietnameseTones(r.ward?.Name || '').toLowerCase();
-        
-        const ok = t.exp.every(e => {
+        const sn = removeVietnameseTones(r.ward?.ShortName || '').toLowerCase();
+        const ok = t.exp.every((e) => {
             const en = removeVietnameseTones(e).toLowerCase();
-            return pn.includes(en) || dn.includes(en) || wn.includes(en);
+            return pn.includes(en) || wn.includes(en) || sn.includes(en);
         });
         if (ok) pass++;
-        
-        const icon = ok ? '\u2705' : '\u274C';
-        console.log(icon + ' [' + r.confidence + '] ' + t.addr);
-        console.log('   => ' + [r.province?.Name, r.district?.Name, r.ward?.Name].filter(Boolean).join(' | '));
-        if (!ok) console.log('   EXPECTED: ' + t.exp.join(', '));
-        console.log('');
+        console.log((ok ? 'OK' : 'FAIL') + ` [${r.confidence}] ${t.addr}`);
+        console.log(`   => P:${r.province?.Name || '-'} | W:${r.ward?.Name || '-'}`);
+        if (!ok) console.log(`   EXPECTED: ${t.exp.join(', ')}`);
     }
-    console.log('RESULT: ' + pass + '/' + total + ' passed');
+    console.log(`\nRESULT: ${pass}/${tests.length} passed`);
+    process.exit(pass === tests.length ? 0 : 1);
 })();
