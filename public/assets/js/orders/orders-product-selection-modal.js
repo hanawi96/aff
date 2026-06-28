@@ -14,6 +14,19 @@ const productNotes = {};
 const PRODUCT_WEIGHT_UNKNOWN_LABEL = 'chưa có';
 
 /**
+ * Chuẩn hóa giá trị ô cân nặng nhập tay/hiển thị về state nội bộ:
+ * - '' (rỗng)            → '' (chưa nhập)
+ * - 'chưa có' (mọi hoa thường) → null (DB NULL, hợp lệ)
+ * - giá trị khác         → giữ nguyên (đã trim)
+ */
+function normalizeWeightInputValue(raw) {
+    const v = (raw == null ? '' : String(raw)).trim();
+    if (v === '') return '';
+    if (v.toLowerCase() === PRODUCT_WEIGHT_UNKNOWN_LABEL.toLowerCase()) return null;
+    return v;
+}
+
+/**
  * Sản phẩm thuộc danh mục: khớp với trang Quản lý sản phẩm (category_id chính + category_ids đa danh mục).
  * Chỉ dùng category_id sẽ thiếu SP gắn thêm danh mục qua bảng product_categories.
  */
@@ -298,7 +311,8 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
                 // Không cần cân nặng: SL giữ nhỏ bên trái, ô "Lưu ý" giãn full phần còn lại
                 detailsHtml = `<div class="pt-2 border-t border-purple-200"><div class="flex items-end gap-3"><div class="flex-shrink-0">${qtyBlockHtml}</div><div class="flex-1 min-w-0">${notesBlockHtml}</div></div></div>`;
             } else {
-                const weightCol = `<div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] == null ? '' : (productWeights[p.id] || '')}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div>`;
+                const weightInputValue = productWeights[p.id] === null ? PRODUCT_WEIGHT_UNKNOWN_LABEL : (productWeights[p.id] === undefined ? '' : productWeights[p.id]);
+                const weightCol = `<div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${escapeHtml(String(weightInputValue))}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div>`;
                 detailsHtml = `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2">${qtyBlockHtml}</div>${weightCol}<div class="col-span-7">${notesBlockHtml}</div></div>${weightPresetRow}</div>`;
             }
         }
@@ -514,16 +528,18 @@ function updateProductQuantity(productId, value) {
 }
 
 function updateProductWeight(productId, value) {
-    productWeights[productId] = value.trim();
+    // 'chưa có' → null; rỗng → ''; còn lại giữ nguyên
+    productWeights[productId] = normalizeWeightInputValue(value);
     renderSelectedProductChips();
 }
 
 // Set product weight from preset button
 function setProductWeight(productId, weight) {
     if (weight === null || weight === undefined) {
+        // "chưa có": state = null, input hiển thị nhãn "chưa có" để dễ nhận biết
         productWeights[productId] = null;
         const input = document.getElementById(`weight_${productId}`);
-        if (input) input.value = '';
+        if (input) input.value = PRODUCT_WEIGHT_UNKNOWN_LABEL;
         renderSelectedProductChips();
         return;
     }

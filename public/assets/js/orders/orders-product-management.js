@@ -198,14 +198,20 @@ async function saveProductsToExistingOrder() {
     const missingWeightProducts = [];
     selectedProducts.forEach(productId => {
         const weightInput = document.getElementById(`weight_${productId}`);
-        const domVal = weightInput ? weightInput.value.trim() : '';
-        const wState = productWeights[productId];
-        if (wState === null) return;
-        if (!domVal && (wState === undefined || wState === '')) {
-            const product = allProductsList.find(p => p.id === productId);
-            if (product) missingWeightProducts.push(product.name);
+        const norm = (typeof normalizeWeightInputValue === 'function')
+            ? normalizeWeightInputValue(weightInput ? weightInput.value : '')
+            : (weightInput ? weightInput.value.trim() : '');
+        if (norm === null) { productWeights[productId] = null; return; } // "chưa có" — hợp lệ
+        if (norm === '') {
+            const wState = productWeights[productId];
+            if (wState === null) return; // đã là "chưa có"
+            if (wState === undefined || wState === '') {
+                const product = allProductsList.find(p => p.id === productId);
+                if (product) missingWeightProducts.push(product.name);
+            }
+            return;
         }
-        if (domVal) productWeights[productId] = domVal;
+        productWeights[productId] = norm;
     });
 
     if (missingWeightProducts.length > 0) {
@@ -378,12 +384,15 @@ async function replaceProductInExistingOrder() {
         const product = allProductsList.find(p => p.id === productId);
         if (!product) return;
         const domWeightEl = document.getElementById(`weight_${productId}`);
-        const domVal = domWeightEl ? domWeightEl.value.trim() : '';
-        if (domVal) productWeights[productId] = domVal;
+        const norm = (typeof normalizeWeightInputValue === 'function')
+            ? normalizeWeightInputValue(domWeightEl ? domWeightEl.value : '')
+            : (domWeightEl ? domWeightEl.value.trim() : '');
+        if (norm === null) productWeights[productId] = null;       // "chưa có"
+        else if (norm) productWeights[productId] = norm;
         if (typeof productSkipsWeight === 'function' && productSkipsWeight(product, noWeightIdSet)) return;
         const wState = productWeights[productId];
         if (wState === null) return;
-        const effectiveVal = domVal || (wState !== undefined ? String(wState).trim() : '');
+        const effectiveVal = norm || (wState !== undefined ? String(wState).trim() : '');
         if (!effectiveVal) missingWeightProducts.push(product.name);
     });
     if (missingWeightProducts.length > 0) {

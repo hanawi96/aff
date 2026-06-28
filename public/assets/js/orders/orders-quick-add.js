@@ -233,7 +233,8 @@ function setQuickProductSize(sizeInputId, value) {
     const input = document.getElementById(sizeInputId);
     if (!input) return;
     if (value === null || value === undefined) {
-        input.value = '';
+        // "chưa có": hiển thị chữ "chưa có" trong input để dễ nhận biết, vẫn lưu DB là NULL
+        input.value = 'chưa có';
         input.dataset.sizeExplicitNull = '1';
         return;
     }
@@ -247,8 +248,10 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
     const sizeInput = document.getElementById(sizeInputId);
 
     const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-    const sizeTrim = sizeInput ? sizeInput.value.trim() : '';
-    const explicitNull = sizeInput?.dataset?.sizeExplicitNull === '1';
+    const rawSize = sizeInput ? sizeInput.value.trim() : '';
+    // "chưa có" (qua preset hoặc gõ tay) → coi như chọn NULL, không lưu chuỗi
+    const explicitNull = (sizeInput?.dataset?.sizeExplicitNull === '1') || rawSize.toLowerCase() === 'chưa có';
+    const sizeTrim = explicitNull ? '' : rawSize;
 
     if (!sizeTrim && !explicitNull) {
         showToast('Vui lòng nhập size hoặc chọn "chưa có" trước khi thêm sản phẩm', 'warning');
