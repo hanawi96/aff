@@ -188,12 +188,8 @@ async function saveProductsToExistingOrder() {
         return;
     }
 
-    // REPLACE MODE: delegate to replaceProductInExistingOrder
+    // REPLACE MODE: delegate to replaceProductInExistingOrder (cho phép thay bằng nhiều sản phẩm)
     if (currentEditingProductIndex !== null) {
-        if (selectedProducts.length > 1) {
-            showToast('Chỉ chọn 1 sản phẩm để thay thế', 'warning');
-            return;
-        }
         await replaceProductInExistingOrder();
         return;
     }
@@ -369,26 +365,31 @@ async function replaceProductInExistingOrder() {
     const confirmBtn = document.getElementById('productModalConfirmBtn');
     if (confirmBtn?.dataset.loading === '1') return;
 
-    const productId = selectedProducts[0];
-    const newProduct = allProductsList.find(p => p.id === productId);
-    if (!newProduct) { showToast('Không tìm thấy sản phẩm', 'error'); return; }
-
-    // Validate weight/size
-    const wState = productWeights[productId];
-    const domWeightEl = document.getElementById(`weight_${productId}`);
-    const domVal = domWeightEl ? domWeightEl.value.trim() : '';
-    if (wState !== null) {
-        const effectiveVal = domVal || (wState !== undefined ? String(wState).trim() : '');
-        if (!effectiveVal) {
-            showToast('Vui lòng nhập cân nặng/size cho sản phẩm', 'warning');
-            return;
-        }
-        if (domVal) productWeights[productId] = domVal;
+    if (selectedProducts.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 sản phẩm', 'warning');
+        return;
     }
 
-    const quantity = productQuantities[productId] || 1;
-    const notes = productNotes[productId] || '';
-    const wRaw = productWeights[productId];
+    const noWeightIdSet = (typeof getNoWeightCategoryIdSet === 'function') ? getNoWeightCategoryIdSet() : new Set();
+
+    // Đồng bộ giá trị cân nặng từ DOM (nếu có) + validate cho tất cả sản phẩm được chọn
+    const missingWeightProducts = [];
+    selectedProducts.forEach(productId => {
+        const product = allProductsList.find(p => p.id === productId);
+        if (!product) return;
+        const domWeightEl = document.getElementById(`weight_${productId}`);
+        const domVal = domWeightEl ? domWeightEl.value.trim() : '';
+        if (domVal) productWeights[productId] = domVal;
+        if (typeof productSkipsWeight === 'function' && productSkipsWeight(product, noWeightIdSet)) return;
+        const wState = productWeights[productId];
+        if (wState === null) return;
+        const effectiveVal = domVal || (wState !== undefined ? String(wState).trim() : '');
+        if (!effectiveVal) missingWeightProducts.push(product.name);
+    });
+    if (missingWeightProducts.length > 0) {
+        showToast(`Vui lòng nhập cân nặng/size cho: ${missingWeightProducts.join(', ')}`, 'warning');
+        return;
+    }
 
     setProductModalConfirmLoading(true);
 
@@ -408,26 +409,40 @@ async function replaceProductInExistingOrder() {
             });
         }
 
-        // Determine size/weight type from category
-        const productCategory = allCategoriesList.find(c => c.id === newProduct.category_id);
-        const isAdultBracelet = (productCategory?.name || '').toLowerCase().includes('vòng người lớn');
+        // Build (các) sản phẩm thay thế theo đúng thứ tự chọn
+        const replacements = [];
+        selectedProducts.forEach(productId => {
+            const newProduct = allProductsList.find(p => p.id === productId);
+            if (!newProduct) return;
 
-        const replacement = {
-            product_id: newProduct.id,
-            name: newProduct.name,
-            quantity: quantity
-        };
-        if (newProduct.price !== undefined && newProduct.price !== null) replacement.price = newProduct.price;
-        if (newProduct.cost_price !== undefined && newProduct.cost_price !== null) replacement.cost_price = newProduct.cost_price;
+            const skipsWeight = (typeof productSkipsWeight === 'function') && productSkipsWeight(newProduct, noWeightIdSet);
+            const productCategory = allCategoriesList.find(c => c.id === newProduct.category_id);
+            const isAdultBracelet = (productCategory?.name || '').toLowerCase().includes('vòng người lớn');
 
-        if (wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
-            let finalSize = String(wRaw).trim();
-            if (/^\d+(\.\d+)?$/.test(finalSize)) finalSize += isAdultBracelet ? 'cm' : 'kg';
-            replacement.size = finalSize;
-        }
-        if (notes) replacement.notes = notes;
+            const quantity = productQuantities[productId] || 1;
+            const notes = productNotes[productId] || '';
+            const wRaw = productWeights[productId];
 
-        products[currentEditingProductIndex] = replacement;
+            const replacement = {
+                product_id: newProduct.id,
+                name: newProduct.name,
+                quantity: quantity
+            };
+            if (newProduct.price !== undefined && newProduct.price !== null) replacement.price = newProduct.price;
+            if (newProduct.cost_price !== undefined && newProduct.cost_price !== null) replacement.cost_price = newProduct.cost_price;
+
+            if (!skipsWeight && wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
+                let finalSize = String(wRaw).trim();
+                if (/^\d+(\.\d+)?$/.test(finalSize)) finalSize += isAdultBracelet ? 'cm' : 'kg';
+                replacement.size = finalSize;
+            }
+            if (notes) replacement.notes = notes;
+            replacements.push(replacement);
+        });
+
+        if (replacements.length === 0) throw new Error('Không tìm thấy sản phẩm');
+
+        products.splice(currentEditingProductIndex, 1, ...replacements);
         const updatedProductsJson = JSON.stringify(products);
 
         // Recalculate shipping freeship condition

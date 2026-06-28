@@ -149,6 +149,7 @@ function showProductSelectionModal() {
                         </div>
                         <button onclick="toggleSelectAllProducts()" id="selectAllBtn" class="px-4 py-2 text-sm bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg font-medium transition-colors whitespace-nowrap">Chọn tất cả</button>
                     </div>
+                    <div id="modalSelectedChips" class="hidden mb-3"></div>
                     <div id="modalProductsListContainer" class="bg-white rounded-lg border border-purple-200 max-h-64 lg:max-h-80 xl:max-h-96 overflow-y-auto">
                         <div id="modalProductsList" class="grid grid-cols-2 gap-px bg-gray-100"></div>
                     </div>
@@ -171,6 +172,7 @@ function showProductSelectionModal() {
     document.body.appendChild(modal);
     renderModalCategories();
     renderModalProductsList();
+    renderSelectedProductChips();
     setupModalProductSearch();
     modal.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -306,36 +308,18 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
 }
 
 function selectModalProduct(productId) {
-    // Replace mode (đơn đã lưu hoặc đơn đang soạn): enforce single-select
-    if (currentEditingProductIndex !== null || currentEditingLocalProductIndex !== null) {
-        const isAlreadySelected = selectedProducts.includes(productId);
-        // Clear all previous selections
-        selectedProducts.forEach(id => {
-            delete productQuantities[id];
-            delete productWeights[id];
-            delete productNotes[id];
-        });
-        selectedProducts = [];
-        if (!isAlreadySelected) {
-            selectedProducts = [productId];
-            productQuantities[productId] = 1;
-            productWeights[productId] = '';
-            productNotes[productId] = '';
-        }
+    // Multi-select cho mọi chế độ (thêm mới & sửa): tích/bỏ tích từng sản phẩm
+    const index = selectedProducts.indexOf(productId);
+    if (index > -1) {
+        selectedProducts.splice(index, 1);
+        delete productQuantities[productId];
+        delete productWeights[productId];
+        delete productNotes[productId];
     } else {
-        // Add mode: multi-select
-        const index = selectedProducts.indexOf(productId);
-        if (index > -1) {
-            selectedProducts.splice(index, 1);
-            delete productQuantities[productId];
-            delete productWeights[productId];
-            delete productNotes[productId];
-        } else {
-            selectedProducts.push(productId);
-            productQuantities[productId] = 1;
-            productWeights[productId] = '';
-            productNotes[productId] = '';
-        }
+        selectedProducts.push(productId);
+        productQuantities[productId] = 1;
+        productWeights[productId] = '';
+        productNotes[productId] = '';
     }
     updateSelectedProductsDisplay();
     const searchInput = document.getElementById('modalProductSearchInput');
@@ -344,6 +328,7 @@ function selectModalProduct(productId) {
 }
 
 function updateSelectedProductsDisplay() {
+    renderSelectedProductChips();
     const display = document.getElementById('modalSelectedProductDisplay');
     if (!display) return;
     if (selectedProducts.length === 0) {
@@ -362,6 +347,107 @@ function updateSelectedProductsDisplay() {
     }, 0);
     document.getElementById('modalSelectedProductName').innerHTML = namesHtml;
     document.getElementById('modalSelectedProductPrice').textContent = `Tổng: ${formatCurrency(totalPrice)} (${selectedProducts.length} sản phẩm)`;
+}
+
+/**
+ * Thanh "Đã chọn" ngay dưới ô tìm kiếm: chip nằm ngang (tên + cân nặng).
+ * Bấm chip → quay về danh mục chứa sản phẩm (cuộn + highlight); nút × để bỏ chọn.
+ */
+function renderSelectedProductChips() {
+    const container = document.getElementById('modalSelectedChips');
+    if (!container) return;
+
+    if (!Array.isArray(selectedProducts) || selectedProducts.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+
+    const noWeightIdSet = getNoWeightCategoryIdSet();
+    const chips = selectedProducts.map(id => {
+        const product = allProductsList.find(p => p.id === id);
+        if (!product) return '';
+        const name = escapeHtml(product.name);
+
+        let weightBadge = '';
+        if (!productSkipsWeight(product, noWeightIdSet)) {
+            const w = productWeights[id];
+            let label = '';
+            if (w === null) label = 'chưa có';
+            else if (w !== undefined && String(w).trim()) label = String(w).trim();
+            if (label) {
+                weightBadge = `<span class="flex-shrink-0 text-[10px] font-semibold text-purple-700 bg-purple-100 rounded px-1.5 py-0.5 whitespace-nowrap">${escapeHtml(label)}</span>`;
+            }
+        }
+
+        return `<div class="group inline-flex items-center gap-1 pl-2.5 pr-1 py-1 bg-white border border-purple-200 rounded-full shadow-sm hover:border-purple-400 transition-colors">
+            <button type="button" onclick="jumpToSelectedProduct(${id})" class="inline-flex items-center gap-1.5 min-w-0 max-w-[180px]" title="Bấm để xem/sửa sản phẩm này">
+                <span class="truncate text-xs font-medium text-gray-800">${name}</span>
+                ${weightBadge}
+            </button>
+            <button type="button" onclick="removeSelectedProductChip(${id})" class="flex-shrink-0 w-4 h-4 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-red-500 transition-colors" title="Bỏ chọn">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `<div class="flex items-center gap-2 flex-wrap rounded-lg border border-purple-200 bg-purple-50/60 px-3 py-2">
+        <span class="flex-shrink-0 text-xs font-semibold text-purple-700 whitespace-nowrap">Đã chọn (${selectedProducts.length}):</span>
+        <div class="flex items-center gap-1.5 flex-wrap">${chips}</div>
+    </div>`;
+    container.classList.remove('hidden');
+}
+
+/** Quay về danh mục chứa sản phẩm đã chọn rồi cuộn tới + làm nổi bật thẻ sản phẩm. */
+function jumpToSelectedProduct(productId) {
+    const product = allProductsList.find(p => p.id === productId);
+    if (!product) return;
+
+    // Danh mục để quay về: ưu tiên danh mục đầu tiên trong category_ids, fallback category_id
+    let catId = null;
+    if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
+        catId = parseInt(String(product.category_ids[0]), 10);
+    } else if (product.category_id != null) {
+        catId = parseInt(String(product.category_id), 10);
+    }
+    selectedCategory = (catId != null && !Number.isNaN(catId)) ? catId : null;
+
+    // Xóa từ khóa tìm kiếm để đảm bảo sản phẩm hiện trong danh mục
+    const searchInput = document.getElementById('modalProductSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    renderModalCategories();
+    renderModalProductsList(selectedCategory, '');
+
+    // Cuộn tới giữa danh sách + highlight tạm thời
+    setTimeout(() => {
+        const listContainer = document.getElementById('modalProductsListContainer');
+        const el = document.getElementById(`modal_product_${productId}`);
+        if (listContainer && el) {
+            const cRect = listContainer.getBoundingClientRect();
+            const pRect = el.getBoundingClientRect();
+            const scrollTo = listContainer.scrollTop + pRect.top - cRect.top
+                             - listContainer.clientHeight / 2 + el.clientHeight / 2;
+            listContainer.scrollTop = Math.max(0, scrollTo);
+            el.classList.add('ring-4', 'ring-amber-300', 'ring-offset-1');
+            setTimeout(() => el.classList.remove('ring-4', 'ring-amber-300', 'ring-offset-1'), 1600);
+        }
+    }, 30);
+}
+
+/** Bỏ chọn nhanh 1 sản phẩm từ thanh "Đã chọn". */
+function removeSelectedProductChip(productId) {
+    const idx = selectedProducts.indexOf(productId);
+    if (idx > -1) {
+        selectedProducts.splice(idx, 1);
+        delete productQuantities[productId];
+        delete productWeights[productId];
+        delete productNotes[productId];
+    }
+    updateSelectedProductsDisplay();
+    const searchInput = document.getElementById('modalProductSearchInput');
+    const searchQuery = searchInput ? searchInput.value.trim() : '';
+    renderModalProductsList(selectedCategory, searchQuery);
 }
 
 function toggleSelectAllProducts() {
@@ -429,6 +515,7 @@ function updateProductQuantity(productId, value) {
 
 function updateProductWeight(productId, value) {
     productWeights[productId] = value.trim();
+    renderSelectedProductChips();
 }
 
 // Set product weight from preset button
@@ -437,11 +524,13 @@ function setProductWeight(productId, weight) {
         productWeights[productId] = null;
         const input = document.getElementById(`weight_${productId}`);
         if (input) input.value = '';
+        renderSelectedProductChips();
         return;
     }
     productWeights[productId] = String(weight).trim();
     const input = document.getElementById(`weight_${productId}`);
     if (input) input.value = productWeights[productId];
+    renderSelectedProductChips();
 }
 
 function updateProductNotes(productId, value) {
@@ -540,76 +629,76 @@ function addProductFromModal() {
 }
 
 /**
- * Thay thế/chỉnh sửa 1 sản phẩm trong đơn ĐANG SOẠN (currentOrderProducts) từ modal "Chọn sản phẩm".
- * Chỉ cho chọn đúng 1 sản phẩm; giữ nguyên id dòng cũ (nếu có) để cập nhật đúng khi lưu đơn.
+ * Cập nhật sản phẩm đang sửa trong đơn ĐANG SOẠN (currentOrderProducts) từ modal "Chọn sản phẩm".
+ * Cho phép chọn NHIỀU sản phẩm: thay sản phẩm đang sửa bằng (các) sản phẩm được chọn,
+ * chèn đúng vị trí cũ. Giữ id dòng cũ cho sản phẩm đầu tiên (nếu có) để lưu đơn chính xác.
  */
 function replaceLocalOrderProduct() {
     const index = currentEditingLocalProductIndex;
     if (index === null || index === undefined) return;
 
     if (selectedProducts.length === 0) {
-        showToast('Vui lòng chọn 1 sản phẩm', 'warning');
-        return;
-    }
-    if (selectedProducts.length > 1) {
-        showToast('Chỉ chọn 1 sản phẩm để thay thế', 'warning');
-        return;
-    }
-
-    const productId = selectedProducts[0];
-    const product = allProductsList.find(p => p.id === productId);
-    if (!product) {
-        showToast('Không tìm thấy sản phẩm', 'error');
+        showToast('Vui lòng chọn ít nhất 1 sản phẩm', 'warning');
         return;
     }
 
     const noWeightIdSet = getNoWeightCategoryIdSet();
-    const skipsWeight = productSkipsWeight(product, noWeightIdSet);
 
-    const productCategory = allCategoriesList.find(c => c.id === product.category_id);
-    const isAdultBracelet = (productCategory?.name || '').toLowerCase().includes('vòng người lớn');
-
-    // Validate cân nặng/size (bỏ qua nếu thuộc danh mục không cần cân nặng, hoặc đã chọn "chưa có" = null)
-    const wRaw = productWeights[productId];
-    if (!skipsWeight && wRaw !== null) {
-        const s = wRaw === undefined ? '' : String(wRaw).trim();
-        if (!s) {
-            showToast(`Vui lòng nhập ${isAdultBracelet ? 'size tay' : 'cân nặng'} cho sản phẩm`, 'warning');
-            return;
-        }
+    // Validate cân nặng/size cho tất cả (bỏ qua danh mục không cần cân nặng hoặc đã chọn "chưa có" = null)
+    const missingWeightProducts = [];
+    selectedProducts.forEach(pid => {
+        const product = allProductsList.find(p => p.id === pid);
+        if (!product || productSkipsWeight(product, noWeightIdSet)) return;
+        const w = productWeights[pid];
+        if (w === null) return;
+        const s = w === undefined ? '' : String(w).trim();
+        if (!s) missingWeightProducts.push(product.name);
+    });
+    if (missingWeightProducts.length > 0) {
+        showToast(`Vui lòng nhập cân nặng/size cho: ${missingWeightProducts.join(', ')}`, 'warning');
+        return;
     }
 
-    const quantity = productQuantities[productId] || 1;
-    const notes = productNotes[productId] || '';
     const oldProduct = currentOrderProducts[index];
+    const replacements = [];
+    selectedProducts.forEach((pid, i) => {
+        const product = allProductsList.find(p => p.id === pid);
+        if (!product) return;
 
-    const replacement = {
-        product_id: product.id,
-        name: product.name,
-        quantity: quantity
-    };
-    // Giữ id của dòng order_item cũ (nếu có) để khi lưu đơn không tạo lại dòng mới
-    if (oldProduct && oldProduct.id) replacement.id = oldProduct.id;
-    if (product.price !== undefined && product.price !== null) replacement.price = product.price;
-    if (product.cost_price !== undefined && product.cost_price !== null) replacement.cost_price = product.cost_price;
+        const skipsWeight = productSkipsWeight(product, noWeightIdSet);
+        const productCategory = allCategoriesList.find(c => c.id === product.category_id);
+        const isAdultBracelet = (productCategory?.name || '').toLowerCase().includes('vòng người lớn');
 
-    if (!skipsWeight && wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
-        let finalSize = String(wRaw).trim();
-        if (/^\d+(\.\d+)?$/.test(finalSize)) finalSize += isAdultBracelet ? 'cm' : 'kg';
-        if (isAdultBracelet) {
-            replacement.size = finalSize;
-        } else {
-            replacement.weight = finalSize;
+        const quantity = productQuantities[pid] || 1;
+        const notes = productNotes[pid] || '';
+        const wRaw = productWeights[pid];
+
+        const rep = { product_id: product.id, name: product.name, quantity };
+        // Giữ id dòng order_item cũ cho sản phẩm đầu tiên (nếu có)
+        if (i === 0 && oldProduct && oldProduct.id) rep.id = oldProduct.id;
+        if (product.price !== undefined && product.price !== null) rep.price = product.price;
+        if (product.cost_price !== undefined && product.cost_price !== null) rep.cost_price = product.cost_price;
+
+        if (!skipsWeight && wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
+            let finalSize = String(wRaw).trim();
+            if (/^\d+(\.\d+)?$/.test(finalSize)) finalSize += isAdultBracelet ? 'cm' : 'kg';
+            if (isAdultBracelet) rep.size = finalSize; else rep.weight = finalSize;
         }
-    }
-    if (notes) replacement.notes = notes;
+        if (notes) rep.notes = notes;
+        replacements.push(rep);
+    });
 
-    currentOrderProducts[index] = replacement;
+    if (replacements.length === 0) {
+        showToast('Không tìm thấy sản phẩm', 'error');
+        return;
+    }
+
+    currentOrderProducts.splice(index, 1, ...replacements);
 
     renderOrderProducts();
     updateOrderSummary();
     if (typeof updateOrderNotesDisplay === 'function') updateOrderNotesDisplay();
     closeProductSelectionModal();
-    showToast('Đã cập nhật sản phẩm', 'success');
+    showToast(replacements.length > 1 ? `Đã cập nhật ${replacements.length} sản phẩm` : 'Đã cập nhật sản phẩm', 'success');
 }
 
