@@ -224,8 +224,12 @@ function filterOrdersData(preservePage = false) {
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
-    // Build search index if not exists or data changed
-    if (!searchIndexCache || searchIndexCache.length !== allOrdersData.length) {
+    // D1: chỉ build search index khi thực sự cần — search box có nội dung
+    // hoặc bật lọc "Có lưu ý" (hai chỗ duy nhất đọc `cached` ở dưới).
+    // Tránh parse products của ~1000 đơn ngay lúc load (chặn first paint);
+    // prebuild ở idle (orders-data-loader) lo cho lần search đầu tiên.
+    const needsSearchIndex = !!searchTerm || hasNotesFilterActive;
+    if (needsSearchIndex && (!searchIndexCache || searchIndexCache.length !== allOrdersData.length)) {
         buildSearchIndex();
     }
 

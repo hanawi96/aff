@@ -125,10 +125,28 @@ function _ordersSignature(list) {
     return h;
 }
 
+/** Dựng search index ở lúc rảnh để lần tìm kiếm đầu tiên vẫn tức thì. */
+function _scheduleSearchIndexPrebuild() {
+    const build = () => {
+        if (typeof buildSearchIndex === 'function'
+            && (!searchIndexCache || searchIndexCache.length !== allOrdersData.length)) {
+            buildSearchIndex();
+        }
+    };
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(build, { timeout: 4000 });
+    } else {
+        setTimeout(build, 1500);
+    }
+}
+
 /** Vẽ bảng + thống kê từ allOrdersData hiện tại (dùng chung cho pha cache và pha mạng). */
 function _renderOrdersFromCurrentData() {
     if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
-    buildSearchIndex();
+    // D1: KHÔNG build search index ngay (parse products của ~1000 đơn rất nặng,
+    // chặn first paint). Chỉ đánh dấu cache cũ; filterOrdersData tự build khi cần
+    // (tìm kiếm / lọc "Có lưu ý"), ngoài ra prebuild ở idle để search vẫn tức thì.
+    if (typeof invalidateSearchCache === 'function') invalidateSearchCache();
     // Áp dụng bộ lọc theo DOM (trạng thái mặc định: chưa gửi, thanh toán, CTV, ngày…)
     filterOrdersData();
     updateDateSortIcon();
@@ -136,6 +154,7 @@ function _renderOrdersFromCurrentData() {
     if (typeof updateExportPriorityButton === 'function') {
         updateExportPriorityButton();
     }
+    _scheduleSearchIndexPrebuild();
 }
 
 // Load orders data from API (Stale-While-Revalidate)

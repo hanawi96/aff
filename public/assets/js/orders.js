@@ -110,7 +110,28 @@ document.addEventListener('DOMContentLoaded', function () {
     void updateExportHistoryBadge();
     if (allProductsList.length === 0) void loadProductsAndCategories();
     if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') void loadActiveDiscounts();
-    if (window.addressSelector && !window.addressSelector.loaded) window.addressSelector.init();
+
+    // Hoãn tải dữ liệu địa chỉ (tree_2.json ~615KB) tới lúc rảnh: không tranh
+    // băng thông/CPU với fetch đơn hàng + parse bundle ở first paint.
+    // Bảng vẫn hiện địa chỉ qua fallback (cột DB) trước; khi tree sẵn sàng thì
+    // vẽ lại 1 lần để nâng cấp hiển thị. Modal thêm đơn tự init độc lập khi mở.
+    if (window.addressSelector && !window.addressSelector.loaded) {
+        const _loadAddressTree = () => {
+            window.addressSelector.init()
+                .then(() => {
+                    if (Array.isArray(filteredOrdersData) && filteredOrdersData.length > 0
+                        && typeof renderOrdersTable === 'function') {
+                        renderOrdersTable({ skipRowAnimation: true });
+                    }
+                })
+                .catch(() => { /* giữ fallback địa chỉ */ });
+        };
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(_loadAddressTree, { timeout: 3000 });
+        } else {
+            setTimeout(_loadAddressTree, 1200);
+        }
+    }
 
     setInterval(updateExportHistoryBadge, 30000);
 });

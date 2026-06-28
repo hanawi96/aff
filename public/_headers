@@ -1,0 +1,11 @@
+# Cloudflare Pages headers
+# Dữ liệu địa chỉ hành chính 2025 — gần như tĩnh, cache dài hạn để các lần
+# tải sau không kéo lại file lớn (tree_2.json ~615KB).
+/assets/data/tree_2.json
+  Cache-Control: public, max-age=2592000
+
+/assets/data/tree.json
+  Cache-Control: public, max-age=2592000
+
+/assets/data/ward_mapping_2025.json
+  Cache-Control: public, max-age=2592000
