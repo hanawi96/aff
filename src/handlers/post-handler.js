@@ -281,6 +281,24 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updatePackagingConfig(data, env, corsHeaders);
         case 'updateTaxRate':
             return await updateTaxRate(data, env, corsHeaders);
+        case 'updateOrderNotes':
+            return await updateOrderNotes(data, env, corsHeaders);
+        case 'updateCustomerInfo':
+            return await updateCustomerInfo(data, env, corsHeaders);
+        case 'updateAddress':
+            return await updateAddress(data, env, corsHeaders);
+        case 'updateAmount':
+            return await updateAmount(data, env, corsHeaders);
+        case 'updateDepositAmount':
+            return await updateDepositAmount(data, env, corsHeaders);
+        case 'updatePaymentMethod':
+            return await updatePaymentMethod(data, env, corsHeaders);
+        case 'updateOrderStatus':
+            return await updateOrderStatus(data, env, corsHeaders);
+        case 'toggleOrderPriority':
+            return await toggleOrderPriority(data, env, corsHeaders);
+        case 'deleteOrder':
+            return await deleteOrder(data, env, corsHeaders);
         case 'getProfitReport':
             return await getProfitReport(data, env, corsHeaders);
         case 'calculateCommissions':
