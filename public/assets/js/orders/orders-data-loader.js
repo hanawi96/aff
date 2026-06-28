@@ -53,10 +53,110 @@ function calculatePackagingCost() {
     return totalPackagingCost;
 }
 
-// Load orders data from API
-async function loadOrdersData() {
+// ============================================
+// ORDERS CACHE (Stale-While-Revalidate qua IndexedDB)
+// ============================================
+// Mục tiêu: mở trang lần sau hiển thị NGAY danh sách đã lưu (không chờ mạng),
+// rồi tải dữ liệu mới ở nền và chỉ vẽ lại khi dữ liệu thực sự thay đổi.
+const ORDERS_CACHE_DB = 'ctv_admin_cache';
+const ORDERS_CACHE_STORE = 'kv';
+const ORDERS_CACHE_KEY = 'recentOrders_v1';
+
+function _openOrdersCacheDB() {
+    return new Promise((resolve, reject) => {
+        try {
+            const req = indexedDB.open(ORDERS_CACHE_DB, 1);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(ORDERS_CACHE_STORE)) {
+                    db.createObjectStore(ORDERS_CACHE_STORE);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
+async function _readOrdersCache() {
     try {
-        showLoading();
+        const db = await _openOrdersCacheDB();
+        return await new Promise((resolve) => {
+            const tx = db.transaction(ORDERS_CACHE_STORE, 'readonly');
+            const req = tx.objectStore(ORDERS_CACHE_STORE).get(ORDERS_CACHE_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function _writeOrdersCache(orders) {
+    try {
+        const db = await _openOrdersCacheDB();
+        await new Promise((resolve) => {
+            const tx = db.transaction(ORDERS_CACHE_STORE, 'readwrite');
+            tx.objectStore(ORDERS_CACHE_STORE).put({ savedAt: Date.now(), orders }, ORDERS_CACHE_KEY);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        });
+    } catch (e) {
+        /* ignore quota / private mode */
+    }
+}
+
+/**
+ * Chữ ký nhẹ của danh sách đơn — chỉ băm các trường ảnh hưởng hiển thị
+ * (trạng thái, giá trị, ưu tiên, thời gian gửi, độ dài products/notes).
+ * Dùng để bỏ qua re-render khi dữ liệu mới giống hệt cache.
+ */
+function _ordersSignature(list) {
+    if (!Array.isArray(list)) return 0;
+    let h = 5381 + list.length;
+    for (const o of list) {
+        const s = `${o.id}|${o.status || ''}|${o.total_amount || 0}|${o.is_priority || 0}|${o.shipped_at_unix || 0}|${(o.products && o.products.length) || 0}|${(o.notes && o.notes.length) || 0}`;
+        for (let i = 0; i < s.length; i++) {
+            h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+        }
+    }
+    return h;
+}
+
+/** Vẽ bảng + thống kê từ allOrdersData hiện tại (dùng chung cho pha cache và pha mạng). */
+function _renderOrdersFromCurrentData() {
+    if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
+    buildSearchIndex();
+    // Áp dụng bộ lọc theo DOM (trạng thái mặc định: chưa gửi, thanh toán, CTV, ngày…)
+    filterOrdersData();
+    updateDateSortIcon();
+    updateAmountSortIcon();
+    if (typeof updateExportPriorityButton === 'function') {
+        updateExportPriorityButton();
+    }
+}
+
+// Load orders data from API (Stale-While-Revalidate)
+async function loadOrdersData() {
+    // ---- PHA 1: hiển thị ngay từ cache (nếu có) ----
+    let renderedFromCache = false;
+    try {
+        const cached = await _readOrdersCache();
+        if (cached && Array.isArray(cached.orders) && cached.orders.length > 0) {
+            allOrdersData = cached.orders;
+            _renderOrdersFromCurrentData();
+            hideLoading();
+            renderedFromCache = true;
+        }
+    } catch (e) {
+        /* bỏ qua lỗi cache, rơi xuống tải mạng bình thường */
+    }
+
+    // ---- PHA 2: revalidate — luôn tải dữ liệu mới ----
+    try {
+        if (!renderedFromCache) showLoading();
 
         const response = await fetch(`${CONFIG.API_URL}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
 
@@ -67,21 +167,16 @@ async function loadOrdersData() {
         const data = await response.json();
 
         if (data.success) {
-            allOrdersData = data.orders || [];
-            if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
+            const fresh = data.orders || [];
+            // Chỉ vẽ lại khi dữ liệu mới khác cache đang hiển thị (tránh nháy thừa).
+            const changed = !renderedFromCache || _ordersSignature(fresh) !== _ordersSignature(allOrdersData);
+            allOrdersData = fresh;
 
-            // Build search index for fast searching
-            buildSearchIndex();
-
-            // Áp dụng bộ lọc theo DOM (trạng thái mặc định: chưa gửi, thanh toán, CTV, ngày…)
-            // Trước đây gán filteredOrdersData = toàn bộ đơn nên UI lọc và bảng không khớp.
-            filterOrdersData();
-            updateDateSortIcon();
-            updateAmountSortIcon();
-            if (typeof updateExportPriorityButton === 'function') {
-                updateExportPriorityButton();
+            if (changed) {
+                _renderOrdersFromCurrentData();
             }
             hideLoading();
+            void _writeOrdersCache(fresh);
         } else {
             throw new Error(data.error || 'Failed to load data');
         }
@@ -89,7 +184,14 @@ async function loadOrdersData() {
     } catch (error) {
         console.error('Error loading orders data:', error);
         hideLoading();
-        showError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+        if (renderedFromCache) {
+            // Đã có dữ liệu cũ trên màn hình — giữ nguyên, chỉ báo nhẹ.
+            if (typeof showToast === 'function') {
+                showToast('Đang hiển thị dữ liệu đã lưu (chưa kết nối được máy chủ)', 'warning');
+            }
+        } else {
+            showError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+        }
     }
 }
 
