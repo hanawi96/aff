@@ -55,7 +55,7 @@ function showProductSelectionModalForOrder(orderId, orderCode) {
 function showProductSelectionModalForEdit(orderId, orderCode, productIndex, existingProductId, existingWeight = '', existingQty = 1, existingNotes = '') {
     currentEditingOrderId = orderId;
     currentEditingOrderCode = orderCode;
-    currentEditingProductIndex = productIndex;
+    currentEditingLocalProductIndex = null;
 
     // Reset selections before opening
     selectedProducts = [];
@@ -73,6 +73,8 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
     }
 
     showProductSelectionModal();
+    // Bật chế độ THAY THẾ (single-select) SAU khi modal đã reset về mặc định multi-select
+    currentEditingProductIndex = productIndex;
 
     // Update modal UI after DOM is ready
     setTimeout(() => {
@@ -123,7 +125,6 @@ function showProductSelectionModalForLocalEdit(productIndex) {
     currentEditingOrderId = null;
     currentEditingOrderCode = null;
     currentEditingProductIndex = null;
-    currentEditingLocalProductIndex = productIndex;
 
     // Reset lựa chọn trước khi mở
     selectedProducts = [];
@@ -144,6 +145,8 @@ function showProductSelectionModalForLocalEdit(productIndex) {
     }
 
     showProductSelectionModal();
+    // Bật chế độ THAY THẾ (single-select) SAU khi modal đã reset về mặc định multi-select
+    currentEditingLocalProductIndex = productIndex;
 
     // Cập nhật UI sau khi DOM sẵn sàng
     setTimeout(() => {

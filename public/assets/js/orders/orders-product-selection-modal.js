@@ -107,6 +107,11 @@ function showProductSelectionModal() {
         existingModal.remove();
     }
 
+    // MẶC ĐỊNH: chế độ THÊM (multi-select). Các opener "thay thế/sửa" sẽ gán lại cờ
+    // NGAY SAU khi gọi hàm này → đảm bảo mọi luồng thêm luôn cho chọn nhiều sản phẩm.
+    currentEditingProductIndex = null;
+    currentEditingLocalProductIndex = null;
+
     const modal = document.createElement('div');
     modal.id = 'productSelectionModal';
     modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4';
@@ -180,6 +185,24 @@ function showProductSelectionModal() {
     setTimeout(() => document.getElementById('modalProductSearchInput')?.focus(), 100);
 }
 
+
+/**
+ * Mở modal "Chọn sản phẩm" ở chế độ THÊM cho đơn đang soạn.
+ * Luôn reset sạch state (kể cả state còn sót từ lần sửa/thay thế trước) để đảm bảo
+ * chế độ multi-select (chọn & thêm nhiều sản phẩm cùng lúc) hoạt động ổn định.
+ */
+function showProductSelectionModalForNewOrder() {
+    currentEditingOrderId = null;
+    currentEditingOrderCode = null;
+    currentEditingProductIndex = null;
+    currentEditingLocalProductIndex = null;
+    selectedProducts = [];
+    selectedCategory = null;
+    Object.keys(productQuantities).forEach(k => delete productQuantities[k]);
+    Object.keys(productWeights).forEach(k => delete productWeights[k]);
+    Object.keys(productNotes).forEach(k => delete productNotes[k]);
+    showProductSelectionModal();
+}
 
 function closeProductSelectionModal() {
     const modal = document.getElementById('productSelectionModal');
@@ -352,6 +375,7 @@ function toggleSelectAllProducts() {
         const query = searchQuery.toLowerCase();
         products = products.filter(p => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)));
     }
+    const noWeightIdSet = getNoWeightCategoryIdSet();
     const allSelected = products.every(p => selectedProducts.includes(p.id));
     if (allSelected) {
         products.forEach(p => {
@@ -359,6 +383,8 @@ function toggleSelectAllProducts() {
             if (index > -1) {
                 selectedProducts.splice(index, 1);
                 delete productQuantities[p.id];
+                delete productWeights[p.id];
+                delete productNotes[p.id];
             }
         });
     } else {
@@ -366,6 +392,11 @@ function toggleSelectAllProducts() {
             if (!selectedProducts.includes(p.id)) {
                 selectedProducts.push(p.id);
                 productQuantities[p.id] = 1;
+                // Khởi tạo state nhất quán với chọn thủ công; SP danh mục không cần cân nặng → null (hợp lệ ngay)
+                if (productWeights[p.id] === undefined) {
+                    productWeights[p.id] = productSkipsWeight(p, noWeightIdSet) ? null : '';
+                }
+                if (productNotes[p.id] === undefined) productNotes[p.id] = '';
             }
         });
     }
