@@ -908,8 +908,13 @@ function calculateTotalCost() {
         costPriceInput.readOnly = true;
         costPriceInput.classList.add('bg-purple-50', 'border-purple-300');
         
-        // Trigger selling price update based on markup (if auto-pricing is enabled)
-        if (typeof updateSellingPriceFromMarkup === 'function') {
+        // Tính lại giá bán theo ĐÚNG phương thức đang chọn:
+        // - 'profit': giá bán = giá vốn + lãi mong muốn (tự gợi ý lãi nếu để trống)
+        // - 'markup': giá bán = giá vốn × hệ số markup
+        const pricingMethod = (typeof currentPricingMethod !== 'undefined') ? currentPricingMethod : 'markup';
+        if (pricingMethod === 'profit' && typeof updateSellingPriceFromProfit === 'function') {
+            updateSellingPriceFromProfit();
+        } else if (typeof updateSellingPriceFromMarkup === 'function') {
             updateSellingPriceFromMarkup();
         }
         

@@ -1104,19 +1104,19 @@ function showAddProductModal() {
                                     ⚙️ Phương thức tính giá
                                 </label>
                                 <div class="flex bg-white rounded-lg p-1 border border-purple-200">
-                                    <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
-                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all bg-purple-600 text-white">
-                                        Theo hệ số markup
-                                    </button>
                                     <button type="button" id="profitMethodBtn" onclick="setPricingMethod('profit')"
-                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-purple-600">
+                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all bg-purple-600 text-white">
                                         Theo lãi mong muốn
+                                    </button>
+                                    <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
+                                        class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-purple-600">
+                                        Theo hệ số markup
                                     </button>
                                 </div>
                             </div>
                             
                             <!-- Markup Method Container -->
-                            <div id="markupMethodContainer">
+                            <div id="markupMethodContainer" class="hidden">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     📊 Hệ số markup
                                 </label>
@@ -1163,7 +1163,7 @@ function showAddProductModal() {
                             </div>
                             
                             <!-- Profit Method Container -->
-                            <div id="profitMethodContainer" class="hidden">
+                            <div id="profitMethodContainer">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     💰 Lãi mong muốn
                                 </label>
@@ -1371,6 +1371,9 @@ function showAddProductModal() {
     
     // Initialize materials formula (empty for new product)
     loadProductFormula(null);
+
+    // Mặc định dùng phương thức "Theo lãi mong muốn" cho sản phẩm mới
+    setPricingMethod('profit');
 }
 
 // Set markup preset from button
@@ -2401,13 +2404,13 @@ async function editProduct(productId) {
                                         ⚙️ Phương thức tính giá
                                     </label>
                                     <div class="flex bg-white rounded-lg p-1 border border-purple-200">
-                                        <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
-                                            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${(product.pricing_method || 'markup') === 'markup' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600'}">
-                                            Theo hệ số markup
-                                        </button>
                                         <button type="button" id="profitMethodBtn" onclick="setPricingMethod('profit')"
                                             class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${(product.pricing_method || 'markup') === 'profit' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600'}">
                                             Theo lãi mong muốn
+                                        </button>
+                                        <button type="button" id="markupMethodBtn" onclick="setPricingMethod('markup')"
+                                            class="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${(product.pricing_method || 'markup') === 'markup' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600'}">
+                                            Theo hệ số markup
                                         </button>
                                     </div>
                                 </div>
@@ -4613,8 +4616,24 @@ function updateSellingPriceFromProfit() {
     
     if (!targetProfitInput || !costPriceInput || !priceInput) return;
     
-    const targetProfit = parseFormattedNumber(targetProfitInput.value) || 0;
+    const rawProfitValue = (targetProfitInput.value || '').trim();
+    let targetProfit = parseFormattedNumber(rawProfitValue) || 0;
     const costPrice = parseFormattedNumber(costPriceInput.value) || 0;
+
+    // PA1: Khi đã có giá vốn nhưng ô "Lãi mong muốn" còn trống, tự gợi ý mức lãi
+    // mặc định dựa trên hệ số markup chuẩn để Lãi / Giá bán / Giá vốn luôn khớp
+    // nhau (tránh tình trạng ô lãi trống mà giá bán vẫn có số).
+    const autoPricingChk = document.getElementById('autoPricingEnabled');
+    const autoPricingOn = !autoPricingChk || autoPricingChk.checked;
+    if (autoPricingOn && costPrice > 0 && rawProfitValue === ''
+        && document.activeElement !== targetProfitInput
+        && typeof autoCalculateSellingPrice === 'function') {
+        const materialCount = (typeof window.getSelectedMaterials === 'function')
+            ? window.getSelectedMaterials().length : 0;
+        const suggestedPrice = autoCalculateSellingPrice(costPrice, materialCount);
+        targetProfit = Math.max(0, suggestedPrice - costPrice);
+        targetProfitInput.value = formatNumber(targetProfit);
+    }
     
     if (costPrice > 0 && targetProfit >= 0) {
         const rawPrice = costPrice + targetProfit;
@@ -4633,6 +4652,13 @@ function updateSellingPriceFromProfit() {
 
         if (markupInput) {
             markupInput.value = markup.toFixed(2);
+        }
+
+        // Giữ "Giá gốc" đồng bộ như chế độ markup (giá bán + 20.000đ) để badge
+        // giảm giá hoạt động và các ô luôn nhất quán.
+        const originalPriceInput = document.getElementById('productOriginalPrice');
+        if (originalPriceInput) {
+            originalPriceInput.value = formatNumber(sellingPrice + 20000);
         }
 
         calculateExpectedProfit();
