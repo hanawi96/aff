@@ -111,6 +111,71 @@ function showProductSelectionModalForEdit(orderId, orderCode, productIndex, exis
 }
 
 /**
+ * Show product selection modal in LOCAL REPLACE mode (đơn đang soạn — chưa lưu DB).
+ * Thay thế/chỉnh sửa 1 sản phẩm trong currentOrderProducts thông qua modal "Chọn sản phẩm".
+ * @param {number} productIndex - index trong currentOrderProducts
+ */
+function showProductSelectionModalForLocalEdit(productIndex) {
+    const oldProduct = currentOrderProducts[productIndex];
+    if (!oldProduct) return;
+
+    // Đây là đơn đang soạn → KHÔNG gắn vào đơn đã lưu
+    currentEditingOrderId = null;
+    currentEditingOrderCode = null;
+    currentEditingProductIndex = null;
+    currentEditingLocalProductIndex = productIndex;
+
+    // Reset lựa chọn trước khi mở
+    selectedProducts = [];
+    selectedCategory = null;
+    Object.keys(productQuantities).forEach(k => delete productQuantities[k]);
+    Object.keys(productWeights).forEach(k => delete productWeights[k]);
+    Object.keys(productNotes).forEach(k => delete productNotes[k]);
+
+    // Pre-select sản phẩm hiện tại với giá trị đang có
+    const existingProductId = oldProduct.product_id;
+    if (existingProductId) {
+        const existingWeightRaw = oldProduct.weight || oldProduct.size || '';
+        selectedProducts = [existingProductId];
+        productQuantities[existingProductId] = parseInt(oldProduct.quantity, 10) || 1;
+        // có giá trị → giữ chuỗi; không có → null ("chưa có", không bắt nhập lại)
+        productWeights[existingProductId] = existingWeightRaw ? String(existingWeightRaw) : null;
+        productNotes[existingProductId] = oldProduct.notes || '';
+    }
+
+    showProductSelectionModal();
+
+    // Cập nhật UI sau khi DOM sẵn sàng
+    setTimeout(() => {
+        const modal = document.getElementById('productSelectionModal');
+        if (!modal) return;
+
+        const header = modal.querySelector('h3');
+        if (header) {
+            header.innerHTML = `<svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Chỉnh sửa sản phẩm`;
+        }
+
+        const confirmBtn = document.getElementById('productModalConfirmBtn');
+        if (confirmBtn) confirmBtn.textContent = 'Cập nhật';
+
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        if (selectAllBtn) selectAllBtn.style.display = 'none';
+
+        if (existingProductId) {
+            const container = document.getElementById('modalProductsListContainer');
+            const productEl = document.getElementById(`modal_product_${existingProductId}`);
+            if (container && productEl) {
+                const cRect = container.getBoundingClientRect();
+                const pRect = productEl.getBoundingClientRect();
+                const scrollTo = container.scrollTop + pRect.top - cRect.top
+                                 - container.clientHeight / 2 + productEl.clientHeight / 2;
+                container.scrollTop = Math.max(0, scrollTo);
+            }
+        }
+    }, 0);
+}
+
+/**
  * Save selected products to existing order
  * Validates products, adds them to order, and updates database
  */

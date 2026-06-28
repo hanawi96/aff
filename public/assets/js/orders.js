@@ -88,7 +88,8 @@ let selectedCategory = null;
 let selectedProducts = [];
 let currentEditingOrderId = null;
 let currentEditingOrderCode = null;
-let currentEditingProductIndex = null; // null = add mode, number = replace mode
+let currentEditingProductIndex = null; // null = add mode, number = replace mode (đơn đã lưu)
+let currentEditingLocalProductIndex = null; // null = add mode, number = thay thế SP trong đơn đang soạn (currentOrderProducts)
 
 // Load packaging config from database
 

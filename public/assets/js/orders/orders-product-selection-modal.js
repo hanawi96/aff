@@ -27,6 +27,46 @@ function productBelongsToCategory(product, categoryId) {
     return parseInt(String(product.category_id ?? ''), 10) === normalized;
 }
 
+/**
+ * Danh mục KHÔNG cần nhập cân nặng/size (vd: "Sản phẩm bán kèm", "Bi, charm bạc").
+ * Khớp theo TÊN danh mục (không hardcode id) để sản phẩm mới thêm vào các danh mục
+ * này về sau vẫn tự động được áp dụng — chỉ cần tên danh mục chứa 1 trong các từ khoá.
+ */
+const NO_WEIGHT_CATEGORY_KEYWORDS = ['bán kèm', 'charm bạc'];
+
+function normalizeCategoryName(name) {
+    return (name == null ? '' : String(name)).trim().toLowerCase();
+}
+
+/** Tập id các danh mục không cần cân nặng, tính từ allCategoriesList hiện tại. */
+function getNoWeightCategoryIdSet() {
+    const set = new Set();
+    const list = Array.isArray(allCategoriesList) ? allCategoriesList : [];
+    for (const cat of list) {
+        const name = normalizeCategoryName(cat?.name);
+        if (!name) continue;
+        if (NO_WEIGHT_CATEGORY_KEYWORDS.some((kw) => name.includes(kw))) {
+            const id = parseInt(String(cat.id), 10);
+            if (!Number.isNaN(id)) set.add(id);
+        }
+    }
+    return set;
+}
+
+/**
+ * Sản phẩm có thuộc danh mục không cần cân nặng không?
+ * Truyền sẵn noWeightIdSet để tránh tính lại nhiều lần khi render danh sách.
+ */
+function productSkipsWeight(product, noWeightIdSet) {
+    if (!product) return false;
+    const set = noWeightIdSet || getNoWeightCategoryIdSet();
+    if (set.size === 0) return false;
+    if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
+        return product.category_ids.some((id) => set.has(parseInt(String(id), 10)));
+    }
+    return set.has(parseInt(String(product.category_id ?? ''), 10));
+}
+
 /** Đường dẫn ảnh hiển thị trong modal (cùng quy ước với trang quản lý sản phẩm admin). */
 function resolveModalProductImageSrc(product) {
     const raw = (product.image_url || '').trim();
@@ -153,6 +193,7 @@ function closeProductSelectionModal() {
         currentEditingOrderId = null;
         currentEditingOrderCode = null;
         currentEditingProductIndex = null;
+        currentEditingLocalProductIndex = null;
     }
 }
 
@@ -207,9 +248,11 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
     const isAdultBracelet = categoryName.toLowerCase().includes('vòng người lớn');
     const weightLabel = isAdultBracelet ? 'Size tay' : 'Cân nặng';
     const weightPlaceholder = isAdultBracelet ? 'Size M' : '5kg';
+    const noWeightIdSet = getNoWeightCategoryIdSet();
     const countText = `<div class="col-span-2 px-3 py-2 bg-gray-50 text-xs text-gray-600 font-medium border-b border-gray-200">Tìm thấy ${products.length} sản phẩm</div>`;
     container.innerHTML = countText + products.map(p => {
         const isSelected = selectedProducts.includes(p.id);
+        const skipsWeight = productSkipsWeight(p, noWeightIdSet);
         let displayName = escapeHtml(p.name);
         if (searchQuery) {
             const regex = new RegExp(`(${escapeHtml(searchQuery)})`, 'gi');
@@ -220,15 +263,28 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
         const btnKgPresets = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg =>
             `<button type="button" onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`
         ).join('');
-        const weightPresetRow = `<div class="flex flex-wrap gap-1.5 pt-1">${btnUnknown}${isAdultBracelet ? '' : btnKgPresets}</div>`;
+        // Danh mục bán kèm / bi, charm bạc: ẩn hẳn ô cân nặng + preset
+        const weightPresetRow = skipsWeight ? '' : `<div class="flex flex-wrap gap-1.5 pt-1">${btnUnknown}${isAdultBracelet ? '' : btnKgPresets}</div>`;
+        const qtyBlockHtml = `<label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div>`;
+        const notesBlockHtml = `<label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" />`;
+        let detailsHtml = '';
+        if (isSelected) {
+            if (skipsWeight) {
+                // Không cần cân nặng: SL giữ nhỏ bên trái, ô "Lưu ý" giãn full phần còn lại
+                detailsHtml = `<div class="pt-2 border-t border-purple-200"><div class="flex items-end gap-3"><div class="flex-shrink-0">${qtyBlockHtml}</div><div class="flex-1 min-w-0">${notesBlockHtml}</div></div></div>`;
+            } else {
+                const weightCol = `<div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] == null ? '' : (productWeights[p.id] || '')}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div>`;
+                detailsHtml = `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2">${qtyBlockHtml}</div>${weightCol}<div class="col-span-7">${notesBlockHtml}</div></div>${weightPresetRow}</div>`;
+            }
+        }
         const thumbHtml = modalProductThumbHtml(resolveModalProductImageSrc(p));
-        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-3 p-4 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-center gap-3"><div class="flex w-5 flex-shrink-0 items-center justify-center"><div class="h-5 w-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div>${thumbHtml}<div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-snug mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${isSelected ? `<div class="pt-2 border-t border-purple-200 space-y-2"><div class="grid grid-cols-12 gap-2"><div class="col-span-2"><label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div></div><div class="col-span-3"><label class="text-xs text-gray-600 font-medium mb-1 block">${weightLabel}</label><input type="text" id="weight_${p.id}" value="${productWeights[p.id] == null ? '' : (productWeights[p.id] || '')}" placeholder="${weightPlaceholder}" onclick="event.stopPropagation()" onchange="updateProductWeight(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div><div class="col-span-7"><label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${productNotes[p.id] || ''}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" /></div></div>${weightPresetRow}</div>` : ''}</div>`;
+        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-3 p-4 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-center gap-3"><div class="flex w-5 flex-shrink-0 items-center justify-center"><div class="h-5 w-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div>${thumbHtml}<div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-snug mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${detailsHtml}</div>`;
     }).join('');
 }
 
 function selectModalProduct(productId) {
-    // Replace mode: enforce single-select
-    if (currentEditingProductIndex !== null) {
+    // Replace mode (đơn đã lưu hoặc đơn đang soạn): enforce single-select
+    if (currentEditingProductIndex !== null || currentEditingLocalProductIndex !== null) {
         const isAlreadySelected = selectedProducts.includes(productId);
         // Clear all previous selections
         selectedProducts.forEach(id => {
@@ -372,6 +428,10 @@ function setupModalProductSearch() {
 
 function addProductFromModal() {
     if (document.getElementById('productModalConfirmBtn')?.dataset.loading === '1') return;
+    if (currentEditingLocalProductIndex !== null) {
+        replaceLocalOrderProduct();
+        return;
+    }
     if (currentEditingOrderId) {
         saveProductsToExistingOrder();
         return;
@@ -386,13 +446,16 @@ function addProductFromModal() {
     }
     if (selectedProducts.length > 0) {
         const weightFieldName = isAdultBracelet ? 'size tay' : 'cân nặng';
+        const noWeightIdSet = getNoWeightCategoryIdSet();
         const missingWeightProducts = [];
         selectedProducts.forEach(productId => {
+            const product = allProductsList.find(p => p.id === productId);
+            // Sản phẩm bán kèm / bi, charm bạc: không yêu cầu cân nặng
+            if (product && productSkipsWeight(product, noWeightIdSet)) return;
             const w = productWeights[productId];
             if (w === null) return;
             const s = w === undefined ? '' : String(w).trim();
             if (!s) {
-                const product = allProductsList.find(p => p.id === productId);
                 if (product) missingWeightProducts.push(product.name);
             }
         });
@@ -443,5 +506,79 @@ function addProductFromModal() {
         closeProductSelectionModal();
         showToast(`Đã thêm ${addedCount} sản phẩm`, 'success');
     }
+}
+
+/**
+ * Thay thế/chỉnh sửa 1 sản phẩm trong đơn ĐANG SOẠN (currentOrderProducts) từ modal "Chọn sản phẩm".
+ * Chỉ cho chọn đúng 1 sản phẩm; giữ nguyên id dòng cũ (nếu có) để cập nhật đúng khi lưu đơn.
+ */
+function replaceLocalOrderProduct() {
+    const index = currentEditingLocalProductIndex;
+    if (index === null || index === undefined) return;
+
+    if (selectedProducts.length === 0) {
+        showToast('Vui lòng chọn 1 sản phẩm', 'warning');
+        return;
+    }
+    if (selectedProducts.length > 1) {
+        showToast('Chỉ chọn 1 sản phẩm để thay thế', 'warning');
+        return;
+    }
+
+    const productId = selectedProducts[0];
+    const product = allProductsList.find(p => p.id === productId);
+    if (!product) {
+        showToast('Không tìm thấy sản phẩm', 'error');
+        return;
+    }
+
+    const noWeightIdSet = getNoWeightCategoryIdSet();
+    const skipsWeight = productSkipsWeight(product, noWeightIdSet);
+
+    const productCategory = allCategoriesList.find(c => c.id === product.category_id);
+    const isAdultBracelet = (productCategory?.name || '').toLowerCase().includes('vòng người lớn');
+
+    // Validate cân nặng/size (bỏ qua nếu thuộc danh mục không cần cân nặng, hoặc đã chọn "chưa có" = null)
+    const wRaw = productWeights[productId];
+    if (!skipsWeight && wRaw !== null) {
+        const s = wRaw === undefined ? '' : String(wRaw).trim();
+        if (!s) {
+            showToast(`Vui lòng nhập ${isAdultBracelet ? 'size tay' : 'cân nặng'} cho sản phẩm`, 'warning');
+            return;
+        }
+    }
+
+    const quantity = productQuantities[productId] || 1;
+    const notes = productNotes[productId] || '';
+    const oldProduct = currentOrderProducts[index];
+
+    const replacement = {
+        product_id: product.id,
+        name: product.name,
+        quantity: quantity
+    };
+    // Giữ id của dòng order_item cũ (nếu có) để khi lưu đơn không tạo lại dòng mới
+    if (oldProduct && oldProduct.id) replacement.id = oldProduct.id;
+    if (product.price !== undefined && product.price !== null) replacement.price = product.price;
+    if (product.cost_price !== undefined && product.cost_price !== null) replacement.cost_price = product.cost_price;
+
+    if (!skipsWeight && wRaw !== null && wRaw !== undefined && String(wRaw).trim()) {
+        let finalSize = String(wRaw).trim();
+        if (/^\d+(\.\d+)?$/.test(finalSize)) finalSize += isAdultBracelet ? 'cm' : 'kg';
+        if (isAdultBracelet) {
+            replacement.size = finalSize;
+        } else {
+            replacement.weight = finalSize;
+        }
+    }
+    if (notes) replacement.notes = notes;
+
+    currentOrderProducts[index] = replacement;
+
+    renderOrderProducts();
+    updateOrderSummary();
+    if (typeof updateOrderNotesDisplay === 'function') updateOrderNotesDisplay();
+    closeProductSelectionModal();
+    showToast('Đã cập nhật sản phẩm', 'success');
 }
 

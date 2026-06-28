@@ -21,6 +21,13 @@ function editProductInOrder(index) {
     const product = currentOrderProducts[index];
     if (!product) return;
 
+    // SP có trong database (có product_id) → mở modal "Chọn sản phẩm" để dễ chỉnh sửa / thay thế.
+    // SP tùy chỉnh (tự nhập, không có product_id) → giữ modal nhập tay bên dưới.
+    if (product.product_id && typeof showProductSelectionModalForLocalEdit === 'function') {
+        showProductSelectionModalForLocalEdit(index);
+        return;
+    }
+
     console.log('🔧 editProductInOrder - Opening modal for product:', {
         index,
         product: JSON.parse(JSON.stringify(product)),
