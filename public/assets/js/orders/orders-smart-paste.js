@@ -1498,6 +1498,72 @@ function _partialWardFallback(text, province, hints) {
     return null;
 }
 
+// So sánh 2 ứng viên phường: exact thắng fuzzy; trong exact ưu tiên có keyword "phường/xã",
+// rồi window dài hơn (khớp nhiều chữ hơn), rồi gần cuối (sát tỉnh) hơn.
+function _betterWardCand(a, b) {
+    if (!b) return true;
+    if (a.exact !== b.exact) return a.exact > b.exact;
+    if (a.exact) {
+        if (a.kw !== b.kw) return a.kw > b.kw;
+        if (a.len !== b.len) return a.len > b.len;
+        return a.pos > b.pos;
+    }
+    if (Math.abs(a.score - b.score) > 0.03) return a.score > b.score;
+    if (a.kw !== b.kw) return a.kw > b.kw;
+    if (a.len !== b.len) return a.len > b.len;
+    return a.pos > b.pos;
+}
+
+const _WARD_KW = new Set(['phuong', 'p', 'f', 'xa', 'x', 'thi tran', 'tt', 'tdp', 'kp', 'khu pho', 'khom', 'ap']);
+
+/**
+ * Quét toàn chuỗi tìm phường/xã khớp tốt nhất TRONG MỘT TỈNH.
+ * Bỏ qua dấu phẩy (chạy cả khi không có dấu ngăn cách), window 1..4 từ,
+ * ưu tiên khớp CHÍNH XÁC (không return sớm ở window fuzzy nhiễu).
+ * Trả về { ward, exact, score } hoặc null.
+ */
+function _bestWardInProvince(text, province) {
+    if (!province || !province.Wards || !province.Wards.length || !text) return null;
+    const rawTokens = text.split(/\s+/).filter(Boolean);
+    const toks = [];
+    for (let i = 0; i < rawTokens.length; i++) {
+        const bare = _nn(rawTokens[i]);
+        if (!bare) continue;
+        const prev = i > 0 ? _nn(rawTokens[i - 1]) : '';
+        let afterKw = _WARD_KW.has(prev);
+        // "thị xã" là huyện cũ (không phải phường) → không tính là keyword phường/xã
+        if (afterKw && (prev === 'xa' || prev === 'x')) {
+            const prev2 = i > 1 ? _nn(rawTokens[i - 2]) : '';
+            if (prev2 === 'thi') afterKw = false;
+        }
+        toks.push({ bare, afterKw });
+    }
+    const N = toks.length;
+    if (!N) return null;
+    const maxW = Math.min(4, N);
+    let best = null;
+    for (let n = 1; n <= maxW; n++) {
+        for (let i = 0; i + n <= N; i++) {
+            const cand = toks.slice(i, i + n).map(t => t.bare).join(' ');
+            if (!cand || /^\d+$/.test(cand)) continue;
+            if (_isProvinceNameFragment(cand, province)) continue;
+            let wWard = null, wScore = 0;
+            for (const ward of province.Wards) {
+                for (const label of _wardLabels(ward)) {
+                    const s = _scoreItemMatch(cand, _bare(label));
+                    if (s > wScore) { wScore = s; wWard = ward; }
+                }
+            }
+            if (!wWard) continue;
+            const exact = wScore >= 0.999 ? 1 : 0;
+            if (!exact && wScore < 0.80) continue;
+            const cur = { ward: wWard, score: wScore, len: n, pos: i, kw: toks[i].afterKw ? 1 : 0, exact };
+            if (_betterWardCand(cur, best)) best = cur;
+        }
+    }
+    return best ? { ward: best.ward, exact: best.exact === 1, score: best.score } : null;
+}
+
 function _extractStreet(expanded, province, ward, subward) {
     let s = expanded;
     s = s.replace(/\b(?:t\u1ec9nh|tinh)\s+[^,]+/gi, ' ');
@@ -1578,6 +1644,22 @@ async function parseAddress(addressText, customerHint) {
         if (r) {
             ward = r.ward;
             if (!province) province = r.province;
+        }
+    }
+
+    // Quét khớp CHÍNH XÁC tên phường/xã trong tỉnh (ưu tiên hơn fuzzy/anchor) —
+    // xử lý đúng địa chỉ mới 2 cấp kể cả khi không có dấu phẩy / không có chữ "phường".
+    if (province) {
+        // Bỏ tên tỉnh + tiền tố hành chính lẻ trước khi quét, tránh ghép xuyên biên
+        // (vd "Long An" + "Tỉnh" → "An Tịnh"; "Nam Phước" + "Thành phố" → "Phước Thành").
+        const safeProv = province.Name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        const scanText = cleaned
+            .replace(new RegExp(safeProv, 'gi'), ' ')
+            .replace(/\b(?:t\u1ec9nh|tinh|th\u00e0nh ph\u1ed1|thanh pho|tp)\b/gi, ' ');
+        const sc = _bestWardInProvince(scanText, province);
+        if (sc && (sc.exact || !ward)) {
+            ward = sc.ward;
+            _addrDbg('2b-exact-scan', { ward: ward.Name, exact: sc.exact, score: sc.score });
         }
     }
 
