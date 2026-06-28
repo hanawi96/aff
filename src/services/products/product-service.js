@@ -856,19 +856,28 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
         // ── 4. Write all price changes + stamp timestamps ────────────────────────────────
         const nowUnix = Math.floor(Date.now() / 1000);
 
+        // Gộp toàn bộ thao tác ghi vào MỘT batch. D1 thực thi batch trong cùng
+        // một transaction ngầm → nhanh hơn vòng lặp await tuần tự và đảm bảo
+        // nguyên tử: hoặc tất cả giá được cập nhật, hoặc không thay đổi gì.
+        const batchStmts = [];
         for (const p of toUpdate) {
-            await env.DB.prepare(
-                'UPDATE products SET cost_price=?, price=?, markup_multiplier=? WHERE id=?'
-            ).bind(p.costPrice, p.price, p.markup, p.id).run();
+            batchStmts.push(
+                env.DB.prepare('UPDATE products SET cost_price=?, price=?, markup_multiplier=? WHERE id=?')
+                    .bind(p.costPrice, p.price, p.markup, p.id)
+            );
         }
 
         // Stamp ALL processed product_materials in one single query using literal IDs.
         // IDs are integers validated above (isFinite check), safe to embed directly.
         if (allProductIds.length > 0) {
             const idList = allProductIds.join(',');
-            await env.DB.prepare(
-                `UPDATE product_materials SET updated_at_unix = ${nowUnix} WHERE product_id IN (${idList})`
-            ).run();
+            batchStmts.push(
+                env.DB.prepare(`UPDATE product_materials SET updated_at_unix = ${nowUnix} WHERE product_id IN (${idList})`)
+            );
+        }
+
+        if (batchStmts.length > 0) {
+            await env.DB.batch(batchStmts);
         }
 
         // Chỉ bump meta toàn hệ thống khi cập nhật đủ phạm vi (không lọc theo productIds).

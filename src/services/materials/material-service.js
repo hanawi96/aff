@@ -341,10 +341,11 @@ export async function getAllMaterials(env, corsHeaders) {
                 mc.display_name as category_display_name,
                 mc.icon as category_icon,
                 mc.sort_order as category_sort_order,
-                COUNT(DISTINCT pm.product_id) as product_count
+                COUNT(DISTINCT p.id) as product_count
             FROM cost_config cc
             LEFT JOIN material_categories mc ON cc.category_id = mc.id
             LEFT JOIN product_materials pm ON cc.item_name = pm.material_name
+            LEFT JOIN products p ON pm.product_id = p.id AND p.is_active = 1
             GROUP BY cc.id
             ORDER BY mc.sort_order ASC, cc.item_name ASC
         `).all();

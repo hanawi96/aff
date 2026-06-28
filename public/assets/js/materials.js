@@ -410,10 +410,14 @@ async function saveMaterial(oldItemName = null) {
             if (data.price_changed && data.affected_products > 0) {
                 changedMaterialNames.add(itemName);
             }
-            applyOutdatedProductsBadge(data.affected_products || 0, false);
+            // Đồng bộ badge với tổng số SP outdated thật từ server, không chỉ
+            // riêng nguyên liệu vừa sửa.
+            applyOutdatedProductsBadge(data.affected_products || 0, true);
             
-            if (oldItemName && data.affected_products > 0) {
-                showToast(`Đã cập nhật giá vốn cho ${data.affected_products} sản phẩm`, 'info');
+            // Giá nguyên liệu chỉ mới đổi ở cost_config; giá SP chưa được cập nhật.
+            // Báo đúng bản chất: SP cần được cập nhật lại giá (qua nút "Cập nhật giá sản phẩm").
+            if (data.price_changed && data.affected_products > 0) {
+                showToast(`${data.affected_products} sản phẩm cần cập nhật lại giá`, 'info');
             }
             
             if (data.item_name_changed && data.affected_products > 0) {
@@ -773,12 +777,15 @@ async function saveQuickEdit(itemName) {
             
             if (data.affected_products > 0) {
                 changedMaterialNames.add(itemName);
-                showToast(`✅ Đã cập nhật giá. ${data.affected_products} sản phẩm bị ảnh hưởng`, 'success');
+                showToast(`✅ Đã cập nhật giá. ${data.affected_products} sản phẩm cần cập nhật lại giá`, 'success');
             } else {
                 showToast('✅ Đã cập nhật giá', 'success');
             }
 
-            applyOutdatedProductsBadge(data.affected_products || 0, false);
+            // Hiển thị nhanh số SP của nguyên liệu vừa sửa, rồi đồng bộ với
+            // tổng số SP outdated thật từ server (tránh badge bị ghi đè khi sửa
+            // liên tiếp nhiều nguyên liệu khác nhau).
+            applyOutdatedProductsBadge(data.affected_products || 0, true);
             
             // Update stats
             updateStats();

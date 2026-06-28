@@ -3740,18 +3740,12 @@ function closeBulkMarkupModal() {
     if (modal) modal.remove();
 }
 
-// Smart rounding function (copy from existing logic)
-function smartRound(price) {
-    if (price < 10000) {
-        return Math.round(price / 1000) * 1000;
-    } else if (price < 100000) {
-        return Math.round(price / 1000) * 1000;
-    } else if (price < 500000) {
-        return Math.round(price / 5000) * 5000;
-    } else {
-        return Math.round(price / 10000) * 10000;
-    }
-}
+// LƯU Ý: KHÔNG khai báo lại smartRound() ở đây.
+// Trước đây có một hàm smartRound() thứ hai làm tròn theo bậc (Math.round 5.000)
+// đặt tại vị trí này. Vì trùng tên với smartRound() dạng X9.000đ (Math.ceil) ở
+// phía trên, nó ĐÈ hàm gốc và khiến giá bị lệch (vd 399.000 → 400.000).
+// Đã hợp nhất về một hàm smartRound() duy nhất (làm tròn LÊN X9.000đ) để khớp
+// với backend (smartRoundPrice).
 
 // Apply bulk markup update
 async function applyBulkMarkupUpdate() {
