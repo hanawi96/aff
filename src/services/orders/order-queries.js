@@ -95,20 +95,20 @@ export async function getOrdersByPhone(phone, env, corsHeaders) {
 // Lấy đơn hàng mới nhất
 export async function getRecentOrders(limit, env, corsHeaders) {
     try {
-        // Get orders with product_cost calculated from order_items using subquery
-        // This avoids GROUP BY issues with multiple JOINs
+        // product_cost = tổng giá vốn từ order_items.
+        // Trước đây dùng subquery tương quan → chạy 1 lần / đơn (N+1, rất chậm trên D1).
+        // Đổi sang LEFT JOIN + GROUP BY: chỉ quét order_items một lần, tận dụng index
+        // idx_order_items_order_id (migration 079). orders.id là PK nên các cột orders.*
+        // và ctv.commission_rate phụ thuộc hàm vào GROUP BY orders.id — hợp lệ trên SQLite/D1.
         const { results: orders } = await env.DB.prepare(`
             SELECT 
                 orders.*,
                 ctv.commission_rate as ctv_commission_rate,
-                COALESCE(
-                    (SELECT SUM(product_cost * quantity) 
-                     FROM order_items 
-                     WHERE order_items.order_id = orders.id), 
-                    0
-                ) as product_cost
+                COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
             FROM orders
             LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
+            LEFT JOIN order_items oi ON oi.order_id = orders.id
+            GROUP BY orders.id
             ORDER BY orders.created_at_unix DESC
             LIMIT ?
         `).bind(limit).all();
