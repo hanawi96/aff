@@ -34,6 +34,7 @@ import {
     updateAmount,
     updateDepositAmount,
     updatePaymentMethod,
+    updateCustomerSource,
     deleteOrder,
     updateOrderStatus,
     toggleOrderPriority
@@ -293,6 +294,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateDepositAmount(data, env, corsHeaders);
         case 'updatePaymentMethod':
             return await updatePaymentMethod(data, env, corsHeaders);
+        case 'updateCustomerSource':
+            return await updateCustomerSource(data, env, corsHeaders);
         case 'updateOrderStatus':
             return await updateOrderStatus(data, env, corsHeaders);
         case 'toggleOrderPriority':
@@ -537,6 +540,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateDepositAmount(data, env, corsHeaders);
             case 'updatePaymentMethod':
                 return await updatePaymentMethod(data, env, corsHeaders);
+            case 'updateCustomerSource':
+                return await updateCustomerSource(data, env, corsHeaders);
             case 'deleteOrder':
                 return await deleteOrder(data, env, corsHeaders);
             case 'updateOrderStatus':

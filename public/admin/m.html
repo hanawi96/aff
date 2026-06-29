@@ -1585,6 +1585,65 @@ function applyQuickEditOrderPayment(apiMethod){
   });
 }
 
+let _detailSourceSaving=false;
+const M_DETAIL_SRC_DOTS={zalo:{off:'bg-green-500',on:'bg-white'},facebook:{off:'bg-blue-600',on:'bg-white'},tiktok:{off:'bg-slate-900',on:'bg-white'}};
+function mDetailSourceDotClass(slug,active){
+  const c=M_DETAIL_SRC_DOTS[slug]||{off:'bg-gray-400',on:'bg-white'};
+  return'w-1.5 h-1.5 rounded-full shrink-0 '+(active?c.on:c.off);
+}
+function mDetailSourceChipClass(slug,active){
+  const base='flex items-center justify-center gap-1 py-2.5 rounded-lg text-[11px] font-semibold border transition-all active:scale-[0.97] min-w-0';
+  if(!active)return`${base} border-transparent bg-white text-gray-600 shadow-sm`;
+  if(slug==='zalo')return`${base} border-green-600 bg-green-600 text-white shadow-sm`;
+  if(slug==='facebook')return`${base} border-blue-600 bg-blue-600 text-white shadow-sm`;
+  return`${base} border-slate-900 bg-slate-900 text-white shadow-sm`;
+}
+function mDetailSourceChipsHtml(rawSource){
+  const cur=mNormCustomerSource(rawSource)||'';
+  const mk=(slug,label)=>{
+    const active=cur===slug;
+    return`<button type="button" data-src="${slug}" onclick="applyQuickEditCustomerSource('${slug}')" class="${mDetailSourceChipClass(slug,active)}" aria-pressed="${active?'true':'false'}"><span class="${mDetailSourceDotClass(slug,active)}"></span><span class="truncate">${label}</span></button>`;
+  };
+  return[mk('zalo','Zalo'),mk('facebook','FB'),mk('tiktok','TikTok')].join('');
+}
+function syncDetailCustomerSourceUI(){
+  const id=detailOpenOrderId;if(!id)return;
+  const o=allOrders.find(x=>x.id==id);if(!o)return;
+  const cur=mNormCustomerSource(o.customer_source??o.customerSource)||'';
+  document.querySelectorAll('#detailSourceChips [data-src]').forEach(btn=>{
+    const slug=btn.getAttribute('data-src');
+    const active=slug===cur;
+    btn.className=mDetailSourceChipClass(slug,active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+    const dot=btn.querySelector('span.rounded-full');
+    if(dot&&slug)dot.className=mDetailSourceDotClass(slug,active);
+  });
+  const badgeEl=document.getElementById('detailCustomerSourceBadge');
+  if(badgeEl)badgeEl.innerHTML=mCustomerSourceBadgeHtml(o.customer_source??o.customerSource);
+}
+function applyQuickEditCustomerSource(slug){
+  const id=detailOpenOrderId;if(!id||_detailSourceSaving)return;
+  const norm=mNormCustomerSource(slug);if(!norm)return;
+  const o=allOrders.find(x=>x.id==id);if(!o)return;
+  const prev=o.customer_source??o.customerSource??'';
+  if(mNormCustomerSource(prev)===norm)return;
+  _detailSourceSaving=true;
+  o.customer_source=norm;
+  syncDetailCustomerSourceUI();
+  applyFilter();renderCards();
+  _writeOrdersCache(allOrders);
+  fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateCustomerSource',orderId:id,customer_source:norm})}).then(r=>r.json()).then(d=>{
+    if(!d.success)throw new Error(d.error||'Lỗi lưu');
+    toast('Đã cập nhật nguồn khách');
+  }).catch(e=>{
+    o.customer_source=prev;
+    syncDetailCustomerSourceUI();
+    applyFilter();renderCards();
+    _writeOrdersCache(allOrders);
+    toast('Không lưu được: '+e.message);
+  }).finally(()=>{_detailSourceSaving=false;});
+}
+
 function showDetail(id){
   const o=allOrders.find(x=>x.id==id);if(!o)return;
   const _cpc=document.getElementById('createPanel');
@@ -1678,7 +1737,7 @@ function showDetail(id){
             </div>
             <div class="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
               <p class="text-sm font-semibold text-gray-900">${esc(mTitleCaseCustomerName(o.customer_name))}</p>
-              ${mCustomerSourceBadgeHtml(o.customer_source??o.customerSource)}
+              <span id="detailCustomerSourceBadge">${mCustomerSourceBadgeHtml(o.customer_source??o.customerSource)}</span>
             </div>
           </div>
           <div class="flex items-center gap-2.5 min-w-0" id="detailPhoneRow" data-order-id="${o.id}">
@@ -1704,6 +1763,10 @@ function showDetail(id){
               <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
             <p class="text-sm text-gray-600 leading-snug">${esc(o.address||'Chưa có địa chỉ')}</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-gradient-to-br from-slate-50 to-white p-2.5">
+            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 px-0.5">Nguồn khách</p>
+            <div id="detailSourceChips" class="grid grid-cols-3 gap-1.5">${mDetailSourceChipsHtml(o.customer_source??o.customerSource)}</div>
           </div>
         </div>
       </div>

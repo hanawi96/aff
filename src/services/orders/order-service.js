@@ -961,6 +961,34 @@ export async function updateDepositAmount(data, env, corsHeaders) {
     }
 }
 
+// Update customer source (zalo | facebook | tiktok)
+export async function updateCustomerSource(data, env, corsHeaders) {
+    try {
+        if (!data.orderId) {
+            return jsonResponse({ success: false, error: 'Thiếu orderId' }, 400, corsHeaders);
+        }
+
+        const src = normalizeCustomerSource(data.customer_source ?? data.customerSource);
+        if (!src) {
+            return jsonResponse({ success: false, error: 'Nguồn khách không hợp lệ' }, 400, corsHeaders);
+        }
+
+        const result = await env.DB.prepare(`
+            UPDATE orders SET customer_source = ? WHERE id = ?
+        `).bind(src, data.orderId).run();
+
+        if (result.meta && result.meta.changes === 0) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        return jsonResponse({ success: true, message: 'Đã cập nhật nguồn khách', customer_source: src }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error updating customer source:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 // Update payment method
 export async function updatePaymentMethod(data, env, corsHeaders) {
     try {
