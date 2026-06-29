@@ -252,18 +252,24 @@ function updateOrderSummary() {
     }
 }
 
-/** Index dòng đang sửa giá nhanh (null = không có). */
+/** Index dòng đang sửa giá nhanh (null = không có). field: 'unit' | 'total' */
 let _quickEditOrderPriceIndex = null;
+let _quickEditOrderPriceField = 'unit';
 
 /**
- * Bắt đầu sửa nhanh đơn giá — thay nút bằng input tại chỗ, không mở modal.
+ * Bắt đầu sửa nhanh đơn giá hoặc tổng tiền — thay nút bằng input tại chỗ.
  * @param {number} index
+ * @param {'unit'|'total'} [field]
  */
-function startQuickEditOrderPrice(index) {
+function startQuickEditOrderPrice(index, field = 'unit') {
+    const editField = field === 'total' ? 'total' : 'unit';
     const product = currentOrderProducts[index];
     if (!product) return;
 
-    const existingInput = document.getElementById(`orderProductPriceInput_${index}`);
+    const inputId = editField === 'total'
+        ? `orderProductSubtotalInput_${index}`
+        : `orderProductPriceInput_${index}`;
+    const existingInput = document.getElementById(inputId);
     if (existingInput) {
         existingInput.focus();
         existingInput.select();
@@ -272,23 +278,33 @@ function startQuickEditOrderPrice(index) {
 
     if (_quickEditOrderPriceIndex !== null && _quickEditOrderPriceIndex !== index) {
         commitQuickEditOrderPrice(_quickEditOrderPriceIndex);
+    } else if (_quickEditOrderPriceIndex === index && _quickEditOrderPriceField !== editField) {
+        commitQuickEditOrderPrice(index);
     }
 
-    const btn = document.getElementById(`orderProductPriceBtn_${index}`);
+    const btnId = editField === 'total'
+        ? `orderProductSubtotal_${index}`
+        : `orderProductPriceBtn_${index}`;
+    const btn = document.getElementById(btnId);
     if (!btn) return;
 
-    const price = parsePrice(product.price);
+    const quantity = Math.max(1, parseInt(product.quantity, 10) || 1);
+    const unitPrice = parsePrice(product.price);
+    const displayValue = editField === 'total' ? unitPrice * quantity : unitPrice;
+
     const input = document.createElement('input');
     input.type = 'text';
     input.inputMode = 'numeric';
-    input.id = `orderProductPriceInput_${index}`;
+    input.id = inputId;
+    input.dataset.priceField = editField;
     input.className = 'order-price-quick-input w-[5.5rem] px-1.5 py-0.5 text-xs font-semibold text-blue-700 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none';
-    input.value = formatVnIntegerString(price);
-    input.setAttribute('aria-label', 'Đơn giá');
+    input.value = formatVnIntegerString(displayValue);
+    input.setAttribute('aria-label', editField === 'total' ? 'Tổng tiền' : 'Đơn giá');
     input.autocomplete = 'off';
 
     btn.replaceWith(input);
     _quickEditOrderPriceIndex = index;
+    _quickEditOrderPriceField = editField;
 
     input.addEventListener('input', () => {
         if (typeof formatVnMoneyInput === 'function') formatVnMoneyInput(input);
@@ -313,41 +329,56 @@ function startQuickEditOrderPrice(index) {
 }
 
 /**
- * Lưu đơn giá sau sửa nhanh.
+ * Lưu đơn giá / tổng tiền sau sửa nhanh.
  * @param {number} index
  */
 function commitQuickEditOrderPrice(index) {
     if (_quickEditOrderPriceIndex !== index) return;
 
-    const input = document.getElementById(`orderProductPriceInput_${index}`);
+    const input = document.getElementById(`orderProductPriceInput_${index}`)
+        || document.getElementById(`orderProductSubtotalInput_${index}`);
     const product = currentOrderProducts[index];
+    const editField = input?.dataset?.priceField || _quickEditOrderPriceField || 'unit';
     _quickEditOrderPriceIndex = null;
+    _quickEditOrderPriceField = 'unit';
 
     if (!input || !product) {
         renderOrderProducts();
         return;
     }
 
-    const newPrice = parsePrice(input.value);
-    const oldPrice = parsePrice(product.price);
+    const quantity = Math.max(1, parseInt(product.quantity, 10) || 1);
+    const parsed = parsePrice(input.value);
+    const oldUnitPrice = parsePrice(product.price);
 
-    if (newPrice <= 0) {
-        showToast('Đơn giá phải lớn hơn 0', 'warning');
+    if (parsed <= 0) {
+        showToast(editField === 'total' ? 'Tổng tiền phải lớn hơn 0' : 'Đơn giá phải lớn hơn 0', 'warning');
         renderOrderProducts();
         return;
     }
 
-    if (newPrice !== oldPrice) {
-        product.price = newPrice;
+    const newUnitPrice = editField === 'total'
+        ? Math.round(parsed / quantity)
+        : parsed;
+
+    if (newUnitPrice <= 0) {
+        showToast('Đơn giá sau chia phải lớn hơn 0', 'warning');
+        renderOrderProducts();
+        return;
+    }
+
+    if (newUnitPrice !== oldUnitPrice) {
+        product.price = newUnitPrice;
     }
 
     renderOrderProducts();
 }
 
-/** Hủy sửa nhanh đơn giá (Esc). */
+/** Hủy sửa nhanh đơn giá / tổng tiền (Esc). */
 function cancelQuickEditOrderPrice(index) {
     if (_quickEditOrderPriceIndex !== index) return;
     _quickEditOrderPriceIndex = null;
+    _quickEditOrderPriceField = 'unit';
     renderOrderProducts();
 }
 
@@ -357,6 +388,7 @@ function cancelQuickEditOrderPrice(index) {
  */
 function renderOrderProducts() {
     _quickEditOrderPriceIndex = null;
+    _quickEditOrderPriceField = 'unit';
 
     const container = document.getElementById('newOrderProductsList');
     if (!container) {
@@ -414,7 +446,7 @@ function renderOrderProducts() {
         
         const priceBtn = `<button type="button" id="orderProductPriceBtn_${index}"
             class="order-price-quick-edit inline text-blue-600 font-semibold underline decoration-dotted underline-offset-2 hover:text-blue-800 hover:bg-blue-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer"
-            onclick="startQuickEditOrderPrice(${index})" title="Click để sửa giá">${formatCurrency(price)}</button>`;
+            onclick="startQuickEditOrderPrice(${index}, 'unit')" title="Click để sửa đơn giá">${formatCurrency(price)}</button>`;
         detailsLine.push(`🏷️ Đơn giá: ${priceBtn}`);
         
         // Add notes if available
@@ -461,7 +493,7 @@ function renderOrderProducts() {
                     <div class="flex-shrink-0 text-right">
                         <button type="button" id="orderProductSubtotal_${index}"
                             class="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline decoration-dotted underline-offset-2 transition-colors cursor-pointer bg-transparent border-0 p-0"
-                            onclick="startQuickEditOrderPrice(${index})" title="Click để sửa đơn giá">${formatCurrency(subtotal)}</button>
+                            onclick="startQuickEditOrderPrice(${index}, 'total')" title="Click để sửa tổng tiền">${formatCurrency(subtotal)}</button>
                     </div>
                 </div>
             </div>
