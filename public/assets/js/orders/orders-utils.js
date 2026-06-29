@@ -56,6 +56,16 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/** Viết hoa chữ cái đầu mỗi từ — hiển thị tên khách (locale vi-VN). */
+function titleCaseCustomerName(raw) {
+    const t = String(raw || '').trim();
+    if (!t) return '';
+    return t.split(/\s+/).filter(Boolean).map((seg) => {
+        if (!seg) return '';
+        return seg.charAt(0).toLocaleUpperCase('vi-VN') + seg.slice(1).toLocaleLowerCase('vi-VN');
+    }).join(' ');
+}
+
 // ============================================
 // PAYMENT METHOD (admin desktop ↔ mobile / shop)
 // DB có thể là "bank" (updatePaymentMethod) hoặc "bank_transfer" (form mobile, updateOrderFull).

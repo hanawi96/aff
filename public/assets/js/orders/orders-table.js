@@ -277,7 +277,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
             <div class="flex items-center gap-2">
                 <div class="flex-1 min-w-0">
                     <div class="flex flex-wrap items-center justify-center gap-1.5">
-                        <span class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</span>
+                        <span class="text-sm font-medium text-gray-900">${escapeHtml(titleCaseCustomerName(order.customer_name) || 'N/A')}</span>
                         ${sourceBadge}
                     </div>
                     <div class="flex items-center justify-center gap-1 flex-wrap">
