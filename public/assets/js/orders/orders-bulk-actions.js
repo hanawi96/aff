@@ -574,6 +574,7 @@ function showBulkStatusMenu(event) {
     const statuses = [
         { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
         { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'awaiting_reship', label: 'Chờ gửi lại', color: 'orange' },
         { value: 'in_transit', label: 'Đang vận chuyển', color: 'purple' },
         { value: 'delivered', label: 'Đã giao hàng', color: 'emerald' },
         { value: 'failed', label: 'Giao hàng thất bại', color: 'red' }

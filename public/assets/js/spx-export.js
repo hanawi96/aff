@@ -216,7 +216,9 @@ function createSPXExcelWorkbook(orders) {
                 product.notes
             )
         );
-        const productText = buildSPXProductColumnText(productBracketLines, orderDeliveryNote);
+        const productText =
+            getSPXReshipNamePrefix(order) +
+            buildSPXProductColumnText(productBracketLines, orderDeliveryNote);
         
         // COD: thu khi giao = total − cọc (CK → 0). Giá trị đơn hàng = full total_amount.
         const isBankTransfer = isOrderBankPayment(order.payment_method);

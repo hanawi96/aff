@@ -158,7 +158,8 @@ const ORDER_STATUS_FILTER_LABELS = {
     all: 'Tất cả trạng thái',
     pending: 'Chưa gửi hàng',
     send_later: 'Gửi sau',
-    shipped: 'Đã gửi hàng'
+    shipped: 'Đã gửi hàng',
+    awaiting_reship: 'Chờ gửi lại'
 };
 
 /** Đã bỏ khỏi dropdown lọc desktop — nếu còn giá trị cũ trong DOM thì coi như «Chưa gửi hàng». */
@@ -307,7 +308,16 @@ function filterOrdersData(preservePage = false) {
             'giao hàng thất bại': 'failed'
         };
         const normalizedStatus = statusMap[orderStatus] || orderStatus;
-        const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
+        // "Chờ gửi lại" (awaiting_reship) bản chất vẫn là đơn CHƯA GỬI → gộp vào bộ lọc
+        // "Chưa gửi hàng" (pending) để không bị bỏ sót; badge cam vẫn phân biệt rõ.
+        let matchesStatus;
+        if (statusFilter === 'all') {
+            matchesStatus = true;
+        } else if (statusFilter === 'pending') {
+            matchesStatus = normalizedStatus === 'pending' || normalizedStatus === 'awaiting_reship';
+        } else {
+            matchesStatus = normalizedStatus === statusFilter;
+        }
 
         // Payment method filter (bank_transfer trong DB vẫn khớp bộ lọc "bank")
         const orderPaymentKey = orderPaymentApiKey(order.payment_method);
@@ -433,7 +443,8 @@ function toggleStatusFilter(event) {
         { value: 'all', label: 'Tất cả trạng thái', color: 'gray' },
         { value: 'pending', label: 'Chưa gửi hàng', color: 'yellow' },
         { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
-        { value: 'send_later', label: 'Gửi sau', color: 'sky' }
+        { value: 'send_later', label: 'Gửi sau', color: 'sky' },
+        { value: 'awaiting_reship', label: 'Chờ gửi lại', color: 'orange' }
     ];
 
     normalizeDesktopStatusFilterHidden();
@@ -491,6 +502,16 @@ function selectStatusFilter(value, label) {
     if (value === 'shipped' || value === 'send_later') {
         amountSortOrder = 'none';
         if (typeof updateAmountSortIcon === 'function') updateAmountSortIcon();
+    }
+
+    // "Đã gửi hàng": mặc định đơn có thời gian gửi MỚI NHẤT lên đầu (giảm dần theo shipped_at_unix).
+    // Các bộ lọc khác (chưa gửi/tất cả…): về mặc định cũ nhất trước để xử lý lần lượt.
+    if (value === 'shipped') {
+        dateSortOrder = 'desc';
+        if (typeof updateDateSortIcon === 'function') updateDateSortIcon();
+    } else if (value !== 'send_later') {
+        dateSortOrder = 'asc';
+        if (typeof updateDateSortIcon === 'function') updateDateSortIcon();
     }
 
     filterOrdersData();

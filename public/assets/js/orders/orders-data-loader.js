@@ -357,6 +357,11 @@ async function copySPXFormatExecute(orderId) {
             }
         }
 
+        // Đơn "Chờ gửi lại": gắn tiền tố [GỬI LẠI] ở đầu cột SP (tính trước khi auto đổi sang "Đã gửi hàng")
+        if (productsText) {
+            productsText = getSPXReshipNamePrefix(order) + productsText;
+        }
+
         // Format: Họ và tên\nSố điện thoại\nĐịa chỉ cụ thể\nDanh sách sản phẩm
         let spxFormat = `${order.customer_name || 'N/A'}
 ${order.customer_phone || 'N/A'}

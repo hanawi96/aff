@@ -1020,7 +1020,8 @@ export async function updateOrderStatus(data, env, corsHeaders) {
         }
 
         // Validate status (send_later chỉ đặt qua tạo/sửa đơn đầy đủ, không qua API này)
-        const validStatuses = ['pending', 'processing', 'shipped', 'in_transit', 'delivered', 'failed', 'cancelled'];
+        // awaiting_reship = "Chờ gửi lại": đơn hoàn đã có sản phẩm, chỉ in mã & gửi lại (export thêm tiền tố [GỬI LẠI]).
+        const validStatuses = ['pending', 'processing', 'shipped', 'in_transit', 'delivered', 'failed', 'cancelled', 'awaiting_reship'];
         if (!validStatuses.includes(data.status)) {
             return jsonResponse({
                 success: false,

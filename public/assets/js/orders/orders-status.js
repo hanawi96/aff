@@ -6,7 +6,7 @@
 function getStatusBadge(status, orderId, orderCode, order) {
     const statusConfig = {
         'pending': {
-            label: 'Chờ xử lý',
+            label: 'Chưa gửi hàng',
             color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />`
         },
@@ -34,6 +34,11 @@ function getStatusBadge(status, orderId, orderCode, order) {
             label: 'Giao hàng thất bại',
             color: 'bg-red-100 text-red-700 border-red-300',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />`
+        },
+        'awaiting_reship': {
+            label: 'Chờ gửi lại',
+            color: 'bg-orange-100 text-orange-700 border-orange-300',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />`
         }
     };
 
@@ -103,10 +108,11 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
         return;
     }
 
-    // Đồng bộ với bộ lọc desktop: chỉ đổi nhanh chờ xử lý ↔ đã gửi (không dùng in_transit / delivered / failed từ menu)
+    // Đồng bộ với bộ lọc desktop: chờ xử lý ↔ đã gửi, kèm "Chờ gửi lại" cho đơn hoàn gửi lại
     const statuses = [
-        { value: 'pending', label: 'Chờ xử lý', color: 'yellow' },
-        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' }
+        { value: 'pending', label: 'Chưa gửi hàng', color: 'yellow' },
+        { value: 'shipped', label: 'Đã gửi hàng', color: 'blue' },
+        { value: 'awaiting_reship', label: 'Chờ gửi lại', color: 'orange' }
     ];
 
     // Get the badge element position
@@ -121,7 +127,7 @@ function showStatusMenu(orderId, orderCode, currentStatus, event) {
 
     // Calculate position - check if there's enough space below
     const spaceBelow = window.innerHeight - rect.bottom;
-    const menuHeight = 120; // Estimated menu height (ít mục hơn)
+    const menuHeight = 170; // Estimated menu height (3 mục)
 
     if (spaceBelow < menuHeight && rect.top > menuHeight) {
         // Show above
@@ -209,14 +215,15 @@ async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, 
             if (!silent) {
                 // Get status label
                 const statusLabels = {
-                    'pending': 'Chờ xử lý',
+                    'pending': 'Chưa gửi hàng',
                     'processing': 'Đang xử lý',
                     'shipped': 'Đã gửi hàng',
                     'in_transit': 'Đang vận chuyển',
                     'delivered': 'Đã giao hàng',
                     'failed': 'Giao hàng thất bại',
                     'cancelled': 'Đã hủy',
-                    'send_later': 'Gửi sau'
+                    'send_later': 'Gửi sau',
+                    'awaiting_reship': 'Chờ gửi lại'
                 };
 
                 showToast(`Đã cập nhật trạng thái đơn ${orderCode} thành "${statusLabels[newStatus]}"`, 'success', null, updateId);

@@ -390,6 +390,20 @@ function buildSPXProductColumnText(productBracketLines, orderNoteTrimmed) {
     return t;
 }
 
+/** Trạng thái "Chờ gửi lại": SP đã làm, chỉ cần in mã & dán gửi lại cho khách. */
+const ORDER_STATUS_AWAITING_RESHIP = 'awaiting_reship';
+
+/**
+ * Tiền tố [GỬI LẠI] đặt ở đầu cột tên sản phẩm (Excel SPX & Copy SPX) cho đơn "Chờ gửi lại",
+ * để nhìn đơn là biết SP đã làm rồi, chỉ in mã & gửi lại — khỏi làm SP mới.
+ * @param {object} order - đơn hàng (đọc order.status)
+ * @returns {string} '[GỬI LẠI] ' hoặc '' nếu không phải đơn chờ gửi lại
+ */
+function getSPXReshipNamePrefix(order) {
+    const st = (order && order.status != null ? String(order.status) : '').toLowerCase().trim();
+    return st === ORDER_STATUS_AWAITING_RESHIP ? '[GỬI LẠI] ' : '';
+}
+
 /**
  * Danh sách tên sản phẩm trong đơn chưa có cân hoặc size (sau chuẩn hóa).
  * Dùng trước khi copy format SPX / in để cảnh báo.
