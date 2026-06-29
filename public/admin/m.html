@@ -537,14 +537,51 @@ function _orderHasMissingSize(o){
   }catch{return false;}
 }
 
+function _mFindTheTenBeMarker(text){
+  if(text==null||text==='')return null;
+  const n=String(text).normalize('NFC');
+  const lower=n.toLowerCase();
+  const full='thẻ tên'.normalize('NFC');
+  let idx=lower.indexOf(full);
+  if(idx!==-1)return{idx,len:full.length,source:n};
+  const flex=lower.match(/thẻ\s+tên/);
+  if(flex)return{idx:flex.index,len:flex[0].length,source:n};
+  const short='thẻ'.normalize('NFC');
+  idx=lower.indexOf(short);
+  if(idx!==-1)return{idx,len:short.length,source:n};
+  const plain=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase();
+  idx=plain.indexOf('the ten');
+  if(idx!==-1)return{idx,len:7,source:n};
+  const flexPlain=plain.match(/the\s+ten/);
+  if(flexPlain)return{idx:flexPlain.index,len:flexPlain[0].length,source:n};
+  const solo=plain.match(/\bthe\b/);
+  if(solo)return{idx:solo.index,len:solo[0].length,source:n};
+  return null;
+}
+function _mProductTextHasTheTenBe(text){
+  return _mFindTheTenBeMarker(text)!=null;
+}
+function _mOrderLineHasTheTenBe(p){
+  if(typeof p==='string')return _mProductTextHasTheTenBe(p);
+  if(!p||typeof p!=='object')return false;
+  if(_mProductTextHasTheTenBe(p.name))return true;
+  if(p.product_name&&_mProductTextHasTheTenBe(p.product_name))return true;
+  if(p.notes&&String(p.notes).trim()&&_mProductTextHasTheTenBe(p.notes))return true;
+  if(p.product_id&&allProductsCache.length){
+    const cat=allProductsCache.find(x=>Number(x.id)===Number(p.product_id));
+    if(cat?.name&&_mProductTextHasTheTenBe(cat.name))return true;
+    if(Array.isArray(cat?.category_ids)&&cat.category_ids.some(id=>Number(id)===21))return true;
+    if(Number(cat?.category_id)===21)return true;
+  }
+  return false;
+}
 function _orderHasTheTenBe(o){
   try{
     const prods=JSON.parse(o.products);
     if(!Array.isArray(prods))return false;
-    return prods.some(p=>{
-      const name=(typeof p==='string'?p:(p.name||'')).toLowerCase();
-      return name.includes('thẻ tên');
-    });
+    if(prods.some(p=>_mOrderLineHasTheTenBe(p)))return true;
+    const orderNote=o.notes&&String(o.notes).trim();
+    return !!(orderNote&&_mProductTextHasTheTenBe(orderNote));
   }catch{return false;}
 }
 
@@ -727,7 +764,7 @@ function showTheTenBeNotes(orderId){
   try{
     const prods=JSON.parse(o.products);
     prods.forEach(p=>{
-      if((p.name||'').toLowerCase().includes('thẻ tên')&&p.notes&&p.notes.trim()){
+      if(_mOrderLineHasTheTenBe(p)&&p.notes&&p.notes.trim()){
         prodNotes.push({name:p.name,note:p.notes.trim()});
       }
     });
@@ -1273,7 +1310,7 @@ function renderCards(){
       prods=p.map(x=>x.name).join(', ');
       const _norm=v=>{const s=String(v??'').trim().toLowerCase();return(s&&s!=='chưa có'&&s!=='chua co'&&s!=='chua có')?s:null;};
       hasNoSize=p.some(x=>!_norm(x.size)&&!_norm(x.weight));
-      hasTheTenBe=p.some(x=>(x.name||'').toLowerCase().includes('thẻ tên'));
+      hasTheTenBe=p.some(x=>_mOrderLineHasTheTenBe(typeof x==='string'?x:x));
       hasProdNotes=p.some(x=>x.notes&&x.notes.trim());
     }catch{}
     const hasAnyNote=hasProdNotes||!!(o.notes&&o.notes.trim());
@@ -5461,7 +5498,7 @@ function updateTabActive(p){
         </span>
         <div class="flex-1 text-left">
           <div class="font-semibold">Mix thẻ tên bé</div>
-          <div class="text-xs opacity-60 mt-0.5">Đơn có sản phẩm trong danh mục thẻ tên</div>
+          <div class="text-xs opacity-60 mt-0.5">DM 21, tên/lưu ý SP hoặc lưu ý đơn có "thẻ"</div>
         </div>
         <button id="mfX_thetbe" onclick="event.stopPropagation();deactivateMFilter('thetbe')" class="hidden w-6 h-6 flex items-center justify-center rounded-full bg-red-100 text-red-500 shrink-0 hover:bg-red-200 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>

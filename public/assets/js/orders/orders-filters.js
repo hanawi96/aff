@@ -11,7 +11,7 @@ let currentDateMode = 'single'; // 'single' or 'range'
 let priorityFilterActive = false; // Track priority filter state
 /** Chỉ hiện đơn có ít nhất 1 sản phẩm thiếu cân/size (dùng getOrderProductsMissingSizeWeight) */
 let missingSizeFilterActive = false;
-/** Chỉ hiện đơn có ít nhất 1 sản phẩm thuộc danh mục "Mix thẻ tên bé" (category id 21) */
+/** Chỉ hiện đơn có ≥1 SP thuộc DM 21, tên/lưu ý SP có "thẻ", hoặc lưu ý đơn có "thẻ" */
 let theTenBeFilterActive = false;
 /** Chỉ hiện đơn có lưu ý đơn hoặc lưu ý ít nhất một dòng SP */
 let hasNotesFilterActive = false;
@@ -32,7 +32,8 @@ function _getCategory21ProductIds() {
                 if (Array.isArray(p.category_ids)) return p.category_ids.some(id => parseInt(id, 10) === 21);
                 return parseInt(p.category_id, 10) === 21;
             })
-            .map(p => p.id)
+            .map(p => parseInt(p.id, 10))
+            .filter(n => !Number.isNaN(n))
     );
     return _cat21ProductIds;
 }
@@ -42,21 +43,93 @@ function invalidateCategory21Cache() {
     _cat21ProductIds = null;
 }
 
+/** Vị trí marker "thẻ tên" hoặc "thẻ" trong tên SP (ưu tiên cụm dài trước). */
+function _findTheTenBeMarkerInText(text) {
+    if (text == null || text === '') return null;
+    const n = String(text).normalize('NFC');
+    const lower = n.toLowerCase();
+
+    const needleFull = 'thẻ tên'.normalize('NFC');
+    let idx = lower.indexOf(needleFull);
+    if (idx !== -1) return { idx, len: needleFull.length, source: n };
+
+    const flex = lower.match(/thẻ\s+tên/);
+    if (flex) return { idx: flex.index, len: flex[0].length, source: n };
+
+    const needleShort = 'thẻ'.normalize('NFC');
+    idx = lower.indexOf(needleShort);
+    if (idx !== -1) return { idx, len: needleShort.length, source: n };
+
+    const plain = removeVietnameseTones(lower).toLowerCase();
+    idx = plain.indexOf('the ten');
+    if (idx !== -1) return { idx, len: 7, source: n };
+    const flexPlain = plain.match(/the\s+ten/);
+    if (flexPlain) return { idx: flexPlain.index, len: flexPlain[0].length, source: n };
+    const solo = plain.match(/\bthe\b/);
+    if (solo) return { idx: solo.index, len: solo[0].length, source: n };
+
+    return null;
+}
+
+/** Tên dòng SP có chứa "thẻ tên" hoặc "thẻ" (NFC, khoảng trắng linh hoạt, fallback không dấu) */
+function _productTextHasTheTenBe(text) {
+    return _findTheTenBeMarkerInText(text) != null;
+}
+
+/** Các chuỗi tên có thể dùng để nhận diện thẻ tên (JSON + tên SP trong kho) */
+function _orderLineNameCandidates(item) {
+    if (typeof item === 'string') return [item];
+    if (!item || typeof item !== 'object') return [];
+    const out = [];
+    if (item.name) out.push(String(item.name));
+    if (item.product_name) out.push(String(item.product_name));
+    if (item.product_id != null && Array.isArray(allProductsList)) {
+        const n = parseInt(item.product_id, 10);
+        if (!Number.isNaN(n)) {
+            const cat = allProductsList.find(p => parseInt(p.id, 10) === n);
+            if (cat?.name) out.push(String(cat.name));
+        }
+    }
+    return out;
+}
+
+function _productIdInCategory21(pid, cat21Ids) {
+    if (pid == null || pid === '') return false;
+    const n = parseInt(pid, 10);
+    return !Number.isNaN(n) && cat21Ids.has(n);
+}
+
 /**
- * Kiểm tra đơn hàng có ít nhất 1 SP thuộc danh mục "Mix thẻ tên bé" (cat 21)
- * Ưu tiên khớp product_id; fallback khớp tên chứa "thẻ tên"
+ * Một dòng SP trong đơn được coi là "thẻ tên bé" nếu:
+ *  - Tên dòng có text "thẻ tên" hoặc "thẻ", HOẶC
+ *  - Lưu ý dòng SP có text "thẻ tên" hoặc "thẻ", HOẶC
+ *  - product_id thuộc danh mục Mix thẻ tên bé (category id 21)
+ */
+function _orderLineHasTheTenBeProduct(item, cat21Ids) {
+    if (typeof item === 'string') {
+        return _productTextHasTheTenBe(item);
+    }
+    if (!item || typeof item !== 'object') return false;
+    for (const nm of _orderLineNameCandidates(item)) {
+        if (_productTextHasTheTenBe(nm)) return true;
+    }
+    const lineNotes = item.notes && String(item.notes).trim();
+    if (lineNotes && _productTextHasTheTenBe(lineNotes)) return true;
+    const pid = item.product_id != null ? item.product_id : item.id;
+    return _productIdInCategory21(pid, cat21Ids);
+}
+
+/**
+ * Đơn có ≥1 SP thẻ tên bé: DM 21, tên/lưu ý SP chứa "thẻ tên" / "thẻ", hoặc lưu ý đơn có "thẻ"
  */
 function orderHasTheTenBeProduct(order) {
     try {
         const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
         if (!Array.isArray(products)) return false;
         const cat21Ids = _getCategory21ProductIds();
-        return products.some(item => {
-            const pid = item.product_id || item.id;
-            if (pid != null && cat21Ids.has(pid)) return true;
-            // Fallback theo tên khi product_id không có hoặc đã bị xóa
-            return (item.name || '').toLowerCase().includes('thẻ tên');
-        });
+        if (products.some(item => _orderLineHasTheTenBeProduct(item, cat21Ids))) return true;
+        const orderNote = order.notes && String(order.notes).trim();
+        return !!(orderNote && _productTextHasTheTenBe(orderNote));
     } catch {
         return false;
     }
@@ -284,7 +357,7 @@ function filterOrdersData(preservePage = false) {
             matchesMissingSize = missing.length > 0;
         }
 
-        // Bộ lọc "Thẻ tên bé" — đơn có ≥1 SP thuộc danh mục Mix thẻ tên bé (cat 21)
+        // Bộ lọc "Thẻ tên bé" — DM 21, tên/lưu ý SP hoặc lưu ý đơn chứa "thẻ tên" / "thẻ"
         const matchesTheTenBe = !theTenBeFilterActive || orderHasTheTenBeProduct(order);
 
         // Bộ lọc "Có lưu ý" — cache.hasAnyNotes (O(1))
@@ -399,6 +472,14 @@ function filterOrdersData(preservePage = false) {
 
     if (typeof updateQuickSelectDayChips === 'function') {
         updateQuickSelectDayChips();
+    }
+
+    if (typeof updateMissingSizeBadge === 'function') {
+        updateMissingSizeBadge();
+    }
+
+    if (typeof updateTheTenBePanelBanner === 'function') {
+        updateTheTenBePanelBanner();
     }
 }
 
@@ -1053,6 +1134,29 @@ function togglePriorityFilter() {
 /**
  * Bật/tắt bộ lọc chỉ đơn có sản phẩm chưa có cân hoặc size
  */
+/**
+ * Cập nhật badge số lượng đơn "Chưa có size" trên nút lọc.
+ * Đếm theo computeOrdersWithMissingSize() (đơn pending có ≥1 SP thiếu cân/size) — đồng bộ với bộ lọc.
+ * Nhẹ: 1 lượt quét allOrdersData; ẩn badge khi = 0.
+ */
+function updateMissingSizeBadge() {
+    const el = document.getElementById('missingSizeCountBadge');
+    if (!el) return;
+    let count = 0;
+    try {
+        if (typeof computeOrdersWithMissingSize === 'function') {
+            count = computeOrdersWithMissingSize().length;
+        }
+    } catch (e) { count = 0; }
+    if (count > 0) {
+        el.textContent = count > 99 ? '99+' : String(count);
+        el.style.display = 'inline-flex';
+    } else {
+        el.textContent = '';
+        el.style.display = 'none';
+    }
+}
+
 function _setMissingSizeFilterUI(active) {
     const button = document.getElementById('missingSizeFilterBtn');
     if (!button) return;
@@ -1163,27 +1267,31 @@ function toggleHasNotesFilter() {
 function toggleTheTenBeFilter() {
     const button = document.getElementById('theTenBeFilterBtn');
     if (!button) return;
-    const icon = button.querySelector('svg');
 
-    // Xóa cache product ids khi toggle để đảm bảo fresh nếu products đã load sau
     invalidateCategory21Cache();
 
     theTenBeFilterActive = !theTenBeFilterActive;
 
-    if (theTenBeFilterActive) {
-        button.classList.remove('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
-        button.classList.add('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
-        icon.classList.remove('text-gray-500');
-        icon.classList.add('text-pink-600');
-        button.querySelector('span').classList.remove('text-gray-700');
-        button.querySelector('span').classList.add('text-pink-700', 'font-semibold');
+    if (typeof _setTheTenBeFilterUI === 'function') {
+        _setTheTenBeFilterUI(theTenBeFilterActive);
     } else {
-        button.classList.remove('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
-        button.classList.add('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
-        icon.classList.remove('text-pink-600');
-        icon.classList.add('text-gray-500');
-        button.querySelector('span').classList.remove('text-pink-700', 'font-semibold');
-        button.querySelector('span').classList.add('text-gray-700');
+        const icon = button.querySelector('svg');
+        const span = button.querySelector('span');
+        if (theTenBeFilterActive) {
+            button.classList.remove('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
+            button.classList.add('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
+            icon?.classList.remove('text-gray-500');
+            icon?.classList.add('text-pink-600');
+            span?.classList.remove('text-gray-700');
+            span?.classList.add('text-pink-700', 'font-semibold');
+        } else {
+            button.classList.remove('bg-pink-50', 'border-pink-500', 'ring-1', 'ring-pink-200');
+            button.classList.add('border-gray-300', 'hover:bg-pink-50', 'hover:border-pink-300');
+            icon?.classList.remove('text-pink-600');
+            icon?.classList.add('text-gray-500');
+            span?.classList.remove('text-pink-700', 'font-semibold');
+            span?.classList.add('text-gray-700');
+        }
     }
 
     filterOrdersData();

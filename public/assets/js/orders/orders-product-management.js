@@ -26,6 +26,9 @@ async function loadProductsAndCategories() {
 
         if (productsData.success) {
             allProductsList = productsData.products || [];
+            if (typeof invalidateCategory21Cache === 'function') {
+                invalidateCategory21Cache();
+            }
         }
         if (categoriesData.success) {
             allCategoriesList = categoriesData.categories || [];

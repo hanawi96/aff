@@ -133,5 +133,15 @@ function updateOrderData(orderId, updates) {
     if (filteredIndex !== -1) {
         Object.assign(filteredOrdersData[filteredIndex], updates);
     }
+
+    // Badge phụ thuộc products / status / notes — cập nhật sau mọi thay đổi liên quan
+    if (updates.products != null || updates.status != null || updates.notes != null) {
+        if (typeof updateMissingSizeBadge === 'function') {
+            updateMissingSizeBadge();
+        }
+        if (typeof refreshTheTenBePanelAfterDataChange === 'function') {
+            refreshTheTenBePanelAfterDataChange();
+        }
+    }
 }
 

@@ -158,19 +158,24 @@ function _renderOrdersFromCurrentData() {
 }
 
 // Load orders data from API (Stale-While-Revalidate)
-async function loadOrdersData() {
+// options.skipCache: true — bỏ pha cache (dùng sau tạo/sửa đơn để tránh nháy bảng 2 lần)
+async function loadOrdersData(options = {}) {
+    const skipCache = options?.skipCache === true;
+
     // ---- PHA 1: hiển thị ngay từ cache (nếu có) ----
     let renderedFromCache = false;
-    try {
-        const cached = await _readOrdersCache();
-        if (cached && Array.isArray(cached.orders) && cached.orders.length > 0) {
-            allOrdersData = cached.orders;
-            _renderOrdersFromCurrentData();
-            hideLoading();
-            renderedFromCache = true;
+    if (!skipCache) {
+        try {
+            const cached = await _readOrdersCache();
+            if (cached && Array.isArray(cached.orders) && cached.orders.length > 0) {
+                allOrdersData = cached.orders;
+                _renderOrdersFromCurrentData();
+                hideLoading();
+                renderedFromCache = true;
+            }
+        } catch (e) {
+            /* bỏ qua lỗi cache, rơi xuống tải mạng bình thường */
         }
-    } catch (e) {
-        /* bỏ qua lỗi cache, rơi xuống tải mạng bình thường */
     }
 
     // ---- PHA 2: revalidate — luôn tải dữ liệu mới ----

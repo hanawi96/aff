@@ -246,13 +246,26 @@ async function submitNewOrder() {
             
             closeAddOrderModal(true);
             if (typeof clearOrderDraft === 'function') clearOrderDraft();
-            
-            // Reload orders data; nếu đơn vừa lưu là "Gửi sau" (tạo mới hoặc sửa) → bộ lọc "Gửi sau"
-            await loadOrdersData();
-            if (status === 'send_later' && typeof selectStatusFilter === 'function') {
-                selectStatusFilter('send_later', 'Gửi sau');
+
+            // Đơn "Gửi sau": đặt bộ lọc trước 1 lần render (tránh filterOrdersData lần 2)
+            if (status === 'send_later') {
+                const statusEl = document.getElementById('statusFilter');
+                const labelEl = document.getElementById('statusFilterLabel');
+                if (statusEl) statusEl.value = 'send_later';
+                if (labelEl) labelEl.textContent = 'Gửi sau';
+                amountSortOrder = 'none';
+                if (typeof updateAmountSortIcon === 'function') updateAmountSortIcon();
             }
-            
+
+            // SP + cache thẻ tên sẵn sàng trước khi vẽ lại — bảng và badge cập nhật cùng một lần
+            if (typeof loadProductsAndCategories === 'function') {
+                await loadProductsAndCategories();
+            }
+            if (typeof invalidateCategory21Cache === 'function') invalidateCategory21Cache();
+            if (typeof resetTheTenBePanelCache === 'function') resetTheTenBePanelCache();
+
+            await loadOrdersData({ skipCache: true });
+
             console.log('✅ Order saved:', result.order);
         } else {
             throw new Error(result.message || result.error || (isUpdate ? 'Không thể cập nhật đơn hàng' : 'Không thể tạo đơn hàng'));

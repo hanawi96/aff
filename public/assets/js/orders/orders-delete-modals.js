@@ -143,11 +143,17 @@ async function deleteOrder(orderId, orderCode) {
             // Invalidate search cache since data changed
             invalidateSearchCache();
 
-            // Update stats
-            updateStats();
-
-            // Re-render the table
-            renderOrdersTable();
+            // Một lần filter: bảng + badge thẻ tên + thống kê (tránh nháy 2 lần)
+            if (typeof filterOrdersData === 'function') {
+                filterOrdersData(true);
+            } else {
+                updateStats();
+                renderOrdersTable();
+                if (typeof updateMissingSizeBadge === 'function') updateMissingSizeBadge();
+                if (typeof refreshTheTenBePanelAfterDataChange === 'function') {
+                    refreshTheTenBePanelAfterDataChange();
+                }
+            }
 
             showToast(`Đã xóa đơn hàng ${orderCode}`, 'success', null, deleteId);
         } else {
