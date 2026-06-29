@@ -2,6 +2,24 @@ import { jsonResponse } from '../../utils/response.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
 import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount } from './order-persist-helpers.js';
 
+/** Shape đầy đủ giống getRecentOrders — dùng trả về sau tạo/sửa đơn desktop. */
+async function fetchOrderRowForList(env, orderDbId) {
+    return env.DB.prepare(`
+        SELECT
+            orders.*,
+            ctv.commission_rate AS ctv_commission_rate,
+            COALESCE(
+                (SELECT SUM(product_cost * quantity)
+                 FROM order_items
+                 WHERE order_items.order_id = orders.id),
+                0
+            ) AS product_cost
+        FROM orders
+        LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
+        WHERE orders.id = ?
+    `).bind(orderDbId).first();
+}
+
 // Create new order - Main order creation function
 export async function createOrder(data, env, corsHeaders) {
     try {
@@ -184,6 +202,8 @@ export async function createOrder(data, env, corsHeaders) {
             success: true,
             message: 'Đơn hàng đã được tạo thành công',
             orderId: data.orderId,
+            orderDbId: insertedOrderId,
+            order: await fetchOrderRowForList(env, insertedOrderId),
             commission: snap.finalCommission,
             timestamp: new Date().getTime() // UTC timestamp
         }, 200, corsHeaders);
@@ -322,6 +342,8 @@ export async function updateOrderFull(data, env, corsHeaders) {
             success: true,
             message: 'Đã cập nhật đơn hàng',
             orderId: existing.order_id,
+            orderDbId: Number(orderDbId),
+            order: await fetchOrderRowForList(env, orderDbId),
             commission: snap.finalCommission
         }, 200, corsHeaders);
     } catch (error) {

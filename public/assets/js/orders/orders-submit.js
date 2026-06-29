@@ -247,7 +247,7 @@ async function submitNewOrder() {
             closeAddOrderModal(true);
             if (typeof clearOrderDraft === 'function') clearOrderDraft();
 
-            // Đơn "Gửi sau": đặt bộ lọc trước 1 lần render (tránh filterOrdersData lần 2)
+            // Đơn "Gửi sau": đặt bộ lọc trước render (tránh filterOrdersData lần 2)
             if (status === 'send_later') {
                 const statusEl = document.getElementById('statusFilter');
                 const labelEl = document.getElementById('statusFilterLabel');
@@ -257,16 +257,13 @@ async function submitNewOrder() {
                 if (typeof updateAmountSortIcon === 'function') updateAmountSortIcon();
             }
 
-            // SP + cache thẻ tên sẵn sàng trước khi vẽ lại — bảng và badge cập nhật cùng một lần
-            if (typeof loadProductsAndCategories === 'function') {
-                await loadProductsAndCategories();
+            if (typeof refreshOrdersListAfterMutation === 'function') {
+                await refreshOrdersListAfterMutation(result);
+            } else {
+                await loadOrdersData({ skipCache: true });
             }
-            if (typeof invalidateCategory21Cache === 'function') invalidateCategory21Cache();
-            if (typeof resetTheTenBePanelCache === 'function') resetTheTenBePanelCache();
 
-            await loadOrdersData({ skipCache: true });
-
-            console.log('✅ Order saved:', result.order);
+            console.log('✅ Order saved:', result.order || result.orderId);
         } else {
             throw new Error(result.message || result.error || (isUpdate ? 'Không thể cập nhật đơn hàng' : 'Không thể tạo đơn hàng'));
         }

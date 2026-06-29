@@ -115,8 +115,9 @@ async function _writeOrdersCache(orders) {
  */
 function _ordersSignature(list) {
     if (!Array.isArray(list)) return 0;
-    let h = 5381 + list.length;
-    for (const o of list) {
+    const sorted = list.slice().sort((a, b) => Number(a.id) - Number(b.id));
+    let h = 5381 + sorted.length;
+    for (const o of sorted) {
         const s = `${o.id}|${o.status || ''}|${o.total_amount || 0}|${o.is_priority || 0}|${o.shipped_at_unix || 0}|${(o.products && o.products.length) || 0}|${(o.notes && o.notes.length) || 0}`;
         for (let i = 0; i < s.length; i++) {
             h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
@@ -157,10 +158,67 @@ function _renderOrdersFromCurrentData() {
     _scheduleSearchIndexPrebuild();
 }
 
+/** Gắn/cập nhật 1 đơn trong allOrdersData (đầu danh sách nếu mới). */
+function mergeOrderIntoLocalList(order) {
+    if (!order || order.id == null) return false;
+    const id = Number(order.id);
+    if (!Number.isFinite(id)) return false;
+    if (!Array.isArray(allOrdersData)) allOrdersData = [];
+    const idx = allOrdersData.findIndex((o) => Number(o.id) === id);
+    if (idx >= 0) {
+        allOrdersData[idx] = { ...allOrdersData[idx], ...order };
+    } else {
+        allOrdersData.unshift(order);
+    }
+    return true;
+}
+
+/**
+ * Sau tạo/sửa đơn: hiện đơn ngay, revalidate nền không skeleton.
+ * @param {{ order?: object, orderDbId?: number }} result
+ */
+async function refreshOrdersListAfterMutation(result) {
+    if (typeof invalidateCategory21Cache === 'function') invalidateCategory21Cache();
+    if (typeof resetTheTenBePanelCache === 'function') resetTheTenBePanelCache();
+    if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
+
+    let merged = false;
+    if (result?.order) {
+        merged = mergeOrderIntoLocalList(result.order);
+    } else if (result?.orderDbId) {
+        try {
+            const res = await fetch(
+                `${CONFIG.API_URL}?action=getOrderById&id=${Number(result.orderDbId)}&timestamp=${Date.now()}`
+            );
+            const data = await res.json();
+            if (data.success && data.order) {
+                merged = mergeOrderIntoLocalList(data.order);
+            }
+        } catch (e) {
+            console.warn('refreshOrdersListAfterMutation: getOrderById failed', e);
+        }
+    }
+
+    if (merged) {
+        if (typeof invalidateSearchCache === 'function') invalidateSearchCache();
+        hideLoading();
+        _renderOrdersFromCurrentData();
+    }
+
+    if (typeof loadProductsAndCategories === 'function') {
+        void loadProductsAndCategories();
+    }
+    void loadOrdersData({ skipCache: true, silent: true, skipRender: true });
+}
+
 // Load orders data from API (Stale-While-Revalidate)
 // options.skipCache: true — bỏ pha cache (dùng sau tạo/sửa đơn để tránh nháy bảng 2 lần)
+// options.silent: true — không hiện skeleton, giữ bảng hiện tại khi revalidate
+// options.skipRender: true — chỉ cập nhật allOrdersData + cache, không vẽ lại bảng
 async function loadOrdersData(options = {}) {
     const skipCache = options?.skipCache === true;
+    const silent = options?.silent === true;
+    const skipRender = options?.skipRender === true;
 
     // ---- PHA 1: hiển thị ngay từ cache (nếu có) ----
     let renderedFromCache = false;
@@ -180,7 +238,12 @@ async function loadOrdersData(options = {}) {
 
     // ---- PHA 2: revalidate — luôn tải dữ liệu mới ----
     try {
-        if (!renderedFromCache) showLoading();
+        const hasVisibleTable = silent && Array.isArray(allOrdersData) && allOrdersData.length > 0;
+        if (!renderedFromCache && !hasVisibleTable) {
+            showLoading();
+        } else if (hasVisibleTable) {
+            hideLoading();
+        }
 
         const response = await fetch(`${CONFIG.API_URL}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
 
@@ -192,11 +255,10 @@ async function loadOrdersData(options = {}) {
 
         if (data.success) {
             const fresh = data.orders || [];
-            // Chỉ vẽ lại khi dữ liệu mới khác cache đang hiển thị (tránh nháy thừa).
-            const changed = !renderedFromCache || _ordersSignature(fresh) !== _ordersSignature(allOrdersData);
+            const changed = _ordersSignature(fresh) !== _ordersSignature(allOrdersData);
             allOrdersData = fresh;
 
-            if (changed) {
+            if (!skipRender && changed) {
                 _renderOrdersFromCurrentData();
             }
             hideLoading();
