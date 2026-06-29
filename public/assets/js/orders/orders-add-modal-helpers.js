@@ -252,11 +252,112 @@ function updateOrderSummary() {
     }
 }
 
+/** Index dòng đang sửa giá nhanh (null = không có). */
+let _quickEditOrderPriceIndex = null;
+
+/**
+ * Bắt đầu sửa nhanh đơn giá — thay nút bằng input tại chỗ, không mở modal.
+ * @param {number} index
+ */
+function startQuickEditOrderPrice(index) {
+    const product = currentOrderProducts[index];
+    if (!product) return;
+
+    const existingInput = document.getElementById(`orderProductPriceInput_${index}`);
+    if (existingInput) {
+        existingInput.focus();
+        existingInput.select();
+        return;
+    }
+
+    if (_quickEditOrderPriceIndex !== null && _quickEditOrderPriceIndex !== index) {
+        commitQuickEditOrderPrice(_quickEditOrderPriceIndex);
+    }
+
+    const btn = document.getElementById(`orderProductPriceBtn_${index}`);
+    if (!btn) return;
+
+    const price = parsePrice(product.price);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.id = `orderProductPriceInput_${index}`;
+    input.className = 'order-price-quick-input w-[5.5rem] px-1.5 py-0.5 text-xs font-semibold text-blue-700 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none';
+    input.value = formatVnIntegerString(price);
+    input.setAttribute('aria-label', 'Đơn giá');
+    input.autocomplete = 'off';
+
+    btn.replaceWith(input);
+    _quickEditOrderPriceIndex = index;
+
+    input.addEventListener('input', () => {
+        if (typeof formatVnMoneyInput === 'function') formatVnMoneyInput(input);
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelQuickEditOrderPrice(index);
+        }
+    });
+    input.addEventListener('blur', () => {
+        if (_quickEditOrderPriceIndex === index) {
+            commitQuickEditOrderPrice(index);
+        }
+    });
+
+    input.focus();
+    input.select();
+}
+
+/**
+ * Lưu đơn giá sau sửa nhanh.
+ * @param {number} index
+ */
+function commitQuickEditOrderPrice(index) {
+    if (_quickEditOrderPriceIndex !== index) return;
+
+    const input = document.getElementById(`orderProductPriceInput_${index}`);
+    const product = currentOrderProducts[index];
+    _quickEditOrderPriceIndex = null;
+
+    if (!input || !product) {
+        renderOrderProducts();
+        return;
+    }
+
+    const newPrice = parsePrice(input.value);
+    const oldPrice = parsePrice(product.price);
+
+    if (newPrice <= 0) {
+        showToast('Đơn giá phải lớn hơn 0', 'warning');
+        renderOrderProducts();
+        return;
+    }
+
+    if (newPrice !== oldPrice) {
+        product.price = newPrice;
+    }
+
+    renderOrderProducts();
+}
+
+/** Hủy sửa nhanh đơn giá (Esc). */
+function cancelQuickEditOrderPrice(index) {
+    if (_quickEditOrderPriceIndex !== index) return;
+    _quickEditOrderPriceIndex = null;
+    renderOrderProducts();
+}
+
 /**
  * Render order products list in add order modal
  * Displays all products with edit/remove buttons
  */
 function renderOrderProducts() {
+    _quickEditOrderPriceIndex = null;
+
     const container = document.getElementById('newOrderProductsList');
     if (!container) {
         console.warn('⚠️ Products list container not found');
@@ -311,8 +412,10 @@ function renderOrderProducts() {
             }
         }
         
-        // Add unit price with icon (using tag emoji which has better color support)
-        detailsLine.push(`🏷️ Đơn giá: ${formatCurrency(price)}`);
+        const priceBtn = `<button type="button" id="orderProductPriceBtn_${index}"
+            class="order-price-quick-edit inline text-blue-600 font-semibold underline decoration-dotted underline-offset-2 hover:text-blue-800 hover:bg-blue-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer"
+            onclick="startQuickEditOrderPrice(${index})" title="Click để sửa giá">${formatCurrency(price)}</button>`;
+        detailsLine.push(`🏷️ Đơn giá: ${priceBtn}`);
         
         // Add notes if available
         let notesHtml = '';
@@ -356,7 +459,9 @@ function renderOrderProducts() {
                         ${notesHtml}
                     </div>
                     <div class="flex-shrink-0 text-right">
-                        <span class="text-sm font-bold text-blue-600">${formatCurrency(subtotal)}</span>
+                        <button type="button" id="orderProductSubtotal_${index}"
+                            class="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline decoration-dotted underline-offset-2 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                            onclick="startQuickEditOrderPrice(${index})" title="Click để sửa đơn giá">${formatCurrency(subtotal)}</button>
                     </div>
                 </div>
             </div>

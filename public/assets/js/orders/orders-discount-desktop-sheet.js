@@ -6,7 +6,7 @@
 let dDiscSheetMounted = false;
 let dDiscManualQuickSel = null;
 let dDiscManualFixSel = null;
-let dDiscManualInputMode = 'percent';
+let dDiscManualInputMode = 'fixed';
 
 function dDiscClampDisc(amt, base) {
     const b = Math.max(0, Math.round(base));
@@ -202,6 +202,7 @@ function dDiscManualQuick(pct) {
         if (src === 'manual') {
             removeDiscountCode();
         }
+        dDiscSetManualInputMode('fixed');
         dDiscSyncChipRow();
         dDiscUpdateOrderSummary();
         return;
@@ -294,7 +295,7 @@ function dDiscHydrateManualDraft() {
                 if (inp && mv) inp.value = String(mv);
             }
         }
-    } else dDiscSetManualInputMode('percent');
+    } else dDiscSetManualInputMode('fixed');
     dDiscSyncChipRow();
     dDiscUpdateOrderSummary();
 }
@@ -506,10 +507,10 @@ function ensureDesktopDiscountSheetMounted() {
             <p class="text-xs text-gray-500 mb-3">% hoặc đ — áp dụng bằng nút bên dưới.</p>
             <div class="flex gap-2 items-stretch">
               <div class="flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shrink-0">
-                <button type="button" id="dDiscBtnPct" onclick="dDiscSetManualInputMode('percent')" class="px-3 py-2 text-xs font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5">%</button>
-                <button type="button" id="dDiscBtnVnd" onclick="dDiscSetManualInputMode('fixed')" class="px-3 py-2 text-xs font-bold rounded-md text-gray-500">đ</button>
+                <button type="button" id="dDiscBtnPct" onclick="dDiscSetManualInputMode('percent')" class="px-3 py-2 text-xs font-bold rounded-md text-gray-500">%</button>
+                <button type="button" id="dDiscBtnVnd" onclick="dDiscSetManualInputMode('fixed')" class="px-3 py-2 text-xs font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5">đ</button>
               </div>
-              <input type="text" id="dDiscManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 8 hoặc 50000" class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-300" oninput="dDiscOnManualInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();dDiscCommitManual();}" />
+              <input type="text" id="dDiscManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 50000" class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-300" oninput="dDiscOnManualInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();dDiscCommitManual();}" />
             </div>
           </div>
           <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

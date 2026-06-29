@@ -431,10 +431,10 @@ html.m-create-deeplink>body>header{display:none!important}
             <p class="text-[10px] text-gray-500 mb-2">% hoặc đ — cùng nút áp dụng dưới.</p>
             <div class="flex gap-1.5 items-stretch">
               <div class="flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 shrink-0">
-                <button type="button" id="mManBtnPct" onclick="setManualInputMode('percent')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5">%</button>
-                <button type="button" id="mManBtnVnd" onclick="setManualInputMode('fixed')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md text-gray-500">đ</button>
+                <button type="button" id="mManBtnPct" onclick="setManualInputMode('percent')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md text-gray-500">%</button>
+                <button type="button" id="mManBtnVnd" onclick="setManualInputMode('fixed')" class="px-2.5 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-violet-700 ring-1 ring-black/5">đ</button>
               </div>
-              <input type="text" id="mManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 8 hoặc 50000" class="flex-1 min-w-0 px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="onManualSheetInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();commitManualDiscountSheet();}">
+              <input type="text" id="mManualValInput" inputmode="decimal" autocomplete="off" placeholder="VD: 50000" class="flex-1 min-w-0 px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 focus:bg-white" oninput="onManualSheetInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();commitManualDiscountSheet();}">
             </div>
           </div>
           <div class="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
@@ -1935,7 +1935,7 @@ async function showEditOrder(id,opts){
     }
     showDiscountApplied();
     _syncManualChips();
-    setManualInputMode('percent');
+    setManualInputMode(mDiscount.manualKind==='percent'?'percent':'fixed');
   }
   if(o.referral_code){
     document.getElementById('ctvCheck').checked=true;
@@ -2033,7 +2033,7 @@ function showCreateOrder(){
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
   setPayment('cod');
-  requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('percent');_syncManualChips();});
+  requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('fixed');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
@@ -4086,7 +4086,7 @@ function getShipCost(existingOrder){
 let allDiscountsCache=[], mDiscount=null;
 /** Mã lưu DB khi giảm thủ công (không có discount_id → không ghi discount_usage) */
 const M_MANUAL_DISCOUNT_CODE='GG_THU_CONG';
-let mManualInputMode='percent';
+let mManualInputMode='fixed';
 /** Gợi ý % trong sheet (5|10|15) trước khi bấm Áp dụng — null = không chọn nhanh */
 let manualSheetQuickSel=null;
 /** Gợi ý tiền chẵn (đ) — null = không chọn chip gợi ý */
@@ -4297,7 +4297,7 @@ function hydrateManualSheetDraft(){
         if(inp)inp.value=String(mDiscount.manualValue);
       }
     }
-  }else setManualInputMode('percent');
+  }else setManualInputMode('fixed');
   _syncManualChips();
   updateDiscountSheetOrderSummary();
 }
@@ -4328,6 +4328,7 @@ function manualDiscQuick(pct){
       const el=document.getElementById('discountApplied');if(el){el.classList.add('hidden');el.classList.remove('flex');}
       if(createProducts.length)renderCart();
     }
+    setManualInputMode('fixed');
     _syncManualChips();
     updateDiscountSheetOrderSummary();
     return;

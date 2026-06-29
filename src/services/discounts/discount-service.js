@@ -319,9 +319,35 @@ export async function deleteDiscount(data, env, corsHeaders) {
 // Toggle discount status (active/inactive)
 export async function toggleDiscountStatus(data, env, corsHeaders) {
     try {
+        const active = data.active ? 1 : 0;
+
+        if (active === 1) {
+            const row = await env.DB.prepare(
+                'SELECT id, code, expiry_date FROM discounts WHERE id = ?'
+            ).bind(data.id).first();
+
+            if (!row) {
+                return jsonResponse({
+                    success: false,
+                    error: 'Không tìm thấy mã giảm giá'
+                }, 404, corsHeaders);
+            }
+
+            if (row.expiry_date) {
+                const now = new Date();
+                const expiryDate = new Date(row.expiry_date);
+                if (now > expiryDate) {
+                    return jsonResponse({
+                        success: false,
+                        error: `Mã ${row.code} đã hết hạn (${row.expiry_date}). Vui lòng gia hạn trước khi kích hoạt.`
+                    }, 400, corsHeaders);
+                }
+            }
+        }
+
         const result = await env.DB.prepare(`
             UPDATE discounts SET active = ? WHERE id = ?
-        `).bind(data.active ? 1 : 0, data.id).run();
+        `).bind(active, data.id).run();
 
         if (!result.success) {
             throw new Error('Failed to toggle discount status');
@@ -501,10 +527,10 @@ export async function bulkExtendDiscounts(data, env, corsHeaders) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        if (newDate <= today) {
+        if (newDate < today) {
             return jsonResponse({
                 success: false,
-                error: 'Ngày hết hạn mới phải sau ngày hôm nay'
+                error: 'Ngày hết hạn mới không được trước hôm nay'
             }, 400, corsHeaders);
         }
 

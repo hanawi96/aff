@@ -14,6 +14,16 @@ let selectedDiscountIds = new Set(); // Track selected discounts for bulk action
 let currentPage = 1;
 const itemsPerPage = 10;
 
+/** Mã đã qua ngày expiry_date (cùng logic validateDiscount / lọc tab Hết hạn). */
+function isDiscountExpired(discount) {
+    if (!discount?.expiry_date) return false;
+    return new Date(discount.expiry_date) < new Date();
+}
+
+function getDiscountById(id) {
+    return allDiscounts.find((d) => String(d.id) === String(id));
+}
+
 function openModalOverlay(modalId) {
     const el = document.getElementById(modalId);
     if (!el) return;
@@ -181,6 +191,14 @@ async function toggleDiscountStatus(id, currentStatus) {
     try {
         // Toggle: if currently 1 (active), set to 0 (inactive), and vice versa
         const newStatus = currentStatus === 1 ? 0 : 1;
+
+        if (newStatus === 1) {
+            const discount = getDiscountById(id);
+            if (discount && isDiscountExpired(discount)) {
+                showError('Mã đã hết hạn. Vui lòng dùng "Gia hạn" trước khi kích hoạt.');
+                return;
+            }
+        }
         
         const response = await fetch(`${API_URL}?action=toggleDiscountStatus`, {
             method: 'POST',
@@ -1137,18 +1155,40 @@ async function bulkActivate() {
         showToast('Vui lòng chọn ít nhất 1 mã', 'warning');
         return;
     }
-    
-    const count = selectedDiscountIds.size;
-    if (!confirm(`Bạn có chắc muốn kích hoạt ${count} mã đã chọn?`)) return;
+
+    const activatableIds = [];
+    let expiredCount = 0;
+
+    for (const id of selectedDiscountIds) {
+        const discount = getDiscountById(id);
+        if (discount && isDiscountExpired(discount)) {
+            expiredCount++;
+        } else {
+            activatableIds.push(id);
+        }
+    }
+
+    if (activatableIds.length === 0) {
+        showToast(
+            `${expiredCount} mã đã hết hạn — không thể kích hoạt. Vui lòng dùng "Gia hạn" để đặt ngày hết hạn mới trước.`,
+            'warning'
+        );
+        return;
+    }
+
+    let confirmMsg = `Bạn có chắc muốn kích hoạt ${activatableIds.length} mã đã chọn?`;
+    if (expiredCount > 0) {
+        confirmMsg += `\n\n(${expiredCount} mã đã hết hạn sẽ bỏ qua — cần gia hạn trước)`;
+    }
+    if (!confirm(confirmMsg)) return;
     
     try {
-        // Show loading toast with ID
-        showToast(`Đang kích hoạt ${count} mã...`, 'info', 0, 'bulk-activate');
+        showToast(`Đang kích hoạt ${activatableIds.length} mã...`, 'info', 0, 'bulk-activate');
         
         let successCount = 0;
         let errorCount = 0;
         
-        for (const id of selectedDiscountIds) {
+        for (const id of activatableIds) {
             try {
                 const response = await fetch(`${API_URL}?action=toggleDiscountStatus`, {
                     method: 'POST',
@@ -1167,13 +1207,15 @@ async function bulkActivate() {
             }
         }
         
-        // Reload data
         await loadDiscounts();
         clearSelection();
         
-        // Update toast with result (same ID will replace the loading toast)
         if (errorCount === 0) {
-            showToast(`Đã kích hoạt thành công ${successCount} mã`, 'success', null, 'bulk-activate');
+            let msg = `Đã kích hoạt thành công ${successCount} mã`;
+            if (expiredCount > 0) {
+                msg += ` (${expiredCount} mã hết hạn đã bỏ qua — cần gia hạn)`;
+            }
+            showToast(msg, 'success', null, 'bulk-activate');
         } else {
             showToast(`Đã kích hoạt ${successCount} mã, thất bại ${errorCount} mã`, 'warning', null, 'bulk-activate');
         }
@@ -1946,6 +1988,14 @@ function formatDiscountValue(type, value) {
 
 let selectedExtendDays = null;
 
+/** YYYY-MM-DD theo giờ local (tránh lệch ngày UTC). */
+function toLocalDateInputValue(d = new Date()) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function showBulkExtendModal() {
     if (selectedDiscountIds.size === 0) {
         showToast('Vui lòng chọn ít nhất 1 mã để gia hạn', 'warning');
@@ -1959,12 +2009,15 @@ function showBulkExtendModal() {
         countSpan.textContent = selectedDiscountIds.size;
         openModalOverlay('bulkExtendModal');
         
-        // Reset form
         selectedExtendDays = null;
-        document.getElementById('bulkExtendDate').value = '';
-        document.getElementById('extendPreview').classList.add('hidden');
+        const todayStr = toLocalDateInputValue();
+        const dateInput = document.getElementById('bulkExtendDate');
+        if (dateInput) {
+            dateInput.value = todayStr;
+            dateInput.min = todayStr;
+        }
+        showExtendPreview(new Date());
         
-        // Remove active state from quick buttons
         document.querySelectorAll('.extend-quick-btn').forEach(btn => {
             btn.classList.remove('border-blue-500', 'bg-blue-50');
             btn.classList.add('border-gray-300');
@@ -1983,22 +2036,21 @@ function closeBulkExtendModal() {
 function selectExtendDays(days) {
     selectedExtendDays = days;
     
-    // Clear custom date
-    document.getElementById('bulkExtendDate').value = '';
+    const newDate = new Date();
+    newDate.setDate(newDate.getDate() + days);
+    const dateInput = document.getElementById('bulkExtendDate');
+    if (dateInput) {
+        dateInput.value = toLocalDateInputValue(newDate);
+    }
     
-    // Update button states
     document.querySelectorAll('.extend-quick-btn').forEach(btn => {
         btn.classList.remove('border-blue-500', 'bg-blue-50');
         btn.classList.add('border-gray-300');
     });
     
-    // Highlight selected button
     event.currentTarget.classList.remove('border-gray-300');
     event.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
     
-    // Calculate and show preview
-    const newDate = new Date();
-    newDate.setDate(newDate.getDate() + days);
     showExtendPreview(newDate);
 }
 
@@ -2042,10 +2094,9 @@ async function executeBulkExtend() {
     let newExpiryDate;
     
     if (selectedExtendDays) {
-        // Quick option selected
         const date = new Date();
         date.setDate(date.getDate() + selectedExtendDays);
-        newExpiryDate = date.toISOString().split('T')[0];
+        newExpiryDate = toLocalDateInputValue(date);
     } else {
         // Custom date selected
         newExpiryDate = document.getElementById('bulkExtendDate').value;
@@ -2061,8 +2112,8 @@ async function executeBulkExtend() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (selectedDate <= today) {
-        showToast('Ngày hết hạn mới phải sau ngày hôm nay', 'warning');
+    if (selectedDate < today) {
+        showToast('Ngày hết hạn mới không được trước hôm nay', 'warning');
         return;
     }
     
