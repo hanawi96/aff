@@ -112,6 +112,224 @@
         .quick-radio-option.active .quick-radio-circle::after {
             transform: translate(-50%, -50%) scale(1);
         }
+
+        /* ── Modal gia hạn hàng loạt ── */
+        .bulk-extend-modal {
+            background: transparent;
+        }
+        .bulk-extend-backdrop {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .bulk-extend-dialog {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            overflow: hidden;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+            animation: bulkExtendIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes bulkExtendIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .bulk-extend-header {
+            padding: 1.25rem 1.25rem 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #faf5ff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 1.25rem 1.25rem 0 0;
+        }
+        .bulk-extend-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+        }
+        .bulk-extend-close {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+        .bulk-extend-close:hover {
+            background: rgba(255, 255, 255, 0.8);
+            color: #334155;
+        }
+        .bulk-extend-body {
+            padding: 1.25rem;
+            background: #f8fafc;
+        }
+        .bulk-extend-section {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.875rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .bulk-extend-section:last-child {
+            margin-bottom: 0;
+        }
+        .bulk-extend-section-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .bulk-extend-quick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.375rem;
+        }
+        .extend-quick-btn {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0.4375rem 0.25rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.12s;
+        }
+        .extend-quick-btn:hover {
+            border-color: #c7d2fe;
+            background: #f5f3ff;
+        }
+        .extend-quick-btn:active {
+            transform: scale(0.98);
+        }
+        .extend-quick-btn--active {
+            border-color: #818cf8;
+            background: linear-gradient(180deg, #eef2ff 0%, #faf5ff 100%);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+        }
+        .extend-quick-btn-text {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: #4f46e5;
+            white-space: nowrap;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+        .extend-quick-btn--active .extend-quick-btn-text {
+            color: #4338ca;
+        }
+        .bulk-extend-date-wrap {
+            position: relative;
+        }
+        .bulk-extend-date-wrap input[type="date"] {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 0.625rem;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+        .bulk-extend-date-wrap input[type="date"]:focus {
+            outline: none;
+            border-color: #a5b4fc;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+        .bulk-extend-hint {
+            font-size: 0.6875rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+        #extendPreview {
+            margin-top: 0.75rem;
+            padding: 0.875rem 1rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+            border: 1px solid #c7d2fe;
+        }
+        #extendPreview.hidden {
+            display: none;
+        }
+        .extend-preview-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6366f1;
+        }
+        #extendPreviewDate {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #312e81;
+            margin-top: 0.25rem;
+            line-height: 1.4;
+        }
+        .bulk-extend-footer {
+            display: flex;
+            gap: 0.625rem;
+            padding: 1rem 1.25rem;
+            background: #fff;
+            border-top: 1px solid #e2e8f0;
+            border-radius: 0 0 1.25rem 1.25rem;
+        }
+        .bulk-extend-btn-cancel {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #475569;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.625rem;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .bulk-extend-btn-cancel:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .bulk-extend-btn-submit {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 0.625rem;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32);
+            transition: box-shadow 0.18s, transform 0.12s, filter 0.15s;
+        }
+        .bulk-extend-btn-submit:hover {
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.38);
+            filter: brightness(1.03);
+        }
+        .bulk-extend-btn-submit:active {
+            transform: scale(0.98);
+        }
+        .bulk-extend-count-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.5rem;
+            margin-left: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #4338ca;
+            background: rgba(99, 102, 241, 0.12);
+            border-radius: 9999px;
+        }
     </style>
 </head>
 <body class="ctv-page-bg min-h-screen antialiased">
@@ -1142,85 +1360,80 @@
     </div>
 
     <!-- Bulk Extend Modal -->
-    <div id="bulkExtendModal" class="fixed inset-0 z-[115] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-        <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20">
-            <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <div id="bulkExtendModal" class="bulk-extend-modal fixed inset-0 z-[115] hidden items-center justify-center p-4">
+        <div class="bulk-extend-backdrop absolute inset-0" onclick="closeBulkExtendModal()" aria-hidden="true"></div>
+        <div class="bulk-extend-dialog relative z-10 w-full max-w-md" role="dialog" aria-modal="true" aria-labelledby="bulkExtendModalTitle">
+            <div class="bulk-extend-header flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                    <div class="bulk-extend-icon shrink-0" aria-hidden="true">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-white">🔄 Gia hạn hàng loạt</h3>
-                        <p class="text-sm text-white/80 mt-0.5">Gia hạn <span id="bulkExtendCount" class="font-bold">0</span> mã đã chọn</p>
+                    <div class="min-w-0">
+                        <h3 id="bulkExtendModalTitle" class="text-base font-semibold text-slate-800 tracking-tight">Gia hạn mã giảm giá</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                            Áp dụng cho
+                            <span id="bulkExtendCount" class="bulk-extend-count-badge">0</span>
+                            mã đã chọn
+                        </p>
                     </div>
                 </div>
-                <button onclick="closeBulkExtendModal()" class="text-white/80 hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <button type="button" onclick="closeBulkExtendModal()" class="bulk-extend-close shrink-0" aria-label="Đóng">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
 
-            <!-- Modal Body -->
-            <div class="p-6 space-y-6">
-                <!-- Quick Options -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">⚡ Gia hạn nhanh</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <button onclick="selectExtendDays(7)" 
-                            class="extend-quick-btn px-4 py-3 border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
-                            <div class="text-2xl font-bold text-blue-600">+7</div>
-                            <div class="text-xs text-gray-600 mt-1">ngày</div>
+            <div class="bulk-extend-body">
+                <div class="bulk-extend-section">
+                    <p class="bulk-extend-section-title">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Gia hạn nhanh
+                    </p>
+                    <div class="bulk-extend-quick-grid">
+                        <button type="button" onclick="selectExtendDays(7)" data-days="7" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">7 ngày</span>
                         </button>
-                        <button onclick="selectExtendDays(30)" 
-                            class="extend-quick-btn px-4 py-3 border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
-                            <div class="text-2xl font-bold text-blue-600">+30</div>
-                            <div class="text-xs text-gray-600 mt-1">ngày</div>
+                        <button type="button" onclick="selectExtendDays(30)" data-days="30" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">30 ngày</span>
                         </button>
-                        <button onclick="selectExtendDays(90)" 
-                            class="extend-quick-btn px-4 py-3 border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
-                            <div class="text-2xl font-bold text-blue-600">+90</div>
-                            <div class="text-xs text-gray-600 mt-1">ngày</div>
+                        <button type="button" onclick="selectExtendDays(60)" data-days="60" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">60 ngày</span>
+                        </button>
+                        <button type="button" onclick="selectExtendDays(90)" data-days="90" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">90 ngày</span>
+                        </button>
+                        <button type="button" onclick="selectExtendDays(120)" data-days="120" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">120 ngày</span>
+                        </button>
+                        <button type="button" onclick="selectExtendDays(150)" data-days="150" class="extend-quick-btn">
+                            <span class="extend-quick-btn-text">150 ngày</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Custom Date -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Hoặc chọn ngày hết hạn mới</label>
-                    <input type="date" id="bulkExtendDate" 
-                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        onchange="clearQuickSelection()">
-                    <p class="text-xs text-gray-500 mt-2">Tất cả mã đã chọn sẽ có cùng ngày hết hạn mới</p>
-                </div>
+                <div class="bulk-extend-section">
+                    <p class="bulk-extend-section-title">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Ngày hết hạn mới
+                    </p>
+                    <div class="bulk-extend-date-wrap">
+                        <input type="date" id="bulkExtendDate" onchange="clearQuickSelection()">
+                    </div>
+                    <p class="bulk-extend-hint">Tất cả mã đã chọn sẽ dùng chung một ngày hết hạn.</p>
 
-                <!-- Preview -->
-                <div id="extendPreview" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div class="flex-1">
-                            <p class="text-sm font-semibold text-blue-900">Ngày hết hạn mới</p>
-                            <p id="extendPreviewDate" class="text-lg font-bold text-blue-600 mt-1"></p>
-                        </div>
+                    <div id="extendPreview">
+                        <p class="extend-preview-label">Sẽ gia hạn đến</p>
+                        <p id="extendPreviewDate"></p>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3">
-                <button onclick="closeBulkExtendModal()" 
-                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-white transition-colors font-medium">
-                    Hủy
-                </button>
-                <button onclick="executeBulkExtend()" 
-                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-medium">
-                    Gia hạn ngay
-                </button>
+            <div class="bulk-extend-footer">
+                <button type="button" onclick="closeBulkExtendModal()" class="bulk-extend-btn-cancel">Hủy</button>
+                <button type="button" onclick="executeBulkExtend()" class="bulk-extend-btn-submit">Xác nhận gia hạn</button>
             </div>
         </div>
     </div>

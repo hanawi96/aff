@@ -1996,6 +1996,18 @@ function toLocalDateInputValue(d = new Date()) {
     return `${y}-${m}-${day}`;
 }
 
+function _clearExtendQuickBtnActive() {
+    document.querySelectorAll('.extend-quick-btn').forEach((btn) => {
+        btn.classList.remove('extend-quick-btn--active');
+    });
+}
+
+function _setExtendQuickBtnActive(days) {
+    _clearExtendQuickBtnActive();
+    const btn = document.querySelector(`.extend-quick-btn[data-days="${days}"]`);
+    if (btn) btn.classList.add('extend-quick-btn--active');
+}
+
 function showBulkExtendModal() {
     if (selectedDiscountIds.size === 0) {
         showToast('Vui lòng chọn ít nhất 1 mã để gia hạn', 'warning');
@@ -2017,11 +2029,7 @@ function showBulkExtendModal() {
             dateInput.min = todayStr;
         }
         showExtendPreview(new Date());
-        
-        document.querySelectorAll('.extend-quick-btn').forEach(btn => {
-            btn.classList.remove('border-blue-500', 'bg-blue-50');
-            btn.classList.add('border-gray-300');
-        });
+        _clearExtendQuickBtnActive();
     }
 }
 
@@ -2042,33 +2050,20 @@ function selectExtendDays(days) {
     if (dateInput) {
         dateInput.value = toLocalDateInputValue(newDate);
     }
-    
-    document.querySelectorAll('.extend-quick-btn').forEach(btn => {
-        btn.classList.remove('border-blue-500', 'bg-blue-50');
-        btn.classList.add('border-gray-300');
-    });
-    
-    event.currentTarget.classList.remove('border-gray-300');
-    event.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
-    
+
+    _setExtendQuickBtnActive(days);
     showExtendPreview(newDate);
 }
 
 function clearQuickSelection() {
     selectedExtendDays = null;
-    
-    // Remove active state from quick buttons
-    document.querySelectorAll('.extend-quick-btn').forEach(btn => {
-        btn.classList.remove('border-blue-500', 'bg-blue-50');
-        btn.classList.add('border-gray-300');
-    });
-    
-    // Show preview for custom date
-    const customDate = document.getElementById('bulkExtendDate').value;
+    _clearExtendQuickBtnActive();
+
+    const customDate = document.getElementById('bulkExtendDate')?.value;
     if (customDate) {
-        showExtendPreview(new Date(customDate));
+        showExtendPreview(new Date(customDate + 'T12:00:00'));
     } else {
-        document.getElementById('extendPreview').classList.add('hidden');
+        document.getElementById('extendPreview')?.classList.add('hidden');
     }
 }
 
