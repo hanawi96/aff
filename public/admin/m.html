@@ -5,8 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Đơn hàng — Mobile</title>
 <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
-<link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css">
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
+<link rel="dns-prefetch" href="https://ctv-api.yendev96.workers.dev">
+<!-- Tailwind biên dịch sẵn (thay cho CDN runtime để load nhanh, hết FOUC). Build: npm run build:admin-css -->
+<link rel="stylesheet" href="../assets/css/admin-tailwind-built.css?v=2">
+<!-- CSS bộ chọn địa chỉ chỉ cần cho form tạo/sửa → tải non-blocking để không chặn render -->
+<link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css"></noscript>
 <style>
 html{background-color:#f9fafb}
 /* Street input trong HierarchicalAddressSelector (shop dùng .checkout-form-input từ styles.css) */
@@ -903,7 +908,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('pagehide',_saveDraft);
 });
 async function bootOrdersAndDeepLink(){
-  await Promise.all([loadOrdersInternal(),loadProductList()]);
+  // Chỉ tải đơn hàng lúc mở trang. Danh sách sản phẩm (cho form tạo/sửa) tải lazy khi mở form
+  // (showCreateOrder/showEditOrder đã tự gọi loadProductList) → boot nhẹ, danh sách hiện nhanh hơn.
+  await loadOrdersInternal();
   if(orderIdFromHash()!=null){
     tryOpenOrderFromHash();
     return;
