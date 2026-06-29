@@ -1048,14 +1048,32 @@ function hydrateOrdersFromCache(){
   return false;
 }
 
+const M_ORDERS_FIRST_PAGE=200; // Giai đoạn 1: số đơn mới nhất tải nhanh để vẽ ngay
+/**
+ * Tải đơn 2 giai đoạn (dùng endpoint lite — query nhẹ hơn ở server):
+ *  - GĐ1: lấy 200 đơn mới nhất → vẽ ngay (chỉ khi chưa có gì để vẽ và KHÔNG mở deep-link,
+ *         vì deep-link cần dữ liệu đầy đủ để tìm đúng đơn theo id).
+ *  - GĐ2: lấy đầy đủ (tới 1000) → đủ cho đếm tab / tìm kiếm / deep-link.
+ * Hàm chỉ resolve sau GĐ2 (đảm bảo deep-link luôn có dữ liệu đầy đủ → không lỗi "không tìm thấy").
+ */
 async function loadOrdersInternal(){
+  const isDeepLink=(typeof orderIdFromHash==='function'&&orderIdFromHash()!=null)||(typeof editIdFromHash==='function'&&editIdFromHash()!=null);
   try{
-    const r=await fetch(`${API()}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
+    // Giai đoạn 1 — vẽ nhanh (bỏ qua nếu đã có dữ liệu sẵn từ cache, hoặc đang mở deep-link)
+    if(!(allOrders&&allOrders.length)&&!isDeepLink){
+      try{
+        const r1=await fetch(`${API()}?action=getRecentOrders&lite=1&limit=${M_ORDERS_FIRST_PAGE}&timestamp=${Date.now()}`);
+        const d1=await r1.json();
+        if(d1&&d1.success){allOrders=d1.orders||[];applyFilter();document.getElementById('skeletons')?.remove();}
+      }catch(_){/* lỗi GĐ1 bỏ qua, GĐ2 sẽ xử lý */}
+    }
+    // Giai đoạn 2 — tải đầy đủ (lite). Đây mới là nguồn dữ liệu chính thức.
+    const r=await fetch(`${API()}?action=getRecentOrders&lite=1&limit=1000&timestamp=${Date.now()}`);
     const d=await r.json();
     if(d.success){allOrders=d.orders||[];applyFilter();document.getElementById('skeletons')?.remove();_writeOrdersCache(allOrders);}
     else throw new Error(d.error);
   }catch(e){
-    // Nếu đã vẽ được từ cache thì giữ nguyên, chỉ báo lỗi khi màn còn skeleton (lần đầu, chưa có cache)
+    // Nếu đã vẽ được từ cache/GĐ1 thì giữ nguyên, chỉ báo lỗi khi màn còn skeleton (lần đầu, chưa có gì)
     const sk=document.getElementById('skeletons');
     if(sk)sk.innerHTML='<p class="text-center text-red-500 text-sm py-8">Lỗi tải dữ liệu</p>';
     else console.warn('loadOrders error (background reload):', e.message);
@@ -1697,10 +1715,27 @@ function showDetail(id){
           <p id="detailCodAmount" class="text-base font-bold text-orange-600 mt-0.5">${fmt(codAmt)}</p>
           ${depAmt>0?`<p id="detailDepositLabel" class="text-xs text-sky-600 mt-0.5">Đã cọc ${fmt(depAmt)}</p>`:`<p id="detailDepositLabel" class="hidden text-xs text-sky-600 mt-0.5"></p>`}
         </div>
-        <button type="button" onclick="beginQuickEditOrderDeposit()" class="shrink-0 px-3 py-2 rounded-lg bg-white border border-orange-200 text-orange-700 text-xs font-semibold active:scale-95">Sửa cọc</button>
+        <button type="button" onclick="beginQuickEditOrderDeposit()" class="shrink-0 px-3 py-2 rounded-lg bg-white border border-orange-200 text-orange-700 text-xs font-semibold active:scale-95">${depAmt>0?'Sửa cọc':'Thêm cọc'}</button>
       </div>
       `:''}
-      ${o.notes?`<div><h3 class="text-xs font-semibold text-gray-400 uppercase mb-1">Ghi chú</h3><p class="text-sm text-gray-700 bg-amber-50 p-3 rounded-xl">${esc(o.notes)}</p></div>`:''}
+      <div id="detailNotesSection">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <h3 class="text-xs font-semibold text-gray-400 uppercase">Ghi chú đơn</h3>
+          <button type="button" id="detailNotesBtnEdit" onclick="beginDetailNotesEdit()" class="w-7 h-7 flex items-center justify-center rounded-lg text-indigo-600 hover:bg-indigo-50 shrink-0" title="Sửa lưu ý đơn" aria-label="Sửa lưu ý đơn">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+          </button>
+        </div>
+        <div id="detailNotesView">
+          ${o.notes?`<p class="text-sm text-gray-700 bg-amber-50 p-3 rounded-xl" style="white-space:pre-wrap;word-break:break-word">${esc(o.notes)}</p>`:`<button type="button" onclick="beginDetailNotesEdit()" class="w-full text-left text-sm text-gray-400 bg-gray-50 border border-gray-200 p-3 rounded-xl active:scale-[0.99] transition-transform">+ Thêm lưu ý cho đơn…</button>`}
+        </div>
+        <div id="detailNotesEdit" class="hidden">
+          <textarea id="detailNotesInput" rows="3" maxlength="500" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" style="resize:none" placeholder="Lưu ý cho đơn hàng…">${esc(o.notes||'')}</textarea>
+          <div class="flex gap-2 mt-2">
+            <button type="button" onclick="cancelDetailNotesEdit()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm">Hủy</button>
+            <button type="button" id="detailNotesBtnSave" onclick="saveDetailNotesEdit()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm">Lưu</button>
+          </div>
+        </div>
+      </div>
       <div>
         <div class="flex items-center gap-2 mb-3">
           <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Đổi trạng thái</h3>
@@ -1717,6 +1752,11 @@ function showDetail(id){
     </div>`;
   panel.classList.remove('hidden');
   document.body.style.overflow='hidden';
+  // Ảnh SP được tra từ allProductsCache (products JSON của đơn không lưu image_url).
+  // Cache này tải lazy (defer ở Phase 1) → nếu chưa có, tải rồi vẽ lại chi tiết để hiện ảnh.
+  if(!allProductsCache.length){
+    loadProductList().then(()=>{if(detailOpenOrderId===id)showDetail(id);}).catch(()=>{});
+  }
   if(document.documentElement.classList.contains('m-order-deeplink')){
     document.documentElement.classList.remove('m-order-deeplink');
     const st0=o.status||'pending';
@@ -1752,11 +1792,29 @@ let editOrderId=null; // db id đơn đang sửa (đã tồn tại trên server)
 /** Khi mở từ icon sao chép: form giống sửa đơn nhưng chưa tạo đơn mới; bấm nút «Sao chép» mới gọi API. */
 let duplicatePreviewSourceId=null;
 
+/**
+ * Đảm bảo order object có FULL field (địa chỉ tách phần, đóng gói, thuế, giảm giá... bị bỏ ở danh sách lite).
+ * Danh sách mobile dùng endpoint lite (đã bỏ các cột chỉ-cần-khi-sửa) → object thiếu key 'street_address'.
+ * Khi mở SỬA đơn, nạp full theo id rồi merge vào đúng object trong allOrders (giữ nguyên tham chiếu) + cập nhật cache.
+ * Nếu fetch lỗi: giữ dữ liệu lite (form vẫn mở, địa chỉ có thể trống — chấp nhận được, không vỡ).
+ */
+async function ensureOrderFull(o){
+  if(!o)return o;
+  if(Object.prototype.hasOwnProperty.call(o,'street_address'))return o; // đã full
+  try{
+    const r=await fetch(`${API()}?action=getOrderById&id=${encodeURIComponent(o.id)}&timestamp=${Date.now()}`);
+    const d=await r.json();
+    if(d&&d.success&&d.order){Object.assign(o,d.order);_writeOrdersCache(allOrders);}
+  }catch(_){/* giữ dữ liệu lite */}
+  return o;
+}
+
 async function showEditOrder(id,opts){
   opts=opts||{};
   const dupPreview=!!opts.duplicatePreview;
   const o=allOrders.find(x=>x.id===id);
   if(!o){clearCreateDeeplinkBoot();return;}
+  await ensureOrderFull(o); // nạp đủ field địa chỉ/giảm giá... trước khi prefill form sửa
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
   if(dupPreview){
@@ -3900,6 +3958,53 @@ async function saveQuickEditOrderDeposit(totalAmount){
     if(detailOpenOrderId===id)showDetail(id);
     toast(newDeposit>0?`Đã cập nhật cọc ${fmt(newDeposit)}`:'Đã xóa tiền cọc');
   }catch(e){toast('Lỗi: '+e.message);}
+}
+
+// ─── Sửa nhanh LƯU Ý ĐƠN HÀNG ngay trong chi tiết (lưu ý của đơn, không phải của sản phẩm) ───
+function beginDetailNotesEdit(){
+  const view=document.getElementById('detailNotesView');
+  const edit=document.getElementById('detailNotesEdit');
+  const btn=document.getElementById('detailNotesBtnEdit');
+  if(!view||!edit)return;
+  view.classList.add('hidden');
+  edit.classList.remove('hidden');
+  btn&&btn.classList.add('hidden');
+  const ta=document.getElementById('detailNotesInput');
+  if(ta){const v=ta.value;ta.focus();try{ta.setSelectionRange(v.length,v.length);}catch(_){}}
+}
+function cancelDetailNotesEdit(){
+  const view=document.getElementById('detailNotesView');
+  const edit=document.getElementById('detailNotesEdit');
+  const btn=document.getElementById('detailNotesBtnEdit');
+  const ta=document.getElementById('detailNotesInput');
+  const o=allOrders.find(x=>x.id==detailOpenOrderId);
+  if(ta)ta.value=(o&&o.notes)?o.notes:'';
+  edit&&edit.classList.add('hidden');
+  view&&view.classList.remove('hidden');
+  btn&&btn.classList.remove('hidden');
+}
+async function saveDetailNotesEdit(){
+  const id=detailOpenOrderId;if(id==null)return;
+  const ta=document.getElementById('detailNotesInput');if(!ta)return;
+  const newNotes=ta.value.trim();
+  const o=allOrders.find(x=>x.id==id);
+  const cur=(o&&o.notes)?String(o.notes).trim():'';
+  if(newNotes===cur){cancelDetailNotesEdit();return;} // không đổi → không gọi API
+  const btn=document.getElementById('detailNotesBtnSave');
+  if(btn){btn.disabled=true;btn.textContent='Đang lưu…';}
+  try{
+    const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateOrderNotes',orderId:id,notes:newNotes})});
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Lỗi lưu lưu ý');
+    if(o)o.notes=newNotes||null;        // đồng bộ bộ nhớ
+    _writeOrdersCache(allOrders);        // đồng bộ cache SWR
+    applyFilter();                       // cập nhật cờ "có ghi chú" + tìm kiếm
+    if(detailOpenOrderId===id)showDetail(id);
+    toast(newNotes?'Đã lưu lưu ý':'Đã xóa lưu ý');
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Lưu';}
+    toast('Lỗi: '+e.message);
+  }
 }
 function setPayment(val){
   const mode=val==='deposit'?'deposit':normalizePaymentMethod(val);

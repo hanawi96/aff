@@ -25,7 +25,8 @@ import {
 import { 
     getOrdersByReferralCode, 
     getOrdersByPhone, 
-    getRecentOrders 
+    getRecentOrders,
+    getOrderById 
 } from '../services/orders/order-queries.js';
 
 // Products
@@ -183,7 +184,11 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getRecentOrders':
             const limit = parseInt(url.searchParams.get('limit')) || 10;
-            return await getRecentOrders(limit, env, corsHeaders);
+            const liteOrders = url.searchParams.get('lite') === '1';
+            return await getRecentOrders(limit, env, corsHeaders, liteOrders);
+
+        case 'getOrderById':
+            return await getOrderById(url.searchParams.get('id'), env, corsHeaders);
 
         case 'getDashboardStats':
             return await getDashboardStats(env, corsHeaders);
