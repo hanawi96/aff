@@ -193,7 +193,9 @@ async function submitNewOrder() {
         deposit_amount: depositAmount,
         depositAmount: depositAmount,
         is_priority: isPriority,
-        isPriority: isPriority
+        isPriority: isPriority,
+        customer_source: typeof getCustomerSourceSelection === 'function' ? getCustomerSourceSelection() : null,
+        customerSource: typeof getCustomerSourceSelection === 'function' ? getCustomerSourceSelection() : null
     };
 
     if (!isUpdate) {

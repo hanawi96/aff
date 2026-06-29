@@ -25,6 +25,12 @@ function validationError(message) {
 }
 
 /** COD thu khi giao = 0 nếu chuyển khoản; ngược lại total − deposit. */
+export function normalizeCustomerSource(raw) {
+    if (raw == null || raw === '') return null;
+    const s = String(raw).toLowerCase().trim();
+    return s === 'zalo' || s === 'facebook' || s === 'tiktok' ? s : null;
+}
+
 export function isBankPaymentMethod(paymentMethod) {
     const pm = String(paymentMethod || 'cod').toLowerCase().trim();
     return pm === 'bank' || pm === 'bank_transfer' || pm === 'transfer';

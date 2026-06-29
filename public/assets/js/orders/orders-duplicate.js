@@ -138,6 +138,7 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
             ? String(order.discount_id)
             : ''),
         deposit_amount: getOrderDepositAmount(order),
+        customer_source: order.customer_source || '',
         order_display_id: order.order_id || ''
     };
 }

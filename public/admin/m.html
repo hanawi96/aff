@@ -1056,7 +1056,7 @@ function tryOpenEditFromHash(){
 /* ===== Cache đơn hàng (stale-while-revalidate) =====
  * Lần mở trang sau: vẽ ngay từ localStorage (không đợi mạng), rồi tải mới ở nền và cập nhật.
  * Chỉ cache N đơn mới nhất để tránh vượt quota localStorage (đủ cho lần sơn đầu; nền tải full). */
-const M_ORDERS_CACHE_KEY='m_orders_cache_v1';
+const M_ORDERS_CACHE_KEY='m_orders_cache_v2';
 const M_ORDERS_CACHE_MAX=400;
 function _readOrdersCache(){
   try{
@@ -1336,7 +1336,10 @@ function renderCards(){
         <div class="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 mb-1.5 items-start">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="w-2 h-2 rounded-full shrink-0 ${st.dot||'bg-gray-400'}"></span>
-            <span class="text-sm font-bold text-gray-900 truncate">${esc(mTitleCaseCustomerName(o.customer_name))}</span>
+            <div class="flex items-center gap-1 min-w-0 flex-wrap">
+              <span class="text-sm font-bold text-gray-900 truncate">${esc(mTitleCaseCustomerName(o.customer_name))}</span>
+              ${mCustomerSourceBadgeHtml(o.customer_source??o.customerSource)}
+            </div>
           </div>
           <div class="text-right leading-none">
             <span class="text-sm font-bold ${payCls} whitespace-nowrap">${fmt(o.total_amount)}</span>
@@ -1673,7 +1676,10 @@ function showDetail(id){
             <div class="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
               <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </div>
-            <p class="text-sm font-semibold text-gray-900">${esc(mTitleCaseCustomerName(o.customer_name))}</p>
+            <div class="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
+              <p class="text-sm font-semibold text-gray-900">${esc(mTitleCaseCustomerName(o.customer_name))}</p>
+              ${mCustomerSourceBadgeHtml(o.customer_source??o.customerSource)}
+            </div>
           </div>
           <div class="flex items-center gap-2.5 min-w-0" id="detailPhoneRow" data-order-id="${o.id}">
             <div class="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center shrink-0">
@@ -1904,6 +1910,7 @@ async function showEditOrder(id,opts){
   if(depAmt>0&&pm!=='bank_transfer')setPayment('deposit');
   else setPayment(pm);
   document.getElementById('cNotes').value=o.notes||'';
+  setMobileCustomerSource(dupPreview?'facebook':(mNormCustomerSource(o.customer_source)||'facebook'));
   const mSl=document.getElementById('mSendLaterChk');
   const mSlf=document.getElementById('mSendLaterFields');
   const mPl=document.getElementById('mPlannedSendAt');
@@ -2033,6 +2040,7 @@ function showCreateOrder(){
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
   setPayment('cod');
+  setMobileCustomerSource('facebook');
   requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('fixed');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
@@ -2606,6 +2614,20 @@ function buildCreateForm(isEdit=false){
         <div id="mSendLaterFields" class="hidden space-y-1.5 pl-6">
           <label class="block text-xs font-medium text-gray-600">Ngày giờ dự kiến gửi <span class="text-red-500">*</span></label>
           <input type="datetime-local" id="mPlannedSendAt" class="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/30">
+        </div>
+      </div>
+
+      <!-- Nguồn khách -->
+      <div class="border-b border-gray-100 px-4 py-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-900">Nguồn khách</span>
+          <span class="text-[10px] text-gray-400">Tùy chọn</span>
+        </div>
+        <input type="hidden" id="mCustomerSource" value="facebook">
+        <div id="mSourceBtns" class="flex gap-2" role="group" aria-label="Nguồn khách">
+          <button type="button" onclick="setMobileCustomerSource('zalo')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="zalo" aria-pressed="false"><span class="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>Zalo</button>
+          <button type="button" onclick="setMobileCustomerSource('facebook')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-blue-600 bg-blue-600 text-white" data-val="facebook" aria-pressed="true"><svg class="w-2.5 h-auto shrink-0" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>Facebook</button>
+          <button type="button" onclick="setMobileCustomerSource('tiktok')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="tiktok" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>TikTok</button>
         </div>
       </div>
 
@@ -3542,6 +3564,8 @@ async function submitOrder(){
     discount_amount:discAmt,
     deposit_amount:depositAmt,
     depositAmount:depositAmt,
+    customer_source:getMobileCustomerSource(),
+    customerSource:getMobileCustomerSource(),
     is_priority:existingOrder?.is_priority||0,
     ...(isEdit
       ?{orderDbId:editOrderId,status:outStatus,orderDate:existingOrder?.created_at_unix||Date.now(),planned_send_at_unix:plannedSendUnix}
@@ -3570,6 +3594,7 @@ async function submitOrder(){
             notes:document.getElementById('cNotes')?.value.trim()||null,
             referral_code:document.getElementById('cReferral')?.value.trim()||existingOrder?.referral_code||null,
             deposit_amount:depositAmt,
+            customer_source:getMobileCustomerSource(),
             products:JSON.stringify(createProducts),
             status:outStatus,
             planned_send_at_unix:plannedSendUnix
@@ -3611,6 +3636,7 @@ function _saveDraft(){
     referral:el('cReferral')?.value||'',
     sendLater:!!el('mSendLaterChk')?.checked,
     plannedAt:el('mPlannedSendAt')?.value||'',
+    customerSource:el('mCustomerSource')?.value||'facebook',
     products:createProducts.slice(),
     discount:mDiscount,
     ts:Date.now()
@@ -3647,6 +3673,8 @@ function _applyDraftToForm(d){
   if(d.referral){const e=el('cReferral');if(e)e.value=d.referral;}
   if(d.sendLater){const e=el('mSendLaterChk');if(e){e.checked=true;onMobileSendLaterToggle();}}
   if(d.plannedAt){const e=el('mPlannedSendAt');if(e)e.value=d.plannedAt;}
+  if(d.customerSource)setMobileCustomerSource(d.customerSource);
+  else setMobileCustomerSource('facebook');
   if(d.products?.length)createProducts=d.products.slice();
   if(d.discount){mDiscount=d.discount;showDiscountApplied();}
 }
@@ -3902,6 +3930,43 @@ function mPayBtnClass(val,active){
   if(val==='cod')return`${base} ${active?'border-orange-400 bg-orange-50 text-orange-700':off}`;
   if(val==='bank_transfer')return`${base} ${active?'border-green-400 bg-green-50 text-green-700':off}`;
   return`${base} ${active?'border-amber-500 bg-amber-50 text-amber-700':off}`;
+}
+const M_CUSTOMER_SOURCES=new Set(['zalo','facebook','tiktok']);
+function mNormCustomerSource(raw){
+  const s=String(raw||'').toLowerCase().trim();
+  return M_CUSTOMER_SOURCES.has(s)?s:'';
+}
+function mSrcBtnClass(val,active){
+  const base='src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all';
+  const off='border-gray-200 bg-white text-gray-600';
+  if(!active)return`${base} ${off}`;
+  if(val==='zalo')return`${base} border-green-600 bg-green-600 text-white`;
+  if(val==='facebook')return`${base} border-blue-600 bg-blue-600 text-white`;
+  return`${base} border-slate-900 bg-slate-900 text-white`;
+}
+function setMobileCustomerSource(val){
+  const norm=mNormCustomerSource(val);
+  if(!norm)return;
+  const hid=document.getElementById('mCustomerSource');
+  if(!hid)return;
+  hid.value=norm;
+  document.querySelectorAll('#mSourceBtns .src-btn').forEach(b=>{
+    const v=b.dataset.val;
+    b.className=mSrcBtnClass(v,v===norm);
+    b.setAttribute('aria-pressed',v===norm?'true':'false');
+  });
+}
+function getMobileCustomerSource(){
+  return mNormCustomerSource(document.getElementById('mCustomerSource')?.value)||null;
+}
+function mCustomerSourceBadgeHtml(raw){
+  const slug=mNormCustomerSource(raw);
+  if(!slug)return'';
+  const cls=slug==='zalo'?'bg-green-100 text-green-700 border-green-200/80'
+    :slug==='facebook'?'bg-blue-100 text-blue-700 border-blue-200/80'
+    :'bg-slate-100 text-slate-800 border-slate-200/80';
+  const label=slug==='zalo'?'Zalo':slug==='facebook'?'Facebook':'TikTok';
+  return `<span class="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none border ${cls}">${esc(label)}</span>`;
 }
 function mEnsureDepositPresetHelpers(){
   if(typeof getSmartDepositPresets==='function'&&typeof updateDepositPresetButtons==='function')return;

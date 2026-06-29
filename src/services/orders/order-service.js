@@ -1,6 +1,6 @@
 import { jsonResponse } from '../../utils/response.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
-import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount } from './order-persist-helpers.js';
+import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount, normalizeCustomerSource } from './order-persist-helpers.js';
 
 /** Shape đầy đủ giống getRecentOrders — dùng trả về sau tạo/sửa đơn desktop. */
 async function fetchOrderRowForList(env, orderDbId) {
@@ -58,8 +58,8 @@ export async function createOrder(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix, deposit_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount, customer_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             data.customer.name,
@@ -92,7 +92,8 @@ export async function createOrder(data, env, corsHeaders) {
             snap.discountAmount,
             snap.isPriority,
             incomingStatus === 'send_later' ? plannedSendAtUnix : null,
-            snap.depositAmount
+            snap.depositAmount,
+            normalizeCustomerSource(data.customer_source ?? data.customerSource)
         ).run();
 
         if (!result.success) {
@@ -272,7 +273,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
                 province_id = ?, province_name = ?, district_id = ?, district_name = ?,
                 ward_id = ?, ward_name = ?, street_address = ?,
                 discount_code = ?, discount_amount = ?, is_priority = ?,
-                planned_send_at_unix = ?, deposit_amount = ?
+                planned_send_at_unix = ?, deposit_amount = ?, customer_source = ?
             WHERE id = ?
         `).bind(
             data.customer.name,
@@ -305,6 +306,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
             snap.isPriority,
             finalPlanned,
             snap.depositAmount,
+            normalizeCustomerSource(data.customer_source ?? data.customerSource),
             orderDbId
         ).run();
 
@@ -558,8 +560,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix, deposit_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount, customer_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             newOrderId,
             orderData.customer.name,
@@ -592,7 +594,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             snap.discountAmount,
             snap.isPriority,
             finalPlanned,
-            0
+            0,
+            normalizeCustomerSource(src.customer_source)
         ).run();
 
         if (!result.success) {

@@ -57,6 +57,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-url-handler.js',
     'public/assets/js/orders/orders-product-management.js',
     'public/assets/js/orders/orders-add-modal-helpers.js',
+    'public/assets/js/orders/orders-customer-source.js',
     'public/assets/js/orders/orders-product-selection-modal.js',
     'public/assets/js/orders/orders-submit.js',
     'public/assets/js/orders.js',

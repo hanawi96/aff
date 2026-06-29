@@ -60,7 +60,7 @@ function calculatePackagingCost() {
 // rồi tải dữ liệu mới ở nền và chỉ vẽ lại khi dữ liệu thực sự thay đổi.
 const ORDERS_CACHE_DB = 'ctv_admin_cache';
 const ORDERS_CACHE_STORE = 'kv';
-const ORDERS_CACHE_KEY = 'recentOrders_v1';
+const ORDERS_CACHE_KEY = 'recentOrders_v2';
 
 function _openOrdersCacheDB() {
     return new Promise((resolve, reject) => {
@@ -118,7 +118,7 @@ function _ordersSignature(list) {
     const sorted = list.slice().sort((a, b) => Number(a.id) - Number(b.id));
     let h = 5381 + sorted.length;
     for (const o of sorted) {
-        const s = `${o.id}|${o.status || ''}|${o.total_amount || 0}|${o.is_priority || 0}|${o.shipped_at_unix || 0}|${(o.products && o.products.length) || 0}|${(o.notes && o.notes.length) || 0}`;
+        const s = `${o.id}|${o.status || ''}|${o.total_amount || 0}|${o.is_priority || 0}|${o.shipped_at_unix || 0}|${o.customer_source || ''}|${(o.products && o.products.length) || 0}|${(o.notes && o.notes.length) || 0}`;
         for (let i = 0; i < s.length; i++) {
             h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
         }

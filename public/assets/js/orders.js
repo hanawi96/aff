@@ -576,6 +576,28 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             </div>
                         </div>
 
+                        <div class="customer-source-block">
+                            <div class="customer-source-head">
+                                <span class="customer-source-title">Nguồn khách</span>
+                                <span class="customer-source-optional">Tùy chọn</span>
+                            </div>
+                            <input type="hidden" id="newOrderCustomerSource" value="facebook" />
+                            <div class="customer-source-chips" role="group" aria-label="Chọn nguồn khách">
+                                <button type="button" class="customer-source-chip customer-source-chip--zalo" data-source="zalo" aria-pressed="false" onclick="selectCustomerSource('zalo')">
+                                    <span class="customer-source-dot customer-source-dot--zalo" aria-hidden="true"></span>
+                                    <span>Zalo</span>
+                                </button>
+                                <button type="button" class="customer-source-chip customer-source-chip--facebook active" data-source="facebook" aria-pressed="true" onclick="selectCustomerSource('facebook')">
+                                    <svg class="customer-source-icon customer-source-icon--facebook" xmlns="http://www.w3.org/2000/svg" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>
+                                    <span>Facebook</span>
+                                </button>
+                                <button type="button" class="customer-source-chip customer-source-chip--tiktok" data-source="tiktok" aria-pressed="false" onclick="selectCustomerSource('tiktok')">
+                                    <svg class="customer-source-icon customer-source-icon--tiktok" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>
+                                    <span>TikTok</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <input type="hidden" id="newOrderStatus" value="${escapeHtml(orderStatusSeed)}" data-revert-status="${escapeHtml(sendLaterRevertStatus)}" />
 
                         <style>
@@ -607,6 +629,101 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             }
                             .payment-btn-deposit.active svg {
                                 color: #c2410c;
+                            }
+                            .customer-source-block {
+                                border-radius: 0.5rem;
+                                padding: 0.75rem;
+                                border: 1px solid #e9d5ff;
+                                background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
+                            }
+                            .customer-source-head {
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                gap: 0.5rem;
+                                margin-bottom: 0.5rem;
+                            }
+                            .customer-source-title {
+                                font-size: 0.8125rem;
+                                font-weight: 600;
+                                color: #374151;
+                            }
+                            .customer-source-optional {
+                                font-size: 0.6875rem;
+                                font-weight: 500;
+                                color: #9ca3af;
+                            }
+                            .customer-source-chips {
+                                display: grid;
+                                grid-template-columns: repeat(3, 1fr);
+                                gap: 0.375rem;
+                            }
+                            .customer-source-chip {
+                                display: inline-flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.375rem;
+                                padding: 0.4375rem 0.375rem;
+                                border: 1.5px solid #e5e7eb;
+                                border-radius: 0.5rem;
+                                background: #fff;
+                                font-size: 0.75rem;
+                                font-weight: 600;
+                                color: #4b5563;
+                                cursor: pointer;
+                                transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
+                                white-space: nowrap;
+                            }
+                            .customer-source-chip:hover:not(.active) {
+                                border-color: #d8b4fe;
+                                background: #fdf4ff;
+                                color: #6b7280;
+                            }
+                            .customer-source-dot {
+                                width: 0.4375rem;
+                                height: 0.4375rem;
+                                border-radius: 9999px;
+                                flex-shrink: 0;
+                                transition: background 0.15s;
+                            }
+                            .customer-source-icon {
+                                flex-shrink: 0;
+                                display: block;
+                                width: auto;
+                                height: 0.8125rem;
+                            }
+                            .customer-source-dot--zalo { background: #22c55e; }
+                            .customer-source-icon--facebook { color: #1e3050; }
+                            .customer-source-icon--tiktok { color: #1e3050; }
+                            .customer-source-chip--zalo.active {
+                                border-color: #16a34a;
+                                background: #16a34a;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+                            }
+                            .customer-source-chip--zalo.active .customer-source-dot--zalo {
+                                background: #ffffff;
+                            }
+                            .customer-source-chip--facebook.active {
+                                border-color: #2563eb;
+                                background: #2563eb;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+                            }
+                            .customer-source-chip--facebook.active .customer-source-icon--facebook {
+                                color: #ffffff;
+                            }
+                            .customer-source-chip--tiktok.active {
+                                border-color: #0f172a;
+                                background: #0f172a;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+                            }
+                            .customer-source-chip--tiktok.active .customer-source-icon--tiktok {
+                                color: #ffffff;
                             }
                         </style>
 
@@ -1041,6 +1158,12 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     `;
 
     document.body.appendChild(modal);
+
+    if (typeof initCustomerSourcePicker === 'function') {
+        initCustomerSourcePicker(duplicateData?.customer_source || '', {
+            isEdit
+        });
+    }
 
     // PERFORMANCE: Defer all setup work to AFTER browser paints the modal.
     // setTimeout(fn, 0) = macrotask = runs after paint, unlike rAF/microtask.

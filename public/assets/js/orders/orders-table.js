@@ -259,6 +259,9 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
     
     // Get customer badge from cache (already calculated)
     const customerBadge = getCustomerBadge(order.customer_phone);
+    const sourceBadge = typeof renderCustomerSourceBadgeHtml === 'function'
+        ? renderCustomerSourceBadgeHtml(order.customer_source ?? order.customerSource)
+        : '';
     // 一键复制客户电话（与订单号列复制交互一致）；data-phone 使用 encodeURIComponent 避免特殊字符破坏属性
     // Copy SĐT: stopPropagation để không mở modal sửa khách
     const phoneCopyBtn = order.customer_phone
@@ -273,7 +276,10 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
         <div id="${customerId}" class="group cursor-pointer hover:bg-blue-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
             <div class="flex items-center gap-2">
                 <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</div>
+                    <div class="flex flex-wrap items-center justify-center gap-1.5">
+                        <span class="text-sm font-medium text-gray-900">${escapeHtml(order.customer_name || 'N/A')}</span>
+                        ${sourceBadge}
+                    </div>
                     <div class="flex items-center justify-center gap-1 flex-wrap">
                         <span class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</span>
                         ${phoneCopyBtn}
