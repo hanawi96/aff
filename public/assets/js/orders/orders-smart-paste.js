@@ -2100,5 +2100,112 @@ async function applyParsedDataToForm(parsedData) {
     showSmartPasteConfidence(data);
 }
 
+/**
+ * Chờ HierarchicalAddressSelector trên mobile sẵn sàng (init async sau mở form).
+ */
+async function waitForMobileCreateAddressSelector(maxAttempts = 30) {
+    for (let i = 0; i < maxAttempts; i++) {
+        const sel = window.mCreateAddressSelector;
+        if (sel && typeof sel.hydrateFromCodes === 'function') return sel;
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return null;
+}
+
+/**
+ * Gợi ý phường/xã khi parser chỉ nhận tỉnh (giống renderWardSuggestions trên desktop).
+ */
+function _resolveWardForMobileApply(province, addressData) {
+    if (addressData?.ward) return addressData.ward;
+    if (!province?.Wards?.length) return null;
+    const text = addressData?.fullText || '';
+    if (!text) return null;
+
+    const suggestions = _scoreWardSuggestions(province.Wards, text, 1);
+    if (suggestions.length && suggestions[0].score >= 0.6) {
+        console.log(
+            '[applyParsedDataToMobileForm] auto-picked ward:',
+            suggestions[0].ward.Name,
+            suggestions[0].score.toFixed(2)
+        );
+        return suggestions[0].ward;
+    }
+    return null;
+}
+
+/**
+ * Áp kết quả phân tích vào form tạo đơn mobile (m.html).
+ */
+async function applyParsedDataToMobileForm(parsedData) {
+    const applied = [];
+    if (!parsedData?.success) return { applied, confidence: parsedData?.confidence || 'low' };
+
+    const { data, confidence } = parsedData;
+    const addr = data.address;
+
+    console.log(
+        '\uD83D\uDCF1 Mobile smart paste result:',
+        'phone=' + (data.phone || '(none)') +
+        ' | name=' + (data.name || '(none)') +
+        ' | ' + (addr?.province?.Name || '(no province)') +
+        ' \u2192 ' + (addr?.ward?.Name || '(no ward)') +
+        (addr?.ward?.Id ? ' [' + addr.ward.Id + ']' : '') +
+        ' | street: ' + (addr?.street || '(empty)') +
+        ' | confidence=' + confidence
+    );
+
+    if (data.phone) {
+        const phoneEl = document.getElementById('cPhone');
+        if (phoneEl) {
+            phoneEl.value = data.phone;
+            if (typeof clearFieldError === 'function') clearFieldError('cPhone');
+        }
+        applied.push('SĐT');
+    }
+
+    if (data.name) {
+        const nameEl = document.getElementById('cName');
+        if (nameEl) {
+            nameEl.value = typeof mTitleCaseCustomerName === 'function'
+                ? mTitleCaseCustomerName(data.name)
+                : data.name;
+            if (typeof clearFieldError === 'function') clearFieldError('cName');
+        }
+        applied.push('Tên');
+    }
+
+    if (!addr?.province) return { applied, confidence };
+
+    if (!window.addressSelector || !window.addressSelector.loaded) {
+        let attempts = 0;
+        while ((!window.addressSelector || !window.addressSelector.loaded) && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+
+    const selector = await waitForMobileCreateAddressSelector();
+    if (!selector) {
+        console.error('\u274C Mobile address selector not ready');
+        return { applied, confidence };
+    }
+
+    const ward = _resolveWardForMobileApply(addr.province, addr);
+
+    try {
+        selector.hydrateFromCodes({
+            provinceCode: addr.province.Id || '',
+            wardCode: ward ? ward.Id : '',
+            street: addr.street || ''
+        });
+        if (typeof clearFieldError === 'function') clearFieldError('mAddressFormBlock');
+        applied.push('Địa chỉ');
+    } catch (e) {
+        console.warn('hydrateFromCodes error:', e);
+    }
+
+    return { applied, confidence };
+}
+
 // Initialize on page load - NO LONGER NEEDED, use addressSelector data
 // (removed loadVietnamAddressData call)
