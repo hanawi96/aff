@@ -153,6 +153,12 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
                 console.log('⏳ [AutoFill] Waiting 500ms for dropdowns to populate...');
                 setTimeout(() => {
                     console.log('🔄 [AutoFill] Triggering address update...');
+                    if (typeof syncDeskAddressComboboxFromHidden === 'function') {
+                        syncDeskAddressComboboxFromHidden();
+                    }
+                    if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                        syncDeskOrderStreetInputVisibility();
+                    }
                     // Trigger the address update event
                     const streetInput = document.getElementById('newOrderStreetAddress');
                     if (streetInput) {

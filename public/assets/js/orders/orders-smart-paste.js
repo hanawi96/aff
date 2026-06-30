@@ -1915,6 +1915,9 @@ function renderWardSuggestions(province, addressText) {
         btn.onclick = () => {
             wardSelect.value = ward.Id;
             wardSelect.dispatchEvent(new Event('change'));
+            if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                syncDeskOrderStreetInputVisibility();
+            }
             container.remove();
             _setFieldConfidence(wardSelect, 'high');
         };
@@ -2094,6 +2097,10 @@ async function applyParsedDataToForm(parsedData) {
         if (typeof syncDeskAddressComboboxFromHidden === 'function') {
             syncDeskAddressComboboxFromHidden();
         }
+
+        if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+            syncDeskOrderStreetInputVisibility();
+        }
     }
 
     // Hiển thị confidence trực quan trên các dropdown
@@ -2206,6 +2213,136 @@ async function applyParsedDataToMobileForm(parsedData) {
 
     return { applied, confidence };
 }
+
+// ============================================
+// DESKTOP SMART PASTE — auto on paste
+// ============================================
+
+let _deskSmartPasteBusy = false;
+let _deskSmartPasteTimer = null;
+
+const DESK_SMART_PASTE_AUTO_DELAY_MS = 50;
+const DESK_SMART_PASTE_MIN_CHARS = 8;
+
+const _DESK_SMART_PASTE_SPIN_SVG =
+    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>' +
+    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>';
+
+const _DESK_SMART_PASTE_ICON_SVG =
+    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />';
+
+function _setDeskSmartPasteLoading(loading) {
+    const btn = document.getElementById('smartPasteBtn');
+    const btnText = document.getElementById('smartPasteBtnText');
+    const btnIcon = document.getElementById('smartPasteIcon');
+    const statusEl = document.getElementById('smartPasteStatus');
+
+    if (btn) btn.disabled = loading;
+    if (btnText) btnText.textContent = loading ? 'Đang phân tích...' : 'Phân tích lại';
+    if (btnIcon) {
+        btnIcon.innerHTML = loading ? _DESK_SMART_PASTE_SPIN_SVG : _DESK_SMART_PASTE_ICON_SVG;
+        btnIcon.classList.toggle('animate-spin', loading);
+    }
+    if (loading && statusEl) {
+        statusEl.className = 'text-xs text-purple-600 mt-1.5';
+        statusEl.textContent = 'Đang phân tích...';
+        statusEl.classList.remove('hidden');
+    }
+}
+
+function _showDeskSmartPasteResult(parsedData) {
+    const statusEl = document.getElementById('smartPasteStatus');
+    if (!statusEl) return;
+
+    if (!parsedData?.success) {
+        statusEl.className = 'text-xs text-red-500 mt-1.5';
+        statusEl.textContent = parsedData?.error || 'Không thể phân tích';
+        statusEl.classList.remove('hidden');
+        return;
+    }
+
+    const d = parsedData.data || {};
+    const parts = [];
+    if (d.name) parts.push('Tên');
+    if (d.phone) parts.push('SĐT');
+    if (d.address?.province) parts.push('Địa chỉ');
+
+    const conf = parsedData.confidence;
+    const color = conf === 'high' ? 'text-emerald-600'
+        : conf === 'medium' ? 'text-amber-600'
+            : 'text-red-500';
+
+    statusEl.className = 'text-xs mt-1.5 ' + color;
+    statusEl.textContent = parts.length
+        ? '\u2713 \u0110\u00e3 \u0111i\u1ec1n: ' + parts.join(', ')
+        : 'Kh\u00f4ng nh\u1eadn di\u1ec7n \u0111\u01b0\u1ee3c th\u00f4ng tin';
+    statusEl.classList.remove('hidden');
+}
+
+/**
+ * Chạy phân tích nhanh desktop (nút hoặc auto sau paste).
+ * @param {{ silentEmpty?: boolean }} options
+ */
+async function runDeskSmartPaste(options = {}) {
+    const silentEmpty = options.silentEmpty === true;
+    const textarea = document.getElementById('smartPasteInput');
+    const text = (textarea?.value || '').trim();
+    const errorMsg = document.getElementById('smartPasteError');
+
+    if (errorMsg) errorMsg.classList.add('hidden');
+
+    if (!text) {
+        if (!silentEmpty && errorMsg) errorMsg.classList.remove('hidden');
+        return { ok: false, reason: 'empty' };
+    }
+
+    if (text.length < DESK_SMART_PASTE_MIN_CHARS) {
+        if (!silentEmpty && errorMsg) {
+            errorMsg.textContent = 'N\u1ed9i dung qu\u00e1 ng\u1eafn \u0111\u1ec3 ph\u00e2n t\u00edch';
+            errorMsg.classList.remove('hidden');
+        }
+        return { ok: false, reason: 'short' };
+    }
+
+    if (_deskSmartPasteBusy) return { ok: false, reason: 'busy' };
+
+    _deskSmartPasteBusy = true;
+    _setDeskSmartPasteLoading(true);
+
+    try {
+        const parsedData = await smartParseCustomerInfo(text);
+        if (!parsedData?.success) {
+            _showDeskSmartPasteResult(parsedData);
+            return { ok: false, data: parsedData };
+        }
+        await applyParsedDataToForm(parsedData);
+        _showDeskSmartPasteResult(parsedData);
+        return { ok: true, data: parsedData };
+    } catch (err) {
+        _showDeskSmartPasteResult({ success: false, error: err.message || 'L\u1ed7i ph\u00e2n t\u00edch' });
+        return { ok: false, error: err };
+    } finally {
+        _deskSmartPasteBusy = false;
+        _setDeskSmartPasteLoading(false);
+    }
+}
+
+/** Gắn listener paste — gọi một lần khi modal tạo đơn được mở. */
+function setupDeskSmartPasteAuto() {
+    const ta = document.getElementById('smartPasteInput');
+    if (!ta || ta.dataset.autoParseBound === '1') return;
+    ta.dataset.autoParseBound = '1';
+
+    ta.addEventListener('paste', () => {
+        clearTimeout(_deskSmartPasteTimer);
+        _deskSmartPasteTimer = setTimeout(() => {
+            runDeskSmartPaste({ silentEmpty: true });
+        }, DESK_SMART_PASTE_AUTO_DELAY_MS);
+    });
+}
+
+window.runDeskSmartPaste = runDeskSmartPaste;
+window.setupDeskSmartPasteAuto = setupDeskSmartPasteAuto;
 
 // Initialize on page load - NO LONGER NEEDED, use addressSelector data
 // (removed loadVietnamAddressData call)

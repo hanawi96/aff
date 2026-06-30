@@ -189,6 +189,9 @@
         }
 
         _focusStreetInput() {
+            if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                syncDeskOrderStreetInputVisibility();
+            }
             requestAnimationFrame(() => {
                 const el = document.getElementById('newOrderStreetAddress');
                 if (!el) return;
@@ -384,6 +387,10 @@
                 }
             }
 
+            if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                syncDeskOrderStreetInputVisibility();
+            }
+
             this.onChange();
         }
 
@@ -469,6 +476,9 @@
 
             this._closeDropdown();
             this._renderChips();
+            if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                syncDeskOrderStreetInputVisibility();
+            }
             this.onChange();
         }
 
@@ -478,6 +488,9 @@
             this.selectedProvinceId = provinceSelect?.value || '';
             this.selectedWardId = wardSelect?.value || '';
             this._renderChips();
+            if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+                syncDeskOrderStreetInputVisibility();
+            }
         }
 
         destroy() {

@@ -27,6 +27,20 @@ function isOrderAddressPreviewEmpty(previewText) {
     return t === 'Vui lòng chọn địa chỉ' || t === 'Địa chỉ đầy đủ: Vui lòng chọn địa chỉ';
 }
 
+/** Hiện/ẩn ô số nhà — chỉ sau khi đã chọn phường/xã hoặc phân tích nhanh có phường. */
+function setDeskOrderStreetInputVisible(visible) {
+    const wrap = document.getElementById('newOrderStreetAddressWrap');
+    if (wrap) wrap.classList.toggle('hidden', !visible);
+}
+
+function syncDeskOrderStreetInputVisibility() {
+    const wardSelect = document.getElementById('newOrderWard');
+    setDeskOrderStreetInputVisible(!!(wardSelect?.value));
+}
+
+window.setDeskOrderStreetInputVisible = setDeskOrderStreetInputVisible;
+window.syncDeskOrderStreetInputVisibility = syncDeskOrderStreetInputVisibility;
+
 async function initAddressSelector(duplicateData = null) {
     if (typeof destroyDeskAddressCombobox === 'function') {
         destroyDeskAddressCombobox();
@@ -43,6 +57,13 @@ async function initAddressSelector(duplicateData = null) {
         const provinceId = provinceSelect?.value || '';
         const wardId = wardSelect?.value || '';
         const street = streetInput?.value?.trim() || '';
+
+        if (!provinceId) {
+            if (streetInput) streetInput.value = '';
+            syncOrderAddressPreview('', addressPreview);
+            if (hiddenAddress) hiddenAddress.value = '';
+            return;
+        }
 
         const fullAddress = window.addressSelector.generateFullAddress(
             street,
@@ -75,8 +96,13 @@ async function initAddressSelector(duplicateData = null) {
                 streetInput.value = duplicateData.street_address;
             }
         }
-        window.addressSelector.setupCascade(provinceSelect, wardSelect, updateAddressPreview);
+        window.addressSelector.setupCascade(provinceSelect, wardSelect, () => {
+            syncDeskOrderStreetInputVisibility();
+            updateAddressPreview();
+        });
+        wardSelect?.addEventListener('change', syncDeskOrderStreetInputVisibility);
         if (streetInput) streetInput.addEventListener('input', updateAddressPreview);
+        syncDeskOrderStreetInputVisibility();
         updateAddressPreview();
         return;
     }
@@ -103,5 +129,6 @@ async function initAddressSelector(duplicateData = null) {
         streetInput.addEventListener('input', updateAddressPreview);
     }
 
+    syncDeskOrderStreetInputVisibility();
     updateAddressPreview();
 }

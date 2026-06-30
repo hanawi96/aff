@@ -451,7 +451,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="text-sm font-bold text-gray-900 mb-1">🚀 Dán nhanh thông tin khách hàng</h4>
-                                    <p class="text-xs text-gray-600">Dán toàn bộ thông tin (Địa chỉ, SĐT, Tên) → Hệ thống tự động phân tích</p>
+                                    <p class="text-xs text-gray-600">Dán toàn bộ thông tin (Địa chỉ, SĐT, Tên) — hệ thống tự phân tích ngay</p>
                                 </div>
                             </div>
                             <textarea 
@@ -460,6 +460,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 class="w-full px-3 py-2 text-sm border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                                 rows="3"
                             ></textarea>
+                            <p id="smartPasteStatus" class="text-xs mt-1.5 hidden" aria-live="polite"></p>
                             <!-- Error message container -->
                             <p id="smartPasteError" class="text-xs text-red-500 mt-1 hidden">Vui lòng dán thông tin khách hàng vào ô trên</p>
                             <button 
@@ -471,7 +472,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 <svg id="smartPasteIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                <span id="smartPasteBtnText">Phân tích tự động</span>
+                                <span id="smartPasteBtnText">Phân tích lại</span>
                             </button>
                         </div>
 
@@ -499,7 +500,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 <option value="">-- Chọn Phường/Xã --</option>
                             </select>
 
-                            <div>
+                            <div id="newOrderStreetAddressWrap" class="hidden">
                                 <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                             </div>
 
@@ -1180,6 +1181,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
 
     document.body.appendChild(modal);
 
+    if (typeof setupDeskSmartPasteAuto === 'function') {
+        setupDeskSmartPasteAuto();
+    }
+
     if (typeof initCustomerSourcePicker === 'function') {
         initCustomerSourcePicker(duplicateData?.customer_source || '', {
             isEdit
@@ -1413,52 +1418,9 @@ function clearOrderDraft() {
 
 // Handle Smart Paste - Parse customer info automatically
 async function handleSmartPaste() {
-    const textarea = document.getElementById('smartPasteInput');
-    const text = textarea.value.trim();
-    const errorMsg = document.getElementById('smartPasteError');
-    const btn = document.getElementById('smartPasteBtn');
-    const btnText = document.getElementById('smartPasteBtnText');
-    const btnIcon = document.getElementById('smartPasteIcon');
-    
-    // Hide error message first
-    if (errorMsg) errorMsg.classList.add('hidden');
-    
-    if (!text) {
-        // Show error message above button
-        if (errorMsg) errorMsg.classList.remove('hidden');
-        return;
+    if (typeof runDeskSmartPaste === 'function') {
+        return runDeskSmartPaste();
     }
-    
-    // Change button to loading state
-    if (btn) btn.disabled = true;
-    if (btnText) btnText.textContent = 'Đang phân tích...';
-    if (btnIcon) {
-        btnIcon.innerHTML = `
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        `;
-        btnIcon.classList.add('animate-spin');
-    }
-    
-    try {
-        // Parse the text (now async)
-        const parsedData = await smartParseCustomerInfo(text);
-        
-        // Apply to form
-        await applyParsedDataToForm(parsedData);
-    } finally {
-        // Reset button to original state
-        if (btn) btn.disabled = false;
-        if (btnText) btnText.textContent = 'Phân tích tự động';
-        if (btnIcon) {
-            btnIcon.classList.remove('animate-spin');
-            btnIcon.innerHTML = `
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            `;
-        }
-    }
-    
-    // Keep textarea content for user reference (don't clear)
 }
 
 // Toggle payment dropdown in add order modal
