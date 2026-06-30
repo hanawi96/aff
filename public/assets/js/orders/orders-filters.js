@@ -295,6 +295,7 @@ function filterOrdersData(preservePage = false) {
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
+    const customerSourceFilter = document.getElementById('customerSourceFilter')?.value || 'all';
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
@@ -396,6 +397,9 @@ function filterOrdersData(preservePage = false) {
         const orderPaymentKey = orderPaymentApiKey(order.payment_method);
         const matchesPayment = paymentFilter === 'all' || orderPaymentKey === paymentFilter;
 
+        const orderSourceKey = orderCustomerSourceFilterKey(order);
+        const matchesCustomerSource = customerSourceFilter === 'all' || orderSourceKey === customerSourceFilter;
+
         // CTV filter
         const orderCTV = (order.referral_code || '').toLowerCase().trim();
         let matchesCTV = true;
@@ -448,7 +452,7 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCTV && matchesDate;
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate;
     });
 
     // Apply sorting
@@ -499,6 +503,23 @@ function removeVietnameseTones(str) {
         .replace(/Đ/g, 'D');
 }
 
+/** Key nguồn khách cho lọc — đơn thiếu field coi là Facebook (migration backfill). */
+function orderCustomerSourceFilterKey(order) {
+    const raw = order.customer_source ?? order.customerSource ?? '';
+    if (typeof normalizeCustomerSourceClient === 'function') {
+        return normalizeCustomerSourceClient(raw) || 'facebook';
+    }
+    const s = String(raw).toLowerCase().trim();
+    return (s === 'zalo' || s === 'facebook' || s === 'tiktok') ? s : 'facebook';
+}
+
+function closeOrderFilterDropdownMenus(exceptId) {
+    ['statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu'].forEach((id) => {
+        if (exceptId === id) return;
+        document.getElementById(id)?.remove();
+    });
+}
+
 // ============================================
 // STATUS FILTER
 // ============================================
@@ -512,6 +533,8 @@ function toggleStatusFilter(event) {
     // Close date filter if open
     const dateMenu = document.getElementById('dateFilterMenu');
     if (dateMenu) dateMenu.remove();
+
+    closeOrderFilterDropdownMenus('statusFilterMenu');
 
     // Close if already open
     const existingMenu = document.getElementById('statusFilterMenu');
@@ -608,9 +631,7 @@ function selectStatusFilter(value, label) {
 function togglePaymentFilter(event) {
     event.stopPropagation();
 
-    // Close status filter if open
-    const statusMenu = document.getElementById('statusFilterMenu');
-    if (statusMenu) statusMenu.remove();
+    closeOrderFilterDropdownMenus('paymentFilterMenu');
 
     // Close if already open
     const existingMenu = document.getElementById('paymentFilterMenu');
@@ -675,6 +696,81 @@ function selectPaymentFilter(value, label) {
 }
 
 // ============================================
+// CUSTOMER SOURCE FILTER
+// ============================================
+
+function toggleCustomerSourceFilter(event) {
+    event.stopPropagation();
+
+    closeOrderFilterDropdownMenus('customerSourceFilterMenu');
+
+    const existingMenu = document.getElementById('customerSourceFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const currentValue = document.getElementById('customerSourceFilter').value;
+    const button = event.currentTarget;
+    const wrap = button.parentElement;
+
+    const countBySource = { facebook: 0, zalo: 0, tiktok: 0 };
+    allOrdersData.forEach((o) => {
+        const key = orderCustomerSourceFilterKey(o);
+        if (countBySource[key] != null) countBySource[key]++;
+    });
+    const totalOrders = allOrdersData.length;
+
+    const sources = [
+        { value: 'all', label: 'Tất cả nguồn', color: 'gray', count: totalOrders },
+        { value: 'facebook', label: 'Facebook', color: 'blue', count: countBySource.facebook },
+        { value: 'zalo', label: 'Zalo', color: 'green', count: countBySource.zalo },
+        { value: 'tiktok', label: 'TikTok', color: 'slate', count: countBySource.tiktok }
+    ];
+
+    const menu = document.createElement('div');
+    menu.id = 'customerSourceFilterMenu';
+    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[240px] mt-1';
+    menu.style.left = '0';
+    menu.style.top = '100%';
+
+    menu.innerHTML = sources.map((s) => `
+        <button
+            type="button"
+            onclick="selectCustomerSourceFilter('${s.value}', '${s.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <span class="text-sm text-gray-700 flex-1">${s.label}</span>
+            <span class="text-xs text-gray-400 font-medium tabular-nums">${s.count}</span>
+            ${s.value === currentValue ? `
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    wrap.appendChild(menu);
+
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!wrap.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+function selectCustomerSourceFilter(value, label) {
+    document.getElementById('customerSourceFilter').value = value;
+    document.getElementById('customerSourceFilterLabel').textContent = label;
+    document.getElementById('customerSourceFilterMenu')?.remove();
+    filterOrdersData();
+}
+
+// ============================================
 // CTV FILTER
 // ============================================
 
@@ -684,11 +780,7 @@ function selectPaymentFilter(value, label) {
 function toggleCTVFilter(event) {
     event.stopPropagation();
 
-    // Close other menus
-    const statusMenu = document.getElementById('statusFilterMenu');
-    const paymentMenu = document.getElementById('paymentFilterMenu');
-    if (statusMenu) statusMenu.remove();
-    if (paymentMenu) paymentMenu.remove();
+    closeOrderFilterDropdownMenus('ctvFilterMenu');
 
     // Close if already open
     const existingMenu = document.getElementById('ctvFilterMenu');

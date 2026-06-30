@@ -522,6 +522,7 @@ let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
 let searchListScope=null;
 // ─── Filter state ───
 let mPriorityFilter=false, mMissingSizeFilter=false, mTheTenBeFilter=false, mHasNotesFilter=false;
+let mCustomerSourceFilter=null; // null | 'facebook' | 'zalo' | 'tiktok'
 let mDateSort=null; // null | 'newest' | 'oldest'
 
 function _orderHasMissingSize(o){
@@ -595,8 +596,12 @@ function _orderHasAnyNotes(o){
   }catch{return false;}
 }
 
+function _mOrderCustomerSourceKey(o){
+  return mNormCustomerSource(o.customer_source??o.customerSource)||'facebook';
+}
+
 function _updateFilterBadge(){
-  const cnt=(mPriorityFilter?1:0)+(mMissingSizeFilter?1:0)+(mTheTenBeFilter?1:0)+(mHasNotesFilter?1:0)+(mDateSort?1:0);
+  const cnt=(mPriorityFilter?1:0)+(mMissingSizeFilter?1:0)+(mTheTenBeFilter?1:0)+(mHasNotesFilter?1:0)+(mCustomerSourceFilter?1:0)+(mDateSort?1:0);
   const badge=document.getElementById('mFilterBadge');
   if(!badge)return;
   if(cnt>0){badge.textContent=cnt;badge.classList.remove('hidden');}
@@ -633,6 +638,26 @@ function deactivateMFilter(key){
   applyFilter();
 }
 
+function _syncMCustomerSourceFilterChips(){
+  const keys=['all','facebook','zalo','tiktok'];
+  keys.forEach(k=>{
+    const btn=document.getElementById('mfSrc_'+k);
+    if(!btn)return;
+    const active=k==='all'?!mCustomerSourceFilter:mCustomerSourceFilter===k;
+    btn.className=active
+      ?'flex-1 min-w-0 py-2.5 px-2 rounded-xl border-2 border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold text-[11px] transition-all text-center'
+      :'flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center';
+  });
+}
+
+function setMCustomerSourceFilter(val){
+  const norm=val==='all'||val==null?'':mNormCustomerSource(val);
+  mCustomerSourceFilter=norm||null;
+  _updateFilterBadge();
+  _syncMCustomerSourceFilterChips();
+  applyFilter();
+}
+
 function openMFilterSheet(){
   const sheet=document.getElementById('mFilterSheet');
   if(!sheet)return;
@@ -640,6 +665,7 @@ function openMFilterSheet(){
   document.body.style.overflow='hidden';
   const mfActive={priority:mPriorityFilter,size:mMissingSizeFilter,thetbe:mTheTenBeFilter,notes:mHasNotesFilter};
   ['priority','size','thetbe','notes'].forEach(k=>_syncMFilterBtnStyle(k,!!mfActive[k]));
+  _syncMCustomerSourceFilterChips();
   _syncDateSortBtns();
 }
 
@@ -689,9 +715,10 @@ function clearMDateSort(){
 }
 
 function resetMFilters(){
-  mPriorityFilter=false;mMissingSizeFilter=false;mTheTenBeFilter=false;mHasNotesFilter=false;mDateSort=null;
+  mPriorityFilter=false;mMissingSizeFilter=false;mTheTenBeFilter=false;mHasNotesFilter=false;mCustomerSourceFilter=null;mDateSort=null;
   _updateFilterBadge();
   ['priority','size','thetbe','notes'].forEach(k=>_syncMFilterBtnStyle(k,false));
+  _syncMCustomerSourceFilterChips();
   _syncDateSortBtns();
   applyFilter();
 }
@@ -1236,6 +1263,7 @@ function applyFilter(){
     if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
     if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
     if(mHasNotesFilter&&!_orderHasAnyNotes(o))return false;
+    if(mCustomerSourceFilter&&_mOrderCustomerSourceKey(o)!==mCustomerSourceFilter)return false;
     return true;
   });
   // Sắp xếp: ưu tiên ⭐ luôn lên đầu; tab Đã gửi → theo thời gian gửi mới nhất trước
@@ -1259,7 +1287,7 @@ function applyFilter(){
 }
 
 function updateCounts(){
-  const hasActiveFilter=mPriorityFilter||mMissingSizeFilter||mTheTenBeFilter||mHasNotesFilter||searchTerm.trim().length>0;
+  const hasActiveFilter=mPriorityFilter||mMissingSizeFilter||mTheTenBeFilter||mHasNotesFilter||mCustomerSourceFilter||searchTerm.trim().length>0;
   const c=s=>{
     if(!hasActiveFilter)return allOrders.filter(o=>mOrderMatchesTab(o,s)).length;
     const q=searchTerm.toLowerCase();
@@ -1270,6 +1298,7 @@ function updateCounts(){
       if(mMissingSizeFilter&&!_orderHasMissingSize(o))return false;
       if(mTheTenBeFilter&&!_orderHasTheTenBe(o))return false;
       if(mHasNotesFilter&&!_orderHasAnyNotes(o))return false;
+      if(mCustomerSourceFilter&&_mOrderCustomerSourceKey(o)!==mCustomerSourceFilter)return false;
       return true;
     }).length;
   };
@@ -5653,6 +5682,20 @@ function updateTabActive(p){
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-2 my-4">
+      <div class="flex-1 h-px bg-gray-100"></div>
+      <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Nguồn khách</span>
+      <div class="flex-1 h-px bg-gray-100"></div>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="button" id="mfSrc_all" onclick="setMCustomerSourceFilter('all')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Tất cả</button>
+      <button type="button" id="mfSrc_facebook" onclick="setMCustomerSourceFilter('facebook')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Facebook</button>
+      <button type="button" id="mfSrc_zalo" onclick="setMCustomerSourceFilter('zalo')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Zalo</button>
+      <button type="button" id="mfSrc_tiktok" onclick="setMCustomerSourceFilter('tiktok')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">TikTok</button>
     </div>
 
     <!-- Divider -->

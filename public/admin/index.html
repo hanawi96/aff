@@ -885,6 +885,20 @@
                             </button>
                         </div>
 
+                        <!-- Customer Source Filter -->
+                        <div class="relative">
+                            <button id="customerSourceFilterBtn" onclick="toggleCustomerSourceFilter(event)"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                <span id="customerSourceFilterLabel" class="text-gray-700">Tất cả nguồn</span>
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
                         <!-- CTV Filter -->
                         <div class="relative">
                             <button id="ctvFilterBtn" onclick="toggleCTVFilter(event)" 
@@ -940,6 +954,7 @@
                         <!-- Hidden inputs to store values -->
                         <input type="hidden" id="statusFilter" value="pending">
                         <input type="hidden" id="paymentFilter" value="all">
+                        <input type="hidden" id="customerSourceFilter" value="all">
                         <input type="hidden" id="ctvFilter" value="all">
                         <input type="hidden" id="dateFilter" value="all">
                         <input type="hidden" id="customDateStart" value="">
@@ -1264,7 +1279,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=76"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=77"></script>
 </body>
 
 </html>
