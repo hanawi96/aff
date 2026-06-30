@@ -1954,17 +1954,12 @@ function _setFieldConfidence(el, level) {
 }
 
 /**
- * Hiển thị confidence trực quan trên các dropdown địa chỉ sau smart paste.
- *   - Xanh lá: nhận diện chắc chắn
- *   - Vàng cam: cần kiểm tra lại
- *   - Đỏ: không tìm thấy, cần chọn tay
- * Badge tóm tắt hiển thị dưới preview địa chỉ.
- * Tự động xóa khi user thay đổi bất kỳ dropdown nào.
+ * Hiển thị confidence trực quan trên các field địa chỉ sau smart paste.
+ * Tự động xóa khi user thay đổi bất kỳ field nào.
  */
 function showSmartPasteConfidence(data) {
     const ids = ['newOrderProvince', 'newOrderWard', 'newOrderStreetAddress'];
     const [provEl, wardEl, streetEl] = ids.map(id => document.getElementById(id));
-    const preview = document.getElementById('newOrderAddressPreview');
 
     const addr = data.address;
     const overallConf = addr.confidence || 'low';
@@ -1973,31 +1968,6 @@ function showSmartPasteConfidence(data) {
     _setFieldConfidence(wardEl, addr.ward ? overallConf : 'low');
 
     if (addr.street) _setFieldConfidence(streetEl, 'high');
-
-    if (preview) {
-        const items = [
-            { ok: !!addr.province, label: 'Tỉnh/TP' },
-            { ok: !!addr.ward, label: 'Phường/Xã' }
-        ];
-
-        let badge = document.getElementById('smartPasteConfidenceBadge');
-        if (!badge) {
-            badge = document.createElement('div');
-            badge.id = 'smartPasteConfidenceBadge';
-            preview.parentNode.appendChild(badge);
-        }
-
-        const allOk = items.every(i => i.ok);
-        const bgCls = allOk
-            ? 'bg-green-50 border-green-200'
-            : 'bg-amber-50 border-amber-200';
-
-        badge.className = `mt-1.5 px-2.5 py-1 rounded-lg border text-xs flex items-center gap-1.5 ${bgCls}`;
-        badge.innerHTML = items.map(i => {
-            if (i.ok) return `<span class="text-green-600 font-semibold">✓ ${i.label}</span>`;
-            return `<span class="text-red-600 font-semibold">✗ ${i.label}</span>`;
-        }).join('<span class="text-gray-300">|</span>');
-    }
 
     // Tự động xóa indicator khi user thay đổi bất kỳ field nào
     const clearOnce = () => clearSmartPasteConfidence();
