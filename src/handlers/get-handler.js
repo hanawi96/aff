@@ -450,7 +450,8 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getProfitOverview':
             const overviewPeriod = url.searchParams.get('period') || 'all';
             const overviewStartDate = url.searchParams.get('startDate');
-            return await getProfitOverview(overviewPeriod, env, corsHeaders, overviewStartDate);
+            const overviewEndDate = url.searchParams.get('endDate');
+            return await getProfitOverview(overviewPeriod, env, corsHeaders, overviewStartDate, overviewEndDate);
 
         case 'getCurrentTaxRate':
             return await getCurrentTaxRate(env, corsHeaders);
