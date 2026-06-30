@@ -3118,7 +3118,7 @@ function openEditCartItem(i){
       <!-- Lưu ý -->
       <div>
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý cho sản phẩm</label>
-        <input id="sheetNotes" type="text" value="${esc(p.notes||'')}" placeholder="VD: giao trước 5h, đóng gói cẩn thận..."
+        <input id="sheetNotes" type="text" placeholder="VD: giao trước 5h, đóng gói cẩn thận..."
           class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
       </div>
       <!-- Nút -->
@@ -3127,6 +3127,9 @@ function openEditCartItem(i){
         <button onclick="confirmEditCartItem(${i})" class="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-xl text-sm">Lưu thay đổi</button>
       </div>
     </div>`;
+
+  const notesInp=document.getElementById('sheetNotes');
+  if(notesInp)notesInp.value=p.notes||'';
 
   // Size chips
   const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];

@@ -74,7 +74,7 @@ function editProductInOrder(index) {
                 <!-- Product Name -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Tên sản phẩm <span class="text-red-500">*</span></label>
-                    <input type="text" id="editProductName" value="${escapeHtml(product.name)}" 
+                    <input type="text" id="editProductName" value="${escapeAttr(product.name)}" 
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
 
@@ -88,7 +88,7 @@ function editProductInOrder(index) {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Size/Tay</label>
-                        <input type="text" id="editProductSize" value="${escapeHtml(product.size || product.weight || '')}" placeholder="VD: Size M, 5kg..." 
+                        <input type="text" id="editProductSize" value="${escapeAttr(product.size || product.weight || '')}" placeholder="VD: Size M, 5kg..." 
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                     </div>
                 </div>

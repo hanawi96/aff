@@ -56,6 +56,17 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/** Escape cho thuộc tính HTML (value="...") — gồm cả dấu ngoặc kép. */
+function escapeAttr(text) {
+    if (text == null || text === '') return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 /** Viết hoa chữ cái đầu mỗi từ — hiển thị tên khách (locale vi-VN). */
 function titleCaseCustomerName(raw) {
     const t = String(raw || '').trim();
