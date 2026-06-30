@@ -2121,6 +2121,10 @@ async function applyParsedDataToForm(parsedData) {
 
         if (addressPreview) addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
         if (hiddenAddress) hiddenAddress.value = fullAddress;
+
+        if (typeof syncDeskAddressComboboxFromHidden === 'function') {
+            syncDeskAddressComboboxFromHidden();
+        }
     }
 
     // Hiển thị confidence trực quan trên các dropdown

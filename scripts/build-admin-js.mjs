@@ -46,6 +46,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-discount-selector.js',
     'public/assets/js/orders/orders-discount-desktop-sheet.js',
     'public/assets/js/orders/orders-ctv.js',
+    'public/assets/js/orders/orders-desk-address-combobox.js',
     'public/assets/js/orders/orders-address.js',
     'public/assets/js/orders/orders-quick-add.js',
     'public/assets/js/orders/orders-product-edit.js',

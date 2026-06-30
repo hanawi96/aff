@@ -486,31 +486,28 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <input type="text" id="newOrderCustomerName" value="${escapeHtml(customerName)}" placeholder="Nhập tên khách hàng" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                         </div>
 
-                        <!-- Địa chỉ giao hàng 2 cấp -->
+                        <!-- Địa chỉ giao hàng 2 cấp — combobox tìm kiếm -->
                         <div class="bg-blue-50 rounded-lg p-3 space-y-2">
-                            <label class="block text-sm font-semibold text-gray-800 mb-2">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
-                            
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <select id="newOrderProvince" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option value="">-- Chọn Tỉnh/TP --</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <select id="newOrderWard" disabled class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
-                                        <option value="">-- Chọn Phường/Xã --</option>
-                                    </select>
-                                </div>
-                            </div>
+                            <label class="block text-sm font-semibold text-gray-800 mb-1">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+
+                            <div id="deskAddressCombobox"></div>
+
+                            <select id="newOrderProvince" class="sr-only" tabindex="-1" aria-hidden="true">
+                                <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                            </select>
+                            <select id="newOrderWard" disabled class="sr-only" tabindex="-1" aria-hidden="true">
+                                <option value="">-- Chọn Phường/Xã --</option>
+                            </select>
+
                             <div>
                                 <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                             </div>
-                            
-                            <div class="mt-2 p-2 bg-white rounded border border-blue-200">
+
+                            <div class="mt-1 p-2 bg-white rounded border border-blue-200">
                                 <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
                                 <p id="newOrderAddressPreview" class="text-sm text-gray-800 font-medium">Vui lòng chọn địa chỉ</p>
                             </div>
-                            
+
                             <input type="hidden" id="newOrderAddress" value="${escapeHtml(address)}" />
                         </div>
 
@@ -1344,6 +1341,10 @@ function closeAddOrderModal(skipDraft = false) {
     if (modal) {
         const isEdit = !!document.getElementById('orderFormEditDbId')?.value;
         if (!isEdit && !skipDraft) _saveOrderDraft();
+
+        if (typeof destroyDeskAddressCombobox === 'function') {
+            destroyDeskAddressCombobox();
+        }
 
         modal.remove();
         currentOrderProducts = [];
