@@ -1,5 +1,6 @@
 // Detailed Analytics
 import { jsonResponse } from '../../utils/response.js';
+import { queryCustomerSourceBreakdown, buildCustomerSources } from './customer-source-breakdown.js';
 
 /**
  * Get detailed analytics for analytics page
@@ -46,8 +47,9 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
         const bindStart = endMs ? [startMs, endMs] : [startMs];
         const bindStartO = endMs ? [startMs, endMs] : [startMs];
 
-        // Get overview data from orders table (simple & fast)
-        const overview = await env.DB.prepare(`
+        // Overview + product + customers + nguồn khách — song song
+        const [overview, productData, customerData, sourceBreakdown] = await Promise.all([
+            env.DB.prepare(`
             SELECT 
                 COUNT(*) as total_orders,
                 COALESCE(SUM(total_amount), 0) as total_revenue,
@@ -57,33 +59,33 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 COALESCE(SUM(tax_amount), 0) as total_tax
             FROM orders
             WHERE created_at_unix >= ?${endClause}
-        `).bind(...bindStart).first();
-
-        // Get product data from order_items (separate query to avoid JOIN issues)
-        const productData = await env.DB.prepare(`
+        `).bind(...bindStart).first(),
+            env.DB.prepare(`
             SELECT 
                 COALESCE(SUM(oi.quantity), 0) as total_products_sold,
                 COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
             FROM order_items oi
             INNER JOIN orders o ON oi.order_id = o.id
             WHERE o.created_at_unix >= ?${endClauseO}
-        `).bind(...bindStartO).first();
-
-        // Get unique customers count (by phone number)
-        const startTimeMs = startMs;
-        const startTimeSec = Math.floor(startTimeMs / 1000);
-        const endTimeMs = endMs;
-        const endTimeSec = endMs ? Math.floor(endMs / 1000) : null;
-        let custSql = `SELECT COUNT(DISTINCT customer_phone) as unique_customers FROM orders WHERE (
+        `).bind(...bindStartO).first(),
+            (async () => {
+                const startTimeMs = startMs;
+                const startTimeSec = Math.floor(startTimeMs / 1000);
+                const endTimeMs = endMs;
+                const endTimeSec = endMs ? Math.floor(endMs / 1000) : null;
+                let custSql = `SELECT COUNT(DISTINCT customer_phone) as unique_customers FROM orders WHERE (
                 (LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix >= ?) OR
                 (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix >= ?)
             ) AND customer_phone IS NOT NULL AND customer_phone != ''`;
-        let custBinds = [startTimeMs, startTimeSec];
-        if (endMs) {
-            custSql += ` AND ((LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix <= ?) OR (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix <= ?))`;
-            custBinds.push(endTimeMs, endTimeSec);
-        }
-        const customerData = await env.DB.prepare(custSql).bind(...custBinds).first();
+                let custBinds = [startTimeMs, startTimeSec];
+                if (endMs) {
+                    custSql += ` AND ((LENGTH(CAST(created_at_unix AS TEXT)) = 13 AND created_at_unix <= ?) OR (LENGTH(CAST(created_at_unix AS TEXT)) = 10 AND created_at_unix <= ?))`;
+                    custBinds.push(endTimeMs, endTimeSec);
+                }
+                return env.DB.prepare(custSql).bind(...custBinds).first();
+            })(),
+            queryCustomerSourceBreakdown(env, startMs, endMs)
+        ]);
 
         // Merge results
         overview.total_products_sold = productData.total_products_sold || 0;
@@ -95,6 +97,12 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                          (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + (overview.total_tax || 0);
         const totalProfit = totalRevenue - totalCost;
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+
+        const customerSources = buildCustomerSources(
+            sourceBreakdown.ordersRows,
+            sourceBreakdown.productRows,
+            totalRevenue
+        );
 
         // Get detailed cost breakdown from packaging_details using SQLite JSON functions
         // This is MUCH faster than parsing JSON in JavaScript loop
@@ -288,6 +296,7 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 tax: overview.total_tax || 0
             },
             cost_breakdown: costBreakdown,
+            customer_sources: customerSources,
             top_products: topProducts.results || [],
             daily_data: dailyDataFormatted,
             orders: ordersFormatted,

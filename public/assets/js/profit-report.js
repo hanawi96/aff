@@ -428,6 +428,7 @@ async function loadTopProducts(gen) {
                 profitReportProductsPage = 1;
                 invalidateProfitReportSortedView();
                 updateSummaryStats(cachedData.overview, cachedData.cost_breakdown);
+                renderCustomerSources(cachedData.customer_sources);
                 renderCostBreakdownTable(cachedData.cost_breakdown, cachedData.overview);
                 renderTopProductsTable();
                 return;
@@ -468,6 +469,7 @@ async function loadTopProducts(gen) {
             
             // Always render data (tables will handle empty state themselves)
             updateSummaryStats(overviewData.overview, overviewData.cost_breakdown);
+            renderCustomerSources(overviewData.customer_sources);
             renderCostBreakdownTable(overviewData.cost_breakdown, overviewData.overview);
             renderTopProductsTable();
         } else {
@@ -539,6 +541,109 @@ function updateSummaryStats(overview, costs) {
 
 // Chart instance
 let pieChart = null;
+let customerSourceChart = null;
+
+const PR_SOURCE_COLORS = {
+    facebook: '#3B82F6',
+    zalo: '#22C55E',
+    tiktok: '#1E293B',
+    unknown: '#9CA3AF'
+};
+
+const PR_SOURCE_BADGE = {
+    facebook: 'bg-blue-100 text-blue-700',
+    zalo: 'bg-green-100 text-green-700',
+    tiktok: 'bg-slate-200 text-slate-800',
+    unknown: 'bg-gray-100 text-gray-600'
+};
+
+function renderCustomerSources(sources) {
+    const tbody = document.getElementById('prCustomerSourcesTable');
+    if (!tbody) return;
+
+    if (!Array.isArray(sources) || sources.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-2 py-8 text-center text-sm text-slate-400 italic">Chưa có đơn trong kỳ này</td></tr>';
+        renderCustomerSourceChart([]);
+        return;
+    }
+
+    tbody.innerHTML = sources.map((s) => {
+        const badge = PR_SOURCE_BADGE[s.source] || PR_SOURCE_BADGE.unknown;
+        const profitCls = (s.profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500';
+        const marginCls = (s.profit_margin || 0) >= 30 ? 'text-emerald-600' : (s.profit_margin || 0) >= 15 ? 'text-amber-600' : 'text-red-500';
+        return `<tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="px-2 py-2.5">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge}">${escapeHtml(s.label)}</span>
+            </td>
+            <td class="px-2 py-2.5 text-right text-sm tabular-nums text-slate-700">${formatNumber(s.order_count)}</td>
+            <td class="px-2 py-2.5 text-right text-sm font-semibold tabular-nums text-slate-900">${formatCurrency(s.revenue)}</td>
+            <td class="px-2 py-2.5 text-right text-sm tabular-nums text-indigo-600">${(s.revenue_share || 0).toFixed(1)}%</td>
+            <td class="px-2 py-2.5 text-right text-sm font-semibold tabular-nums ${profitCls}">${formatCurrency(s.profit)}</td>
+            <td class="px-2 py-2.5 text-right text-sm tabular-nums ${marginCls}">${(s.profit_margin || 0).toFixed(1)}%</td>
+            <td class="px-2 py-2.5 text-right text-sm tabular-nums text-slate-500">${formatCurrency(s.avg_order_value || 0)}</td>
+        </tr>`;
+    }).join('');
+
+    renderCustomerSourceChart(sources);
+}
+
+function renderCustomerSourceChart(sources) {
+    const canvas = document.getElementById('prCustomerSourceChart');
+    const wrap = document.getElementById('prCustomerSourceChartWrap');
+    const emptyEl = document.getElementById('prCustomerSourceChartEmpty');
+    if (!canvas) return;
+
+    const active = (sources || []).filter((s) => (s.revenue || 0) > 0);
+
+    if (active.length === 0) {
+        if (customerSourceChart) {
+            customerSourceChart.destroy();
+            customerSourceChart = null;
+        }
+        if (wrap) wrap.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    if (wrap) wrap.classList.remove('hidden');
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    if (customerSourceChart) customerSourceChart.destroy();
+
+    customerSourceChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: active.map((s) => s.label),
+            datasets: [{
+                data: active.map((s) => s.revenue),
+                backgroundColor: active.map((s) => PR_SOURCE_COLORS[s.source] || PR_SOURCE_COLORS.unknown),
+                borderWidth: 3,
+                borderColor: '#fff',
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1.5,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 10, padding: 8, font: { size: 11 }, usePointStyle: true }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const s = active[ctx.dataIndex];
+                            return `${formatCurrency(ctx.raw)} · ${(s.revenue_share || 0).toFixed(1)}% · ${formatNumber(s.order_count)} đơn`;
+                        }
+                    }
+                }
+            },
+            animation: { duration: 400 }
+        }
+    });
+}
 
 // Render cost breakdown table + charts
 function renderCostBreakdownTable(costs, overview) {
@@ -897,6 +1002,10 @@ function showSkeletonLoading() {
     if (pag) {
         pag.classList.add('hidden');
         pag.innerHTML = '';
+    }
+    const srcBody = document.getElementById('prCustomerSourcesTable');
+    if (srcBody) {
+        srcBody.innerHTML = '<tr><td colspan="7" class="px-2 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>';
     }
     const tbody = document.getElementById('topProductsTable');
     tbody.innerHTML = `

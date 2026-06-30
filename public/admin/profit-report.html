@@ -729,6 +729,47 @@
             </div>
         </div>
 
+        <!-- Nguồn khách hàng -->
+        <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                <div class="border-b border-slate-200/80 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">Nguồn khách hàng</h2>
+                    <p class="mt-1 text-xs text-slate-500">Doanh thu, đơn hàng và lợi nhuận theo kênh</p>
+                </div>
+                <div class="overflow-x-auto p-5 pt-3">
+                    <table class="w-full min-w-[32rem]">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="px-2 py-2 text-left text-xs font-semibold uppercase text-slate-600">Nguồn</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Đơn</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Doanh thu</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">% DT</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Lợi nhuận</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Tỷ suất</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">TB/đơn</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prCustomerSourcesTable" class="divide-y divide-slate-100">
+                            <tr><td colspan="7" class="px-2 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+                <div class="border-b border-slate-200/80 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">Tỷ trọng doanh thu</h2>
+                    <p class="mt-1 text-xs text-slate-500">Phân bổ theo nguồn khách</p>
+                </div>
+                <div class="p-5">
+                    <div id="prCustomerSourceChartWrap" class="flex items-center justify-center rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/60" style="min-height: 260px;">
+                        <canvas id="prCustomerSourceChart"></canvas>
+                    </div>
+                    <p id="prCustomerSourceChartEmpty" class="hidden mt-3 text-center text-xs text-slate-400 italic">Chưa có dữ liệu trong kỳ này</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Cost Analysis Section - 2 Separate Boxes -->
         <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <!-- Box 1: Cost Breakdown Table -->

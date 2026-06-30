@@ -1,5 +1,6 @@
 // Profit Overview Analytics
 import { jsonResponse } from '../../utils/response.js';
+import { queryCustomerSourceBreakdown, buildCustomerSources } from './customer-source-breakdown.js';
 
 /**
  * Get profit overview with all costs
@@ -45,15 +46,7 @@ export async function getProfitOverview(period, env, corsHeaders, customStartDat
         const prevDayStart = startMs - 86400000;
         const prevDayEnd = startMs - 1;
 
-        const sourceKeySql = `
-            CASE
-                WHEN LOWER(TRIM(customer_source)) = 'zalo' THEN 'zalo'
-                WHEN LOWER(TRIM(customer_source)) = 'facebook' THEN 'facebook'
-                WHEN LOWER(TRIM(customer_source)) = 'tiktok' THEN 'tiktok'
-                ELSE 'unknown'
-            END`;
-
-        const [overview, productData, sourceOrdersRows, sourceProductRows, prevDayRow] = await Promise.all([
+        const [overview, productData, sourceBreakdown, prevDayRow] = await Promise.all([
             env.DB.prepare(`
             SELECT 
                 COUNT(*) as total_orders,
@@ -73,33 +66,7 @@ export async function getProfitOverview(period, env, corsHeaders, customStartDat
             INNER JOIN orders o ON oi.order_id = o.id
             WHERE o.created_at_unix >= ?${endClauseO}
         `).bind(...binds).first(),
-            env.DB.prepare(`
-            SELECT
-                ${sourceKeySql} AS source_key,
-                COUNT(*) AS order_count,
-                COALESCE(SUM(total_amount), 0) AS revenue,
-                COALESCE(SUM(shipping_cost), 0) AS shipping_cost,
-                COALESCE(SUM(packaging_cost), 0) AS packaging_cost,
-                COALESCE(SUM(commission), 0) AS commission,
-                COALESCE(SUM(tax_amount), 0) AS tax
-            FROM orders
-            WHERE created_at_unix >= ?${endClause}
-            GROUP BY source_key
-        `).bind(...binds).all(),
-            env.DB.prepare(`
-            SELECT
-                CASE
-                    WHEN LOWER(TRIM(o.customer_source)) = 'zalo' THEN 'zalo'
-                    WHEN LOWER(TRIM(o.customer_source)) = 'facebook' THEN 'facebook'
-                    WHEN LOWER(TRIM(o.customer_source)) = 'tiktok' THEN 'tiktok'
-                    ELSE 'unknown'
-                END AS source_key,
-                COALESCE(SUM(oi.product_cost * oi.quantity), 0) AS product_cost
-            FROM order_items oi
-            INNER JOIN orders o ON oi.order_id = o.id
-            WHERE o.created_at_unix >= ?${endClauseO}
-            GROUP BY source_key
-        `).bind(...binds).all(),
+            queryCustomerSourceBreakdown(env, startMs, endMs),
             isQuickDayScope
                 ? env.DB.prepare(`
             SELECT COALESCE(SUM(total_amount), 0) AS rev
@@ -134,45 +101,11 @@ export async function getProfitOverview(period, env, corsHeaders, customStartDat
             }
         }
 
-        const productCostBySource = {};
-        (sourceProductRows.results || []).forEach((row) => {
-            productCostBySource[row.source_key] = row.product_cost || 0;
-        });
-
-        const SOURCE_LABELS = {
-            facebook: 'Facebook',
-            zalo: 'Zalo',
-            tiktok: 'TikTok',
-            unknown: 'Chưa ghi nguồn'
-        };
-        const SOURCE_ORDER = ['facebook', 'zalo', 'tiktok', 'unknown'];
-
-        const sourceAgg = {};
-        (sourceOrdersRows.results || []).forEach((row) => {
-            sourceAgg[row.source_key] = row;
-        });
-
-        const customerSources = SOURCE_ORDER.map((key) => {
-            const row = sourceAgg[key] || {};
-            const revenue = row.revenue || 0;
-            const orderCount = row.order_count || 0;
-            const cost = (productCostBySource[key] || 0)
-                + (row.shipping_cost || 0)
-                + (row.packaging_cost || 0)
-                + (row.commission || 0)
-                + (row.tax || 0);
-            const profit = revenue - cost;
-            return {
-                source: key,
-                label: SOURCE_LABELS[key] || key,
-                order_count: orderCount,
-                revenue,
-                cost,
-                profit,
-                profit_margin: revenue > 0 ? (profit / revenue * 100) : 0,
-                revenue_share: totalRevenue > 0 ? (revenue / totalRevenue * 100) : 0
-            };
-        }).filter((s) => s.order_count > 0 || s.revenue > 0);
+        const customerSources = buildCustomerSources(
+            sourceBreakdown.ordersRows,
+            sourceBreakdown.productRows,
+            totalRevenue
+        );
 
         return jsonResponse({
             success: true,
