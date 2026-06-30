@@ -29,7 +29,9 @@ async function submitNewOrder() {
     }
 
     // Check if address is selected (not default text)
-    if (!address || address === '' || addressPreview === 'Vui lòng chọn địa chỉ') {
+    if (!address || address === '' || (typeof isOrderAddressPreviewEmpty === 'function'
+        ? isOrderAddressPreviewEmpty(addressPreview)
+        : addressPreview === 'Vui lòng chọn địa chỉ' || addressPreview === 'Địa chỉ đầy đủ: Vui lòng chọn địa chỉ')) {
         showOrderFormValidationWarning(
             'Vui lòng chọn địa chỉ giao hàng đầy đủ',
             document.querySelector('#deskAddrChips [data-desk-open]') || document.getElementById('newOrderProvince')

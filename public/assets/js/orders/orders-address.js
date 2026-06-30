@@ -7,6 +7,26 @@
  * - DeskAddressCombobox from orders-desk-address-combobox.js
  */
 
+function syncOrderAddressPreview(fullAddress, previewEl) {
+    const el = previewEl || document.getElementById('newOrderAddressPreview');
+    if (!el) return;
+    const body = (fullAddress && String(fullAddress).trim()) || '';
+    if (!body) {
+        el.textContent = '';
+        el.classList.add('hidden');
+        return;
+    }
+    el.textContent = `Địa chỉ đầy đủ: ${body}`;
+    el.classList.remove('hidden');
+}
+
+function isOrderAddressPreviewEmpty(previewText) {
+    if (!previewText) return true;
+    const t = String(previewText).trim();
+    if (!t) return true;
+    return t === 'Vui lòng chọn địa chỉ' || t === 'Địa chỉ đầy đủ: Vui lòng chọn địa chỉ';
+}
+
 async function initAddressSelector(duplicateData = null) {
     if (typeof destroyDeskAddressCombobox === 'function') {
         destroyDeskAddressCombobox();
@@ -30,9 +50,7 @@ async function initAddressSelector(duplicateData = null) {
             wardId
         );
 
-        if (addressPreview) {
-            addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
-        }
+        syncOrderAddressPreview(fullAddress, addressPreview);
         if (hiddenAddress) {
             hiddenAddress.value = fullAddress;
         }

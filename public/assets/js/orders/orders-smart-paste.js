@@ -2116,10 +2116,9 @@ async function applyParsedDataToForm(parsedData) {
             wardSelect.value
         );
 
-        const addressPreview = document.getElementById('newOrderAddressPreview');
-        const hiddenAddress = document.getElementById('newOrderAddress');
+        syncOrderAddressPreview(fullAddress);
 
-        if (addressPreview) addressPreview.textContent = fullAddress || 'Vui lòng chọn địa chỉ';
+        const hiddenAddress = document.getElementById('newOrderAddress');
         if (hiddenAddress) hiddenAddress.value = fullAddress;
 
         if (typeof syncDeskAddressComboboxFromHidden === 'function') {

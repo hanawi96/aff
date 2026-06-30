@@ -182,9 +182,7 @@ window.autoFillLastOrder = async function autoFillLastOrder(phone) {
                     // Update preview text
                     const addressPreview = document.getElementById('newOrderAddressPreview');
                     if (addressPreview) {
-                        addressPreview.textContent = lastOrder.address;
-                        addressPreview.classList.remove('text-gray-400');
-                        addressPreview.classList.add('text-gray-700');
+                        syncOrderAddressPreview(lastOrder.address, addressPreview);
                         console.log('✅ [AutoFill] Set address preview');
                     }
                 }

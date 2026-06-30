@@ -503,47 +503,68 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                             </div>
 
-                            <div class="mt-1 p-2 bg-white rounded border border-blue-200">
-                                <p class="text-xs text-gray-500 mb-0.5">Địa chỉ đầy đủ:</p>
-                                <p id="newOrderAddressPreview" class="text-sm text-gray-800 font-medium">Vui lòng chọn địa chỉ</p>
-                            </div>
+                            <p id="newOrderAddressPreview" class="mt-1 text-sm text-green-600 hidden"></p>
 
                             <input type="hidden" id="newOrderAddress" value="${escapeHtml(address)}" />
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Thanh toán</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-btn payment-pm-btn payment-btn-cod ${codBtnActive ? 'active' : ''} flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="payment-method-block">
+                            <div class="payment-method-head">
+                                <span class="payment-method-title">Thanh toán</span>
+                            </div>
+                            <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
+                            <div class="payment-method-chips" role="group" aria-label="Chọn hình thức thanh toán">
+                                <button type="button" onclick="selectPaymentMethodDirect('cod')" id="paymentBtn_cod" class="payment-method-chip payment-pm-btn payment-method-chip--cod ${codBtnActive ? 'active' : ''}" aria-pressed="${codBtnActive ? 'true' : 'false'}">
+                                    <svg class="payment-method-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                     <span>COD</span>
                                 </button>
-                                <button type="button" onclick="selectPaymentMethodDirect('bank')" id="paymentBtn_bank" class="payment-method-btn payment-pm-btn payment-btn-bank ${bankBtnActive ? 'active' : ''} flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <button type="button" onclick="selectPaymentMethodDirect('bank')" id="paymentBtn_bank" class="payment-method-chip payment-pm-btn payment-method-chip--bank ${bankBtnActive ? 'active' : ''}" aria-pressed="${bankBtnActive ? 'true' : 'false'}">
+                                    <svg class="payment-method-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <span>Đã CK</span>
                                 </button>
-                                <button type="button" onclick="selectPaymentMethodDirect('deposit')" id="paymentBtn_deposit" class="payment-method-btn payment-deposit-btn payment-btn-deposit ${depositBtnActive ? 'active' : ''} flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all font-medium text-xs">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <button type="button" onclick="selectPaymentMethodDirect('deposit')" id="paymentBtn_deposit" class="payment-method-chip payment-deposit-btn payment-method-chip--deposit ${depositBtnActive ? 'active' : ''}" aria-pressed="${depositBtnActive ? 'true' : 'false'}">
+                                    <svg class="payment-method-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <span>Cọc trước</span>
                                 </button>
                             </div>
-                            <input type="hidden" id="newOrderPaymentMethod" value="${paymentMethod || 'cod'}" />
                             <div id="newOrderDepositWrap" class="mt-2 ${depositWrapClass}">
                                 <label class="block text-xs font-medium text-gray-700 mb-1">Số tiền cọc</label>
                                 <div id="newOrderDepositPresets" class="hidden mb-1.5"></div>
                                 <div class="relative">
                                     <input type="number" id="newOrderDepositAmount" min="0" step="1000" value="${depositInputValue}"
-                                        class="w-full pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        class="w-full pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
                                         oninput="updateOrderSummary()" placeholder="0" />
                                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">đ</span>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">Khách đã chuyển/cọc trước — COD chỉ thu phần còn lại</p>
+                            </div>
+                        </div>
+
+                        <div class="customer-source-block">
+                            <div class="customer-source-head">
+                                <span class="customer-source-title">Nguồn khách</span>
+                                <span class="customer-source-optional text-red-500">Bắt buộc *</span>
+                            </div>
+                            <input type="hidden" id="newOrderCustomerSource" value="" />
+                            <div class="customer-source-chips" role="group" aria-label="Chọn nguồn khách">
+                                <button type="button" class="customer-source-chip customer-source-chip--zalo" data-source="zalo" aria-pressed="false" onclick="selectCustomerSource('zalo')">
+                                    <span class="customer-source-dot customer-source-dot--zalo" aria-hidden="true"></span>
+                                    <span>Zalo</span>
+                                </button>
+                                <button type="button" class="customer-source-chip customer-source-chip--facebook" data-source="facebook" aria-pressed="false" onclick="selectCustomerSource('facebook')">
+                                    <svg class="customer-source-icon customer-source-icon--facebook" xmlns="http://www.w3.org/2000/svg" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>
+                                    <span>Facebook</span>
+                                </button>
+                                <button type="button" class="customer-source-chip customer-source-chip--tiktok" data-source="tiktok" aria-pressed="false" onclick="selectCustomerSource('tiktok')">
+                                    <svg class="customer-source-icon customer-source-icon--tiktok" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>
+                                    <span>TikTok</span>
+                                </button>
                             </div>
                         </div>
 
@@ -573,86 +594,26 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             </div>
                         </div>
 
-                        <div class="customer-source-block">
-                            <div class="customer-source-head">
-                                <span class="customer-source-title">Nguồn khách</span>
-                                <span class="customer-source-optional text-red-500">Bắt buộc *</span>
-                            </div>
-                            <input type="hidden" id="newOrderCustomerSource" value="" />
-                            <div class="customer-source-chips" role="group" aria-label="Chọn nguồn khách">
-                                <button type="button" class="customer-source-chip customer-source-chip--zalo" data-source="zalo" aria-pressed="false" onclick="selectCustomerSource('zalo')">
-                                    <span class="customer-source-dot customer-source-dot--zalo" aria-hidden="true"></span>
-                                    <span>Zalo</span>
-                                </button>
-                                <button type="button" class="customer-source-chip customer-source-chip--facebook" data-source="facebook" aria-pressed="false" onclick="selectCustomerSource('facebook')">
-                                    <svg class="customer-source-icon customer-source-icon--facebook" xmlns="http://www.w3.org/2000/svg" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>
-                                    <span>Facebook</span>
-                                </button>
-                                <button type="button" class="customer-source-chip customer-source-chip--tiktok" data-source="tiktok" aria-pressed="false" onclick="selectCustomerSource('tiktok')">
-                                    <svg class="customer-source-icon customer-source-icon--tiktok" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>
-                                    <span>TikTok</span>
-                                </button>
-                            </div>
-                        </div>
-
                         <input type="hidden" id="newOrderStatus" value="${escapeHtml(orderStatusSeed)}" data-revert-status="${escapeHtml(sendLaterRevertStatus)}" />
 
                         <style>
-                            .payment-method-btn {
-                                border-color: #d1d5db;
-                                background: #fff;
-                                color: #6b7280;
-                            }
-                            .payment-method-btn:hover:not(.active) {
-                                border-color: #9ca3af;
-                                background: #f9fafb;
-                            }
-                            .payment-btn-cod.active,
-                            .payment-btn-bank.active {
-                                border-color: #2563eb;
-                                background: #dbeafe;
-                                color: #1d4ed8;
-                                font-weight: 600;
-                            }
-                            .payment-btn-cod.active svg,
-                            .payment-btn-bank.active svg {
-                                color: #1d4ed8;
-                            }
-                            .payment-btn-deposit.active {
-                                border-color: #ea580c;
-                                background: #ffedd5;
-                                color: #c2410c;
-                                font-weight: 600;
-                            }
-                            .payment-btn-deposit.active svg {
-                                color: #c2410c;
-                            }
-                            .customer-source-block {
+                            .customer-source-block,
+                            .payment-method-block {
                                 border-radius: 0.5rem;
                                 padding: 0.75rem;
                                 border: 1px solid #e9d5ff;
                                 background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
                             }
-                            .customer-source-block--error {
-                                border-color: #f87171 !important;
-                                box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
-                            }
-                            @keyframes customerSourceShake {
-                                0%, 100% { transform: translateX(0); }
-                                25% { transform: translateX(-4px); }
-                                75% { transform: translateX(4px); }
-                            }
-                            .customer-source-block--shake {
-                                animation: customerSourceShake 0.35s ease;
-                            }
-                            .customer-source-head {
+                            .customer-source-head,
+                            .payment-method-head {
                                 display: flex;
                                 align-items: center;
                                 justify-content: space-between;
                                 gap: 0.5rem;
                                 margin-bottom: 0.5rem;
                             }
-                            .customer-source-title {
+                            .customer-source-title,
+                            .payment-method-title {
                                 font-size: 0.8125rem;
                                 font-weight: 600;
                                 color: #374151;
@@ -662,12 +623,14 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 font-weight: 500;
                                 color: #9ca3af;
                             }
-                            .customer-source-chips {
+                            .customer-source-chips,
+                            .payment-method-chips {
                                 display: grid;
                                 grid-template-columns: repeat(3, 1fr);
                                 gap: 0.375rem;
                             }
-                            .customer-source-chip {
+                            .customer-source-chip,
+                            .payment-method-chip {
                                 display: inline-flex;
                                 align-items: center;
                                 justify-content: center;
@@ -683,10 +646,59 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
                                 white-space: nowrap;
                             }
-                            .customer-source-chip:hover:not(.active) {
+                            .customer-source-chip:hover:not(.active),
+                            .payment-method-chip:hover:not(.active) {
                                 border-color: #d8b4fe;
                                 background: #fdf4ff;
                                 color: #6b7280;
+                            }
+                            .payment-method-icon {
+                                flex-shrink: 0;
+                                display: block;
+                                width: 0.875rem;
+                                height: 0.875rem;
+                            }
+                            .payment-method-chip--cod.active {
+                                border-color: #2563eb;
+                                background: #2563eb;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+                            }
+                            .payment-method-chip--cod.active .payment-method-icon {
+                                color: #ffffff;
+                            }
+                            .payment-method-chip--bank.active {
+                                border-color: #16a34a;
+                                background: #16a34a;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+                            }
+                            .payment-method-chip--bank.active .payment-method-icon {
+                                color: #ffffff;
+                            }
+                            .payment-method-chip--deposit.active {
+                                border-color: #ea580c;
+                                background: #ea580c;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+                            }
+                            .payment-method-chip--deposit.active .payment-method-icon {
+                                color: #ffffff;
+                            }
+                            .customer-source-block--error {
+                                border-color: #f87171 !important;
+                                box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+                            }
+                            @keyframes customerSourceShake {
+                                0%, 100% { transform: translateX(0); }
+                                25% { transform: translateX(-4px); }
+                                75% { transform: translateX(4px); }
+                            }
+                            .customer-source-block--shake {
+                                animation: customerSourceShake 0.35s ease;
                             }
                             .customer-source-dot {
                                 width: 0.4375rem;
@@ -1508,17 +1520,21 @@ function selectPaymentMethodDirect(method) {
 
     document.querySelectorAll('.payment-pm-btn, .payment-deposit-btn').forEach(btn => {
         btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
     });
 
     if (method === 'deposit') {
         pmInput.value = 'cod';
         wrap?.classList.remove('hidden');
         depositBtn?.classList.add('active');
+        depositBtn?.setAttribute('aria-pressed', 'true');
         setTimeout(() => document.getElementById('newOrderDepositAmount')?.focus(), 50);
     } else {
         pmInput.value = method;
         wrap?.classList.add('hidden');
-        document.getElementById(`paymentBtn_${method}`)?.classList.add('active');
+        const activeBtn = document.getElementById(`paymentBtn_${method}`);
+        activeBtn?.classList.add('active');
+        activeBtn?.setAttribute('aria-pressed', 'true');
     }
 
     updateOrderSummary();
