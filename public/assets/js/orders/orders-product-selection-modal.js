@@ -317,12 +317,31 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
             }
         }
         const thumbHtml = modalProductThumbHtml(resolveModalProductImageSrc(p));
-        return `<div onclick="selectModalProduct(${p.id})" id="modal_product_${p.id}" class="bg-white flex flex-col gap-3 p-4 cursor-pointer hover:bg-purple-50 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-center gap-3"><div class="flex w-5 flex-shrink-0 items-center justify-center"><div class="h-5 w-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></div>${thumbHtml}<div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-snug mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></div>${detailsHtml}</div>`;
+        const checkboxHtml = `<button type="button" onclick="event.stopPropagation(); toggleModalProductCheckbox(${p.id})" class="flex w-5 flex-shrink-0 items-center justify-center cursor-pointer rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400" aria-label="${isSelected ? 'Bỏ chọn' : 'Chọn'} sản phẩm"><div class="h-5 w-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-gray-300'}">${isSelected ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}</div></button>`;
+        const headerSelectClass = isSelected ? '' : ' cursor-pointer hover:bg-purple-50 rounded-lg -m-1 p-1';
+        return `<div id="modal_product_${p.id}" class="bg-white flex flex-col gap-3 p-4 transition-all border-b border-r border-gray-100 ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500 ring-inset' : ''}"><div class="flex items-center gap-3">${checkboxHtml}<button type="button" onclick="selectModalProductOnly(${p.id})" class="flex flex-1 items-center gap-3 min-w-0 text-left${headerSelectClass}">${thumbHtml}<div class="flex-1 min-w-0"><p class="font-medium text-gray-900 text-sm leading-snug mb-1">${displayName}</p><div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold text-green-600">${formatCurrency(p.price || 0)}</p><span class="text-xs text-gray-500">• ${p.purchases || 0} lượt bán</span></div>${p.sku ? `<p class="text-xs text-gray-500 mt-0.5">SKU: ${escapeHtml(p.sku)}</p>` : ''}</div></button></div>${detailsHtml}</div>`;
     }).join('');
 }
 
-function selectModalProduct(productId) {
-    // Multi-select cho mọi chế độ (thêm mới & sửa): tích/bỏ tích từng sản phẩm
+function _refreshModalProductListAfterSelection() {
+    updateSelectedProductsDisplay();
+    const searchInput = document.getElementById('modalProductSearchInput');
+    const searchQuery = searchInput ? searchInput.value.trim() : '';
+    renderModalProductsList(selectedCategory, searchQuery);
+}
+
+/** Chọn sản phẩm — bấm vùng tên/ảnh; không bỏ chọn khi đã chọn. */
+function selectModalProductOnly(productId) {
+    if (selectedProducts.includes(productId)) return;
+    selectedProducts.push(productId);
+    productQuantities[productId] = 1;
+    productWeights[productId] = '';
+    productNotes[productId] = '';
+    _refreshModalProductListAfterSelection();
+}
+
+/** Bật/tắt chọn — chỉ gắn vào ô checkbox. */
+function toggleModalProductCheckbox(productId) {
     const index = selectedProducts.indexOf(productId);
     if (index > -1) {
         selectedProducts.splice(index, 1);
@@ -335,10 +354,7 @@ function selectModalProduct(productId) {
         productWeights[productId] = '';
         productNotes[productId] = '';
     }
-    updateSelectedProductsDisplay();
-    const searchInput = document.getElementById('modalProductSearchInput');
-    const searchQuery = searchInput ? searchInput.value.trim() : '';
-    renderModalProductsList(selectedCategory, searchQuery);
+    _refreshModalProductListAfterSelection();
 }
 
 function updateSelectedProductsDisplay() {
