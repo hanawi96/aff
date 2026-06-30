@@ -19,26 +19,32 @@ async function submitNewOrder() {
     const address = document.getElementById('newOrderAddress')?.value.trim();
 
     if (!customerName) {
-        showToast('Vui lòng nhập tên khách hàng', 'warning');
-        document.getElementById('newOrderCustomerName')?.focus();
+        showOrderFormValidationWarning('Vui lòng nhập tên khách hàng', document.getElementById('newOrderCustomerName'));
         return;
     }
 
     if (!customerPhone) {
-        showToast('Vui lòng nhập số điện thoại', 'warning');
-        document.getElementById('newOrderCustomerPhone')?.focus();
+        showOrderFormValidationWarning('Vui lòng nhập số điện thoại', document.getElementById('newOrderCustomerPhone'));
         return;
     }
 
     // Check if address is selected (not default text)
     if (!address || address === '' || addressPreview === 'Vui lòng chọn địa chỉ') {
-        showToast('Vui lòng chọn địa chỉ giao hàng đầy đủ', 'warning');
-        document.getElementById('newOrderProvince')?.focus();
+        showOrderFormValidationWarning('Vui lòng chọn địa chỉ giao hàng đầy đủ', document.getElementById('newOrderProvince'));
         return;
     }
 
     if (currentOrderProducts.length === 0) {
-        showToast('Vui lòng thêm ít nhất 1 sản phẩm', 'warning');
+        showOrderFormValidationWarning('Vui lòng thêm ít nhất 1 sản phẩm');
+        return;
+    }
+
+    if (typeof getCustomerSourceSelection === 'function' && !getCustomerSourceSelection()) {
+        if (typeof warnCustomerSourceRequired === 'function') {
+            warnCustomerSourceRequired();
+        } else {
+            showOrderFormValidationWarning('Vui lòng chọn nguồn khách');
+        }
         return;
     }
 
@@ -50,14 +56,12 @@ async function submitNewOrder() {
     if (sendLaterCb?.checked) {
         const dt = document.getElementById('newOrderPlannedSendAt')?.value?.trim();
         if (!dt) {
-            showToast('Vui lòng chọn ngày giờ dự kiến gửi', 'warning');
-            document.getElementById('newOrderPlannedSendAt')?.focus();
+            showOrderFormValidationWarning('Vui lòng chọn ngày giờ dự kiến gửi', document.getElementById('newOrderPlannedSendAt'));
             return;
         }
         const t = new Date(dt).getTime();
         if (!Number.isFinite(t)) {
-            showToast('Ngày giờ dự kiến gửi không hợp lệ', 'warning');
-            document.getElementById('newOrderPlannedSendAt')?.focus();
+            showOrderFormValidationWarning('Ngày giờ dự kiến gửi không hợp lệ', document.getElementById('newOrderPlannedSendAt'));
             return;
         }
         planned_send_at_unix = t;
@@ -150,8 +154,7 @@ async function submitNewOrder() {
 
     let depositAmount = getNewOrderDepositAmount();
     if (depositAmount > 0 && depositAmount >= totalAmount) {
-        showToast('Tiền cọc phải nhỏ hơn giá trị đơn hàng', 'warning');
-        document.getElementById('newOrderDepositAmount')?.focus();
+        showOrderFormValidationWarning('Tiền cọc phải nhỏ hơn giá trị đơn hàng', document.getElementById('newOrderDepositAmount'));
         return;
     }
 

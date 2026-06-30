@@ -24,6 +24,18 @@ function debounce(func, wait) {
     };
 }
 
+/** Cảnh báo validate form đơn — một toast id, bấm liên tục không chồng toast. */
+function showOrderFormValidationWarning(message, focusEl) {
+    showToast(message, 'warning', 4000, 'order-form-validation');
+    if (focusEl?.focus) {
+        try {
+            focusEl.focus({ preventScroll: true });
+        } catch (_) {
+            focusEl.focus();
+        }
+    }
+}
+
 // ============================================
 // CLIPBOARD
 // ============================================

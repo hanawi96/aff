@@ -579,15 +579,15 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         <div class="customer-source-block">
                             <div class="customer-source-head">
                                 <span class="customer-source-title">Nguồn khách</span>
-                                <span class="customer-source-optional">Tùy chọn</span>
+                                <span class="customer-source-optional text-red-500">Bắt buộc *</span>
                             </div>
-                            <input type="hidden" id="newOrderCustomerSource" value="facebook" />
+                            <input type="hidden" id="newOrderCustomerSource" value="" />
                             <div class="customer-source-chips" role="group" aria-label="Chọn nguồn khách">
                                 <button type="button" class="customer-source-chip customer-source-chip--zalo" data-source="zalo" aria-pressed="false" onclick="selectCustomerSource('zalo')">
                                     <span class="customer-source-dot customer-source-dot--zalo" aria-hidden="true"></span>
                                     <span>Zalo</span>
                                 </button>
-                                <button type="button" class="customer-source-chip customer-source-chip--facebook active" data-source="facebook" aria-pressed="true" onclick="selectCustomerSource('facebook')">
+                                <button type="button" class="customer-source-chip customer-source-chip--facebook" data-source="facebook" aria-pressed="false" onclick="selectCustomerSource('facebook')">
                                     <svg class="customer-source-icon customer-source-icon--facebook" xmlns="http://www.w3.org/2000/svg" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>
                                     <span>Facebook</span>
                                 </button>
@@ -635,6 +635,18 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 padding: 0.75rem;
                                 border: 1px solid #e9d5ff;
                                 background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
+                            }
+                            .customer-source-block--error {
+                                border-color: #f87171 !important;
+                                box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+                            }
+                            @keyframes customerSourceShake {
+                                0%, 100% { transform: translateX(0); }
+                                25% { transform: translateX(-4px); }
+                                75% { transform: translateX(4px); }
+                            }
+                            .customer-source-block--shake {
+                                animation: customerSourceShake 0.35s ease;
                             }
                             .customer-source-head {
                                 display: flex;

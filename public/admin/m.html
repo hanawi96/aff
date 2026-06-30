@@ -2002,7 +2002,9 @@ async function showEditOrder(id,opts){
   if(depAmt>0&&pm!=='bank_transfer')setPayment('deposit');
   else setPayment(pm);
   document.getElementById('cNotes').value=o.notes||'';
-  setMobileCustomerSource(dupPreview?'facebook':(mNormCustomerSource(o.customer_source)||'facebook'));
+  const srcKey=mNormCustomerSource(o.customer_source??o.customerSource);
+  if(srcKey)setMobileCustomerSource(srcKey);
+  else clearMobileCustomerSource();
   const mSl=document.getElementById('mSendLaterChk');
   const mSlf=document.getElementById('mSendLaterFields');
   const mPl=document.getElementById('mPlannedSendAt');
@@ -2132,7 +2134,7 @@ function showCreateOrder(){
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
   setPayment('cod');
-  setMobileCustomerSource('facebook');
+  clearMobileCustomerSource();
   requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('fixed');_syncManualChips();});
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
@@ -2710,15 +2712,15 @@ function buildCreateForm(isEdit=false){
       </div>
 
       <!-- Nguồn khách -->
-      <div class="border-b border-gray-100 px-4 py-3">
+      <div id="mCustomerSourceBlock" class="border-b border-gray-100 px-4 py-3">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium text-gray-900">Nguồn khách</span>
-          <span class="text-[10px] text-gray-400">Tùy chọn</span>
+          <span class="text-[10px] text-red-500 font-medium">Bắt buộc *</span>
         </div>
-        <input type="hidden" id="mCustomerSource" value="facebook">
+        <input type="hidden" id="mCustomerSource" value="">
         <div id="mSourceBtns" class="flex gap-2" role="group" aria-label="Nguồn khách">
           <button type="button" onclick="setMobileCustomerSource('zalo')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="zalo" aria-pressed="false"><span class="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>Zalo</button>
-          <button type="button" onclick="setMobileCustomerSource('facebook')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-blue-600 bg-blue-600 text-white" data-val="facebook" aria-pressed="true"><svg class="w-2.5 h-auto shrink-0" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>Facebook</button>
+          <button type="button" onclick="setMobileCustomerSource('facebook')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="facebook" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>Facebook</button>
           <button type="button" onclick="setMobileCustomerSource('tiktok')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="tiktok" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>TikTok</button>
         </div>
       </div>
@@ -3514,6 +3516,10 @@ async function submitOrder(){
     if(!firstErrEl)firstErrEl=cartErrEl;
   }else{cartErrEl?.classList.add('hidden');}
 
+  if(!getMobileCustomerSource()){
+    addErr('mCustomerSourceBlock','Vui lòng chọn nguồn khách');
+  }
+
   if(firstErrEl){
     firstErrEl.scrollIntoView({behavior:'smooth',block:'center'});
     firstErrEl.classList.add('err-shake');
@@ -3731,7 +3737,7 @@ function _saveDraft(){
     referral:el('cReferral')?.value||'',
     sendLater:!!el('mSendLaterChk')?.checked,
     plannedAt:el('mPlannedSendAt')?.value||'',
-    customerSource:el('mCustomerSource')?.value||'facebook',
+    customerSource:el('mCustomerSource')?.value||'',
     products:createProducts.slice(),
     discount:mDiscount,
     ts:Date.now()
@@ -3769,7 +3775,7 @@ function _applyDraftToForm(d){
   if(d.sendLater){const e=el('mSendLaterChk');if(e){e.checked=true;onMobileSendLaterToggle();}}
   if(d.plannedAt){const e=el('mPlannedSendAt');if(e)e.value=d.plannedAt;}
   if(d.customerSource)setMobileCustomerSource(d.customerSource);
-  else setMobileCustomerSource('facebook');
+  else clearMobileCustomerSource();
   if(d.products?.length)createProducts=d.products.slice();
   if(d.discount){mDiscount=d.discount;showDiscountApplied();}
 }
@@ -4039,12 +4045,22 @@ function mSrcBtnClass(val,active){
   if(val==='facebook')return`${base} border-blue-600 bg-blue-600 text-white`;
   return`${base} border-slate-900 bg-slate-900 text-white`;
 }
+function clearMobileCustomerSource(){
+  const hid=document.getElementById('mCustomerSource');
+  if(hid)hid.value='';
+  document.querySelectorAll('#mSourceBtns .src-btn').forEach(b=>{
+    const v=b.dataset.val;
+    b.className=mSrcBtnClass(v,false);
+    b.setAttribute('aria-pressed','false');
+  });
+}
 function setMobileCustomerSource(val){
   const norm=mNormCustomerSource(val);
   if(!norm)return;
   const hid=document.getElementById('mCustomerSource');
   if(!hid)return;
   hid.value=norm;
+  clearFieldError('mCustomerSourceBlock');
   document.querySelectorAll('#mSourceBtns .src-btn').forEach(b=>{
     const v=b.dataset.val;
     b.className=mSrcBtnClass(v,v===norm);
