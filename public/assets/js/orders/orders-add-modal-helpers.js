@@ -256,6 +256,86 @@ function updateOrderSummary() {
 let _quickEditOrderPriceIndex = null;
 let _quickEditOrderPriceField = 'unit';
 
+/** Index dòng đang sửa tên nhanh (null = không có). Chỉ đổi tên trên đơn, không sửa DB sản phẩm. */
+let _quickEditOrderNameIndex = null;
+
+/** Index dòng đang sửa cân nặng/size nhanh (null = không có). Chỉ trên đơn hiện tại. */
+let _quickEditOrderWeightIndex = null;
+
+/** Index dòng đang sửa lưu ý nhanh (null = không có). Chỉ trên đơn hiện tại. */
+let _quickEditOrderNotesIndex = null;
+
+/** Commit các quick-edit khác trước khi mở field mới. */
+function commitOtherOrderQuickEdits(skipField, skipIndex) {
+    if (_quickEditOrderPriceIndex !== null
+        && (skipField !== 'price' || _quickEditOrderPriceIndex !== skipIndex)) {
+        commitQuickEditOrderPrice(_quickEditOrderPriceIndex);
+    }
+    if (_quickEditOrderNameIndex !== null
+        && (skipField !== 'name' || _quickEditOrderNameIndex !== skipIndex)) {
+        commitQuickEditOrderName(_quickEditOrderNameIndex);
+    }
+    if (_quickEditOrderWeightIndex !== null
+        && (skipField !== 'weight' || _quickEditOrderWeightIndex !== skipIndex)) {
+        commitQuickEditOrderWeight(_quickEditOrderWeightIndex);
+    }
+    if (_quickEditOrderNotesIndex !== null
+        && (skipField !== 'notes' || _quickEditOrderNotesIndex !== skipIndex)) {
+        commitQuickEditOrderNotes(_quickEditOrderNotesIndex);
+    }
+}
+
+/** Giá trị cân/size gốc trên dòng đơn (ưu tiên size, fallback weight). */
+function getOrderProductSizeRaw(product) {
+    return normalizeOrderItemSizeClient(product.size ?? null)
+        || normalizeOrderItemSizeClient(product.weight ?? null)
+        || '';
+}
+
+/** HTML dòng cân nặng/size có thể click để sửa nhanh. */
+function buildOrderProductWeightLine(index, product) {
+    const rawValue = getOrderProductSizeRaw(product);
+    const weightBtnClass = 'order-weight-quick-edit inline text-gray-700 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-700 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
+    const missingBtnClass = 'order-weight-quick-edit inline text-amber-600 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-800 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
+
+    const makeBtn = (displayText, btnClass) =>
+        `<button type="button" id="orderProductWeightBtn_${index}" class="${btnClass}" onclick="startQuickEditOrderWeight(${index})" title="Click để sửa cân nặng/size (chỉ trên đơn này)">${escapeHtml(displayText)}</button>`;
+
+    if (!rawValue) {
+        return `⚖️ ${makeBtn('Chưa có', missingBtnClass)}`;
+    }
+
+    const rawStr = String(rawValue).toLowerCase();
+    if (rawStr.includes('cm') || rawStr.includes('tay')) {
+        return `📏 Size tay: ${makeBtn(rawValue, weightBtnClass)}`;
+    }
+    if (rawStr.includes('kg') || rawStr.includes('g')) {
+        return `⚖️ Cân nặng: ${makeBtn(rawValue, weightBtnClass)}`;
+    }
+    if (!isNaN(parseFloat(rawStr))) {
+        return `⚖️ Cân nặng: ${makeBtn(`${rawValue}kg`, weightBtnClass)}`;
+    }
+    return makeBtn(rawValue, weightBtnClass);
+}
+
+/** HTML dòng lưu ý có thể click để sửa nhanh. */
+function buildOrderProductNotesHtml(index, product) {
+    const notes = (product.notes || '').trim();
+    const noteBtnClass = 'order-notes-quick-edit flex-1 min-w-0 text-xs text-gray-600 italic text-left underline decoration-dotted underline-offset-2 hover:text-amber-700 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
+    const missingBtnClass = 'order-notes-quick-edit text-xs text-gray-400 italic underline decoration-dotted underline-offset-2 hover:text-amber-600 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
+    const displayText = notes || 'Thêm lưu ý';
+    const btnClass = notes ? noteBtnClass : missingBtnClass;
+
+    return `
+        <div class="mt-1 flex items-start gap-1">
+            <svg class="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            <button type="button" id="orderProductNotesBtn_${index}" class="${btnClass}" onclick="startQuickEditOrderNotes(${index})" title="Click để sửa lưu ý (chỉ trên đơn này)">${escapeHtml(displayText)}</button>
+        </div>
+    `;
+}
+
 /**
  * Bắt đầu sửa nhanh đơn giá hoặc tổng tiền — thay nút bằng input tại chỗ.
  * @param {number} index
@@ -276,9 +356,8 @@ function startQuickEditOrderPrice(index, field = 'unit') {
         return;
     }
 
-    if (_quickEditOrderPriceIndex !== null && _quickEditOrderPriceIndex !== index) {
-        commitQuickEditOrderPrice(_quickEditOrderPriceIndex);
-    } else if (_quickEditOrderPriceIndex === index && _quickEditOrderPriceField !== editField) {
+    commitOtherOrderQuickEdits('price', index);
+    if (_quickEditOrderPriceIndex === index && _quickEditOrderPriceField !== editField) {
         commitQuickEditOrderPrice(index);
     }
 
@@ -383,12 +462,282 @@ function cancelQuickEditOrderPrice(index) {
 }
 
 /**
+ * Bắt đầu sửa nhanh tên sản phẩm trên đơn — thay text bằng input tại chỗ.
+ * @param {number} index
+ */
+function startQuickEditOrderName(index) {
+    const product = currentOrderProducts[index];
+    if (!product) return;
+
+    const inputId = `orderProductNameInput_${index}`;
+    const existingInput = document.getElementById(inputId);
+    if (existingInput) {
+        existingInput.focus();
+        existingInput.select();
+        return;
+    }
+
+    commitOtherOrderQuickEdits('name', index);
+
+    const btn = document.getElementById(`orderProductNameBtn_${index}`);
+    if (!btn) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = inputId;
+    input.className = 'order-name-quick-input flex-1 min-w-0 px-1.5 py-0.5 text-sm font-medium text-gray-900 bg-white border border-purple-300 rounded focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none';
+    input.value = product.name || '';
+    input.setAttribute('aria-label', 'Tên sản phẩm trên đơn');
+    input.autocomplete = 'off';
+
+    btn.replaceWith(input);
+    _quickEditOrderNameIndex = index;
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelQuickEditOrderName(index);
+        }
+    });
+    input.addEventListener('blur', () => {
+        if (_quickEditOrderNameIndex === index) {
+            commitQuickEditOrderName(index);
+        }
+    });
+
+    input.focus();
+    input.select();
+}
+
+/**
+ * Lưu tên sản phẩm sau sửa nhanh (chỉ trên dòng đơn hiện tại).
+ * @param {number} index
+ */
+function commitQuickEditOrderName(index) {
+    if (_quickEditOrderNameIndex !== index) return;
+
+    const input = document.getElementById(`orderProductNameInput_${index}`);
+    const product = currentOrderProducts[index];
+    _quickEditOrderNameIndex = null;
+
+    if (!input || !product) {
+        renderOrderProducts();
+        return;
+    }
+
+    const newName = input.value.trim();
+    if (!newName) {
+        showToast('Tên sản phẩm không được để trống', 'warning');
+        renderOrderProducts();
+        return;
+    }
+
+    if (newName !== product.name) {
+        product.name = newName;
+    }
+
+    renderOrderProducts();
+}
+
+/** Hủy sửa nhanh tên sản phẩm (Esc). */
+function cancelQuickEditOrderName(index) {
+    if (_quickEditOrderNameIndex !== index) return;
+    _quickEditOrderNameIndex = null;
+    renderOrderProducts();
+}
+
+/**
+ * Bắt đầu sửa nhanh cân nặng/size trên đơn — thay text bằng input tại chỗ.
+ * @param {number} index
+ */
+function startQuickEditOrderWeight(index) {
+    const product = currentOrderProducts[index];
+    if (!product) return;
+
+    const inputId = `orderProductWeightInput_${index}`;
+    const existingInput = document.getElementById(inputId);
+    if (existingInput) {
+        existingInput.focus();
+        existingInput.select();
+        return;
+    }
+
+    commitOtherOrderQuickEdits('weight', index);
+
+    const btn = document.getElementById(`orderProductWeightBtn_${index}`);
+    if (!btn) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = inputId;
+    input.className = 'order-weight-quick-input w-24 px-1.5 py-0.5 text-xs font-medium text-gray-900 bg-white border border-amber-300 rounded focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none';
+    input.value = getOrderProductSizeRaw(product);
+    input.placeholder = 'VD: 5kg';
+    input.setAttribute('aria-label', 'Cân nặng/size trên đơn');
+    input.autocomplete = 'off';
+
+    btn.replaceWith(input);
+    _quickEditOrderWeightIndex = index;
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelQuickEditOrderWeight(index);
+        }
+    });
+    input.addEventListener('blur', () => {
+        if (_quickEditOrderWeightIndex === index) {
+            commitQuickEditOrderWeight(index);
+        }
+    });
+
+    input.focus();
+    input.select();
+}
+
+/**
+ * Lưu cân nặng/size sau sửa nhanh (chỉ trên dòng đơn hiện tại).
+ * @param {number} index
+ */
+function commitQuickEditOrderWeight(index) {
+    if (_quickEditOrderWeightIndex !== index) return;
+
+    const input = document.getElementById(`orderProductWeightInput_${index}`);
+    const product = currentOrderProducts[index];
+    _quickEditOrderWeightIndex = null;
+
+    if (!input || !product) {
+        renderOrderProducts();
+        return;
+    }
+
+    const normalized = normalizeOrderItemSizeClient(input.value.trim() || null);
+    const oldRaw = getOrderProductSizeRaw(product);
+
+    if (normalized !== oldRaw) {
+        if (normalized) {
+            product.size = normalized;
+        } else {
+            delete product.size;
+        }
+        delete product.weight;
+    }
+
+    renderOrderProducts();
+}
+
+/** Hủy sửa nhanh cân nặng/size (Esc). */
+function cancelQuickEditOrderWeight(index) {
+    if (_quickEditOrderWeightIndex !== index) return;
+    _quickEditOrderWeightIndex = null;
+    renderOrderProducts();
+}
+
+/**
+ * Bắt đầu sửa nhanh lưu ý trên đơn — thay text bằng input tại chỗ.
+ * @param {number} index
+ */
+function startQuickEditOrderNotes(index) {
+    const product = currentOrderProducts[index];
+    if (!product) return;
+
+    const inputId = `orderProductNotesInput_${index}`;
+    const existingInput = document.getElementById(inputId);
+    if (existingInput) {
+        existingInput.focus();
+        existingInput.select();
+        return;
+    }
+
+    commitOtherOrderQuickEdits('notes', index);
+
+    const btn = document.getElementById(`orderProductNotesBtn_${index}`);
+    if (!btn) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = inputId;
+    input.className = 'order-notes-quick-input flex-1 min-w-0 px-1.5 py-0.5 text-xs text-gray-700 italic bg-white border border-amber-300 rounded focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none';
+    input.value = (product.notes || '').trim();
+    input.placeholder = 'Nhập lưu ý...';
+    input.setAttribute('aria-label', 'Lưu ý sản phẩm trên đơn');
+    input.autocomplete = 'off';
+
+    btn.replaceWith(input);
+    _quickEditOrderNotesIndex = index;
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelQuickEditOrderNotes(index);
+        }
+    });
+    input.addEventListener('blur', () => {
+        if (_quickEditOrderNotesIndex === index) {
+            commitQuickEditOrderNotes(index);
+        }
+    });
+
+    input.focus();
+    input.select();
+}
+
+/**
+ * Lưu lưu ý sau sửa nhanh (chỉ trên dòng đơn hiện tại).
+ * @param {number} index
+ */
+function commitQuickEditOrderNotes(index) {
+    if (_quickEditOrderNotesIndex !== index) return;
+
+    const input = document.getElementById(`orderProductNotesInput_${index}`);
+    const product = currentOrderProducts[index];
+    _quickEditOrderNotesIndex = null;
+
+    if (!input || !product) {
+        renderOrderProducts();
+        return;
+    }
+
+    const newNotes = input.value.trim();
+    const oldNotes = (product.notes || '').trim();
+
+    if (newNotes !== oldNotes) {
+        if (newNotes) {
+            product.notes = newNotes;
+        } else {
+            delete product.notes;
+        }
+    }
+
+    renderOrderProducts();
+}
+
+/** Hủy sửa nhanh lưu ý (Esc). */
+function cancelQuickEditOrderNotes(index) {
+    if (_quickEditOrderNotesIndex !== index) return;
+    _quickEditOrderNotesIndex = null;
+    renderOrderProducts();
+}
+
+/**
  * Render order products list in add order modal
  * Displays all products with edit/remove buttons
  */
 function renderOrderProducts() {
     _quickEditOrderPriceIndex = null;
     _quickEditOrderPriceField = 'unit';
+    _quickEditOrderNameIndex = null;
+    _quickEditOrderWeightIndex = null;
+    _quickEditOrderNotesIndex = null;
 
     const container = document.getElementById('newOrderProductsList');
     if (!container) {
@@ -413,54 +762,18 @@ function renderOrderProducts() {
         
         // Product details on same line with proper labels
         let detailsLine = [];
-        
-        const weightDisp = normalizeOrderItemSizeClient(product.weight ?? null);
-        const sizeDisp = normalizeOrderItemSizeClient(product.size ?? null);
 
-        if (!weightDisp && !sizeDisp) {
-            detailsLine.push('⚖️ <span class="text-amber-600 font-medium">Chưa có</span>');
-        } else {
-            if (weightDisp) {
-                const weightStr = String(weightDisp).toLowerCase();
-                if (weightStr.includes('kg')) {
-                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}`);
-                } else if (weightStr.includes('g')) {
-                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}`);
-                } else {
-                    detailsLine.push(`⚖️ Cân nặng: ${weightDisp}g`);
-                }
-            }
-            if (sizeDisp) {
-                const sizeStr = String(sizeDisp).toLowerCase();
-                if (sizeStr.includes('cm') || sizeStr.includes('tay')) {
-                    detailsLine.push(`📏 Size tay: ${sizeDisp}`);
-                } else if (sizeStr.includes('kg') || sizeStr.includes('g')) {
-                    detailsLine.push(`⚖️ Cân nặng: ${sizeDisp}`);
-                } else if (!isNaN(parseFloat(sizeStr))) {
-                    detailsLine.push(`⚖️ Cân nặng: ${sizeDisp}kg`);
-                } else {
-                    detailsLine.push(sizeDisp);
-                }
-            }
-        }
-        
+        detailsLine.push(buildOrderProductWeightLine(index, product));
         const priceBtn = `<button type="button" id="orderProductPriceBtn_${index}"
             class="order-price-quick-edit inline text-blue-600 font-semibold underline decoration-dotted underline-offset-2 hover:text-blue-800 hover:bg-blue-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer"
             onclick="startQuickEditOrderPrice(${index}, 'unit')" title="Click để sửa đơn giá">${formatCurrency(price)}</button>`;
         detailsLine.push(`🏷️ Đơn giá: ${priceBtn}`);
-        
-        // Add notes if available
-        let notesHtml = '';
-        if (product.notes) {
-            notesHtml = `
-                <div class="mt-1 flex items-start gap-1">
-                    <svg class="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                    </svg>
-                    <span class="text-xs text-gray-600 italic">${escapeHtml(product.notes)}</span>
-                </div>
-            `;
-        }
+
+        const nameBtn = `<button type="button" id="orderProductNameBtn_${index}"
+            class="order-name-quick-edit flex-1 min-w-0 text-sm font-medium text-gray-900 truncate text-left hover:text-purple-700 hover:bg-purple-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer underline decoration-dotted underline-offset-2 decoration-transparent hover:decoration-purple-300"
+            onclick="startQuickEditOrderName(${index})" title="Click để sửa tên sản phẩm (chỉ trên đơn này)">${escapeHtml(product.name)}</button>`;
+
+        const notesHtml = buildOrderProductNotesHtml(index, product);
 
         return `
             <div class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
@@ -468,7 +781,7 @@ function renderOrderProducts() {
                 <div class="flex items-start justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2 flex-1 min-w-0">
                         ${quantityBadge}
-                        <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(product.name)}</p>
+                        ${nameBtn}
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                         <button onclick="editProductInOrder(${index})" class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors flex items-center justify-center" title="Sửa">
