@@ -36,6 +36,9 @@ export function resolveVnPeriodRange(period) {
         case '7d':
             startMs = todayStartMs - 6 * 86400000;
             break;
+        case '10d':
+            startMs = todayStartMs - 9 * 86400000;
+            break;
         case 'month': {
             const [y, m] = todayStr.split('-').map(Number);
             startMs = new Date(`${y}-${String(m).padStart(2, '0')}-01T00:00:00+07:00`).getTime();
@@ -155,7 +158,7 @@ async function buildAdAnalyticsPayload(env, startMs, endMs) {
     let totals = { ad_spend: 0, fb_orders: 0, fb_revenue: 0, fb_gross_profit: 0 };
 
     const days = dateKeys.map((date) => {
-        const adRow = adSpendByDate.get(date) || { amount: adSpendData.defaultAmount || 0, source: 'default' };
+        const adRow = adSpendByDate.get(date) || { amount: 0, source: 'missing' };
         const fb = fbByDay[date] || { fb_orders: 0, fb_revenue: 0, fb_gross_profit: 0 };
 
         totals.ad_spend += adRow.amount || 0;

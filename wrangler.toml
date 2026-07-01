@@ -22,7 +22,7 @@ GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpWx4DNxjYdDc
 # Cron Triggers
 # ============================================
 [triggers]
-crons = ["0 14 * * *"]  # Daily at 14:00 UTC (21:00 Vietnam time)
+crons = ["0 14 * * *", "0 17 * * *"]  # 21:00 VN báo cáo · 00:00 VN chốt chi QC
 
 # ============================================
 # R2 Storage Configuration

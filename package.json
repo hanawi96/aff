@@ -21,6 +21,7 @@
     "db:verify": "node scripts/verify-migration.js",
     "db:replicas": "turso db replicas list vdt-yendev96",
     "migrate:sheets": "node database/migrate-from-sheets.js",
+    "migrate:082": "node database/run-migration-082.js",
     "logs": "wrangler tail",
     "test": "echo 'No tests yet'",
     "test:telegram": "node test-telegram-notification.js"

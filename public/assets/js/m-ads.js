@@ -155,8 +155,15 @@
         const rpo = s.revenue_per_order != null
             ? s.revenue_per_order
             : (s.fb_orders > 0 ? s.fb_revenue / s.fb_orders : null);
-        document.getElementById('madsKpiRevenuePer').textContent =
-            rpo != null ? `${fmt(rpo)}/đơn · ${fmtCmp(c.fb_revenue_pct, false)}` : fmtCmp(c.fb_revenue_pct, false);
+        const revCmp = fmtCmp(c.fb_revenue_pct, false);
+        const revPerEl = document.getElementById('madsKpiRevenuePer');
+        if (rpo != null && revCmp) {
+            revPerEl.innerHTML = `${fmt(rpo)}/đơn · ${revCmp}`;
+        } else if (rpo != null) {
+            revPerEl.textContent = `${fmt(rpo)}/đơn`;
+        } else {
+            revPerEl.innerHTML = revCmp || '—';
+        }
 
         const roasEl = document.getElementById('madsKpiRoas');
         roasEl.textContent = fmtRoas(s.roas);
@@ -227,13 +234,16 @@
         if (source === 'snapshot') {
             return '<span class="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">Đã lưu</span>';
         }
-        return '<span class="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">Mặc định</span>';
+        if (source === 'live') {
+            return '<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Hôm nay</span>';
+        }
+        return '';
     }
 
     function renderDayList(data) {
         const list = document.getElementById('madsDayList');
         const countEl = document.getElementById('madsDayCount');
-        const days = data.days || [];
+        const days = (data.days || []).slice(0, 10);
         const s = data.summary || {};
         const beRoas = s.break_even_roas;
 
@@ -301,14 +311,17 @@
         showLoading();
 
         try {
-            const res = await fetch(
-                `${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${Date.now()}`
-            );
-            const data = await res.json();
+            const ts = Date.now();
+            const [mainRes, recentRes] = await Promise.all([
+                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${ts}`),
+                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=10d&timestamp=${ts}`)
+            ]);
+            const data = await mainRes.json();
+            const recentData = await recentRes.json();
             if (!data.success) throw new Error(data.error || 'Không tải được dữ liệu');
             renderSummary(data);
             renderTrend(data);
-            renderDayList(data);
+            renderDayList(recentData.success ? recentData : data);
         } catch (e) {
             console.error('[m-ads]', e);
             if (typeof showToast === 'function') showToast(e.message || 'Lỗi tải dữ liệu', 'error');

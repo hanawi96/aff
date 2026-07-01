@@ -312,7 +312,10 @@
         if (source === 'snapshot') {
             return '<span class="ml-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600">Đã lưu</span>';
         }
-        return '<span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">Mặc định</span>';
+        if (source === 'live') {
+            return '<span class="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Hôm nay</span>';
+        }
+        return '';
     }
 
     function renderTable(data) {

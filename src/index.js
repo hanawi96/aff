@@ -9,6 +9,7 @@ import { handlePost, handlePostWithAction } from './handlers/post-handler.js';
 import { handleShopRoutes } from '../public/shop/api/routes.js';
 import { handleTelegramWebhook } from './services/notifications/telegram-commands.js';
 import { sendDailyReport } from './services/notifications/daily-report.js';
+import { snapshotYesterdayAdSpend } from './services/settings/ad-spend.js';
 
 export default {
     async fetch(request, env, ctx) {
@@ -80,13 +81,22 @@ export default {
 
     // Cron trigger for daily report at 21:00 Vietnam time (14:00 UTC)
     async scheduled(event, env, ctx) {
-        console.log('⏰ Cron triggered:', new Date().toISOString());
-        
-        // Initialize database
+        console.log('⏰ Cron triggered:', event.cron, new Date().toISOString());
+
         const DB = initTurso(env);
         env.DB = DB;
-        
-        // Send daily report
+
+        // 00:00 VN (17:00 UTC) — chốt chi QC hôm qua vào daily_ad_spend
+        if (event.cron === '0 17 * * *') {
+            try {
+                await snapshotYesterdayAdSpend(env);
+            } catch (err) {
+                console.error('💥 [CRON] Ad spend snapshot failed:', err);
+            }
+            return;
+        }
+
+        // 21:00 VN (14:00 UTC) — báo cáo Telegram hàng ngày
         await sendDailyReport(env);
     }
 };
