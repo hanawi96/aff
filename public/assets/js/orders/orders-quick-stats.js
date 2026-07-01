@@ -218,7 +218,7 @@
 
         const srcEl = document.getElementById('qsCustomerSources');
 
-        if (srcEl) srcEl.innerHTML = '<div class="qs-skel" style="width:100%;height:4.5rem;border-radius:0.625rem"></div>';
+        if (srcEl) srcEl.innerHTML = '<div class="qs-skel" style="width:100%;height:5.25rem;border-radius:0.625rem"></div>';
 
         const chEl = document.getElementById('qsRevenueChange');
 
@@ -286,6 +286,10 @@
 
             const share = s.revenue_share || 0;
 
+            const profit = s.profit != null ? s.profit : ((s.revenue || 0) - (s.cost || 0));
+
+            const profitCls = profit >= 0 ? 'is-pos' : 'is-neg';
+
             const rowCls = ['facebook', 'zalo', 'tiktok'].includes(srcKey) ? srcKey : 'unknown';
 
 
@@ -300,7 +304,25 @@
 
                         <span class="qs-src-name">${s.label}</span>
 
-                        <span class="qs-src-amt">${fmt(s.revenue)}</span>
+                        <div class="qs-src-nums">
+
+                            <div class="qs-src-num-row">
+
+                                <span class="qs-src-num-lbl">DT</span>
+
+                                <span class="qs-src-amt">${fmt(s.revenue)}</span>
+
+                            </div>
+
+                            <div class="qs-src-num-row">
+
+                                <span class="qs-src-num-lbl">LN gộp</span>
+
+                                <span class="qs-src-profit ${profitCls}">${fmt(profit)}</span>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
