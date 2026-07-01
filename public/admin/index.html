@@ -514,28 +514,386 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Quick Stats Modal — kích thước cố định, scroll nội dung, không tràn viewport */
+        /* ── Quick Stats Modal v2 — dashboard hiện đại ── */
         #quickStatsModal .qs-panel {
-            width: min(100%, 26rem);
-            max-height: min(92vh, 40rem);
-            min-height: min(72vh, 28rem);
+            display: flex;
+            flex-direction: column;
+            width: min(100%, 30rem);
+            height: min(86vh, 44rem);
+            max-height: min(92vh, 48rem);
+            background: #fff;
+            border-radius: 1.125rem;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.2);
+            overflow: hidden;
+        }
+        @media (min-width: 1024px) {
+            #quickStatsModal .qs-panel {
+                width: min(100%, 32rem);
+                height: min(84vh, 46rem);
+                max-height: min(90vh, 50rem);
+            }
+        }
+        #quickStatsModal .qs-top {
+            flex-shrink: 0;
+            padding: 1rem 1.125rem 0.875rem;
+            background: #fff;
+        }
+        #quickStatsModal .qs-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.875rem;
+        }
+        #quickStatsModal .qs-head-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+        }
+        #quickStatsModal .qs-close {
+            width: 2rem;
+            height: 2rem;
+            border: none;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #64748b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+        #quickStatsModal .qs-close:hover { background: #e2e8f0; color: #334155; }
+        #quickStatsModal .qs-tabs {
+            display: flex;
+            padding: 0.1875rem;
+            background: #f1f5f9;
+            border-radius: 0.625rem;
+            gap: 0.125rem;
+        }
+        #quickStatsModal .qs-tab {
+            flex: 1;
+            padding: 0.4375rem 0.625rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #64748b;
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+        #quickStatsModal .qs-tab--active {
+            background: #fff;
+            color: #0f172a;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         }
         #quickStatsModal .qs-body {
             flex: 1 1 auto;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
+            padding: 0 1.125rem 1rem;
+            background: #f8fafc;
             overscroll-behavior: contain;
-            -webkit-overflow-scrolling: touch;
+        }
+        #quickStatsModal .qs-lbl {
+            display: block;
+            margin: 0 0 0.1875rem;
+            font-size: 0.625rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94a3b8;
         }
         #quickStatsModal .qs-val {
+            margin: 0;
             word-break: break-word;
-            line-height: 1.25;
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
         }
-        #quickStatsModal .qs-revenue-hero {
-            background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 45%, #ffffff 100%);
-            box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08), 0 4px 14px rgba(99, 102, 241, 0.1);
+        /* Hero — Doanh thu + LN thực */
+        #quickStatsModal .qs-hero-card {
+            display: flex;
+            align-items: stretch;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.875rem;
+            padding: 1rem 0;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
+        #quickStatsModal .qs-hero-col {
+            flex: 1 1 50%;
+            min-width: 0;
+            padding: 0 1rem;
+        }
+        #quickStatsModal .qs-hero-divider {
+            width: 1px;
+            background: #f1f5f9;
+            flex-shrink: 0;
+        }
+        #quickStatsModal .qs-hero-num {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.025em;
+        }
+        #quickStatsModal .qs-hero-num--accent {
+            color: #047857;
+        }
+        #quickStatsModal .qs-hero-num--accent.is-negative { color: #dc2626; }
+        #quickStatsModal .qs-hero-sub {
+            margin: 0.375rem 0 0;
+            font-size: 0.6875rem;
+            color: #64748b;
+            line-height: 1.35;
+        }
+        #quickStatsModal .qs-hero-sub span { font-weight: 600; color: #475569; }
+        #quickStatsModal .qs-change-pill {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 0.375rem;
+            padding: 0.125rem 0.4375rem;
+            border-radius: 999px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        #quickStatsModal .qs-change-pill--up { background: #ecfdf5; color: #059669; }
+        #quickStatsModal .qs-change-pill--down { background: #fef2f2; color: #dc2626; }
+        #quickStatsModal .qs-change-pill--flat { background: #f1f5f9; color: #64748b; }
+        /* Stat bar */
+        #quickStatsModal .qs-stat-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+        #quickStatsModal .qs-stat-item {
+            padding: 0.625rem 0.375rem;
+            text-align: center;
+            border-right: 1px solid #f1f5f9;
+        }
+        #quickStatsModal .qs-stat-item:last-child { border-right: none; }
+        #quickStatsModal .qs-stat-item .qs-val {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        #quickStatsModal .qs-stat-item .qs-val.is-pos { color: #059669; }
+        #quickStatsModal .qs-stat-item .qs-val.is-neg { color: #dc2626; }
+        /* Chi tiết phụ */
+        #quickStatsModal .qs-detail-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.25rem 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        #quickStatsModal .qs-detail-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.8125rem;
+            color: #64748b;
+            border-bottom: 1px solid #f8fafc;
+        }
+        #quickStatsModal .qs-detail-line:last-child { border-bottom: none; }
+        #quickStatsModal .qs-detail-line .qs-val {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        #quickStatsModal .qs-detail-line .qs-val.is-pos { color: #059669; }
+        #quickStatsModal .qs-detail-line .qs-val.is-neg { color: #dc2626; }
+        /* Nguồn khách */
+        #quickStatsModal .qs-sources-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.625rem;
+        }
+        #quickStatsModal .qs-section-title {
+            display: block;
+            margin: 0;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+        #quickStatsModal .qs-sources-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.875rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        }
+        #quickStatsModal #qsCustomerSources {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 0.375rem;
+        }
+        #quickStatsModal .qs-src-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 0.625rem;
+            transition: background 0.15s;
+        }
+        #quickStatsModal .qs-src-row + .qs-src-row {
+            margin-top: 0.125rem;
+        }
+        #quickStatsModal .qs-src-row--facebook { background: linear-gradient(90deg, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0.02) 100%); }
+        #quickStatsModal .qs-src-row--zalo { background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%); }
+        #quickStatsModal .qs-src-row--tiktok { background: linear-gradient(90deg, rgba(71, 85, 105, 0.08) 0%, rgba(71, 85, 105, 0.02) 100%); }
+        #quickStatsModal .qs-src-row--unknown { background: #f8fafc; }
+        #quickStatsModal .qs-src-badge {
+            flex-shrink: 0;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.625rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6875rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+        }
+        #quickStatsModal .qs-src-badge--fb { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        #quickStatsModal .qs-src-badge--zalo { background: linear-gradient(135deg, #10b981, #059669); }
+        #quickStatsModal .qs-src-badge--tiktok { background: linear-gradient(135deg, #475569, #1e293b); }
+        #quickStatsModal .qs-src-badge--unknown { background: linear-gradient(135deg, #94a3b8, #64748b); }
+        #quickStatsModal .qs-src-info {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        #quickStatsModal .qs-src-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.375rem;
+        }
+        #quickStatsModal .qs-src-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #0f172a;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #quickStatsModal .qs-src-amt {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #0f172a;
+            white-space: nowrap;
+            letter-spacing: -0.02em;
+        }
+        #quickStatsModal .qs-src-track {
+            height: 0.3125rem;
+            background: rgba(15, 23, 42, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 0.375rem;
+        }
+        #quickStatsModal .qs-src-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+        #quickStatsModal .qs-src-row--facebook .qs-src-fill { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        #quickStatsModal .qs-src-row--zalo .qs-src-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+        #quickStatsModal .qs-src-row--tiktok .qs-src-fill { background: linear-gradient(90deg, #475569, #64748b); }
+        #quickStatsModal .qs-src-row--unknown .qs-src-fill { background: #94a3b8; }
+        #quickStatsModal .qs-src-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        #quickStatsModal .qs-src-meta {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            color: #64748b;
+        }
+        #quickStatsModal .qs-src-pct {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.4375rem;
+            border-radius: 999px;
+            font-size: 0.625rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        #quickStatsModal .qs-src-row--facebook .qs-src-pct { background: #eff6ff; color: #2563eb; }
+        #quickStatsModal .qs-src-row--zalo .qs-src-pct { background: #ecfdf5; color: #059669; }
+        #quickStatsModal .qs-src-row--tiktok .qs-src-pct { background: #f1f5f9; color: #334155; }
+        #quickStatsModal .qs-src-row--unknown .qs-src-pct { background: #f1f5f9; color: #64748b; }
+        #quickStatsModal .qs-src-empty {
+            font-size: 0.8125rem;
+            color: #94a3b8;
+            text-align: center;
+            padding: 1.25rem 0.875rem;
+        }
+        /* Footer */
+        #quickStatsModal .qs-foot {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.75rem 1.125rem;
+            background: #fff;
+            border-top: 1px solid #f1f5f9;
+        }
+        #quickStatsModal .qs-foot-note {
+            margin: 0;
+            font-size: 0.6875rem;
+            color: #94a3b8;
+            line-height: 1.35;
+        }
+        #quickStatsModal .qs-foot-note a {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        #quickStatsModal .qs-foot-link {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6366f1;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        #quickStatsModal .qs-foot-link:hover,
+        #quickStatsModal .qs-foot-note a:hover { text-decoration: underline; }
+        #quickStatsModal .qs-skel {
+            display: inline-block;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: qsSkel 1.2s infinite;
+            border-radius: 0.375rem;
+            min-height: 1.1em;
+            min-width: 3.5rem;
+        }
+        @keyframes qsSkel { to { background-position: -200% 0; } }
     </style>
 </head>
 
@@ -1241,91 +1599,82 @@
 
     <!-- Quick Stats Modal -->
     <div id="quickStatsModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-         style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px)"
+         style="background:rgba(15,23,42,.45);backdrop-filter:blur(6px)"
          onclick="if(event.target===this)closeQuickStatsModal()">
-        <div class="qs-panel bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden shrink-0 my-auto"
+        <div class="qs-panel shrink-0 my-auto"
              role="dialog" aria-labelledby="qsModalTitle" onclick="event.stopPropagation()">
 
-            <!-- Header -->
-            <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-slate-100 shrink-0">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                    </div>
-                    <span id="qsModalTitle" class="text-sm font-bold text-slate-800 truncate">Thống kê nhanh</span>
+            <div class="qs-top">
+                <div class="qs-top-row">
+                    <h2 id="qsModalTitle" class="qs-head-title">Thống kê nhanh</h2>
+                    <button type="button" onclick="closeQuickStatsModal()" class="qs-close" aria-label="Đóng">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                 </div>
-                <button type="button" onclick="closeQuickStatsModal()"
-                        class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all shrink-0"
-                        aria-label="Đóng">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-
-            <!-- Period Tabs -->
-            <div class="px-4 pt-3 pb-2 shrink-0">
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-                    <button type="button" id="qsTab_today" onclick="switchQuickPeriod('today')"
-                        class="flex-1 py-1.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition-all">Hôm nay</button>
-                    <button type="button" id="qsTab_yesterday" onclick="switchQuickPeriod('yesterday')"
-                        class="flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-all">Hôm qua</button>
+                <div class="qs-tabs">
+                    <button type="button" id="qsTab_today" onclick="switchQuickPeriod('today')" class="qs-tab qs-tab--active">Hôm nay</button>
+                    <button type="button" id="qsTab_yesterday" onclick="switchQuickPeriod('yesterday')" class="qs-tab">Hôm qua</button>
                 </div>
             </div>
 
-            <!-- Stats — vùng cuộn duy nhất -->
-            <div id="qsGrid" class="qs-body px-4 sm:px-5 pt-1 pb-3 grid grid-cols-2 gap-2.5 content-start">
-                <!-- Doanh thu — nổi bật -->
-                <div class="col-span-2 qs-revenue-hero rounded-xl border border-indigo-200/80 px-4 py-3.5 ring-1 ring-indigo-100">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-indigo-500 mb-1">Doanh thu</p>
-                            <p id="qsRevenue" class="qs-val text-xl sm:text-2xl font-extrabold text-indigo-800 tracking-tight leading-tight">—</p>
-                        </div>
-                        <div id="qsRevenueChange" class="flex flex-col items-end shrink-0 text-right min-w-[4.75rem]" aria-live="polite">
-                            <span class="text-[10px] font-medium text-slate-400">—</span>
-                        </div>
+            <div class="qs-body">
+                <div class="qs-hero-card">
+                    <div class="qs-hero-col">
+                        <span class="qs-lbl">Doanh thu</span>
+                        <p id="qsRevenue" class="qs-val qs-hero-num">—</p>
+                        <div id="qsRevenueChange" aria-live="polite"></div>
+                    </div>
+                    <div class="qs-hero-divider" aria-hidden="true"></div>
+                    <div class="qs-hero-col">
+                        <span class="qs-lbl">Lợi nhuận thực</span>
+                        <p id="qsNetProfit" class="qs-val qs-hero-num qs-hero-num--accent">—</p>
+                        <p class="qs-hero-sub">QC <span id="qsAdSpend">—</span> · <span id="qsAvgProfitPerOrder">—</span>/đơn</p>
                     </div>
                 </div>
-                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Chi phí</p>
-                    <p id="qsCost" class="qs-val text-sm sm:text-base font-bold text-slate-700">—</p>
-                </div>
-                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Lợi nhuận</p>
-                    <p id="qsProfit" class="qs-val text-sm sm:text-base font-bold text-slate-700">—</p>
-                </div>
-                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Tỷ suất LN</p>
-                    <p id="qsMargin" class="qs-val text-sm sm:text-base font-bold text-slate-700">—</p>
-                </div>
-                <div class="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Đơn hàng</p>
-                    <p id="qsOrders" class="qs-val text-sm sm:text-base font-bold text-slate-800">—</p>
-                </div>
-                <div class="col-span-2 rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Sản phẩm đã bán</p>
-                    <p id="qsProducts" class="qs-val text-sm sm:text-base font-bold text-slate-800">—</p>
-                </div>
-                <div class="col-span-2 pt-0.5 pb-1">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">Theo nguồn khách</p>
-                    <div id="qsCustomerSources" class="flex flex-col gap-1.5">
-                        <p class="text-xs text-slate-400 italic py-1 text-center">—</p>
+
+                <div class="qs-stat-bar">
+                    <div class="qs-stat-item">
+                        <span class="qs-lbl">Đơn</span>
+                        <span id="qsOrders" class="qs-val">—</span>
                     </div>
+                    <div class="qs-stat-item">
+                        <span class="qs-lbl">SP</span>
+                        <span id="qsProducts" class="qs-val">—</span>
+                    </div>
+                    <div class="qs-stat-item">
+                        <span class="qs-lbl">Tỷ suất</span>
+                        <span id="qsMargin" class="qs-val">—</span>
+                    </div>
+                    <div class="qs-stat-item">
+                        <span class="qs-lbl">LN gộp</span>
+                        <span id="qsProfit" class="qs-val">—</span>
+                    </div>
+                </div>
+
+                <div class="qs-detail-card">
+                    <div class="qs-detail-line">
+                        <span>Chi phí vận hành</span>
+                        <span id="qsCost" class="qs-val">—</span>
+                    </div>
+                </div>
+
+                <div class="qs-sources-head">
+                    <span class="qs-section-title">Nguồn khách</span>
+                </div>
+                <div class="qs-sources-card">
+                    <div id="qsCustomerSources"></div>
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="px-4 py-2.5 text-center border-t border-slate-100 shrink-0 bg-white">
-                <a href="profit-report.html" class="text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors">
-                    Xem báo cáo chi tiết →
-                </a>
-            </div>
+            <footer class="qs-foot">
+                <p class="qs-foot-note">LN thực = LN gộp − QC · <a href="settings.html">Đổi ngân sách</a></p>
+                <a href="profit-report.html" class="qs-foot-link">Chi tiết →</a>
+            </footer>
         </div>
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=120"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=128"></script>
 </body>
 
 </html>

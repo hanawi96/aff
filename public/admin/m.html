@@ -54,6 +54,16 @@ body{overscroll-behavior-y:contain}
 .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
 .ct-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .i-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+/* Quảng cáo + Lợi nhuận thực — đồng bộ Thống kê nhanh desktop */
+.m-stats-net-block{display:flex;flex-direction:column;gap:0.375rem}
+.m-stats-net-row{display:flex;align-items:stretch;border-radius:0.75rem;overflow:hidden;border:1px solid #c7d2fe;background:linear-gradient(90deg,#f5f3ff 0%,#faf5ff 48%,#ecfdf5 52%,#d1fae5 100%);box-shadow:0 1px 2px rgba(99,102,241,.06)}
+.m-stats-net-side{flex:1 1 50%;min-width:0;padding:0.65rem 0.875rem;display:flex;flex-direction:column;justify-content:center;gap:0.15rem}
+.m-stats-net-divider{flex:0 0 1px;align-self:stretch;background:linear-gradient(180deg,rgba(196,181,253,.2),rgba(167,139,250,.55) 35%,rgba(52,211,153,.55) 65%,rgba(196,181,253,.2))}
+.m-stats-net-label{margin:0;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
+.m-stats-net-side.m-stats-net-ad .m-stats-net-label{color:#7c3aed}
+.m-stats-net-side.m-stats-net-profit .m-stats-net-label{color:#059669}
+.m-stats-net-val{margin:0;font-size:.9375rem;font-weight:700;line-height:1.25;word-break:break-word}
+.m-stats-net-sub{margin:0.1rem 0 0;font-size:10px;color:#6b7280;line-height:1.2}
 /* Không dùng divide-gray-100 trên #orderList: nó set border-color cho mọi cạnh và làm mất viền trái vàng đơn ưu tiên */
 #orderList > .order-card + .order-card{border-top:1px solid rgb(243 244 246)}
 /* Deep link #order/id: tránh flash tab danh sách — ẩn list/tabs, full-screen panel + skeleton trước khi có dữ liệu */
@@ -5020,6 +5030,58 @@ function cmp(cur,prev){
   return`<span class="ml-1.5 inline-flex items-center text-[10px] font-semibold ${up?'text-green-500':'text-red-400'}">${up?'↑':'↓'}${ds}%</span>`;
 }
 
+function countRangeDays(ss,ee){
+  const s=new Date(ss+'T12:00:00+07:00').getTime();
+  const e=new Date(ee+'T12:00:00+07:00').getTime();
+  return Math.max(1,Math.round((e-s)/864e5)+1);
+}
+
+async function fetchDefaultAdSpendAmount(){
+  try{
+    const r=await fetch(`${API()}?action=getDefaultAdSpend&timestamp=${Date.now()}`);
+    const d=await r.json();
+    return d.success?(d.amount||0):0;
+  }catch(e){return 0;}
+}
+
+async function enrichStatsOverviewAdSpend(d,range){
+  const o=d?.overview;
+  if(!o||o.ad_spend!=null)return d;
+  const def=await fetchDefaultAdSpendAmount();
+  const days=range?countRangeDays(range.s,range.e):1;
+  o.ad_spend=def*days;
+  o.ad_spend_days=days;
+  o.net_profit=(o.total_profit||0)-o.ad_spend;
+  o.net_profit_per_order=o.total_orders>0?o.net_profit/o.total_orders:0;
+  return d;
+}
+
+function buildStatsNetProfitRow(o,po){
+  const adSpend=o.ad_spend||0;
+  const netProfit=o.net_profit!=null?o.net_profit:((o.total_profit||0)-adSpend);
+  const netPerOrder=o.net_profit_per_order!=null?o.net_profit_per_order:(o.total_orders>0?netProfit/o.total_orders:0);
+  const isNet=netProfit>=0;
+  const netColor=isNet?'#047857':'#dc2626';
+  const days=o.ad_spend_days;
+  const adHint=(days&&days>1)?`<p class="m-stats-net-sub">${days} ngày × QC</p>`:'';
+  return`<div class="m-stats-net-block fade-up">
+    <div class="m-stats-net-row">
+      <div class="m-stats-net-side m-stats-net-ad">
+        <p class="m-stats-net-label">Quảng cáo</p>
+        <p class="m-stats-net-val" style="color:#6d28d9">${fmt(adSpend)}${cmp(adSpend,po?.ad_spend)}</p>
+        ${adHint}
+      </div>
+      <div class="m-stats-net-divider" aria-hidden="true"></div>
+      <div class="m-stats-net-side m-stats-net-profit">
+        <p class="m-stats-net-label">Lợi nhuận thực</p>
+        <p class="m-stats-net-val" style="color:${netColor}">${fmt(netProfit)}${cmp(netProfit,po?.net_profit)}</p>
+        <p class="m-stats-net-sub">TB: ${fmt(netPerOrder)}/đơn</p>
+      </div>
+    </div>
+    <p class="text-[10px] text-gray-400 text-center px-1">Lợi nhuận thực = Lợi nhuận − Quảng cáo · <a href="settings.html" class="text-violet-600 font-medium">Đổi ngân sách QC</a></p>
+  </div>`;
+}
+
 const M_STATS_SOURCE_STYLE={
   facebook:{badge:'bg-blue-100 text-blue-700 border-blue-200/80',bar:'from-blue-500 to-blue-600',seg:'bg-blue-500'},
   zalo:{badge:'bg-green-100 text-green-700 border-green-200/80',bar:'from-green-500 to-emerald-600',seg:'bg-green-500'},
@@ -5106,7 +5168,18 @@ function buildStatsCustomerSourcesHtml(sources,prevMap){
 
 async function loadData(){
   const cacheKey=currentPeriod==='custom'&&customRange?`c_${customRange.startDate}_${customRange.endDate}`:currentPeriod;
-  if(cache[cacheKey]){renderAll(cache[cacheKey].cur,cache[cacheKey].prev);return;}
+  if(cache[cacheKey]){
+    const range=getDateRange();
+    if(range){
+      await enrichStatsOverviewAdSpend(cache[cacheKey].cur,range);
+      if(cache[cacheKey].prev){
+        const prevR=calcPrevRange(range.s,range.e);
+        await enrichStatsOverviewAdSpend(cache[cacheKey].prev,prevR);
+      }
+    }
+    renderAll(cache[cacheKey].cur,cache[cacheKey].prev);
+    return;
+  }
   const skEl=document.getElementById('skeleton');if(skEl)skEl.classList.remove('hidden');
   const ctEl=document.getElementById('statsContent');if(ctEl)ctEl.classList.add('hidden');
   const emEl=document.getElementById('statsErr');if(emEl)emEl.classList.add('hidden');
@@ -5118,6 +5191,8 @@ async function loadData(){
     const prev=calcPrevRange(range.s,range.e);
     const [cr,pr]=await Promise.all([fetch(mkUrl(range.s,range.e)).then(r=>r.json()),fetch(mkUrl(prev.s,prev.e)).then(r=>r.json())]);
     if(cr.success){
+      await enrichStatsOverviewAdSpend(cr,range);
+      if(pr.success)await enrichStatsOverviewAdSpend(pr,prev);
       cache[cacheKey]={cur:cr,prev:pr.success?pr:null};
       renderAll(cr,pr.success?pr:null);
     }else throw new Error(cr.error||'Lỗi tải dữ liệu');
@@ -5200,6 +5275,7 @@ function renderAll(d,prev){
       </div>
     </div>
     ${sourcesHtml}
+    ${buildStatsNetProfitRow(o,po)}
     ${chartHtml}
     <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div class="px-4 pt-3.5 pb-3">

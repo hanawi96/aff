@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadPackagingConfig();
     loadShippingConfig(); // Load shipping fees
     loadCurrentTaxRate();
+    loadDefaultAdSpend();
     setupEventListeners();
 });
 
@@ -18,6 +19,14 @@ function setupEventListeners() {
         shippingForm.addEventListener('submit', function(e) {
             e.preventDefault();
             saveShippingConfig(e);
+        });
+    }
+
+    const adSpendForm = document.getElementById('adSpendForm');
+    if (adSpendForm) {
+        adSpendForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveDefaultAdSpend();
         });
     }
 
@@ -494,6 +503,79 @@ async function updateTaxRate() {
     } catch (error) {
         console.error('Error updating tax rate:', error);
         showToast('❌ Không thể cập nhật tỷ lệ thuế', 'error');
+    }
+}
+
+
+// ============================================
+// AD SPEND (QUẢNG CÁO)
+// ============================================
+
+async function loadDefaultAdSpend() {
+    const input = document.getElementById('default_ad_spend');
+    const display = document.getElementById('defaultAdSpendDisplay');
+    const skeleton = document.getElementById('defaultAdSpendSkeleton');
+    if (!input) return;
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getDefaultAdSpend&timestamp=${Date.now()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const amount = data.amount || 0;
+            input.value = amount;
+            if (display) {
+                display.textContent = formatCurrency(amount);
+                display.classList.remove('hidden');
+            }
+            if (skeleton) skeleton.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading default ad spend:', error);
+        if (skeleton) skeleton.classList.add('hidden');
+    }
+}
+
+async function saveDefaultAdSpend() {
+    const input = document.getElementById('default_ad_spend');
+    const applyTodayEl = document.getElementById('applyAdSpendToday');
+    if (!input) return;
+
+    const amount = parseFloat(input.value);
+    if (!Number.isFinite(amount) || amount < 0) {
+        showToast('⚠️ Vui lòng nhập ngân sách QC hợp lệ', 'warning');
+        return;
+    }
+
+    const applyToday = applyTodayEl ? applyTodayEl.checked : true;
+    const applyNote = applyToday ? '\n\nChi QC hôm nay cũng được cập nhật.' : '\n\nChỉ đổi mặc định cho các ngày mới.';
+
+    if (!confirm(`Xác nhận đặt ngân sách QC mặc định ${formatCurrency(amount)}/ngày?${applyNote}`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateDefaultAdSpend',
+                amount,
+                applyToday
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`Đã lưu ngân sách QC ${formatCurrency(amount)}/ngày`, 'success');
+            loadDefaultAdSpend();
+        } else {
+            throw new Error(data.error || 'Failed to update ad spend');
+        }
+    } catch (error) {
+        console.error('Error updating default ad spend:', error);
+        showToast('❌ Không thể cập nhật ngân sách QC', 'error');
     }
 }
 

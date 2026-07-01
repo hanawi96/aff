@@ -1,6 +1,7 @@
 // Profit Overview Analytics
 import { jsonResponse } from '../../utils/response.js';
 import { queryCustomerSourceBreakdown, buildCustomerSources } from './customer-source-breakdown.js';
+import { getAdSpendForDate, vnDateStrFromMs } from '../settings/ad-spend.js';
 
 /**
  * Get profit overview with all costs
@@ -88,6 +89,21 @@ export async function getProfitOverview(period, env, corsHeaders, customStartDat
         const totalProfit = totalRevenue - totalCost;
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
 
+        let adSpend = 0;
+        let adSpendDate = null;
+        if (isQuickDayScope) {
+            adSpendDate = vnDateStrFromMs(startMs);
+            try {
+                const adRow = await getAdSpendForDate(env, adSpendDate, { autoSeed: true });
+                adSpend = adRow.amount || 0;
+            } catch (adErr) {
+                console.error('Ad spend lookup failed (daily_ad_spend may be missing):', adErr);
+                adSpend = 0;
+            }
+        }
+        const netProfit = totalProfit - adSpend;
+        const netProfitPerOrder = overview.total_orders > 0 ? (netProfit / overview.total_orders) : 0;
+
         let revenueVsPrevDayPct = null;
         let previousDayRevenue = null;
         if (isQuickDayScope && prevDayRow) {
@@ -127,6 +143,10 @@ export async function getProfitOverview(period, env, corsHeaders, customStartDat
                 profit_margin: profitMargin,
                 avg_order_value: overview.total_orders > 0 ? (totalRevenue / overview.total_orders) : 0,
                 avg_profit_per_product: overview.total_products_sold > 0 ? (totalProfit / overview.total_products_sold) : 0,
+                ad_spend: adSpend,
+                ad_spend_date: adSpendDate,
+                net_profit: netProfit,
+                net_profit_per_order: netProfitPerOrder,
                 revenue_vs_prev_day_pct: revenueVsPrevDayPct,
                 previous_day_revenue: previousDayRevenue
             },

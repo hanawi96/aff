@@ -117,6 +117,7 @@ import {
 // Settings
 import { getPackagingConfig } from '../services/settings/packaging.js';
 import { getCurrentTaxRate } from '../services/settings/tax.js';
+import { getDefaultAdSpend } from '../services/settings/ad-spend.js';
 
 // Analytics
 import {
@@ -455,6 +456,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getCurrentTaxRate':
             return await getCurrentTaxRate(env, corsHeaders);
+
+        case 'getDefaultAdSpend':
+            return await getDefaultAdSpend(env, corsHeaders);
 
         case 'updateTaxRate':
             // This will be handled in POST

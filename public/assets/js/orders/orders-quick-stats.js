@@ -24,15 +24,15 @@
 
 
 
-    const SOURCE_DOT = {
+    const SOURCE_BADGE = {
 
-        facebook: 'bg-blue-500',
+        facebook: { cls: 'qs-src-badge--fb', text: 'FB' },
 
-        zalo: 'bg-green-500',
+        zalo: { cls: 'qs-src-badge--zalo', text: 'Z' },
 
-        tiktok: 'bg-slate-800',
+        tiktok: { cls: 'qs-src-badge--tiktok', text: 'TT' },
 
-        unknown: 'bg-gray-400'
+        unknown: { cls: 'qs-src-badge--unknown', text: '?' }
 
     };
 
@@ -104,6 +104,54 @@
 
 
 
+    async function fetchDefaultAdSpend() {
+
+        try {
+
+            const res = await fetch(`${CONFIG.API_URL}?action=getDefaultAdSpend&timestamp=${Date.now()}`);
+
+            const data = await res.json();
+
+            return data.success ? (data.amount || 0) : 0;
+
+        } catch (e) {
+
+            console.warn('[QuickStats] getDefaultAdSpend failed', e);
+
+            return 0;
+
+        }
+
+    }
+
+
+
+    async function enrichAdSpendFields(data) {
+
+        if (!data?.success || !data.overview) return data;
+
+        const o = data.overview;
+
+        if (o.ad_spend != null && o.net_profit != null) return data;
+
+
+
+        const profit = o.total_profit || 0;
+
+        const adSpend = await fetchDefaultAdSpend();
+
+        o.ad_spend = adSpend;
+
+        o.net_profit = profit - adSpend;
+
+        o.net_profit_per_order = o.total_orders > 0 ? o.net_profit / o.total_orders : 0;
+
+        return data;
+
+    }
+
+
+
     async function fetchStats(period) {
 
         const cached = getCached(period);
@@ -119,6 +167,8 @@
         inflight[period] = fetch(buildUrl(period))
 
             .then((res) => res.json())
+
+            .then((data) => enrichAdSpendFields(data))
 
             .then((data) => {
 
@@ -142,27 +192,19 @@
 
 
 
-    const SKELETON_SIZES = {
+    const SKELETON_IDS = [
 
-        qsRevenue: ['w-40', 'h-8'],
+        'qsRevenue', 'qsNetProfit', 'qsAdSpend', 'qsAvgProfitPerOrder',
 
-        qsCost: ['w-20', 'h-5'],
+        'qsOrders', 'qsProducts', 'qsMargin', 'qsCost', 'qsProfit'
 
-        qsProfit: ['w-20', 'h-5'],
-
-        qsMargin: ['w-12', 'h-5'],
-
-        qsOrders: ['w-10', 'h-5'],
-
-        qsProducts: ['w-16', 'h-5']
-
-    };
+    ];
 
 
 
     function showSkeleton() {
 
-        Object.entries(SKELETON_SIZES).forEach(([id, [w, h]]) => {
+        SKELETON_IDS.forEach((id) => {
 
             const el = document.getElementById(id);
 
@@ -170,21 +212,17 @@
 
             el.textContent = '';
 
-            el.className = `skeleton ${w} ${h} rounded-md mt-0.5`;
+            el.className = 'qs-skel';
 
         });
 
         const srcEl = document.getElementById('qsCustomerSources');
 
-        if (srcEl) {
-
-            srcEl.innerHTML = '<div class="skeleton w-full h-16 rounded-lg"></div><div class="skeleton w-full h-16 rounded-lg"></div>';
-
-        }
+        if (srcEl) srcEl.innerHTML = '<div class="qs-skel" style="width:100%;height:4.5rem;border-radius:0.625rem"></div>';
 
         const chEl = document.getElementById('qsRevenueChange');
 
-        if (chEl) chEl.innerHTML = '<div class="skeleton w-14 h-10 rounded-lg ml-auto"></div>';
+        if (chEl) chEl.innerHTML = '<span class="qs-skel" style="width:3.5rem;height:1.75rem"></span>';
 
     }
 
@@ -192,13 +230,29 @@
 
     function hideSkeleton() {
 
-        Object.keys(SKELETON_SIZES).forEach((id) => {
+        const restore = {
+
+            qsRevenue: 'qs-val qs-hero-num',
+
+            qsNetProfit: 'qs-val qs-hero-num qs-hero-num--accent',
+
+            qsOrders: 'qs-val',
+
+            qsProducts: 'qs-val',
+
+            qsMargin: 'qs-val',
+
+            qsCost: 'qs-val',
+
+            qsProfit: 'qs-val'
+
+        };
+
+        Object.entries(restore).forEach(([id, cls]) => {
 
             const el = document.getElementById(id);
 
-            if (!el) return;
-
-            el.className = 'qs-val';
+            if (el) el.className = cls;
 
         });
 
@@ -216,7 +270,7 @@
 
         if (!Array.isArray(sources) || sources.length === 0) {
 
-            container.innerHTML = '<p class="text-xs text-slate-400 italic py-2 text-center">Chưa có đơn trong kỳ này</p>';
+            container.innerHTML = '<p class="qs-src-empty">Chưa có đơn trong kỳ này</p>';
 
             return;
 
@@ -226,43 +280,43 @@
 
         container.innerHTML = sources.map((s) => {
 
-            const dot = SOURCE_DOT[s.source] || SOURCE_DOT.unknown;
+            const srcKey = s.source || 'unknown';
 
-            const profit = s.profit || 0;
+            const badge = SOURCE_BADGE[srcKey] || SOURCE_BADGE.unknown;
 
-            const profitCls = profit >= 0 ? 'text-emerald-600' : 'text-red-500';
+            const share = s.revenue_share || 0;
 
-            const barW = Math.max(4, Math.min(100, s.revenue_share || 0));
+            const rowCls = ['facebook', 'zalo', 'tiktok'].includes(srcKey) ? srcKey : 'unknown';
 
 
 
-            return `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            return `<div class="qs-src-row qs-src-row--${rowCls}">
 
-                <div class="flex items-center justify-between gap-2 mb-1.5">
+                <div class="qs-src-badge ${badge.cls}">${badge.text}</div>
 
-                    <div class="flex items-center gap-1.5 min-w-0">
+                <div class="qs-src-info">
 
-                        <span class="w-2 h-2 rounded-full shrink-0 ${dot}"></span>
+                    <div class="qs-src-top">
 
-                        <span class="text-xs font-semibold text-slate-800 truncate">${s.label}</span>
+                        <span class="qs-src-name">${s.label}</span>
+
+                        <span class="qs-src-amt">${fmt(s.revenue)}</span>
 
                     </div>
 
-                    <span class="text-[10px] font-medium text-slate-500 shrink-0">${fmtN(s.order_count)} đơn · ${fmtPct(s.revenue_share)}</span>
+                    <div class="qs-src-track" aria-hidden="true">
 
-                </div>
+                        <div class="qs-src-fill" style="width:${Math.max(share, 4).toFixed(1)}%"></div>
 
-                <div class="h-1 rounded-full bg-slate-200 overflow-hidden mb-1.5" title="Tỷ trọng doanh thu">
+                    </div>
 
-                    <div class="h-full rounded-full ${dot}" style="width:${barW}%"></div>
+                    <div class="qs-src-bottom">
 
-                </div>
+                        <span class="qs-src-meta">${fmtN(s.order_count)} đơn</span>
 
-                <div class="flex items-center justify-between gap-2 text-[11px]">
+                        <span class="qs-src-pct">${fmtPct(share)} doanh thu</span>
 
-                    <span class="font-bold text-slate-800">${fmt(s.revenue)}</span>
-
-                    <span class="font-semibold ${profitCls}">LN ${fmt(profit)}</span>
+                    </div>
 
                 </div>
 
@@ -286,7 +340,7 @@
 
         if (pct == null) {
 
-            el.innerHTML = `<span class="text-[10px] font-medium text-slate-400 leading-none">${cmpLabel}</span><span class="text-xs font-semibold text-slate-400 mt-1">—</span>`;
+            el.innerHTML = `<span class="qs-change-pill qs-change-pill--flat">— vs ${cmpLabel.replace('vs ', '')}</span>`;
 
             return;
 
@@ -294,21 +348,17 @@
 
         const abs = Math.abs(pct).toFixed(1);
 
-        const sub = `<span class="text-[10px] font-medium text-slate-400 leading-none">${cmpLabel}</span>`;
+        let cls = 'qs-change-pill--flat';
 
-        if (pct > 0.05) {
+        let sign = '';
 
-            el.innerHTML = `${sub}<span class="inline-flex items-center gap-0.5 mt-1 text-sm font-bold text-emerald-600 leading-none"><svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>+${abs}%</span>`;
+        if (pct > 0.05) { cls = 'qs-change-pill--up'; sign = '+'; }
 
-        } else if (pct < -0.05) {
+        else if (pct < -0.05) { cls = 'qs-change-pill--down'; sign = '−'; }
 
-            el.innerHTML = `${sub}<span class="inline-flex items-center gap-0.5 mt-1 text-sm font-bold text-red-500 leading-none"><svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>-${abs}%</span>`;
+        const lbl = cmpLabel.replace('vs ', '');
 
-        } else {
-
-            el.innerHTML = `${sub}<span class="inline-flex items-center gap-0.5 mt-1 text-sm font-bold text-slate-500 leading-none">0%</span>`;
-
-        }
+        el.innerHTML = `<span class="qs-change-pill ${cls}">${sign}${abs}% vs ${lbl}</span>`;
 
     }
 
@@ -328,25 +378,63 @@
 
         const margin = o.profit_margin || 0;
 
+        const adSpend = o.ad_spend || 0;
+
+        const netProfit = o.net_profit != null ? o.net_profit : (profit - adSpend);
+
+        const totalOrders = o.total_orders || 0;
+
+        const avgNetPerOrder = o.net_profit_per_order != null
+
+            ? o.net_profit_per_order
+
+            : (totalOrders > 0 ? netProfit / totalOrders : null);
 
 
-        setText('qsRevenue', fmt(o.total_revenue), 'text-xl sm:text-2xl font-extrabold text-indigo-800 tracking-tight leading-tight');
+
+        setVal('qsRevenue', fmt(o.total_revenue));
 
         renderRevenueChange(o);
 
-        setText('qsCost', fmt(o.total_cost), 'text-sm sm:text-base font-bold text-slate-700');
+        setVal('qsOrders', fmtN(totalOrders));
 
-        setText('qsOrders', fmtN(o.total_orders), 'text-sm sm:text-base font-bold text-slate-800');
+        setVal('qsProducts', fmtN(o.total_products_sold));
 
-        setText('qsProducts', fmtN(o.total_products_sold), 'text-sm sm:text-base font-bold text-slate-800');
+        setVal('qsMargin', `${margin.toFixed(1)}%`, margin >= 30 ? 'is-pos' : '');
 
-        setText('qsProfit', fmt(profit),
+        setVal('qsCost', fmt(o.total_cost));
 
-            `text-sm sm:text-base font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`);
+        setVal('qsProfit', fmt(profit), profit >= 0 ? 'is-pos' : 'is-neg');
 
-        setText('qsMargin', `${margin.toFixed(1)}%`,
+        const netEl = document.getElementById('qsNetProfit');
 
-            `text-sm sm:text-base font-bold ${margin >= 30 ? 'text-emerald-600' : margin >= 15 ? 'text-amber-500' : 'text-red-500'}`);
+        if (netEl) {
+
+            netEl.textContent = fmt(netProfit);
+
+            netEl.className = 'qs-val qs-hero-num qs-hero-num--accent' + (netProfit < 0 ? ' is-negative' : '');
+
+        }
+
+        const adEl = document.getElementById('qsAdSpend');
+
+        if (adEl) {
+
+            adEl.textContent = fmt(adSpend);
+
+            adEl.removeAttribute('class');
+
+        }
+
+        const avgEl = document.getElementById('qsAvgProfitPerOrder');
+
+        if (avgEl) {
+
+            avgEl.textContent = avgNetPerOrder == null ? '—' : fmt(avgNetPerOrder);
+
+            avgEl.removeAttribute('class');
+
+        }
 
 
 
@@ -356,7 +444,7 @@
 
 
 
-    function setText(id, val, cls = '') {
+    function setVal(id, val, tone = '') {
 
         const el = document.getElementById(id);
 
@@ -364,7 +452,19 @@
 
         el.textContent = val;
 
-        el.className = cls ? `qs-val ${cls}` : 'qs-val';
+        if (id === 'qsRevenue') {
+
+            el.className = 'qs-val qs-hero-num';
+
+            return;
+
+        }
+
+        if (id === 'qsNetProfit') return;
+
+        const base = 'qs-val';
+
+        el.className = tone ? `${base} ${tone}` : base;
 
     }
 
@@ -424,11 +524,7 @@
 
             const active = p === period;
 
-            btn.className = active
-
-                ? 'flex-1 py-1.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition-all'
-
-                : 'flex-1 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-all';
+            btn.className = active ? 'qs-tab qs-tab--active' : 'qs-tab';
 
         });
 

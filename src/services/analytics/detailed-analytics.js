@@ -1,6 +1,7 @@
 // Detailed Analytics
 import { jsonResponse } from '../../utils/response.js';
 import { queryCustomerSourceBreakdown, buildCustomerSources } from './customer-source-breakdown.js';
+import { getAdSpendForRange, vnDateStrFromMs } from '../settings/ad-spend.js';
 
 /**
  * Get detailed analytics for analytics page
@@ -97,6 +98,20 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                          (overview.total_packaging_cost || 0) + (overview.total_commission || 0) + (overview.total_tax || 0);
         const totalProfit = totalRevenue - totalCost;
         const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+
+        const rangeEndMs = endMs ?? Date.now();
+        const isSingleVnDay = vnDateStrFromMs(startMs) === vnDateStrFromMs(rangeEndMs);
+        let adSpend = 0;
+        let adSpendDays = 0;
+        try {
+            const adRow = await getAdSpendForRange(env, startMs, rangeEndMs, { autoSeed: isSingleVnDay });
+            adSpend = adRow.amount || 0;
+            adSpendDays = adRow.days || 0;
+        } catch (adErr) {
+            console.error('Ad spend range lookup failed:', adErr);
+        }
+        const netProfit = totalProfit - adSpend;
+        const netProfitPerOrder = overview.total_orders > 0 ? (netProfit / overview.total_orders) : 0;
 
         const customerSources = buildCustomerSources(
             sourceBreakdown.ordersRows,
@@ -287,6 +302,10 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
                 avg_revenue_per_order: overview.total_orders > 0 ? totalRevenue / overview.total_orders : 0,
                 avg_cost_per_order: overview.total_orders > 0 ? totalCost / overview.total_orders : 0,
                 avg_profit_per_order: overview.total_orders > 0 ? totalProfit / overview.total_orders : 0,
+                ad_spend: adSpend,
+                net_profit: netProfit,
+                net_profit_per_order: netProfitPerOrder,
+                ad_spend_days: adSpendDays,
                 cost_ratio: totalRevenue > 0 ? totalCost / totalRevenue : 0,
                 // Add individual cost components
                 product_cost: overview.product_cost || 0,
