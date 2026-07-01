@@ -5,36 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập - Vòng Dâu Tằm Admin</title>
     <style>
-        * {
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --bg: #0f172a;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-soft: #eef2ff;
+            --danger-bg: #fef2f2;
+            --danger-text: #b91c1c;
+            --radius: 14px;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            color: var(--text);
+            background: #0f172a;
+            overflow-x: hidden;
+        }
+
+        .login-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #0f172a 70%, #164e63 100%);
+            background-size: 300% 300%;
+            animation: gradientShift 14s ease infinite;
+        }
+
+        .login-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(15, 23, 42, 0.35) 100%);
+            pointer-events: none;
+        }
+
+        .login-bg__orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.65;
+            will-change: transform;
+        }
+
+        .login-bg__orb--1 {
+            width: 420px;
+            height: 420px;
+            top: -8%;
+            left: -6%;
+            background: #818cf8;
+            animation: floatOrb1 18s ease-in-out infinite;
+        }
+
+        .login-bg__orb--2 {
+            width: 360px;
+            height: 360px;
+            top: 55%;
+            right: -10%;
+            background: #22d3ee;
+            animation: floatOrb2 22s ease-in-out infinite;
+        }
+
+        .login-bg__orb--3 {
+            width: 300px;
+            height: 300px;
+            bottom: -12%;
+            left: 18%;
+            background: #c084fc;
+            animation: floatOrb3 20s ease-in-out infinite;
+        }
+
+        .login-bg__orb--4 {
+            width: 240px;
+            height: 240px;
+            top: 22%;
+            right: 22%;
+            background: #f472b6;
+            opacity: 0.45;
+            animation: floatOrb4 16s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes floatOrb1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(60px, 40px) scale(1.08); }
+            66% { transform: translate(30px, 80px) scale(0.95); }
+        }
+
+        @keyframes floatOrb2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-70px, -50px) scale(1.12); }
+        }
+
+        @keyframes floatOrb3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            40% { transform: translate(50px, -30px) scale(1.06); }
+            80% { transform: translate(-20px, -60px) scale(0.92); }
+        }
+
+        @keyframes floatOrb4 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-40px, 35px) scale(1.1); }
+        }
+
+        .login-page {
+            position: relative;
+            z-index: 1;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px 16px;
         }
 
-        .login-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            max-width: 400px;
+        .login-card {
             width: 100%;
-            animation: slideUp 0.5s ease;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 20px;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.06),
+                0 24px 48px rgba(15, 23, 42, 0.22);
+            padding: 32px 28px;
+            animation: fadeUp 0.45s ease;
         }
 
-        @keyframes slideUp {
+        @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(12px);
             }
             to {
                 opacity: 1;
@@ -42,126 +159,161 @@
             }
         }
 
-        .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
+        .login-card-header {
+            margin-bottom: 28px;
             text-align: center;
-            color: white;
         }
 
-        .login-header i {
-            font-size: 3rem;
-            margin-bottom: 15px;
+        .login-brand-logo {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 16px;
+            border-radius: 9999px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.95);
+            box-shadow:
+                0 0 0 1px rgba(15, 23, 42, 0.06),
+                0 8px 20px rgba(15, 23, 42, 0.12);
+            background: #f8fafc;
         }
 
-        .login-header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
+        .login-brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
-        .login-header p {
-            opacity: 0.9;
-            font-size: 0.95rem;
+        .login-card-header h1 {
+            margin-top: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: #334155;
         }
 
-        .login-body {
-            padding: 40px 30px;
+        .error-message {
+            display: none;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 11px 12px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            background: var(--danger-bg);
+            border: 1px solid #fecaca;
+            color: var(--danger-text);
+            font-size: 0.875rem;
+            line-height: 1.45;
+        }
+
+        .error-message.show {
+            display: flex;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 18px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
+            margin-bottom: 7px;
+            font-size: 0.8125rem;
             font-weight: 600;
-            font-size: 0.95rem;
+            color: #334155;
         }
 
         .input-wrapper {
             position: relative;
         }
 
-        .input-wrapper i {
+        .input-icon {
             position: absolute;
-            left: 15px;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #999;
+            width: 18px;
+            height: 18px;
+            color: #94a3b8;
+            pointer-events: none;
         }
 
         .form-control {
             width: 100%;
-            padding: 12px 15px 12px 45px;
-            border: 2px solid #e0e0e0;
+            padding: 11px 14px 11px 42px;
+            border: 1px solid var(--border);
             border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            font-size: 0.9375rem;
+            color: #0f172a;
+            background: #fff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
         }
 
         .btn-login {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            margin-top: 8px;
+            padding: 12px 16px;
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.9375rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+            transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        .btn-login:hover:not(:disabled) {
+            background: var(--primary-hover);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
+            transform: translateY(-1px);
         }
 
         .btn-login:disabled {
-            opacity: 0.6;
+            opacity: 0.65;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 0.9rem;
+        .btn-login svg {
+            width: 18px;
+            height: 18px;
         }
 
-        .error-message.show {
-            display: block;
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+        .login-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
         }
 
         .spinner {
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-top-color: #fff;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
         }
@@ -169,79 +321,104 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            .login-bg,
+            .login-bg__orb {
+                animation: none !important;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <i class="fas fa-shield-alt"></i>
-            <h1>Đăng nhập</h1>
-            <p>Vòng Dâu Tằm Admin</p>
-        </div>
-        
-        <div class="login-body">
-            <div id="errorMessage" class="error-message"></div>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Tên đăng nhập</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-user"></i>
-                        <input 
-                            type="text" 
-                            id="username" 
-                            class="form-control" 
-                            placeholder="Nhập tên đăng nhập"
-                            required
-                            autocomplete="username"
-                        >
-                    </div>
+    <div class="login-bg" aria-hidden="true">
+        <div class="login-bg__orb login-bg__orb--1"></div>
+        <div class="login-bg__orb login-bg__orb--2"></div>
+        <div class="login-bg__orb login-bg__orb--3"></div>
+        <div class="login-bg__orb login-bg__orb--4"></div>
+    </div>
+
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="login-brand-logo">
+                    <img
+                        src="assets/images/591718600_708804902275744_4218533615448447888_n.jpg"
+                        alt="Vòng Dâu Tằm"
+                        width="72"
+                        height="72"
+                        loading="eager"
+                        decoding="async"
+                    >
                 </div>
-                
-                <div class="form-group">
-                    <label for="password">Mật khẩu</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-lock"></i>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            class="form-control" 
-                            placeholder="Nhập mật khẩu"
-                            required
-                            autocomplete="current-password"
-                        >
+                <h1>Vòng Dâu Tằm By Ánh</h1>
+            </div>
+
+                <div id="errorMessage" class="error-message" role="alert"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Tên đăng nhập</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="username"
+                                class="form-control"
+                                placeholder="Nhập tên đăng nhập"
+                                required
+                                autocomplete="username"
+                            >
+                        </div>
                     </div>
-                </div>
-                
-                <button type="submit" id="loginBtn" class="btn-login">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Đăng nhập</span>
-                </button>
-            </form>
+
+                    <div class="form-group">
+                        <label for="password">Mật khẩu</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                            <input
+                                type="password"
+                                id="password"
+                                class="form-control"
+                                placeholder="Nhập mật khẩu"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="btn-login">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                        </svg>
+                        <span>Đăng nhập</span>
+                    </button>
+                </form>
+
+                <p class="login-note">Phiên đăng nhập được bảo mật và tự động hết hạn khi không hoạt động.</p>
         </div>
     </div>
 
     <script>
+        const LOGIN_BTN_HTML = `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg><span>Đăng nhập</span>`;
+
         // Configuration
         const CONFIG = {
             LOCAL_API_URL: 'http://127.0.0.1:8787',
             PROD_API_URL: 'https://ctv-api.yendev96.workers.dev',
             API_URL: (() => {
-                // Chỉ dùng local API khi chủ động bật cờ dev
                 const forceLocalApi = localStorage.getItem('force_local_api') === '1';
                 if (forceLocalApi) {
                     return 'http://127.0.0.1:8787';
                 }
-                // Mặc định dùng Workers (kể cả localhost)
                 return 'https://ctv-api.yendev96.workers.dev';
             })()
         };
 
-        /**
-         * Gọi API xác thực với fallback thông minh:
-         * - Local: thử 127.0.0.1:8787 trước, nếu connection refused thì fallback qua Workers.
-         * - Production: gọi Workers bình thường.
-         */
         async function fetchAuthWithFallback(action, options = {}) {
             const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const forceLocalApi = localStorage.getItem('force_local_api') === '1';
@@ -259,7 +436,6 @@
             try {
                 return await call(preferredBase);
             } catch (err) {
-                // Chỉ fallback khi lỗi kết nối local
                 const canFallback = isLocalHost && forceLocalApi && preferredBase !== fallbackBase;
                 if (!canFallback) throw err;
 
@@ -274,19 +450,18 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            
+
             if (!username || !password) {
                 showError('Vui lòng nhập đầy đủ thông tin');
                 return;
             }
-            
-            // Disable button
+
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner"></span><span>Đang xử lý...</span>';
-            
+
             try {
                 const response = await fetchAuthWithFallback('login', {
                     method: 'POST',
@@ -295,81 +470,50 @@
                     },
                     body: JSON.stringify({ username, password })
                 });
-                
+
                 const data = await response.json();
-                
-                console.log('🔐 Login response:', data);
-                console.log('   Success:', data.success);
-                console.log('   Session token:', data.sessionToken || data.session_token);
-                console.log('   User:', data.user);
-                
+
                 if (data.success) {
-                    // Save session token (handle both camelCase and snake_case)
                     const sessionToken = data.sessionToken || data.session_token;
                     localStorage.setItem('session_token', sessionToken);
                     localStorage.setItem('user_info', JSON.stringify(data.user));
-                    
-                    console.log('✅ Session saved to localStorage');
-                    console.log('   Token in storage:', localStorage.getItem('session_token'));
-                    
-                    // Redirect to admin
-                    console.log('🔄 Redirecting to /admin/...');
                     window.location.href = '/admin/';
                 } else {
                     showError(data.error || 'Đăng nhập thất bại');
                     loginBtn.disabled = false;
-                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Đăng nhập</span>';
+                    loginBtn.innerHTML = LOGIN_BTN_HTML;
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 showError('Lỗi kết nối. Vui lòng thử lại.');
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Đăng nhập</span>';
+                loginBtn.innerHTML = LOGIN_BTN_HTML;
             }
         });
 
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.add('show');
-            
+
             setTimeout(() => {
                 errorMessage.classList.remove('show');
             }, 5000);
         }
 
-        // Check if already logged in
         const sessionToken = localStorage.getItem('session_token');
-        console.log('🔍 Checking if already logged in...');
-        console.log('   Session token:', sessionToken ? 'EXISTS' : 'MISSING');
-        
         if (sessionToken) {
-            console.log('🔐 Verifying existing session...');
-            // Verify session
             fetchAuthWithFallback('verifySession', {
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`
                 }
             })
-            .then(res => {
-                console.log('📡 Verify response status:', res.status);
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
-                console.log('📦 Verify response data:', data);
                 if (data.success) {
-                    console.log('✅ Already logged in, redirecting to /admin/');
-                    // Already logged in, redirect
                     window.location.href = '/admin/';
-                } else {
-                    console.log('❌ Session invalid, staying on login page');
                 }
             })
-            .catch((error) => {
-                console.error('❌ Verify error:', error);
-                // Session invalid, stay on login page
-            });
-        } else {
-            console.log('ℹ️ No session token, showing login form');
+            .catch(() => {});
         }
     </script>
 </body>
