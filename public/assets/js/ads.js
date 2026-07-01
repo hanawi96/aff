@@ -3,7 +3,7 @@
  * API: getAdAnalytics, updateDailyAdSpend
  */
 (function () {
-    let activePeriod = 'yesterday';
+    let activePeriod = 'today';
     let loading = false;
     let editDate = null;
 
@@ -16,15 +16,21 @@
         return `${d}/${m}/${y}`;
     }
 
+    function fmtPct(v) {
+        if (v == null || !Number.isFinite(v)) return '—';
+        return `${v.toFixed(1)}%`;
+    }
+
     function fmtRoas(v) {
         if (v == null || !Number.isFinite(v)) return '—';
         return `${v.toFixed(1)}×`;
     }
 
-    function roasClass(v) {
+    function roasClass(v, breakEven) {
         if (v == null || !Number.isFinite(v)) return '';
-        if (v >= 3) return 'ads-roas--good';
-        if (v >= 2) return 'ads-roas--warn';
+        const be = breakEven != null && Number.isFinite(breakEven) ? breakEven : 3;
+        if (v >= Math.max(3, be)) return 'ads-roas--good';
+        if (v >= be) return 'ads-roas--warn';
         return 'ads-roas--bad';
     }
 
@@ -90,6 +96,12 @@
         const netProfitPerOrder = s.net_profit_per_order != null
             ? s.net_profit_per_order
             : (s.fb_orders > 0 ? s.net_profit / s.fb_orders : null);
+        const grossMargin = s.gross_margin_pct != null
+            ? s.gross_margin_pct
+            : (s.fb_revenue > 0 ? (s.fb_gross_profit / s.fb_revenue) * 100 : null);
+        const netMargin = s.net_margin_pct != null
+            ? s.net_margin_pct
+            : (s.fb_revenue > 0 ? (s.net_profit / s.fb_revenue) * 100 : null);
 
         const breakdown = document.getElementById('heroBreakdown');
         if (breakdown) {
@@ -98,6 +110,9 @@
                 <span class="mt-1 block tabular-nums">
                     LN gộp <strong class="text-slate-800">${fmt(s.fb_gross_profit)}</strong>
                     − Chi QC <strong class="text-slate-800">${fmt(s.ad_spend)}</strong>
+                </span>
+                <span class="mt-1 block tabular-nums text-slate-500">
+                    TS gộp ${fmtPct(grossMargin)} · TS thực ${fmtPct(netMargin)}
                 </span>
                 <span class="mt-1 block tabular-nums text-slate-500">
                     ${netProfitPerOrder != null ? `${fmt(netProfitPerOrder)}/đơn · ` : ''}${fmtN(s.fb_orders)} đơn FB
@@ -134,9 +149,19 @@
             if (el) el.textContent = '';
         });
         const body = document.getElementById('dailyTableBody');
-        if (body) body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="14" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
         const foot = document.getElementById('dailyTableFoot');
         if (foot) foot.innerHTML = '';
+        const srcBody = document.getElementById('adsSourceBody');
+        if (srcBody) srcBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Đang tải…</td></tr>';
+        const trend = document.getElementById('adsTrendChart');
+        if (trend) trend.innerHTML = '';
+        const trendSec = document.getElementById('adsTrendSection');
+        if (trendSec) trendSec.classList.add('hidden');
+        const ordersShare = document.getElementById('kpiOrdersShare');
+        if (ordersShare) ordersShare.textContent = '';
+        const roasHint = document.getElementById('kpiRoasHint');
+        if (roasHint) roasHint.textContent = '';
     }
 
     function renderSummary(data) {
@@ -148,6 +173,16 @@
             `${fmtDateLabel(data.start_date)} – ${fmtDateLabel(data.end_date)}`;
 
         document.getElementById('kpiOrders').textContent = `${fmtN(s.fb_orders)} đơn`;
+        const shareEl = document.getElementById('kpiOrdersShare');
+        if (shareEl) {
+            if (s.fb_order_share_pct != null && s.total_orders > 0) {
+                shareEl.textContent = `${fmtPct(s.fb_order_share_pct)} tổng đơn (${fmtN(s.fb_orders)}/${fmtN(s.total_orders)})`;
+            } else if (s.fb_orders > 0) {
+                shareEl.textContent = `${fmtN(s.fb_orders)} đơn Facebook`;
+            } else {
+                shareEl.textContent = '';
+            }
+        }
         document.getElementById('kpiOrdersCmp').innerHTML = fmtCmp(c.fb_orders_pct, false);
 
         document.getElementById('kpiRevenue').textContent = fmt(s.fb_revenue);
@@ -165,7 +200,15 @@
 
         const roasEl = document.getElementById('kpiRoas');
         roasEl.textContent = fmtRoas(s.roas);
-        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.roas);
+        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.roas, s.break_even_roas);
+        const roasHint = document.getElementById('kpiRoasHint');
+        if (roasHint) {
+            if (s.break_even_roas != null) {
+                roasHint.textContent = `Hòa vốn ≥ ${s.break_even_roas.toFixed(1)}× · mục tiêu ≥ 3×`;
+            } else {
+                roasHint.textContent = '≥ 3× là ổn';
+            }
+        }
 
         document.getElementById('kpiCpa').textContent = s.cpa != null ? fmt(s.cpa) + '/đơn' : '—';
         document.getElementById('kpiCpaCmp').innerHTML = fmtCmp(c.cpa_pct, true);
@@ -179,6 +222,90 @@
         ppoEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + netClass(netProfitPerOrder);
         document.getElementById('kpiProfitPerOrderCmp').innerHTML =
             fmtCmp(c.net_profit_per_order_pct, false);
+    }
+
+    function renderSourceCompare(data) {
+        const body = document.getElementById('adsSourceBody');
+        if (!body) return;
+        const rows = data.source_compare || [];
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Chưa có đơn trong kỳ này</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map((r) => {
+            const rowCls = r.is_ad_channel ? 'ads-src-row--fb' : '';
+            const qcCell = r.is_ad_channel ? fmt(r.ad_spend) : '—';
+            return `
+            <tr class="border-t border-slate-100 hover:bg-slate-50/50 ${rowCls}">
+                <td class="px-4 py-3 font-medium text-slate-800">
+                    ${r.label}${r.is_ad_channel ? ' <span class="text-[10px] font-semibold text-blue-600">(QC)</span>' : ''}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmtN(r.order_count)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmt(r.revenue)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmt(r.gross_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums text-slate-600">${qcCell}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(r.net_profit)}">${fmt(r.net_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmtPct(r.gross_margin_pct)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderTrendChart(data) {
+        const section = document.getElementById('adsTrendSection');
+        const chart = document.getElementById('adsTrendChart');
+        const sub = document.getElementById('adsTrendSub');
+        const insightsEl = document.getElementById('adsPeriodInsights');
+        if (!section || !chart) return;
+
+        const showTrend = data.period === '7d' || data.period === 'month';
+        if (!showTrend || !(data.days || []).length) {
+            section.classList.add('hidden');
+            return;
+        }
+
+        section.classList.remove('hidden');
+        const days = [...(data.days || [])].reverse();
+        const ins = data.period_insights || {};
+        if (sub) sub.textContent = 'LN thực QC theo ngày · màu xanh = lãi, đỏ = lỗ';
+        if (insightsEl && ins.total_days > 1) {
+            insightsEl.textContent = `${ins.profitable_days}/${ins.total_days} ngày lãi`;
+            if (ins.loss_days > 0) insightsEl.textContent += ` · ${ins.loss_days} ngày lỗ`;
+        } else if (insightsEl) {
+            insightsEl.textContent = '';
+        }
+
+        const maxAbs = Math.max(...days.map((d) => Math.abs(d.net_profit || 0)), 1);
+        chart.innerHTML = days.map((d) => {
+            const np = d.net_profit || 0;
+            const h = Math.max(4, (Math.abs(np) / maxAbs) * 100);
+            const cls = np >= 0 ? 'ads-trend-bar--profit' : 'ads-trend-bar--loss';
+            const label = fmtDateLabel(d.date).replace(/\/\d{4}$/, '');
+            return `
+            <div class="flex flex-1 flex-col items-center justify-end gap-1 min-w-0">
+                <span class="text-[10px] font-medium tabular-nums ${netClass(np)}">${np >= 0 ? '+' : ''}${Math.round(np / 1000)}k</span>
+                <div class="ads-trend-bar ${cls} w-full max-w-[2.5rem]" style="height:${h}%"></div>
+                <span class="text-[10px] text-slate-400 truncate w-full text-center">${label}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function rowMetrics(row) {
+        const rpo = row.revenue_per_order != null
+            ? row.revenue_per_order
+            : (row.fb_orders > 0 ? row.fb_revenue / row.fb_orders : null);
+        const gpo = row.gross_profit_per_order != null
+            ? row.gross_profit_per_order
+            : (row.fb_orders > 0 ? row.fb_gross_profit / row.fb_orders : null);
+        const ppo = row.net_profit_per_order != null
+            ? row.net_profit_per_order
+            : (row.fb_orders > 0 ? row.net_profit / row.fb_orders : null);
+        const gmp = row.gross_margin_pct != null
+            ? row.gross_margin_pct
+            : (row.fb_revenue > 0 ? (row.fb_gross_profit / row.fb_revenue) * 100 : null);
+        const nmp = row.net_margin_pct != null
+            ? row.net_margin_pct
+            : (row.fb_revenue > 0 ? (row.net_profit / row.fb_revenue) * 100 : null);
+        return { rpo, gpo, ppo, gmp, nmp };
     }
 
     function sourceBadge(source) {
@@ -195,30 +322,30 @@
         const s = data.summary || {};
 
         if (!days.length) {
-            body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
+            body.innerHTML = '<tr><td colspan="14" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
             foot.innerHTML = '';
             return;
         }
 
+        const beRoas = s.break_even_roas;
+
         body.innerHTML = days.map((row) => {
-            const rpo = row.revenue_per_order != null
-                ? row.revenue_per_order
-                : (row.fb_orders > 0 ? row.fb_revenue / row.fb_orders : null);
-            const ppo = row.net_profit_per_order != null
-                ? row.net_profit_per_order
-                : (row.fb_orders > 0 ? row.net_profit / row.fb_orders : null);
+            const m = rowMetrics(row);
             return `
             <tr class="border-t border-slate-100 hover:bg-slate-50/50">
                 <td class="px-4 py-3 font-medium text-slate-800">${fmtDateLabel(row.date)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(row.ad_spend)}${sourceBadge(row.ad_spend_source)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtN(row.fb_orders)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(row.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${rpo != null ? fmt(rpo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${m.rpo != null ? fmt(m.rpo) : '—'}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(row.fb_gross_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${roasClass(row.roas)}">${fmtRoas(row.roas)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${m.gpo != null ? fmt(m.gpo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmtPct(m.gmp)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(row.net_profit)}">${fmtPct(m.nmp)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${roasClass(row.roas, beRoas)}">${fmtRoas(row.roas)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${row.cpa != null ? fmt(row.cpa) : '—'}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.net_profit)}">${fmt(row.net_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(ppo)}">${ppo != null ? fmt(ppo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(m.ppo)}">${m.ppo != null ? fmt(m.ppo) : '—'}</td>
                 <td class="px-4 py-3 text-center">
                     <button type="button" class="edit-spend-btn rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" data-date="${row.date}" data-amount="${row.ad_spend}" title="Sửa chi QC" aria-label="Sửa chi QC">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
@@ -228,12 +355,7 @@
         `;
         }).join('');
 
-        const totalPpo = s.net_profit_per_order != null
-            ? s.net_profit_per_order
-            : (s.fb_orders > 0 ? s.net_profit / s.fb_orders : null);
-        const totalRpo = s.revenue_per_order != null
-            ? s.revenue_per_order
-            : (s.fb_orders > 0 ? s.fb_revenue / s.fb_orders : null);
+        const tm = rowMetrics(s);
 
         foot.innerHTML = `
             <tr>
@@ -241,12 +363,15 @@
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(s.ad_spend)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtN(s.fb_orders)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${totalRpo != null ? fmt(totalRpo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${tm.rpo != null ? fmt(tm.rpo) : '—'}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_gross_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${roasClass(s.roas)}">${fmtRoas(s.roas)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${tm.gpo != null ? fmt(tm.gpo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmtPct(s.gross_margin_pct ?? tm.gmp)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmtPct(s.net_margin_pct ?? tm.nmp)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${roasClass(s.roas, beRoas)}">${fmtRoas(s.roas)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${s.cpa != null ? fmt(s.cpa) : '—'}</td>
                 <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmt(s.net_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(totalPpo)}">${totalPpo != null ? fmt(totalPpo) : '—'}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(tm.ppo)}">${tm.ppo != null ? fmt(tm.ppo) : '—'}</td>
                 <td></td>
             </tr>`;
 
@@ -269,12 +394,14 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Không tải được dữ liệu');
             renderSummary(data);
+            renderTrendChart(data);
+            renderSourceCompare(data);
             renderTable(data);
         } catch (e) {
             console.error('[Ads]', e);
             if (typeof showToast === 'function') showToast(e.message || 'Lỗi tải dữ liệu', 'error');
             document.getElementById('dailyTableBody').innerHTML =
-                '<tr><td colspan="11" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
+                '<tr><td colspan="14" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
         } finally {
             loading = false;
         }
@@ -329,5 +456,5 @@
         if (e.target.id === 'editSpendModal') closeEditModal();
     });
 
-    document.addEventListener('DOMContentLoaded', () => load('yesterday'));
+    document.addEventListener('DOMContentLoaded', () => load('today'));
 })();

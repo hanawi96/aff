@@ -1,5 +1,10 @@
 import { jsonResponse } from '../../utils/response.js';
-import { ORDER_SOURCE_KEY_SQL, OI_SOURCE_KEY_SQL } from './customer-source-breakdown.js';
+import {
+    ORDER_SOURCE_KEY_SQL,
+    OI_SOURCE_KEY_SQL,
+    queryCustomerSourceBreakdown,
+    buildCustomerSources
+} from './customer-source-breakdown.js';
 import {
     enumerateVnDateStrings,
     getAdSpendMapForRange,
@@ -66,7 +71,11 @@ function calcAdMetrics(adSpend, fbOrders, fbRevenue, fbGrossProfit) {
         fb_gross_profit: fbGrossProfit,
         net_profit: netProfit,
         net_profit_per_order: fbOrders > 0 ? netProfit / fbOrders : null,
+        gross_profit_per_order: fbOrders > 0 ? fbGrossProfit / fbOrders : null,
         revenue_per_order: fbOrders > 0 ? fbRevenue / fbOrders : null,
+        gross_margin_pct: fbRevenue > 0 ? (fbGrossProfit / fbRevenue) * 100 : null,
+        net_margin_pct: fbRevenue > 0 ? (netProfit / fbRevenue) * 100 : null,
+        break_even_roas: fbGrossProfit > 0 ? fbRevenue / fbGrossProfit : null,
         roas: adSpend > 0 ? fbRevenue / adSpend : null,
         cpa: fbOrders > 0 ? adSpend / fbOrders : null
     };
@@ -173,12 +182,88 @@ async function buildAdAnalyticsPayload(env, startMs, endMs) {
     return { summary, days, default_ad_spend: adSpendData.defaultAmount || 0 };
 }
 
+async function queryTotalOrders(env, startMs, endMs) {
+    const row = await env.DB.prepare(`
+        SELECT COUNT(*) AS total
+        FROM orders
+        WHERE created_at_unix >= ? AND created_at_unix <= ?
+    `).bind(startMs, endMs).first();
+    return row?.total || 0;
+}
+
+function buildSourceCompare(sources, adSpend) {
+    return (sources || []).map((s) => {
+        const isFacebook = s.source === 'facebook';
+        const ad = isFacebook ? (adSpend || 0) : 0;
+        const net = (s.profit || 0) - ad;
+        return {
+            source: s.source,
+            label: s.label,
+            order_count: s.order_count || 0,
+            revenue: s.revenue || 0,
+            gross_profit: s.profit || 0,
+            gross_margin_pct: s.profit_margin || 0,
+            ad_spend: ad,
+            net_profit: net,
+            net_margin_pct: (s.revenue || 0) > 0 ? (net / s.revenue) * 100 : null,
+            is_ad_channel: isFacebook
+        };
+    }).filter((s) => s.order_count > 0 || s.revenue > 0);
+}
+
+function buildPeriodInsights(days) {
+    const list = days || [];
+    let profitable = 0;
+    let loss = 0;
+    let flat = 0;
+    list.forEach((d) => {
+        const np = d.net_profit || 0;
+        if (np > 0) profitable += 1;
+        else if (np < 0) loss += 1;
+        else flat += 1;
+    });
+    return {
+        total_days: list.length,
+        profitable_days: profitable,
+        loss_days: loss,
+        flat_days: flat
+    };
+}
+
+async function buildAdAnalyticsFull(env, startMs, endMs) {
+    const [payload, totalOrders, sourceBreakdown] = await Promise.all([
+        buildAdAnalyticsPayload(env, startMs, endMs),
+        queryTotalOrders(env, startMs, endMs),
+        queryCustomerSourceBreakdown(env, startMs, endMs)
+    ]);
+
+    const totalRevenue = (sourceBreakdown.ordersRows || []).reduce(
+        (sum, row) => sum + (row.revenue || 0), 0
+    );
+    const sources = buildCustomerSources(
+        sourceBreakdown.ordersRows,
+        sourceBreakdown.productRows,
+        totalRevenue
+    );
+
+    payload.summary.total_orders = totalOrders;
+    payload.summary.fb_order_share_pct = totalOrders > 0
+        ? (payload.summary.fb_orders / totalOrders) * 100
+        : null;
+
+    return {
+        ...payload,
+        source_compare: buildSourceCompare(sources, payload.summary.ad_spend),
+        period_insights: buildPeriodInsights(payload.days)
+    };
+}
+
 export async function getAdAnalytics(period, env, corsHeaders) {
     try {
         const range = resolveVnPeriodRange(period || 'yesterday');
         const [current, previous] = await Promise.all([
-            buildAdAnalyticsPayload(env, range.startMs, range.endMs),
-            buildAdAnalyticsPayload(env, range.prevStartMs, range.prevEndMs)
+            buildAdAnalyticsFull(env, range.startMs, range.endMs),
+            buildAdAnalyticsFull(env, range.prevStartMs, range.prevEndMs)
         ]);
 
         const compare = {
@@ -207,7 +292,9 @@ export async function getAdAnalytics(period, env, corsHeaders) {
             default_ad_spend: current.default_ad_spend,
             summary: current.summary,
             compare,
-            days: current.days
+            days: current.days,
+            source_compare: current.source_compare,
+            period_insights: current.period_insights
         }, 200, corsHeaders);
     } catch (error) {
         console.error('Error getting ad analytics:', error);
