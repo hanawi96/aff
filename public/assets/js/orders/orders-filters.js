@@ -514,10 +514,74 @@ function orderCustomerSourceFilterKey(order) {
 }
 
 function closeOrderFilterDropdownMenus(exceptId) {
-    ['statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu'].forEach((id) => {
+    ['statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu', 'dateFilterMenu'].forEach((id) => {
         if (exceptId === id) return;
         document.getElementById(id)?.remove();
     });
+}
+
+const ORDER_FILTER_DROPDOWN_PAD = 12;
+const ORDER_FILTER_DROPDOWN_GAP = 4;
+
+/** Căn menu filter theo viewport — tránh tràn/che ở mép màn hình. */
+function positionOrderFilterDropdownMenu(menu, anchorEl) {
+    menu.style.position = 'fixed';
+    menu.style.zIndex = '9999';
+    menu.style.marginTop = '0';
+    menu.style.right = 'auto';
+    menu.style.bottom = 'auto';
+
+    const pad = ORDER_FILTER_DROPDOWN_PAD;
+    const gap = ORDER_FILTER_DROPDOWN_GAP;
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let top = anchorRect.bottom + gap;
+    let left = anchorRect.left;
+
+    if (left + menuRect.width > vw - pad) {
+        left = anchorRect.right - menuRect.width;
+    }
+    if (left < pad) left = pad;
+    if (left + menuRect.width > vw - pad) {
+        left = Math.max(pad, vw - pad - menuRect.width);
+    }
+
+    if (top + menuRect.height > vh - pad) {
+        const aboveTop = anchorRect.top - menuRect.height - gap;
+        if (aboveTop >= pad) top = aboveTop;
+    }
+
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+}
+
+/** Gắn menu ra body (fixed) + đóng khi click ngoài + reposition khi scroll/resize. */
+function attachOrderFilterDropdown(menu, button, wrap) {
+    document.body.appendChild(menu);
+    positionOrderFilterDropdownMenu(menu, button);
+
+    const isInside = (target) =>
+        menu.contains(target) || button.contains(target) || wrap.contains(target);
+
+    const reposition = () => {
+        if (menu.isConnected) positionOrderFilterDropdownMenu(menu, button);
+    };
+
+    setTimeout(() => {
+        window.addEventListener('resize', reposition, { passive: true });
+        window.addEventListener('scroll', reposition, { passive: true, capture: true });
+
+        document.addEventListener('click', function closeMenu(e) {
+            if (isInside(e.target)) return;
+            menu.remove();
+            window.removeEventListener('resize', reposition);
+            window.removeEventListener('scroll', reposition, true);
+            document.removeEventListener('click', closeMenu);
+        });
+    }, 10);
 }
 
 // ============================================
@@ -529,10 +593,6 @@ function closeOrderFilterDropdownMenus(exceptId) {
  */
 function toggleStatusFilter(event) {
     event.stopPropagation();
-
-    // Close date filter if open
-    const dateMenu = document.getElementById('dateFilterMenu');
-    if (dateMenu) dateMenu.remove();
 
     closeOrderFilterDropdownMenus('statusFilterMenu');
 
@@ -558,10 +618,7 @@ function toggleStatusFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'statusFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[200px] mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px]';
     menu.innerHTML = statuses.map(s => `
         <button 
             type="button"
@@ -578,17 +635,7 @@ function toggleStatusFilter(event) {
         </button>
     `).join('');
 
-    wrap.appendChild(menu);
-
-    // Close when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!wrap.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }, 10);
+    attachOrderFilterDropdown(menu, button, wrap);
 }
 
 /**
@@ -652,10 +699,7 @@ function togglePaymentFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'paymentFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[220px] mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[220px]';
     menu.innerHTML = paymentMethods.map(p => `
         <button 
             type="button"
@@ -672,17 +716,7 @@ function togglePaymentFilter(event) {
         </button>
     `).join('');
 
-    wrap.appendChild(menu);
-
-    // Close when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!wrap.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }, 10);
+    attachOrderFilterDropdown(menu, button, wrap);
 }
 
 /**
@@ -730,10 +764,7 @@ function toggleCustomerSourceFilter(event) {
 
     const menu = document.createElement('div');
     menu.id = 'customerSourceFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[240px] mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[240px]';
     menu.innerHTML = sources.map((s) => `
         <button
             type="button"
@@ -751,16 +782,7 @@ function toggleCustomerSourceFilter(event) {
         </button>
     `).join('');
 
-    wrap.appendChild(menu);
-
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!wrap.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }, 10);
+    attachOrderFilterDropdown(menu, button, wrap);
 }
 
 function selectCustomerSourceFilter(value, label) {
@@ -808,10 +830,7 @@ function toggleCTVFilter(event) {
     // Create menu
     const menu = document.createElement('div');
     menu.id = 'ctvFilterMenu';
-    menu.className = 'absolute bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[240px] mt-1';
-    menu.style.left = '0';
-    menu.style.top = '100%';
-
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[240px]';
     menu.innerHTML = options.map(opt => `
         <button 
             type="button"
@@ -831,17 +850,7 @@ function toggleCTVFilter(event) {
         </button>
     `).join('');
 
-    wrap.appendChild(menu);
-
-    // Close when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!wrap.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }, 10);
+    attachOrderFilterDropdown(menu, button, wrap);
 }
 
 /**
@@ -858,37 +867,125 @@ function selectCTVFilter(value, label) {
 // DATE FILTER PRESETS
 // ============================================
 
+const DATE_FILTER_PRESET_OPTIONS = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'lastMonth', label: 'Tháng trước' },
+    { value: 'today', label: 'Hôm nay' },
+    { value: 'yesterday', label: 'Hôm qua' },
+    { value: 'week', label: '7 ngày' },
+    { value: 'month', label: '30 ngày' }
+];
+
+function getDateFilterPresetLabel(value) {
+    const opt = DATE_FILTER_PRESET_OPTIONS.find((x) => x.value === value);
+    return opt ? opt.label : 'Tất cả';
+}
+
+function syncDateFilterDropdownLabel() {
+    const labelEl = document.getElementById('dateFilterLabel');
+    if (!labelEl) return;
+
+    const value = document.getElementById('dateFilter')?.value || 'all';
+    if (value === 'custom') return;
+
+    labelEl.textContent = getDateFilterPresetLabel(value);
+}
+
 /**
- * Select date filter preset (button-based design)
+ * Dropdown bộ lọc thời gian (gom preset + tùy chọn ngày).
  */
-function selectDateFilterPreset(value, buttonElement) {
-    // Update hidden input
+function toggleDateFilterDropdown(event) {
+    event.stopPropagation();
+
+    closeOrderFilterDropdownMenus('dateFilterMenu');
+
+    const existingMenu = document.getElementById('dateFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const currentValue = document.getElementById('dateFilter')?.value || 'all';
+    const button = event.currentTarget;
+    const wrap = button.parentElement;
+
+    const menu = document.createElement('div');
+    menu.id = 'dateFilterMenu';
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px]';
+    const presetRows = DATE_FILTER_PRESET_OPTIONS.map((opt) => {
+        const selected = currentValue === opt.value;
+        return `
+            <button
+                type="button"
+                onclick="selectDateFilterPreset('${opt.value}')"
+                class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${selected ? 'bg-indigo-50' : ''}"
+            >
+                <span class="text-sm text-gray-700 flex-1">${opt.label}</span>
+                ${selected ? `
+                    <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                ` : ''}
+            </button>
+        `;
+    }).join('');
+
+    const customSelected = currentValue === 'custom';
+
+    menu.innerHTML = presetRows + `
+        <div class="my-1 border-t border-gray-100"></div>
+        <button
+            type="button"
+            onclick="openDateFilterCustomPicker(event)"
+            class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${customSelected ? 'bg-indigo-50' : ''}"
+        >
+            <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-sm text-gray-700 flex-1">Chọn ngày tùy chỉnh</span>
+            ${customSelected ? `
+                <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `;
+
+    attachOrderFilterDropdown(menu, button, wrap);
+}
+
+function openDateFilterCustomPicker(event) {
+    event.stopPropagation();
+    document.getElementById('dateFilterMenu')?.remove();
+    showCustomDatePicker(event);
+}
+
+/**
+ * Chọn preset thời gian từ dropdown.
+ */
+function selectDateFilterPreset(value) {
     document.getElementById('dateFilter').value = value;
 
-    // Clear custom date values when selecting preset
     if (value !== 'custom') {
         document.getElementById('customDateStart').value = '';
         document.getElementById('customDateEnd').value = '';
-        document.getElementById('customDateLabel').textContent = 'Chọn ngày';
     }
 
-    // Update button states
-    document.querySelectorAll('.date-preset-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    buttonElement.classList.add('active');
-
-    // Apply filter
+    syncDateFilterDropdownLabel();
+    document.getElementById('dateFilterMenu')?.remove();
     filterOrdersData();
 }
 
-// Legacy functions kept for compatibility
 function toggleDateFilter(event) {
-    console.log('toggleDateFilter called but not needed with preset buttons');
+    toggleDateFilterDropdown(event);
 }
 
 function selectDateFilter(value, label) {
-    console.log('selectDateFilter called but not needed with preset buttons');
+    selectDateFilterPreset(value);
+    if (label) {
+        const labelEl = document.getElementById('dateFilterLabel');
+        if (labelEl) labelEl.textContent = label;
+    }
 }
 
 
@@ -1110,14 +1207,8 @@ function applyCustomDate() {
     document.getElementById('customDateEnd').value = endDate;
     document.getElementById('dateFilter').value = 'custom';
 
-    // Update button label
+    // Update dropdown label
     updateCustomDateLabel(startDate, endDate);
-
-    // Update button states
-    document.querySelectorAll('.date-preset-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.getElementById('customDateBtn').classList.add('active');
 
     // Apply filter
     filterOrdersData();
@@ -1136,21 +1227,10 @@ function clearCustomDate() {
     document.getElementById('customDateEnd').value = '';
     document.getElementById('dateFilter').value = 'all';
 
-    // Reset button label
-    document.getElementById('customDateLabel').textContent = 'Chọn ngày';
+    syncDateFilterDropdownLabel();
 
-    // Update button states
-    document.querySelectorAll('.date-preset-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector('.date-preset-btn[onclick*="all"]').classList.add('active');
-
-    // Apply filter
     filterOrdersData();
-
-    // Close modal
     closeCustomDatePicker();
-
     showToast('Đã xóa bộ lọc thời gian', 'info');
 }
 
@@ -1158,7 +1238,8 @@ function clearCustomDate() {
  * Update custom date button label
  */
 function updateCustomDateLabel(startDate, endDate) {
-    const label = document.getElementById('customDateLabel');
+    const label = document.getElementById('dateFilterLabel');
+    if (!label) return;
 
     if (startDate === endDate) {
         // Single date - format as DD/MM/YYYY
@@ -1301,10 +1382,7 @@ function _resetDateFilterToAll() {
         dateFilter.value = 'all';
         document.getElementById('customDateStart').value = '';
         document.getElementById('customDateEnd').value = '';
-        const customLabel = document.getElementById('customDateLabel');
-        if (customLabel) customLabel.textContent = 'Chọn ngày';
-        document.querySelectorAll('.date-preset-btn').forEach((btn) => btn.classList.remove('active'));
-        document.querySelector('.date-preset-btn[onclick*="\'all\'"]')?.classList.add('active');
+        syncDateFilterDropdownLabel();
     }
 }
 

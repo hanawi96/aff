@@ -387,26 +387,6 @@
             animation: fadeIn 0.2s ease-out;
         }
 
-        /* Date Preset Buttons */
-        .date-preset-btn {
-            border-color: #e5e7eb;
-            color: #6b7280;
-            background: white;
-        }
-
-        .date-preset-btn:hover:not(.active) {
-            border-color: #6366f1;
-            color: #6366f1;
-            background: #eef2ff;
-        }
-
-        .date-preset-btn.active {
-            border-color: #6366f1;
-            color: white;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-        }
-
         /* Custom Date Picker Modal */
         .date-picker-modal {
             position: fixed;
@@ -818,9 +798,9 @@
 
             <!-- Search & Filter -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <!-- Search -->
-                    <div class="flex-1 max-w-md">
+                <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <!-- Search — giãn hết phần trống trước cụm bộ lọc -->
+                    <div class="flex-1 min-w-0 w-full">
                         <div class="relative">
                             <input type="text" id="searchInput"
                                 placeholder="Mã đơn, KH, SĐT, CTV, sản phẩm, lưu ý đơn / lưu ý từng SP..."
@@ -839,7 +819,7 @@
                     </div>
 
                     <!-- Filters -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3 shrink-0">
                         <!-- Priority Filter Button - Toggle Style -->
                         <button id="priorityFilterBtn" onclick="togglePriorityFilter()" 
                             class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-400 transition-all text-sm font-medium">
@@ -940,41 +920,17 @@
                             </button>
                         </div>
 
-                        <!-- Date Filter - Button Presets -->
-                        <div class="flex items-center gap-2">
-                            <button onclick="selectDateFilterPreset('all', this)" 
-                                class="date-preset-btn active px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                Tất cả
-                            </button>
-                            <button onclick="selectDateFilterPreset('lastMonth', this)" 
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                Tháng trước
-                            </button>
-                            <button onclick="selectDateFilterPreset('today', this)" 
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                Hôm nay
-                            </button>
-                            <button onclick="selectDateFilterPreset('yesterday', this)" 
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                Hôm qua
-                            </button>
-                            <button onclick="selectDateFilterPreset('week', this)" 
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                7 ngày
-                            </button>
-                            <button onclick="selectDateFilterPreset('month', this)" 
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border">
-                                30 ngày
-                            </button>
-                            
-                            <!-- Custom Date Picker Button -->
-                            <button onclick="showCustomDatePicker(event)" 
-                                id="customDateBtn"
-                                class="date-preset-btn px-4 py-2.5 text-sm font-medium rounded-lg transition-all border flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <!-- Date Filter -->
+                        <div class="relative">
+                            <button id="dateFilterBtn" type="button" onclick="toggleDateFilterDropdown(event)"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span id="customDateLabel">Chọn ngày</span>
+                                <span id="dateFilterLabel" class="text-gray-700">Tất cả</span>
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
                             </button>
                         </div>
 
@@ -1316,7 +1272,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=98"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=100"></script>
 </body>
 
 </html>
