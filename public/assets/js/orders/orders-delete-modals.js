@@ -25,63 +25,81 @@ function confirmDeleteOrder(orderId, orderCode) {
         return;
     }
 
+    const shippingFee = order.shipping_fee || 0;
+    const discountAmount = order.discount_amount || 0;
+    let totalAmount = order.total_amount || 0;
+    if (totalAmount === 0 && order.product_total) {
+        totalAmount = (order.product_total || 0) + shippingFee - discountAmount;
+    }
+    const customerName = typeof titleCaseCustomerName === 'function'
+        ? titleCaseCustomerName(order.customer_name)
+        : (order.customer_name || '');
+
     // Create simple confirmation modal
     const modal = document.createElement('div');
     modal.id = 'confirmDeleteModal';
-    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);';
 
     modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 rounded-t-xl">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div style="width:100%;max-width:320px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 12px 32px rgba(15,23,42,0.18);overflow:hidden;flex-shrink:0;">
+            <div style="padding:16px 16px 12px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:9999px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg style="width:16px;height:16px;color:#dc2626;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Xác nhận xóa đơn hàng</h3>
-                        <p class="text-sm text-white/80">Hành động này không thể hoàn tác</p>
+                    <div style="flex:1;min-width:0;padding-top:1px;">
+                        <h3 style="margin:0;font-size:15px;font-weight:600;color:#111827;line-height:1.35;">Xóa đơn hàng?</h3>
+                        <p style="margin:4px 0 0;font-size:12px;color:#6b7280;line-height:1.4;">Hành động này không thể hoàn tác.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Content -->
-            <div class="p-6">
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                    <p class="text-sm text-gray-700 mb-2">Bạn có chắc chắn muốn xóa đơn hàng:</p>
-                    <p class="text-base font-bold text-red-600">${escapeHtml(orderCode)}</p>
-                    ${order.customer_name ? `
-                        <p class="text-sm text-gray-600 mt-2">Khách hàng: <span class="font-semibold">${escapeHtml(order.customer_name)}</span></p>
+            <div style="padding:0 16px 12px;">
+                <div style="border:1px solid #f3f4f6;border-radius:10px;background:#f9fafb;overflow:hidden;font-size:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid #f3f4f6;">
+                        <span style="color:#6b7280;flex-shrink:0;">Mã đơn</span>
+                        <span style="font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(orderCode)}</span>
+                    </div>
+                    ${customerName ? `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid #f3f4f6;">
+                        <span style="color:#6b7280;flex-shrink:0;">Khách hàng</span>
+                        <span style="font-weight:500;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;">${escapeHtml(customerName)}</span>
+                    </div>
                     ` : ''}
-                    ${order.total_amount ? `
-                        <p class="text-sm text-gray-600">Giá trị: <span class="font-semibold text-green-600">${formatCurrency(order.total_amount)}</span></p>
+                    ${totalAmount > 0 ? `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;">
+                        <span style="color:#6b7280;flex-shrink:0;">Giá trị</span>
+                        <span style="font-weight:600;color:#047857;">${formatCurrency(totalAmount)}</span>
+                    </div>
                     ` : ''}
                 </div>
-                <p class="text-sm text-gray-500 flex items-start gap-2">
-                    <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>Đơn hàng sẽ bị xóa vĩnh viễn khỏi hệ thống và không thể khôi phục.</span>
+                <p style="margin:10px 0 0;font-size:11px;color:#6b7280;line-height:1.45;">
+                    Đơn hàng sẽ bị xóa vĩnh viễn và không thể khôi phục.
                 </p>
             </div>
 
-            <!-- Actions -->
-            <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
-                <button 
-                    onclick="closeConfirmDeleteModal()" 
-                    class="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+            <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid #f3f4f6;">
+                <button
+                    type="button"
+                    onclick="closeConfirmDeleteModal()"
+                    style="flex:1;padding:8px 12px;font-size:13px;font-weight:500;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;">
                     Hủy
                 </button>
-                <button 
-                    onclick="deleteOrder(${orderId}, '${escapeHtml(orderCode)}')" 
-                    class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg hover:shadow-lg transition-all font-medium">
-                    Xóa đơn hàng
+                <button
+                    type="button"
+                    onclick="deleteOrder(${orderId}, '${escapeHtml(orderCode)}')"
+                    style="flex:1;padding:8px 12px;font-size:13px;font-weight:600;color:#fff;background:#dc2626;border:1px solid #dc2626;border-radius:8px;cursor:pointer;">
+                    Xóa đơn
                 </button>
             </div>
         </div>
     `;
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeConfirmDeleteModal();
+    });
 
     document.body.appendChild(modal);
 

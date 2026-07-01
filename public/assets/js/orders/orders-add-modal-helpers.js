@@ -297,25 +297,26 @@ function buildOrderProductWeightLine(index, product) {
     const rawValue = getOrderProductSizeRaw(product);
     const weightBtnClass = 'order-weight-quick-edit inline text-gray-700 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-700 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
     const missingBtnClass = 'order-weight-quick-edit inline text-amber-600 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-800 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
+    const sizeIcon = `<span class="inline-flex items-center align-text-bottom mr-1.5 text-blue-600">${ORDER_PRODUCT_META_DOT}</span>`;
 
     const makeBtn = (displayText, btnClass) =>
         `<button type="button" id="orderProductWeightBtn_${index}" class="${btnClass}" onclick="startQuickEditOrderWeight(${index})" title="Click để sửa cân nặng/size (chỉ trên đơn này)">${escapeHtml(displayText)}</button>`;
 
     if (!rawValue) {
-        return `⚖️ ${makeBtn('Chưa có', missingBtnClass)}`;
+        return `${sizeIcon}${makeBtn('Chưa có', missingBtnClass)}`;
     }
 
     const rawStr = String(rawValue).toLowerCase();
     if (rawStr.includes('cm') || rawStr.includes('tay')) {
-        return `📏 Size tay: ${makeBtn(rawValue, weightBtnClass)}`;
+        return `${sizeIcon}Size tay: ${makeBtn(rawValue, weightBtnClass)}`;
     }
     if (rawStr.includes('kg') || rawStr.includes('g')) {
-        return `⚖️ Cân nặng: ${makeBtn(rawValue, weightBtnClass)}`;
+        return `${sizeIcon}${makeBtn(rawValue, weightBtnClass)}`;
     }
     if (!isNaN(parseFloat(rawStr))) {
-        return `⚖️ Cân nặng: ${makeBtn(`${rawValue}kg`, weightBtnClass)}`;
+        return `${sizeIcon}${makeBtn(`${rawValue}kg`, weightBtnClass)}`;
     }
-    return makeBtn(rawValue, weightBtnClass);
+    return `${sizeIcon}${makeBtn(rawValue, weightBtnClass)}`;
 }
 
 /** HTML dòng lưu ý có thể click để sửa nhanh. */
