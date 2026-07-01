@@ -129,7 +129,8 @@ import {
     getProfitOverview,
     getProductStats,
     getLocationStats,
-    getDashboardStats
+    getDashboardStats,
+    getAdAnalytics
 } from '../services/analytics/index.js';
 
 // Payments
@@ -459,6 +460,11 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getDefaultAdSpend':
             return await getDefaultAdSpend(env, corsHeaders);
+
+        case 'getAdAnalytics': {
+            const adPeriod = url.searchParams.get('period') || 'yesterday';
+            return await getAdAnalytics(adPeriod, env, corsHeaders);
+        }
 
         case 'updateTaxRate':
             // This will be handled in POST

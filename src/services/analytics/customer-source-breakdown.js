@@ -9,7 +9,7 @@ export const SOURCE_LABELS = {
     unknown: 'Chưa ghi nguồn'
 };
 
-const ORDER_SOURCE_KEY_SQL = `
+export const ORDER_SOURCE_KEY_SQL = `
     CASE
         WHEN LOWER(TRIM(customer_source)) = 'zalo' THEN 'zalo'
         WHEN LOWER(TRIM(customer_source)) = 'facebook' THEN 'facebook'
@@ -17,7 +17,7 @@ const ORDER_SOURCE_KEY_SQL = `
         ELSE 'unknown'
     END`;
 
-const OI_SOURCE_KEY_SQL = `
+export const OI_SOURCE_KEY_SQL = `
     CASE
         WHEN LOWER(TRIM(o.customer_source)) = 'zalo' THEN 'zalo'
         WHEN LOWER(TRIM(o.customer_source)) = 'facebook' THEN 'facebook'

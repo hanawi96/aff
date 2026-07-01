@@ -8,3 +8,4 @@ export { getProfitOverview } from './profit-overview.js';
 export { getProductStats } from './product-stats.js';
 export { getLocationStats } from './location-stats.js';
 export { getDashboardStats } from './dashboard-stats.js';
+export { getAdAnalytics } from './ad-analytics.js';

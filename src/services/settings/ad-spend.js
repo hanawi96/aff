@@ -114,6 +114,65 @@ export async function getDefaultAdSpend(env, corsHeaders) {
     }
 }
 
+/**
+ * Read-only: chi QC từng ngày trong khoảng (snapshot hoặc mặc định hiện tại).
+ */
+export async function getAdSpendMapForRange(env, startMs, endMs) {
+    const dates = enumerateVnDateStrings(startMs, endMs);
+    if (dates.length === 0) {
+        return { days: [], total: 0, defaultAmount: 0 };
+    }
+
+    const defaultAmount = await getDefaultAdSpendAmount(env);
+    const rows = await env.DB.prepare(`
+        SELECT spend_date, amount
+        FROM daily_ad_spend
+        WHERE spend_date >= ? AND spend_date <= ?
+    `).bind(dates[0], dates[dates.length - 1]).all();
+
+    const byDate = new Map((rows.results || []).map((r) => [r.spend_date, r.amount || 0]));
+    let total = 0;
+
+    const days = dates.map((spendDate) => {
+        const hasSnapshot = byDate.has(spendDate);
+        const amount = hasSnapshot ? (byDate.get(spendDate) || 0) : (defaultAmount || 0);
+        total += amount;
+        return {
+            spend_date: spendDate,
+            amount,
+            source: hasSnapshot ? 'snapshot' : 'default'
+        };
+    });
+
+    return { days, total, defaultAmount };
+}
+
+export async function updateDailyAdSpend(data, env, corsHeaders) {
+    try {
+        const spendDate = String(data?.spendDate || '').trim();
+        const amount = Number(data?.amount);
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(spendDate)) {
+            return jsonResponse({ success: false, error: 'Ngày không hợp lệ (YYYY-MM-DD)' }, 400, corsHeaders);
+        }
+        if (!Number.isFinite(amount) || amount < 0) {
+            return jsonResponse({ success: false, error: 'Số tiền quảng cáo không hợp lệ' }, 400, corsHeaders);
+        }
+
+        await upsertDailyAdSpend(env, spendDate, amount);
+
+        return jsonResponse({
+            success: true,
+            message: 'Đã cập nhật chi QC ngày ' + spendDate,
+            spend_date: spendDate,
+            amount
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error updating daily ad spend:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 export async function updateDefaultAdSpend(data, env, corsHeaders) {
     try {
         const amount = Number(data?.amount);

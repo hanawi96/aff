@@ -126,7 +126,7 @@ import {
 // Settings
 import { getPackagingConfig, updatePackagingConfig } from '../services/settings/packaging.js';
 import { updateTaxRate } from '../services/settings/tax.js';
-import { updateDefaultAdSpend } from '../services/settings/ad-spend.js';
+import { updateDefaultAdSpend, updateDailyAdSpend } from '../services/settings/ad-spend.js';
 
 // Analytics
 import { getProfitReport } from '../services/analytics/index.js';
@@ -285,6 +285,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateTaxRate(data, env, corsHeaders);
         case 'updateDefaultAdSpend':
             return await updateDefaultAdSpend(data, env, corsHeaders);
+        case 'updateDailyAdSpend':
+            return await updateDailyAdSpend(data, env, corsHeaders);
         case 'updateOrderNotes':
             return await updateOrderNotes(data, env, corsHeaders);
         case 'updateCustomerInfo':
@@ -597,6 +599,8 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateTaxRate(data, env, corsHeaders);
             case 'updateDefaultAdSpend':
                 return await updateDefaultAdSpend(data, env, corsHeaders);
+            case 'updateDailyAdSpend':
+                return await updateDailyAdSpend(data, env, corsHeaders);
             case 'getProfitReport':
                 return await getProfitReport(data, env, corsHeaders);
             case 'learnAddress':

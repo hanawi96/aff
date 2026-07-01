@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý quảng cáo - Admin</title>
+    <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { background-color: #f1f5f9; }
+        .ctv-page-bg {
+            background-color: #f1f5f9;
+            background-image:
+                radial-gradient(ellipse 120% 80% at 100% -20%, rgba(59, 130, 246, 0.07), transparent 50%),
+                radial-gradient(ellipse 90% 60% at 0% 100%, rgba(99, 102, 241, 0.05), transparent 45%);
+        }
+        .ads-period-tab { transition: background 0.15s, color 0.15s, box-shadow 0.15s; }
+        .ads-period-tab--active {
+            background: #fff;
+            color: #0f172a;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .ads-kpi-val { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+        .ads-skel {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: adsSkel 1.2s infinite;
+            border-radius: 0.375rem;
+        }
+        @keyframes adsSkel { to { background-position: -200% 0; } }
+        .ads-roas--good { color: #059669; }
+        .ads-roas--warn { color: #d97706; }
+        .ads-roas--bad { color: #dc2626; }
+        /* Hero LN thực */
+        .ads-hero {
+            border-radius: 1rem;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .ads-hero--profit {
+            background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(255, 255, 255, 0.98) 55%, rgba(240, 253, 250, 0.6) 100%);
+            border-color: rgba(167, 243, 208, 0.7);
+        }
+        .ads-hero--loss {
+            background: linear-gradient(135deg, rgba(254, 242, 242, 0.95) 0%, rgba(255, 255, 255, 0.98) 55%, rgba(254, 226, 226, 0.35) 100%);
+            border-color: rgba(254, 202, 202, 0.75);
+        }
+        .ads-hero--flat {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, #fff 100%);
+            border-color: #e2e8f0;
+        }
+        .ads-hero-val {
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.15;
+        }
+        .ads-hero-val--profit { color: #047857; }
+        .ads-hero-val--loss { color: #b91c1c; }
+        .ads-hero-val--flat { color: #0f172a; }
+        .ads-hero-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 999px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .ads-hero-badge--profit { background: rgba(16, 185, 129, 0.15); color: #047857; }
+        .ads-hero-badge--loss { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+        .ads-hero-badge--flat { background: #f1f5f9; color: #64748b; }
+    </style>
+</head>
+<body class="ctv-page-bg min-h-screen antialiased">
+    <aside class="fixed left-0 top-0 z-50 h-full w-64 border-r border-slate-200 bg-white">
+        <div class="flex h-full flex-col">
+            <div class="border-b border-slate-200 p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
+                        <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Admin Panel</h2>
+                        <p class="text-xs text-slate-500">Quản lý hệ thống</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 space-y-1 overflow-y-auto p-4">
+                <a href="ctv.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Danh sách CTV</span>
+                </a>
+                <a href="index.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a href="payments.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Thanh toán CTV</span>
+                </a>
+                <a href="products.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    <span>Sản phẩm</span>
+                </a>
+                <a href="profit-report.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <span>Thống kê</span>
+                </a>
+                <a href="ads.html" class="flex items-center space-x-3 rounded-xl bg-indigo-50 px-4 py-3 font-medium text-indigo-600 transition-all">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                    <span>Quảng cáo</span>
+                </a>
+                <a href="settings.html" class="flex items-center space-x-3 rounded-xl px-4 py-3 font-medium text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Cài đặt</span>
+                </a>
+            </nav>
+            <div class="mt-auto border-t border-slate-200 p-4">
+                <button type="button" onclick="logout()" class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-all hover:bg-red-100">
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="ml-64 min-h-screen">
+        <main class="mx-auto max-w-6xl px-6 py-8">
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý quảng cáo</h1>
+                    <p class="mt-1 text-sm text-slate-500">Facebook Ads · Đơn Facebook = đơn QC · LN thực = LN gộp FB − Chi QC</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="text-slate-500">Mặc định:</span>
+                    <span id="defaultBudgetLabel" class="font-semibold text-slate-800">—</span>
+                    <a href="settings.html" class="font-medium text-indigo-600 hover:text-indigo-700">Cài đặt →</a>
+                </div>
+            </div>
+
+            <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div id="periodTabs" class="inline-flex rounded-xl bg-slate-100 p-1 gap-0.5">
+                    <button type="button" data-period="yesterday" class="ads-period-tab ads-period-tab--active rounded-lg px-3 py-2 text-sm text-slate-600">Hôm qua</button>
+                    <button type="button" data-period="today" class="ads-period-tab rounded-lg px-3 py-2 text-sm text-slate-600">Hôm nay</button>
+                    <button type="button" data-period="7d" class="ads-period-tab rounded-lg px-3 py-2 text-sm text-slate-600">7 ngày</button>
+                    <button type="button" data-period="month" class="ads-period-tab rounded-lg px-3 py-2 text-sm text-slate-600">Tháng này</button>
+                </div>
+                <p id="periodRangeLabel" class="text-sm text-slate-500">—</p>
+            </div>
+
+            <section id="adsHero" class="ads-hero ads-hero--flat" aria-live="polite">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p id="heroLabel" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Lợi nhuận thực QC</p>
+                            <span id="heroPeriodBadge" class="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200/80">—</span>
+                            <span id="heroStatusBadge" class="ads-hero-badge ads-hero-badge--flat">—</span>
+                        </div>
+                        <p id="heroNetProfit" class="ads-hero-val ads-hero-val--flat mt-2">
+                            <span class="ads-skel inline-block h-9 w-48 rounded-lg"></span>
+                        </p>
+                        <p id="heroNetProfitCmp" class="mt-1.5 text-sm text-slate-500"></p>
+                    </div>
+                    <div id="heroBreakdown" class="shrink-0 rounded-xl border border-white/60 bg-white/50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200/40 sm:text-right">
+                        <span class="ads-skel inline-block h-4 w-56 rounded"></span>
+                    </div>
+                </div>
+            </section>
+
+            <div id="kpiGrid" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Đơn QC</p>
+                    <p id="kpiOrders" class="ads-kpi-val mt-2 text-xl font-bold text-slate-900">—</p>
+                    <p id="kpiOrdersCmp" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Doanh thu QC</p>
+                    <p id="kpiRevenue" class="ads-kpi-val mt-2 text-xl font-bold text-slate-900">—</p>
+                    <p id="kpiRevenueCmp" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">DT/đơn</p>
+                    <p id="kpiRevenuePerOrder" class="ads-kpi-val mt-2 text-xl font-bold text-slate-900">—</p>
+                    <p id="kpiRevenuePerOrderCmp" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">ROAS</p>
+                    <p id="kpiRoas" class="ads-kpi-val mt-2 text-xl font-bold">—</p>
+                    <p class="mt-1 text-xs text-slate-400">≥ 3× là ổn</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">CPA</p>
+                    <p id="kpiCpa" class="ads-kpi-val mt-2 text-xl font-bold text-slate-900">—</p>
+                    <p id="kpiCpaCmp" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">LN thực/đơn</p>
+                    <p id="kpiProfitPerOrder" class="ads-kpi-val mt-2 text-xl font-bold">—</p>
+                    <p id="kpiProfitPerOrderCmp" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">Chi tiết theo ngày</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1040px] text-sm">
+                        <thead class="bg-slate-50/90 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Ngày</th>
+                                <th class="px-4 py-3 text-right">Chi QC</th>
+                                <th class="px-4 py-3 text-right">Đơn FB</th>
+                                <th class="px-4 py-3 text-right">DT FB</th>
+                                <th class="px-4 py-3 text-right">DT/đơn</th>
+                                <th class="px-4 py-3 text-right">LN gộp</th>
+                                <th class="px-4 py-3 text-right">ROAS</th>
+                                <th class="px-4 py-3 text-right">CPA</th>
+                                <th class="px-4 py-3 text-right">LN thực</th>
+                                <th class="px-4 py-3 text-right">LN thực/đơn</th>
+                                <th class="px-4 py-3 text-center w-16"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyTableBody">
+                            <tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>
+                        </tbody>
+                        <tfoot id="dailyTableFoot" class="border-t border-slate-200 bg-slate-50/80 font-semibold text-slate-900"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="editSpendModal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" role="dialog" aria-labelledby="editSpendTitle">
+            <h3 id="editSpendTitle" class="text-lg font-bold text-slate-900">Sửa chi QC</h3>
+            <p id="editSpendDateLabel" class="mt-1 text-sm text-slate-500">—</p>
+            <label class="mt-4 block text-sm font-medium text-slate-700" for="editSpendAmount">Số tiền (VNĐ)</label>
+            <input id="editSpendAmount" type="number" min="0" step="1000" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+            <div class="mt-5 flex gap-2">
+                <button type="button" id="editSpendCancel" class="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Huỷ</button>
+                <button type="button" id="editSpendSave" class="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/toast-manager.js"></script>
+    <script src="../assets/js/ads.js"></script>
+    <script src="../assets/js/auth-check.js"></script>
+</body>
+</html>
