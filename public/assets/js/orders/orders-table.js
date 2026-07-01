@@ -252,45 +252,82 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
         </div>
     `;
 
-    // Khách hàng
-    const tdCustomer = document.createElement('td');
-    tdCustomer.className = 'px-4 py-4 whitespace-nowrap text-center';
+    // Khách & giao hàng (gộp thông tin khách + địa chỉ)
+    const tdDelivery = document.createElement('td');
+    tdDelivery.className = 'px-4 py-3 text-left align-top';
+    tdDelivery.style.minWidth = '280px';
+    tdDelivery.style.maxWidth = '380px';
+
     const customerId = `customer_${order.id}`;
-    
-    // Get customer badge from cache (already calculated)
     const customerBadge = getCustomerBadge(order.customer_phone);
     const sourceBadge = typeof renderCustomerSourceBadgeHtml === 'function'
         ? renderCustomerSourceBadgeHtml(order.customer_source ?? order.customerSource)
         : '';
-    // 一键复制客户电话（与订单号列复制交互一致）；data-phone 使用 encodeURIComponent 避免特殊字符破坏属性
-    // Copy SĐT: stopPropagation để không mở modal sửa khách
+
     const phoneCopyBtn = order.customer_phone
         ? `<button type="button" onclick="event.stopPropagation(); copyToClipboard(decodeURIComponent(this.getAttribute('data-phone') || ''))" data-phone="${encodeURIComponent(order.customer_phone)}" title="Copy số điện thoại" class="inline-flex text-gray-400 hover:text-gray-600 flex-shrink-0" aria-label="Copy số điện thoại">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
             </button>`
         : '';
 
-    tdCustomer.innerHTML = `
-        <div id="${customerId}" class="group cursor-pointer hover:bg-blue-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
-            <div class="flex items-center gap-2">
-                <div class="flex-1 min-w-0">
-                    <div class="flex flex-wrap items-center justify-center gap-1.5">
-                        <span class="text-sm font-medium text-gray-900">${escapeHtml(titleCaseCustomerName(order.customer_name) || 'N/A')}</span>
-                        ${sourceBadge}
+    let address = '';
+    if (window.addressSelector?.loaded) {
+        address = window.addressSelector.formatOrderDisplayAddress(order);
+    } else {
+        const parts = [order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
+        address = parts.join(', ') || order.address || '';
+    }
+    if (!address) address = order.address || '';
+    const hasAddress = !!String(address).trim();
+    const addressTitle = escapeHtml(hasAddress ? address : 'Chưa có địa chỉ');
+    const addressBody = hasAddress
+        ? escapeHtml(address)
+        : '<span class="italic text-amber-600">Chưa có địa chỉ</span>';
+
+    tdDelivery.innerHTML = `
+        <div class="min-w-0">
+            <div id="${customerId}" class="group cursor-pointer rounded-t-lg px-2 py-1.5 -mx-2 hover:bg-blue-50 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
+                <div class="flex items-start gap-1.5">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-sm font-semibold text-gray-900">${escapeHtml(titleCaseCustomerName(order.customer_name) || 'N/A')}</span>
+                            ${sourceBadge}
+                            ${customerBadge}
+                        </div>
+                        <div class="flex items-center gap-1 mt-0.5">
+                            <span class="text-xs text-gray-500 tabular-nums">${escapeHtml(order.customer_phone || 'Chưa có SĐT')}</span>
+                            ${phoneCopyBtn}
+                        </div>
                     </div>
-                    <div class="flex items-center justify-center gap-1 flex-wrap">
-                        <span class="text-sm text-gray-500">${escapeHtml(order.customer_phone || 'N/A')}</span>
-                        ${phoneCopyBtn}
-                    </div>
-                    ${customerBadge ? `<div class="mt-1">${customerBadge}</div>` : ''}
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 flex-shrink-0 p-0.5" title="Chỉnh sửa thông tin khách hàng">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </span>
                 </div>
-                <button class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 flex-shrink-0" title="Chỉnh sửa thông tin khách hàng">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                </button>
+            </div>
+            <div class="group flex items-start gap-1.5 cursor-pointer border-t border-gray-100 px-2 py-1.5 -mx-2 rounded-b-lg hover:bg-amber-50 transition-colors" onclick="editAddress(${order.id}, '${escapeHtml(order.order_id)}')">
+                <svg class="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p class="text-xs text-gray-600 line-clamp-2 text-left flex-1 min-w-0 leading-snug" title="${addressTitle}">
+                    ${addressBody}
+                </p>
+                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
+                    ${hasAddress ? `<button type="button" data-addr="${escapeHtml(address)}" onclick="event.stopPropagation();copyAddressText(this)" class="p-0.5 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Sao chép địa chỉ">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </button>` : ''}
+                    <span class="p-0.5 rounded text-amber-600" title="Chỉnh sửa địa chỉ">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </span>
+                </div>
             </div>
         </div>
     `;
@@ -299,39 +336,6 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
     const tdProducts = document.createElement('td');
     tdProducts.className = 'px-4 py-4 text-center';
     tdProducts.innerHTML = formatProductsDisplay(order.products, order.id, order.order_id, order.notes);
-
-    // Địa chỉ
-    const tdAddress = document.createElement('td');
-    tdAddress.className = 'px-4 py-4 text-center';
-    tdAddress.style.minWidth = '350px';
-    tdAddress.style.maxWidth = '500px';
-    let address = '';
-    if (window.addressSelector?.loaded) {
-        address = window.addressSelector.formatOrderDisplayAddress(order);
-    } else {
-        const parts = [order.street_address, order.ward_name, order.district_name, order.province_name].filter(Boolean);
-        address = parts.join(', ') || order.address || '';
-    }
-    if (!address) address = order.address || 'Chưa có địa chỉ';
-    tdAddress.innerHTML = `
-        <div class="group flex items-start gap-2 cursor-pointer hover:bg-amber-50 rounded-lg px-3 py-2 -mx-3 -my-2 transition-colors" onclick="editAddress(${order.id}, '${escapeHtml(order.order_id)}')">
-            <p class="text-sm text-gray-700 line-clamp-3 text-left flex-1 min-w-0" title="${escapeHtml(address)}">
-                ${escapeHtml(address)}
-            </p>
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">
-                <button data-addr="${escapeHtml(address)}" onclick="event.stopPropagation();copyAddressText(this)" class="p-0.5 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Sao chép địa chỉ">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                </button>
-                <button class="p-0.5 rounded text-amber-600 hover:text-amber-700 hover:bg-amber-100 transition-colors" title="Chỉnh sửa địa chỉ">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `;
 
     // Giá trị (Total Amount - Doanh thu)
     const tdAmount = document.createElement('td');
@@ -473,9 +477,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
 
     tr.appendChild(tdIndex);
     tr.appendChild(tdOrderId);
-    tr.appendChild(tdCustomer);
+    tr.appendChild(tdDelivery);
     tr.appendChild(tdProducts);
-    tr.appendChild(tdAddress);
     tr.appendChild(tdAmount);
     tr.appendChild(tdProfit);
     tr.appendChild(tdDate);

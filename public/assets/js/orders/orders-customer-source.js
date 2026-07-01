@@ -86,7 +86,7 @@ const _CUSTOMER_SOURCE_BADGE_CLS = {
     tiktok: 'bg-slate-100 text-slate-800 border-slate-200/80'
 };
 
-/** Badge HTML nguồn khách — dùng cột Khách hàng bảng đơn. */
+/** Badge HTML nguồn khách — dùng cột Khách & giao hàng bảng đơn. */
 function renderCustomerSourceBadgeHtml(raw) {
     const slug = normalizeCustomerSourceClient(raw);
     if (!slug) return '';
