@@ -150,6 +150,34 @@ function _getOrderPlaceDayVN(order) {
 }
 
 /**
+ * Đếm đơn theo nguồn khách (mặc định thiếu field → Facebook).
+ */
+function countOrdersByCustomerSource(orders) {
+    const counts = { facebook: 0, zalo: 0, tiktok: 0 };
+    if (!Array.isArray(orders)) return counts;
+    for (const o of orders) {
+        const key = typeof orderCustomerSourceFilterKey === 'function'
+            ? orderCustomerSourceFilterKey(o)
+            : 'facebook';
+        if (counts[key] != null) counts[key]++;
+    }
+    return counts;
+}
+
+function formatDayChipSourceTooltip(orders) {
+    const counts = countOrdersByCustomerSource(orders);
+    const labels = [
+        { slug: 'facebook', label: 'Facebook' },
+        { slug: 'zalo', label: 'Zalo' },
+        { slug: 'tiktok', label: 'TikTok' }
+    ];
+    const parts = labels
+        .filter(({ slug }) => counts[slug] > 0)
+        .map(({ slug, label }) => `${label}: ${counts[slug]} đơn`);
+    return parts.join(' | ');
+}
+
+/**
  * Gom đơn theo ngày đặt (lịch VN), sắp cũ → mới, tối đa N ngày.
  */
 const QUICK_SELECT_MAX_DAY_CHIPS = 7;
@@ -203,8 +231,10 @@ function updateQuickSelectDayChips() {
     wrap.innerHTML = bundles.map((b) => {
         const day = escapeHtml(b.dateLabel);
         const label = escapeHtml(`${b.shortLabel} (${b.count} đơn)`);
-        const title = escapeHtml(`Bấm để chọn/bỏ chọn ${b.count} đơn đặt ngày ${b.dateLabel}`);
-        return `<button type="button" class="${chipClass}" data-order-day="${day}" title="${title}">${label}</button>`;
+        const sourceTip = formatDayChipSourceTooltip(b.orders);
+        const sourceTipAttr = escapeHtml(sourceTip);
+        const ariaLabel = escapeHtml(`${sourceTip}. Bấm để chọn/bỏ chọn ${b.count} đơn đặt ngày ${b.dateLabel}`);
+        return `<button type="button" class="${chipClass} quick-select-day-btn--tip" data-order-day="${day}" data-source-tip="${sourceTipAttr}" aria-label="${ariaLabel}">${label}</button>`;
     }).join('');
 
     syncQuickSelectDayChipStates();

@@ -387,6 +387,61 @@
             animation: fadeIn 0.2s ease-out;
         }
 
+        /* Tooltip nguồn khách — chip chọn đơn theo ngày */
+        .quick-select-day-btn--tip {
+            position: relative;
+        }
+
+        .quick-select-day-btn--tip::after {
+            content: attr(data-source-tip);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 8px);
+            transform: translateX(-50%) translateY(4px);
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.94);
+            color: #f8fafc;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.35;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+            z-index: 60;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+        }
+
+        .quick-select-day-btn--tip::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 2px);
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(15, 23, 42, 0.94);
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease, visibility 0.15s;
+            z-index: 60;
+        }
+
+        .quick-select-day-btn--tip:hover::after,
+        .quick-select-day-btn--tip:focus-visible::after {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .quick-select-day-btn--tip:hover::before,
+        .quick-select-day-btn--tip:focus-visible::before {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* Custom Date Picker Modal */
         .date-picker-modal {
             position: fixed;
@@ -1272,7 +1327,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=100"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=101"></script>
 </body>
 
 </html>
