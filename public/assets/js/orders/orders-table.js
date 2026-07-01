@@ -48,23 +48,28 @@ function getCustomerBadge(customerPhone) {
     const totalSpent = stats.totalSpent;
     
     let badgeClass = '';
+    let badgeBorder = '';
     let badgeText = '';
     
     if (orderCount === 1) {
         badgeClass = 'bg-blue-100 text-blue-700';
+        badgeBorder = 'border-blue-200/80';
         badgeText = 'Mới';
     } else if (orderCount === 2) {
         badgeClass = 'bg-purple-100 text-purple-700';
+        badgeBorder = 'border-purple-200/80';
         badgeText = 'Quen';
     } else if (orderCount >= 3 && orderCount <= 9) {
         badgeClass = 'bg-yellow-100 text-yellow-700';
+        badgeBorder = 'border-yellow-200/80';
         badgeText = 'VIP';
     } else if (orderCount >= 10) {
         badgeClass = 'bg-orange-100 text-orange-700';
+        badgeBorder = 'border-orange-200/80';
         badgeText = 'Thân thiết';
     }
     
-    return `<span class="text-xs px-2 py-0.5 rounded-full ${badgeClass} font-medium" title="${orderCount} đơn hàng • ${formatCurrency(totalSpent)}">${badgeText}</span>`;
+    return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full font-semibold leading-none border ${badgeClass} ${badgeBorder}" style="font-size:10px" title="${orderCount} đơn hàng • ${formatCurrency(totalSpent)}">${badgeText}</span>`;
 }
 
 /**
@@ -288,17 +293,13 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
 
     tdDelivery.innerHTML = `
         <div class="min-w-0">
-            <div id="${customerId}" class="group cursor-pointer rounded-t-lg px-2 py-1.5 -mx-2 hover:bg-blue-50 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
-                <div class="flex items-start gap-1.5">
+            <div id="${customerId}" class="group cursor-pointer rounded-t-lg hover:bg-blue-50 transition-colors" onclick="editCustomerInfo(${order.id}, '${escapeHtml(order.order_id)}')">
+                <div class="flex items-start gap-1.5 px-2 py-1.5 -mx-2">
                     <div class="flex-1 min-w-0">
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span class="text-sm font-semibold text-gray-900">${escapeHtml(titleCaseCustomerName(order.customer_name) || 'N/A')}</span>
                             ${sourceBadge}
                             ${customerBadge}
-                        </div>
-                        <div class="flex items-center gap-1 mt-0.5">
-                            <span class="text-xs text-gray-500 tabular-nums">${escapeHtml(order.customer_phone || 'Chưa có SĐT')}</span>
-                            ${phoneCopyBtn}
                         </div>
                     </div>
                     <span class="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 flex-shrink-0 p-0.5" title="Chỉnh sửa thông tin khách hàng">
@@ -307,13 +308,20 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
                         </svg>
                     </span>
                 </div>
+                <div class="flex items-center gap-1 border-t border-gray-100 px-2 py-1.5 -mx-2">
+                    <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
+                    <span class="text-gray-500 tabular-nums" style="font-size:13px">${escapeHtml(order.customer_phone || 'Chưa có SĐT')}</span>
+                    ${phoneCopyBtn}
+                </div>
             </div>
             <div class="group flex items-start gap-1.5 cursor-pointer border-t border-gray-100 px-2 py-1.5 -mx-2 rounded-b-lg hover:bg-amber-50 transition-colors" onclick="editAddress(${order.id}, '${escapeHtml(order.order_id)}')">
                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <p class="text-xs text-gray-600 line-clamp-2 text-left flex-1 min-w-0 leading-snug" title="${addressTitle}">
+                <p class="text-gray-600 line-clamp-2 text-left flex-1 min-w-0 leading-snug" style="font-size:13px" title="${addressTitle}">
                     ${addressBody}
                 </p>
                 <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pt-0.5">

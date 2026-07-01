@@ -93,6 +93,6 @@ function renderCustomerSourceBadgeHtml(raw) {
     const opt = CUSTOMER_SOURCE_OPTIONS.find((o) => o.slug === slug);
     if (!opt) return '';
     const cls = _CUSTOMER_SOURCE_BADGE_CLS[slug] || 'bg-gray-100 text-gray-700 border-gray-200';
-    return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none border ${cls}">${escapeHtml(opt.label)}</span>`;
+    return `<span class="inline-flex items-center px-1.5 py-0.5 rounded-full font-semibold leading-none border ${cls}" style="font-size:10px">${escapeHtml(opt.label)}</span>`;
 }
 
