@@ -463,7 +463,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getAdAnalytics': {
             const adPeriod = url.searchParams.get('period') || 'yesterday';
-            return await getAdAnalytics(adPeriod, env, corsHeaders);
+            const startDate = url.searchParams.get('start_date');
+            const endDate = url.searchParams.get('end_date');
+            return await getAdAnalytics(adPeriod, env, corsHeaders, { startDate, endDate });
         }
 
         case 'updateTaxRate':

@@ -140,7 +140,33 @@ body{overscroll-behavior-y:contain}
 .m-ad-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);animation:fadeIn .2s ease}
 .m-ad-sheet-panel{position:relative;z-index:1;width:100%;max-width:32rem;margin:0 auto;max-height:min(88dvh,calc(100dvh - env(safe-area-inset-top,0px) - 8px));display:flex;flex-direction:column;background:#f9fafb;border-radius:1rem 1rem 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.12);animation:sheetUp .28s cubic-bezier(.32,.72,0,1);pointer-events:auto}
 .m-ad-sheet-handle{flex-shrink:0;width:2.5rem;height:4px;background:#d1d5db;border-radius:999px;margin:0.625rem auto 0}
-.m-ad-sheet-header{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;padding:0.75rem 1.25rem 1rem;border-bottom:1px solid #f3f4f6;background:#fff}
+.m-ad-sheet-header{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;padding:0.75rem 1.25rem 0.75rem;border-bottom:1px solid #f3f4f6;background:#fff}
+.m-ad-sheet-period{flex-shrink:0;padding:0 1rem 0.75rem;background:#fff;border-bottom:1px solid #f3f4f6}
+.m-ad-ptab{transition:all .15s;border:none;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-ptab.active{background:#6366f1;color:#fff!important;font-weight:600;box-shadow:0 1px 4px rgba(99,102,241,.35)}
+.m-ad-ptab-cal{flex:none!important;width:2.35rem;padding:0.375rem 0!important;display:flex;align-items:center;justify-content:center}
+.m-ad-ptab-cal svg{width:1.25rem;height:1.25rem}
+.m-ad-daypick-overlay{position:fixed;inset:0;z-index:10001;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+.m-ad-daypick-overlay:not(.hidden){pointer-events:auto}
+.m-ad-daypick-overlay.hidden{display:none!important}
+.m-ad-daypick-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);animation:fadeIn .2s ease}
+.m-ad-daypick-panel{position:relative;z-index:1;width:100%;max-width:32rem;margin:0 auto;background:#fff;border-radius:1rem 1rem 0 0;padding:0 1rem 1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(15,23,42,.12);animation:sheetUp .28s cubic-bezier(.32,.72,0,1);pointer-events:auto}
+.m-ad-daypick-handle{width:2.5rem;height:4px;background:#d1d5db;border-radius:999px;margin:0.625rem auto 0.75rem}
+.m-ad-daypick-quick{display:flex;gap:0.5rem;margin-bottom:0.75rem}
+.m-ad-daypick-quick-btn{flex:1;padding:0.5rem;border-radius:0.625rem;border:1px solid #e5e7eb;background:#f9fafb;font-size:0.75rem;font-weight:600;color:#374151;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-daypick-quick-btn:active{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+.m-ad-daypick-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem}
+.m-ad-daypick-nav-btn{width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:999px;border:none;background:#f3f4f6;color:#374151;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-daypick-nav-btn:active{background:#e5e7eb}
+.m-ad-daypick-nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.m-ad-daypick-month{font-size:0.9375rem;font-weight:700;color:#111827}
+.m-ad-daypick-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:0.25rem}
+.m-ad-daypick-wd{text-align:center;font-size:0.625rem;font-weight:700;color:#9ca3af;padding:0.25rem 0}
+.m-ad-daypick-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:none;border-radius:999px;background:transparent;font-size:0.8125rem;font-weight:600;color:#374151;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-daypick-day:active:not(:disabled){background:#eef2ff}
+.m-ad-daypick-day.is-today{box-shadow:inset 0 0 0 2px #6366f1}
+.m-ad-daypick-day.is-selected{background:#6366f1;color:#fff!important;box-shadow:0 2px 8px rgba(99,102,241,.35)}
+.m-ad-daypick-day:disabled{opacity:.28;cursor:not-allowed}
 .m-ad-sheet-close{flex-shrink:0;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#f3f4f6;color:#6b7280;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .m-ad-sheet-close:active{background:#e5e7eb}
 .m-ad-sheet-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom,0px))}
@@ -1887,7 +1913,7 @@ function showDetail(id){
             <div class="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center shrink-0 mt-0.5">
               <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
-            <p class="text-sm text-gray-600 leading-snug">${esc(o.address||'Chưa có địa chỉ')}</p>
+            <p class="text-sm text-gray-600 leading-snug">${esc(mFormatLegacyDisplayAddress(o))}</p>
           </div>
           <div class="rounded-xl border border-gray-100 bg-gradient-to-br from-slate-50 to-white p-2.5">
             <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 px-0.5">Nguồn khách</p>
@@ -2143,8 +2169,20 @@ async function showEditOrder(id,opts){
     if(ctv)setCTVSelected(ctv);
   }
   _populateCatFilter();
+  const legacyOrder=!dupPreview&&await mIsLegacyOrderAddress(o);
+  if(legacyOrder){
+    mAddressMode='legacy';
+    mLegacyOrderRef=o;
+  }else{
+    mAddressMode='normal';
+    mLegacyOrderRef=null;
+  }
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
-    await initMCreateAddressSelector(o);
+    if(mAddressMode==='legacy')showMLegacyAddressBlock(o);
+    else{
+      hideMLegacyAddressBlock();
+      await initMCreateAddressSelector(o);
+    }
     renderProductPicker();
     renderCart();
     const depEl2=document.getElementById('cDeposit');
@@ -2221,11 +2259,80 @@ let activeCategoryMultiIds=null;
 let mCatSheetMultiMode=false;
 let mCatSheetPendingMulti=new Set();
 let mCreateAddressSelector=null;
+/** 'normal' | 'legacy' (read-only 3 cấp) | 'migrating' (user đang chuyển sang 2 cấp) */
+let mAddressMode='normal';
+let mLegacyOrderRef=null;
+let mLegacyWardKeySet=null;
+
+function mFormatLegacyDisplayAddress(order){
+  if(!order)return'Chưa có địa chỉ';
+  const addr=(order.address&&String(order.address).trim())||'';
+  const structured=[order.street_address,order.ward_name,order.district_name,order.province_name].filter(Boolean).join(', ');
+  return addr||structured||'Chưa có địa chỉ';
+}
+async function mLoadLegacyWardKeySet(){
+  if(mLegacyWardKeySet)return mLegacyWardKeySet;
+  try{
+    const r=await fetch('../assets/data/tree_2.json');
+    const raw=await r.json();
+    const set=new Set();
+    (raw||[]).forEach(p=>{
+      (p.wards||[]).forEach(w=>set.add(`${String(p.code)}-${String(w.code)}`));
+    });
+    mLegacyWardKeySet=set;
+  }catch(_){
+    mLegacyWardKeySet=new Set();
+  }
+  return mLegacyWardKeySet;
+}
+async function mIsLegacyOrderAddress(order){
+  if(!order)return false;
+  if(order.district_id||order.district_name)return true;
+  if(!order.province_id)return false;
+  const wId=order.ward_id?String(order.ward_id):'';
+  if(!wId)return true;
+  const keys=await mLoadLegacyWardKeySet();
+  return !keys.has(`${String(order.province_id)}-${wId}`);
+}
+function showMLegacyAddressBlock(order){
+  const block=document.getElementById('mLegacyAddressBlock');
+  const wrap=document.getElementById('mOrderAddressSelectorWrap');
+  if(!block)return;
+  const full=mFormatLegacyDisplayAddress(order);
+  block.innerHTML=`
+    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+      <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Địa chỉ cũ 3 cấp</p>
+      <p class="text-sm font-medium text-gray-900 leading-snug break-words">${esc(full)}</p>
+    </div>
+    <button type="button" onclick="beginMUpdateAddressTo2Level()" class="w-full py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl active:scale-[0.98] transition-transform">
+      Cập nhật địa chỉ mới (2 cấp)
+    </button>`;
+  block.classList.remove('hidden');
+  wrap?.classList.add('hidden');
+  destroyMCreateAddressSelector();
+}
+function hideMLegacyAddressBlock(){
+  document.getElementById('mLegacyAddressBlock')?.classList.add('hidden');
+  document.getElementById('mOrderAddressSelectorWrap')?.classList.remove('hidden');
+}
+async function beginMUpdateAddressTo2Level(){
+  const order=mLegacyOrderRef||(editOrderId?allOrders.find(x=>x.id===editOrderId):null);
+  mAddressMode='migrating';
+  hideMLegacyAddressBlock();
+  document.getElementById('smartPasteBlock')?.classList.remove('hidden');
+  const sp=document.getElementById('smartPasteInput');
+  if(sp&&!sp.value.trim()&&order){
+    sp.value=[order.customer_name,order.customer_phone,mFormatLegacyDisplayAddress(order)].filter(Boolean).join(' ');
+  }
+  await initMCreateAddressSelector(null);
+  document.getElementById('mAddressFormBlock')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
 
 function showCreateOrder(){
   document.getElementById('detailPanel')?.classList.add('hidden');
   detailOpenOrderId=null;
   editOrderId=null;duplicatePreviewSourceId=null;mDiscount=null;manualSheetQuickSel=null;createProducts=[];activeCategoryId='';activeCategoryMultiIds=null;mCatSheetMultiMode=false;mCatSheetPendingMulti=new Set();
+  mAddressMode='normal';mLegacyOrderRef=null;
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
   injectMOrderAddressShell();
@@ -2595,6 +2702,7 @@ async function initMCreateAddressSelector(orderForHydrate){
 }
 function closeCreatePanelOnly(){
   editOrderId=null;duplicatePreviewSourceId=null;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
+  mAddressMode='normal';mLegacyOrderRef=null;
   closeCategorySheet();
   clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
@@ -2646,7 +2754,10 @@ function buildCreateForm(isEdit=false){
     <!-- Địa chỉ (HierarchicalAddressSelector — tìm kiếm + cascade như mua ngay) -->
     <div id="mAddressFormBlock" class="m-address-section bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Địa chỉ giao hàng</h3>
-      <div id="mOrderAddressSelectorContainer" class="min-h-[52px]"></div>
+      <div id="mLegacyAddressBlock" class="hidden space-y-3"></div>
+      <div id="mOrderAddressSelectorWrap">
+        <div id="mOrderAddressSelectorContainer" class="min-h-[52px]"></div>
+      </div>
     </div>
 
     <!-- Sản phẩm -->
@@ -3592,11 +3703,10 @@ async function submitOrder(){
     ?allOrders.find(x=>x.id===editOrderId)
     :(isDupPreview?allOrders.find(x=>x.id===duplicatePreviewSourceId):null);
 
+  const preserveLegacyAddress=isEdit&&mAddressMode==='legacy'&&!!existingOrder;
   const addr=mCreateAddressSelector?.getAddressData?.();
-  // In edit mode: fall back to existing order's codes if selector failed to hydrate
-  // (happens when province_id format doesn't match tree.json, or hydration was skipped)
-  const provinceId=addr?.provinceCode||((isEdit||isDupPreview)?(existingOrder?.province_id||''):'');
-  const wardId=addr?.wardCode||((isEdit||isDupPreview)?(existingOrder?.ward_id||''):'');
+  let provinceId=addr?.provinceCode||((isEdit||isDupPreview)?(existingOrder?.province_id||''):'');
+  let wardId=addr?.wardCode||((isEdit||isDupPreview)?(existingOrder?.ward_id||''):'');
 
   let firstErrEl=null;
   const addErr=(id,msg)=>{const el=setFieldError(id,msg);if(!firstErrEl&&el)firstErrEl=el;};
@@ -3604,9 +3714,11 @@ async function submitOrder(){
   if(!name)addErr('cName','Vui lòng nhập tên khách hàng');
   if(!phone)addErr('cPhone','Vui lòng nhập số điện thoại');
   else if(!/^(0\d{9}|\+84\d{9})$/.test(phone.replace(/\s/g,'')))addErr('cPhone','Số điện thoại không hợp lệ (VD: 0912345678)');
-  if(!mCreateAddressSelector)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
-  else if(!provinceId)addErr('mAddressFormBlock','Vui lòng chọn Tỉnh/Thành phố');
-  else if(!wardId)addErr('mAddressFormBlock','Vui lòng chọn Phường/Xã');
+  if(!preserveLegacyAddress){
+    if(!mCreateAddressSelector)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
+    else if(!provinceId)addErr('mAddressFormBlock','Vui lòng chọn Tỉnh/Thành phố');
+    else if(!wardId)addErr('mAddressFormBlock','Vui lòng chọn Phường/Xã');
+  }
 
   const cartErrEl=document.getElementById('cartErrMsg');
   if(!createProducts.length){
@@ -3625,14 +3737,28 @@ async function submitOrder(){
     return;
   }
 
-  // Address fields: use selector value if available, else fall back to existing order data
-  const selectorHasAddr=!!(addr?.provinceCode);
-  const street=(addr?.street||((isEdit||isDupPreview)?(existingOrder?.street_address||''):'')).trim();
-  const pName=addr?.provinceName||((isEdit||isDupPreview)?(existingOrder?.province_name||''):'');
-  const wName=addr?.wardName||((isEdit||isDupPreview)?(existingOrder?.ward_name||''):'');
-  const fullAddr=selectorHasAddr
-    ?[street,wName,pName].filter(Boolean).join(', ')
-    :(existingOrder?.address||[street,wName,pName].filter(Boolean).join(', '));
+  // Address fields
+  let street,pName,wName,fullAddr,districtId,districtName;
+  if(preserveLegacyAddress){
+    provinceId=existingOrder.province_id||'';
+    wardId=existingOrder.ward_id||'';
+    street=(existingOrder.street_address||'').trim();
+    pName=existingOrder.province_name||'';
+    wName=existingOrder.ward_name||'';
+    districtId=existingOrder.district_id||null;
+    districtName=existingOrder.district_name||null;
+    fullAddr=existingOrder.address||mFormatLegacyDisplayAddress(existingOrder);
+  }else{
+    const selectorHasAddr=!!(addr?.provinceCode);
+    street=(addr?.street||((isEdit||isDupPreview)?(existingOrder?.street_address||''):'')).trim();
+    pName=addr?.provinceName||((isEdit||isDupPreview)?(existingOrder?.province_name||''):'');
+    wName=addr?.wardName||((isEdit||isDupPreview)?(existingOrder?.ward_name||''):'');
+    districtId=null;
+    districtName=null;
+    fullAddr=selectorHasAddr
+      ?[street,wName,pName].filter(Boolean).join(', ')
+      :(existingOrder?.address||[street,wName,pName].filter(Boolean).join(', '));
+  }
 
   const mSendLater=document.getElementById('mSendLaterChk')?.checked;
   let outStatus;
@@ -3745,7 +3871,7 @@ async function submitOrder(){
     customer:{name,phone},
     address:fullAddr,
     province_id:provinceId,province_name:pName,
-    district_id:null,district_name:null,
+    district_id:districtId,district_name:districtName,
     ward_id:wardId,ward_name:wName,
     street_address:street,
     paymentMethod,payment_method:paymentMethod,
@@ -3784,6 +3910,13 @@ async function submitOrder(){
             customer_name:name,
             customer_phone:phone,
             address:fullAddr,
+            province_id:provinceId,
+            province_name:pName,
+            district_id:districtId,
+            district_name:districtName,
+            ward_id:wardId,
+            ward_name:wName,
+            street_address:street,
             payment_method:paymentMethod,
             shipping_fee:shipFee,
             total_amount:payTotal,
@@ -5943,12 +6076,148 @@ function updateTabActive(p){
 
 // ─── Modal chi tiết quảng cáo (Stats tab) ───
 let mAdDetailLoading=false;
+/** yesterday | today | 7d | 30d | custom */
+let mAdDetailPeriod='today';
+/** YYYY-MM-DD khi mAdDetailPeriod === 'custom' */
+let mAdDetailCustomDate=null;
+let mAdDayPickView={y:0,m:0};
+
+const M_AD_DETAIL_PERIODS={
+  yesterday:{api:'yesterday',label:'Hôm qua',short:'H.qua'},
+  today:{api:'today',label:'Hôm nay',short:'H.nay'},
+  '7d':{api:'7d',label:'7 ngày',short:'7 ng'},
+  '30d':{api:'30d',label:'30 ngày',short:'30 ng'}
+};
+
+function mAdVnTodayIso(){
+  return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
+}
+
+function mAdDetailPeriodFromStats(){
+  if(currentPeriod==='custom'&&customRange?.startDate&&customRange.startDate===customRange.endDate){
+    mAdDetailCustomDate=customRange.startDate;
+    return'custom';
+  }
+  mAdDetailCustomDate=null;
+  if(currentPeriod==='yesterday')return'yesterday';
+  if(currentPeriod==='today')return'today';
+  if(currentPeriod==='week')return'7d';
+  if(currentPeriod==='month')return'30d';
+  return'today';
+}
+
+function mAdDetailPeriodLabel(p){
+  if(p==='custom'&&mAdDetailCustomDate)return mAdFmtDate(mAdDetailCustomDate);
+  return M_AD_DETAIL_PERIODS[p]?.label||'Hôm nay';
+}
+
+function syncMAdDetailPeriodTabs(){
+  document.querySelectorAll('[data-mad-period]').forEach(btn=>{
+    const on=btn.dataset.madPeriod===mAdDetailPeriod;
+    btn.classList.toggle('active',on);
+    btn.classList.toggle('text-gray-500',!on);
+    btn.setAttribute('aria-selected',on?'true':'false');
+  });
+  const sub=document.getElementById('mAdDetailSub');
+  if(sub)sub.textContent=`${mAdDetailPeriodLabel(mAdDetailPeriod)} · Facebook QC`;
+}
+
+function setMAdDetailPeriod(p){
+  if(!M_AD_DETAIL_PERIODS[p]||mAdDetailPeriod===p)return;
+  mAdDetailPeriod=p;
+  mAdDetailCustomDate=null;
+  syncMAdDetailPeriodTabs();
+  loadMAdDetail();
+}
+
+function openMAdDayPick(){
+  const today=mAdVnTodayIso();
+  const src=mAdDetailCustomDate||today;
+  const [y,m]=src.split('-').map(Number);
+  mAdDayPickView={y,m:m-1,selected:src};
+  renderMAdDayPickCal();
+  const sheet=document.getElementById('mAdDayPickSheet');
+  if(sheet){
+    sheet.classList.remove('hidden');
+    sheet.setAttribute('aria-hidden','false');
+  }
+}
+
+function closeMAdDayPick(){
+  const sheet=document.getElementById('mAdDayPickSheet');
+  if(sheet){
+    sheet.classList.add('hidden');
+    sheet.setAttribute('aria-hidden','true');
+  }
+}
+
+function mAdDayPickShiftMonth(delta){
+  let {y,m}=mAdDayPickView;
+  m+=delta;
+  if(m<0){m=11;y--;}
+  if(m>11){m=0;y++;}
+  const today=mAdVnTodayIso();
+  const [ty,tm]=today.split('-').map(Number);
+  if(y>ty||(y===ty&&m+1>tm))return;
+  mAdDayPickView.y=y;
+  mAdDayPickView.m=m;
+  renderMAdDayPickCal();
+}
+
+function renderMAdDayPickCal(){
+  const {y,m}=mAdDayPickView;
+  const today=mAdVnTodayIso();
+  const [ty,tm,td]=today.split('-').map(Number);
+  const label=document.getElementById('mAdDayPickMonthLabel');
+  if(label)label.textContent=`Tháng ${m+1}/${y}`;
+  const prevBtn=document.getElementById('mAdDayPickPrev');
+  const nextBtn=document.getElementById('mAdDayPickNext');
+  if(nextBtn)nextBtn.disabled=y>ty||(y===ty&&m+1>=tm);
+  const grid=document.getElementById('mAdDayPickGrid');
+  if(!grid)return;
+  const monthStr=String(m+1).padStart(2,'0');
+  const firstWd=(new Date(`${y}-${monthStr}-01T12:00:00+07:00`).getDay()+6)%7;
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const selected=mAdDayPickView.selected||mAdDetailCustomDate;
+  const wds=['T2','T3','T4','T5','T6','T7','CN'];
+  let html=wds.map(w=>`<span class="m-ad-daypick-wd">${w}</span>`).join('');
+  for(let i=0;i<firstWd;i++)html+='<span aria-hidden="true"></span>';
+  for(let day=1;day<=daysInMonth;day++){
+    const iso=`${y}-${monthStr}-${String(day).padStart(2,'0')}`;
+    const isFuture=y>ty||(y===ty&&m+1>tm)||(y===ty&&m+1===tm&&day>td);
+    const cls=[
+      'm-ad-daypick-day',
+      iso===today?'is-today':'',
+      iso===selected?'is-selected':''
+    ].filter(Boolean).join(' ');
+    html+=`<button type="button" class="${cls}" ${isFuture?'disabled':''} onclick="applyMAdDetailDay('${iso}')">${day}</button>`;
+  }
+  grid.innerHTML=html;
+}
+
+function applyMAdDetailDay(iso){
+  if(!iso)return;
+  mAdDetailPeriod='custom';
+  mAdDetailCustomDate=iso;
+  mAdDayPickView.selected=iso;
+  closeMAdDayPick();
+  syncMAdDetailPeriodTabs();
+  loadMAdDetail();
+}
+
+function mAdDayPickQuick(kind){
+  const today=mAdVnTodayIso();
+  if(kind==='today')return applyMAdDetailDay(today);
+  const prev=new Date(`${today}T12:00:00+07:00`);
+  prev.setTime(prev.getTime()-86400000);
+  applyMAdDetailDay(prev.toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'}));
+}
 
 function statsToAdPeriod(){
   if(currentPeriod==='yesterday')return'yesterday';
   if(currentPeriod==='today')return'today';
   if(currentPeriod==='week')return'7d';
-  if(currentPeriod==='month')return'month';
+  if(currentPeriod==='month')return'30d';
   return'today';
 }
 
@@ -5972,16 +6241,25 @@ function mAdNetCls(v){
   return v>=0?'text-emerald-600':'text-red-600';
 }
 
-function mAdRoasCls(v,be){
-  if(v==null||!Number.isFinite(v))return'';
-  // Chi QC < 20% doanh thu FB ↔ ROAS > 5×
-  if(v>=5)return'text-emerald-600';
-  if(v>0)return'text-amber-600';
-  return'text-red-600';
+function mAdRoasCls(adSpend,fbRevenue){
+  return mAdQcShareCls(adSpend,fbRevenue);
 }
 
-/** Chi QC ÷ doanh thu Facebook (%). null = có chi nhưng chưa có DT. */
-const M_AD_QC_SHARE_OK_MAX=20;
+/** QC/DT + ROAS. Rất tốt: QC&lt;5% &amp; ROAS&gt;20. Tốt: QC&lt;10%. Ổn: 10–20%. Chú ý: 20–35%. Cẩn thận: ≥35%. */
+function mAdQcShareTier(adSpend,fbRevenue){
+  const spend=Number(adSpend)||0;
+  const rev=Number(fbRevenue)||0;
+  if(spend<=0)return'ok';
+  if(rev<=0)return'bad';
+  const pct=spend/rev*100;
+  const roas=rev/spend;
+  if(pct<5&&roas>20)return'great';
+  if(pct>=35)return'bad';
+  if(pct>=20)return'warn';
+  if(pct>=10)return'ok';
+  if(roas>10||pct<10)return'good';
+  return'good';
+}
 
 function mAdQcSharePct(adSpend,fbRevenue){
   const spend=Number(adSpend)||0;
@@ -5990,16 +6268,9 @@ function mAdQcSharePct(adSpend,fbRevenue){
   return spend/rev*100;
 }
 
-function mAdQcShareOk(adSpend,fbRevenue){
-  const spend=Number(adSpend)||0;
-  const rev=Number(fbRevenue)||0;
-  if(spend<=0)return true;
-  if(rev<=0)return false;
-  return spend/rev*100<M_AD_QC_SHARE_OK_MAX;
-}
-
 function mAdQcShareCls(adSpend,fbRevenue){
-  return mAdQcShareOk(adSpend,fbRevenue)?'text-emerald-600':'text-amber-600';
+  const map={great:'text-emerald-700',good:'text-emerald-600',ok:'text-emerald-600',warn:'text-orange-600',bad:'text-red-600'};
+  return map[mAdQcShareTier(adSpend,fbRevenue)]||'';
 }
 
 function mAdFmtQcSharePct(adSpend,fbRevenue){
@@ -6008,11 +6279,27 @@ function mAdFmtQcSharePct(adSpend,fbRevenue){
   return pct.toFixed(1)+'%';
 }
 
+function mAdQcShareHint(adSpend,fbRevenue){
+  const map={
+    great:'Rất tốt · QC dưới 5% DT · ROAS trên 20×',
+    good:'Tốt · ROAS trên 10× hoặc QC dưới 10% DT',
+    ok:'Ổn · QC 10–20% DT',
+    warn:'Chú ý · QC 20–35% DT',
+    bad:'Cẩn thận · QC từ 35% DT trở lên'
+  };
+  return map[mAdQcShareTier(adSpend,fbRevenue)]||'—';
+}
+
 function mAdQcShareBadge(adSpend,fbRevenue){
-  const ok=mAdQcShareOk(adSpend,fbRevenue);
-  return ok
-    ?'<span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">Ổn</span>'
-    :'<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Cảnh báo</span>';
+  const tiers={
+    great:['Rất tốt','text-emerald-800','bg-emerald-100'],
+    good:['Tốt','text-emerald-700','bg-emerald-50'],
+    ok:['Ổn','text-emerald-700','bg-emerald-50'],
+    warn:['Chú ý','text-orange-700','bg-orange-50'],
+    bad:['Cẩn thận','text-red-700','bg-red-50']
+  };
+  const t=tiers[mAdQcShareTier(adSpend,fbRevenue)]||['—','text-gray-600','bg-gray-50'];
+  return`<span class="text-[9px] font-semibold ${t[1]} ${t[2]} px-1.5 py-0.5 rounded-full">${t[0]}</span>`;
 }
 
 function mAdPpoPerOrder(netProfit,fbOrders){
@@ -6028,12 +6315,24 @@ function mAdPpoHint(fbOrders){
   return`${fmtN(n)} đơn QC · LN thực ÷ ${fmtN(n)}`;
 }
 
+function mAdCmpPctSub(pct,invert){
+  if(pct==null||!Number.isFinite(pct))return'';
+  const up=pct>0.05;
+  const down=pct<-0.05;
+  if(!up&&!down)return'';
+  const good=invert?down:up;
+  const sign=pct>0?'+':'';
+  return`<p class="text-[10px] mt-0.5 ${good?'text-green-500':'text-red-400'}">${sign}${pct.toFixed(1)}%</p>`;
+}
+
 function openMAdDetail(){
   const sheet=document.getElementById('mAdDetailSheet');
   if(!sheet)return;
+  mAdDetailPeriod=mAdDetailPeriodFromStats();
   sheet.classList.remove('hidden');
   sheet.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
+  syncMAdDetailPeriodTabs();
   loadMAdDetail();
 }
 
@@ -6045,8 +6344,15 @@ function closeMAdDetail(){
   document.body.style.overflow='';
 }
 
-async function fetchMAdAnalytics(period){
-  const r=await fetch(`${API()}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${Date.now()}`,{method:'GET',mode:'cors',credentials:'omit'});
+async function fetchMAdAnalytics(period,opts){
+  const params=new URLSearchParams({action:'getAdAnalytics',timestamp:String(Date.now())});
+  if(opts?.startDate&&opts?.endDate){
+    params.set('start_date',opts.startDate);
+    params.set('end_date',opts.endDate);
+  }else{
+    params.set('period',period||'today');
+  }
+  const r=await fetch(`${API()}?${params}`,{method:'GET',mode:'cors',credentials:'omit'});
   if(!r.ok){
     let msg='HTTP '+r.status;
     try{const j=await r.json();if(j.error)msg=j.error;}catch(_){}
@@ -6071,7 +6377,6 @@ function renderMAdDetailBody(data,recentData){
   const qcSharePct=mAdFmtQcSharePct(s.ad_spend,s.fb_revenue);
   const qcShareCls=mAdQcShareCls(s.ad_spend,s.fb_revenue);
   const days=(recentData?.days||[]).slice(0,10);
-  const beRoas=s.break_even_roas;
   const periodSingle=data.start_date&&data.end_date&&data.start_date===data.end_date;
   const heroEdit=periodSingle?`<button type="button" class="m-ad-inline-edit" onclick="openMAdSpendEdit('${data.start_date}',${s.ad_spend||0})">Sửa chi QC · ${fmt(s.ad_spend||0)}</button>`:'';
 
@@ -6094,7 +6399,7 @@ function renderMAdDetailBody(data,recentData){
       <div class="px-3 pb-2.5 text-[10px] text-gray-500 border-t border-gray-50 mx-3 pt-2 leading-relaxed">
         ${[
           `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
-          `<span>ROAS <b class="${mAdRoasCls(row.roas,beRoas)}">${mAdFmtRoas(row.roas)}</b></span>`,
+          `<span>ROAS <b class="${mAdRoasCls(row.ad_spend,row.fb_revenue)}">${mAdFmtRoas(row.roas)}</b></span>`,
           `<span>CPA <b class="text-gray-800">${row.cpa!=null?fmt(row.cpa):'—'}</b></span>`,
           ppoD!=null?`<span>LN/đơn <b class="${mAdNetCls(ppoD)}">${fmt(ppoD)}</b></span>`:null
         ].filter(Boolean).join('<span class="text-gray-300 px-1.5 select-none" aria-hidden="true">|</span>')}
@@ -6102,7 +6407,7 @@ function renderMAdDetailBody(data,recentData){
     </article>`;
   }).join(''):'<p class="text-center text-sm text-gray-400 py-4">Không có dữ liệu</p>';
 
-  document.getElementById('mAdDetailSub').textContent=`${mAdPeriodLabel()} · Facebook QC`;
+  document.getElementById('mAdDetailSub').textContent=`${mAdDetailPeriodLabel(mAdDetailPeriod)} · Facebook QC`;
   document.getElementById('mAdDetailBody').innerHTML=`
     <section class="m-ad-hero ${heroCls}">
       <div class="m-ad-hero-head">
@@ -6114,12 +6419,12 @@ function renderMAdDetailBody(data,recentData){
       ${heroEdit}
     </section>
     <div class="grid grid-cols-2 gap-2">
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmtN(s.fb_orders)}${s.fb_order_share_pct!=null?`<span class="text-[10px] text-gray-400 font-normal"> · ${s.fb_order_share_pct.toFixed(1)}%</span>`:''}</p></div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmtN(s.fb_orders)}${s.fb_order_share_pct!=null?`<span class="text-[10px] text-gray-400 font-normal"> · ${s.fb_order_share_pct.toFixed(1)}%</span>`:''}</p>${mAdCmpPctSub(c.fb_orders_pct)}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}${mAdCmpPctSub(c.fb_revenue_pct)}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN gộp</p><p class="text-sm font-bold mt-1 ${mAdNetCls(grossProfit)}">${fmt(grossProfit)}</p>${gmp!=null?`<p class="text-[10px] text-gray-400 mt-0.5">TS ${gmp.toFixed(1)}%</p>`:''}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">CPA</p><p class="text-sm font-bold text-gray-900 mt-1">${s.cpa!=null?fmt(s.cpa):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">Chi QC / đơn</p></div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Chi QC / DT</p><p class="text-sm font-bold mt-1 ${qcShareCls}">${qcSharePct}</p><p class="text-[10px] mt-0.5 ${qcShareCls}">${mAdQcShareOk(s.ad_spend,s.fb_revenue)?'Ổn · dưới 20% DT':'Cảnh báo · từ 20% DT trở lên'}</p></div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.roas,beRoas)}">${mAdFmtRoas(s.roas)}</p><p class="text-[10px] text-gray-400 mt-0.5">Mục tiêu > 5× (QC &lt; 20% DT)</p></div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Chi QC / DT</p><p class="text-sm font-bold mt-1 ${qcShareCls}">${qcSharePct}</p><p class="text-[10px] mt-0.5 ${qcShareCls}">${mAdQcShareHint(s.ad_spend,s.fb_revenue)}</p></div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.ad_spend,s.fb_revenue)}">${mAdFmtRoas(s.roas)}</p><p class="text-[10px] text-gray-400 mt-0.5">${mAdQcShareHint(s.ad_spend,s.fb_revenue)}</p></div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN thực/đơn QC</p><p class="text-sm font-bold mt-1 ${mAdNetCls(ppo)}">${ppo!=null?fmt(ppo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">${ppoHint}</p></div>
     </div>
     <div>
@@ -6137,37 +6442,13 @@ async function loadMAdDetail(){
   const body=document.getElementById('mAdDetailBody');
   if(body)body.innerHTML='<div class="text-center py-10 text-gray-400 text-sm">Đang tải…</div>';
   try{
-    if(currentPeriod==='custom'){
-      const cacheKey=customRange?`c_${customRange.startDate}_${customRange.endDate}`:'custom';
-      const cached=cache[cacheKey];
-      const o=cached?.cur?.overview;
-      const recent=await fetchMAdAnalytics('10d');
-      const fbSrc=(cached?.cur?.customer_sources||[]).find(x=>x.source==='facebook');
-      const adSpend=o?.ad_spend||0;
-      const gross=fbSrc?.profit||0;
-      const net=o?.net_profit!=null?o.net_profit:(gross-adSpend);
-      const synthetic={
-        summary:{
-          ad_spend:adSpend,
-          fb_orders:fbSrc?.order_count||0,
-          fb_revenue:fbSrc?.revenue||0,
-          fb_gross_profit:gross,
-          net_profit:net,
-          net_profit_per_order:fbSrc?.order_count>0?net/fbSrc.order_count:null,
-          revenue_per_order:fbSrc?.order_count>0?(fbSrc.revenue/fbSrc.order_count):null,
-          roas:adSpend>0?(fbSrc?.revenue||0)/adSpend:null,
-          cpa:fbSrc?.order_count>0?adSpend/fbSrc.order_count:null,
-          break_even_roas:gross>0?(fbSrc?.revenue||0)/gross:null
-        },
-        compare:{}
-      };
-      renderMAdDetailBody(synthetic,recent);
-    }else{
-      const period=statsToAdPeriod();
-      const [data,recent]=await Promise.all([fetchMAdAnalytics(period),fetchMAdAnalytics('10d')]);
-      if(!data.success)throw new Error(data.error||'Không tải được dữ liệu');
-      renderMAdDetailBody(data,recent.success?recent:data);
-    }
+    const apiPeriod=M_AD_DETAIL_PERIODS[mAdDetailPeriod]?.api||'today';
+    const periodFetch=mAdDetailPeriod==='custom'&&mAdDetailCustomDate
+      ?fetchMAdAnalytics(null,{startDate:mAdDetailCustomDate,endDate:mAdDetailCustomDate})
+      :fetchMAdAnalytics(apiPeriod);
+    const [data,recent]=await Promise.all([periodFetch,fetchMAdAnalytics('10d')]);
+    if(!data.success)throw new Error(data.error||'Không tải được dữ liệu');
+    renderMAdDetailBody(data,recent.success?recent:data);
   }catch(e){
     if(body)body.innerHTML=`<div class="text-center py-10 px-4"><p class="text-red-500 text-sm font-medium">Không tải được dữ liệu QC</p><p class="text-gray-400 text-xs mt-2">${esc(String(e.message||e))}</p></div>`;
   }finally{mAdDetailLoading=false;}
@@ -6343,9 +6624,48 @@ async function loadMAdDetail(){
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
+    <div class="m-ad-sheet-period" role="tablist" aria-label="Khoảng thời gian quảng cáo">
+      <div class="flex gap-1 pt-2">
+        <button type="button" role="tab" data-mad-period="yesterday" onclick="setMAdDetailPeriod('yesterday')" class="m-ad-ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">H.qua</button>
+        <button type="button" role="tab" data-mad-period="today" onclick="setMAdDetailPeriod('today')" class="m-ad-ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">H.nay</button>
+        <button type="button" role="tab" data-mad-period="7d" onclick="setMAdDetailPeriod('7d')" class="m-ad-ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">7 ng</button>
+        <button type="button" role="tab" data-mad-period="30d" onclick="setMAdDetailPeriod('30d')" class="m-ad-ptab flex-1 min-w-0 px-1 py-1.5 rounded-lg text-xs text-gray-500">30 ng</button>
+        <button type="button" role="tab" data-mad-period="custom" onclick="openMAdDayPick()" class="m-ad-ptab m-ad-ptab-cal rounded-lg text-gray-500" aria-label="Chọn ngày">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 2.994v2.25m10.5-2.25v2.25m-14.252 13.5V7.491a2.25 2.25 0 0 1 2.25-2.25h13.5a2.25 2.25 0 0 1 2.25 2.25v11.251m-18 0a2.25 2.25 0 0 0 2.25 2.25h13.5a2.25 2.25 0 0 0 2.25-2.25m-18 0v-7.5a2.25 2.25 0 0 1 2.25-2.25h13.5a2.25 2.25 0 0 1 2.25 2.25v7.5m-6.75-6h2.25m-9 2.25h4.5m.002-2.25h.005v.006H12v-.006Zm-.001 4.5h.006v.006h-.006v-.005Zm-2.25.001h.005v.006H9.75v-.006Zm-2.25 0h.005v.005h-.006v-.005Zm6.75-2.247h.005v.005h-.005v-.005Zm0 2.247h.006v.006h-.006v-.006Zm2.25-2.248h.006V15H16.5v-.005Z" /></svg>
+        </button>
+      </div>
+    </div>
     <div id="mAdDetailBody" class="m-ad-sheet-body space-y-3">
       <div class="text-center py-8 text-gray-400 text-sm">Đang tải…</div>
     </div>
+  </div>
+</div>
+
+<!-- Chọn ngày QC (modal chi tiết quảng cáo) -->
+<div id="mAdDayPickSheet" class="m-ad-daypick-overlay hidden" aria-hidden="true">
+  <div class="m-ad-daypick-backdrop" onclick="closeMAdDayPick()" aria-hidden="true"></div>
+  <div class="m-ad-daypick-panel" role="dialog" aria-modal="true" aria-labelledby="mAdDayPickTitle">
+    <div class="m-ad-daypick-handle" aria-hidden="true"></div>
+    <div class="flex items-center justify-between mb-1">
+      <h4 id="mAdDayPickTitle" class="text-base font-bold text-gray-900">Chọn ngày</h4>
+      <button type="button" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 border-none cursor-pointer" onclick="closeMAdDayPick()" aria-label="Đóng">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="m-ad-daypick-quick">
+      <button type="button" class="m-ad-daypick-quick-btn" onclick="mAdDayPickQuick('today')">Hôm nay</button>
+      <button type="button" class="m-ad-daypick-quick-btn" onclick="mAdDayPickQuick('yesterday')">Hôm qua</button>
+    </div>
+    <div class="m-ad-daypick-nav">
+      <button type="button" id="mAdDayPickPrev" class="m-ad-daypick-nav-btn" onclick="mAdDayPickShiftMonth(-1)" aria-label="Tháng trước">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span id="mAdDayPickMonthLabel" class="m-ad-daypick-month">—</span>
+      <button type="button" id="mAdDayPickNext" class="m-ad-daypick-nav-btn" onclick="mAdDayPickShiftMonth(1)" aria-label="Tháng sau">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div id="mAdDayPickGrid" class="m-ad-daypick-cal"></div>
   </div>
 </div>
 

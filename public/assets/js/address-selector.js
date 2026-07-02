@@ -158,13 +158,14 @@ class AddressSelector {
         if (!order) return 'Chưa có địa chỉ';
 
         if (this.isLegacyOrderAddress(order)) {
+            const addrStr = (order.address && String(order.address).trim()) || '';
             const legacy = [
                 order.street_address,
                 order.ward_name,
                 order.district_name,
                 order.province_name
             ].filter(Boolean).join(', ');
-            return legacy || order.address || 'Chưa có địa chỉ';
+            return addrStr || legacy || 'Chưa có địa chỉ';
         }
 
         if (order.province_id && this.loaded) {

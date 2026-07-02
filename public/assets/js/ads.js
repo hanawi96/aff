@@ -26,7 +26,25 @@
         return `${v.toFixed(1)}×`;
     }
 
-    const QC_SHARE_OK_MAX = 20;
+    /**
+     * QC/DT + ROAS → badge/màu.
+     * Rất tốt: QC&lt;5% &amp; ROAS&gt;20. Tốt: QC&lt;10% (hoặc ROAS&gt;10 khi QC&lt;10%).
+     * Ổn: QC 10–20%. Chú ý: 20–35%. Cẩn thận: ≥35%.
+     */
+    function qcShareTier(adSpend, fbRevenue) {
+        const spend = Number(adSpend) || 0;
+        const rev = Number(fbRevenue) || 0;
+        if (spend <= 0) return 'ok';
+        if (rev <= 0) return 'bad';
+        const pct = (spend / rev) * 100;
+        const roas = rev / spend;
+        if (pct < 5 && roas > 20) return 'great';
+        if (pct >= 35) return 'bad';
+        if (pct >= 20) return 'warn';
+        if (pct >= 10) return 'ok';
+        if (roas > 10 || pct < 10) return 'good';
+        return 'good';
+    }
 
     function qcSharePct(adSpend, fbRevenue) {
         const spend = Number(adSpend) || 0;
@@ -35,16 +53,15 @@
         return (spend / rev) * 100;
     }
 
-    function qcShareOk(adSpend, fbRevenue) {
-        const spend = Number(adSpend) || 0;
-        const rev = Number(fbRevenue) || 0;
-        if (spend <= 0) return true;
-        if (rev <= 0) return false;
-        return (spend / rev) * 100 < QC_SHARE_OK_MAX;
-    }
-
     function qcShareCls(adSpend, fbRevenue) {
-        return qcShareOk(adSpend, fbRevenue) ? 'text-emerald-600' : 'text-amber-600';
+        const map = {
+            great: 'text-emerald-700',
+            good: 'text-emerald-600',
+            ok: 'text-emerald-600',
+            warn: 'text-orange-600',
+            bad: 'text-red-600'
+        };
+        return map[qcShareTier(adSpend, fbRevenue)] || '';
     }
 
     function fmtQcSharePct(adSpend, fbRevenue) {
@@ -53,17 +70,37 @@
         return pct.toFixed(1) + '%';
     }
 
-    function qcShareBadge(adSpend, fbRevenue) {
-        return qcShareOk(adSpend, fbRevenue)
-            ? '<span class="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Ổn</span>'
-            : '<span class="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Cảnh báo</span>';
+    function qcShareHint(adSpend, fbRevenue) {
+        const map = {
+            great: 'Rất tốt · QC dưới 5% DT · ROAS trên 20×',
+            good: 'Tốt · ROAS trên 10× hoặc QC dưới 10% DT',
+            ok: 'Ổn · QC 10–20% DT',
+            warn: 'Chú ý · QC 20–35% DT',
+            bad: 'Cẩn thận · QC từ 35% DT trở lên'
+        };
+        return map[qcShareTier(adSpend, fbRevenue)] || '—';
     }
 
-    function roasClass(v) {
-        if (v == null || !Number.isFinite(v)) return '';
-        if (v >= 5) return 'ads-roas--good';
-        if (v > 0) return 'ads-roas--warn';
-        return 'ads-roas--bad';
+    function qcShareBadge(adSpend, fbRevenue) {
+        const map = {
+            great: '<span class="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800">Rất tốt</span>',
+            good: '<span class="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Tốt</span>',
+            ok: '<span class="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Ổn</span>',
+            warn: '<span class="ml-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700">Chú ý</span>',
+            bad: '<span class="ml-1 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">Cẩn thận</span>'
+        };
+        return map[qcShareTier(adSpend, fbRevenue)] || '';
+    }
+
+    function roasClass(adSpend, fbRevenue) {
+        const map = {
+            great: 'ads-roas--great',
+            good: 'ads-roas--good',
+            ok: 'ads-roas--good',
+            warn: 'ads-roas--warn',
+            bad: 'ads-roas--bad'
+        };
+        return map[qcShareTier(adSpend, fbRevenue)] || '';
     }
 
     function netClass(v) {
@@ -232,10 +269,10 @@
 
         const roasEl = document.getElementById('kpiRoas');
         roasEl.textContent = fmtRoas(s.roas);
-        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.roas);
+        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.ad_spend, s.fb_revenue);
         const roasHint = document.getElementById('kpiRoasHint');
         if (roasHint) {
-            roasHint.textContent = `Mục tiêu > 5× · QC/DT ${fmtQcSharePct(s.ad_spend, s.fb_revenue)} ${qcShareOk(s.ad_spend, s.fb_revenue) ? '(ổn)' : '(cảnh báo)'}`;
+            roasHint.textContent = qcShareHint(s.ad_spend, s.fb_revenue);
             roasHint.className = 'mt-1 text-xs ' + qcShareCls(s.ad_spend, s.fb_revenue);
         }
 
@@ -340,7 +377,7 @@
         const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
         return [
             `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
-            `<span>ROAS <b class="${roasClass(row.roas)}">${fmtRoas(row.roas)}</b></span>`,
+            `<span>ROAS <b class="${roasClass(row.ad_spend, row.fb_revenue)}">${fmtRoas(row.roas)}</b></span>`,
             `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(row.cpa) : '—'}</b></span>`,
             ppo != null ? `<span>LN/đơn <b class="${netClass(ppo)}">${fmt(ppo)}</b></span>` : null
         ].filter(Boolean).join('<span class="text-slate-300 px-1.5 select-none" aria-hidden="true">|</span>');

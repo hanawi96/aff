@@ -28,10 +28,16 @@ async function submitNewOrder() {
         return;
     }
 
-    // Check if address is selected (not default text)
-    if (!address || address === '' || (typeof isOrderAddressPreviewEmpty === 'function'
+    const editDbIdRawEarly = document.getElementById('orderFormEditDbId')?.value?.trim();
+    const preserveLegacyAddress = !!editDbIdRawEarly &&
+        typeof deskAddressMode !== 'undefined' &&
+        deskAddressMode === 'legacy' &&
+        !!deskLegacyOrderRef;
+
+    // Check if address is selected (not default text) — bỏ qua khi giữ địa chỉ 3 cấp cũ
+    if (!preserveLegacyAddress && (!address || address === '' || (typeof isOrderAddressPreviewEmpty === 'function'
         ? isOrderAddressPreviewEmpty(addressPreview)
-        : addressPreview === 'Vui lòng chọn địa chỉ' || addressPreview === 'Địa chỉ đầy đủ: Vui lòng chọn địa chỉ')) {
+        : addressPreview === 'Vui lòng chọn địa chỉ' || addressPreview === 'Địa chỉ đầy đủ: Vui lòng chọn địa chỉ'))) {
         showOrderFormValidationWarning(
             'Vui lòng chọn địa chỉ giao hàng đầy đủ',
             document.querySelector('#deskAddrChips [data-desk-open]') || document.getElementById('newOrderProvince')
@@ -81,24 +87,48 @@ async function submitNewOrder() {
     const priorityCheckbox = document.getElementById('newOrderPriority');
     const isPriority = priorityCheckbox?.checked ? 1 : 0;
 
-    // Get address data (2 cấp: Tỉnh/TP → Phường/Xã)
-    const provinceSelect = document.getElementById('newOrderProvince');
-    const wardSelect = document.getElementById('newOrderWard');
+    // Get address data (2 cấp: Tỉnh/TP → Phường/Xã) — hoặc bảo toàn 3 cấp cũ
+    let provinceId;
+    let wardId;
+    let streetAddress;
+    let provinceName;
+    let wardName;
+    let districtId;
+    let districtName;
+    let finalAddress;
 
-    const provinceId = provinceSelect?.value?.trim() || null;
-    const wardId = wardSelect?.value?.trim() || null;
-    const streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
+    if (preserveLegacyAddress) {
+        const o = deskLegacyOrderRef;
+        provinceId = o.province_id || null;
+        wardId = o.ward_id || null;
+        streetAddress = o.street_address || null;
+        provinceName = o.province_name || null;
+        wardName = o.ward_name || null;
+        districtId = o.district_id || null;
+        districtName = o.district_name || null;
+        finalAddress = o.address || formatLegacyOrderAddressDisplay(o);
+    } else {
+        const provinceSelect = document.getElementById('newOrderProvince');
+        const wardSelect = document.getElementById('newOrderWard');
 
-    const provinceName = (provinceId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getProvinceName(provinceId)
-            : null
-    ) || provinceSelect?.selectedOptions[0]?.text) || null;
-    const wardName = (wardId && (
-        window.addressSelector?.loaded
-            ? window.addressSelector.getWardName(provinceId, wardId)
-            : null
-    ) || wardSelect?.selectedOptions[0]?.text) || null;
+        provinceId = provinceSelect?.value?.trim() || null;
+        wardId = wardSelect?.value?.trim() || null;
+        streetAddress = document.getElementById('newOrderStreetAddress')?.value.trim() || null;
+
+        provinceName = (provinceId && (
+            window.addressSelector?.loaded
+                ? window.addressSelector.getProvinceName(provinceId)
+                : null
+        ) || provinceSelect?.selectedOptions[0]?.text) || null;
+        wardName = (wardId && (
+            window.addressSelector?.loaded
+                ? window.addressSelector.getWardName(provinceId, wardId)
+                : null
+        ) || wardSelect?.selectedOptions[0]?.text) || null;
+        districtId = null;
+        districtName = null;
+        finalAddress = address;
+    }
 
     // Get discount data (giảm thủ công: không gửi discount_id — đồng bộ mobile)
     let discountId = document.getElementById('appliedDiscountId')?.value?.trim() || null;
@@ -163,7 +193,7 @@ async function submitNewOrder() {
         return;
     }
 
-    const editDbIdRaw = document.getElementById('orderFormEditDbId')?.value?.trim();
+    const editDbIdRaw = editDbIdRawEarly;
     const isUpdate = !!editDbIdRaw;
 
     // Prepare order data (tạo mới: có orderId + orderDate; sửa: backend giữ mã đơn & mốc thời gian)
@@ -172,11 +202,11 @@ async function submitNewOrder() {
             name: customerName,
             phone: customerPhone
         },
-        address: address,
+        address: finalAddress,
         province_id: provinceId,
         province_name: provinceName,
-        district_id: null,
-        district_name: null,
+        district_id: districtId,
+        district_name: districtName,
         ward_id: wardId,
         ward_name: wardName,
         street_address: streetAddress,

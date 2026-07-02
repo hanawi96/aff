@@ -84,6 +84,22 @@ async function parseOrderProductsForModal(order) {
  * @param {'duplicate'|'edit'} mode
  * @param {{ deferRemoteProductLookup?: boolean }} [opts] — edit: true = không chờ API getProductsByNames (mở modal tức thì)
  */
+async function ensureOrderFullForEdit(order) {
+    if (!order) return order;
+    if (Object.prototype.hasOwnProperty.call(order, 'street_address')) return order;
+    try {
+        const r = await fetch(`${CONFIG.API_URL}?action=getOrderById&id=${encodeURIComponent(order.id)}&timestamp=${Date.now()}`);
+        const d = await r.json();
+        if (d?.success && d.order) {
+            Object.assign(order, d.order);
+            if (typeof updateOrderData === 'function') {
+                updateOrderData(order.id, d.order);
+            }
+        }
+    } catch (_) { /* giữ dữ liệu list */ }
+    return order;
+}
+
 async function buildOrderModalSeed(order, mode, opts = {}) {
     const products = opts.deferRemoteProductLookup
         ? parseOrderProductsForModalSync(order)
@@ -93,7 +109,11 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
         customer_phone: order.customer_phone,
         address: order.address,
         province_id: order.province_id,
+        province_name: order.province_name,
+        district_id: order.district_id,
+        district_name: order.district_name,
         ward_id: order.ward_id,
+        ward_name: order.ward_name,
         street_address: order.street_address,
         payment_method: order.payment_method,
         shipping_fee: order.shipping_fee || 0,
@@ -164,6 +184,7 @@ async function editFullOrder(orderId) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
     }
+    await ensureOrderFullForEdit(order);
     // Không chặn UI: discount + lookup product_id từ xa chạy song song / sau khi modal đã hiện
     if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') {
         void loadActiveDiscounts();

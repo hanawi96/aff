@@ -36,6 +36,9 @@ export function resolveVnPeriodRange(period) {
         case '7d':
             startMs = todayStartMs - 6 * 86400000;
             break;
+        case '30d':
+            startMs = todayStartMs - 29 * 86400000;
+            break;
         case '10d':
             startMs = todayStartMs - 9 * 86400000;
             break;
@@ -60,6 +63,40 @@ export function resolveVnPeriodRange(period) {
         endMs,
         startDate: vnDateStrFromMs(startMs),
         endDate: vnDateStrFromMs(endMs),
+        prevStartMs,
+        prevEndMs
+    };
+}
+
+export function resolveVnDateRange(startDate, endDate) {
+    if (!startDate || !endDate) {
+        throw new Error('start_date and end_date are required');
+    }
+
+    const todayStr = vnTodayStr();
+    const startMs = new Date(`${startDate}T00:00:00+07:00`).getTime();
+    let endMs;
+
+    if (endDate === todayStr) {
+        endMs = Date.now();
+    } else {
+        endMs = new Date(`${endDate}T23:59:59.999+07:00`).getTime();
+    }
+
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || startMs > endMs) {
+        throw new Error('Invalid date range');
+    }
+
+    const durationMs = endMs - startMs + 1;
+    const prevEndMs = startMs - 1;
+    const prevStartMs = prevEndMs - durationMs + 1;
+
+    return {
+        period: 'custom',
+        startMs,
+        endMs,
+        startDate,
+        endDate,
         prevStartMs,
         prevEndMs
     };
@@ -272,9 +309,11 @@ async function buildAdAnalyticsFull(env, startMs, endMs) {
     };
 }
 
-export async function getAdAnalytics(period, env, corsHeaders) {
+export async function getAdAnalytics(period, env, corsHeaders, opts = {}) {
     try {
-        const range = resolveVnPeriodRange(period || 'yesterday');
+        const range = opts.startDate && opts.endDate
+            ? resolveVnDateRange(opts.startDate, opts.endDate)
+            : resolveVnPeriodRange(period || 'yesterday');
         const [current, previousPayload] = await Promise.all([
             buildAdAnalyticsFull(env, range.startMs, range.endMs),
             buildAdAnalyticsPayload(env, range.prevStartMs, range.prevEndMs)

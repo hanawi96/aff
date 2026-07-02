@@ -41,10 +41,107 @@ function syncDeskOrderStreetInputVisibility() {
 window.setDeskOrderStreetInputVisible = setDeskOrderStreetInputVisible;
 window.syncDeskOrderStreetInputVisibility = syncDeskOrderStreetInputVisibility;
 
+/** 'normal' | 'legacy' (3 cấp read-only) | 'migrating' (đang chuyển sang 2 cấp) */
+let deskAddressMode = 'normal';
+let deskLegacyOrderRef = null;
+
+function resetDeskAddressMode() {
+    deskAddressMode = 'normal';
+    deskLegacyOrderRef = null;
+}
+
+function formatLegacyOrderAddressDisplay(order) {
+    if (!order) return 'Chưa có địa chỉ';
+    if (window.addressSelector?.formatOrderDisplayAddress && window.addressSelector.isLegacyOrderAddress?.(order)) {
+        return window.addressSelector.formatOrderDisplayAddress(order);
+    }
+    const addrStr = (order.address && String(order.address).trim()) || '';
+    const structured = [
+        order.street_address,
+        order.ward_name,
+        order.district_name,
+        order.province_name
+    ].filter(Boolean).join(', ');
+    return addrStr || structured || 'Chưa có địa chỉ';
+}
+
+function showDeskLegacyAddressBlock(order) {
+    const block = document.getElementById('deskLegacyAddressBlock');
+    const wrap = document.getElementById('deskAddressSelectorWrap');
+    if (!block || !order) return;
+
+    const full = formatLegacyOrderAddressDisplay(order);
+
+    block.innerHTML = `
+        <div class="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+            <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Địa chỉ cũ 3 cấp</p>
+            <p class="text-sm font-medium text-gray-900 leading-relaxed break-words">${escapeHtml(full)}</p>
+        </div>
+        <button type="button" onclick="beginDeskUpdateAddressTo2Level()" class="w-full px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+            Cập nhật địa chỉ mới (2 cấp)
+        </button>`;
+    block.classList.remove('hidden');
+    wrap?.classList.add('hidden');
+}
+
+function hideDeskLegacyAddressBlock() {
+    document.getElementById('deskLegacyAddressBlock')?.classList.add('hidden');
+    document.getElementById('deskAddressSelectorWrap')?.classList.remove('hidden');
+}
+
+async function beginDeskUpdateAddressTo2Level() {
+    const order = deskLegacyOrderRef;
+    deskAddressMode = 'migrating';
+    hideDeskLegacyAddressBlock();
+    document.getElementById('deskSmartPasteBlock')?.classList.remove('hidden');
+    const sp = document.getElementById('smartPasteInput');
+    if (sp && !sp.value.trim() && order) {
+        sp.value = [
+            order.customer_name,
+            order.customer_phone,
+            formatLegacyOrderAddressDisplay(order)
+        ].filter(Boolean).join('\n');
+    }
+    await initAddressSelector(null);
+    document.getElementById('deskAddressFormBlock')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+window.beginDeskUpdateAddressTo2Level = beginDeskUpdateAddressTo2Level;
+window.resetDeskAddressMode = resetDeskAddressMode;
+
 async function initAddressSelector(duplicateData = null) {
     if (typeof destroyDeskAddressCombobox === 'function') {
         destroyDeskAddressCombobox();
     }
+
+    const isEdit = !!document.getElementById('orderFormEditDbId')?.value?.trim();
+
+    if (!window.addressSelector?.loaded) {
+        await window.addressSelector.init();
+    }
+
+    const useLegacyBlock = isEdit && duplicateData &&
+        deskAddressMode !== 'migrating' &&
+        window.addressSelector.isLegacyOrderAddress(duplicateData);
+
+    if (useLegacyBlock) {
+        deskAddressMode = 'legacy';
+        deskLegacyOrderRef = duplicateData;
+        showDeskLegacyAddressBlock(duplicateData);
+        document.getElementById('deskSmartPasteBlock')?.classList.add('hidden');
+        const hiddenAddress = document.getElementById('newOrderAddress');
+        if (hiddenAddress) {
+            hiddenAddress.value = formatLegacyOrderAddressDisplay(duplicateData);
+        }
+        return;
+    }
+
+    hideDeskLegacyAddressBlock();
+    if (deskAddressMode !== 'migrating') {
+        deskLegacyOrderRef = null;
+    }
+
+    const hydrateData = deskAddressMode === 'migrating' ? null : duplicateData;
 
     const streetInput = document.getElementById('newOrderStreetAddress');
     const addressPreview = document.getElementById('newOrderAddressPreview');
@@ -85,15 +182,15 @@ async function initAddressSelector(duplicateData = null) {
         const provinceSelect = document.getElementById('newOrderProvince');
         const wardSelect = document.getElementById('newOrderWard');
         window.addressSelector.renderProvinces(provinceSelect);
-        if (duplicateData?.province_id) {
-            const provinceId = String(duplicateData.province_id);
+        if (hydrateData?.province_id) {
+            const provinceId = String(hydrateData.province_id);
             provinceSelect.value = provinceId;
             window.addressSelector.renderWards(wardSelect, provinceId);
-            if (duplicateData.ward_id) {
-                wardSelect.value = String(duplicateData.ward_id);
+            if (hydrateData.ward_id) {
+                wardSelect.value = String(hydrateData.ward_id);
             }
-            if (duplicateData.street_address && streetInput) {
-                streetInput.value = duplicateData.street_address;
+            if (hydrateData.street_address && streetInput) {
+                streetInput.value = hydrateData.street_address;
             }
         }
         window.addressSelector.setupCascade(provinceSelect, wardSelect, () => {
@@ -115,13 +212,13 @@ async function initAddressSelector(duplicateData = null) {
     await combo.mount();
     window._deskAddressCombobox = combo;
 
-    if (duplicateData?.province_id) {
+    if (hydrateData?.province_id) {
         combo.hydrate({
-            province_id: duplicateData.province_id,
-            ward_id: duplicateData.ward_id
+            province_id: hydrateData.province_id,
+            ward_id: hydrateData.ward_id
         });
-        if (duplicateData.street_address && streetInput) {
-            streetInput.value = duplicateData.street_address;
+        if (hydrateData.street_address && streetInput) {
+            streetInput.value = hydrateData.street_address;
         }
     }
 

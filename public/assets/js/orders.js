@@ -311,6 +311,10 @@ document.addEventListener('DOMContentLoaded', function () {
 async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const isEdit = formOptions?.mode === 'edit' && Number(formOptions.editOrderDbId) > 0;
 
+    if (typeof resetDeskAddressMode === 'function') {
+        resetDeskAddressMode();
+    }
+
     // Restore draft for fresh "add" mode
     if (!duplicateData && !isEdit) {
         const draft = _loadOrderDraft();
@@ -442,7 +446,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         </h3>
 
                         <!-- Smart Paste Textarea -->
-                        <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 border-2 border-dashed border-purple-300 mb-4">
+                        <div id="deskSmartPasteBlock" class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 border-2 border-dashed border-purple-300 mb-4">
                             <div class="flex items-start gap-3 mb-2">
                                 <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                                     <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -488,23 +492,27 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                         </div>
 
                         <!-- Địa chỉ giao hàng 2 cấp — combobox tìm kiếm -->
-                        <div class="bg-blue-50 rounded-lg p-3 space-y-2">
+                        <div id="deskAddressFormBlock" class="bg-blue-50 rounded-lg p-3 space-y-2">
                             <label class="block text-sm font-semibold text-gray-800 mb-1">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
 
-                            <div id="deskAddressCombobox"></div>
+                            <div id="deskLegacyAddressBlock" class="hidden space-y-2"></div>
 
-                            <select id="newOrderProvince" class="sr-only" tabindex="-1" aria-hidden="true">
-                                <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                            </select>
-                            <select id="newOrderWard" disabled class="sr-only" tabindex="-1" aria-hidden="true">
-                                <option value="">-- Chọn Phường/Xã --</option>
-                            </select>
+                            <div id="deskAddressSelectorWrap" class="space-y-2">
+                                <div id="deskAddressCombobox"></div>
 
-                            <div id="newOrderStreetAddressWrap" class="hidden">
-                                <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                <select id="newOrderProvince" class="sr-only" tabindex="-1" aria-hidden="true">
+                                    <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                                </select>
+                                <select id="newOrderWard" disabled class="sr-only" tabindex="-1" aria-hidden="true">
+                                    <option value="">-- Chọn Phường/Xã --</option>
+                                </select>
+
+                                <div id="newOrderStreetAddressWrap" class="hidden">
+                                    <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+
+                                <p id="newOrderAddressPreview" class="mt-1 text-sm text-green-600 hidden"></p>
                             </div>
-
-                            <p id="newOrderAddressPreview" class="mt-1 text-sm text-green-600 hidden"></p>
 
                             <input type="hidden" id="newOrderAddress" value="${escapeHtml(address)}" />
                         </div>
@@ -1361,6 +1369,9 @@ function closeAddOrderModal(skipDraft = false) {
 
         if (typeof destroyDeskAddressCombobox === 'function') {
             destroyDeskAddressCombobox();
+        }
+        if (typeof resetDeskAddressMode === 'function') {
+            resetDeskAddressMode();
         }
 
         modal.remove();
