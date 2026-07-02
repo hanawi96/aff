@@ -10,6 +10,11 @@
     const fmt = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
     const fmtN = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
+    function fmtPerOrder(v) {
+        if (v == null || !Number.isFinite(v)) return '—';
+        return `${fmtN(Math.round(v))}đ/đơn`;
+    }
+
     function fmtDateLabel(iso) {
         if (!iso) return '—';
         const [y, m, d] = iso.split('-');
@@ -218,7 +223,7 @@
             if (el) el.textContent = '';
         });
         const body = document.getElementById('dailyTableBody');
-        if (body) body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
         const foot = document.getElementById('dailyTableFoot');
         if (foot) foot.innerHTML = '';
         const srcBody = document.getElementById('adsSourceBody');
@@ -361,6 +366,25 @@
         return netProfit / n;
     }
 
+    function rpoPerOrder(row) {
+        if (row.revenue_per_order != null) return row.revenue_per_order;
+        const n = Number(row.fb_orders) || 0;
+        if (n <= 0) return null;
+        return (row.fb_revenue || 0) / n;
+    }
+
+    function gpoPerOrder(row) {
+        if (row.gross_profit_per_order != null) return row.gross_profit_per_order;
+        const n = Number(row.fb_orders) || 0;
+        if (n <= 0) return null;
+        return (row.fb_gross_profit || 0) / n;
+    }
+
+    function npoPerOrder(row) {
+        if (row.net_profit_per_order != null) return row.net_profit_per_order;
+        return ppoPerOrder(row.net_profit, row.fb_orders);
+    }
+
     function sourceBadge(source) {
         if (source === 'snapshot') {
             return '<span class="ml-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-600">Đã lưu</span>';
@@ -391,7 +415,7 @@
         if (!body) return;
 
         if (!days.length) {
-            body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
+            body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
             if (foot) foot.innerHTML = '';
             return;
         }
@@ -399,6 +423,9 @@
         body.innerHTML = days.map((row) => {
             const qcCls = qcShareCls(row.ad_spend, row.fb_revenue);
             const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
+            const rpo = rpoPerOrder(row);
+            const gpo = gpoPerOrder(row);
+            const npo = npoPerOrder(row);
             return `
             <tr class="border-t border-slate-100 hover:bg-slate-50/50">
                 <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">
@@ -409,7 +436,12 @@
                     <div class="text-[10px] ${qcCls}">${qcPct} DT</div>
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmtN(row.fb_orders)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmt(row.fb_revenue)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.fb_gross_profit)}">${fmt(row.fb_gross_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.net_profit)}">${fmt(row.net_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmtPerOrder(rpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(gpo)}">${fmtPerOrder(gpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(npo)}">${fmtPerOrder(npo)}</td>
                 <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(row)}</td>
                 <td class="px-4 py-3 text-center">
                     <button type="button" class="edit-spend-btn rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" data-date="${row.date}" data-amount="${row.ad_spend}" title="Sửa chi QC" aria-label="Sửa chi QC">
@@ -420,6 +452,9 @@
         }).join('');
 
         if (foot) {
+            const rpo = rpoPerOrder(s);
+            const gpo = gpoPerOrder(s);
+            const npo = npoPerOrder(s);
             foot.innerHTML = `
             <tr>
                 <td class="px-4 py-3">Tổng</td>
@@ -428,7 +463,12 @@
                     <div class="text-[10px] ${qcShareCls(s.ad_spend, s.fb_revenue)}">${fmtQcSharePct(s.ad_spend, s.fb_revenue)} DT</div>
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtN(s.fb_orders)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_revenue)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(s.fb_gross_profit)}">${fmt(s.fb_gross_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmt(s.net_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">${fmtPerOrder(rpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(gpo)}">${fmtPerOrder(gpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums ${netClass(npo)}">${fmtPerOrder(npo)}</td>
                 <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(s)}</td>
                 <td></td>
             </tr>`;
@@ -467,7 +507,7 @@
             console.error('[Ads]', e);
             if (typeof showToast === 'function') showToast(e.message || 'Lỗi tải dữ liệu', 'error');
             const body = document.getElementById('dailyTableBody');
-            if (body) body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
+            if (body) body.innerHTML = '<tr><td colspan="11" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
         } finally {
             loading = false;
         }

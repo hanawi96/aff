@@ -46,7 +46,7 @@
         .ads-roas--good { color: #059669; }
         .ads-roas--warn { color: #ea580c; }
         .ads-roas--bad { color: #dc2626; }
-        .ads-metrics-col { font-size: 0.75rem; line-height: 1.5; color: #64748b; white-space: nowrap; }
+        .ads-metrics-col { font-size: 0.75rem; line-height: 1.5; color: #64748b; }
         /* Hero LN thực */
         .ads-hero {
             border-radius: 1rem;
@@ -151,8 +151,8 @@
         </div>
     </aside>
 
-    <div class="ml-64 min-h-screen">
-        <main class="mx-auto max-w-6xl px-6 py-8">
+    <div class="ml-64 min-h-screen w-[calc(100%-16rem)] min-w-0 max-w-none">
+        <main class="w-full min-w-0 px-6 py-8 lg:px-8">
             <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">Quản lý quảng cáo</h1>
@@ -250,20 +250,25 @@
                     <h2 class="text-base font-semibold text-slate-900">10 ngày gần nhất</h2>
                     <p class="mt-0.5 text-xs text-slate-500">Luôn hiển thị 10 ngày mới nhất · không đổi theo bộ lọc kỳ</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[720px] text-sm">
+                <div>
+                    <table class="w-full text-sm">
                         <thead class="bg-slate-50/90 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th class="px-4 py-3 text-left">Ngày</th>
                                 <th class="px-4 py-3 text-right">Chi QC</th>
                                 <th class="px-4 py-3 text-right">Đơn</th>
+                                <th class="px-4 py-3 text-right">Doanh thu QC</th>
+                                <th class="px-4 py-3 text-right">LN gộp</th>
                                 <th class="px-4 py-3 text-right">LN thực</th>
+                                <th class="px-4 py-3 text-right">DT TB/đơn</th>
+                                <th class="px-4 py-3 text-right">LN gộp/đơn</th>
+                                <th class="px-4 py-3 text-right">LN thực/đơn</th>
                                 <th class="px-4 py-3 text-left">Chỉ số</th>
                                 <th class="px-4 py-3 text-center w-12"></th>
                             </tr>
                         </thead>
                         <tbody id="dailyTableBody">
-                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>
+                            <tr><td colspan="11" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>
                         </tbody>
                         <tfoot id="dailyTableFoot" class="border-t border-slate-200 bg-slate-50/80 font-semibold text-slate-900"></tfoot>
                     </table>
@@ -275,8 +280,8 @@
                     <h2 class="text-base font-semibold text-slate-900">So sánh nguồn khách</h2>
                     <p class="mt-0.5 text-xs text-slate-500">Facebook trừ Chi QC · các nguồn khác LN thực = LN gộp</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[720px] text-sm">
+                <div>
+                    <table class="w-full text-sm">
                         <thead class="bg-slate-50/90 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th class="px-4 py-3 text-left">Nguồn</th>
