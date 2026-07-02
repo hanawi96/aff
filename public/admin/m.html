@@ -55,19 +55,68 @@ body{overscroll-behavior-y:contain}
 .ct-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .i-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 /* Quảng cáo + Lợi nhuận thực — đồng bộ Thống kê nhanh desktop */
-.m-stats-net-block{display:flex;flex-direction:column;gap:0.375rem}
-.m-stats-net-row{display:flex;align-items:stretch;border-radius:0.75rem;overflow:hidden;border:1px solid #c7d2fe;background:linear-gradient(90deg,#f5f3ff 0%,#faf5ff 48%,#ecfdf5 52%,#d1fae5 100%);box-shadow:0 1px 2px rgba(99,102,241,.06)}
-.m-stats-net-side{flex:1 1 50%;min-width:0;padding:0.65rem 0.875rem;display:flex;flex-direction:column;justify-content:center;gap:0.15rem}
-.m-stats-net-divider{flex:0 0 1px;align-self:stretch;background:linear-gradient(180deg,rgba(196,181,253,.2),rgba(167,139,250,.55) 35%,rgba(52,211,153,.55) 65%,rgba(196,181,253,.2))}
-.m-stats-net-label{margin:0;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
-.m-stats-net-side.m-stats-net-ad .m-stats-net-label{color:#7c3aed}
-.m-stats-net-side.m-stats-net-profit .m-stats-net-label{color:#059669}
-.m-stats-net-val{margin:0;font-size:.9375rem;font-weight:700;line-height:1.25;word-break:break-word}
-.m-stats-net-sub{margin:0.1rem 0 0;font-size:10px;color:#6b7280;line-height:1.2}
+/* Tab Thống kê — card P&L gộp */
+.m-stats-pl{border-radius:1.125rem;border:1px solid #e5e7eb;background:#fff;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,.06)}
+.m-stats-pl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;padding:1rem 1rem 0.75rem;border-bottom:1px solid #f3f4f6}
+.m-stats-pl-period{margin:0;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af;line-height:1.2}
+.m-stats-pl-meta{margin:0.25rem 0 0;font-size:11px;color:#6b7280;line-height:1.35}
+.m-stats-pl-badge{display:inline-flex;align-items:center;padding:0.25rem 0.625rem;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.3;flex-shrink:0}
+.m-stats-pl-badge--profit{background:#d1fae5;color:#047857}
+.m-stats-pl-badge--loss{background:#fee2e2;color:#b91c1c}
+.m-stats-pl-badge--flat{background:#f3f4f6;color:#6b7280}
+.m-stats-pl-rows{padding:0.625rem 1rem 0.5rem;display:flex;flex-direction:column;gap:0.5rem}
+.m-stats-pl-row{display:flex;align-items:center;justify-content:space-between;gap:0.75rem;min-height:1.75rem}
+.m-stats-pl-row-label{font-size:12px;color:#6b7280;font-weight:500;flex-shrink:0}
+.m-stats-pl-row-val{font-size:13px;font-weight:700;color:#111827;text-align:right;word-break:break-word;line-height:1.25}
+.m-stats-pl-row-val.is-pos{color:#059669}
+.m-stats-pl-row-val.is-neg{color:#dc2626}
+.m-stats-pl-row-val.is-ad{color:#7c3aed}
+.m-stats-pl-row-hint{display:block;font-size:10px;font-weight:500;color:#9ca3af;margin-top:0.1rem}
+.m-stats-pl-divider{height:1px;background:linear-gradient(90deg,transparent,#e5e7eb 12%,#e5e7eb 88%,transparent);margin:0.125rem 0}
+.m-stats-pl-hero{margin:0.5rem 0.75rem 0.75rem;padding:0.875rem 1rem;border-radius:0.875rem;border:1px solid #e5e7eb;background:linear-gradient(145deg,#f8fafc,#fff)}
+.m-stats-pl-hero--profit{background:linear-gradient(145deg,#ecfdf5 0%,#fff 55%,#f0fdf4 100%);border-color:#a7f3d0}
+.m-stats-pl-hero--loss{background:linear-gradient(145deg,#fef2f2 0%,#fff 55%,#fff1f2 100%);border-color:#fecaca}
+.m-stats-pl-hero-label{margin:0;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;line-height:1.2}
+.m-stats-pl-hero-val{margin:0.35rem 0 0;font-size:clamp(1.375rem,6vw,1.625rem);font-weight:800;line-height:1.15;letter-spacing:-.03em;font-variant-numeric:tabular-nums;word-break:break-word}
+.m-stats-pl-hero-val.is-pos{color:#059669}
+.m-stats-pl-hero-val.is-neg{color:#dc2626}
+.m-stats-pl-hero-sub{margin:0.35rem 0 0;font-size:10px;color:#6b7280;line-height:1.35}
+.m-stats-pl-foot{padding:0 0.75rem 0.875rem}
+.m-stats-pl-link{display:flex;align-items:center;justify-content:center;gap:0.35rem;width:100%;padding:0.625rem;border:none;border-radius:0.75rem;background:#f5f3ff;color:#6d28d9;font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-stats-pl-link:active{opacity:.75}
+.m-ad-edit-btn{flex-shrink:0;width:1.625rem;height:1.625rem;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:0.5rem;background:#f5f3ff;color:#7c3aed;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:0}
+.m-ad-edit-btn:active{background:#ede9fe;transform:scale(.96)}
+.m-ad-inline-edit{display:inline-flex;align-items:center;margin-top:0.35rem;padding:0;border:none;background:none;color:#7c3aed;font-size:10px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-inline-edit:active{opacity:.7}
+.m-ad-spend-edit{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+.m-ad-spend-edit:not(.hidden){pointer-events:auto}
+.m-ad-spend-edit.hidden{display:none!important}
+.m-ad-spend-edit-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);animation:fadeIn .2s ease}
+.m-ad-spend-edit-panel{position:relative;z-index:1;width:100%;max-width:32rem;margin:0 auto;background:#fff;border-radius:1rem 1rem 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.15);animation:sheetUp .28s cubic-bezier(.32,.72,0,1);padding:0.625rem 1rem max(1rem,env(safe-area-inset-bottom,0px));pointer-events:auto}
+.m-ad-spend-edit-handle{width:2.5rem;height:4px;background:#d1d5db;border-radius:999px;margin:0 auto 0.75rem}
+.m-ad-spend-edit-title{margin:0;font-size:1rem;font-weight:700;color:#111827;line-height:1.25}
+.m-ad-spend-edit-date{margin:0.2rem 0 0;font-size:12px;color:#6b7280}
+.m-ad-spend-edit-input{width:100%;margin-top:0.875rem;padding:0.75rem 1rem;border:1px solid #e5e7eb;border-radius:0.875rem;background:#f9fafb;font-size:1.125rem;font-weight:700;color:#111827;font-variant-numeric:tabular-nums;outline:none}
+.m-ad-spend-edit-input:focus{border-color:#8b5cf6;background:#fff;box-shadow:0 0 0 3px rgba(139,92,246,.15)}
+.m-ad-spend-edit-actions{display:flex;gap:0.5rem;margin-top:1rem}
+.m-ad-spend-edit-cancel,.m-ad-spend-edit-save{flex:1;padding:0.75rem;border-radius:0.875rem;font-size:14px;font-weight:600;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-spend-edit-cancel{background:#f3f4f6;color:#374151}
+.m-ad-spend-edit-save{background:#7c3aed;color:#fff}
+.m-ad-spend-edit-save:active{background:#6d28d9}
+.m-ad-spend-edit-save:disabled{opacity:.55;cursor:not-allowed}
+.m-stats-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.625rem}
+.m-stats-mini{border-radius:0.875rem;border:1px solid #f1f5f9;background:#fff;padding:0.75rem 0.625rem;text-align:center}
+.m-stats-mini-label{margin:0;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;line-height:1.2}
+.m-stats-mini-val{margin:0.35rem 0 0;font-size:0.9375rem;font-weight:700;color:#111827;line-height:1.2;word-break:break-word}
+.m-stats-mini-sub{margin:0.2rem 0 0;font-size:9px;color:#9ca3af;line-height:1.2}
 /* Modal chi tiết QC */
 .m-ad-hero{border-radius:1rem;padding:1rem 1.125rem;border:1px solid #e2e8f0;background:#fff}
 .m-ad-hero--profit{background:linear-gradient(145deg,#ecfdf5,#fff);border-color:#a7f3d0}
 .m-ad-hero--loss{background:linear-gradient(145deg,#fef2f2,#fff);border-color:#fecaca}
+.m-ad-hero-head{display:flex;flex-wrap:wrap;align-items:center;gap:0.375rem}
+.m-ad-hero-badge{display:inline-block;padding:0.125rem 0.5rem;border-radius:999px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.4}
+.m-ad-hero-badge--profit{background:#d1fae5;color:#047857}
+.m-ad-hero-badge--loss{background:#fee2e2;color:#b91c1c}
 .m-ad-kpi{border-radius:0.875rem;border:1px solid #f1f5f9;background:#fff;padding:0.75rem}
 .m-ad-day{border-radius:0.875rem;border:1px solid #f1f5f9;background:#fff;overflow:hidden}
 /* Bottom sheet chi tiết QC — CSS tường minh, không phụ thuộc Tailwind build */
@@ -237,8 +286,9 @@ html.m-create-deeplink>body>header{display:none!important}
   <!-- Content -->
   <div class="p-4 pb-12">
     <div id="skeleton" class="space-y-4">
-      <div class="grid grid-cols-2 gap-3"><div class="col-span-2 h-28 skeleton rounded-2xl"></div><div class="h-24 skeleton rounded-2xl"></div><div class="h-24 skeleton rounded-2xl"></div></div>
-      <div class="grid grid-cols-2 gap-3"><div class="h-20 skeleton rounded-2xl"></div><div class="h-20 skeleton rounded-2xl"></div><div class="h-20 skeleton rounded-2xl"></div><div class="h-20 skeleton rounded-2xl"></div></div>
+      <div class="h-52 skeleton rounded-2xl"></div>
+      <div class="grid grid-cols-3 gap-2.5"><div class="h-20 skeleton rounded-xl"></div><div class="h-20 skeleton rounded-xl"></div><div class="h-20 skeleton rounded-xl"></div></div>
+      <div class="h-36 skeleton rounded-2xl"></div>
       <div class="h-44 skeleton rounded-2xl"></div>
       <div class="h-48 skeleton rounded-2xl"></div>
       <div class="h-56 skeleton rounded-2xl"></div>
@@ -5074,34 +5124,163 @@ async function enrichStatsOverviewAdSpend(d,range){
   return d;
 }
 
-function buildStatsNetProfitRow(o,po){
+function mAdEditBtnHtml(date,amount){
+  const a=Number(amount)||0;
+  return`<button type="button" class="m-ad-edit-btn" onclick="openMAdSpendEdit('${date}',${a})" aria-label="Sửa chi QC">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+  </button>`;
+}
+
+function invalidateStatsCache(){
+  Object.keys(cache).forEach(k=>{delete cache[k];});
+}
+
+let _mAdSpendEditDate=null;
+let _mAdSpendEditSaving=false;
+
+function mAdSpendFmtInput(n){
+  const v=Math.max(0,Math.floor(Number(n)||0));
+  return v.toLocaleString('vi-VN');
+}
+
+function mAdSpendParseInput(s){
+  const digits=String(s||'').replace(/\D/g,'');
+  return digits?parseInt(digits,10):0;
+}
+
+function onMAdSpendInput(el){
+  if(!el)return;
+  el.value=mAdSpendFmtInput(mAdSpendParseInput(el.value));
+}
+
+function openMAdSpendEdit(date,amount){
+  if(!date)return;
+  _mAdSpendEditDate=date;
+  const sheet=document.getElementById('mAdSpendEditSheet');
+  if(!sheet)return;
+  document.getElementById('mAdSpendEditDateLabel').textContent=mAdFmtDate(date);
+  const inp=document.getElementById('mAdSpendEditInput');
+  if(inp)inp.value=mAdSpendFmtInput(amount);
+  sheet.classList.remove('hidden');
+  sheet.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>inp?.focus(),80);
+}
+
+function closeMAdSpendEdit(){
+  _mAdSpendEditDate=null;
+  const sheet=document.getElementById('mAdSpendEditSheet');
+  if(sheet){
+    sheet.classList.add('hidden');
+    sheet.setAttribute('aria-hidden','true');
+  }
+  const detailOpen=!document.getElementById('mAdDetailSheet')?.classList.contains('hidden');
+  if(!detailOpen)document.body.style.overflow='';
+}
+
+async function saveMAdSpendEdit(){
+  if(_mAdSpendEditSaving||!_mAdSpendEditDate)return;
+  const amount=mAdSpendParseInput(document.getElementById('mAdSpendEditInput')?.value);
+  if(!Number.isFinite(amount)||amount<0){toast('Số tiền không hợp lệ');return;}
+  _mAdSpendEditSaving=true;
+  const btn=document.getElementById('mAdSpendEditSave');
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateDailyAdSpend',spendDate:_mAdSpendEditDate,amount})});
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Lưu thất bại');
+    toast('Đã cập nhật chi QC');
+    closeMAdSpendEdit();
+    invalidateStatsCache();
+    if(currentTab==='stats')loadData();
+    if(!document.getElementById('mAdDetailSheet')?.classList.contains('hidden'))loadMAdDetail();
+  }catch(e){toast('Lỗi: '+(e.message||e));}
+  finally{
+    _mAdSpendEditSaving=false;
+    if(btn)btn.disabled=false;
+  }
+}
+
+function buildStatsPlCard(o,po,periodLabel){
   const adSpend=o.ad_spend||0;
-  const netProfit=o.net_profit!=null?o.net_profit:((o.total_profit||0)-adSpend);
+  const grossProfit=o.total_profit||0;
+  const netProfit=o.net_profit!=null?o.net_profit:(grossProfit-adSpend);
   const netPerOrder=o.net_profit_per_order!=null?o.net_profit_per_order:(o.total_orders>0?netProfit/o.total_orders:0);
-  const isNet=netProfit>=0;
-  const netColor=isNet?'#047857':'#dc2626';
+  const isGross=grossProfit>=0;
+  const isNet=netProfit>0;
+  const isFlat=netProfit===0;
+  const netTone=isNet?'profit':isFlat?'flat':'loss';
+  const heroCls=netTone==='profit'?'m-stats-pl-hero--profit':netTone==='loss'?'m-stats-pl-hero--loss':'';
+  const badgeLbl=netTone==='profit'?'Đang lãi':netTone==='loss'?'Đang lỗ':'Hòa vốn';
+  const badgeCls=netTone==='profit'?'m-stats-pl-badge--profit':netTone==='loss'?'m-stats-pl-badge--loss':'m-stats-pl-badge--flat';
+  const valCls=isNet?'is-pos':isFlat?'':'is-neg';
   const days=o.ad_spend_days;
-  const adHint=(days&&days>1)?`<p class="m-stats-net-sub">${days} ngày × QC</p>`:'';
-  return`<div class="m-stats-net-block fade-up">
-    <div class="m-stats-net-row">
-      <div class="m-stats-net-side m-stats-net-ad">
-        <p class="m-stats-net-label">Quảng cáo</p>
-        <p class="m-stats-net-val" style="color:#6d28d9">${fmt(adSpend)}${cmp(adSpend,po?.ad_spend)}</p>
-        ${adHint}
+  const range=getDateRange();
+  const singleDay=range&&range.s===range.e;
+  const editDate=singleDay?range.s:null;
+  const adHint=(days&&days>1)?`<span class="m-stats-pl-row-hint">${days} ngày · sửa từng ngày trong chi tiết QC</span>`:'';
+  const editBtn=editDate?mAdEditBtnHtml(editDate,adSpend):'';
+  const marginPct=Math.abs(o.profit_margin||0).toFixed(1);
+  return`<article class="m-stats-pl fade-up" aria-label="Tổng quan doanh thu và lợi nhuận">
+    <header class="m-stats-pl-head">
+      <div class="min-w-0">
+        <p class="m-stats-pl-period">${esc(periodLabel)}</p>
+        <p class="m-stats-pl-meta">${fmtN(o.total_orders)} đơn · TS gộp ${marginPct}%</p>
       </div>
-      <div class="m-stats-net-divider" aria-hidden="true"></div>
-      <div class="m-stats-net-side m-stats-net-profit">
-        <p class="m-stats-net-label">Lợi nhuận thực</p>
-        <p class="m-stats-net-val" style="color:${netColor}">${fmt(netProfit)}${cmp(netProfit,po?.net_profit)}</p>
-        <p class="m-stats-net-sub">TB: ${fmt(netPerOrder)}/đơn</p>
+      <span class="m-stats-pl-badge ${badgeCls}">${badgeLbl}</span>
+    </header>
+    <div class="m-stats-pl-rows">
+      <div class="m-stats-pl-row">
+        <span class="m-stats-pl-row-label">Doanh thu</span>
+        <span class="m-stats-pl-row-val">${fmt(o.total_revenue)}${cmp(o.total_revenue,po?.total_revenue)}</span>
+      </div>
+      <div class="m-stats-pl-row">
+        <span class="m-stats-pl-row-label">LN gộp</span>
+        <span class="m-stats-pl-row-val ${isGross?'is-pos':'is-neg'}">${fmt(grossProfit)}${cmp(o.total_profit,po?.total_profit)}</span>
+      </div>
+      <div class="m-stats-pl-row">
+        <span class="m-stats-pl-row-label">Quảng cáo</span>
+        <div class="text-right min-w-0 flex items-center justify-end gap-1">
+          ${editBtn}
+          <div>
+            <span class="m-stats-pl-row-val is-ad">−${fmt(adSpend).replace(/^[−-]\s*/,'')}${cmp(adSpend,po?.ad_spend)}</span>
+            ${adHint}
+          </div>
+        </div>
       </div>
     </div>
-    <p class="text-center mt-1.5 px-1">
-      <button type="button" onclick="openMAdDetail()" class="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 active:opacity-70">
+    <div class="m-stats-pl-divider" aria-hidden="true"></div>
+    <div class="m-stats-pl-hero ${heroCls}">
+      <p class="m-stats-pl-hero-label">LN thực sau QC</p>
+      <p class="m-stats-pl-hero-val ${valCls}">${fmt(netProfit)}${cmp(netProfit,po?.net_profit)}</p>
+      <p class="m-stats-pl-hero-sub">${o.total_orders>0?`TB ${fmt(netPerOrder)}/đơn · `:''}LN gộp ${fmt(grossProfit)} − QC ${fmt(adSpend)}</p>
+    </div>
+    <div class="m-stats-pl-foot">
+      <button type="button" class="m-stats-pl-link" onclick="openMAdDetail()">
         Xem thống kê quảng cáo chi tiết
-        <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       </button>
-    </p>
+    </div>
+  </article>`;
+}
+
+function buildStatsMiniGrid(o,po){
+  return`<div class="m-stats-mini-grid fade-up">
+    <div class="m-stats-mini">
+      <p class="m-stats-mini-label">Đơn hàng</p>
+      <p class="m-stats-mini-val">${fmtN(o.total_orders)}${cmp(o.total_orders,po?.total_orders)}</p>
+      <p class="m-stats-mini-sub">${fmt(o.avg_revenue_per_order)}/đơn</p>
+    </div>
+    <div class="m-stats-mini">
+      <p class="m-stats-mini-label">SP bán</p>
+      <p class="m-stats-mini-val">${fmtN(o.total_products_sold)}${cmp(o.total_products_sold,po?.total_products_sold)}</p>
+      <p class="m-stats-mini-sub">sản phẩm</p>
+    </div>
+    <div class="m-stats-mini">
+      <p class="m-stats-mini-label">Khách</p>
+      <p class="m-stats-mini-val">${fmtN(o.unique_customers)}${cmp(o.unique_customers,po?.unique_customers)}</p>
+      <p class="m-stats-mini-sub">${o.unique_customers>0?(o.total_orders/o.unique_customers).toFixed(1):0} đ/KH</p>
+    </div>
   </div>`;
 }
 
@@ -5230,10 +5409,6 @@ function renderAll(d,prev){
   const po=prev?.overview||null;
   const cb=d.cost_breakdown;
   const topProds=(d.top_products||[]);
-  const isProfit=o.total_profit>=0;
-  const maxBar=Math.max(o.total_revenue,o.total_cost,1);
-  const revW=Math.round(o.total_revenue/maxBar*100);
-  const costW=Math.round(o.total_cost/maxBar*100);
   const periodLabel={yesterday:'Hôm qua',today:'Hôm nay',week:'7 ngày qua',month:'30 ngày qua',custom:document.getElementById('customLabel')?.textContent||'Tùy chọn'}[currentPeriod]||'';
   const costRows=[
     {icon:'📦',label:'Giá vốn SP',val:cb.product_cost},
@@ -5249,56 +5424,9 @@ function renderAll(d,prev){
   const prevSrcMap=indexCustomerSources(prev?.customer_sources);
   const sourcesHtml=buildStatsCustomerSourcesHtml(d.customer_sources||[],prevSrcMap);
   const html=`
-    <div class="bg-white rounded-2xl border border-gray-100 p-4">
-      <div class="flex items-start justify-between mb-3">
-        <div>
-          <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">${periodLabel}</p>
-          <p class="text-2xl font-bold text-gray-900 mt-0.5">${fmt(o.total_revenue)}${cmp(o.total_revenue,po?.total_revenue)}</p>
-          <p class="text-xs text-gray-400 mt-1">Doanh thu · ${fmtN(o.total_orders)} đơn</p>
-        </div>
-        <div class="text-right">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${isProfit?'bg-green-50 text-green-600':'bg-red-50 text-red-500'}">
-            ${isProfit?'▲':'▼'} ${Math.abs(o.profit_margin).toFixed(1)}%
-          </span>
-          <p class="text-xs text-gray-400 mt-1">Tỷ suất lãi</p>
-        </div>
-      </div>
-      <div class="space-y-2">
-        <div class="flex items-center gap-2.5">
-          <span class="text-[12px] text-gray-400 w-16 shrink-0 whitespace-nowrap">Doanh thu</span>
-          <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="bar h-1.5 bg-indigo-500 rounded-full" style="width:${revW}%"></div></div>
-          <span class="text-[12px] font-semibold text-gray-700 text-right shrink-0">${fmt(o.total_revenue)}</span>
-        </div>
-        <div class="flex items-center gap-2.5">
-          <span class="text-[12px] text-gray-400 w-16 shrink-0 whitespace-nowrap">Chi phí</span>
-          <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="bar h-1.5 bg-rose-400 rounded-full" style="width:${costW}%"></div></div>
-          <span class="text-[12px] font-semibold text-gray-700 text-right shrink-0">${fmt(o.total_cost)}</span>
-        </div>
-      </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="${isProfit?'bg-green-50 border-green-100':'bg-red-50 border-red-100'} rounded-2xl p-3.5 border">
-        <p class="text-[10px] ${isProfit?'text-green-500':'text-red-400'} font-medium uppercase tracking-wide">Lợi nhuận</p>
-        <p class="text-base font-bold ${isProfit?'text-green-600':'text-red-500'} mt-1">${fmt(o.total_profit)}${cmp(o.total_profit,po?.total_profit)}</p>
-        <p class="text-[11px] text-gray-400 mt-0.5">TB: ${fmt(o.avg_profit_per_order)}/đơn</p>
-      </div>
-      <div class="bg-white rounded-2xl p-3.5 border border-gray-100">
-        <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Đơn hàng</p>
-        <p class="text-lg font-bold text-gray-900 mt-1">${fmtN(o.total_orders)}${cmp(o.total_orders,po?.total_orders)}</p>
-        <p class="text-[11px] text-gray-400 mt-0.5">TB: ${fmt(o.avg_revenue_per_order)}/đơn</p>
-      </div>
-      <div class="bg-white rounded-2xl p-3.5 border border-gray-100">
-        <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">SP đã bán</p>
-        <p class="text-lg font-bold text-gray-900 mt-1">${fmtN(o.total_products_sold)}${cmp(o.total_products_sold,po?.total_products_sold)}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-3.5 border border-gray-100">
-        <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Khách hàng</p>
-        <p class="text-lg font-bold text-gray-900 mt-1">${fmtN(o.unique_customers)}${cmp(o.unique_customers,po?.unique_customers)}</p>
-        <p class="text-[11px] text-gray-400 mt-0.5">${o.unique_customers>0?(o.total_orders/o.unique_customers).toFixed(1):0} đơn/KH</p>
-      </div>
-    </div>
+    ${buildStatsPlCard(o,po,periodLabel)}
+    ${buildStatsMiniGrid(o,po)}
     ${sourcesHtml}
-    ${buildStatsNetProfitRow(o,po)}
     ${chartHtml}
     <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div class="px-4 pt-3.5 pb-3">
@@ -5823,6 +5951,20 @@ function mAdRoasCls(v,be){
   return'text-red-600';
 }
 
+function mAdPpoPerOrder(netProfit,fbOrders){
+  const n=Number(fbOrders)||0;
+  if(n<=0)return null;
+  return netProfit/n;
+}
+
+function mAdPpoHint(fbOrders,cpa){
+  const n=Number(fbOrders)||0;
+  if(n<=0)return'Chưa có đơn QC';
+  const cpaTxt=cpa!=null?` · CPA ${fmt(cpa)}`:'';
+  if(n===1)return`1 đơn QC${cpaTxt} · trùng tổng LN kỳ`;
+  return`${fmtN(n)} đơn QC${cpaTxt} · LN thực ÷ ${fmtN(n)}`;
+}
+
 function openMAdDetail(){
   const sheet=document.getElementById('mAdDetailSheet');
   if(!sheet)return;
@@ -5856,17 +5998,24 @@ function renderMAdDetailBody(data,recentData){
   const np=s.net_profit;
   const tone=np>0?'profit':np<0?'loss':'flat';
   const heroCls=tone==='profit'?'m-ad-hero--profit':tone==='loss'?'m-ad-hero--loss':'';
-  const rpo=s.revenue_per_order!=null?s.revenue_per_order:(s.fb_orders>0?s.fb_revenue/s.fb_orders:null);
-  const ppo=s.net_profit_per_order!=null?s.net_profit_per_order:(s.fb_orders>0?s.net_profit/s.fb_orders:null);
+  const heroBadge=tone==='profit'?'<span class="m-ad-hero-badge m-ad-hero-badge--profit">Đang lãi</span>':tone==='loss'?'<span class="m-ad-hero-badge m-ad-hero-badge--loss">Đang lỗ</span>':'';
+  const fbOrders=Number(s.fb_orders)||0;
+  const rpo=s.revenue_per_order!=null?s.revenue_per_order:(fbOrders>0?s.fb_revenue/fbOrders:null);
+  const ppo=mAdPpoPerOrder(np,fbOrders);
+  const ppoHint=mAdPpoHint(fbOrders,s.cpa);
   const days=(recentData?.days||[]).slice(0,10);
   const beRoas=s.break_even_roas;
+  const periodSingle=data.start_date&&data.end_date&&data.start_date===data.end_date;
+  const heroEdit=periodSingle?`<button type="button" class="m-ad-inline-edit" onclick="openMAdSpendEdit('${data.start_date}',${s.ad_spend||0})">Sửa chi QC · ${fmt(s.ad_spend||0)}</button>`:'';
 
   const dayCards=days.length?days.map(row=>{
-    const ppoD=row.net_profit_per_order!=null?row.net_profit_per_order:(row.fb_orders>0?row.net_profit/row.fb_orders:null);
+    const rowOrders=Number(row.fb_orders)||0;
+    const ppoD=mAdPpoPerOrder(row.net_profit,rowOrders);
     const badge=row.ad_spend_source==='snapshot'?'<span class="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">Đã lưu</span>':row.ad_spend_source==='live'?'<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Hôm nay</span>':'';
     return`<article class="m-ad-day">
       <div class="flex items-center justify-between px-3 py-2 border-b border-gray-50 bg-gray-50/80">
-        <div class="flex items-center gap-1.5"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}</div>
+        <div class="flex items-center gap-1.5 min-w-0"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}</div>
+        ${mAdEditBtnHtml(row.date,row.ad_spend||0)}
       </div>
       <div class="grid grid-cols-3 gap-1 px-3 py-2.5 text-center">
         <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold text-violet-700 mt-0.5">${fmt(row.ad_spend)}</p></div>
@@ -5883,15 +6032,19 @@ function renderMAdDetailBody(data,recentData){
   document.getElementById('mAdDetailSub').textContent=`${mAdPeriodLabel()} · Facebook QC`;
   document.getElementById('mAdDetailBody').innerHTML=`
     <section class="m-ad-hero ${heroCls}">
-      <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">LN thực QC</p>
+      <div class="m-ad-hero-head">
+        <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">LN thực QC</p>
+        ${heroBadge}
+      </div>
       <p class="text-2xl font-bold mt-1 ${mAdNetCls(np)}">${fmt(np)}</p>
       <p class="text-[11px] text-gray-500 mt-1">LN gộp ${fmt(s.fb_gross_profit)} − QC ${fmt(s.ad_spend)}</p>
+      ${heroEdit}
     </section>
     <div class="grid grid-cols-2 gap-2">
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmtN(s.fb_orders)}${s.fb_order_share_pct!=null?`<span class="text-[10px] text-gray-400 font-normal"> · ${s.fb_order_share_pct.toFixed(1)}%</span>`:''}</p></div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.roas,beRoas)}">${mAdFmtRoas(s.roas)}</p>${s.break_even_roas!=null?`<p class="text-[10px] text-gray-400 mt-0.5">Hòa vốn ≥ ${s.break_even_roas.toFixed(1)}×</p>`:''}</div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN thực/đơn</p><p class="text-sm font-bold mt-1 ${mAdNetCls(ppo)}">${ppo!=null?fmt(ppo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">CPA ${s.cpa!=null?fmt(s.cpa):'—'}</p></div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN thực/đơn QC</p><p class="text-sm font-bold mt-1 ${mAdNetCls(ppo)}">${ppo!=null?fmt(ppo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">${ppoHint}</p></div>
     </div>
     <div>
       <div class="flex items-center justify-between mb-2 px-0.5">
@@ -6116,6 +6269,21 @@ async function loadMAdDetail(){
     </div>
     <div id="mAdDetailBody" class="m-ad-sheet-body space-y-3">
       <div class="text-center py-8 text-gray-400 text-sm">Đang tải…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Sửa chi QC (bottom sheet) -->
+<div id="mAdSpendEditSheet" class="m-ad-spend-edit hidden" aria-hidden="true">
+  <div class="m-ad-spend-edit-backdrop" onclick="closeMAdSpendEdit()" aria-hidden="true"></div>
+  <div class="m-ad-spend-edit-panel" role="dialog" aria-modal="true" aria-labelledby="mAdSpendEditTitle">
+    <div class="m-ad-spend-edit-handle" aria-hidden="true"></div>
+    <h3 id="mAdSpendEditTitle" class="m-ad-spend-edit-title">Sửa chi QC</h3>
+    <p id="mAdSpendEditDateLabel" class="m-ad-spend-edit-date">—</p>
+    <input id="mAdSpendEditInput" type="text" inputmode="numeric" autocomplete="off" class="m-ad-spend-edit-input" placeholder="0" oninput="onMAdSpendInput(this)" onkeydown="if(event.key==='Enter')saveMAdSpendEdit()">
+    <div class="m-ad-spend-edit-actions">
+      <button type="button" class="m-ad-spend-edit-cancel" onclick="closeMAdSpendEdit()">Huỷ</button>
+      <button type="button" id="mAdSpendEditSave" class="m-ad-spend-edit-save" onclick="saveMAdSpendEdit()">Lưu</button>
     </div>
   </div>
 </div>
