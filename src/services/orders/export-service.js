@@ -222,13 +222,13 @@ export async function mergeExports(exportIds, env) {
     // Fetch all orders
     const orderIdsArray = Array.from(allOrderIds);
     const orderPlaceholders = orderIdsArray.map(() => '?').join(',');
+    // Cùng shape đơn như export thường (allOrdersData / getRecentOrders) để
+    // createSPXExcelWorkbook() tạo file gộp giống hệt export lẻ.
     const { results: orders } = await env.DB.prepare(`
-        SELECT 
-            id, order_id, customer_name, customer_phone, address,
-            products, notes, total_amount, payment_method
+        SELECT orders.*
         FROM orders
-        WHERE id IN (${orderPlaceholders})
-        ORDER BY created_at_unix DESC
+        WHERE orders.id IN (${orderPlaceholders})
+        ORDER BY orders.created_at_unix DESC
     `).bind(...orderIdsArray).all();
 
     if (!orders || orders.length === 0) {
