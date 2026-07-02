@@ -5974,10 +5974,45 @@ function mAdNetCls(v){
 
 function mAdRoasCls(v,be){
   if(v==null||!Number.isFinite(v))return'';
-  const b=be!=null&&Number.isFinite(be)?be:3;
-  if(v>=Math.max(3,b))return'text-emerald-600';
-  if(v>=b)return'text-amber-600';
+  // Chi QC < 20% doanh thu FB ↔ ROAS > 5×
+  if(v>=5)return'text-emerald-600';
+  if(v>0)return'text-amber-600';
   return'text-red-600';
+}
+
+/** Chi QC ÷ doanh thu Facebook (%). null = có chi nhưng chưa có DT. */
+const M_AD_QC_SHARE_OK_MAX=20;
+
+function mAdQcSharePct(adSpend,fbRevenue){
+  const spend=Number(adSpend)||0;
+  const rev=Number(fbRevenue)||0;
+  if(rev<=0)return spend>0?null:0;
+  return spend/rev*100;
+}
+
+function mAdQcShareOk(adSpend,fbRevenue){
+  const spend=Number(adSpend)||0;
+  const rev=Number(fbRevenue)||0;
+  if(spend<=0)return true;
+  if(rev<=0)return false;
+  return spend/rev*100<M_AD_QC_SHARE_OK_MAX;
+}
+
+function mAdQcShareCls(adSpend,fbRevenue){
+  return mAdQcShareOk(adSpend,fbRevenue)?'text-emerald-600':'text-amber-600';
+}
+
+function mAdFmtQcSharePct(adSpend,fbRevenue){
+  const pct=mAdQcSharePct(adSpend,fbRevenue);
+  if(pct==null)return'—';
+  return pct.toFixed(1)+'%';
+}
+
+function mAdQcShareBadge(adSpend,fbRevenue){
+  const ok=mAdQcShareOk(adSpend,fbRevenue);
+  return ok
+    ?'<span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">Ổn</span>'
+    :'<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Cảnh báo</span>';
 }
 
 function mAdPpoPerOrder(netProfit,fbOrders){
@@ -6033,6 +6068,8 @@ function renderMAdDetailBody(data,recentData){
   const ppoHint=mAdPpoHint(fbOrders);
   const grossProfit=s.fb_gross_profit||0;
   const gmp=s.gross_margin_pct!=null?s.gross_margin_pct:(s.fb_revenue>0?(grossProfit/s.fb_revenue)*100:null);
+  const qcSharePct=mAdFmtQcSharePct(s.ad_spend,s.fb_revenue);
+  const qcShareCls=mAdQcShareCls(s.ad_spend,s.fb_revenue);
   const days=(recentData?.days||[]).slice(0,10);
   const beRoas=s.break_even_roas;
   const periodSingle=data.start_date&&data.end_date&&data.start_date===data.end_date;
@@ -6041,20 +6078,26 @@ function renderMAdDetailBody(data,recentData){
   const dayCards=days.length?days.map(row=>{
     const rowOrders=Number(row.fb_orders)||0;
     const ppoD=mAdPpoPerOrder(row.net_profit,rowOrders);
+    const qcCls=mAdQcShareCls(row.ad_spend,row.fb_revenue);
+    const qcPct=mAdFmtQcSharePct(row.ad_spend,row.fb_revenue);
     const badge=row.ad_spend_source==='snapshot'?'<span class="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">Đã lưu</span>':row.ad_spend_source==='live'?'<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Hôm nay</span>':'';
     return`<article class="m-ad-day">
       <div class="flex items-center justify-between px-3 py-2 border-b border-gray-50 bg-gray-50/80">
-        <div class="flex items-center gap-1.5 min-w-0"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}</div>
+        <div class="flex items-center gap-1.5 min-w-0 flex-wrap"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}${mAdQcShareBadge(row.ad_spend,row.fb_revenue)}</div>
         ${mAdEditBtnHtml(row.date,row.ad_spend||0)}
       </div>
       <div class="grid grid-cols-3 gap-1 px-3 py-2.5 text-center">
-        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold text-violet-700 mt-0.5">${fmt(row.ad_spend)}</p></div>
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold mt-0.5 ${qcCls}">${fmt(row.ad_spend)}</p><p class="text-[9px] mt-0.5 ${qcCls}">${qcPct} DT</p></div>
         <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Đơn</p><p class="text-xs font-bold text-gray-800 mt-0.5">${fmtN(row.fb_orders)}</p></div>
         <div><p class="text-[9px] text-gray-400 font-semibold uppercase">LN thực</p><p class="text-xs font-bold mt-0.5 ${mAdNetCls(row.net_profit)}">${fmt(row.net_profit)}</p></div>
       </div>
-      <div class="px-3 pb-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-500 border-t border-gray-50 mx-3 pt-2">
-        <span>ROAS <b class="${mAdRoasCls(row.roas,beRoas)}">${mAdFmtRoas(row.roas)}</b></span>
-        ${ppoD!=null?`<span>LN/đơn <b class="${mAdNetCls(ppoD)}">${fmt(ppoD)}</b></span>`:''}
+      <div class="px-3 pb-2.5 text-[10px] text-gray-500 border-t border-gray-50 mx-3 pt-2 leading-relaxed">
+        ${[
+          `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
+          `<span>ROAS <b class="${mAdRoasCls(row.roas,beRoas)}">${mAdFmtRoas(row.roas)}</b></span>`,
+          `<span>CPA <b class="text-gray-800">${row.cpa!=null?fmt(row.cpa):'—'}</b></span>`,
+          ppoD!=null?`<span>LN/đơn <b class="${mAdNetCls(ppoD)}">${fmt(ppoD)}</b></span>`:null
+        ].filter(Boolean).join('<span class="text-gray-300 px-1.5 select-none" aria-hidden="true">|</span>')}
       </div>
     </article>`;
   }).join(''):'<p class="text-center text-sm text-gray-400 py-4">Không có dữ liệu</p>';
@@ -6075,7 +6118,8 @@ function renderMAdDetailBody(data,recentData){
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN gộp</p><p class="text-sm font-bold mt-1 ${mAdNetCls(grossProfit)}">${fmt(grossProfit)}</p>${gmp!=null?`<p class="text-[10px] text-gray-400 mt-0.5">TS ${gmp.toFixed(1)}%</p>`:''}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">CPA</p><p class="text-sm font-bold text-gray-900 mt-1">${s.cpa!=null?fmt(s.cpa):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">Chi QC / đơn</p></div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.roas,beRoas)}">${mAdFmtRoas(s.roas)}</p>${s.break_even_roas!=null?`<p class="text-[10px] text-gray-400 mt-0.5">Hòa vốn ≥ ${s.break_even_roas.toFixed(1)}×</p>`:''}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Chi QC / DT</p><p class="text-sm font-bold mt-1 ${qcShareCls}">${qcSharePct}</p><p class="text-[10px] mt-0.5 ${qcShareCls}">${mAdQcShareOk(s.ad_spend,s.fb_revenue)?'Ổn · dưới 20% DT':'Cảnh báo · từ 20% DT trở lên'}</p></div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.roas,beRoas)}">${mAdFmtRoas(s.roas)}</p><p class="text-[10px] text-gray-400 mt-0.5">Mục tiêu > 5× (QC &lt; 20% DT)</p></div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN thực/đơn QC</p><p class="text-sm font-bold mt-1 ${mAdNetCls(ppo)}">${ppo!=null?fmt(ppo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">${ppoHint}</p></div>
     </div>
     <div>

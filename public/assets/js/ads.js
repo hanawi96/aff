@@ -26,11 +26,43 @@
         return `${v.toFixed(1)}×`;
     }
 
-    function roasClass(v, breakEven) {
+    const QC_SHARE_OK_MAX = 20;
+
+    function qcSharePct(adSpend, fbRevenue) {
+        const spend = Number(adSpend) || 0;
+        const rev = Number(fbRevenue) || 0;
+        if (rev <= 0) return spend > 0 ? null : 0;
+        return (spend / rev) * 100;
+    }
+
+    function qcShareOk(adSpend, fbRevenue) {
+        const spend = Number(adSpend) || 0;
+        const rev = Number(fbRevenue) || 0;
+        if (spend <= 0) return true;
+        if (rev <= 0) return false;
+        return (spend / rev) * 100 < QC_SHARE_OK_MAX;
+    }
+
+    function qcShareCls(adSpend, fbRevenue) {
+        return qcShareOk(adSpend, fbRevenue) ? 'text-emerald-600' : 'text-amber-600';
+    }
+
+    function fmtQcSharePct(adSpend, fbRevenue) {
+        const pct = qcSharePct(adSpend, fbRevenue);
+        if (pct == null) return '—';
+        return pct.toFixed(1) + '%';
+    }
+
+    function qcShareBadge(adSpend, fbRevenue) {
+        return qcShareOk(adSpend, fbRevenue)
+            ? '<span class="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Ổn</span>'
+            : '<span class="ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Cảnh báo</span>';
+    }
+
+    function roasClass(v) {
         if (v == null || !Number.isFinite(v)) return '';
-        const be = breakEven != null && Number.isFinite(breakEven) ? breakEven : 3;
-        if (v >= Math.max(3, be)) return 'ads-roas--good';
-        if (v >= be) return 'ads-roas--warn';
+        if (v >= 5) return 'ads-roas--good';
+        if (v > 0) return 'ads-roas--warn';
         return 'ads-roas--bad';
     }
 
@@ -149,7 +181,7 @@
             if (el) el.textContent = '';
         });
         const body = document.getElementById('dailyTableBody');
-        if (body) body.innerHTML = '<tr><td colspan="14" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>';
         const foot = document.getElementById('dailyTableFoot');
         if (foot) foot.innerHTML = '';
         const srcBody = document.getElementById('adsSourceBody');
@@ -200,14 +232,11 @@
 
         const roasEl = document.getElementById('kpiRoas');
         roasEl.textContent = fmtRoas(s.roas);
-        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.roas, s.break_even_roas);
+        roasEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + roasClass(s.roas);
         const roasHint = document.getElementById('kpiRoasHint');
         if (roasHint) {
-            if (s.break_even_roas != null) {
-                roasHint.textContent = `Hòa vốn ≥ ${s.break_even_roas.toFixed(1)}× · mục tiêu ≥ 3×`;
-            } else {
-                roasHint.textContent = '≥ 3× là ổn';
-            }
+            roasHint.textContent = `Mục tiêu > 5× · QC/DT ${fmtQcSharePct(s.ad_spend, s.fb_revenue)} ${qcShareOk(s.ad_spend, s.fb_revenue) ? '(ổn)' : '(cảnh báo)'}`;
+            roasHint.className = 'mt-1 text-xs ' + qcShareCls(s.ad_spend, s.fb_revenue);
         }
 
         document.getElementById('kpiCpa').textContent = s.cpa != null ? fmt(s.cpa) + '/đơn' : '—';
@@ -289,23 +318,10 @@
         }).join('');
     }
 
-    function rowMetrics(row) {
-        const rpo = row.revenue_per_order != null
-            ? row.revenue_per_order
-            : (row.fb_orders > 0 ? row.fb_revenue / row.fb_orders : null);
-        const gpo = row.gross_profit_per_order != null
-            ? row.gross_profit_per_order
-            : (row.fb_orders > 0 ? row.fb_gross_profit / row.fb_orders : null);
-        const ppo = row.net_profit_per_order != null
-            ? row.net_profit_per_order
-            : (row.fb_orders > 0 ? row.net_profit / row.fb_orders : null);
-        const gmp = row.gross_margin_pct != null
-            ? row.gross_margin_pct
-            : (row.fb_revenue > 0 ? (row.fb_gross_profit / row.fb_revenue) * 100 : null);
-        const nmp = row.net_margin_pct != null
-            ? row.net_margin_pct
-            : (row.fb_revenue > 0 ? (row.net_profit / row.fb_revenue) * 100 : null);
-        return { rpo, gpo, ppo, gmp, nmp };
+    function ppoPerOrder(netProfit, fbOrders) {
+        const n = Number(fbOrders) || 0;
+        if (n <= 0) return null;
+        return netProfit / n;
     }
 
     function sourceBadge(source) {
@@ -318,65 +334,68 @@
         return '';
     }
 
+    function renderSecondaryMetrics(row) {
+        const ppo = ppoPerOrder(row.net_profit, row.fb_orders);
+        const qcCls = qcShareCls(row.ad_spend, row.fb_revenue);
+        const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
+        return [
+            `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
+            `<span>ROAS <b class="${roasClass(row.roas)}">${fmtRoas(row.roas)}</b></span>`,
+            `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(row.cpa) : '—'}</b></span>`,
+            ppo != null ? `<span>LN/đơn <b class="${netClass(ppo)}">${fmt(ppo)}</b></span>` : null
+        ].filter(Boolean).join('<span class="text-slate-300 px-1.5 select-none" aria-hidden="true">|</span>');
+    }
+
     function renderTable(data) {
         const body = document.getElementById('dailyTableBody');
         const foot = document.getElementById('dailyTableFoot');
-        const days = data.days || [];
+        const days = (data.days || []).slice(0, 10);
         const s = data.summary || {};
+        if (!body) return;
 
         if (!days.length) {
-            body.innerHTML = '<tr><td colspan="14" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
-            foot.innerHTML = '';
+            body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Không có dữ liệu</td></tr>';
+            if (foot) foot.innerHTML = '';
             return;
         }
 
-        const beRoas = s.break_even_roas;
-
         body.innerHTML = days.map((row) => {
-            const m = rowMetrics(row);
+            const qcCls = qcShareCls(row.ad_spend, row.fb_revenue);
+            const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
             return `
             <tr class="border-t border-slate-100 hover:bg-slate-50/50">
-                <td class="px-4 py-3 font-medium text-slate-800">${fmtDateLabel(row.date)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(row.ad_spend)}${sourceBadge(row.ad_spend_source)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmtN(row.fb_orders)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(row.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${m.rpo != null ? fmt(m.rpo) : '—'}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(row.fb_gross_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${m.gpo != null ? fmt(m.gpo) : '—'}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmtPct(m.gmp)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(row.net_profit)}">${fmtPct(m.nmp)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${roasClass(row.roas, beRoas)}">${fmtRoas(row.roas)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${row.cpa != null ? fmt(row.cpa) : '—'}</td>
+                <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">
+                    ${fmtDateLabel(row.date)}${sourceBadge(row.ad_spend_source)}${qcShareBadge(row.ad_spend, row.fb_revenue)}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                    <div class="font-semibold ${qcCls}">${fmt(row.ad_spend)}</div>
+                    <div class="text-[10px] ${qcCls}">${qcPct} DT</div>
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmtN(row.fb_orders)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.net_profit)}">${fmt(row.net_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(m.ppo)}">${m.ppo != null ? fmt(m.ppo) : '—'}</td>
+                <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(row)}</td>
                 <td class="px-4 py-3 text-center">
                     <button type="button" class="edit-spend-btn rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" data-date="${row.date}" data-amount="${row.ad_spend}" title="Sửa chi QC" aria-label="Sửa chi QC">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </button>
                 </td>
-            </tr>
-        `;
+            </tr>`;
         }).join('');
 
-        const tm = rowMetrics(s);
-
-        foot.innerHTML = `
+        if (foot) {
+            foot.innerHTML = `
             <tr>
                 <td class="px-4 py-3">Tổng</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(s.ad_spend)}</td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                    <div class="font-semibold ${qcShareCls(s.ad_spend, s.fb_revenue)}">${fmt(s.ad_spend)}</div>
+                    <div class="text-[10px] ${qcShareCls(s.ad_spend, s.fb_revenue)}">${fmtQcSharePct(s.ad_spend, s.fb_revenue)} DT</div>
+                </td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtN(s.fb_orders)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${tm.rpo != null ? fmt(tm.rpo) : '—'}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_gross_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${tm.gpo != null ? fmt(tm.gpo) : '—'}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${fmtPct(s.gross_margin_pct ?? tm.gmp)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmtPct(s.net_margin_pct ?? tm.nmp)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${roasClass(s.roas, beRoas)}">${fmtRoas(s.roas)}</td>
-                <td class="px-4 py-3 text-right tabular-nums">${s.cpa != null ? fmt(s.cpa) : '—'}</td>
                 <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmt(s.net_profit)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(tm.ppo)}">${tm.ppo != null ? fmt(tm.ppo) : '—'}</td>
+                <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(s)}</td>
                 <td></td>
             </tr>`;
+        }
 
         body.querySelectorAll('.edit-spend-btn').forEach((btn) => {
             btn.addEventListener('click', () => openEditModal(btn.dataset.date, Number(btn.dataset.amount)));
@@ -391,20 +410,27 @@
         showLoading();
 
         try {
-            const res = await fetch(
-                `${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${Date.now()}`
-            );
+            const ts = Date.now();
+            const [res, res10d] = await Promise.all([
+                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${ts}`),
+                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=10d&timestamp=${ts}`)
+            ]);
             const data = await res.json();
+            const data10d = await res10d.json();
             if (!data.success) throw new Error(data.error || 'Không tải được dữ liệu');
             renderSummary(data);
             renderTrendChart(data);
             renderSourceCompare(data);
-            renderTable(data);
+            if (data10d.success) {
+                renderTable(data10d);
+            } else {
+                renderTable({ days: [], summary: {} });
+            }
         } catch (e) {
             console.error('[Ads]', e);
             if (typeof showToast === 'function') showToast(e.message || 'Lỗi tải dữ liệu', 'error');
-            document.getElementById('dailyTableBody').innerHTML =
-                '<tr><td colspan="14" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
+            const body = document.getElementById('dailyTableBody');
+            if (body) body.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-red-500">Không tải được dữ liệu</td></tr>';
         } finally {
             loading = false;
         }

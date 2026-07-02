@@ -45,6 +45,7 @@
         .ads-roas--good { color: #059669; }
         .ads-roas--warn { color: #d97706; }
         .ads-roas--bad { color: #dc2626; }
+        .ads-metrics-col { font-size: 0.75rem; line-height: 1.5; color: #64748b; white-space: nowrap; }
         /* Hero LN thực */
         .ads-hero {
             border-radius: 1rem;
@@ -243,6 +244,31 @@
                 </div>
             </div>
 
+            <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="text-base font-semibold text-slate-900">10 ngày gần nhất</h2>
+                    <p class="mt-0.5 text-xs text-slate-500">Luôn hiển thị 10 ngày mới nhất · không đổi theo bộ lọc kỳ</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[720px] text-sm">
+                        <thead class="bg-slate-50/90 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Ngày</th>
+                                <th class="px-4 py-3 text-right">Chi QC</th>
+                                <th class="px-4 py-3 text-right">Đơn</th>
+                                <th class="px-4 py-3 text-right">LN thực</th>
+                                <th class="px-4 py-3 text-left">Chỉ số</th>
+                                <th class="px-4 py-3 text-center w-12"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailyTableBody">
+                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>
+                        </tbody>
+                        <tfoot id="dailyTableFoot" class="border-t border-slate-200 bg-slate-50/80 font-semibold text-slate-900"></tfoot>
+                    </table>
+                </div>
+            </div>
+
             <div id="adsSourceSection" class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
                 <div class="border-b border-slate-100 px-5 py-4">
                     <h2 class="text-base font-semibold text-slate-900">So sánh nguồn khách</h2>
@@ -264,38 +290,6 @@
                         <tbody id="adsSourceBody">
                             <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Đang tải…</td></tr>
                         </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                <div class="border-b border-slate-100 px-5 py-4">
-                    <h2 class="text-base font-semibold text-slate-900">Chi tiết theo ngày</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1280px] text-sm">
-                        <thead class="bg-slate-50/90 text-xs uppercase tracking-wide text-slate-500">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Ngày</th>
-                                <th class="px-4 py-3 text-right">Chi QC</th>
-                                <th class="px-4 py-3 text-right">Đơn FB</th>
-                                <th class="px-4 py-3 text-right">DT FB</th>
-                                <th class="px-4 py-3 text-right">DT/đơn</th>
-                                <th class="px-4 py-3 text-right">LN gộp</th>
-                                <th class="px-4 py-3 text-right">LN gộp/đơn</th>
-                                <th class="px-4 py-3 text-right">TS gộp</th>
-                                <th class="px-4 py-3 text-right">TS thực</th>
-                                <th class="px-4 py-3 text-right">ROAS</th>
-                                <th class="px-4 py-3 text-right">CPA</th>
-                                <th class="px-4 py-3 text-right">LN thực</th>
-                                <th class="px-4 py-3 text-right">LN thực/đơn</th>
-                                <th class="px-4 py-3 text-center w-16"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="dailyTableBody">
-                            <tr><td colspan="14" class="px-4 py-10 text-center text-slate-400">Đang tải…</td></tr>
-                        </tbody>
-                        <tfoot id="dailyTableFoot" class="border-t border-slate-200 bg-slate-50/80 font-semibold text-slate-900"></tfoot>
                     </table>
                 </div>
             </div>
