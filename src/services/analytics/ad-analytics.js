@@ -234,29 +234,40 @@ function buildPeriodInsights(days) {
 }
 
 async function buildAdAnalyticsFull(env, startMs, endMs) {
-    const [payload, totalOrders, sourceBreakdown] = await Promise.all([
-        buildAdAnalyticsPayload(env, startMs, endMs),
-        queryTotalOrders(env, startMs, endMs),
-        queryCustomerSourceBreakdown(env, startMs, endMs)
-    ]);
+    const payload = await buildAdAnalyticsPayload(env, startMs, endMs);
 
-    const totalRevenue = (sourceBreakdown.ordersRows || []).reduce(
-        (sum, row) => sum + (row.revenue || 0), 0
-    );
-    const sources = buildCustomerSources(
-        sourceBreakdown.ordersRows,
-        sourceBreakdown.productRows,
-        totalRevenue
-    );
+    payload.summary.total_orders = 0;
+    payload.summary.fb_order_share_pct = null;
 
-    payload.summary.total_orders = totalOrders;
-    payload.summary.fb_order_share_pct = totalOrders > 0
-        ? (payload.summary.fb_orders / totalOrders) * 100
-        : null;
+    let source_compare = [];
+
+    try {
+        const [totalOrders, sourceBreakdown] = await Promise.all([
+            queryTotalOrders(env, startMs, endMs),
+            queryCustomerSourceBreakdown(env, startMs, endMs)
+        ]);
+
+        payload.summary.total_orders = totalOrders;
+        payload.summary.fb_order_share_pct = totalOrders > 0
+            ? (payload.summary.fb_orders / totalOrders) * 100
+            : null;
+
+        const totalRevenue = (sourceBreakdown.ordersRows || []).reduce(
+            (sum, row) => sum + (row.revenue || 0), 0
+        );
+        const sources = buildCustomerSources(
+            sourceBreakdown.ordersRows,
+            sourceBreakdown.productRows,
+            totalRevenue
+        );
+        source_compare = buildSourceCompare(sources, payload.summary.ad_spend);
+    } catch (err) {
+        console.error('Ad analytics optional breakdown failed:', err);
+    }
 
     return {
         ...payload,
-        source_compare: buildSourceCompare(sources, payload.summary.ad_spend),
+        source_compare,
         period_insights: buildPeriodInsights(payload.days)
     };
 }
@@ -264,26 +275,26 @@ async function buildAdAnalyticsFull(env, startMs, endMs) {
 export async function getAdAnalytics(period, env, corsHeaders) {
     try {
         const range = resolveVnPeriodRange(period || 'yesterday');
-        const [current, previous] = await Promise.all([
+        const [current, previousPayload] = await Promise.all([
             buildAdAnalyticsFull(env, range.startMs, range.endMs),
-            buildAdAnalyticsFull(env, range.prevStartMs, range.prevEndMs)
+            buildAdAnalyticsPayload(env, range.prevStartMs, range.prevEndMs)
         ]);
 
         const compare = {
-            ad_spend_pct: pctChange(current.summary.ad_spend, previous.summary.ad_spend),
-            fb_orders_pct: pctChange(current.summary.fb_orders, previous.summary.fb_orders),
-            fb_revenue_pct: pctChange(current.summary.fb_revenue, previous.summary.fb_revenue),
-            net_profit_pct: pctChange(current.summary.net_profit, previous.summary.net_profit),
+            ad_spend_pct: pctChange(current.summary.ad_spend, previousPayload.summary.ad_spend),
+            fb_orders_pct: pctChange(current.summary.fb_orders, previousPayload.summary.fb_orders),
+            fb_revenue_pct: pctChange(current.summary.fb_revenue, previousPayload.summary.fb_revenue),
+            net_profit_pct: pctChange(current.summary.net_profit, previousPayload.summary.net_profit),
             net_profit_per_order_pct: pctChange(
                 current.summary.net_profit_per_order,
-                previous.summary.net_profit_per_order
+                previousPayload.summary.net_profit_per_order
             ),
             revenue_per_order_pct: pctChange(
                 current.summary.revenue_per_order,
-                previous.summary.revenue_per_order
+                previousPayload.summary.revenue_per_order
             ),
-            roas_pct: pctChange(current.summary.roas, previous.summary.roas),
-            cpa_pct: pctChange(current.summary.cpa, previous.summary.cpa)
+            roas_pct: pctChange(current.summary.roas, previousPayload.summary.roas),
+            cpa_pct: pctChange(current.summary.cpa, previousPayload.summary.cpa)
         };
 
         return jsonResponse({

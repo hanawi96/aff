@@ -64,6 +64,24 @@ body{overscroll-behavior-y:contain}
 .m-stats-net-side.m-stats-net-profit .m-stats-net-label{color:#059669}
 .m-stats-net-val{margin:0;font-size:.9375rem;font-weight:700;line-height:1.25;word-break:break-word}
 .m-stats-net-sub{margin:0.1rem 0 0;font-size:10px;color:#6b7280;line-height:1.2}
+/* Modal chi tiết QC */
+.m-ad-hero{border-radius:1rem;padding:1rem 1.125rem;border:1px solid #e2e8f0;background:#fff}
+.m-ad-hero--profit{background:linear-gradient(145deg,#ecfdf5,#fff);border-color:#a7f3d0}
+.m-ad-hero--loss{background:linear-gradient(145deg,#fef2f2,#fff);border-color:#fecaca}
+.m-ad-kpi{border-radius:0.875rem;border:1px solid #f1f5f9;background:#fff;padding:0.75rem}
+.m-ad-day{border-radius:0.875rem;border:1px solid #f1f5f9;background:#fff;overflow:hidden}
+/* Bottom sheet chi tiết QC — CSS tường minh, không phụ thuộc Tailwind build */
+.m-ad-sheet-overlay{position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+.m-ad-sheet-overlay:not(.hidden){pointer-events:auto}
+.m-ad-sheet-overlay.hidden{display:none!important}
+.m-ad-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);animation:fadeIn .2s ease}
+.m-ad-sheet-panel{position:relative;z-index:1;width:100%;max-width:32rem;margin:0 auto;max-height:min(88dvh,calc(100dvh - env(safe-area-inset-top,0px) - 8px));display:flex;flex-direction:column;background:#f9fafb;border-radius:1rem 1rem 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.12);animation:sheetUp .28s cubic-bezier(.32,.72,0,1);pointer-events:auto}
+.m-ad-sheet-handle{flex-shrink:0;width:2.5rem;height:4px;background:#d1d5db;border-radius:999px;margin:0.625rem auto 0}
+.m-ad-sheet-header{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;padding:0.75rem 1.25rem 1rem;border-bottom:1px solid #f3f4f6;background:#fff}
+.m-ad-sheet-close{flex-shrink:0;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#f3f4f6;color:#6b7280;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.m-ad-sheet-close:active{background:#e5e7eb}
+.m-ad-sheet-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom,0px))}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 /* Không dùng divide-gray-100 trên #orderList: nó set border-color cho mọi cạnh và làm mất viền trái vàng đơn ưu tiên */
 #orderList > .order-card + .order-card{border-top:1px solid rgb(243 244 246)}
 /* Deep link #order/id: tránh flash tab danh sách — ẩn list/tabs, full-screen panel + skeleton trước khi có dữ liệu */
@@ -5079,10 +5097,10 @@ function buildStatsNetProfitRow(o,po){
       </div>
     </div>
     <p class="text-center mt-1.5 px-1">
-      <a href="m-ads.html" class="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 active:opacity-70">
+      <button type="button" onclick="openMAdDetail()" class="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 active:opacity-70">
         Xem thống kê quảng cáo chi tiết
         <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-      </a>
+      </button>
     </p>
   </div>`;
 }
@@ -5765,6 +5783,166 @@ function updateTabActive(p){
     t.classList.toggle('text-gray-500',t.dataset.p!==p);
   });
 }
+
+// ─── Modal chi tiết quảng cáo (Stats tab) ───
+let mAdDetailLoading=false;
+
+function statsToAdPeriod(){
+  if(currentPeriod==='yesterday')return'yesterday';
+  if(currentPeriod==='today')return'today';
+  if(currentPeriod==='week')return'7d';
+  if(currentPeriod==='month')return'month';
+  return'today';
+}
+
+function mAdPeriodLabel(){
+  return{yesterday:'Hôm qua',today:'Hôm nay',week:'7 ngày',month:'Tháng này',custom:document.getElementById('customLabel')?.textContent||'Tùy chọn'}[currentPeriod]||'';
+}
+
+function mAdFmtDate(iso){
+  if(!iso)return'—';
+  const p=iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+function mAdFmtRoas(v){
+  if(v==null||!Number.isFinite(v))return'—';
+  return v.toFixed(1)+'×';
+}
+
+function mAdNetCls(v){
+  if(v==null)return'text-gray-900';
+  return v>=0?'text-emerald-600':'text-red-600';
+}
+
+function mAdRoasCls(v,be){
+  if(v==null||!Number.isFinite(v))return'';
+  const b=be!=null&&Number.isFinite(be)?be:3;
+  if(v>=Math.max(3,b))return'text-emerald-600';
+  if(v>=b)return'text-amber-600';
+  return'text-red-600';
+}
+
+function openMAdDetail(){
+  const sheet=document.getElementById('mAdDetailSheet');
+  if(!sheet)return;
+  sheet.classList.remove('hidden');
+  sheet.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  loadMAdDetail();
+}
+
+function closeMAdDetail(){
+  const sheet=document.getElementById('mAdDetailSheet');
+  if(!sheet)return;
+  sheet.classList.add('hidden');
+  sheet.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+
+async function fetchMAdAnalytics(period){
+  const r=await fetch(`${API()}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${Date.now()}`,{method:'GET',mode:'cors',credentials:'omit'});
+  if(!r.ok){
+    let msg='HTTP '+r.status;
+    try{const j=await r.json();if(j.error)msg=j.error;}catch(_){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function renderMAdDetailBody(data,recentData){
+  const s=data?.summary||{};
+  const c=data?.compare||{};
+  const np=s.net_profit;
+  const tone=np>0?'profit':np<0?'loss':'flat';
+  const heroCls=tone==='profit'?'m-ad-hero--profit':tone==='loss'?'m-ad-hero--loss':'';
+  const rpo=s.revenue_per_order!=null?s.revenue_per_order:(s.fb_orders>0?s.fb_revenue/s.fb_orders:null);
+  const ppo=s.net_profit_per_order!=null?s.net_profit_per_order:(s.fb_orders>0?s.net_profit/s.fb_orders:null);
+  const days=(recentData?.days||[]).slice(0,10);
+  const beRoas=s.break_even_roas;
+
+  const dayCards=days.length?days.map(row=>{
+    const ppoD=row.net_profit_per_order!=null?row.net_profit_per_order:(row.fb_orders>0?row.net_profit/row.fb_orders:null);
+    const badge=row.ad_spend_source==='snapshot'?'<span class="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">Đã lưu</span>':row.ad_spend_source==='live'?'<span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">Hôm nay</span>':'';
+    return`<article class="m-ad-day">
+      <div class="flex items-center justify-between px-3 py-2 border-b border-gray-50 bg-gray-50/80">
+        <div class="flex items-center gap-1.5"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}</div>
+      </div>
+      <div class="grid grid-cols-3 gap-1 px-3 py-2.5 text-center">
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold text-violet-700 mt-0.5">${fmt(row.ad_spend)}</p></div>
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Đơn</p><p class="text-xs font-bold text-gray-800 mt-0.5">${fmtN(row.fb_orders)}</p></div>
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">LN thực</p><p class="text-xs font-bold mt-0.5 ${mAdNetCls(row.net_profit)}">${fmt(row.net_profit)}</p></div>
+      </div>
+      <div class="px-3 pb-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-500 border-t border-gray-50 mx-3 pt-2">
+        <span>ROAS <b class="${mAdRoasCls(row.roas,beRoas)}">${mAdFmtRoas(row.roas)}</b></span>
+        ${ppoD!=null?`<span>LN/đơn <b class="${mAdNetCls(ppoD)}">${fmt(ppoD)}</b></span>`:''}
+      </div>
+    </article>`;
+  }).join(''):'<p class="text-center text-sm text-gray-400 py-4">Không có dữ liệu</p>';
+
+  document.getElementById('mAdDetailSub').textContent=`${mAdPeriodLabel()} · Facebook QC`;
+  document.getElementById('mAdDetailBody').innerHTML=`
+    <section class="m-ad-hero ${heroCls}">
+      <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">LN thực QC</p>
+      <p class="text-2xl font-bold mt-1 ${mAdNetCls(np)}">${fmt(np)}</p>
+      <p class="text-[11px] text-gray-500 mt-1">LN gộp ${fmt(s.fb_gross_profit)} − QC ${fmt(s.ad_spend)}</p>
+    </section>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmtN(s.fb_orders)}${s.fb_order_share_pct!=null?`<span class="text-[10px] text-gray-400 font-normal"> · ${s.fb_order_share_pct.toFixed(1)}%</span>`:''}</p></div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">ROAS</p><p class="text-sm font-bold mt-1 ${mAdRoasCls(s.roas,beRoas)}">${mAdFmtRoas(s.roas)}</p>${s.break_even_roas!=null?`<p class="text-[10px] text-gray-400 mt-0.5">Hòa vốn ≥ ${s.break_even_roas.toFixed(1)}×</p>`:''}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN thực/đơn</p><p class="text-sm font-bold mt-1 ${mAdNetCls(ppo)}">${ppo!=null?fmt(ppo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">CPA ${s.cpa!=null?fmt(s.cpa):'—'}</p></div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-2 px-0.5">
+        <h4 class="text-sm font-semibold text-gray-900">10 ngày gần nhất</h4>
+        <span class="text-[10px] text-gray-400">${days.length} ngày</span>
+      </div>
+      <div class="space-y-2">${dayCards}</div>
+    </div>`;
+}
+
+async function loadMAdDetail(){
+  if(mAdDetailLoading)return;
+  mAdDetailLoading=true;
+  const body=document.getElementById('mAdDetailBody');
+  if(body)body.innerHTML='<div class="text-center py-10 text-gray-400 text-sm">Đang tải…</div>';
+  try{
+    if(currentPeriod==='custom'){
+      const cacheKey=customRange?`c_${customRange.startDate}_${customRange.endDate}`:'custom';
+      const cached=cache[cacheKey];
+      const o=cached?.cur?.overview;
+      const recent=await fetchMAdAnalytics('10d');
+      const fbSrc=(cached?.cur?.customer_sources||[]).find(x=>x.source==='facebook');
+      const adSpend=o?.ad_spend||0;
+      const gross=fbSrc?.profit||0;
+      const net=o?.net_profit!=null?o.net_profit:(gross-adSpend);
+      const synthetic={
+        summary:{
+          ad_spend:adSpend,
+          fb_orders:fbSrc?.order_count||0,
+          fb_revenue:fbSrc?.revenue||0,
+          fb_gross_profit:gross,
+          net_profit:net,
+          net_profit_per_order:fbSrc?.order_count>0?net/fbSrc.order_count:null,
+          revenue_per_order:fbSrc?.order_count>0?(fbSrc.revenue/fbSrc.order_count):null,
+          roas:adSpend>0?(fbSrc?.revenue||0)/adSpend:null,
+          cpa:fbSrc?.order_count>0?adSpend/fbSrc.order_count:null,
+          break_even_roas:gross>0?(fbSrc?.revenue||0)/gross:null
+        },
+        compare:{}
+      };
+      renderMAdDetailBody(synthetic,recent);
+    }else{
+      const period=statsToAdPeriod();
+      const [data,recent]=await Promise.all([fetchMAdAnalytics(period),fetchMAdAnalytics('10d')]);
+      if(!data.success)throw new Error(data.error||'Không tải được dữ liệu');
+      renderMAdDetailBody(data,recent.success?recent:data);
+    }
+  }catch(e){
+    if(body)body.innerHTML=`<div class="text-center py-10 px-4"><p class="text-red-500 text-sm font-medium">Không tải được dữ liệu QC</p><p class="text-gray-400 text-xs mt-2">${esc(String(e.message||e))}</p></div>`;
+  }finally{mAdDetailLoading=false;}
+}
 </script>
 
 <!-- ─── Thẻ tên bé Notes Modal ─── -->
@@ -5918,6 +6096,26 @@ function updateTabActive(p){
       Áp dụng
     </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ad QC Detail Modal (Stats tab) -->
+<div id="mAdDetailSheet" class="m-ad-sheet-overlay hidden" aria-hidden="true">
+  <div class="m-ad-sheet-backdrop" onclick="closeMAdDetail()" aria-hidden="true"></div>
+  <div class="m-ad-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="mAdDetailTitle">
+    <div class="m-ad-sheet-handle" aria-hidden="true"></div>
+    <div class="m-ad-sheet-header">
+      <div class="min-w-0 flex-1">
+        <h3 id="mAdDetailTitle" class="text-base font-bold text-gray-900 leading-tight">Chi tiết quảng cáo</h3>
+        <p id="mAdDetailSub" class="text-[11px] text-gray-400 mt-0.5 truncate">Facebook Ads</p>
+      </div>
+      <button type="button" class="m-ad-sheet-close" onclick="closeMAdDetail()" aria-label="Đóng">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="mAdDetailBody" class="m-ad-sheet-body space-y-3">
+      <div class="text-center py-8 text-gray-400 text-sm">Đang tải…</div>
     </div>
   </div>
 </div>
