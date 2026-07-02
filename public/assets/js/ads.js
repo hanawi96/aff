@@ -7,6 +7,7 @@
     let activeCustomDate = null;
     let loading = false;
     let editDate = null;
+    let lastAnalyticsData = null;
     let trendChart = null;
     let adsDayPickView = { y: 0, m: 0 };
 
@@ -168,6 +169,32 @@
         return PERIOD_LABELS[data.period] || PERIOD_LABELS.yesterday;
     }
 
+    function getDayAdSpend(data, date) {
+        const row = (data.days || []).find((d) => d.date === date);
+        return row ? (row.ad_spend || 0) : 0;
+    }
+
+    function isSingleDayRange(data) {
+        return !!(data.start_date && data.end_date && data.start_date === data.end_date);
+    }
+
+    function resolveHeroEditTarget(data) {
+        if (!data?.start_date) return null;
+        const date = isSingleDayRange(data) ? data.start_date : (data.end_date || data.start_date);
+        let amount = getDayAdSpend(data, date);
+        if (isSingleDayRange(data) && !amount && data.summary?.ad_spend) {
+            amount = data.summary.ad_spend;
+        }
+        return { date, amount };
+    }
+
+    function heroEditTitle(data) {
+        const target = resolveHeroEditTarget(data);
+        if (!target) return 'Sửa chi QC';
+        if (isSingleDayRange(data)) return `Sửa chi QC · ${fmtDateLabel(target.date)}`;
+        return `Sửa chi QC · ${fmtDateLabel(target.date)} (ngày gần nhất trong kỳ)`;
+    }
+
     function heroTone(netProfit) {
         if (netProfit == null || !Number.isFinite(netProfit)) return 'flat';
         if (netProfit > 0) return 'profit';
@@ -179,13 +206,15 @@
         const s = data.summary || {};
         const c = data.compare || {};
         const tone = heroTone(s.net_profit);
-        const hero = document.getElementById('adsHero');
-        if (hero) hero.className = `ads-hero ads-hero--${tone}`;
+        const hero = document.getElementById('adsHeroProfit');
+        if (hero) hero.className = `ads-hero ads-hero--${tone} mb-0`;
 
+        const badge = periodBadgeLabel(data);
         const periodBadge = document.getElementById('heroPeriodBadge');
-        if (periodBadge) {
-            periodBadge.textContent = periodBadgeLabel(data);
-        }
+        if (periodBadge) periodBadge.textContent = badge;
+
+        const spendPeriodBadge = document.getElementById('heroSpendPeriodBadge');
+        if (spendPeriodBadge) spendPeriodBadge.textContent = badge;
 
         const statusBadge = document.getElementById('heroStatusBadge');
         if (statusBadge) {
@@ -203,6 +232,24 @@
         const cmpEl = document.getElementById('heroNetProfitCmp');
         if (cmpEl) cmpEl.innerHTML = fmtCmp(c.net_profit_pct, false) || '—';
 
+        const spendEl = document.getElementById('heroAdSpend');
+        if (spendEl) {
+            spendEl.textContent = fmt(s.ad_spend);
+            spendEl.className = 'ads-hero-val ads-hero-val--spend';
+        }
+
+        const spendCmpEl = document.getElementById('heroAdSpendCmp');
+        if (spendCmpEl) {
+            spendCmpEl.innerHTML = fmtCmp(c.ad_spend_pct, true) || '—';
+        }
+
+        const editBtn = document.getElementById('heroEditSpendBtn');
+        if (editBtn) {
+            const title = heroEditTitle(data);
+            editBtn.title = title;
+            editBtn.setAttribute('aria-label', title);
+        }
+
         const netProfitPerOrder = s.net_profit_per_order != null
             ? s.net_profit_per_order
             : (s.fb_orders > 0 ? s.net_profit / s.fb_orders : null);
@@ -219,26 +266,29 @@
                 <span class="block text-xs font-medium uppercase tracking-wide text-slate-400">Công thức</span>
                 <span class="mt-1 block tabular-nums">
                     LN gộp <strong class="text-slate-800">${fmt(s.fb_gross_profit)}</strong>
-                    − Chi QC <strong class="text-slate-800">${fmt(s.ad_spend)}</strong>
+                    − Chi QC <strong class="text-violet-700">${fmt(s.ad_spend)}</strong>
+                    = LN thực <strong class="${netClass(s.net_profit)}">${fmt(s.net_profit)}</strong>
                 </span>
                 <span class="mt-1 block tabular-nums text-slate-500">
                     TS gộp ${fmtPct(grossMargin)} · TS thực ${fmtPct(netMargin)}
-                </span>
-                <span class="mt-1 block tabular-nums text-slate-500">
-                    ${netProfitPerOrder != null ? `${fmt(netProfitPerOrder)}/đơn · ` : ''}${fmtN(s.fb_orders)} đơn FB
+                    · ${netProfitPerOrder != null ? `${fmt(netProfitPerOrder)}/đơn · ` : ''}${fmtN(s.fb_orders)} đơn FB
                 </span>`;
         }
     }
 
     function showHeroLoading() {
-        const hero = document.getElementById('adsHero');
-        if (hero) hero.className = 'ads-hero ads-hero--flat';
+        const hero = document.getElementById('adsHeroProfit');
+        if (hero) hero.className = 'ads-hero ads-hero--flat mb-0';
         const valEl = document.getElementById('heroNetProfit');
         if (valEl) valEl.innerHTML = '<span class="ads-skel inline-block h-9 w-48 rounded-lg"></span>';
         const cmpEl = document.getElementById('heroNetProfitCmp');
         if (cmpEl) cmpEl.textContent = '';
+        const spendEl = document.getElementById('heroAdSpend');
+        if (spendEl) spendEl.innerHTML = '<span class="ads-skel inline-block h-9 w-44 rounded-lg"></span>';
+        const spendCmpEl = document.getElementById('heroAdSpendCmp');
+        if (spendCmpEl) spendCmpEl.textContent = '';
         const breakdown = document.getElementById('heroBreakdown');
-        if (breakdown) breakdown.innerHTML = '<span class="ads-skel inline-block h-4 w-56 rounded"></span>';
+        if (breakdown) breakdown.innerHTML = '<span class="ads-skel inline-block h-4 w-full max-w-xl rounded"></span>';
     }
 
     function setPeriodTab(period) {
@@ -374,6 +424,7 @@
     }
 
     function renderSummary(data) {
+        lastAnalyticsData = data;
         const s = data.summary || {};
         const c = data.compare || {};
 
@@ -705,6 +756,16 @@
         }
     }
 
+    function openHeroEditSpend() {
+        if (!lastAnalyticsData) return;
+        const target = resolveHeroEditTarget(lastAnalyticsData);
+        if (!target) {
+            if (typeof showToast === 'function') showToast('Không xác định được ngày cần sửa', 'error');
+            return;
+        }
+        openEditModal(target.date, target.amount);
+    }
+
     function openEditModal(date, amount) {
         editDate = date;
         document.getElementById('editSpendDateLabel').textContent = fmtDateLabel(date);
@@ -766,6 +827,7 @@
         if (e.key === 'Escape') closeAdsDayPick();
     });
 
+    document.getElementById('heroEditSpendBtn')?.addEventListener('click', openHeroEditSpend);
     document.getElementById('editSpendCancel')?.addEventListener('click', closeEditModal);
     document.getElementById('editSpendSave')?.addEventListener('click', saveEditSpend);
     document.getElementById('editSpendModal')?.addEventListener('click', (e) => {
