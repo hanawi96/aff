@@ -206,15 +206,12 @@
         const s = data.summary || {};
         const c = data.compare || {};
         const tone = heroTone(s.net_profit);
-        const hero = document.getElementById('adsHeroProfit');
-        if (hero) hero.className = `ads-hero ads-hero--${tone} mb-0`;
+        const hero = document.getElementById('adsHero');
+        if (hero) hero.className = `ads-hero ads-hero--${tone}`;
 
         const badge = periodBadgeLabel(data);
         const periodBadge = document.getElementById('heroPeriodBadge');
         if (periodBadge) periodBadge.textContent = badge;
-
-        const spendPeriodBadge = document.getElementById('heroSpendPeriodBadge');
-        if (spendPeriodBadge) spendPeriodBadge.textContent = badge;
 
         const statusBadge = document.getElementById('heroStatusBadge');
         if (statusBadge) {
@@ -235,7 +232,7 @@
         const spendEl = document.getElementById('heroAdSpend');
         if (spendEl) {
             spendEl.textContent = fmt(s.ad_spend);
-            spendEl.className = 'ads-hero-val ads-hero-val--spend';
+            spendEl.className = 'ads-hero-spend-val';
         }
 
         const spendCmpEl = document.getElementById('heroAdSpendCmp');
@@ -266,7 +263,7 @@
                 <span class="block text-xs font-medium uppercase tracking-wide text-slate-400">Công thức</span>
                 <span class="mt-1 block tabular-nums">
                     LN gộp <strong class="text-slate-800">${fmt(s.fb_gross_profit)}</strong>
-                    − Chi QC <strong class="text-violet-700">${fmt(s.ad_spend)}</strong>
+                    − Chi QC <strong class="text-slate-600">${fmt(s.ad_spend)}</strong>
                     = LN thực <strong class="${netClass(s.net_profit)}">${fmt(s.net_profit)}</strong>
                 </span>
                 <span class="mt-1 block tabular-nums text-slate-500">
@@ -277,14 +274,14 @@
     }
 
     function showHeroLoading() {
-        const hero = document.getElementById('adsHeroProfit');
-        if (hero) hero.className = 'ads-hero ads-hero--flat mb-0';
+        const hero = document.getElementById('adsHero');
+        if (hero) hero.className = 'ads-hero ads-hero--flat';
         const valEl = document.getElementById('heroNetProfit');
         if (valEl) valEl.innerHTML = '<span class="ads-skel inline-block h-9 w-48 rounded-lg"></span>';
         const cmpEl = document.getElementById('heroNetProfitCmp');
         if (cmpEl) cmpEl.textContent = '';
         const spendEl = document.getElementById('heroAdSpend');
-        if (spendEl) spendEl.innerHTML = '<span class="ads-skel inline-block h-9 w-44 rounded-lg"></span>';
+        if (spendEl) spendEl.innerHTML = '<span class="ads-skel inline-block h-5 w-24 rounded"></span>';
         const spendCmpEl = document.getElementById('heroAdSpendCmp');
         if (spendCmpEl) spendCmpEl.textContent = '';
         const breakdown = document.getElementById('heroBreakdown');

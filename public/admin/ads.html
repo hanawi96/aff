@@ -150,47 +150,100 @@
         .ads-hero-badge--profit { background: rgba(16, 185, 129, 0.15); color: #047857; }
         .ads-hero-badge--loss { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
         .ads-hero-badge--flat { background: #f1f5f9; color: #64748b; }
-        .ads-hero-grid { display: grid; gap: 1rem; }
-        @media (min-width: 1024px) { .ads-hero-grid { grid-template-columns: 1fr 1fr; } }
-        .ads-hero-grid .ads-hero { margin-bottom: 0; }
-        .ads-hero-spend {
-            background: linear-gradient(135deg, rgba(238, 242, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 55%, rgba(237, 233, 254, 0.45) 100%);
-            border-color: rgba(165, 180, 252, 0.65);
+        .ads-hero-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
-        .ads-hero-spend .ads-hero-icon { color: #6366f1; }
-        .ads-hero-val--spend { color: #5b21b6; }
+        @media (min-width: 640px) {
+            .ads-hero-body {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+            }
+        }
+        .ads-hero-main { flex: 1; min-width: 0; }
+        .ads-hero-spend-side {
+            flex-shrink: 0;
+            min-width: 0;
+        }
+        @media (max-width: 639px) {
+            .ads-hero-spend-side {
+                padding-top: 1.125rem;
+                border-top: 1px solid rgba(15, 23, 42, 0.07);
+            }
+            .ads-hero--profit .ads-hero-spend-side { border-top-color: rgba(5, 150, 105, 0.14); }
+            .ads-hero--loss .ads-hero-spend-side { border-top-color: rgba(220, 38, 38, 0.12); }
+        }
+        @media (min-width: 640px) {
+            .ads-hero-spend-side {
+                padding-left: 1.75rem;
+                border-left: 1px solid rgba(15, 23, 42, 0.07);
+                text-align: right;
+            }
+            .ads-hero--profit .ads-hero-spend-side { border-left-color: rgba(5, 150, 105, 0.14); }
+            .ads-hero--loss .ads-hero-spend-side { border-left-color: rgba(220, 38, 38, 0.12); }
+        }
+        .ads-hero-spend-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .ads-hero-spend-val-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.375rem;
+            max-width: 100%;
+        }
+        @media (min-width: 640px) {
+            .ads-hero-spend-val-row { justify-content: flex-end; }
+        }
+        .ads-hero-spend-val {
+            font-size: 1.0625rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.25;
+            color: #334155;
+        }
+        .ads-hero-spend-cmp {
+            margin-top: 0.3125rem;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #64748b;
+        }
         .ads-hero-edit-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 2.25rem;
-            height: 2.25rem;
-            margin-left: 0.5rem;
-            border-radius: 0.625rem;
-            border: 1px solid rgba(165, 180, 252, 0.55);
-            background: rgba(255, 255, 255, 0.85);
-            color: #6366f1;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            background: transparent;
+            color: #cbd5e1;
             cursor: pointer;
-            vertical-align: middle;
-            transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
             flex-shrink: 0;
+            transition: color 0.15s, background 0.15s;
         }
         .ads-hero-edit-btn:hover {
-            background: #fff;
-            border-color: #818cf8;
-            color: #5b21b6;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
+            color: #64748b;
+            background: rgba(255, 255, 255, 0.55);
         }
-        .ads-hero-edit-btn svg { width: 1.125rem; height: 1.125rem; }
+        .ads-hero-edit-btn svg { width: 0.875rem; height: 0.875rem; }
         .ads-hero-formula {
-            margin-top: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            background: rgba(255, 255, 255, 0.7);
-            padding: 0.875rem 1.25rem;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.07);
             font-size: 0.875rem;
             color: #64748b;
         }
+        .ads-hero--profit .ads-hero-formula { border-top-color: rgba(5, 150, 105, 0.12); }
+        .ads-hero--loss .ads-hero-formula { border-top-color: rgba(220, 38, 38, 0.1); }
         .ads-trend-chart-wrap { position: relative; height: 13rem; }
         .ads-src-row--fb { background: linear-gradient(90deg, rgba(59,130,246,.06), transparent); }
     </style>
@@ -278,9 +331,9 @@
             </div>
 
             <section id="adsHeroWrap" class="mb-6" aria-live="polite">
-                <div class="ads-hero-grid">
-                    <div id="adsHeroProfit" class="ads-hero ads-hero--flat mb-0">
-                        <div class="min-w-0">
+                <div id="adsHero" class="ads-hero ads-hero--flat">
+                    <div class="ads-hero-body">
+                        <div class="ads-hero-main">
                             <div class="flex flex-wrap items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ads-hero-icon" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                 <p id="heroLabel" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Lợi nhuận thực QC</p>
@@ -292,28 +345,22 @@
                             </p>
                             <p id="heroNetProfitCmp" class="mt-1.5 text-sm text-slate-500"></p>
                         </div>
-                    </div>
-                    <div id="adsHeroSpend" class="ads-hero ads-hero-spend mb-0">
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ads-hero-icon" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                <p class="text-xs font-semibold uppercase tracking-wide text-violet-800/80">Chi quảng cáo</p>
-                                <span id="heroSpendPeriodBadge" class="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-violet-900/60 ring-1 ring-violet-200/80">—</span>
-                            </div>
-                            <div class="mt-2 flex flex-wrap items-center gap-1">
-                                <p id="heroAdSpend" class="ads-hero-val ads-hero-val--spend">
-                                    <span class="ads-skel inline-block h-9 w-44 rounded-lg"></span>
+                        <aside class="ads-hero-spend-side" aria-label="Chi quảng cáo">
+                            <p class="ads-hero-spend-label">Chi quảng cáo</p>
+                            <div class="ads-hero-spend-val-row">
+                                <p id="heroAdSpend" class="ads-hero-spend-val">
+                                    <span class="ads-skel inline-block h-5 w-24 rounded"></span>
                                 </p>
                                 <button type="button" id="heroEditSpendBtn" class="ads-hero-edit-btn" title="Sửa chi QC" aria-label="Sửa chi quảng cáo">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </button>
                             </div>
-                            <p id="heroAdSpendCmp" class="mt-1.5 text-sm text-slate-600"></p>
-                        </div>
+                            <p id="heroAdSpendCmp" class="ads-hero-spend-cmp"></p>
+                        </aside>
                     </div>
-                </div>
-                <div id="heroBreakdown" class="ads-hero-formula">
-                    <span class="ads-skel inline-block h-4 w-full max-w-xl rounded"></span>
+                    <div id="heroBreakdown" class="ads-hero-formula">
+                        <span class="ads-skel inline-block h-4 w-full max-w-xl rounded"></span>
+                    </div>
                 </div>
             </section>
 
