@@ -396,15 +396,13 @@
     }
 
     function renderSecondaryMetrics(row) {
-        const ppo = ppoPerOrder(row.net_profit, row.fb_orders);
         const qcCls = qcShareCls(row.ad_spend, row.fb_revenue);
         const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
         return [
             `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
             `<span>ROAS <b class="${roasClass(row.ad_spend, row.fb_revenue)}">${fmtRoas(row.roas)}</b></span>`,
-            `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(row.cpa) : '—'}</b></span>`,
-            ppo != null ? `<span>LN/đơn <b class="${netClass(ppo)}">${fmt(ppo)}</b></span>` : null
-        ].filter(Boolean).join('<span class="text-slate-300 px-1.5 select-none" aria-hidden="true">|</span>');
+            `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(row.cpa) : '—'}</b></span>`
+        ].join('<span class="text-slate-300 px-1.5 select-none" aria-hidden="true">|</span>');
     }
 
     function renderTable(data) {
@@ -421,7 +419,6 @@
         }
 
         body.innerHTML = days.map((row) => {
-            const qcCls = qcShareCls(row.ad_spend, row.fb_revenue);
             const qcPct = fmtQcSharePct(row.ad_spend, row.fb_revenue);
             const rpo = rpoPerOrder(row);
             const gpo = gpoPerOrder(row);
@@ -432,15 +429,15 @@
                     ${fmtDateLabel(row.date)}${sourceBadge(row.ad_spend_source)}${qcShareBadge(row.ad_spend, row.fb_revenue)}
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums">
-                    <div class="font-semibold ${qcCls}">${fmt(row.ad_spend)}</div>
-                    <div class="text-[10px] ${qcCls}">${qcPct} DT</div>
+                    <div class="font-semibold text-violet-600">${fmt(row.ad_spend)}</div>
+                    <div class="text-[10px] text-emerald-600">${qcPct} DT</div>
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmtN(row.fb_orders)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmt(row.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.fb_gross_profit)}">${fmt(row.fb_gross_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">${fmt(row.fb_gross_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(row.net_profit)}">${fmt(row.net_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-800">${fmtPerOrder(rpo)}</td>
-                <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(gpo)}">${fmtPerOrder(gpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">${fmtPerOrder(gpo)}</td>
                 <td class="px-4 py-3 text-right tabular-nums font-semibold ${netClass(npo)}">${fmtPerOrder(npo)}</td>
                 <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(row)}</td>
                 <td class="px-4 py-3 text-center">
@@ -459,15 +456,15 @@
             <tr>
                 <td class="px-4 py-3">Tổng</td>
                 <td class="px-4 py-3 text-right tabular-nums">
-                    <div class="font-semibold ${qcShareCls(s.ad_spend, s.fb_revenue)}">${fmt(s.ad_spend)}</div>
-                    <div class="text-[10px] ${qcShareCls(s.ad_spend, s.fb_revenue)}">${fmtQcSharePct(s.ad_spend, s.fb_revenue)} DT</div>
+                    <div class="font-semibold text-violet-600">${fmt(s.ad_spend)}</div>
+                    <div class="text-[10px] text-emerald-600">${fmtQcSharePct(s.ad_spend, s.fb_revenue)} DT</div>
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtN(s.fb_orders)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmt(s.fb_revenue)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(s.fb_gross_profit)}">${fmt(s.fb_gross_profit)}</td>
+                <td class="px-4 py-3 text-right tabular-nums text-slate-900">${fmt(s.fb_gross_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums ${netClass(s.net_profit)}">${fmt(s.net_profit)}</td>
                 <td class="px-4 py-3 text-right tabular-nums">${fmtPerOrder(rpo)}</td>
-                <td class="px-4 py-3 text-right tabular-nums ${netClass(gpo)}">${fmtPerOrder(gpo)}</td>
+                <td class="px-4 py-3 text-right tabular-nums text-slate-900">${fmtPerOrder(gpo)}</td>
                 <td class="px-4 py-3 text-right tabular-nums ${netClass(npo)}">${fmtPerOrder(npo)}</td>
                 <td class="ads-metrics-col px-4 py-3">${renderSecondaryMetrics(s)}</td>
                 <td></td>
