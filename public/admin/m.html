@@ -6315,6 +6315,13 @@ function mAdPpoHint(fbOrders){
   return`${fmtN(n)} đơn QC · LN thực ÷ ${fmtN(n)}`;
 }
 
+function mAdRpoHint(fbOrders){
+  const n=Number(fbOrders)||0;
+  if(n<=0)return'Chưa có đơn QC';
+  if(n===1)return'1 đơn QC · trùng tổng DT kỳ';
+  return`${fmtN(n)} đơn QC · DT ÷ ${fmtN(n)}`;
+}
+
 function mAdCmpPctSub(pct,invert){
   if(pct==null||!Number.isFinite(pct))return'';
   const up=pct>0.05;
@@ -6372,6 +6379,7 @@ function renderMAdDetailBody(data,recentData){
   const rpo=s.revenue_per_order!=null?s.revenue_per_order:(fbOrders>0?s.fb_revenue/fbOrders:null);
   const ppo=mAdPpoPerOrder(np,fbOrders);
   const ppoHint=mAdPpoHint(fbOrders);
+  const rpoHint=mAdRpoHint(fbOrders);
   const grossProfit=s.fb_gross_profit||0;
   const gmp=s.gross_margin_pct!=null?s.gross_margin_pct:(s.fb_revenue>0?(grossProfit/s.fb_revenue)*100:null);
   const qcSharePct=mAdFmtQcSharePct(s.ad_spend,s.fb_revenue);
@@ -6420,7 +6428,8 @@ function renderMAdDetailBody(data,recentData){
     </section>
     <div class="grid grid-cols-2 gap-2">
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmtN(s.fb_orders)}${s.fb_order_share_pct!=null?`<span class="text-[10px] text-gray-400 font-normal"> · ${s.fb_order_share_pct.toFixed(1)}%</span>`:''}</p>${mAdCmpPctSub(c.fb_orders_pct)}</div>
-      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${rpo!=null?`<p class="text-[10px] text-gray-400 mt-0.5">${fmt(rpo)}/đơn</p>`:''}${mAdCmpPctSub(c.fb_revenue_pct)}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Doanh thu QC</p><p class="text-sm font-bold text-gray-900 mt-1">${fmt(s.fb_revenue)}</p>${mAdCmpPctSub(c.fb_revenue_pct)}</div>
+      <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">DT TB/đơn QC</p><p class="text-sm font-bold text-gray-900 mt-1">${rpo!=null?fmt(rpo):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">${rpoHint}</p>${mAdCmpPctSub(c.revenue_per_order_pct)}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">LN gộp</p><p class="text-sm font-bold mt-1 ${mAdNetCls(grossProfit)}">${fmt(grossProfit)}</p>${gmp!=null?`<p class="text-[10px] text-gray-400 mt-0.5">TS ${gmp.toFixed(1)}%</p>`:''}</div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">CPA</p><p class="text-sm font-bold text-gray-900 mt-1">${s.cpa!=null?fmt(s.cpa):'—'}</p><p class="text-[10px] text-gray-400 mt-0.5">Chi QC / đơn</p></div>
       <div class="m-ad-kpi"><p class="text-[10px] text-gray-400 font-semibold uppercase">Chi QC / DT</p><p class="text-sm font-bold mt-1 ${qcShareCls}">${qcSharePct}</p><p class="text-[10px] mt-0.5 ${qcShareCls}">${mAdQcShareHint(s.ad_spend,s.fb_revenue)}</p></div>
