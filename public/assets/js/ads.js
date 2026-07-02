@@ -4,8 +4,11 @@
  */
 (function () {
     let activePeriod = 'today';
+    let activeCustomDate = null;
     let loading = false;
     let editDate = null;
+    let trendChart = null;
+    let adsDayPickView = { y: 0, m: 0 };
 
     const fmt = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
     const fmtN = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
@@ -29,6 +32,24 @@
     function fmtRoas(v) {
         if (v == null || !Number.isFinite(v)) return '—';
         return `${v.toFixed(1)}×`;
+    }
+
+    function fmtChartAxis(v) {
+        const n = Number(v) || 0;
+        if (n === 0) return '0';
+        const sign = n < 0 ? '-' : '';
+        const abs = Math.abs(n);
+        if (abs >= 1000000000) return `${sign}${(abs / 1000000000).toFixed(1)}B`;
+        if (abs >= 1000000) return `${sign}${(abs / 1000000).toFixed(1)}M`;
+        if (abs >= 1000) return `${sign}${Math.round(abs / 1000)}k`;
+        return `${sign}${abs}`;
+    }
+
+    function destroyTrendChart() {
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
     }
 
     /**
@@ -129,8 +150,23 @@
         yesterday: 'Hôm qua',
         today: 'Hôm nay',
         '7d': '7 ngày qua',
-        month: 'Tháng này'
+        month: 'Tháng này',
+        custom: 'Ngày chọn'
     };
+
+    function vnTodayIso() {
+        return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    }
+
+    function periodBadgeLabel(data) {
+        if (data.period === 'custom' && data.start_date) {
+            if (data.end_date && data.start_date !== data.end_date) {
+                return `${fmtDateLabel(data.start_date)} – ${fmtDateLabel(data.end_date)}`;
+            }
+            return fmtDateLabel(data.start_date);
+        }
+        return PERIOD_LABELS[data.period] || PERIOD_LABELS.yesterday;
+    }
 
     function heroTone(netProfit) {
         if (netProfit == null || !Number.isFinite(netProfit)) return 'flat';
@@ -148,7 +184,7 @@
 
         const periodBadge = document.getElementById('heroPeriodBadge');
         if (periodBadge) {
-            periodBadge.textContent = PERIOD_LABELS[data.period] || PERIOD_LABELS.yesterday;
+            periodBadge.textContent = periodBadgeLabel(data);
         }
 
         const statusBadge = document.getElementById('heroStatusBadge');
@@ -212,6 +248,106 @@
         });
     }
 
+    function openAdsDayPick() {
+        const today = vnTodayIso();
+        const src = activeCustomDate || today;
+        const [y, m] = src.split('-').map(Number);
+        adsDayPickView = { y, m: m - 1, selected: src };
+        renderAdsDayPickCal();
+        const modal = document.getElementById('adsDayPickModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeAdsDayPick() {
+        const modal = document.getElementById('adsDayPickModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function adsDayPickShiftMonth(delta) {
+        let { y, m } = adsDayPickView;
+        m += delta;
+        if (m < 0) { m = 11; y -= 1; }
+        if (m > 11) { m = 0; y += 1; }
+        const today = vnTodayIso();
+        const [ty, tm] = today.split('-').map(Number);
+        if (y > ty || (y === ty && m + 1 > tm)) return;
+        adsDayPickView.y = y;
+        adsDayPickView.m = m;
+        renderAdsDayPickCal();
+    }
+
+    function renderAdsDayPickCal() {
+        const { y, m } = adsDayPickView;
+        const today = vnTodayIso();
+        const [ty, tm, td] = today.split('-').map(Number);
+        const label = document.getElementById('adsDayPickMonthLabel');
+        if (label) label.textContent = `Tháng ${m + 1}/${y}`;
+        const nextBtn = document.getElementById('adsDayPickNext');
+        if (nextBtn) nextBtn.disabled = y > ty || (y === ty && m + 1 >= tm);
+        const grid = document.getElementById('adsDayPickGrid');
+        if (!grid) return;
+        const monthStr = String(m + 1).padStart(2, '0');
+        const firstWd = (new Date(`${y}-${monthStr}-01T12:00:00+07:00`).getDay() + 6) % 7;
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const selected = adsDayPickView.selected || activeCustomDate;
+        const wds = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        let html = wds.map((w) => `<span class="ads-daypick-wd">${w}</span>`).join('');
+        for (let i = 0; i < firstWd; i += 1) html += '<span aria-hidden="true"></span>';
+        for (let day = 1; day <= daysInMonth; day += 1) {
+            const iso = `${y}-${monthStr}-${String(day).padStart(2, '0')}`;
+            const isFuture = y > ty || (y === ty && m + 1 > tm) || (y === ty && m + 1 === tm && day > td);
+            const cls = [
+                'ads-daypick-day',
+                iso === today ? 'is-today' : '',
+                iso === selected ? 'is-selected' : ''
+            ].filter(Boolean).join(' ');
+            html += `<button type="button" class="${cls}" ${isFuture ? 'disabled' : ''} data-ads-day="${iso}">${day}</button>`;
+        }
+        grid.innerHTML = html;
+        grid.querySelectorAll('[data-ads-day]').forEach((btn) => {
+            btn.addEventListener('click', () => applyAdsCustomDay(btn.dataset.adsDay));
+        });
+    }
+
+    function applyAdsCustomDay(iso) {
+        if (!iso) return;
+        closeAdsDayPick();
+        load('custom', { customDate: iso });
+    }
+
+    function adsDayPickQuick(kind) {
+        const today = vnTodayIso();
+        if (kind === 'today') {
+            applyAdsCustomDay(today);
+            return;
+        }
+        const prev = new Date(`${today}T12:00:00+07:00`);
+        prev.setTime(prev.getTime() - 86400000);
+        applyAdsCustomDay(prev.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    }
+
+    function buildAdAnalyticsUrl(period, customDate, ts) {
+        const base = `${CONFIG.API_URL}?action=getAdAnalytics&timestamp=${ts}`;
+        if (period === 'custom' && customDate) {
+            return `${base}&start_date=${encodeURIComponent(customDate)}&end_date=${encodeURIComponent(customDate)}`;
+        }
+        return `${base}&period=${encodeURIComponent(period)}`;
+    }
+
+    function reloadAds() {
+        if (activePeriod === 'custom' && activeCustomDate) {
+            load('custom', { customDate: activeCustomDate });
+        } else {
+            load(activePeriod);
+        }
+    }
+
     function showLoading() {
         showHeroLoading();
         ['kpiOrders', 'kpiRevenue', 'kpiRevenuePerOrder', 'kpiRoas', 'kpiCpa', 'kpiProfitPerOrder'].forEach((id) => {
@@ -228,10 +364,9 @@
         if (foot) foot.innerHTML = '';
         const srcBody = document.getElementById('adsSourceBody');
         if (srcBody) srcBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Đang tải…</td></tr>';
-        const trend = document.getElementById('adsTrendChart');
-        if (trend) trend.innerHTML = '';
         const trendSec = document.getElementById('adsTrendSection');
         if (trendSec) trendSec.classList.add('hidden');
+        destroyTrendChart();
         const ordersShare = document.getElementById('kpiOrdersShare');
         if (ordersShare) ordersShare.textContent = '';
         const roasHint = document.getElementById('kpiRoasHint');
@@ -323,21 +458,22 @@
 
     function renderTrendChart(data) {
         const section = document.getElementById('adsTrendSection');
-        const chart = document.getElementById('adsTrendChart');
+        const canvas = document.getElementById('adsTrendChart');
         const sub = document.getElementById('adsTrendSub');
         const insightsEl = document.getElementById('adsPeriodInsights');
-        if (!section || !chart) return;
+        if (!section || !canvas) return;
 
         const showTrend = data.period === '7d' || data.period === 'month';
         if (!showTrend || !(data.days || []).length) {
             section.classList.add('hidden');
+            destroyTrendChart();
             return;
         }
 
         section.classList.remove('hidden');
         const days = [...(data.days || [])].reverse();
         const ins = data.period_insights || {};
-        if (sub) sub.textContent = 'LN thực QC theo ngày · màu xanh = lãi, đỏ = lỗ';
+        if (sub) sub.textContent = 'LN thực QC theo ngày · trục dọc = số tiền, trục ngang = ngày';
         if (insightsEl && ins.total_days > 1) {
             insightsEl.textContent = `${ins.profitable_days}/${ins.total_days} ngày lãi`;
             if (ins.loss_days > 0) insightsEl.textContent += ` · ${ins.loss_days} ngày lỗ`;
@@ -345,19 +481,65 @@
             insightsEl.textContent = '';
         }
 
-        const maxAbs = Math.max(...days.map((d) => Math.abs(d.net_profit || 0)), 1);
-        chart.innerHTML = days.map((d) => {
-            const np = d.net_profit || 0;
-            const h = Math.max(4, (Math.abs(np) / maxAbs) * 100);
-            const cls = np >= 0 ? 'ads-trend-bar--profit' : 'ads-trend-bar--loss';
-            const label = fmtDateLabel(d.date).replace(/\/\d{4}$/, '');
-            return `
-            <div class="flex flex-1 flex-col items-center justify-end gap-1 min-w-0">
-                <span class="text-[10px] font-medium tabular-nums ${netClass(np)}">${np >= 0 ? '+' : ''}${Math.round(np / 1000)}k</span>
-                <div class="ads-trend-bar ${cls} w-full max-w-[2.5rem]" style="height:${h}%"></div>
-                <span class="text-[10px] text-slate-400 truncate w-full text-center">${label}</span>
-            </div>`;
-        }).join('');
+        destroyTrendChart();
+        const labels = days.map((d) => fmtDateLabel(d.date).replace(/\/\d{4}$/, ''));
+        const values = days.map((d) => d.net_profit || 0);
+        const bgColors = values.map((v) => (v >= 0 ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)'));
+        const borderColors = values.map((v) => (v >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'));
+
+        trendChart = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'LN thực',
+                    data: values,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    maxBarThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ` LN thực: ${fmt(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Ngày',
+                            color: '#64748b',
+                            font: { size: 12, weight: '600' }
+                        },
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { size: 12 } }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'LN thực (VNĐ)',
+                            color: '#64748b',
+                            font: { size: 12, weight: '600' }
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 12 },
+                            callback: (v) => fmtChartAxis(v)
+                        },
+                        grid: { color: 'rgba(148, 163, 184, 0.25)' }
+                    }
+                }
+            }
+        });
     }
 
     function ppoPerOrder(netProfit, fbOrders) {
@@ -476,17 +658,30 @@
         });
     }
 
-    async function load(period) {
+    async function load(period, opts = {}) {
         if (loading) return;
         loading = true;
-        activePeriod = period;
-        setPeriodTab(period);
+
+        if (period === 'custom') {
+            if (!opts.customDate) {
+                loading = false;
+                openAdsDayPick();
+                return;
+            }
+            activePeriod = 'custom';
+            activeCustomDate = opts.customDate;
+        } else {
+            activePeriod = period;
+            activeCustomDate = null;
+        }
+
+        setPeriodTab(activePeriod);
         showLoading();
 
         try {
             const ts = Date.now();
             const [res, res10d] = await Promise.all([
-                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${ts}`),
+                fetch(buildAdAnalyticsUrl(activePeriod, activeCustomDate, ts)),
                 fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=10d&timestamp=${ts}`)
             ]);
             const data = await res.json();
@@ -543,14 +738,32 @@
             if (!data.success) throw new Error(data.error || 'Lưu thất bại');
             if (typeof showToast === 'function') showToast('Đã cập nhật chi QC', 'success');
             closeEditModal();
-            load(activePeriod);
+            reloadAds();
         } catch (e) {
             if (typeof showToast === 'function') showToast(e.message || 'Lưu thất bại', 'error');
         }
     }
 
     document.querySelectorAll('#periodTabs [data-period]').forEach((btn) => {
-        btn.addEventListener('click', () => load(btn.dataset.period));
+        btn.addEventListener('click', () => {
+            if (btn.dataset.period === 'custom') {
+                openAdsDayPick();
+            } else {
+                load(btn.dataset.period);
+            }
+        });
+    });
+
+    document.getElementById('adsDayPickClose')?.addEventListener('click', closeAdsDayPick);
+    document.getElementById('adsDayPickToday')?.addEventListener('click', () => adsDayPickQuick('today'));
+    document.getElementById('adsDayPickYesterday')?.addEventListener('click', () => adsDayPickQuick('yesterday'));
+    document.getElementById('adsDayPickPrev')?.addEventListener('click', () => adsDayPickShiftMonth(-1));
+    document.getElementById('adsDayPickNext')?.addEventListener('click', () => adsDayPickShiftMonth(1));
+    document.getElementById('adsDayPickModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'adsDayPickModal') closeAdsDayPick();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAdsDayPick();
     });
 
     document.getElementById('editSpendCancel')?.addEventListener('click', closeEditModal);
