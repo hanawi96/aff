@@ -75,10 +75,7 @@
     })
     .catch(error => {
         console.error('❌ Auth check failed:', error);
-        // On error, redirect to login
-        localStorage.removeItem('session_token');
-        localStorage.removeItem('user_info');
-        window.location.href = getLoginPath();
+        // Lỗi mạng/CORS — không xóa session, tránh bắt đăng nhập lại oan
     });
 
     // Update user profile in sidebar

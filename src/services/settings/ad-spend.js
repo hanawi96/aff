@@ -74,7 +74,7 @@ export function enumerateVnDateStrings(startMs, endMs) {
  * - past chưa snapshot → insertIfMissing rồi coi là snapshot (fallback nếu cron lỡ)
  */
 async function resolveAdSpendDay(env, spendDate, byDate, defaultAmount, todayStr, options = {}) {
-    const { seedToday = false } = options;
+    const { seedToday = false, freezePast = true } = options;
 
     if (byDate.has(spendDate)) {
         return { amount: byDate.get(spendDate) || 0, source: 'snapshot' };
@@ -94,13 +94,14 @@ async function resolveAdSpendDay(env, spendDate, byDate, defaultAmount, todayStr
         return { amount, source: 'live' };
     }
 
-    // Ngày đã qua — bắt buộc chốt vào daily_ad_spend (không dùng default live khi chỉ đọc)
+    // Ngày đã qua — chỉ ghi DB khi freezePast (cron/backfill/stats), không ghi khi API đọc báo cáo
     const amount = defaultAmount || 0;
-    if (amount > 0) {
+    if (freezePast && amount > 0) {
         await insertDailyAdSpendIfMissing(env, spendDate, amount);
         byDate.set(spendDate, amount);
+        return { amount, source: 'snapshot' };
     }
-    return { amount, source: 'snapshot' };
+    return { amount, source: 'unset' };
 }
 
 /**
@@ -142,7 +143,8 @@ export async function getAdSpendForRange(env, startMs, endMs, { autoSeed = false
 
     for (const spendDate of dates) {
         const resolved = await resolveAdSpendDay(env, spendDate, byDate, defaultAmount, todayStr, {
-            seedToday: autoSeed
+            seedToday: autoSeed,
+            freezePast: true
         });
         total += resolved.amount;
     }
@@ -163,7 +165,8 @@ export async function getAdSpendForDate(env, spendDate, { autoSeed = false } = {
     const defaultAmount = await getDefaultAdSpendAmount(env);
     const todayStr = vnTodayStr();
     const resolved = await resolveAdSpendDay(env, spendDate, byDate, defaultAmount, todayStr, {
-        seedToday: autoSeed
+        seedToday: autoSeed,
+        freezePast: true
     });
 
     return resolved;
@@ -184,7 +187,7 @@ export async function getDefaultAdSpend(env, corsHeaders) {
 }
 
 /**
- * Chi QC từng ngày trong khoảng — ngày qua đọc/ghi snapshot, hôm nay live.
+ * Chi QC từng ngày trong khoảng — read-only (không ghi DB khi đọc báo cáo QC).
  */
 export async function getAdSpendMapForRange(env, startMs, endMs) {
     const dates = enumerateVnDateStrings(startMs, endMs);
@@ -206,7 +209,8 @@ export async function getAdSpendMapForRange(env, startMs, endMs) {
     const days = [];
     for (const spendDate of dates) {
         const resolved = await resolveAdSpendDay(env, spendDate, byDate, defaultAmount, todayStr, {
-            seedToday: false
+            seedToday: false,
+            freezePast: false
         });
         total += resolved.amount;
         days.push({

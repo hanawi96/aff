@@ -303,6 +303,18 @@
         });
     }
 
+    async function fetchAdAnalytics(period) {
+        const res = await fetch(
+            `${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${Date.now()}`,
+            { method: 'GET', mode: 'cors', credentials: 'omit' }
+        );
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(text || `HTTP ${res.status}`);
+        }
+        return res.json();
+    }
+
     async function load(period) {
         if (loading) return;
         loading = true;
@@ -311,13 +323,10 @@
         showLoading();
 
         try {
-            const ts = Date.now();
-            const [mainRes, recentRes] = await Promise.all([
-                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=${encodeURIComponent(period)}&timestamp=${ts}`),
-                fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=10d&timestamp=${ts}`)
+            const [data, recentData] = await Promise.all([
+                fetchAdAnalytics(period),
+                fetchAdAnalytics('10d')
             ]);
-            const data = await mainRes.json();
-            const recentData = await recentRes.json();
             if (!data.success) throw new Error(data.error || 'Không tải được dữ liệu');
             renderSummary(data);
             renderTrend(data);

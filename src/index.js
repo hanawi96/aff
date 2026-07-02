@@ -11,70 +11,76 @@ import { handleTelegramWebhook } from './services/notifications/telegram-command
 import { sendDailyReport } from './services/notifications/daily-report.js';
 import { snapshotYesterdayAdSpend } from './services/settings/ad-spend.js';
 
-export default {
-    async fetch(request, env, ctx) {
-        // Initialize Turso database connection
-        const DB = initTurso(env);
-        env.DB = DB;
-        env.ctx = ctx; // Pass context for waitUntil support
+async function handleRequest(request, env, ctx) {
+    const DB = initTurso(env);
+    env.DB = DB;
+    env.ctx = ctx;
 
-        // Handle CORS preflight
-        if (request.method === 'OPTIONS') {
-            return new Response(null, {
-                status: 200,
-                headers: corsHeaders,
-            });
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 200,
+            headers: corsHeaders,
+        });
+    }
+
+    try {
+        const url = new URL(request.url);
+        const path = url.pathname;
+        const action = url.searchParams.get('action');
+
+        console.log('🌐 [MAIN] Incoming request:');
+        console.log('   Method:', request.method);
+        console.log('   Path:', path);
+        console.log('   Action:', action);
+        console.log('   Origin:', request.headers.get('Origin'));
+        console.log('   User-Agent:', request.headers.get('User-Agent')?.substring(0, 50) + '...');
+
+        if (path.startsWith('/api/shop/') || path.match(/^\/api\/products\/\d+\/favorite$/)) {
+            console.log('🏪 [MAIN] Routing to Shop API');
+            return await handleShopRoutes(request, env, corsHeaders, ctx);
         }
 
+        if (path === '/api/telegram/webhook' && request.method === 'POST') {
+            console.log('📱 [MAIN] Routing to Telegram webhook');
+            const update = await request.json();
+            return await handleTelegramWebhook(update, env);
+        }
+
+        if (request.method === 'GET') {
+            console.log('📥 [MAIN] Routing to GET handler');
+            return await handleGet(action, url, request, env, corsHeaders);
+        }
+        if (request.method === 'POST') {
+            if (action) {
+                console.log('📤 [MAIN] Routing to POST with action handler');
+                return await handlePostWithAction(action, request, env, corsHeaders);
+            }
+            console.log('📤 [MAIN] Routing to POST handler');
+            return await handlePost(path, request, env, corsHeaders);
+        }
+
+        console.log('❌ [MAIN] Method not allowed:', request.method);
+        return jsonResponse({ success: false, error: 'Method not allowed' }, 405, corsHeaders);
+    } catch (error) {
+        console.error('💥 [MAIN] Worker error:', error);
+        console.error('   Error message:', error.message);
+        console.error('   Error stack:', error.stack);
+        return jsonResponse({
+            success: false,
+            error: error.message
+        }, 500, corsHeaders);
+    }
+}
+
+export default {
+    async fetch(request, env, ctx) {
         try {
-            const url = new URL(request.url);
-            const path = url.pathname;
-            const action = url.searchParams.get('action');
-
-            console.log('🌐 [MAIN] Incoming request:');
-            console.log('   Method:', request.method);
-            console.log('   Path:', path);
-            console.log('   Action:', action);
-            console.log('   Origin:', request.headers.get('Origin'));
-            console.log('   User-Agent:', request.headers.get('User-Agent')?.substring(0, 50) + '...');
-
-            // Route to Shop API (public - no auth)
-            if (path.startsWith('/api/shop/') || path.match(/^\/api\/products\/\d+\/favorite$/)) {
-                console.log('🏪 [MAIN] Routing to Shop API');
-                return await handleShopRoutes(request, env, corsHeaders, ctx);
-            }
-
-            // Telegram Webhook Handler
-            if (path === '/api/telegram/webhook' && request.method === 'POST') {
-                console.log('📱 [MAIN] Routing to Telegram webhook');
-                const update = await request.json();
-                return await handleTelegramWebhook(update, env);
-            }
-
-            // Route handling for admin/legacy
-            if (request.method === 'GET') {
-                console.log('📥 [MAIN] Routing to GET handler');
-                return await handleGet(action, url, request, env, corsHeaders);
-            } else if (request.method === 'POST') {
-                // Check if action is in query string (for API calls with ?action=xxx)
-                if (action) {
-                    console.log('📤 [MAIN] Routing to POST with action handler');
-                    return await handlePostWithAction(action, request, env, corsHeaders);
-                }
-                console.log('📤 [MAIN] Routing to POST handler');
-                return await handlePost(path, request, env, corsHeaders);
-            }
-
-            console.log('❌ [MAIN] Method not allowed:', request.method);
-            return jsonResponse({ success: false, error: 'Method not allowed' }, 405, corsHeaders);
-
+            return await handleRequest(request, env, ctx);
         } catch (error) {
-            console.error('💥 [MAIN] Worker error:', error);
-            console.error('   Error message:', error.message);
-            console.error('   Error stack:', error.stack);
+            console.error('💥 [MAIN] Unhandled worker error:', error);
             return jsonResponse({
                 success: false,
-                error: error.message
+                error: error?.message || 'Internal server error'
             }, 500, corsHeaders);
         }
     },
