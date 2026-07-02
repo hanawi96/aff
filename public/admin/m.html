@@ -71,6 +71,8 @@ body{overscroll-behavior-y:contain}
 .m-stats-pl-row-val.is-pos{color:#059669}
 .m-stats-pl-row-val.is-neg{color:#dc2626}
 .m-stats-pl-row-val.is-ad{color:#7c3aed}
+.m-stats-pl-ad-tap{display:inline;border:none;background:none;padding:0.125rem 0;margin:0;font-size:13px;font-weight:700;color:#7c3aed;text-align:right;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:underline;text-decoration-color:rgba(124,58,237,.35);text-underline-offset:2px;line-height:1.25;word-break:break-word}
+.m-stats-pl-ad-tap:active{opacity:.7}
 .m-stats-pl-row-hint{display:block;font-size:10px;font-weight:500;color:#9ca3af;margin-top:0.1rem}
 .m-stats-pl-divider{height:1px;background:linear-gradient(90deg,transparent,#e5e7eb 12%,#e5e7eb 88%,transparent);margin:0.125rem 0}
 .m-stats-pl-hero{margin:0.5rem 0.75rem 0.75rem;padding:0.875rem 1rem;border-radius:0.875rem;border:1px solid #e5e7eb;background:linear-gradient(145deg,#f8fafc,#fff)}
@@ -5219,7 +5221,10 @@ function buildStatsPlCard(o,po,periodLabel){
   const singleDay=range&&range.s===range.e;
   const editDate=singleDay?range.s:null;
   const adHint=(days&&days>1)?`<span class="m-stats-pl-row-hint">${days} ngày · sửa từng ngày trong chi tiết QC</span>`:'';
-  const editBtn=editDate?mAdEditBtnHtml(editDate,adSpend):'';
+  const adValInner=`−${fmt(adSpend).replace(/^[−-]\s*/,'')}${cmp(adSpend,po?.ad_spend)}`;
+  const adValHtml=editDate
+    ?`<button type="button" class="m-stats-pl-ad-tap" onclick="openMAdSpendEdit('${editDate}',${adSpend})" aria-label="Sửa chi QC">${adValInner}</button>`
+    :`<span class="m-stats-pl-row-val is-ad">${adValInner}</span>`;
   const marginPct=Math.abs(o.profit_margin||0).toFixed(1);
   return`<article class="m-stats-pl fade-up" aria-label="Tổng quan doanh thu và lợi nhuận">
     <header class="m-stats-pl-head">
@@ -5240,12 +5245,9 @@ function buildStatsPlCard(o,po,periodLabel){
       </div>
       <div class="m-stats-pl-row">
         <span class="m-stats-pl-row-label">Quảng cáo</span>
-        <div class="text-right min-w-0 flex items-center justify-end gap-1">
-          ${editBtn}
-          <div>
-            <span class="m-stats-pl-row-val is-ad">−${fmt(adSpend).replace(/^[−-]\s*/,'')}${cmp(adSpend,po?.ad_spend)}</span>
-            ${adHint}
-          </div>
+        <div class="text-right min-w-0">
+          ${adValHtml}
+          ${adHint}
         </div>
       </div>
     </div>
