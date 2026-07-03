@@ -343,6 +343,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
     // Sản phẩm
     const tdProducts = document.createElement('td');
     tdProducts.className = 'px-3 py-3 text-left align-top';
+    tdProducts.style.minWidth = '400px';
+    tdProducts.style.width = '38%';
     tdProducts.innerHTML = formatProductsDisplay(order.products, order.id, order.order_id, order.notes);
 
     // Giá trị (Total Amount - Doanh thu)

@@ -70,7 +70,7 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
         // Giới hạn độ dài text và thêm tooltip
         const shortText = productsText.length > 50 ? productsText.substring(0, 50) + '...' : productsText;
         return `
-            <div class="max-w-xs">
+            <div class="w-full min-w-0">
                 <p class="text-sm text-gray-700 line-clamp-2" title="${escapeHtml(productsText)}">
                     ${escapeHtml(shortText)}
                 </p>
@@ -87,7 +87,7 @@ function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = nu
     // Tạo ID duy nhất cho container này
     const uniqueId = 'products_' + Math.random().toString(36).substr(2, 9);
 
-    let html = '<div class="flex flex-col gap-1.5 w-full min-w-[220px] max-w-[280px] mx-auto">';
+    let html = '<div class="flex flex-col gap-1.5 w-full min-w-0">';
 
     // Hiển thị 3 sản phẩm đầu tiên
     displayProducts.forEach((product, index) => {
