@@ -6399,9 +6399,10 @@ function renderMAdDetailBody(data,recentData){
         <div class="flex items-center gap-1.5 min-w-0 flex-wrap"><span class="text-xs font-bold text-gray-800">${mAdFmtDate(row.date)}</span>${badge}${mAdQcShareBadge(row.ad_spend,row.fb_revenue)}</div>
         ${mAdEditBtnHtml(row.date,row.ad_spend||0)}
       </div>
-      <div class="grid grid-cols-3 gap-1 px-3 py-2.5 text-center">
-        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold mt-0.5 ${qcCls}">${fmt(row.ad_spend)}</p><p class="text-[9px] mt-0.5 ${qcCls}">${qcPct} DT</p></div>
+      <div class="grid grid-cols-4 gap-1 px-3 py-2.5 text-center">
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Chi QC</p><p class="text-xs font-bold mt-0.5 text-violet-600">${fmt(row.ad_spend)}</p><p class="text-[9px] mt-0.5 ${qcCls}">${qcPct} DT</p></div>
         <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Đơn</p><p class="text-xs font-bold text-gray-800 mt-0.5">${fmtN(row.fb_orders)}</p></div>
+        <div><p class="text-[9px] text-gray-400 font-semibold uppercase">Tổng DT</p><p class="text-xs font-bold text-gray-800 mt-0.5">${fmt(row.fb_revenue)}</p></div>
         <div><p class="text-[9px] text-gray-400 font-semibold uppercase">LN thực</p><p class="text-xs font-bold mt-0.5 ${mAdNetCls(row.net_profit)}">${fmt(row.net_profit)}</p></div>
       </div>
       <div class="px-3 pb-2.5 text-[10px] text-gray-500 border-t border-gray-50 mx-3 pt-2 leading-relaxed">
