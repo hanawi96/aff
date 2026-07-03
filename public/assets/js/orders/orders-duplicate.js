@@ -131,7 +131,8 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
             discount_code: '',
             discount_amount: 0,
             discount_id: '',
-            deposit_amount: 0
+            deposit_amount: 0,
+            customer_source: order.customer_source || order.customerSource || ''
         };
     }
 

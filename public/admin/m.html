@@ -9,14 +9,17 @@
 <link rel="dns-prefetch" href="https://ctv-api.yendev96.workers.dev">
 <!-- Tailwind biên dịch sẵn (thay cho CDN runtime để load nhanh, hết FOUC). Build: npm run build:admin-css -->
 <link rel="stylesheet" href="../assets/css/admin-tailwind-built.css?v=2">
-<!-- CSS bộ chọn địa chỉ chỉ cần cho form tạo/sửa → tải non-blocking để không chặn render -->
-<link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="../shop/assets/css/hierarchical-address-selector.css"></noscript>
 <style>
 html{background-color:#f9fafb}
-/* Street input trong HierarchicalAddressSelector (shop dùng .checkout-form-input từ styles.css) */
-#mOrderAddressSelectorContainer .checkout-form-input{width:100%;padding:0.625rem 0.875rem;border:1px solid #e5e7eb;border-radius:0.75rem;font-size:0.875rem;background:#f9fafb;box-sizing:border-box}
-#mOrderAddressSelectorContainer .checkout-form-input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2);background:#fff}
+/* Combobox địa chỉ mobile — chiều cao do JS tính theo viewport/footer */
+#deskAddressCombobox .desk-addr-dropdown:not(.hidden){z-index:10001;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain}
+#deskAddressCombobox .desk-addr-dropdown.hidden{display:none!important}
+#deskAddressCombobox .desk-addr-dropdown.is-fixed{position:fixed!important}
+#deskAddressCombobox .desk-addr-dropdown.is-mobile-sheet{border-radius:1rem 1rem 0 0;box-shadow:0 -10px 40px rgba(15,23,42,.16);border-bottom:none}
+#deskAddressCombobox .desk-addr-dropdown-search{flex-shrink:0}
+#deskAddressCombobox .desk-addr-results{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#deskAddressCombobox .desk-addr-dropdown.is-mobile-sheet .desk-addr-results{min-height:11rem}
+#deskAddressCombobox .desk-addr-row{min-height:2.75rem}
 *{-webkit-tap-highlight-color:transparent}
 body{overscroll-behavior-y:contain}
 .tab-active{color:#4f46e5!important;font-weight:700;background:#fff!important;box-shadow:0 1px 5px rgba(0,0,0,.13)!important;}
@@ -463,39 +466,6 @@ html.m-create-deeplink>body>header{display:none!important}
   sb.className='flex-1 py-3 bg-emerald-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
 })();
 </script>
-<!-- Mặt vỏ chọn địa chỉ (đồng bộ với HIERARCHICAL_ADDRESS_SHELL_HTML trong hierarchical-address-selector.js) — hiển thị tức thì trước khi module tải xong -->
-<template id="mOrderAddressShellTpl">
-<div class="hierarchical-address-selector">
-  <div class="address-chips-wrapper">
-    <div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
-      <div class="address-chips" id="addressChips">
-        <span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>
-      </div>
-      <svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />
-      </svg>
-    </div>
-    <div class="address-dropdown hidden" id="addressDropdown" role="listbox">
-      <div class="address-dropdown-search">
-        <svg class="search-icon-inside" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
-        </svg>
-        <input type="text" class="address-search-input" id="addressSearchInput" placeholder="Tìm nhanh địa chỉ..." autocomplete="off">
-      </div>
-      <div class="address-dropdown-content" id="addressDropdownContent">
-        <!-- Results will be rendered here -->
-      </div>
-    </div>
-  </div>
-  <div class="address-street-wrapper hidden" id="addressStreetWrapper">
-    <input type="text" class="checkout-form-input" id="streetInput" placeholder="Nhập số nhà, tên đường" aria-label="Số nhà, tên đường">
-  </div>
-  <div class="address-display hidden" id="addressDisplay" role="status" aria-live="polite">
-    <div class="address-display-label">📍 Địa chỉ đầy đủ:</div>
-    <div class="address-display-text">Vui lòng chọn địa chỉ</div>
-  </div>
-</div>
-</template>
 
 <!-- Discount Sheet (tab: mã hệ thống · giảm tùy chỉnh — ids chip/manual dùng chung với JS) -->
 <div id="discountSheet" class="fixed inset-0 z-[60] hidden">
@@ -632,8 +602,11 @@ html.m-create-deeplink>body>header{display:none!important}
 
 <script src="../assets/js/config.js"></script>
 <script src="../assets/js/orders/orders-utils.js"></script>
+<script src="../assets/js/address-selector.js"></script>
+<script src="../assets/js/orders/orders-desk-address-combobox.js"></script>
+<script src="../assets/js/orders/orders-mobile-address.js"></script>
 <script defer src="../assets/js/auth-check.js"></script>
-<script defer src="../assets/js/orders/orders-smart-paste.js?v=2"></script>
+<script defer src="../assets/js/orders/orders-smart-paste.js?v=3"></script>
 <script>
 // ─── State ───
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
@@ -1042,28 +1015,14 @@ function mOrderShowsShipTime(o){if(!o||!o.shipped_at_unix)return false;const s=S
 const esc=s=>s?String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])):'';
 Object.defineProperty(window,'allOrdersData',{get:function(){return allOrders},configurable:true});
 
-(function prefetchAddressShellAndTree(){
-  import('../shop/assets/js/components/hierarchical-address-selector.js').then(function(m){
-    if(m.HIERARCHICAL_ADDRESS_SHELL_HTML)window.HIERARCHICAL_ADDRESS_SHELL_HTML=m.HIERARCHICAL_ADDRESS_SHELL_HTML;
-  }).catch(function(){});
-  import('../shop/assets/js/shared/services/address.service.js').then(function(x){
-    return x.addressService.loadAddressData().then(function(td){
-      if(!td||window.addressSelector)return;
-      var data=[];
-      Object.keys(td).forEach(function(pc){
-        var pv=td[pc];
-        var po={Id:pc,Name:pv.fullName,Wards:[]};
-        if(pv.wards)pv.wards.forEach(function(w){
-          var shortLabel=w.fullName&&w.fullName.indexOf(',')>=0
-            ?w.fullName.split(',')[0].trim()
-            :w.fullName;
-          po.Wards.push({Id:w.code,Name:shortLabel,ShortName:w.name,Level:w.type});
-        });
-        data.push(po);
-      });
-      window.addressSelector={data:data,loaded:true};
-    });
-  }).catch(function(){});
+(function initMobileAddressSelectorData(){
+  var run=function(){
+    if(window.addressSelector&&typeof window.addressSelector.init==='function'){
+      window.addressSelector.init().catch(function(){});
+    }
+  };
+  if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:2500});
+  else setTimeout(run,800);
 })();
 
 // ─── Init ───
@@ -1913,7 +1872,7 @@ function showDetail(id){
             <div class="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center shrink-0 mt-0.5">
               <svg class="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
-            <p class="text-sm text-gray-600 leading-snug">${esc(mFormatLegacyDisplayAddress(o))}</p>
+            <p class="text-sm text-gray-600 leading-snug">${esc(typeof formatMobileLegacyOrderAddressDisplay==='function'?formatMobileLegacyOrderAddressDisplay(o):o.address||'')}</p>
           </div>
           <div class="rounded-xl border border-gray-100 bg-gradient-to-br from-slate-50 to-white p-2.5">
             <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 px-0.5">Nguồn khách</p>
@@ -2098,7 +2057,6 @@ async function showEditOrder(id,opts){
   }catch{}
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm(true);
-  injectMOrderAddressShell();
   document.getElementById('createPanel').classList.remove('hidden');
   document.body.style.overflow='hidden';
   clearCreateDeeplinkBoot();
@@ -2130,7 +2088,7 @@ async function showEditOrder(id,opts){
   const mSl=document.getElementById('mSendLaterChk');
   const mSlf=document.getElementById('mSendLaterFields');
   const mPl=document.getElementById('mPlannedSendAt');
-  if(o.status==='send_later'){
+  if(!dupPreview&&o.status==='send_later'){
     if(mSl)mSl.checked=true;
     if(mSlf)mSlf.classList.remove('hidden');
     if(mPl&&o.planned_send_at_unix)mPl.value=mFormatPlannedInput(o.planned_send_at_unix);
@@ -2169,7 +2127,11 @@ async function showEditOrder(id,opts){
     if(ctv)setCTVSelected(ctv);
   }
   _populateCatFilter();
-  const legacyOrder=!dupPreview&&await mIsLegacyOrderAddress(o);
+  let legacyOrder=false;
+  if(!dupPreview){
+    if(!window.addressSelector?.loaded)await window.addressSelector.init();
+    legacyOrder=window.addressSelector.isLegacyOrderAddress(o);
+  }
   if(legacyOrder){
     mAddressMode='legacy';
     mLegacyOrderRef=o;
@@ -2178,10 +2140,10 @@ async function showEditOrder(id,opts){
     mLegacyOrderRef=null;
   }
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
-    if(mAddressMode==='legacy')showMLegacyAddressBlock(o);
+    if(mAddressMode==='legacy')showMobileLegacyAddressBlock(o);
     else{
-      hideMLegacyAddressBlock();
-      await initMCreateAddressSelector(o);
+      hideMobileLegacyAddressBlock();
+      await initMobileAddressSelector(o);
     }
     renderProductPicker();
     renderCart();
@@ -2258,73 +2220,20 @@ let createProducts=[], allProductsCache=[], allCategoriesCache=[], activeCategor
 let activeCategoryMultiIds=null;
 let mCatSheetMultiMode=false;
 let mCatSheetPendingMulti=new Set();
-let mCreateAddressSelector=null;
 /** 'normal' | 'legacy' (read-only 3 cấp) | 'migrating' (user đang chuyển sang 2 cấp) */
 let mAddressMode='normal';
 let mLegacyOrderRef=null;
-let mLegacyWardKeySet=null;
 
-function mFormatLegacyDisplayAddress(order){
-  if(!order)return'Chưa có địa chỉ';
-  const addr=(order.address&&String(order.address).trim())||'';
-  const structured=[order.street_address,order.ward_name,order.district_name,order.province_name].filter(Boolean).join(', ');
-  return addr||structured||'Chưa có địa chỉ';
-}
-async function mLoadLegacyWardKeySet(){
-  if(mLegacyWardKeySet)return mLegacyWardKeySet;
-  try{
-    const r=await fetch('../assets/data/tree_2.json');
-    const raw=await r.json();
-    const set=new Set();
-    (raw||[]).forEach(p=>{
-      (p.wards||[]).forEach(w=>set.add(`${String(p.code)}-${String(w.code)}`));
-    });
-    mLegacyWardKeySet=set;
-  }catch(_){
-    mLegacyWardKeySet=new Set();
-  }
-  return mLegacyWardKeySet;
-}
-async function mIsLegacyOrderAddress(order){
-  if(!order)return false;
-  if(order.district_id||order.district_name)return true;
-  if(!order.province_id)return false;
-  const wId=order.ward_id?String(order.ward_id):'';
-  if(!wId)return true;
-  const keys=await mLoadLegacyWardKeySet();
-  return !keys.has(`${String(order.province_id)}-${wId}`);
-}
-function showMLegacyAddressBlock(order){
-  const block=document.getElementById('mLegacyAddressBlock');
-  const wrap=document.getElementById('mOrderAddressSelectorWrap');
-  if(!block)return;
-  const full=mFormatLegacyDisplayAddress(order);
-  block.innerHTML=`
-    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-      <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Địa chỉ cũ 3 cấp</p>
-      <p class="text-sm font-medium text-gray-900 leading-snug break-words">${esc(full)}</p>
-    </div>
-    <button type="button" onclick="beginMUpdateAddressTo2Level()" class="w-full py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl active:scale-[0.98] transition-transform">
-      Cập nhật địa chỉ mới (2 cấp)
-    </button>`;
-  block.classList.remove('hidden');
-  wrap?.classList.add('hidden');
-  destroyMCreateAddressSelector();
-}
-function hideMLegacyAddressBlock(){
-  document.getElementById('mLegacyAddressBlock')?.classList.add('hidden');
-  document.getElementById('mOrderAddressSelectorWrap')?.classList.remove('hidden');
-}
 async function beginMUpdateAddressTo2Level(){
   const order=mLegacyOrderRef||(editOrderId?allOrders.find(x=>x.id===editOrderId):null);
   mAddressMode='migrating';
-  hideMLegacyAddressBlock();
+  hideMobileLegacyAddressBlock();
   document.getElementById('smartPasteBlock')?.classList.remove('hidden');
   const sp=document.getElementById('smartPasteInput');
   if(sp&&!sp.value.trim()&&order){
-    sp.value=[order.customer_name,order.customer_phone,mFormatLegacyDisplayAddress(order)].filter(Boolean).join(' ');
+    sp.value=[order.customer_name,order.customer_phone,formatMobileLegacyOrderAddressDisplay(order)].filter(Boolean).join('\n');
   }
-  await initMCreateAddressSelector(null);
+  await initMobileAddressSelector(null);
   document.getElementById('mAddressFormBlock')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
@@ -2335,7 +2244,6 @@ function showCreateOrder(){
   mAddressMode='normal';mLegacyOrderRef=null;
   const content=document.getElementById('createContent');
   content.innerHTML=buildCreateForm();
-  injectMOrderAddressShell();
   setPayment('cod');
   clearMobileCustomerSource();
   requestAnimationFrame(()=>{const rc=document.getElementById('discountSheetRoundChk');if(rc)rc.checked=false;manualSheetFixSel=null;setManualInputMode('fixed');_syncManualChips();});
@@ -2356,7 +2264,7 @@ function showCreateOrder(){
   // Populate categories if already cached (subsequent opens)
   _populateCatFilter();
   Promise.all([loadProductList(), loadShippingConfig()]).then(async()=>{
-    await initMCreateAddressSelector(_draftAddr);
+    await initMobileAddressSelector(_draftAddr);
     renderProductPicker();
     if(_draftAddr)renderCart();
   });
@@ -2650,56 +2558,9 @@ function renderCategorySheetList(){
   });
 })();
 
-function destroyMCreateAddressSelector(){
-  if(mCreateAddressSelector){
-    try{mCreateAddressSelector.cleanup();}catch(e){console.warn(e);}
-    mCreateAddressSelector=null;
-    window.mCreateAddressSelector=null;
-  }
-}
-function injectMOrderAddressShell(){
-  const box=document.getElementById('mOrderAddressSelectorContainer');
-  if(!box||box.querySelector('.hierarchical-address-selector'))return;
-  if(window.HIERARCHICAL_ADDRESS_SHELL_HTML){
-    box.innerHTML=window.HIERARCHICAL_ADDRESS_SHELL_HTML;
-    return;
-  }
-  const tpl=document.getElementById('mOrderAddressShellTpl');
-  if(tpl&&tpl.content){
-    box.innerHTML='';
-    box.appendChild(tpl.content.cloneNode(true));
-  }
-}
-async function initMCreateAddressSelector(orderForHydrate){
-  const box=document.getElementById('mOrderAddressSelectorContainer');
-  if(!box)return;
-  destroyMCreateAddressSelector();
-  injectMOrderAddressShell();
-  try{
-    const mod=await import('../shop/assets/js/components/hierarchical-address-selector.js');
-    if(mod.HIERARCHICAL_ADDRESS_SHELL_HTML)window.HIERARCHICAL_ADDRESS_SHELL_HTML=mod.HIERARCHICAL_ADDRESS_SHELL_HTML;
-    if(!box.querySelector('.hierarchical-address-selector')&&mod.HIERARCHICAL_ADDRESS_SHELL_HTML)
-      box.innerHTML=mod.HIERARCHICAL_ADDRESS_SHELL_HTML;
-    const sel=new mod.HierarchicalAddressSelector('mOrderAddressSelectorContainer');
-    await sel.init();
-    mCreateAddressSelector=sel;
-    window.mCreateAddressSelector=sel;
-    const disp=document.getElementById('addressSelectorDisplay');
-    disp?.addEventListener('click',()=>clearFieldError('mAddressFormBlock'));
-    document.getElementById('addressSearchInput')?.addEventListener('input',()=>clearFieldError('mAddressFormBlock'));
-    if(orderForHydrate&&orderForHydrate.province_id){
-      sel.hydrateFromCodes({
-        provinceCode:orderForHydrate.province_id,
-        wardCode:orderForHydrate.ward_id,
-        street:orderForHydrate.street_address
-      });
-    }
-    document.getElementById('streetInput')?.addEventListener('input',()=>clearFieldError('mAddressFormBlock'));
-  }catch(e){
-    console.error(e);
-    box.innerHTML='<p class="text-sm text-red-600 py-3 text-center px-2">Không tải được chọn địa chỉ. Kiểm tra mạng và tải lại trang.</p>';
-  }
-}
+function destroyMCreateAddressSelector(){destroyMobileAddressSelector();}
+async function initMCreateAddressSelector(orderForHydrate){return initMobileAddressSelector(orderForHydrate);}
+
 function closeCreatePanelOnly(){
   editOrderId=null;duplicatePreviewSourceId=null;mDiscount=null;manualSheetQuickSel=null;manualSheetFixSel=null;
   mAddressMode='normal';mLegacyOrderRef=null;
@@ -2707,7 +2568,7 @@ function closeCreatePanelOnly(){
   clearCreateDeeplinkBoot();
   document.getElementById('createPanel').classList.add('hidden');
   document.body.style.overflow='';
-  destroyMCreateAddressSelector();
+  destroyMobileAddressSelector();
 }
 function closeCreate(){
   const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
@@ -2751,12 +2612,25 @@ function buildCreateForm(isEdit=false){
       </div>
     </div>
 
-    <!-- Địa chỉ (HierarchicalAddressSelector — tìm kiếm + cascade như mua ngay) -->
-    <div id="mAddressFormBlock" class="m-address-section bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Địa chỉ giao hàng</h3>
-      <div id="mLegacyAddressBlock" class="hidden space-y-3"></div>
-      <div id="mOrderAddressSelectorWrap">
-        <div id="mOrderAddressSelectorContainer" class="min-h-[52px]"></div>
+    <!-- Địa chỉ giao hàng 2 cấp — combobox chip (đồng bộ desktop) -->
+    <div id="mAddressFormBlock" class="m-address-section">
+      <div id="deskAddressFormBlock" class="bg-blue-50 rounded-2xl border border-blue-100/80 p-3.5 space-y-2.5">
+        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+        <div id="deskLegacyAddressBlock" class="hidden space-y-2"></div>
+        <div id="deskAddressSelectorWrap" class="space-y-2">
+          <div id="deskAddressCombobox"></div>
+          <select id="newOrderProvince" class="sr-only" tabindex="-1" aria-hidden="true">
+            <option value="">-- Chọn Tỉnh/Thành phố --</option>
+          </select>
+          <select id="newOrderWard" disabled class="sr-only" tabindex="-1" aria-hidden="true">
+            <option value="">-- Chọn Phường/Xã --</option>
+          </select>
+          <div id="newOrderStreetAddressWrap" class="hidden">
+            <input type="text" id="newOrderStreetAddress" placeholder="Số nhà, tên đường" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white">
+          </div>
+          <p id="newOrderAddressPreview" class="text-sm text-green-600 hidden"></p>
+        </div>
+        <input type="hidden" id="newOrderAddress" value="">
       </div>
     </div>
 
@@ -3704,7 +3578,7 @@ async function submitOrder(){
     :(isDupPreview?allOrders.find(x=>x.id===duplicatePreviewSourceId):null);
 
   const preserveLegacyAddress=isEdit&&mAddressMode==='legacy'&&!!existingOrder;
-  const addr=mCreateAddressSelector?.getAddressData?.();
+  const addr=typeof getMobileAddressFormData==='function'?getMobileAddressFormData():null;
   let provinceId=addr?.provinceCode||((isEdit||isDupPreview)?(existingOrder?.province_id||''):'');
   let wardId=addr?.wardCode||((isEdit||isDupPreview)?(existingOrder?.ward_id||''):'');
 
@@ -3715,7 +3589,8 @@ async function submitOrder(){
   if(!phone)addErr('cPhone','Vui lòng nhập số điện thoại');
   else if(!/^(0\d{9}|\+84\d{9})$/.test(phone.replace(/\s/g,'')))addErr('cPhone','Số điện thoại không hợp lệ (VD: 0912345678)');
   if(!preserveLegacyAddress){
-    if(!mCreateAddressSelector)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
+    const comboReady=!!document.getElementById('newOrderProvince');
+    if(!comboReady)addErr('mAddressFormBlock','Địa chỉ chưa sẵn sàng — vui lòng đợi hoặc tải lại trang');
     else if(!provinceId)addErr('mAddressFormBlock','Vui lòng chọn Tỉnh/Thành phố');
     else if(!wardId)addErr('mAddressFormBlock','Vui lòng chọn Phường/Xã');
   }
@@ -3747,17 +3622,22 @@ async function submitOrder(){
     wName=existingOrder.ward_name||'';
     districtId=existingOrder.district_id||null;
     districtName=existingOrder.district_name||null;
-    fullAddr=existingOrder.address||mFormatLegacyDisplayAddress(existingOrder);
+    fullAddr=existingOrder.address||(typeof formatMobileLegacyOrderAddressDisplay==='function'?formatMobileLegacyOrderAddressDisplay(existingOrder):'');
   }else{
-    const selectorHasAddr=!!(addr?.provinceCode);
     street=(addr?.street||((isEdit||isDupPreview)?(existingOrder?.street_address||''):'')).trim();
     pName=addr?.provinceName||((isEdit||isDupPreview)?(existingOrder?.province_name||''):'');
     wName=addr?.wardName||((isEdit||isDupPreview)?(existingOrder?.ward_name||''):'');
     districtId=null;
     districtName=null;
-    fullAddr=selectorHasAddr
-      ?[street,wName,pName].filter(Boolean).join(', ')
-      :(existingOrder?.address||[street,wName,pName].filter(Boolean).join(', '));
+    if(addr?.fullAddress&&wardId){
+      fullAddr=addr.fullAddress;
+    }else if(provinceId&&wardId){
+      fullAddr=[street,wName,pName].filter(Boolean).join(', ');
+    }else if(isEdit||isDupPreview){
+      fullAddr=existingOrder?.address||[street,wName,pName].filter(Boolean).join(', ');
+    }else{
+      fullAddr=[street,wName,pName].filter(Boolean).join(', ');
+    }
   }
 
   const mSendLater=document.getElementById('mSendLaterChk')?.checked;
@@ -3774,7 +3654,10 @@ async function submitOrder(){
         addErr('mPlannedSendAt','Ngày giờ không hợp lệ');
       }
     }
-  }else if(isEdit||isDupPreview){
+  }else if(isDupPreview){
+    outStatus='pending';
+    plannedSendUnix=null;
+  }else if(isEdit){
     const prev=existingOrder?.status||'pending';
     outStatus=prev==='send_later'?'pending':prev;
     plannedSendUnix=null;
@@ -3789,66 +3672,10 @@ async function submitOrder(){
     return;
   }
 
-  if(duplicatePreviewSourceId!=null){
-    const srcId=duplicatePreviewSourceId;
-    const btn0=document.getElementById('submitBtn');
-    if(btn0){
-      btn0.disabled=true;
-      btn0.innerHTML='<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Đang sao chép...</span>';
-    }
-    try{
-      const r=await fetch(`${API()}/api/order/duplicate`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({sourceOrderDbId:srcId})
-      });
-      let d={};
-      try{d=await r.json();}catch(_){}
-      if(!r.ok||!d.success)throw new Error(d.error||d.message||('HTTP '+r.status));
-      const newId=d.orderDbId;
-      if(newId==null||newId==='')throw new Error('Server không trả orderDbId');
-      if(d.order&&typeof d.order==='object'){
-        const oid=Number(d.order.id);
-        const ix=allOrders.findIndex(x=>Number(x.id)===oid);
-        if(ix>=0)allOrders[ix]=d.order;
-        else allOrders.unshift(d.order);
-      }else{
-        await loadOrders();
-      }
-      duplicatePreviewSourceId=null;
-      closeCreatePanelOnly();
-      const rawHash=(location.hash||'').replace(/^#/,'').toLowerCase();
-      if(CREATE_HASH_RE.test(rawHash)||EDIT_HASH_RE.test(rawHash))setMainTabHash(currentTab);
-      const mergedRow=d.order&&typeof d.order==='object'?d.order:allOrders.find(x=>Number(x.id)===Number(newId));
-      const st0=String(mergedRow&&(mergedRow.status||'pending')).toLowerCase();
-      if(st0==='send_later')currentTab='send_later';
-      else if(st0==='shipped')currentTab='shipped';
-      else currentTab='pending';
-      mDateSort='newest';
-      _updateFilterBadge();
-      _syncDateSortBtns();
-      syncOrderListTabHighlight();
-      setMainTabHash(currentTab);
-      applyFilter();
-      toast('Đã sao chép đơn');
-      loadOrdersInternal().catch(function(){});
-      requestAnimationFrame(function(){
-        const card=document.querySelector('.order-card[data-id="'+String(newId)+'"]');
-        if(card)card.scrollIntoView({behavior:'smooth',block:'nearest'});
-      });
-    }catch(e){
-      toast('Lỗi: '+(e.message||String(e)));
-      if(btn0){
-        btn0.disabled=false;
-        btn0.textContent='Sao chép';
-        btn0.className='flex-1 py-3 bg-indigo-600 text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform';
-      }
-    }
-    return;
-  }
-
   const btn=document.getElementById('submitBtn');
-  btn.disabled=true;btn.innerHTML=`<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${isEdit?'Đang cập nhật...':'Đang tạo...'}</span>`;
+  const btnIdleText=isEdit?'Cập nhật':(isDupPreview?'Sao chép':'Tạo đơn');
+  const btnBusyText=isEdit?'Đang cập nhật...':(isDupPreview?'Đang sao chép...':'Đang tạo...');
+  btn.disabled=true;btn.innerHTML=`<span class="flex items-center justify-center gap-2"><svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${btnBusyText}</span>`;
   recalcManualDiscount();
   const prodTotal=createProducts.reduce((s,p)=>s+(p.price||0)*(p.quantity||1),0);
   const shipFee=getShipFee((isEdit||isDupPreview)?existingOrder:null);
@@ -3861,7 +3688,7 @@ async function submitOrder(){
     const depEl=document.getElementById('cDeposit');
     depEl?.focus();
     btn.disabled=false;
-    btn.textContent=isEdit?'Cập nhật':'Tạo đơn';
+    btn.textContent=btnIdleText;
     btn.className=`flex-1 py-3 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform`;
     return;
   }
@@ -3939,13 +3766,34 @@ async function submitOrder(){
         showDetail(savedId);  // cập nhật detail panel ngay
         loadOrders();         // sync server ngầm, không await
       }else{
-        closeCreate();
-        _clearDraft();
-        toast('Tạo đơn hàng thành công!');
+        const wasDup=isDupPreview;
+        if(wasDup)duplicatePreviewSourceId=null;
+        if(wasDup)closeCreatePanelOnly();
+        else closeCreate();
+        if(!wasDup)_clearDraft();
+        toast(wasDup?'Đã sao chép đơn':'Tạo đơn hàng thành công!');
         await loadOrders();
+        if(wasDup){
+          const newId=d.orderDbId||d.order?.id;
+          if(newId!=null&&newId!==''){
+            const rawHash=(location.hash||'').replace(/^#/,'').toLowerCase();
+            if(CREATE_HASH_RE.test(rawHash)||EDIT_HASH_RE.test(rawHash))setMainTabHash(currentTab);
+            currentTab='pending';
+            mDateSort='newest';
+            _updateFilterBadge();
+            _syncDateSortBtns();
+            syncOrderListTabHighlight();
+            setMainTabHash(currentTab);
+            applyFilter();
+            requestAnimationFrame(function(){
+              const card=document.querySelector('.order-card[data-id="'+String(newId)+'"]');
+              if(card)card.scrollIntoView({behavior:'smooth',block:'nearest'});
+            });
+          }
+        }
       }
-    }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':'Lỗi tạo đơn'));
-  }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent=isEdit?'Cập nhật':'Tạo đơn';btn.className=`flex-1 py-3 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform`;}
+    }else throw new Error(d.error||d.message||(isEdit?'Lỗi lưu đơn':(isDupPreview?'Lỗi sao chép đơn':'Lỗi tạo đơn')));
+  }catch(e){toast('Lỗi: '+e.message);btn.disabled=false;btn.textContent=btnIdleText;btn.className=`flex-1 py-3 ${isEdit?'bg-emerald-600':'bg-indigo-600'} text-white font-bold text-sm rounded-xl active:scale-[0.98] transition-transform`;}
 }
 
 // ─── Draft persistence (create mode only) ───
@@ -3973,8 +3821,8 @@ function _saveDraft(){
     discount:mDiscount,
     ts:Date.now()
   };
-  const addr=mCreateAddressSelector?.getAddressData?.();
-  if(addr?.provinceCode)draft.address={province_id:addr.provinceCode,ward_id:addr.wardCode,street_address:addr.street||''};
+  const addrData=typeof getMobileAddressFormData==='function'?getMobileAddressFormData():null;
+  if(addrData?.provinceCode)draft.address={province_id:addrData.provinceCode,ward_id:addrData.wardCode,street_address:addrData.street||''};
   try{localStorage.setItem(M_DRAFT_KEY,JSON.stringify(draft));}catch(_){}
 }
 function _clearDraft(){try{localStorage.removeItem(M_DRAFT_KEY);}catch(_){}}

@@ -17,6 +17,10 @@
         overscroll-behavior: contain;
     }
 
+    .desk-addr-dropdown.hidden {
+        display: none !important;
+    }
+
     .desk-addr-dropdown.is-fixed {
         position: fixed !important;
         right: auto;

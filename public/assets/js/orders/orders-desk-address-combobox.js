@@ -184,6 +184,65 @@
             document.addEventListener('click', this._docClick, true);
             window.addEventListener('resize', this._repositionBound);
             window.addEventListener('scroll', this._repositionBound, true);
+            this._mobileScrollEl = this.container.closest('#createScrollArea');
+            if (this._mobileScrollEl) {
+                this._mobileScrollEl.addEventListener('scroll', this._repositionBound, { passive: true });
+            }
+        }
+
+        _scrollMobileAddressIntoView() {
+            const scrollEl = document.getElementById('createScrollArea');
+            const block = document.getElementById('mAddressFormBlock');
+            if (!scrollEl || !block || scrollEl.clientHeight <= 0) return;
+            const gap = 8;
+            const pr = scrollEl.getBoundingClientRect();
+            const ar = block.getBoundingClientRect();
+            let nextTop = scrollEl.scrollTop + (ar.top - pr.top) - gap;
+            const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+            nextTop = Math.max(0, Math.min(nextTop, maxScroll));
+            if (Math.abs(nextTop - scrollEl.scrollTop) < 2) return;
+            scrollEl.scrollTo({ top: nextTop, behavior: 'auto' });
+        }
+
+        _positionDropdownMobile(anchor, dd, gap) {
+            const panel = document.getElementById('createPanel');
+            const footer = panel?.querySelector(':scope > .shrink-0');
+            const footerRect = footer?.getBoundingClientRect();
+            const footerTop = footerRect?.top ?? window.innerHeight;
+            const footerH = footerRect?.height ?? 56;
+            const pad = 8;
+            const rect = anchor.getBoundingClientRect();
+
+            const minPanelH = 260;
+            const maxCap = Math.floor(window.innerHeight * 0.62);
+            const spaceBelow = footerTop - rect.bottom - pad;
+            const useSheet = spaceBelow < minPanelH;
+
+            dd.classList.add('is-fixed');
+            dd.classList.toggle('is-mobile-sheet', useSheet);
+
+            if (useSheet) {
+                const topMargin = Math.floor(window.innerHeight * 0.1);
+                const sheetH = Math.max(
+                    minPanelH,
+                    Math.min(maxCap, footerTop - pad - topMargin)
+                );
+                dd.style.left = '10px';
+                dd.style.right = '10px';
+                dd.style.width = 'auto';
+                dd.style.top = 'auto';
+                dd.style.bottom = `${Math.ceil(footerH + pad)}px`;
+                dd.style.maxHeight = `${sheetH}px`;
+                return;
+            }
+
+            const maxH = Math.max(minPanelH, Math.min(maxCap, spaceBelow));
+            dd.style.left = `${Math.max(8, rect.left)}px`;
+            dd.style.top = `${rect.bottom + gap}px`;
+            dd.style.width = `${Math.max(200, rect.width)}px`;
+            dd.style.bottom = '';
+            dd.style.right = '';
+            dd.style.maxHeight = `${maxH}px`;
         }
 
         _positionDropdown() {
@@ -192,12 +251,19 @@
             if (!dd || !anchor) return;
 
             const inModal = !!this.container.closest('#addOrderModal');
+            const inMobilePanel = !!this.container.closest('#createPanel');
+            if (inMobilePanel) {
+                this._positionDropdownMobile(anchor, dd, 4);
+                return;
+            }
             if (!inModal) {
-                dd.classList.remove('is-fixed');
+                dd.classList.remove('is-fixed', 'is-mobile-sheet');
                 dd.style.left = '';
                 dd.style.top = '';
                 dd.style.width = '';
                 dd.style.maxHeight = '';
+                dd.style.bottom = '';
+                dd.style.right = '';
                 return;
             }
 
@@ -207,20 +273,25 @@
             const maxH = Math.max(140, Math.min(320, spaceBelow));
 
             dd.classList.add('is-fixed');
+            dd.classList.remove('is-mobile-sheet');
             dd.style.left = `${Math.max(8, rect.left)}px`;
             dd.style.top = `${rect.bottom + gap}px`;
             dd.style.width = `${Math.max(200, rect.width)}px`;
+            dd.style.bottom = '';
+            dd.style.right = '';
             dd.style.maxHeight = `${maxH}px`;
         }
 
         _resetDropdownPosition() {
             const dd = this.el.dropdown;
             if (!dd) return;
-            dd.classList.remove('is-fixed');
+            dd.classList.remove('is-fixed', 'is-mobile-sheet');
             dd.style.left = '';
             dd.style.top = '';
             dd.style.width = '';
             dd.style.maxHeight = '';
+            dd.style.bottom = '';
+            dd.style.right = '';
         }
 
         _showWardList() {
@@ -306,7 +377,15 @@
         _openDropdown() {
             this.el.dropdown.classList.remove('hidden');
             this.isOpen = true;
-            this._positionDropdown();
+            const inMobile = !!this.container.closest('#createPanel');
+            if (inMobile) {
+                this._scrollMobileAddressIntoView();
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => this._positionDropdown());
+                });
+            } else {
+                this._positionDropdown();
+            }
         }
 
         _closeDropdown() {
@@ -551,6 +630,10 @@
             if (this._repositionBound) {
                 window.removeEventListener('resize', this._repositionBound);
                 window.removeEventListener('scroll', this._repositionBound, true);
+                if (this._mobileScrollEl) {
+                    this._mobileScrollEl.removeEventListener('scroll', this._repositionBound);
+                    this._mobileScrollEl = null;
+                }
                 this._repositionBound = null;
             }
             if (this.container) this.container.innerHTML = '';

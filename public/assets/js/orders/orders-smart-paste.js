@@ -2189,27 +2189,68 @@ async function applyParsedDataToMobileForm(parsedData) {
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
+        if (!window.addressSelector || !window.addressSelector.loaded) {
+            console.error('\u274C AddressSelector failed to load (mobile)');
+            return { applied, confidence };
+        }
     }
 
-    const selector = await waitForMobileCreateAddressSelector();
-    if (!selector) {
-        console.error('\u274C Mobile address selector not ready');
+    const provinceSelect = document.getElementById('newOrderProvince');
+    const wardSelect = document.getElementById('newOrderWard');
+    const streetInput = document.getElementById('newOrderStreetAddress');
+    if (!provinceSelect || !wardSelect) {
+        console.error('\u274C Mobile address selects not ready');
         return { applied, confidence };
     }
 
+    provinceSelect.value = addr.province.Id;
+    window.addressSelector.renderWards(wardSelect, addr.province.Id);
+
     const ward = _resolveWardForMobileApply(addr.province, addr);
 
-    try {
-        selector.hydrateFromCodes({
-            provinceCode: addr.province.Id || '',
-            wardCode: ward ? ward.Id : '',
-            street: addr.street || ''
-        });
-        if (typeof clearFieldError === 'function') clearFieldError('mAddressFormBlock');
-        applied.push('Địa chỉ');
-    } catch (e) {
-        console.warn('hydrateFromCodes error:', e);
+    const applyWard = () => {
+        if (!ward) return false;
+        wardSelect.value = ward.Id;
+        return wardSelect.value === ward.Id;
+    };
+
+    if (ward) {
+        if (!applyWard()) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            applyWard();
+        }
+        if (wardSelect.value === ward.Id) {
+            wardSelect.dispatchEvent(new Event('change'));
+            if (typeof clearWardSuggestions === 'function') clearWardSuggestions();
+        } else if (addr.fullText && typeof renderWardSuggestions === 'function') {
+            renderWardSuggestions(addr.province, addr.fullText);
+        }
+    } else if (addr.fullText && typeof renderWardSuggestions === 'function') {
+        renderWardSuggestions(addr.province, addr.fullText);
     }
+
+    if (addr.street && streetInput) {
+        streetInput.value = addr.street;
+    }
+
+    if (typeof syncDeskAddressComboboxFromHidden === 'function') {
+        syncDeskAddressComboboxFromHidden();
+    }
+    if (typeof syncDeskOrderStreetInputVisibility === 'function') {
+        syncDeskOrderStreetInputVisibility();
+    }
+
+    const fullAddress = window.addressSelector.generateFullAddress(
+        streetInput?.value || '',
+        provinceSelect.value,
+        wardSelect.value
+    );
+    syncOrderAddressPreview(fullAddress);
+    const hiddenAddress = document.getElementById('newOrderAddress');
+    if (hiddenAddress) hiddenAddress.value = fullAddress;
+
+    if (typeof clearFieldError === 'function') clearFieldError('mAddressFormBlock');
+    applied.push('Địa chỉ');
 
     return { applied, confidence };
 }

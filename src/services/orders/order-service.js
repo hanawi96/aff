@@ -453,19 +453,11 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             resolvedDiscountId = dr?.id != null ? Number(dr.id) : null;
         }
 
-        const rawSt = String(src.status || 'pending').toLowerCase().trim();
-        let outStatus = 'pending';
-        let plannedSendAtUnix = null;
-        if (rawSt === 'send_later') {
-            const p = Number(src.planned_send_at_unix);
-            if (Number.isFinite(p)) {
-                outStatus = 'send_later';
-                plannedSendAtUnix = Math.round(p);
-            }
-        }
+        const outStatus = 'pending';
+        const plannedSendAtUnix = null;
 
         const orderDate = Date.now();
-        const newOrderId = `DH${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const newOrderId = `DH${Date.now()}`;
         const shF = Math.max(0, Math.round(Number(src.shipping_fee) || 0));
         const shC = Math.max(0, Math.round(Number(src.shipping_cost) || 0));
         const totalAmt = Math.max(0, Math.round(Number(src.total_amount) || 0));
