@@ -5,3 +5,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    /* Desktop order form — địa chỉ 2 cấp (panel trong modal cần cuộn nội bộ + z-index cao) */
+    .desk-addr-dropdown {
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        max-height: min(16rem, calc(100vh - 10rem));
+        overflow: hidden;
+        overscroll-behavior: contain;
+    }
+
+    .desk-addr-dropdown.is-fixed {
+        position: fixed !important;
+        right: auto;
+        margin-top: 0;
+    }
+
+    .desk-addr-dropdown-search {
+        flex-shrink: 0;
+    }
+
+    .desk-addr-results {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .desk-addr-results::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .desk-addr-results::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+}

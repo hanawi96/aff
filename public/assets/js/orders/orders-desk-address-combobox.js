@@ -81,6 +81,7 @@
             this.focusIdx = -1;
             this.resultItems = [];
             this._docClick = null;
+            this._repositionBound = null;
             this._suppressDocCloseUntil = 0;
         }
 
@@ -99,17 +100,21 @@
                 window.addressSelector.renderProvinces(provinceSelect);
             }
 
+            this._repositionBound = () => {
+                if (this.isOpen) this._positionDropdown();
+            };
+
             this.container.innerHTML =
                 '<div class="desk-addr-combo">' +
                 '<div class="relative">' +
                 '<div class="desk-addr-chips flex flex-wrap items-center gap-1.5 min-h-[2rem]" id="deskAddrChips"></div>' +
-                '<div id="deskAddrDropdown" class="hidden absolute z-[60] left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden" role="listbox">' +
-                '<div class="border-b border-gray-100 p-2 bg-gray-50/90">' +
+                '<div id="deskAddrDropdown" class="desk-addr-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg" role="listbox">' +
+                '<div class="desk-addr-dropdown-search border-b border-gray-100 p-2 bg-gray-50/90">' +
                 '<input type="text" id="deskAddrPanelSearch" autocomplete="off" ' +
                 'class="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" ' +
                 'placeholder="Tìm kiếm…" aria-autocomplete="list">' +
                 '</div>' +
-                '<div id="deskAddrResults" class="max-h-52 overflow-y-auto overscroll-contain"></div>' +
+                '<div id="deskAddrResults" class="desk-addr-results"></div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
@@ -134,6 +139,9 @@
             });
 
             panelSearch.addEventListener('keydown', (e) => this._onKeydown(e));
+
+            results.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+            results.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
 
             results.addEventListener('click', (e) => {
                 const row = e.target.closest('[data-desk-addr-pick]');
@@ -174,6 +182,45 @@
                 if (!this.container.contains(e.target)) this._closeDropdown();
             };
             document.addEventListener('click', this._docClick, true);
+            window.addEventListener('resize', this._repositionBound);
+            window.addEventListener('scroll', this._repositionBound, true);
+        }
+
+        _positionDropdown() {
+            const dd = this.el.dropdown;
+            const anchor = this.container.querySelector('.relative');
+            if (!dd || !anchor) return;
+
+            const inModal = !!this.container.closest('#addOrderModal');
+            if (!inModal) {
+                dd.classList.remove('is-fixed');
+                dd.style.left = '';
+                dd.style.top = '';
+                dd.style.width = '';
+                dd.style.maxHeight = '';
+                return;
+            }
+
+            const rect = anchor.getBoundingClientRect();
+            const gap = 4;
+            const spaceBelow = window.innerHeight - rect.bottom - gap - 12;
+            const maxH = Math.max(140, Math.min(320, spaceBelow));
+
+            dd.classList.add('is-fixed');
+            dd.style.left = `${Math.max(8, rect.left)}px`;
+            dd.style.top = `${rect.bottom + gap}px`;
+            dd.style.width = `${Math.max(200, rect.width)}px`;
+            dd.style.maxHeight = `${maxH}px`;
+        }
+
+        _resetDropdownPosition() {
+            const dd = this.el.dropdown;
+            if (!dd) return;
+            dd.classList.remove('is-fixed');
+            dd.style.left = '';
+            dd.style.top = '';
+            dd.style.width = '';
+            dd.style.maxHeight = '';
         }
 
         _showWardList() {
@@ -259,12 +306,14 @@
         _openDropdown() {
             this.el.dropdown.classList.remove('hidden');
             this.isOpen = true;
+            this._positionDropdown();
         }
 
         _closeDropdown() {
             this.el.dropdown.classList.add('hidden');
             this.isOpen = false;
             this.focusIdx = -1;
+            this._resetDropdownPosition();
         }
 
         _search(query) {
@@ -498,6 +547,11 @@
             if (this._docClick) {
                 document.removeEventListener('click', this._docClick, true);
                 this._docClick = null;
+            }
+            if (this._repositionBound) {
+                window.removeEventListener('resize', this._repositionBound);
+                window.removeEventListener('scroll', this._repositionBound, true);
+                this._repositionBound = null;
             }
             if (this.container) this.container.innerHTML = '';
         }
