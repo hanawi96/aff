@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="url(#grad)"/>
+  
+  <!-- Package Icon -->
+  <g transform="translate(24, 24)">
+    <!-- Box -->
+    <path d="M 40 10 L 70 25 L 70 60 L 40 75 L 10 60 L 10 25 Z" 
+          fill="white" opacity="0.95"/>
+    
+    <!-- Top flap -->
+    <path d="M 40 10 L 40 45 L 10 30 L 10 25 Z" 
+          fill="white" opacity="0.7"/>
+    
+    <!-- Right flap -->
+    <path d="M 40 10 L 40 45 L 70 30 L 70 25 Z" 
+          fill="white" opacity="0.85"/>
+    
+    <!-- Center line -->
+    <line x1="40" y1="10" x2="40" y2="45" 
+          stroke="white" stroke-width="2" opacity="0.9"/>
+  </g>
+  
+  <!-- Badge -->
+  <circle cx="96" cy="96" r="20" fill="#10b981"/>
+  <text x="96" y="102" text-anchor="middle" 
+        font-size="20" font-weight="bold" fill="white"></text>
+</svg>
