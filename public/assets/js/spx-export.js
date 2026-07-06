@@ -102,6 +102,9 @@ function parseProducts(productsJson) {
         if (Array.isArray(products)) {
             return products.map(p => ({
                 name: p.name || p.product_name || '',
+                product_id: p.product_id ?? p.id ?? null,
+                category_id: p.category_id ?? null,
+                category_ids: p.category_ids ?? null,
                 sizeOrWeight: p.size || p.weight || null,
                 quantity: p.quantity || 1,
                 price: p.price || p.unit_price || 0,
@@ -209,12 +212,7 @@ function createSPXExcelWorkbook(orders) {
         const orderDeliveryNote =
             order.notes && String(order.notes).trim() ? String(order.notes).trim() : '';
         const productBracketLines = products.map(product =>
-            formatSPXProductBracketLine(
-                product.name,
-                product.sizeOrWeight,
-                product.quantity,
-                product.notes
-            )
+            formatSPXProductBracketLineFromOrderLine(product)
         );
         const productText =
             getSPXReshipNamePrefix(order) +

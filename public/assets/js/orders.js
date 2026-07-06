@@ -102,14 +102,25 @@ document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
     checkUrlHash();
 
-    // Đơn hàng: vẫn điều khiển showLoading/hideLoading — không chặn các fetch phụ bên dưới.
-    void loadOrdersData();
+    void (async () => {
+        // Catalog SP phải có trước khi vẽ badge "Chưa có size" (tra DM theo tên SP).
+        if (typeof hydrateProductsCatalogFromCache === 'function') {
+            await hydrateProductsCatalogFromCache();
+        }
+        if (typeof isOrderCatalogReadyForMissingSizeCheck === 'function'
+            && !isOrderCatalogReadyForMissingSizeCheck()
+            && typeof loadProductsAndCategories === 'function') {
+            await loadProductsAndCategories();
+        } else if (typeof loadProductsAndCategories === 'function') {
+            void loadProductsAndCategories();
+        }
+        void loadOrdersData();
+    })();
 
     // Song song ngay từ đầu (trước đây trễ 800ms): giảm tổng thời gian tới khi modal/thêm đơn có đủ dữ liệu.
     void loadCurrentTaxRate();
     void loadPackagingConfig();
     void updateExportHistoryBadge();
-    if (allProductsList.length === 0) void loadProductsAndCategories();
     if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') void loadActiveDiscounts();
 
     // Hoãn tải dữ liệu địa chỉ (tree_2.json ~615KB) tới lúc rảnh: không tranh

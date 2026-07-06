@@ -1198,8 +1198,8 @@ function showAddProductModal() {
                                         <input type="text" id="productPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                             placeholder="179.000"
-                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
-                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
+                                            oninput="autoFormatNumberInput(this); markCostPriceManualOverride(); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); markCostPriceManualOverride(); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
@@ -1222,8 +1222,8 @@ function showAddProductModal() {
                                         <input type="text" id="productCostPrice" required
                                             class="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                             placeholder="89.500"
-                                            oninput="autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices()"
-                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
+                                            oninput="autoFormatNumberInput(this); markCostPriceManualOverride(); calculateExpectedProfit(); updateMarkupFromPrices()"
+                                            onpaste="setTimeout(() => { autoFormatNumberInput(this); markCostPriceManualOverride(); calculateExpectedProfit(); updateMarkupFromPrices(); }, 0)">
                                         <span class="absolute right-3 top-2.5 text-gray-500 text-sm">đ</span>
                                     </div>
                                 </div>
@@ -1370,6 +1370,7 @@ function showAddProductModal() {
     loadCategoriesInline();
     
     // Initialize materials formula (empty for new product)
+    if (typeof resetCostPriceManualOverride === 'function') resetCostPriceManualOverride(false);
     loadProductFormula(null);
 
     // Mặc định dùng phương thức "Theo lãi mong muốn" cho sản phẩm mới

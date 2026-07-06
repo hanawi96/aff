@@ -3,6 +3,20 @@
 
 let allMaterialsForProduct = [];
 let selectedMaterials = []; // Current formula
+/** true = giữ giá vốn user nhập; false = tự đồng bộ từ công thức NL */
+let costPriceManualOverride = false;
+
+function resetCostPriceManualOverride(preserve = false) {
+    costPriceManualOverride = !!preserve;
+}
+
+function markCostPriceManualOverride() {
+    costPriceManualOverride = true;
+}
+
+function resetMaterialCostAutoSync() {
+    costPriceManualOverride = false;
+}
 
 // Utility functions (use from window if available, otherwise define fallback)
 function getFormatCurrency() {
@@ -54,9 +68,14 @@ async function loadMaterialsForProduct() {
 async function loadProductFormula(productId) {
     if (!productId) {
         selectedMaterials = [];
+        costPriceManualOverride = false;
         renderMaterialsFormula();
+        calculateTotalCost();
         return;
     }
+
+    // Giữ giá vốn đã lưu trên form khi mở sửa — không ghi đè bằng tổng NL lúc load
+    costPriceManualOverride = true;
 
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=getProductMaterials&product_id=${productId}&timestamp=${Date.now()}`);
@@ -618,6 +637,7 @@ function applyReplaceMaterial(newItemName) {
 
     closeReplaceMaterialModal();
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
 
     const displayName = newInfo.display_name || formatMaterialName(newItemName);
@@ -837,6 +857,7 @@ function saveTempMaterials() {
     
     closeAddMaterialModal();
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
     
     showToast(`✅ Đã thêm ${selectedMaterials.length} nguyên liệu`, 'success');
@@ -852,6 +873,7 @@ function removeMaterial(index) {
     
     selectedMaterials.splice(index, 1);
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
     showToast(`Đã xóa ${displayName}`, 'info');
 }
@@ -860,6 +882,7 @@ function removeMaterial(index) {
 function updateMaterialQuantity(index, quantity) {
     selectedMaterials[index].quantity = Math.max(1, Math.round(parseFloat(quantity))) || 1;
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
 }
 
@@ -867,6 +890,7 @@ function updateMaterialQuantity(index, quantity) {
 function incrementMaterialQuantity(index) {
     selectedMaterials[index].quantity = Math.round(parseFloat(selectedMaterials[index].quantity) || 0) + 1;
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
 }
 
@@ -874,6 +898,7 @@ function incrementMaterialQuantity(index) {
 function decrementMaterialQuantity(index) {
     selectedMaterials[index].quantity = Math.max(1, Math.round(parseFloat(selectedMaterials[index].quantity) || 1) - 1);
     renderMaterialsFormula();
+    resetMaterialCostAutoSync();
     calculateTotalCost();
 }
 
@@ -901,27 +926,30 @@ function calculateTotalCost() {
         totalDisplay.textContent = formatCurrency(total);
     }
 
-    // Auto-sync to cost_price field
+    // Auto-sync to cost_price field (chỉ khi chưa sửa thủ công)
     const costPriceInput = document.getElementById('productCostPrice');
     if (costPriceInput && selectedMaterials.length > 0) {
-        costPriceInput.value = formatNumber(total);
-        costPriceInput.readOnly = true;
-        costPriceInput.classList.add('bg-purple-50', 'border-purple-300');
-        
-        // Tính lại giá bán theo ĐÚNG phương thức đang chọn:
-        // - 'profit': giá bán = giá vốn + lãi mong muốn (tự gợi ý lãi nếu để trống)
-        // - 'markup': giá bán = giá vốn × hệ số markup
-        const pricingMethod = (typeof currentPricingMethod !== 'undefined') ? currentPricingMethod : 'markup';
-        if (pricingMethod === 'profit' && typeof updateSellingPriceFromProfit === 'function') {
-            updateSellingPriceFromProfit();
-        } else if (typeof updateSellingPriceFromMarkup === 'function') {
-            updateSellingPriceFromMarkup();
+        if (!costPriceManualOverride) {
+            costPriceInput.value = formatNumber(total);
+            
+            // Tính lại giá bán theo ĐÚNG phương thức đang chọn:
+            // - 'profit': giá bán = giá vốn + lãi mong muốn (tự gợi ý lãi nếu để trống)
+            // - 'markup': giá bán = giá vốn × hệ số markup
+            const pricingMethod = (typeof currentPricingMethod !== 'undefined') ? currentPricingMethod : 'markup';
+            if (pricingMethod === 'profit' && typeof updateSellingPriceFromProfit === 'function') {
+                updateSellingPriceFromProfit();
+            } else if (typeof updateSellingPriceFromMarkup === 'function') {
+                updateSellingPriceFromMarkup();
+            }
+            
+            // Trigger profit calculation
+            if (typeof calculateExpectedProfit === 'function') {
+                calculateExpectedProfit();
+            }
         }
-        
-        // Trigger profit calculation
-        if (typeof calculateExpectedProfit === 'function') {
-            calculateExpectedProfit();
-        }
+        costPriceInput.readOnly = false;
+        costPriceInput.classList.toggle('bg-purple-50', !costPriceManualOverride);
+        costPriceInput.classList.toggle('border-purple-300', !costPriceManualOverride);
     } else if (costPriceInput) {
         costPriceInput.readOnly = false;
         costPriceInput.classList.remove('bg-purple-50', 'border-purple-300');
@@ -945,13 +973,20 @@ async function saveProductMaterialsFormula(productId) {
     }
 
     try {
+        const parseCost = (typeof window.parseFormattedNumber === 'function')
+            ? window.parseFormattedNumber
+            : (str) => parseInt(String(str || '').replace(/\./g, ''), 10) || 0;
+        const costPriceInput = document.getElementById('productCostPrice');
+        const manualCost = costPriceInput ? parseCost(costPriceInput.value) : null;
+
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'saveProductMaterials',
                 product_id: parseInt(productId),
-                materials: selectedMaterials
+                materials: selectedMaterials,
+                cost_price: manualCost
             })
         });
 
@@ -1019,6 +1054,8 @@ window.decrementMaterialQuantity = decrementMaterialQuantity;
 window.updateMaterialUnit = updateMaterialUnit;
 window.calculateTotalCost = calculateTotalCost;
 window.saveProductMaterialsFormula = saveProductMaterialsFormula;
+window.resetCostPriceManualOverride = resetCostPriceManualOverride;
+window.markCostPriceManualOverride = markCostPriceManualOverride;
 window.formatMaterialName = formatMaterialName;
 
 // Export selectedMaterials getter

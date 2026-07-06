@@ -429,6 +429,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
 
             // Re-render the table to show updated values
             renderOrdersTable();
+            if (typeof updateMissingSizeBadge === 'function') updateMissingSizeBadge();
 
             // Build success message
             let message = `Đã cập nhật sản phẩm cho đơn ${orderCode}`;

@@ -44,8 +44,10 @@ function productBelongsToCategory(product, categoryId) {
  * Danh mục KHÔNG cần nhập cân nặng/size (vd: "Sản phẩm bán kèm", "Bi, charm bạc").
  * Khớp theo TÊN danh mục (không hardcode id) để sản phẩm mới thêm vào các danh mục
  * này về sau vẫn tự động được áp dụng — chỉ cần tên danh mục chứa 1 trong các từ khoá.
+ * NO_WEIGHT_CATEGORY_IDS: id cố định (vd: Hạt dâu tằm mài sẵn = 14).
  */
 const NO_WEIGHT_CATEGORY_KEYWORDS = ['bán kèm', 'charm bạc'];
+const NO_WEIGHT_CATEGORY_IDS = [14, 24, 23];
 
 function normalizeCategoryName(name) {
     return (name == null ? '' : String(name)).trim().toLowerCase();
@@ -54,6 +56,10 @@ function normalizeCategoryName(name) {
 /** Tập id các danh mục không cần cân nặng, tính từ allCategoriesList hiện tại. */
 function getNoWeightCategoryIdSet() {
     const set = new Set();
+    for (const rawId of NO_WEIGHT_CATEGORY_IDS) {
+        const id = parseInt(String(rawId), 10);
+        if (!Number.isNaN(id)) set.add(id);
+    }
     const list = Array.isArray(allCategoriesList) ? allCategoriesList : [];
     for (const cat of list) {
         const name = normalizeCategoryName(cat?.name);
@@ -301,7 +307,7 @@ function renderModalProductsList(categoryId = null, searchQuery = '') {
         const btnKgPresets = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg =>
             `<button type="button" onclick="event.stopPropagation(); setProductWeight(${p.id}, '${kg}kg')" class="px-2.5 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`
         ).join('');
-        // Danh mục bán kèm / bi, charm bạc: ẩn hẳn ô cân nặng + preset
+        // Danh mục bán kèm / bi, charm bạc / hạt dâu tằm mài sẵn: ẩn hẳn ô cân nặng + preset
         const weightPresetRow = skipsWeight ? '' : `<div class="flex flex-wrap gap-1.5 pt-1">${btnUnknown}${isAdultBracelet ? '' : btnKgPresets}</div>`;
         const qtyBlockHtml = `<label class="text-xs text-gray-600 font-medium mb-1 block">SL</label><div class="flex items-center gap-1"><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">-</button><input type="number" id="qty_${p.id}" value="${productQuantities[p.id] || 1}" min="1" onclick="event.stopPropagation()" onchange="updateProductQuantity(${p.id}, this.value)" class="w-10 text-center border border-gray-300 rounded py-1 text-sm font-medium" /><button onclick="event.stopPropagation(); adjustProductQuantity(${p.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">+</button></div>`;
         const notesBlockHtml = `<label class="text-xs text-gray-600 font-medium mb-1 block">Lưu ý</label><input type="text" id="notes_${p.id}" value="${escapeAttr(productNotes[p.id] || '')}" placeholder="Ghi chú cho sản phẩm này..." onclick="event.stopPropagation()" onchange="updateProductNotes(${p.id}, this.value)" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-400 focus:border-purple-400" />`;
@@ -335,7 +341,9 @@ function selectModalProductOnly(productId) {
     if (selectedProducts.includes(productId)) return;
     selectedProducts.push(productId);
     productQuantities[productId] = 1;
-    productWeights[productId] = '';
+    const product = allProductsList.find(p => p.id === productId);
+    const noWeightIdSet = getNoWeightCategoryIdSet();
+    productWeights[productId] = (product && productSkipsWeight(product, noWeightIdSet)) ? null : '';
     productNotes[productId] = '';
     _refreshModalProductListAfterSelection();
 }
@@ -351,7 +359,9 @@ function toggleModalProductCheckbox(productId) {
     } else {
         selectedProducts.push(productId);
         productQuantities[productId] = 1;
-        productWeights[productId] = '';
+        const product = allProductsList.find(p => p.id === productId);
+        const noWeightIdSet = getNoWeightCategoryIdSet();
+        productWeights[productId] = (product && productSkipsWeight(product, noWeightIdSet)) ? null : '';
         productNotes[productId] = '';
     }
     _refreshModalProductListAfterSelection();

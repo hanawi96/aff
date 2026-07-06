@@ -706,10 +706,18 @@ export async function saveProductMaterials(data, env, corsHeaders) {
         const calculatedCost = costCalc[0]?.total_cost || 0;
         console.log('📊 Calculated cost:', calculatedCost);
 
-        // Update product cost_price manually
+        let costToSave = calculatedCost;
+        if (data.cost_price !== undefined && data.cost_price !== null && data.cost_price !== '') {
+            const manualCost = parseFloat(data.cost_price);
+            if (!Number.isNaN(manualCost) && manualCost >= 0) {
+                costToSave = manualCost;
+            }
+        }
+
+        // Update product cost_price (ưu tiên giá vốn user nhập trên form)
         await env.DB.prepare(`
             UPDATE products SET cost_price = ? WHERE id = ?
-        `).bind(calculatedCost, product_id).run();
+        `).bind(costToSave, product_id).run();
 
         // Get updated cost_price
         console.log('💰 Getting updated cost_price for product:', product_id);

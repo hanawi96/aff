@@ -294,6 +294,9 @@ function getOrderProductSizeRaw(product) {
 
 /** HTML dòng cân nặng/size có thể click để sửa nhanh. */
 function buildOrderProductWeightLine(index, product) {
+    if (typeof orderLineItemSkipsWeight === 'function' && orderLineItemSkipsWeight(product)) {
+        return '';
+    }
     const rawValue = getOrderProductSizeRaw(product);
     const weightBtnClass = 'order-weight-quick-edit inline text-gray-700 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-700 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
     const missingBtnClass = 'order-weight-quick-edit inline text-amber-600 font-medium underline decoration-dotted underline-offset-2 hover:text-amber-800 hover:bg-amber-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer';
@@ -764,7 +767,8 @@ function renderOrderProducts() {
         // Product details on same line with proper labels
         let detailsLine = [];
 
-        detailsLine.push(buildOrderProductWeightLine(index, product));
+        const weightLine = buildOrderProductWeightLine(index, product);
+        if (weightLine) detailsLine.push(weightLine);
         const priceBtn = `<button type="button" id="orderProductPriceBtn_${index}"
             class="order-price-quick-edit inline text-blue-600 font-semibold underline decoration-dotted underline-offset-2 hover:text-blue-800 hover:bg-blue-50 rounded px-0.5 -mx-0.5 transition-colors cursor-pointer"
             onclick="startQuickEditOrderPrice(${index}, 'unit')" title="Click để sửa đơn giá">${formatCurrency(price)}</button>`;

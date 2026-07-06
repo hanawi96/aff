@@ -351,6 +351,144 @@ function formatCurrency(amount) {
 // WEIGHT/SIZE FORMATTING
 // ============================================
 
+/** Danh mục SP không cần cân/size trên đơn (đồng bộ modal thêm SP + mobile). */
+const ORDER_NO_WEIGHT_CATEGORY_IDS = [14, 24, 23];
+const ORDER_NO_WEIGHT_CATEGORY_KEYWORDS = ['bán kèm', 'charm bạc'];
+
+function getOrderNoWeightCategoryIdSet() {
+    const set = new Set(
+        ORDER_NO_WEIGHT_CATEGORY_IDS.map((id) => parseInt(String(id), 10)).filter((n) => !Number.isNaN(n))
+    );
+    const list = (typeof allCategoriesList !== 'undefined' && Array.isArray(allCategoriesList))
+        ? allCategoriesList
+        : (typeof allCategoriesCache !== 'undefined' && Array.isArray(allCategoriesCache) ? allCategoriesCache : []);
+    for (const cat of list) {
+        const name = String(cat?.name || '').trim().toLowerCase();
+        if (!name) continue;
+        if (ORDER_NO_WEIGHT_CATEGORY_KEYWORDS.some((kw) => name.includes(kw))) {
+            const id = parseInt(String(cat.id), 10);
+            if (!Number.isNaN(id)) set.add(id);
+        }
+    }
+    return set;
+}
+
+function normalizeOrderProductNameKey(name) {
+    return String(name || '').trim().toLowerCase();
+}
+
+let _orderCatalogByNameCache = null;
+let _orderCatalogByNameCacheLen = 0;
+
+function invalidateOrderCatalogNameCache() {
+    _orderCatalogByNameCache = null;
+    _orderCatalogByNameCacheLen = 0;
+}
+
+function getOrderCatalogByNameMap() {
+    const lists = [];
+    if (typeof allProductsList !== 'undefined' && Array.isArray(allProductsList)) lists.push(allProductsList);
+    if (typeof allProductsCache !== 'undefined' && Array.isArray(allProductsCache)) lists.push(allProductsCache);
+    let totalLen = 0;
+    for (const list of lists) totalLen += list.length;
+    if (_orderCatalogByNameCache && _orderCatalogByNameCacheLen === totalLen) {
+        return _orderCatalogByNameCache;
+    }
+    const map = new Map();
+    for (const list of lists) {
+        for (const p of list) {
+            const key = normalizeOrderProductNameKey(p?.name);
+            if (key && !map.has(key)) map.set(key, p);
+        }
+    }
+    _orderCatalogByNameCache = map;
+    _orderCatalogByNameCacheLen = totalLen;
+    return map;
+}
+
+function resolveCatalogProductForOrderLine(item) {
+    if (!item || typeof item !== 'object') return null;
+    if (Array.isArray(item.category_ids) && item.category_ids.length) return item;
+    if (item.category_id != null && item.category_id !== '') return item;
+    const pid = item.product_id != null && item.product_id !== '' ? item.product_id : item.id;
+    if (pid != null && pid !== '') {
+        const n = parseInt(String(pid), 10);
+        if (!Number.isNaN(n)) {
+            const lists = [];
+            if (typeof allProductsList !== 'undefined' && Array.isArray(allProductsList)) lists.push(allProductsList);
+            if (typeof allProductsCache !== 'undefined' && Array.isArray(allProductsCache)) lists.push(allProductsCache);
+            for (const list of lists) {
+                const found = list.find((p) => parseInt(String(p.id), 10) === n);
+                if (found) return found;
+            }
+        }
+    }
+    const nameKey = normalizeOrderProductNameKey(item.name || item.product_name);
+    if (nameKey) {
+        const byName = getOrderCatalogByNameMap().get(nameKey);
+        if (byName) return byName;
+    }
+    return null;
+}
+
+/** Trạng thái cần theo dõi thiếu cân/size: Chưa gửi hàng, Chờ gửi lại, Gửi sau. */
+const ORDER_MISSING_SIZE_BADGE_STATUSES = new Set(['pending', 'awaiting_reship', 'send_later']);
+
+function orderStatusEligibleForMissingSizeBadge(order) {
+    const slug = normalizeOrderStatusSlug(order?.status || 'pending');
+    return ORDER_MISSING_SIZE_BADGE_STATUSES.has(slug);
+}
+
+/** Đơn thuộc nhóm cần theo dõi và có ≥1 SP thiếu cân/size (badge + bộ lọc). */
+function orderHasActionableMissingSize(order) {
+    if (!orderStatusEligibleForMissingSizeBadge(order)) return false;
+    return getOrderProductsMissingSizeWeight(order).length > 0;
+}
+
+/** Catalog SP đã sẵn sàng để đếm/lọc thiếu size (tránh badge nháy số sai). */
+function isOrderCatalogReadyForMissingSizeCheck() {
+    return (typeof allProductsList !== 'undefined' && Array.isArray(allProductsList) && allProductsList.length > 0)
+        || (typeof allProductsCache !== 'undefined' && Array.isArray(allProductsCache) && allProductsCache.length > 0);
+}
+
+/** Cập nhật badge/lọc thiếu size sau khi catalog SP đã tải (tra danh mục theo tên). */
+function refreshOrderMissingSizeUI() {
+    if (typeof updateMissingSizeBadge === 'function') updateMissingSizeBadge();
+    if (typeof filterOrdersData === 'function'
+        && typeof allOrdersData !== 'undefined'
+        && Array.isArray(allOrdersData)
+        && allOrdersData.length > 0) {
+        filterOrdersData(true);
+    }
+}
+
+function catalogProductSkipsWeight(product, noWeightIdSet) {
+    if (!product) return false;
+    const set = noWeightIdSet || getOrderNoWeightCategoryIdSet();
+    if (set.size === 0) return false;
+    if (Array.isArray(product.category_ids) && product.category_ids.length) {
+        return product.category_ids.some((id) => set.has(parseInt(String(id), 10)));
+    }
+    const cid = parseInt(String(product.category_id ?? ''), 10);
+    return !Number.isNaN(cid) && set.has(cid);
+}
+
+/** Dòng SP trong đơn có thuộc DM không cần cân/size không? */
+function orderLineItemSkipsWeight(item, noWeightIdSet) {
+    if (!item || typeof item !== 'object') return false;
+    return catalogProductSkipsWeight(resolveCatalogProductForOrderLine(item), noWeightIdSet);
+}
+
+/** Dòng SP có thiếu cân/size sau chuẩn hóa (bỏ qua DM không cần cân). */
+function orderLineItemMissingSizeWeight(item, noWeightIdSet) {
+    if (orderLineItemSkipsWeight(item, noWeightIdSet)) return false;
+    if (typeof item === 'string') return true;
+    if (!item || typeof item !== 'object') return true;
+    const size = normalizeOrderItemSizeClient(item.size ?? null);
+    const weight = normalizeOrderItemSizeClient(item.weight ?? null);
+    return !size && !weight;
+}
+
 /**
  * Chuẩn hóa cân/size trước khi gửi API: rỗng hoặc "chưa có" → null (đồng bộ DB)
  */
@@ -397,12 +535,31 @@ const SPX_BEFORE_ORDER_NOTE = ' --- ';
  * @param {number} quantity
  * @param {string|null|undefined} notes - lưu ý từng dòng sản phẩm
  */
-function formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes) {
+function formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes, opts) {
     const baseName = (name || 'Sản phẩm').trim() || 'Sản phẩm';
-    const sizeLabel = getSPXSizeLabel(sizeOrWeight);
-    let line = `${baseName} -- Size: ${sizeLabel} - Số lượng: ${quantity}`;
+    const skipSize = opts && opts.skipSize;
+    let line;
+    if (skipSize) {
+        line = `${baseName} - Số lượng: ${quantity}`;
+    } else {
+        const sizeLabel = getSPXSizeLabel(sizeOrWeight);
+        line = `${baseName} -- Size: ${sizeLabel} - Số lượng: ${quantity}`;
+    }
     if (notes) line += ` - LƯU Ý: ${notes}`;
     return `[${line}]`;
+}
+
+/** Format một dòng SP đơn hàng cho Copy SPX / Excel (tự bỏ Size với DM 14/23/24). */
+function formatSPXProductBracketLineFromOrderLine(product, noWeightIdSet) {
+    const name = typeof product === 'string' ? product : (product?.name || 'Sản phẩm');
+    const quantity = (typeof product === 'object' && product?.quantity) ? product.quantity : 1;
+    const notes = (typeof product === 'object' && product?.notes) ? product.notes : null;
+    if (typeof product === 'object' && orderLineItemSkipsWeight(product, noWeightIdSet)) {
+        return formatSPXProductBracketLine(name, null, quantity, notes, { skipSize: true });
+    }
+    const size = typeof product === 'object' && product?.size ? product.size : null;
+    const weight = typeof product === 'object' && product?.weight ? product.weight : null;
+    return formatSPXProductBracketLine(name, size || weight, quantity, notes);
 }
 
 /**
@@ -457,9 +614,11 @@ function getOrderProductsMissingSizeWeight(order) {
     }
 
     const missing = [];
+    const noWeightSet = getOrderNoWeightCategoryIdSet();
     for (const p of products) {
         if (typeof p === 'string') {
-            missing.push(p.trim() || 'Sản phẩm');
+            const name = p.trim() || 'Sản phẩm';
+            if (orderLineItemMissingSizeWeight({ name }, noWeightSet)) missing.push(name);
             continue;
         }
         if (!p || typeof p !== 'object') {
@@ -467,9 +626,7 @@ function getOrderProductsMissingSizeWeight(order) {
             continue;
         }
         const name = (p.name || 'Sản phẩm').trim() || 'Sản phẩm';
-        const size = normalizeOrderItemSizeClient(p.size ?? null);
-        const weight = normalizeOrderItemSizeClient(p.weight ?? null);
-        if (!size && !weight) missing.push(name);
+        if (orderLineItemMissingSizeWeight(p, noWeightSet)) missing.push(name);
     }
     return missing;
 }
@@ -481,9 +638,8 @@ function computeOrdersWithMissingSize() {
     if (typeof allOrdersData === 'undefined' || !Array.isArray(allOrdersData)) return [];
     const out = [];
     for (const order of allOrdersData) {
-        if ((order.status || 'pending') !== 'pending') continue;
-        const missing = getOrderProductsMissingSizeWeight(order);
-        if (missing.length > 0) out.push({ order, missing });
+        if (!orderHasActionableMissingSize(order)) continue;
+        out.push({ order, missing: getOrderProductsMissingSizeWeight(order) });
     }
     return out;
 }

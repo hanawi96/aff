@@ -618,12 +618,19 @@ let mCustomerSourceFilter=null; // null | 'facebook' | 'zalo' | 'tiktok'
 let mDateSort=null; // null | 'newest' | 'oldest'
 
 function _orderHasMissingSize(o){
+  if(typeof orderStatusEligibleForMissingSizeBadge==='function'&&!orderStatusEligibleForMissingSizeBadge(o))return false;
+  if(typeof orderHasActionableMissingSize==='function')return orderHasActionableMissingSize(o);
+  if(typeof getOrderProductsMissingSizeWeight==='function'){
+    return getOrderProductsMissingSizeWeight(o).length>0;
+  }
   try{
     const prods=JSON.parse(o.products);
     if(!Array.isArray(prods))return false;
-    const nullVals=new Set(['','null','chưa có','chua co','n/a','khong co','không có']);
+    const noWeightSet=typeof getOrderNoWeightCategoryIdSet==='function'?getOrderNoWeightCategoryIdSet():new Set();
     return prods.some(p=>{
       if(typeof p==='string')return false;
+      if(typeof orderLineItemMissingSizeWeight==='function')return orderLineItemMissingSizeWeight(p,noWeightSet);
+      const nullVals=new Set(['','null','chưa có','chua co','n/a','khong co','không có']);
       const s=(p.size||p.weight||'').toString().trim().toLowerCase();
       return !s||nullVals.has(s);
     });
@@ -1053,8 +1060,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('pagehide',_saveDraft);
 });
 async function bootOrdersAndDeepLink(){
-  // Chỉ tải đơn hàng lúc mở trang. Danh sách sản phẩm (cho form tạo/sửa) tải lazy khi mở form
-  // (showCreateOrder/showEditOrder đã tự gọi loadProductList) → boot nhẹ, danh sách hiện nhanh hơn.
+  // Tải catalog SP nền để nhận diện DM không cần cân (badge/lọc/thẻ đơn).
+  void loadProductList();
   await loadOrdersInternal();
   if(orderIdFromHash()!=null){
     tryOpenOrderFromHash();
@@ -1418,8 +1425,20 @@ function renderCards(){
     try{
       const p=JSON.parse(o.products);
       prods=p.map(x=>x.name).join(', ');
-      const _norm=v=>{const s=String(v??'').trim().toLowerCase();return(s&&s!=='chưa có'&&s!=='chua co'&&s!=='chua có')?s:null;};
-      hasNoSize=p.some(x=>!_norm(x.size)&&!_norm(x.weight));
+      hasNoSize=typeof orderHasActionableMissingSize==='function'
+        ?orderHasActionableMissingSize(o)
+        :(typeof orderStatusEligibleForMissingSizeBadge==='function'&&!orderStatusEligibleForMissingSizeBadge(o)?false
+        :(typeof getOrderProductsMissingSizeWeight==='function'
+        ?getOrderProductsMissingSizeWeight(o).length>0
+        :p.some(x=>{
+          if(typeof x==='string')return false;
+          if(typeof orderLineItemMissingSizeWeight==='function'){
+            const noWeightSet=typeof getOrderNoWeightCategoryIdSet==='function'?getOrderNoWeightCategoryIdSet():new Set();
+            return orderLineItemMissingSizeWeight(x,noWeightSet);
+          }
+          const _norm=v=>{const s=String(v??'').trim().toLowerCase();return(s&&s!=='chưa có'&&s!=='chua co'&&s!=='chua có')?s:null;};
+          return !_norm(x.size)&&!_norm(x.weight);
+        })));
       hasTheTenBe=p.some(x=>_mOrderLineHasTheTenBe(typeof x==='string'?x:x));
       hasProdNotes=p.some(x=>x.notes&&x.notes.trim());
     }catch{}
@@ -2832,6 +2851,10 @@ async function loadProductList(){
       updateCatPickerLabel();
       prefetchCategorySheetImages();
     }
+    if(typeof invalidateOrderCatalogNameCache==='function')invalidateOrderCatalogNameCache();
+    if(typeof applyFilter==='function'&&typeof renderCards==='function'&&allOrders?.length){
+      applyFilter();renderCards();
+    }
   }catch{}
 }
 
@@ -2842,6 +2865,68 @@ function resolveImgSrc(raw){
   if(raw.startsWith('./assets/'))return '../'+raw.substring(2);
   if(raw.startsWith('assets/'))return '../'+raw;
   return`../assets/images/${raw}`;
+}
+
+/** Danh mục không cần nhập cân/size khi thêm SP vào giỏ (mobile). */
+const M_NO_WEIGHT_CATEGORY_IDS=[14,24,23];
+const M_NO_WEIGHT_CATEGORY_KEYWORDS=['bán kèm','charm bạc'];
+
+function mGetNoWeightCategoryIdSet(){
+  const set=new Set(M_NO_WEIGHT_CATEGORY_IDS.map(id=>parseInt(String(id),10)).filter(n=>!Number.isNaN(n)));
+  (allCategoriesCache||[]).forEach(cat=>{
+    const name=String(cat?.name||'').toLowerCase().trim();
+    if(!name)return;
+    if(M_NO_WEIGHT_CATEGORY_KEYWORDS.some(kw=>name.includes(kw))){
+      const cid=parseInt(String(cat.id),10);
+      if(!Number.isNaN(cid))set.add(cid);
+    }
+  });
+  return set;
+}
+
+function mProductSkipsWeight(product){
+  if(!product)return false;
+  const set=mGetNoWeightCategoryIdSet();
+  if(Array.isArray(product.category_ids)&&product.category_ids.length){
+    return product.category_ids.some(id=>set.has(parseInt(String(id),10)));
+  }
+  const cid=parseInt(String(product.category_id??''),10);
+  return !Number.isNaN(cid)&&set.has(cid);
+}
+
+function mSheetSizeSectionHtml(show,sizeValue){
+  if(!show)return'';
+  const val=sizeValue!=null?esc(sizeValue):'';
+  return`
+      <div id="sheetSizeBlock">
+        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Size / Cân nặng</label>
+        <div class="flex gap-2 mt-2 flex-wrap" id="sizeChips"></div>
+        <input id="sheetSize" type="text" value="${val}" placeholder="Nhập size, cân nặng... (VD: 5kg, M, L)" class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
+        <p class="text-xs text-gray-400 mt-1">Bỏ trống nếu chưa có thông tin</p>
+      </div>`;
+}
+
+function mInitSheetSizeChips(selectedSize){
+  const chipEl=document.getElementById('sizeChips');
+  if(!chipEl)return;
+  const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];
+  const cur=selectedSize==null?'':String(selectedSize);
+  chips.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600';
+    const chipVal=c==='chưa có'?'':c;
+    if(cur===chipVal)btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
+    btn.textContent=c;
+    btn.onclick=()=>{
+      const sizeInput=document.getElementById('sheetSize');
+      if(c==='chưa có'){sizeInput.value='';sizeInput.dataset.sizeNull='1';}
+      else{sizeInput.value=c;delete sizeInput.dataset.sizeNull;}
+      chipEl.querySelectorAll('button').forEach(b=>b.classList.remove('border-indigo-300','bg-indigo-50','text-indigo-600'));
+      btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
+    };
+    chipEl.appendChild(btn);
+  });
 }
 
 function renderProductPicker(){
@@ -2889,6 +2974,7 @@ function toggleProduct(id){
 
 function openProdSheet(id){
   const p=allProductsCache.find(x=>x.id==id);if(!p)return;
+  const skipWeight=mProductSkipsWeight(p);
   const imgSrc=resolveImgSrc(p.image_url);
   const imgHtml=imgSrc
     ?`<img src="${imgSrc}" class="w-14 h-14 rounded-xl object-cover bg-gray-100" loading="lazy">`
@@ -2899,8 +2985,8 @@ function openProdSheet(id){
   const alreadyInCartHtml=inCartItems.length>0?`
     <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5">
       <p class="text-xs font-bold text-indigo-500 uppercase tracking-wide mb-2">Đã có trong giỏ</p>
-      <div class="flex flex-wrap gap-1.5">${inCartItems.map(e=>`<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-full shadow-sm">${esc(e.size||'chưa có size')} × ${e.quantity}</span>`).join('')}</div>
-      <p class="text-[10px] text-indigo-400 mt-2">Chọn size khác bên dưới để thêm vào đơn</p>
+      <div class="flex flex-wrap gap-1.5">${inCartItems.map(e=>`<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-full shadow-sm">${skipWeight?('× '+e.quantity):`${esc(e.size||'chưa có size')} × ${e.quantity}`}</span>`).join('')}</div>
+      <p class="text-[10px] text-indigo-400 mt-2">${skipWeight?'Bấm thêm bên dưới để tăng số lượng':'Chọn size khác bên dưới để thêm vào đơn'}</p>
     </div>`:'';
 
   document.getElementById('prodSheetContent').innerHTML=`
@@ -2964,13 +3050,7 @@ function openProdSheet(id){
           <p id="sheetLineProfit" class="text-xs font-medium text-gray-600"></p>
         </div>
       </div>
-      <!-- Size -->
-      <div>
-        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Size / Cân nặng</label>
-        <div class="flex gap-2 mt-2 flex-wrap" id="sizeChips"></div>
-        <input id="sheetSize" type="text" placeholder="Nhập size, cân nặng... (VD: 5kg, M, L)" class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
-        <p class="text-xs text-gray-400 mt-1">Bỏ trống nếu chưa có thông tin</p>
-      </div>
+      ${mSheetSizeSectionHtml(!skipWeight)}
       <!-- Notes -->
       <div>
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý cho sản phẩm</label>
@@ -2983,23 +3063,7 @@ function openProdSheet(id){
       </div>
     </div>`;
 
-  // Populate quick size chips
-  const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];
-  const chipEl=document.getElementById('sizeChips');
-  chips.forEach(c=>{
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600';
-    btn.textContent=c;
-    btn.onclick=()=>{
-      const sizeInput=document.getElementById('sheetSize');
-      if(c==='chưa có'){sizeInput.value='';sizeInput.dataset.sizeNull='1';}
-      else{sizeInput.value=c;delete sizeInput.dataset.sizeNull;}
-      chipEl.querySelectorAll('button').forEach(b=>b.classList.remove('border-indigo-300','bg-indigo-50','text-indigo-600'));
-      btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
-    };
-    chipEl.appendChild(btn);
-  });
+  if(!skipWeight)mInitSheetSizeChips(null);
 
   document.getElementById('prodSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
@@ -3028,13 +3092,17 @@ function closeProdSheet(){
 
 function confirmAddProduct(id){
   const p=allProductsCache.find(x=>x.id==id);if(!p)return;
+  const skipWeight=mProductSkipsWeight(p);
   const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
   const priceEl=document.getElementById('sheetPrice');
   const totalPrice=priceEl?Math.max(0,parseInt((priceEl.value||'').replace(/[^0-9]/g,''))||0):0;
   const unitPrice=totalPrice>0?(qty>0?Math.round(totalPrice/qty):totalPrice):p.price;
-  const sizeEl=document.getElementById('sheetSize');
-  const sizeNull=sizeEl?.dataset.sizeNull==='1';
-  const size=sizeNull?null:(sizeEl?.value.trim()||null);
+  let size=null;
+  if(!skipWeight){
+    const sizeEl=document.getElementById('sheetSize');
+    const sizeNull=sizeEl?.dataset.sizeNull==='1';
+    size=sizeNull?null:(sizeEl?.value.trim()||null);
+  }
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
   const customNameEl=document.getElementById('sheetCustomName');
   const productName=(customNameEl?.value.trim())||p.name;
@@ -3162,6 +3230,7 @@ function removeCartItem(i){createProducts.splice(i,1);renderProductPicker();rend
 function openEditCartItem(i){
   const p=createProducts[i];if(!p)return;
   const _c=p.product_id&&allProductsCache.find(x=>x.id==p.product_id);
+  const skipWeight=mProductSkipsWeight(_c||p);
   const imgSrc=resolveImgSrc(p.image_url||(_c&&_c.image_url)||null);
   const imgHtml=imgSrc
     ?`<img src="${imgSrc}" class="w-14 h-14 rounded-xl object-cover bg-gray-100" loading="lazy">`
@@ -3222,13 +3291,7 @@ function openEditCartItem(i){
           <p id="sheetLineProfit" class="text-xs font-medium text-gray-600"></p>
         </div>
       </div>
-      <!-- Size -->
-      <div>
-        <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Size / Cân nặng</label>
-        <div class="flex gap-2 mt-2 flex-wrap" id="sizeChips"></div>
-        <input id="sheetSize" type="text" value="${esc(p.size||'')}" placeholder="Nhập size, cân nặng..."
-          class="mt-2 w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white">
-      </div>
+      ${mSheetSizeSectionHtml(!skipWeight,p.size||'')}
       <!-- Lưu ý -->
       <div>
         <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Lưu ý cho sản phẩm</label>
@@ -3245,24 +3308,7 @@ function openEditCartItem(i){
   const notesInp=document.getElementById('sheetNotes');
   if(notesInp)notesInp.value=p.notes||'';
 
-  // Size chips
-  const chips=['chưa có','3kg','4kg','5kg','6kg','7kg','8kg','9kg','10kg','11kg','12kg','13kg','14kg','15kg'];
-  const chipEl=document.getElementById('sizeChips');
-  chips.forEach(c=>{
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600';
-    if((p.size||'')===(c==='chưa có'?'':c))btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
-    btn.textContent=c;
-    btn.onclick=()=>{
-      const sizeInput=document.getElementById('sheetSize');
-      if(c==='chưa có'){sizeInput.value='';sizeInput.dataset.sizeNull='1';}
-      else{sizeInput.value=c;delete sizeInput.dataset.sizeNull;}
-      chipEl.querySelectorAll('button').forEach(b=>b.classList.remove('border-indigo-300','bg-indigo-50','text-indigo-600'));
-      btn.classList.add('border-indigo-300','bg-indigo-50','text-indigo-600');
-    };
-    chipEl.appendChild(btn);
-  });
+  if(!skipWeight)mInitSheetSizeChips(p.size||'');
 
   document.getElementById('prodSheet').classList.remove('hidden');
   document.body.style.overflow='hidden';
@@ -3271,6 +3317,8 @@ function openEditCartItem(i){
 
 function confirmEditCartItem(i){
   const p=createProducts[i];if(!p)return;
+  const _c=p.product_id&&allProductsCache.find(x=>x.id==p.product_id);
+  const skipWeight=mProductSkipsWeight(_c||p);
   const nameInput=document.getElementById('sheetCustomName');
   const nameTextEl=document.getElementById('sheetNameText');
   let newName='';
@@ -3280,9 +3328,12 @@ function confirmEditCartItem(i){
   const qty=Math.max(1,parseInt(document.getElementById('sheetQty')?.value)||1);
   const totalPrice=Math.max(0,parseInt((document.getElementById('sheetPrice')?.value||'').replace(/\./g,'').replace(/[^0-9]/g,''))||0);
   const price=qty>0?Math.round(totalPrice/qty):totalPrice;
-  const sizeEl=document.getElementById('sheetSize');
-  const sizeNull=sizeEl?.dataset.sizeNull==='1';
-  const size=sizeNull?null:(sizeEl?.value.trim()||p.size||null);
+  let size=null;
+  if(!skipWeight){
+    const sizeEl=document.getElementById('sheetSize');
+    const sizeNull=sizeEl?.dataset.sizeNull==='1';
+    size=sizeNull?null:(sizeEl?.value.trim()||p.size||null);
+  }
   const notes=document.getElementById('sheetNotes')?.value.trim()||null;
   const costVal=_sheetCostUnitFromInputs(document.getElementById('sheetCost'),qty);
   createProducts[i]={...p,name:newName,quantity:qty,price,size,notes,cost_price:costVal};
@@ -3549,6 +3600,44 @@ function confirmAddCustomProduct(){
   toast(`Đã thêm: ${name}`);
 }
 
+function scrollCreateFormTo(el){
+  if(!el)return;
+  const panel=document.getElementById('createScrollArea');
+  if(!panel){el.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const run=()=>{
+    const stickyH=(panel.querySelector('.sticky')||{offsetHeight:0}).offsetHeight;
+    const footerH=panel.parentElement?.querySelector(':scope > .shrink-0')?.offsetHeight||0;
+    const padTop=stickyH+8;
+    const padBottom=footerH+12;
+    const panelRect=panel.getBoundingClientRect();
+    const elRect=el.getBoundingClientRect();
+    const viewTop=panelRect.top+padTop;
+    const viewBottom=panelRect.bottom-padBottom;
+    if(elRect.top<viewTop){
+      panel.scrollBy({top:elRect.top-viewTop,behavior:'smooth'});
+    }else if(elRect.bottom>viewBottom){
+      panel.scrollBy({top:elRect.bottom-viewBottom,behavior:'smooth'});
+    }
+  };
+  requestAnimationFrame(run);
+}
+function mRevealCreateFormError(el){
+  if(!el)return;
+  const scrollEl=(el.id&&document.querySelector(`[data-for="${el.id}"]`))||el;
+  scrollCreateFormTo(scrollEl);
+  el.classList.add('err-shake');
+  setTimeout(()=>el.classList.remove('err-shake'),400);
+  setTimeout(()=>{
+    if(el.id==='mCustomerSourceBlock'){
+      try{document.querySelector('#mSourceBtns .src-btn')?.focus({preventScroll:true});}catch(_){}
+    }else if(el.id==='cartErrMsg'){
+      scrollCreateFormTo(document.getElementById('prodSection')||el);
+    }else if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT'){
+      try{el.focus({preventScroll:true});}catch(_){}
+    }
+  },320);
+}
+
 function setFieldError(id,msg){
   const el=document.getElementById(id);if(!el)return null;
   clearFieldError(id);
@@ -3606,9 +3695,7 @@ async function submitOrder(){
   }
 
   if(firstErrEl){
-    firstErrEl.scrollIntoView({behavior:'smooth',block:'center'});
-    firstErrEl.classList.add('err-shake');
-    setTimeout(()=>firstErrEl.classList.remove('err-shake'),400);
+    mRevealCreateFormError(firstErrEl);
     return;
   }
 
@@ -3666,9 +3753,7 @@ async function submitOrder(){
     plannedSendUnix=null;
   }
   if(firstErrEl){
-    firstErrEl.scrollIntoView({behavior:'smooth',block:'center'});
-    firstErrEl.classList.add('err-shake');
-    setTimeout(()=>firstErrEl.classList.remove('err-shake'),400);
+    mRevealCreateFormError(firstErrEl);
     return;
   }
 

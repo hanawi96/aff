@@ -3,39 +3,110 @@
 // ============================================
 // Functions for loading products, categories, and managing products in orders
 
+const PRODUCTS_CATALOG_CACHE_KEY = 'productsCatalog_v1';
+let _productsCatalogFetchInFlight = null;
+
+async function _readProductsCatalogCache() {
+    try {
+        if (typeof _openOrdersCacheDB !== 'function') return null;
+        const db = await _openOrdersCacheDB();
+        return await new Promise((resolve) => {
+            const tx = db.transaction('kv', 'readonly');
+            const req = tx.objectStore('kv').get(PRODUCTS_CATALOG_CACHE_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        });
+    } catch (_) {
+        return null;
+    }
+}
+
+async function _writeProductsCatalogCache(products, categories) {
+    try {
+        if (typeof _openOrdersCacheDB !== 'function') return;
+        const db = await _openOrdersCacheDB();
+        await new Promise((resolve) => {
+            const tx = db.transaction('kv', 'readwrite');
+            tx.objectStore('kv').put({ savedAt: Date.now(), products, categories }, PRODUCTS_CATALOG_CACHE_KEY);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        });
+    } catch (_) {
+        /* ignore quota / private mode */
+    }
+}
+
+/** Nạp catalog SP từ IndexedDB trước khi vẽ badge/lọc thiếu size (tránh nháy số sai). */
+async function hydrateProductsCatalogFromCache() {
+    if (allProductsList.length > 0 && allCategoriesList.length > 0) return true;
+    const cached = await _readProductsCatalogCache();
+    if (!cached || !Array.isArray(cached.products) || cached.products.length === 0) return false;
+    allProductsList = cached.products;
+    allCategoriesList = Array.isArray(cached.categories) ? cached.categories : [];
+    if (typeof invalidateOrderCatalogNameCache === 'function') {
+        invalidateOrderCatalogNameCache();
+    }
+    if (typeof invalidateCategory21Cache === 'function') {
+        invalidateCategory21Cache();
+    }
+    return true;
+}
+
 /**
  * Load products and categories from API
  * Uses caching to avoid redundant API calls
  */
-async function loadProductsAndCategories() {
-    // Return immediately if already loaded
-    if (allProductsList.length > 0 && allCategoriesList.length > 0) {
-        return Promise.resolve();
+async function loadProductsAndCategories(options = {}) {
+    const revalidateOnly = options.revalidateOnly === true;
+
+    // Đã có dữ liệu (cache hoặc fetch trước đó) — revalidate nền, không chặn UI.
+    if (!revalidateOnly && allProductsList.length > 0 && allCategoriesList.length > 0) {
+        void loadProductsAndCategories({ revalidateOnly: true });
+        return;
     }
 
-    try {
-        const [productsRes, categoriesRes] = await Promise.all([
-            fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`),
-            fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`)
-        ]);
+    if (_productsCatalogFetchInFlight) {
+        return _productsCatalogFetchInFlight;
+    }
 
-        const [productsData, categoriesData] = await Promise.all([
-            productsRes.json(),
-            categoriesRes.json()
-        ]);
+    _productsCatalogFetchInFlight = (async () => {
+        try {
+            const [productsRes, categoriesRes] = await Promise.all([
+                fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`),
+                fetch(`${CONFIG.API_URL}?action=getAllCategories&timestamp=${Date.now()}`)
+            ]);
 
-        if (productsData.success) {
-            allProductsList = productsData.products || [];
-            if (typeof invalidateCategory21Cache === 'function') {
-                invalidateCategory21Cache();
+            const [productsData, categoriesData] = await Promise.all([
+                productsRes.json(),
+                categoriesRes.json()
+            ]);
+
+            if (productsData.success) {
+                allProductsList = productsData.products || [];
+                if (typeof invalidateOrderCatalogNameCache === 'function') {
+                    invalidateOrderCatalogNameCache();
+                }
+                if (typeof invalidateCategory21Cache === 'function') {
+                    invalidateCategory21Cache();
+                }
             }
+            if (categoriesData.success) {
+                allCategoriesList = categoriesData.categories || [];
+            }
+            if (allProductsList.length > 0) {
+                void _writeProductsCatalogCache(allProductsList, allCategoriesList);
+            }
+            if (typeof refreshOrderMissingSizeUI === 'function') {
+                refreshOrderMissingSizeUI();
+            }
+        } catch (error) {
+            console.error('❌ Error loading data:', error);
+        } finally {
+            _productsCatalogFetchInFlight = null;
         }
-        if (categoriesData.success) {
-            allCategoriesList = categoriesData.categories || [];
-        }
-    } catch (error) {
-        console.error('❌ Error loading data:', error);
-    }
+    })();
+
+    return _productsCatalogFetchInFlight;
 }
 
 /**
@@ -329,6 +400,7 @@ async function saveProductsToExistingOrder() {
 
             updateStats();
             renderOrdersTable();
+            if (typeof updateMissingSizeBadge === 'function') updateMissingSizeBadge();
             closeProductSelectionModal();
             showToast(`Đã thêm sản phẩm vào đơn ${currentEditingOrderCode}`, 'success', null, addId);
 
@@ -486,6 +558,7 @@ async function replaceProductInExistingOrder() {
         updateOrderData(currentEditingOrderId, updates);
         updateStats();
         renderOrdersTable();
+        if (typeof updateMissingSizeBadge === 'function') updateMissingSizeBadge();
         closeProductSelectionModal();
         showToast('Cập nhật đơn hàng thành công', 'success');
 

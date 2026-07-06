@@ -162,6 +162,14 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     const weight = normalizeOrderItemSizeClient(rawWeight);
     const size = normalizeOrderItemSizeClient(rawSize);
     const notes = typeof product === 'object' && product.notes ? product.notes : null;
+    const skipsWeight = typeof product === 'object' && typeof orderLineItemSkipsWeight === 'function'
+        && orderLineItemSkipsWeight(product);
+    const orderRec = (typeof allOrdersData !== 'undefined' && Array.isArray(allOrdersData))
+        ? allOrdersData.find((o) => Number(o.id) === Number(orderId))
+        : null;
+    const trackMissingSize = !orderRec
+        || typeof orderStatusEligibleForMissingSizeBadge !== 'function'
+        || orderStatusEligibleForMissingSizeBadge(orderRec);
 
     // Parse quantity nếu là string
     const parsedQuantity = typeof quantity === 'string' ? parseInt(quantity) || 1 : quantity;
@@ -172,21 +180,23 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     const metaChips = [];
     const sizeNorm = (value) => String(value || '').trim().toLowerCase();
 
-    if (weight) {
-        metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(weight)), 'weight'));
-    }
-    if (size && sizeNorm(size) !== sizeNorm(weight)) {
-        metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(size)), 'weight'));
-    }
-    if (!weight && !size) {
-        metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, '<span class="font-medium">Chưa có</span>', 'warn'));
+    if (!skipsWeight && trackMissingSize) {
+        if (weight) {
+            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(weight)), 'weight'));
+        }
+        if (size && sizeNorm(size) !== sizeNorm(weight)) {
+            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(size)), 'weight'));
+        }
+        if (!weight && !size) {
+            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, '<span class="font-medium">Chưa có</span>', 'warn'));
+        }
     }
     if (priceNum > 0) {
         metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_CURRENCY, escapeHtml(formatCurrency(priceNum * parsedQuantity)), 'price'));
     }
 
     const productId = `product_${orderId}_${index}`;
-    const isMissingWeight = !weight && !size;
+    const isMissingWeight = !skipsWeight && trackMissingSize && !weight && !size;
     const itemBorder = isMissingWeight ? 'border-amber-200 bg-amber-50/50' : 'border-purple-100 bg-purple-50/40';
 
     return `

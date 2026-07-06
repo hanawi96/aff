@@ -405,16 +405,9 @@ async function copySPXFormatExecute(orderId) {
                 const orderNotesTrim =
                     order.notes && String(order.notes).trim() ? String(order.notes).trim() : '';
 
-                const productBracketLines = products.map((product) => {
-                    const name = typeof product === 'string' ? product : (product.name || 'Sản phẩm');
-                    const quantity = typeof product === 'object' && product.quantity ? product.quantity : 1;
-                    const size = typeof product === 'object' && product.size ? product.size : null;
-                    const weight = typeof product === 'object' && product.weight ? product.weight : null;
-                    const notes = typeof product === 'object' && product.notes ? product.notes : null;
-                    const sizeOrWeight = size || weight;
-
-                    return formatSPXProductBracketLine(name, sizeOrWeight, quantity, notes);
-                });
+                const productBracketLines = products.map((product) =>
+                    formatSPXProductBracketLineFromOrderLine(product)
+                );
 
                 productsText = buildSPXProductColumnText(productBracketLines, orderNotesTrim);
 

@@ -351,11 +351,13 @@ function filterOrdersData(preservePage = false) {
         // Priority filter
         const matchesPriority = !priorityFilterActive || order.is_priority === 1;
 
-        // Bộ lọc "Chưa có size" — đơn có ≥1 dòng sản phẩm không có cân/size sau chuẩn hóa
+        // Bộ lọc "Chưa có size" — chỉ đơn Chưa gửi / Chờ gửi lại / Gửi sau có SP thiếu cân/size
         let matchesMissingSize = true;
         if (missingSizeFilterActive) {
-            const missing = getOrderProductsMissingSizeWeight(order);
-            matchesMissingSize = missing.length > 0;
+            matchesMissingSize = typeof orderHasActionableMissingSize === 'function'
+                ? orderHasActionableMissingSize(order)
+                : (getOrderProductsMissingSizeWeight(order).length > 0
+                    && orderStatusEligibleForMissingSizeBadge(order));
         }
 
         // Bộ lọc "Thẻ tên bé" — DM 21, tên/lưu ý SP hoặc lưu ý đơn chứa "thẻ tên" / "thẻ"
@@ -1309,12 +1311,18 @@ function togglePriorityFilter() {
  */
 /**
  * Cập nhật badge số lượng đơn "Chưa có size" trên nút lọc.
- * Đếm theo computeOrdersWithMissingSize() (đơn pending có ≥1 SP thiếu cân/size) — đồng bộ với bộ lọc.
+ * Đếm theo computeOrdersWithMissingSize() — chỉ đơn Chưa gửi hàng / Chờ gửi lại / Gửi sau.
  * Nhẹ: 1 lượt quét allOrdersData; ẩn badge khi = 0.
  */
 function updateMissingSizeBadge() {
     const el = document.getElementById('missingSizeCountBadge');
     if (!el) return;
+    if (typeof isOrderCatalogReadyForMissingSizeCheck === 'function'
+        && !isOrderCatalogReadyForMissingSizeCheck()) {
+        el.textContent = '';
+        el.style.display = 'none';
+        return;
+    }
     let count = 0;
     try {
         if (typeof computeOrdersWithMissingSize === 'function') {
