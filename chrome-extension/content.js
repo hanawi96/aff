@@ -189,11 +189,18 @@ function createSidebar() {
               <button type="button" class="shopvd-payment-btn" data-payment="bank_transfer">
                 ✅ Đã CK
               </button>
-              <button type="button" class="shopvd-payment-btn" data-payment="prepaid">
+              <button type="button" class="shopvd-payment-btn" data-payment="deposit">
                 💰 Cọc trước
               </button>
             </div>
             <input type="hidden" id="payment-method" value="cod">
+          </div>
+          
+          <!-- Deposit Amount (Hidden by default) -->
+          <div class="shopvd-form-group hidden" id="deposit-amount-wrapper">
+            <label>Số tiền cọc</label>
+            <input type="number" id="deposit-amount" value="0" min="0" step="1000" placeholder="0">
+            <small style="color: #64748b; font-size: 11px;">Khách đã cọc — COD chỉ thu phần còn lại</small>
           </div>
           
           <!-- Phí ship & Miễn phí -->
@@ -213,16 +220,10 @@ function createSidebar() {
           
           <!-- Free Shipping Checkbox -->
           <div class="shopvd-form-group">
-            <label class="shopvd-checkbox-label-inline">
+            <label class="shopvd-checkbox-label-simple">
               <input type="checkbox" id="free-shipping">
-              <span>✅ Miễn phí ship</span>
+              <span>Miễn phí ship</span>
             </label>
-          </div>
-
-          <!-- Tiền cọc -->
-          <div class="shopvd-form-group">
-            <label>Tiền cọc trước</label>
-            <input type="number" id="deposit-amount" value="0" min="0" step="1000" placeholder="0">
           </div>
 
           <div class="shopvd-total">
@@ -613,38 +614,198 @@ function renderAllProducts() {
     return;
   }
   
-  grid.innerHTML = products.map(product => `
-    <button 
-      type="button"
-      class="shopvd-product-grid-item"
-      data-product-id="${product.id}"
-      title="${escapeHtml(product.name)}"
-    >
-      ${product.image_url ? `
-        <img 
-          src="${escapeHtml(product.image_url)}" 
-          alt="${escapeHtml(product.name)}"
-          class="shopvd-grid-product-image"
-          onerror="this.style.display='none'"
+  // Compact list view with inline inputs when checked
+  grid.innerHTML = products.map(product => {
+    const purchases = parseInt(product.purchases) || 0;
+    return `
+    <div class="shopvd-product-list-wrapper" data-product-id="${product.id}">
+      <div class="shopvd-product-list-item">
+        <input 
+          type="checkbox" 
+          class="shopvd-product-checkbox" 
+          data-product-id="${product.id}"
+          data-product-name="${escapeHtml(product.name)}"
+          data-product-price="${product.price}"
+          data-product-cost="${product.cost_price || 0}"
+          data-product-image="${escapeHtml(product.image_url || '')}"
         >
-      ` : '<div class="shopvd-grid-product-placeholder">📦</div>'}
-      <div class="shopvd-grid-product-info">
-        <div class="shopvd-grid-product-name">${escapeHtml(product.name)}</div>
-        <div class="shopvd-grid-product-price">${formatPrice(product.price)}đ</div>
+        <div class="shopvd-product-list-content">
+          ${product.image_url ? `
+            <img 
+              src="${escapeHtml(product.image_url)}" 
+              alt="${escapeHtml(product.name)}"
+              class="shopvd-list-product-thumb"
+              onerror="this.style.display='none'"
+            >
+          ` : '<div class="shopvd-list-product-thumb-placeholder">📦</div>'}
+          <div class="shopvd-list-product-info">
+            <div class="shopvd-list-product-name">${escapeHtml(product.name)}</div>
+            <div class="shopvd-list-product-meta">
+              <span class="shopvd-list-product-price">${formatPrice(product.price)} đ</span>
+              ${purchases > 0 ? `<span class="shopvd-list-product-sold">• ${purchases} lượt bán</span>` : ''}
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="shopvd-grid-product-add">+</div>
-    </button>
-  `).join('');
+      
+      <!-- Inline form (hidden by default, shown when checked) -->
+      <div class="shopvd-inline-form hidden" data-form-id="${product.id}">
+        <div class="shopvd-inline-row">
+          <div class="shopvd-inline-field">
+            <label>SL</label>
+            <input 
+              type="number" 
+              class="shopvd-inline-qty" 
+              value="1" 
+              min="1"
+              data-product-id="${product.id}"
+            >
+          </div>
+          <div class="shopvd-inline-field flex-1">
+            <label>Cân nặng</label>
+            <input 
+              type="text" 
+              class="shopvd-inline-weight" 
+              placeholder="5kg"
+              data-product-id="${product.id}"
+            >
+          </div>
+        </div>
+        <div class="shopvd-inline-row">
+          <div class="shopvd-inline-field full-width">
+            <label>Lưu ý</label>
+            <input 
+              type="text" 
+              class="shopvd-inline-notes" 
+              placeholder="Ghi chú cho sản phẩm này..."
+              data-product-id="${product.id}"
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  `}).join('');
   
-  // Attach event listeners
-  grid.querySelectorAll('.shopvd-product-grid-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const productId = parseInt(btn.getAttribute('data-product-id'));
-      addProductById(productId);
-    });
+  // Add floating action button
+  const fabContainer = document.createElement('div');
+  fabContainer.id = 'fab-container';
+  fabContainer.className = 'shopvd-fab-container hidden';
+  fabContainer.innerHTML = `
+    <button type="button" class="shopvd-fab" id="bulk-add-fab">
+      <span class="shopvd-fab-icon">✓</span>
+      <span class="shopvd-fab-text">Thêm <strong id="fab-count">0</strong> SP</span>
+    </button>
+  `;
+  
+  // Insert FAB after grid
+  const gridParent = grid.parentElement;
+  const existingFab = document.getElementById('fab-container');
+  if (existingFab) {
+    existingFab.remove();
+  }
+  gridParent.insertBefore(fabContainer, grid.nextSibling);
+  
+  // Attach checkbox event listeners
+  document.querySelectorAll('.shopvd-product-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', handleProductSelection);
   });
   
+  // Attach FAB event listener
+  document.getElementById('bulk-add-fab')?.addEventListener('click', handleBulkAdd);
+  
   console.log('Products rendered successfully');
+}
+
+// Handle product checkbox selection
+function handleProductSelection(e) {
+  const checkbox = e.target;
+  const productId = checkbox.getAttribute('data-product-id');
+  const inlineForm = document.querySelector(`[data-form-id="${productId}"]`);
+  
+  if (checkbox.checked) {
+    inlineForm?.classList.remove('hidden');
+  } else {
+    inlineForm?.classList.add('hidden');
+  }
+  
+  // Update FAB
+  updateFAB();
+}
+
+// Update floating action button
+function updateFAB() {
+  const checkboxes = document.querySelectorAll('.shopvd-product-checkbox:checked');
+  const count = checkboxes.length;
+  const fab = document.getElementById('fab-container');
+  
+  if (count > 0) {
+    fab?.classList.remove('hidden');
+    document.getElementById('fab-count').textContent = count;
+  } else {
+    fab?.classList.add('hidden');
+  }
+}
+
+// Handle bulk add
+function handleBulkAdd() {
+  const checkboxes = document.querySelectorAll('.shopvd-product-checkbox:checked');
+  
+  if (checkboxes.length === 0) {
+    showStatus('⚠️ Vui lòng chọn ít nhất 1 sản phẩm!', 'warning');
+    return;
+  }
+  
+  let addedCount = 0;
+  
+  checkboxes.forEach(checkbox => {
+    const productId = checkbox.getAttribute('data-product-id');
+    const productName = checkbox.getAttribute('data-product-name');
+    const productPrice = parseFloat(checkbox.getAttribute('data-product-price'));
+    const productCost = parseFloat(checkbox.getAttribute('data-product-cost')) || 0;
+    const productImage = checkbox.getAttribute('data-product-image');
+    
+    // Get inline form values
+    const qtyInput = document.querySelector(`.shopvd-inline-qty[data-product-id="${productId}"]`);
+    const weightInput = document.querySelector(`.shopvd-inline-weight[data-product-id="${productId}"]`);
+    const notesInput = document.querySelector(`.shopvd-inline-notes[data-product-id="${productId}"]`);
+    
+    const quantity = parseInt(qtyInput?.value) || 1;
+    const weight = weightInput?.value.trim() || '';
+    const notes = notesInput?.value.trim() || '';
+    
+    // Add product
+    addProductRow(
+      productName,
+      productPrice,
+      quantity,
+      parseInt(productId),
+      productCost,
+      productImage,
+      weight,
+      notes
+    );
+    
+    // Reset form
+    checkbox.checked = false;
+    if (qtyInput) qtyInput.value = '1';
+    if (weightInput) weightInput.value = '';
+    if (notesInput) notesInput.value = '';
+    
+    const inlineForm = document.querySelector(`[data-form-id="${productId}"]`);
+    inlineForm?.classList.add('hidden');
+    
+    addedCount++;
+  });
+  
+  // Update FAB
+  updateFAB();
+  
+  // Show success message
+  showStatus(`✅ Đã thêm ${addedCount} sản phẩm!`, 'success');
+  setTimeout(() => {
+    const statusEl = document.getElementById('shopvd-status');
+    if (statusEl) statusEl.classList.add('hidden');
+  }, 2000);
 }
 
 // Render featured products (Hot selling products)
@@ -1235,9 +1396,28 @@ function setupEventListeners() {
       document.querySelectorAll('.shopvd-payment-btn').forEach(b => b.classList.remove('active'));
       // Add active to clicked
       btn.classList.add('active');
-      // Update hidden input
+      
+      // Get payment value
       const paymentValue = btn.getAttribute('data-payment');
-      document.getElementById('payment-method').value = paymentValue;
+      const depositWrapper = document.getElementById('deposit-amount-wrapper');
+      const depositInput = document.getElementById('deposit-amount');
+      
+      // Handle deposit mode
+      if (paymentValue === 'deposit') {
+        // Show deposit input
+        depositWrapper?.classList.remove('hidden');
+        // Set payment method to COD (will collect remaining after deposit)
+        document.getElementById('payment-method').value = 'cod';
+        // Focus deposit input
+        setTimeout(() => depositInput?.focus(), 50);
+      } else {
+        // Hide deposit input
+        depositWrapper?.classList.add('hidden');
+        // Set payment method normally
+        document.getElementById('payment-method').value = paymentValue;
+        // Reset deposit to 0
+        if (depositInput) depositInput.value = '0';
+      }
     });
   });
 
@@ -1451,8 +1631,8 @@ function setupEventListeners() {
     const totalAmount = productsTotal + shippingFee - discountAmount;
 
     // Validate deposit amount
-    if (depositAmount > totalAmount) {
-      showStatus('⚠️ Tiền cọc không được lớn hơn tổng tiền!', 'warning');
+    if (depositAmount > 0 && depositAmount >= totalAmount) {
+      showStatus('⚠️ Tiền cọc phải nhỏ hơn giá trị đơn hàng!', 'warning');
       return;
     }
 
