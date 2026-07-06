@@ -3,58 +3,400 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShopVD Order Helper</title>
+  <title>ShopVD - Thống kê nhanh</title>
   <style>
-    body {
-      width: 320px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 380px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    
+    .header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 16px;
       color: white;
     }
-    h1 {
-      margin: 0 0 16px;
-      font-size: 20px;
-      font-weight: 700;
+    
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
     }
-    p {
-      margin: 0 0 12px;
-      font-size: 14px;
-      line-height: 1.6;
-      opacity: 0.95;
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
     }
-    .status {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 12px;
-      border-radius: 8px;
+    
+    .tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
       font-size: 13px;
-      backdrop-filter: blur(10px);
+      font-weight: 500;
+      transition: all 0.2s;
     }
-    .status strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 12px;
+    
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .tab.active {
+      background: white;
+      color: #667eea;
+      font-weight: 600;
+    }
+    
+    .content {
+      padding: 16px;
+    }
+    
+    .hero-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .hero-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .hero-col {
+      flex: 1;
+    }
+    
+    .hero-col:first-child {
+      padding-right: 12px;
+      border-right: 1px solid #e2e8f0;
+    }
+    
+    .hero-col:last-child {
+      padding-left: 12px;
+    }
+    
+    .label {
+      font-size: 11px;
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      opacity: 0.9;
+      margin-bottom: 6px;
+      font-weight: 600;
     }
-    a {
+    
+    .value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .value.accent {
+      color: #10b981;
+    }
+    
+    .value.negative {
+      color: #ef4444;
+    }
+    
+    .sub {
+      font-size: 11px;
+      color: #64748b;
+    }
+    
+    .change {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    
+    .change.up {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    
+    .change.down {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .change.flat {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    
+    .stat-item {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .cost-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .cost-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .cost-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .sources-title {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .source-item {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .source-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    
+    .source-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
       color: white;
-      text-decoration: underline;
+      flex-shrink: 0;
+    }
+    
+    .source-badge.facebook { background: #1877f2; }
+    .source-badge.zalo { background: #0068ff; }
+    .source-badge.tiktok { background: #000; }
+    .source-badge.unknown { background: #94a3b8; }
+    
+    .source-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      flex: 1;
+    }
+    
+    .source-meta {
+      font-size: 11px;
+      color: #64748b;
+    }
+    
+    .source-bar {
+      height: 4px;
+      background: #f1f5f9;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    
+    .source-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    
+    .source-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    
+    .source-rev {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    
+    .source-profit {
+      color: #10b981;
+      font-weight: 600;
+    }
+    
+    .source-profit.negative {
+      color: #ef4444;
+    }
+    
+    .footer {
+      padding: 12px 16px;
+      background: white;
+      border-top: 1px solid #e2e8f0;
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+    }
+    
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px 16px;
+      color: #64748b;
+    }
+    
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error {
+      text-align: center;
+      padding: 40px 16px;
+      color: #ef4444;
     }
   </style>
 </head>
 <body>
-  <h1>📦 ShopVD Order Helper</h1>
-  <p>Extension đang hoạt động!</p>
-  
-  <div class="status">
-    <strong>Cách sử dụng:</strong>
-    1. Vào trang <a href="https://pancake.vn" target="_blank">pancake.vn</a><br>
-    2. Sidebar sẽ tự động xuất hiện bên phải<br>
-    3. Bôi đen thông tin khách → Click "Lấy thông tin"<br>
-    4. Hoặc nhập tay → Click "Tạo đơn hàng"
+  <div class="header">
+    <h1>📊 Thống kê nhanh</h1>
+    <div class="tabs">
+      <button class="tab active" id="tab-today">Hôm nay</button>
+      <button class="tab" id="tab-yesterday">Hôm qua</button>
+    </div>
   </div>
+  
+  <div class="content">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>Đang tải...</div>
+    </div>
+    
+    <div id="stats" style="display: none;">
+      <!-- Hero Stats -->
+      <div class="hero-card">
+        <div class="hero-row">
+          <div class="hero-col">
+            <div class="label">Doanh thu</div>
+            <div class="value" id="revenue">—</div>
+            <div id="revenue-change"></div>
+          </div>
+          <div class="hero-col">
+            <div class="label">Lợi nhuận thực</div>
+            <div class="value accent" id="net-profit">—</div>
+            <div class="sub">QC <span id="ad-spend">—</span> · <span id="profit-per-order">—</span>/đơn</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Grid Stats -->
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Đơn</div>
+          <div class="stat-value" id="orders">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Sản phẩm</div>
+          <div class="stat-value" id="products">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Tỷ suất</div>
+          <div class="stat-value" id="margin">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">LN gộp</div>
+          <div class="stat-value" id="gross-profit">—</div>
+        </div>
+      </div>
+      
+      <!-- Cost -->
+      <div class="cost-card">
+        <span class="cost-label">Chi phí</span>
+        <span class="cost-value" id="cost">—</span>
+      </div>
+      
+      <!-- Customer Sources -->
+      <div class="sources-title">Nguồn khách</div>
+      <div id="sources"></div>
+    </div>
+    
+    <div id="error" class="error" style="display: none;">
+      ❌ Không thể tải dữ liệu
+    </div>
+  </div>
+  
+  <div class="footer">
+    LN thực = LN gộp − QC · <a href="http://127.0.0.1:5500/admin/settings.html" target="_blank">Cài đặt</a>
+  </div>
+  
+  <script src="popup.js"></script>
 </body>
 </html>

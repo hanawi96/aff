@@ -199,13 +199,13 @@ function createSidebar() {
           <!-- Phí ship & Miễn phí -->
           <div class="shopvd-grid-2">
             <div class="shopvd-form-group">
-              <label>Phí ship (khách trả)</label>
-              <input type="number" id="shipping-fee" value="30000" min="0" step="1000">
+              <label>PHÍ SHIP (KHÁCH TRẢ)</label>
+              <input type="number" id="shipping-fee" value="0" min="0" step="1000">
               <small style="color: #64748b; font-size: 11px;">Số tiền khách thanh toán</small>
             </div>
 
             <div class="shopvd-form-group">
-              <label>Chi phí ship (cost)</label>
+              <label>CHI PHÍ SHIP (COST)</label>
               <input type="number" id="shipping-cost" value="0" min="0" step="1000">
               <small style="color: #64748b; font-size: 11px;">Chi phí trả đơn vị vận chuyển</small>
             </div>
@@ -670,7 +670,7 @@ function renderFeaturedProducts() {
         <input 
           type="text" 
           class="shopvd-hot-size-input" 
-          placeholder="Size"
+          placeholder="Size/Cân nặng (vd: 5kg)"
           data-field="size"
         >
         
@@ -699,16 +699,12 @@ function renderFeaturedProducts() {
     
     const sizeInput = card.querySelector('[data-field="size"]');
     const qtyInput = card.querySelector('[data-field="quantity"]');
-    let selectedWeight = '';
     
-    // Weight buttons
+    // Weight buttons - click to quickly fill input
     card.querySelectorAll('.shopvd-hot-weight-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        // Remove active from all weight buttons in this card
-        card.querySelectorAll('.shopvd-hot-weight-btn').forEach(b => b.classList.remove('active'));
-        // Add active to clicked button
-        btn.classList.add('active');
-        selectedWeight = btn.getAttribute('data-weight');
+        const weight = btn.getAttribute('data-weight');
+        sizeInput.value = weight;
       });
     });
     
@@ -726,7 +722,7 @@ function renderFeaturedProducts() {
     // Add button
     card.querySelector('[data-action="add"]')?.addEventListener('click', () => {
       const quantity = parseInt(qtyInput.value) || 1;
-      const size = sizeInput.value.trim();
+      const sizeOrWeight = sizeInput.value.trim();
       
       // Add product with details
       addProductRow(
@@ -736,15 +732,13 @@ function renderFeaturedProducts() {
         product.id,
         product.cost_price || 0,
         product.image_url || '',
-        selectedWeight,
-        size ? `Size: ${size}` : ''
+        sizeOrWeight,
+        ''
       );
       
       // Reset inputs
       qtyInput.value = 1;
       sizeInput.value = '';
-      selectedWeight = '';
-      card.querySelectorAll('.shopvd-hot-weight-btn').forEach(b => b.classList.remove('active'));
       
       showStatus(`✅ Đã thêm: ${product.name}`, 'success');
       setTimeout(() => {
@@ -1177,8 +1171,8 @@ async function createOrder(orderData) {
       // Reset form
       document.getElementById('shopvd-order-form').reset();
       document.getElementById('send-later-fields')?.classList.add('hidden');
-      document.getElementById('shipping-fee').value = '30000';
-      document.getElementById('shipping-cost').value = '0';
+      document.getElementById('shipping-fee').value = defaultCustomerShippingFee;
+      document.getElementById('shipping-cost').value = defaultActualShippingCost;
       document.getElementById('deposit-amount').value = '0';
       document.getElementById('discount-amount').value = '0';
       productsData = [];
@@ -1275,7 +1269,7 @@ function setupEventListeners() {
       shippingFeeInput.value = 0;
       shippingFeeInput.disabled = true;
     } else {
-      shippingFeeInput.value = 30000;
+      shippingFeeInput.value = defaultCustomerShippingFee;
       shippingFeeInput.disabled = false;
     }
     calculateTotal();
@@ -1516,6 +1510,64 @@ function setupEventListeners() {
 }
 
 // Initialize
+// Global shipping fee defaults (loaded from API)
+let defaultCustomerShippingFee = 21000;
+let defaultActualShippingCost = 0;
+
+// Load shipping fees from API
+async function loadShippingFees() {
+  try {
+    console.log('🔄 Loading shipping fees from API...');
+    const response = await fetch('https://ctv-api.yendev96.workers.dev/?action=getShippingFee');
+    const data = await response.json();
+    
+    console.log('📦 API Response:', data);
+    
+    if (data.success) {
+      const customerFee = data.customerShippingFee || data.shippingFee || 21000;
+      const actualCost = data.actualShippingCost || 0;
+      
+      console.log('💰 Parsed values:', { 
+        customerFee, 
+        actualCost,
+        raw: { 
+          customerShippingFee: data.customerShippingFee,
+          actualShippingCost: data.actualShippingCost,
+          shippingFee: data.shippingFee
+        }
+      });
+      
+      // Set values in the form
+      const shippingFeeInput = document.getElementById('shipping-fee');
+      const shippingCostInput = document.getElementById('shipping-cost');
+      
+      if (shippingFeeInput) {
+        shippingFeeInput.value = customerFee;
+        console.log('✅ Set shipping-fee to:', customerFee);
+      }
+      
+      if (shippingCostInput) {
+        shippingCostInput.value = actualCost;
+        console.log('✅ Set shipping-cost to:', actualCost);
+      }
+      
+      // Update global defaults
+      defaultCustomerShippingFee = customerFee;
+      defaultActualShippingCost = actualCost;
+      
+      console.log('✅ Loaded shipping fees from API:', { customerFee, actualCost });
+      
+      // Recalculate total with new shipping fee
+      calculateTotal();
+    } else {
+      console.error('❌ API returned error:', data.error);
+    }
+  } catch (error) {
+    console.error('❌ Failed to load shipping fees:', error);
+    // Keep default values if API fails
+  }
+}
+
 function init() {
   // Check if sidebar already exists
   if (document.getElementById('shopvd-sidebar')) {
@@ -1526,9 +1578,10 @@ function init() {
   createSidebar();
   setupEventListeners();
   
-  // Load products and address data from API
+  // Load data from API
   loadProducts();
   loadAddressData();
+  loadShippingFees();
 }
 
 // Wait for page to be fully loaded
