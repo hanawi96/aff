@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Show add order modal (same UI for tạo mới / nhân bản / sửa toàn bộ)
 async function showAddOrderModal(duplicateData = null, formOptions = null) {
     const isEdit = formOptions?.mode === 'edit' && Number(formOptions.editOrderDbId) > 0;
+    const isDuplicate = formOptions?.mode === 'duplicate';
 
     if (typeof resetDeskAddressMode === 'function') {
         resetDeskAddressMode();
@@ -446,6 +447,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
             <div class="flex-1 overflow-y-auto p-6">
                 <input type="hidden" id="orderFormEditDbId" value="${isEdit ? String(formOptions.editOrderDbId) : ''}" />
                 <input type="hidden" id="orderFormEditDisplayId" value="${isEdit && duplicateData?.order_display_id ? String(duplicateData.order_display_id) : ''}" />
+                <input type="hidden" id="orderFormIsDuplicate" value="${isDuplicate ? '1' : ''}" />
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <!-- Left: Order Info (2 cols) -->
                     <div class="lg:col-span-2 space-y-3">

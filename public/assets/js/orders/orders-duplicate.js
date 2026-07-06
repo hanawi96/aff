@@ -173,7 +173,7 @@ async function duplicateOrder(orderId) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
     }
-    showAddOrderModal(await buildOrderModalSeed(order, 'duplicate'));
+    showAddOrderModal(await buildOrderModalSeed(order, 'duplicate'), { mode: 'duplicate' });
 }
 
 /**

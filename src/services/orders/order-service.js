@@ -1,6 +1,7 @@
 import { jsonResponse } from '../../utils/response.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
 import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount, normalizeCustomerSource } from './order-persist-helpers.js';
+import { findRecentDuplicateOrders } from '../../utils/order-duplicate-check.js';
 
 /** Shape đầy đủ giống getRecentOrders — dùng trả về sau tạo/sửa đơn desktop. */
 async function fetchOrderRowForList(env, orderDbId) {
@@ -46,6 +47,18 @@ export async function createOrder(data, env, corsHeaders) {
         const incomingStatus = String(data.status || 'pending').toLowerCase().trim();
         if (incomingStatus === 'send_later' && !plannedSendAtUnix) {
             return jsonResponse({ success: false, error: 'Đơn gửi sau cần chọn ngày giờ dự kiến gửi' }, 400, corsHeaders);
+        }
+
+        if (!data.acknowledgeDuplicate) {
+            const duplicateMatches = await findRecentDuplicateOrders(env, data.customer.phone, data.cart);
+            if (duplicateMatches.length > 0) {
+                return jsonResponse({
+                    success: false,
+                    duplicateWarning: true,
+                    matches: duplicateMatches,
+                    error: 'Có thể trùng với đơn đã tạo gần đây'
+                }, 409, corsHeaders);
+            }
         }
 
         const result = await env.DB.prepare(`

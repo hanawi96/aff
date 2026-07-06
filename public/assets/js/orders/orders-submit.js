@@ -195,6 +195,7 @@ async function submitNewOrder() {
 
     const editDbIdRaw = editDbIdRawEarly;
     const isUpdate = !!editDbIdRaw;
+    const isDuplicateMode = document.getElementById('orderFormIsDuplicate')?.value === '1';
 
     // Prepare order data (tạo mới: có orderId + orderDate; sửa: backend giữ mã đơn & mốc thời gian)
     const orderData = {
@@ -248,17 +249,42 @@ async function submitNewOrder() {
         submitButton.innerHTML = `<svg class="animate-spin h-5 w-5 inline-block mr-2" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>${isUpdate ? 'Đang lưu...' : 'Đang tạo...'}`;
     }
 
+    const restoreSubmitButton = () => {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalHTML;
+        }
+    };
+
     try {
+        if (isDuplicateMode) {
+            // Nhân bản đơn: user đang cố ý tạo bản sao, bỏ qua kiểm tra trùng
+            orderData.acknowledgeDuplicate = true;
+        } else if (!isUpdate && typeof guardDuplicateOrderBeforeCreate === 'function') {
+            const guard = await guardDuplicateOrderBeforeCreate({
+                phone: customerPhone,
+                cart: sanitizedProducts,
+                isUpdate: false
+            });
+            if (!guard.proceed) {
+                restoreSubmitButton();
+                return;
+            }
+            if (guard.acknowledgeDuplicate) {
+                orderData.acknowledgeDuplicate = true;
+            }
+        }
+
         const startTime = performance.now();
 
         const apiUrl = isUpdate
             ? `${CONFIG.API_URL}/api/order/update`
             : `${CONFIG.API_URL}/api/order/create`;
-        const requestBody = isUpdate
+        let requestBody = isUpdate
             ? { ...orderData, orderDbId: Number(editDbIdRaw) }
             : orderData;
 
-        const response = await fetch(apiUrl, {
+        let response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -267,7 +293,34 @@ async function submitNewOrder() {
             body: JSON.stringify(requestBody)
         });
 
-        const result = await response.json();
+        let result = await response.json();
+
+        if (!isUpdate && !isDuplicateMode && typeof resolveDuplicateOrderConflictBeforeRetry === 'function') {
+            const dup = await resolveDuplicateOrderConflictBeforeRetry(response, result, {
+                cart: sanitizedProducts,
+                customerName: customerName
+            });
+            if (dup.isConflict) {
+                if (!dup.proceed) {
+                    restoreSubmitButton();
+                    return;
+                }
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = `<svg class="animate-spin h-5 w-5 inline-block mr-2" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang tạo...`;
+                }
+                requestBody = { ...orderData, acknowledgeDuplicate: true, orderId: 'DH' + Date.now() };
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                result = await response.json();
+            }
+        }
         
         // Log performance
         const endTime = performance.now();
@@ -311,11 +364,7 @@ async function submitNewOrder() {
         console.error('❌ Error submitting order:', error);
         showToast(`Lỗi: ${error.message}`, 'error');
     } finally {
-        // Restore button state
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalHTML;
-        }
+        restoreSubmitButton();
     }
 }
 

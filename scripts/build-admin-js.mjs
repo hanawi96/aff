@@ -55,6 +55,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-send-later-reminder.js',
     'public/assets/js/orders/orders-the-ten-be-panel.js',
     'public/assets/js/orders/orders-duplicate.js',
+    'public/assets/js/orders/orders-duplicate-guard.js',
     'public/assets/js/orders/orders-url-handler.js',
     'public/assets/js/orders/orders-product-management.js',
     'public/assets/js/orders/orders-add-modal-helpers.js',
