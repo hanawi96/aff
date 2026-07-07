@@ -2888,11 +2888,16 @@ function mGetNoWeightCategoryIdSet(){
 function mProductSkipsWeight(product){
   if(!product)return false;
   const set=mGetNoWeightCategoryIdSet();
-  if(Array.isArray(product.category_ids)&&product.category_ids.length){
-    return product.category_ids.some(id=>set.has(parseInt(String(id),10)));
+  const ids=[];
+  if(Array.isArray(product.category_ids)&&product.category_ids.length)ids.push(...product.category_ids);
+  if(product.category_id!=null&&product.category_id!=='')ids.push(product.category_id);
+  if(Array.isArray(product.categories)&&product.categories.length){
+    product.categories.forEach(c=>{
+      if(c!=null&&typeof c==='object'&&c.id!=null)ids.push(c.id);
+      else if(c!=null)ids.push(c);
+    });
   }
-  const cid=parseInt(String(product.category_id??''),10);
-  return !Number.isNaN(cid)&&set.has(cid);
+  return ids.some(id=>set.has(parseInt(String(id),10)));
 }
 
 function mSheetSizeSectionHtml(show,sizeValue){
@@ -4208,19 +4213,25 @@ function autoUpdateFreeshipCheckbox(){
   const cb=document.getElementById('cFreeShip');if(!cb)return;
   if(!createProducts.length){if(cb.checked){cb.checked=false;onFreeShipChange();}return;}
   const PRICE_THRESHOLD=120000;
-  let totalQty=0,has23=false,has24=false,qtyOtherMain=0,non23Qty=0,hasHighValue=false;
+  let mainQty=0,has23=false,has24=false,qtyOtherMain=0,hasHighValue=false;
   let onlyAllCat24=true;
   for(const p of createProducts){
-    const q=parseInt(p.quantity,10)||1;totalQty+=q;
+    const q=parseInt(p.quantity,10)||1;
+    const pid=p.product_id||p.id;
+    const catalog=allProductsCache.find(x=>x.id==pid);
+    const isMain=catalog?!mProductSkipsWeight(catalog):true;
     const in23=_productInCat(p,FREESHIP_CAT);
     const in24=_productInCat(p,BI_CHARM_CAT);
     if(in23)has23=true;if(in24)has24=true;
-    if(!in23&&!in24)qtyOtherMain+=q;
     if(!in24)onlyAllCat24=false;
-    if(!in23){non23Qty+=q;if((parseFloat(p.price)||0)>PRICE_THRESHOLD)hasHighValue=true;}
+    if(isMain){
+      mainQty+=q;
+      if(!in23&&!in24)qtyOtherMain+=q;
+      if(!in23&&(parseFloat(p.price)||0)>PRICE_THRESHOLD)hasHighValue=true;
+    }
   }
   const blocked=(onlyAllCat24&&has24&&!has23)||(has24&&has23&&qtyOtherMain===0);
-  const should=!blocked&&((totalQty>=2&&!(has23&&non23Qty===0))||(has23&&non23Qty>=1)||hasHighValue);
+  const should=!blocked&&((mainQty>=2)||(has23&&mainQty>=1)||hasHighValue);
   if(cb.checked!==should){cb.checked=should;onFreeShipChange();}
 }
 

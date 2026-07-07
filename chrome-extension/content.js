@@ -20,6 +20,9 @@ let provinceMap = new Map();
 let wardMap = new Map();
 let addressLoaded = false;
 
+// Cache discounts (active codes for order form)
+let allDiscountsCache = [];
+
 // Smart paste state
 let smartPasteBusy = false;
 
@@ -255,9 +258,23 @@ function createSidebar() {
             </div>
           </div>
 
-          <!-- Selected Products List -->
-          <div id="products-list" class="shopvd-products-list">
-            <!-- Products will be added here -->
+          <!-- Selected Products — Order Cart -->
+          <div class="shopvd-order-cart" id="shopvd-order-cart">
+            <div class="shopvd-order-cart-header">
+              <div class="shopvd-order-cart-header-left">
+                <span class="shopvd-order-cart-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  </svg>
+                </span>
+                <span class="shopvd-order-cart-title">Sản phẩm trong đơn</span>
+              </div>
+              <span class="shopvd-order-cart-count" id="order-cart-count">0</span>
+            </div>
+            <div id="products-list" class="shopvd-products-list">
+              <!-- Products will be added here -->
+            </div>
           </div>
         </div>
 
@@ -314,11 +331,6 @@ function createSidebar() {
               <span>Miễn phí ship</span>
             </label>
             <small id="freeship-hint" style="color: #10b981; font-size: 11px; margin-top: 4px; display: none;"></small>
-          </div>
-
-          <div class="shopvd-total">
-            <strong>Tổng cộng:</strong>
-            <span id="total-amount">0đ</span>
           </div>
         </div>
 
@@ -413,7 +425,12 @@ function createSidebar() {
         <!-- Ghi chú -->
         <div class="shopvd-section">
           <div class="shopvd-form-group">
-            <label>📝 Ghi chú đơn hàng</label>
+            <label class="shopvd-label-with-icon">
+              <svg class="shopvd-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+              </svg>
+              <span class="shopvd-label-text">Ghi chú đơn hàng</span>
+            </label>
             <textarea id="order-notes" placeholder="Ghi chú thêm..." rows="2"></textarea>
           </div>
         </div>
@@ -534,6 +551,16 @@ function createSidebar() {
               </div>
               <p class="shopvd-dm-code-hint">Nhập mã và bấm Áp dụng để kiểm tra.</p>
             </div>
+
+            <div class="shopvd-dm-section shopvd-dm-codes-section">
+              <div class="shopvd-dm-section-label">Mã đang hoạt động</div>
+              <input type="search" id="discount-code-search" placeholder="Tìm mã, tên..." class="shopvd-dm-code-search">
+              <div id="discount-codes-list" class="shopvd-dm-codes-list">
+                <p class="shopvd-dm-codes-empty">Đang tải danh sách mã…</p>
+              </div>
+            </div>
+
+            <p id="discount-code-status" class="shopvd-dm-code-status hidden"></p>
           </div>
 
         </div>
@@ -1409,6 +1436,7 @@ function renderAllProducts() {
   // Compact list view with inline inputs when checked
   grid.innerHTML = products.map(product => {
     const purchases = parseInt(product.purchases) || 0;
+    const skipsWeight = catalogProductSkipsWeight(product);
     return `
     <div class="shopvd-product-list-wrapper" data-product-id="${product.id}">
       <div class="shopvd-product-list-item">
@@ -1442,7 +1470,7 @@ function renderAllProducts() {
       
       <!-- Inline form (hidden by default, shown when checked) -->
       <div class="shopvd-inline-form hidden" data-form-id="${product.id}">
-        <div class="shopvd-inline-row">
+        <div class="shopvd-inline-row${skipsWeight ? ' shopvd-inline-row-no-weight' : ''}">
           <div class="shopvd-inline-field">
             <label>SL</label>
             <input 
@@ -1453,7 +1481,8 @@ function renderAllProducts() {
               data-product-id="${product.id}"
             >
           </div>
-          <div class="shopvd-inline-field flex-1">
+          ${skipsWeight ? '' : `
+          <div class="shopvd-inline-field shopvd-inline-field-weight">
             <label>Cân nặng</label>
             <input 
               type="text" 
@@ -1462,7 +1491,8 @@ function renderAllProducts() {
               data-product-id="${product.id}"
             >
           </div>
-          <div class="shopvd-inline-field flex-1">
+          `}
+          <div class="shopvd-inline-field shopvd-inline-field-notes">
             <label>Lưu ý</label>
             <input 
               type="text" 
@@ -1480,8 +1510,22 @@ function renderAllProducts() {
   document.querySelectorAll('.shopvd-product-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', handleProductSelection);
   });
+
+  document.querySelectorAll('.shopvd-product-list-item').forEach(item => {
+    item.addEventListener('click', handleAllProductItemClick);
+  });
   
   console.log('Products rendered successfully');
+}
+
+function handleAllProductItemClick(e) {
+  if (e.target.closest('.shopvd-product-checkbox')) return;
+
+  const checkbox = e.currentTarget.querySelector('.shopvd-product-checkbox');
+  if (!checkbox || checkbox.checked) return;
+
+  checkbox.checked = true;
+  handleProductSelection({ target: checkbox });
 }
 
 // Handle product checkbox selection
@@ -1524,6 +1568,7 @@ function handleBulkAdd() {
   }
   
   let addedCount = 0;
+  let missingWeightCount = 0;
   
   checkboxes.forEach(checkbox => {
     const productId = checkbox.getAttribute('data-product-id');
@@ -1541,8 +1586,7 @@ function handleBulkAdd() {
     const weight = weightInput?.value.trim() || '';
     const notes = notesInput?.value.trim() || '';
     
-    // Add product
-    addProductRow(
+    const added = addProductRow(
       productName,
       productPrice,
       quantity,
@@ -1550,8 +1594,14 @@ function handleBulkAdd() {
       productCost,
       productImage,
       weight,
-      notes
+      notes,
+      { silentWarning: true, focusWeightEl: weightInput }
     );
+
+    if (!added) {
+      missingWeightCount++;
+      return;
+    }
     
     // Reset form
     checkbox.checked = false;
@@ -1568,12 +1618,39 @@ function handleBulkAdd() {
   // Update FAB
   updateFAB();
   
+  if (missingWeightCount > 0 && addedCount === 0) {
+    showStatus('⚠️ Vui lòng nhập cân nặng cho sản phẩm đã chọn!', 'warning');
+    return;
+  }
+
+  if (missingWeightCount > 0) {
+    showStatus(`✅ Đã thêm ${addedCount} sản phẩm. ${missingWeightCount} sản phẩm thiếu cân nặng nên chưa thêm.`, 'warning');
+    return;
+  }
+
+  if (addedCount === 0) return;
+
   // Show success message
   showStatus(`✅ Đã thêm ${addedCount} sản phẩm!`, 'success');
   setTimeout(() => {
     const statusEl = document.getElementById('shopvd-status');
     if (statusEl) statusEl.classList.add('hidden');
   }, 2000);
+}
+
+// Toggle featured/hot product card expand
+function toggleFeaturedCard(card, list, headerBtn, sizeInput) {
+  const wasSelected = card.classList.contains('selected');
+  list.querySelectorAll('.shopvd-hot-product-card').forEach(c => {
+    c.classList.remove('selected');
+    c.querySelector('.shopvd-hot-product-header')?.setAttribute('aria-expanded', 'false');
+  });
+
+  if (!wasSelected) {
+    card.classList.add('selected');
+    headerBtn?.setAttribute('aria-expanded', 'true');
+    setTimeout(() => sizeInput?.focus(), 50);
+  }
 }
 
 // Render featured products (Hot selling products)
@@ -1585,9 +1662,11 @@ function renderFeaturedProducts() {
   
   container.classList.remove('hidden');
   
-  list.innerHTML = featuredProducts.map(product => `
-    <div class="shopvd-hot-product-card" data-product-id="${product.id}">
-      <div class="shopvd-hot-product-header">
+  list.innerHTML = featuredProducts.map(product => {
+    const skipsWeight = catalogProductSkipsWeight(product);
+    return `
+    <div class="shopvd-hot-product-card${skipsWeight ? ' shopvd-hot-no-weight' : ''}" data-product-id="${product.id}">
+      <div class="shopvd-hot-product-header" role="button" tabindex="0" aria-expanded="false">
         <div class="shopvd-hot-product-thumb-wrap">
           ${product.image_url ? `
             <img
@@ -1606,9 +1685,16 @@ function renderFeaturedProducts() {
             <span class="shopvd-hot-product-sold">Lượt bán ${parseInt(product.purchases) || 0}</span>
           </div>
         </div>
+        <span class="shopvd-hot-expand-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </span>
       </div>
       
-      <div class="shopvd-hot-product-body">
+      <div class="shopvd-hot-product-details">
+        <div class="shopvd-hot-product-body">
+        ${skipsWeight ? '' : `
         <div class="shopvd-hot-input-row">
           <input 
             type="text" 
@@ -1630,6 +1716,17 @@ function renderFeaturedProducts() {
             `<button type="button" class="shopvd-hot-weight-btn" data-weight="${kg}kg">${kg}kg</button>`
           ).join('')}
         </div>
+        `}
+        ${skipsWeight ? `
+        <div class="shopvd-hot-input-row shopvd-hot-input-row-notes-only">
+          <input
+            type="text"
+            class="shopvd-hot-notes-input"
+            placeholder="Lưu ý sản phẩm..."
+            data-field="notes"
+          >
+        </div>
+        ` : ''}
       </div>
 
       <div class="shopvd-hot-product-footer">
@@ -1640,8 +1737,10 @@ function renderFeaturedProducts() {
         </div>
         <button type="button" class="shopvd-hot-add-btn" data-action="add">Thêm vào đơn</button>
       </div>
+      </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   
   // Attach event listeners for each product card
   list.querySelectorAll('.shopvd-hot-product-card').forEach(card => {
@@ -1652,14 +1751,31 @@ function renderFeaturedProducts() {
     const sizeInput = card.querySelector('[data-field="size"]');
     const qtyInput = card.querySelector('[data-field="quantity"]');
     const notesInput = card.querySelector('[data-field="notes"]');
+    const headerBtn = card.querySelector('.shopvd-hot-product-header');
+
+    const skipsWeight = catalogProductSkipsWeight(product);
+    const focusEl = skipsWeight ? notesInput : sizeInput;
+
+    headerBtn?.addEventListener('click', () => {
+      toggleFeaturedCard(card, list, headerBtn, focusEl);
+    });
+
+    headerBtn?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleFeaturedCard(card, list, headerBtn, focusEl);
+      }
+    });
     
     // Weight buttons - click to quickly fill input
-    card.querySelectorAll('.shopvd-hot-weight-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const weight = btn.getAttribute('data-weight');
-        sizeInput.value = weight;
+    if (sizeInput) {
+      card.querySelectorAll('.shopvd-hot-weight-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const weight = btn.getAttribute('data-weight');
+          sizeInput.value = weight;
+        });
       });
-    });
+    }
     
     // Quantity controls
     card.querySelector('[data-action="decrease"]')?.addEventListener('click', () => {
@@ -1675,10 +1791,10 @@ function renderFeaturedProducts() {
     // Add button
     card.querySelector('[data-action="add"]')?.addEventListener('click', () => {
       const quantity = parseInt(qtyInput.value) || 1;
-      const sizeOrWeight = sizeInput.value.trim();
+      const sizeOrWeight = sizeInput?.value.trim() || '';
       const notes = notesInput?.value.trim() || '';
       
-      addProductRow(
+      const added = addProductRow(
         product.name,
         product.price,
         quantity,
@@ -1686,11 +1802,17 @@ function renderFeaturedProducts() {
         product.cost_price || 0,
         product.image_url || '',
         sizeOrWeight,
-        notes
+        notes,
+        { focusWeightEl: sizeInput || undefined }
       );
+
+      if (!added) return;
+      
+      card.classList.remove('selected');
+      headerBtn?.setAttribute('aria-expanded', 'false');
       
       qtyInput.value = 1;
-      sizeInput.value = '';
+      if (sizeInput) sizeInput.value = '';
       if (notesInput) notesInput.value = '';
       
       showStatus(`✅ Đã thêm: ${product.name}`, 'success');
@@ -1782,27 +1904,34 @@ function renderSearchResults(results) {
 function addProductById(productId) {
   const product = allProductsCache.find(p => p.id === productId);
   if (!product) return;
-  
-  addProductRow(
-    product.name,
-    product.price,
-    1,
-    product.id,
-    product.cost_price || 0,
-    product.image_url || ''
-  );
+
+  if (catalogProductSkipsWeight(product)) {
+    const added = addProductRow(
+      product.name,
+      product.price,
+      1,
+      product.id,
+      product.cost_price || 0,
+      product.image_url || '',
+      '',
+      ''
+    );
+    if (added) {
+      showStatus(`✅ Đã thêm: ${product.name}`, 'success');
+      setTimeout(() => {
+        const statusEl = document.getElementById('shopvd-status');
+        if (statusEl) statusEl.classList.add('hidden');
+      }, 2000);
+    }
+  } else {
+    showStatus('⚠️ Vui lòng chọn sản phẩm từ tab Bán chạy/Tất cả và nhập cân nặng trước khi thêm!', 'warning');
+  }
   
   // Clear search
   const searchInput = document.getElementById('product-search');
   const resultsDiv = document.getElementById('product-search-results');
   if (searchInput) searchInput.value = '';
   if (resultsDiv) resultsDiv.classList.add('hidden');
-  
-  showStatus(`✅ Đã thêm: ${product.name}`, 'success');
-  setTimeout(() => {
-    const statusEl = document.getElementById('shopvd-status');
-    if (statusEl) statusEl.classList.add('hidden');
-  }, 2000);
 }
 
 // Helper: Escape HTML
@@ -1815,6 +1944,83 @@ function escapeHtml(text) {
 // Helper: Format price
 function formatPrice(price) {
   return parseInt(price || 0).toLocaleString('vi-VN');
+}
+
+function getCartProductsTotal() {
+  return productsData.reduce((sum, p) => {
+    return sum + (parseInt(p.price || 0, 10) * parseInt(p.quantity || 1, 10));
+  }, 0);
+}
+
+function getDiscountOrderBaseTotal() {
+  const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10);
+  return getCartProductsTotal() + shippingFee;
+}
+
+function calcExtensionDiscountAmount(d, orderTotal, shipFee) {
+  if (!d) return 0;
+  if (d.type === 'fixed') return Math.min(d.discount_value || 0, orderTotal);
+  if (d.type === 'percentage') {
+    const amt = Math.round((d.discount_value || 0) / 100 * orderTotal);
+    return d.max_discount_amount ? Math.min(amt, d.max_discount_amount) : amt;
+  }
+  if (d.type === 'freeship') return shipFee || 0;
+  if (d.type === 'gift') return 0;
+  return 0;
+}
+
+function getExtensionDiscountValueText(d) {
+  if (!d) return '';
+  if (d.type === 'fixed') return `-${formatPrice(d.discount_value)} đ`;
+  if (d.type === 'percentage') {
+    let text = `-${d.discount_value}%`;
+    if (d.max_discount_amount) {
+      text += ` (max ${formatPrice(d.max_discount_amount)} đ)`;
+    }
+    return text;
+  }
+  if (d.type === 'freeship') return 'Miễn ship';
+  if (d.type === 'gift') return 'Quà tặng';
+  return '';
+}
+
+function getExtensionDiscountBadgeClass(type) {
+  return (
+    {
+      fixed: 'shopvd-dm-code-badge-fixed',
+      percentage: 'shopvd-dm-code-badge-percent',
+      freeship: 'shopvd-dm-code-badge-freeship',
+      gift: 'shopvd-dm-code-badge-gift',
+    }[type] || 'shopvd-dm-code-badge-default'
+  );
+}
+
+async function loadActiveDiscounts(forceReload = false) {
+  if (!forceReload && allDiscountsCache.length > 0) {
+    return allDiscountsCache;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}?action=getAllDiscounts&timestamp=${Date.now()}`);
+    const data = await response.json();
+
+    if (data.success && data.discounts) {
+      const now = new Date();
+      allDiscountsCache = data.discounts.filter((d) => {
+        if (!d.active) return false;
+        if (d.expiry_date && new Date(d.expiry_date) < now) return false;
+        if (d.start_date && new Date(d.start_date) > now) return false;
+        return true;
+      });
+    } else {
+      allDiscountsCache = [];
+    }
+  } catch (error) {
+    console.error('[ShopVD Extension] Error loading discounts:', error);
+    allDiscountsCache = [];
+  }
+
+  return allDiscountsCache;
 }
 
 // Đồng bộ với desktop: số thuần → tự thêm "kg" (vd: 3 → 3kg)
@@ -1877,24 +2083,101 @@ function sanitizeCartItemForSubmit(product) {
   return item;
 }
 
+// Danh mục SP không cần cân nặng (đồng bộ admin orders-utils.js)
+const NO_WEIGHT_CATEGORY_IDS = [14, 24, 23];
+const NO_WEIGHT_CATEGORY_KEYWORDS = ['bán kèm', 'charm bạc'];
+
+function getNoWeightCategoryIdSet() {
+  const set = new Set(
+    NO_WEIGHT_CATEGORY_IDS.map((id) => parseInt(String(id), 10)).filter((n) => !Number.isNaN(n))
+  );
+  for (const cat of allCategoriesCache) {
+    const name = String(cat?.name || '').trim().toLowerCase();
+    if (!name) continue;
+    if (NO_WEIGHT_CATEGORY_KEYWORDS.some((kw) => name.includes(kw))) {
+      const id = parseInt(String(cat.id), 10);
+      if (!Number.isNaN(id)) set.add(id);
+    }
+  }
+  return set;
+}
+
+function catalogProductSkipsWeight(product) {
+  if (!product) return false;
+  const set = getNoWeightCategoryIdSet();
+  if (set.size === 0) return false;
+
+  const ids = [];
+  if (Array.isArray(product.category_ids) && product.category_ids.length) {
+    ids.push(...product.category_ids);
+  }
+  if (product.category_id != null && product.category_id !== '') {
+    ids.push(product.category_id);
+  }
+  if (Array.isArray(product.categories) && product.categories.length) {
+    for (const c of product.categories) {
+      if (c != null && typeof c === 'object' && c.id != null) ids.push(c.id);
+      else if (c != null) ids.push(c);
+    }
+  }
+
+  return ids.some((id) => set.has(parseInt(String(id), 10)));
+}
+
+function resolveCatalogProductForCartItem(item) {
+  if (!item || typeof item !== 'object') return null;
+  if (Array.isArray(item.category_ids) && item.category_ids.length) return item;
+  if (item.category_id != null && item.category_id !== '') return item;
+  const pid = item.product_id != null ? item.product_id : item.id;
+  if (pid != null && pid !== '') {
+    const n = parseInt(String(pid), 10);
+    if (!Number.isNaN(n)) {
+      const found = allProductsCache.find((p) => parseInt(String(p.id), 10) === n);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function cartItemSkipsWeight(item) {
+  return catalogProductSkipsWeight(resolveCatalogProductForCartItem(item));
+}
+
 // Add product row (updated signature)
-function addProductRow(name = '', price = '', quantity = 1, productId = null, costPrice = 0, imageUrl = '', weight = '', notes = '') {
-  const id = Date.now() + Math.floor(Math.random() * 1000);
+function addProductRow(name = '', price = '', quantity = 1, productId = null, costPrice = 0, imageUrl = '', weight = '', notes = '', options = {}) {
   const normalizedWeight = formatWeightSize(weight);
   const normalizedNotes = (notes || '').trim();
-  
-  // Find category_id from cache if product exists
+
   let categoryId = null;
   let categoryIds = null;
+  let cachedProduct = null;
   if (productId) {
-    const cachedProduct = allProductsCache.find(p => p.id === productId);
+    cachedProduct = allProductsCache.find(p => p.id === productId);
     if (cachedProduct) {
       categoryId = cachedProduct.category_id || null;
       categoryIds = cachedProduct.category_ids || null;
+      if (!categoryIds && Array.isArray(cachedProduct.categories) && cachedProduct.categories.length) {
+        categoryIds = cachedProduct.categories.map((c) => (typeof c === 'object' ? c.id : c)).filter((id) => id != null);
+      }
+      if (!categoryId && Array.isArray(categoryIds) && categoryIds.length) {
+        categoryId = categoryIds[0];
+      }
     }
   }
+
+  const skipsWeight = catalogProductSkipsWeight(cachedProduct || { category_id: categoryId, category_ids: categoryIds });
+
+  if (name && !normalizedWeight && !skipsWeight) {
+    if (!options.silentWarning) {
+      showStatus('⚠️ Vui lòng nhập cân nặng trước khi thêm sản phẩm!', 'warning');
+    }
+    options.focusWeightEl?.focus();
+    return false;
+  }
   
-  productsData.push({ 
+  const id = Date.now() + Math.floor(Math.random() * 1000);
+  
+  productsData.push({
     id, 
     name, 
     price, 
@@ -1916,6 +2199,7 @@ function addProductRow(name = '', price = '', quantity = 1, productId = null, co
   renderProducts();
   calculateTotal();
   autoUpdateFreeshipCheckbox();
+  return true;
 }
 
 function removeProduct(productId) {
@@ -1946,22 +2230,45 @@ function updateProduct(productId, field, value) {
   }
 }
 
+function updateOrderCartUI() {
+  const countEl = document.getElementById('order-cart-count');
+  const cartEl = document.getElementById('shopvd-order-cart');
+  const validCount = productsData.filter(p => p.name).length;
+
+  if (countEl) countEl.textContent = String(validCount);
+  cartEl?.classList.toggle('shopvd-order-cart-empty', validCount === 0);
+}
+
 function renderProducts() {
   const container = document.getElementById('products-list');
   if (!container) return;
 
-  if (productsData.length === 0) {
-    container.innerHTML = '<p class="shopvd-empty-products">Chưa có sản phẩm nào. Tìm hoặc thêm tay.</p>';
+  const validProducts = productsData.filter(p => p.name);
+
+  if (validProducts.length === 0) {
+    container.innerHTML = '<p class="shopvd-empty-products">Chưa có sản phẩm nào trong đơn.<br><span class="shopvd-empty-products-hint">Chọn sản phẩm ở tab trên và bấm «Thêm vào đơn»</span></p>';
+    updateOrderCartUI();
     return;
   }
 
-  container.innerHTML = productsData.map((product, index) => {
+  container.innerHTML = validProducts.map((product) => {
     const totalPrice = parseInt(product.price || 0) * parseInt(product.quantity || 1);
+    const skipsWeight = cartItemSkipsWeight(product);
     
     return `
     <div class="shopvd-product-item" data-product-id="${product.id}">
       <div class="shopvd-product-main">
-        <span class="shopvd-product-qty-badge">×${product.quantity}</span>
+        <div class="shopvd-product-thumb-wrap">
+          ${product.image_url ? `
+            <img
+              src="${escapeHtml(product.image_url)}"
+              alt="${escapeHtml(product.name)}"
+              class="shopvd-product-thumb"
+              onerror="this.classList.add('hidden'); this.parentElement.querySelector('.shopvd-product-thumb-fallback')?.classList.remove('hidden')"
+            >
+          ` : ''}
+          <div class="shopvd-product-thumb shopvd-product-thumb-placeholder shopvd-product-thumb-fallback${product.image_url ? ' hidden' : ''}">📦</div>
+        </div>
         <div class="shopvd-product-info">
           <div class="shopvd-product-title-row">
             <h4 class="shopvd-product-title">${escapeHtml(product.name)}</h4>
@@ -1983,6 +2290,7 @@ function renderProducts() {
           <div class="shopvd-product-bottom-row">
             <div class="shopvd-product-meta">
               ${product.weight ? `<span class="shopvd-meta-item">● ${escapeHtml(formatWeightSize(product.weight))}</span>` : ''}
+              <span class="shopvd-product-qty-badge">×${product.quantity}</span>
               ${product.notes ? `<span class="shopvd-meta-item">📝 ${escapeHtml(product.notes)}</span>` : ''}
             </div>
             <div class="shopvd-product-total">${formatPrice(totalPrice)} đ</div>
@@ -1997,7 +2305,7 @@ function renderProducts() {
           <input type="number" placeholder="Giá" value="${product.price}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
           <input type="number" placeholder="SL" value="${product.quantity}" data-field="quantity" min="1" class="shopvd-edit-input">
         </div>
-        <input type="text" placeholder="Cân nặng (vd: 5kg)" value="${escapeHtml(product.weight || '')}" data-field="weight" class="shopvd-edit-input">
+        ${skipsWeight ? '' : `<input type="text" placeholder="Cân nặng (vd: 5kg)" value="${escapeHtml(product.weight || '')}" data-field="weight" class="shopvd-edit-input">`}
         <input type="text" placeholder="Lưu ý..." value="${escapeHtml(product.notes || '')}" data-field="notes" class="shopvd-edit-input">
         <div class="shopvd-edit-actions">
           <button type="button" class="shopvd-btn-save" data-action="save">💾 Lưu</button>
@@ -2053,12 +2361,22 @@ function renderProducts() {
         const product = productsData.find(p => p.id === productId);
         
         if (editForm && product) {
+          const skipsWeight = cartItemSkipsWeight(product);
+          const weightInput = editForm.querySelector('input[data-field="weight"]');
+          const weightValue = formatWeightSize(weightInput?.value || '');
+
+          if (!skipsWeight && !weightValue) {
+            showStatus('⚠️ Vui lòng nhập cân nặng cho sản phẩm!', 'warning');
+            weightInput?.focus();
+            return;
+          }
+
           // Update product data
           editForm.querySelectorAll('input[data-field]').forEach(input => {
             const field = input.getAttribute('data-field');
             let value = input.value;
             if (field === 'weight') {
-              value = formatWeightSize(value);
+              value = weightValue;
               product.weight = value;
               delete product.size;
             } else if (field === 'notes') {
@@ -2069,6 +2387,11 @@ function renderProducts() {
               product[field] = value;
             }
           });
+
+          if (skipsWeight) {
+            product.weight = '';
+            delete product.size;
+          }
           
           // Re-render and recalculate
           renderProducts();
@@ -2098,6 +2421,8 @@ function renderProducts() {
       });
     }
   });
+
+  updateOrderCartUI();
 }
 
 // Calculate total amount
@@ -2110,10 +2435,6 @@ function calculateTotal() {
   
   const total = Math.max(0, productsTotal + shippingFee - discountAmount);
   const totalText = total.toLocaleString('vi-VN') + 'đ';
-  const totalElement = document.getElementById('total-amount');
-  if (totalElement) {
-    totalElement.textContent = totalText;
-  }
   const stickyTotal = document.getElementById('sticky-total-amount');
   if (stickyTotal) {
     stickyTotal.textContent = totalText;
@@ -2488,8 +2809,14 @@ function setupEventListeners() {
       showStatus('⚠️ Vui lòng nhập giá hợp lệ!', 'warning');
       return;
     }
+    if (!formatWeightSize(weight)) {
+      showStatus('⚠️ Vui lòng nhập cân nặng trước khi thêm sản phẩm!', 'warning');
+      document.getElementById('manual-product-weight')?.focus();
+      return;
+    }
 
-    addProductRow(name, price, quantity, null, parseInt(costPrice) || 0, '', weight, notes);
+    const added = addProductRow(name, price, quantity, null, parseInt(costPrice) || 0, '', weight, notes);
+    if (!added) return;
 
     document.getElementById('manual-product-name').value = '';
     document.getElementById('manual-product-price').value = '';
@@ -2538,6 +2865,8 @@ function setupEventListeners() {
 
     const discountCodeModalInput = document.getElementById('discount-code-input');
     if (discountCodeModalInput) discountCodeModalInput.value = '';
+
+    setDiscountCodeStatus('');
 
     updateDiscountBadge(0);
     updateDiscountModalTotal();
@@ -2622,6 +2951,10 @@ function setupEventListeners() {
         content.classList.remove('active');
       });
       document.querySelector(`[data-tab-content="${tab}"]`)?.classList.add('active');
+
+      if (tab === 'code') {
+        loadAndRenderDiscountCodes();
+      }
     });
   });
 
@@ -2717,18 +3050,204 @@ function setupEventListeners() {
     }, 2000);
   });
 
-  // Apply discount code
-  document.getElementById('apply-discount-code-btn')?.addEventListener('click', () => {
-    const code = document.getElementById('discount-code-input').value.trim();
-    if (code) {
-      document.getElementById('discount-code').value = code;
-      // For now, just set the code - you can add validation logic here
-      showStatus('✅ Đã áp dụng mã: ' + code, 'success');
+  function setDiscountCodeStatus(message, type = 'info') {
+    const statusEl = document.getElementById('discount-code-status');
+    if (!statusEl) return;
+
+    if (!message) {
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+      statusEl.classList.remove('is-error', 'is-success');
+      return;
+    }
+
+    statusEl.textContent = message;
+    statusEl.classList.remove('hidden', 'is-error', 'is-success');
+    statusEl.classList.add(type === 'error' ? 'is-error' : type === 'success' ? 'is-success' : '');
+  }
+
+  function renderDiscountCodesList() {
+    const list = document.getElementById('discount-codes-list');
+    if (!list) return;
+
+    const query = (document.getElementById('discount-code-search')?.value || '').trim().toLowerCase();
+    let items = allDiscountsCache;
+
+    if (query) {
+      items = items.filter((d) => {
+        return (d.code || '').toLowerCase().includes(query) ||
+          (d.title || '').toLowerCase().includes(query);
+      });
+    }
+
+    if (!items.length) {
+      list.innerHTML = `<p class="shopvd-dm-codes-empty">${query ? 'Không tìm thấy mã phù hợp.' : 'Chưa có mã giảm giá hoạt động.'}</p>`;
+      return;
+    }
+
+    list.innerHTML = items.map((d) => {
+      const badgeClass = getExtensionDiscountBadgeClass(d.type);
+      const valTxt = getExtensionDiscountValueText(d);
+      const minTxt = d.min_order_amount ? `Tối thiểu ${formatPrice(d.min_order_amount)} đ` : '';
+      const useTxt = d.max_total_uses
+        ? `Còn ${Math.max(0, d.max_total_uses - (d.usage_count || 0))} lượt`
+        : '';
+      const meta = [minTxt, useTxt].filter(Boolean).join(' · ');
+
+      return `
+        <button type="button" class="shopvd-dm-code-item" data-code="${escapeHtml(d.code || '')}">
+          <span class="shopvd-dm-code-item-icon ${badgeClass}" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+            </svg>
+          </span>
+          <span class="shopvd-dm-code-item-body">
+            <span class="shopvd-dm-code-item-top">
+              <span class="shopvd-dm-code-item-code">${escapeHtml(d.code || '')}</span>
+              <span class="shopvd-dm-code-item-badge ${badgeClass}">${escapeHtml(valTxt)}</span>
+            </span>
+            ${d.title ? `<span class="shopvd-dm-code-item-title">${escapeHtml(d.title)}</span>` : ''}
+            ${meta ? `<span class="shopvd-dm-code-item-meta">${escapeHtml(meta)}</span>` : ''}
+          </span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  async function loadAndRenderDiscountCodes() {
+    const list = document.getElementById('discount-codes-list');
+    if (!list) return;
+
+    if (allDiscountsCache.length === 0) {
+      list.innerHTML = '<p class="shopvd-dm-codes-empty">Đang tải danh sách mã…</p>';
+      await loadActiveDiscounts();
+    }
+
+    if (allDiscountsCache.length === 0) {
+      list.innerHTML = '<p class="shopvd-dm-codes-empty">Không tải được danh sách mã. Thử lại sau.</p>';
+      return;
+    }
+
+    renderDiscountCodesList();
+  }
+
+  async function applyExtensionDiscountCode(rawCode) {
+    const code = String(rawCode || '').trim().toUpperCase();
+    if (!code) {
+      setDiscountCodeStatus('Vui lòng nhập mã giảm giá', 'error');
+      showStatus('⚠️ Vui lòng nhập mã giảm giá', 'warning');
+      return false;
+    }
+
+    const cartTotal = getCartProductsTotal();
+    const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10);
+    const orderAmount = cartTotal + shippingFee;
+
+    if (orderAmount <= 0) {
+      setDiscountCodeStatus('Thêm sản phẩm trước khi áp dụng mã', 'error');
+      showStatus('⚠️ Thêm sản phẩm trước khi áp dụng mã', 'warning');
+      return false;
+    }
+
+    const applyBtn = document.getElementById('apply-discount-code-btn');
+    const prevBtnText = applyBtn?.textContent || 'Áp dụng';
+    if (applyBtn) {
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'Đang kiểm tra…';
+    }
+    setDiscountCodeStatus('Đang kiểm tra mã…');
+
+    try {
+      const customerPhone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value || '');
+      const validateUrl = `${API_BASE_URL}?action=validateDiscount&code=${encodeURIComponent(code)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`;
+      const response = await fetch(validateUrl);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        const errorMessage = data.error || 'Mã giảm giá không hợp lệ';
+        setDiscountCodeStatus(errorMessage, 'error');
+        showStatus('⚠️ ' + errorMessage, 'warning');
+        return false;
+      }
+
+      const discount = data.discount;
+      const discountAmount = calcExtensionDiscountAmount(discount, orderAmount, shippingFee);
+
+      currentDiscountValue = 0;
+      currentDiscountUnit = 'percent';
+      document.querySelectorAll('.shopvd-dm-preset').forEach(b => b.classList.remove('active'));
+
+      const customInput = document.getElementById('custom-discount-value');
+      if (customInput) customInput.value = '';
+
+      document.getElementById('discount-code').value = discount.code;
+      document.getElementById('discount-code-input').value = discount.code;
+      document.getElementById('discount-amount').value = discountAmount;
+
+      let displayText = discount.code;
+      if (discount.type === 'percentage') {
+        displayText = `${discount.code} (-${discount.discount_value}%)`;
+      } else if (discount.type === 'fixed') {
+        displayText = `${discount.code} (-${formatPrice(discountAmount)} đ)`;
+      } else if (discount.type === 'freeship') {
+        displayText = `${discount.code} (Miễn ship)`;
+      } else if (discount.type === 'gift') {
+        displayText = `${discount.code} (Quà tặng)`;
+      }
+
+      document.getElementById('discount-display').textContent = displayText;
+      updateDiscountBadge(discountAmount);
+      calculateTotal();
+      setDiscountCodeStatus(`Đã áp dụng mã ${discount.code}`, 'success');
+
+      showStatus(`✅ Áp dụng mã ${discount.code} thành công`, 'success');
       setTimeout(() => {
         const statusEl = document.getElementById('shopvd-status');
         if (statusEl) statusEl.classList.add('hidden');
       }, 2000);
+
+      return true;
+    } catch (error) {
+      console.error('[ShopVD Extension] Error validating discount:', error);
+      setDiscountCodeStatus('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      showStatus('⚠️ Lỗi kết nối. Vui lòng thử lại.', 'warning');
+      return false;
+    } finally {
+      if (applyBtn) {
+        applyBtn.disabled = false;
+        applyBtn.textContent = prevBtnText;
+      }
     }
+  }
+
+  document.getElementById('discount-code-search')?.addEventListener('input', () => {
+    renderDiscountCodesList();
+  });
+
+  document.getElementById('discount-codes-list')?.addEventListener('click', async (e) => {
+    const item = e.target.closest('.shopvd-dm-code-item');
+    if (!item) return;
+
+    const code = item.getAttribute('data-code');
+    const input = document.getElementById('discount-code-input');
+    if (input) input.value = code || '';
+
+    const ok = await applyExtensionDiscountCode(code);
+    if (ok) closeDiscountModal();
+  });
+
+  // Apply discount code
+  document.getElementById('apply-discount-code-btn')?.addEventListener('click', async () => {
+    const code = document.getElementById('discount-code-input')?.value || '';
+    const ok = await applyExtensionDiscountCode(code);
+    if (ok) closeDiscountModal();
+  });
+
+  document.getElementById('discount-code-input')?.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const ok = await applyExtensionDiscountCode(e.target.value);
+    if (ok) closeDiscountModal();
   });
 
   function calculateCartTotal() {
@@ -2805,6 +3324,10 @@ function setupEventListeners() {
         displayText = `-${formatPrice(discountAmount)} đ`;
       }
     }
+
+    document.getElementById('discount-code').value = '';
+    document.getElementById('discount-code-input').value = '';
+    setDiscountCodeStatus('');
     
     // Update hidden discount amount
     document.getElementById('discount-amount').value = discountAmount;
@@ -2946,6 +3469,11 @@ function setupEventListeners() {
       return;
     }
 
+    if (!productsData.every(p => cartItemSkipsWeight(p) || formatWeightSize(p.weight))) {
+      showStatus('⚠️ Mỗi sản phẩm phải có cân nặng!', 'warning');
+      return;
+    }
+
     // Build cart — đồng bộ format desktop (size + notes, không dùng id giả)
     const cart = productsData.map(p => sanitizeCartItemForSubmit(p));
 
@@ -3036,28 +3564,27 @@ const BI_CHARM_CAT = 24;  // Bi, charm bạc
 function productInCategory(product, categoryId) {
   if (!product) return false;
   const targetCat = parseInt(categoryId, 10);
-  
-  // Check direct category_id
-  if (parseInt(product.category_id, 10) === targetCat) return true;
-  
-  // Check category_ids array
-  if (Array.isArray(product.category_ids)) {
-    return product.category_ids.some(id => parseInt(id, 10) === targetCat);
+  const catalog = resolveCatalogProductForCartItem(product) || product;
+
+  const ids = [];
+  if (Array.isArray(catalog.category_ids) && catalog.category_ids.length) {
+    ids.push(...catalog.category_ids);
   }
-  
-  // Find in cache by product_id
-  if (product.id || product.product_id) {
-    const pid = product.id || product.product_id;
-    const cached = allProductsCache.find(p => p.id === pid);
-    if (cached) {
-      if (parseInt(cached.category_id, 10) === targetCat) return true;
-      if (Array.isArray(cached.category_ids)) {
-        return cached.category_ids.some(id => parseInt(id, 10) === targetCat);
-      }
+  if (catalog.category_id != null && catalog.category_id !== '') {
+    ids.push(catalog.category_id);
+  }
+  if (Array.isArray(catalog.categories) && catalog.categories.length) {
+    for (const c of catalog.categories) {
+      if (c != null && typeof c === 'object' && c.id != null) ids.push(c.id);
+      else if (c != null) ids.push(c);
     }
   }
-  
-  return false;
+
+  return ids.some((id) => parseInt(String(id), 10) === targetCat);
+}
+
+function isMainProductForFreeship(product) {
+  return !catalogProductSkipsWeight(resolveCatalogProductForCartItem(product) || product);
 }
 
 // Auto-update free shipping checkbox based on cart (sync with desktop logic)
@@ -3083,35 +3610,34 @@ function autoUpdateFreeshipCheckbox() {
     return;
   }
   
-  // Analyze cart
-  let totalQty = 0;
+  // Analyze cart — DM 14/23/24 (phụ kiện) không tính vào điều kiện "mua từ 2+"
+  let mainQty = 0;
   let has23 = false;  // Has bundle products (cat 23)
   let has24 = false;  // Has bi/charm (cat 24)
-  let qtyOtherMain = 0;  // Qty of products not in cat23 and not in cat24
-  let non23Qty = 0;  // Qty of products not in cat23
-  let hasHighValue = false;  // Has product (not cat23) with price > 120k
+  let qtyOtherMain = 0;  // Qty SP chính (không thuộc 14/23/24), ngoài cat 23 & 24
   let onlyAllCat24 = true;  // All products are cat24
+  let hasHighValue = false;  // Has main product (not accessory) with price > 120k
   let highValueProductName = '';  // Name of first high-value product
   
   for (const product of productsData) {
     const qty = parseInt(product.quantity, 10) || 1;
-    totalQty += qty;
-    
+    const isMain = isMainProductForFreeship(product);
     const in23 = productInCategory(product, FREESHIP_CAT);
     const in24 = productInCategory(product, BI_CHARM_CAT);
     
     if (in23) has23 = true;
     if (in24) has24 = true;
-    
-    if (!in23 && !in24) qtyOtherMain += qty;
     if (!in24) onlyAllCat24 = false;
-    
-    if (!in23) {
-      non23Qty += qty;
-      const price = parseFloat(product.price) || 0;
-      if (price > PRICE_THRESHOLD && !hasHighValue) {
-        hasHighValue = true;
-        highValueProductName = product.name;
+
+    if (isMain) {
+      mainQty += qty;
+      if (!in23 && !in24) qtyOtherMain += qty;
+      if (!in23) {
+        const price = parseFloat(product.price) || 0;
+        if (price > PRICE_THRESHOLD && !hasHighValue) {
+          hasHighValue = true;
+          highValueProductName = product.name;
+        }
       }
     }
   }
@@ -3121,8 +3647,8 @@ function autoUpdateFreeshipCheckbox() {
   
   // Calculate if should have free shipping
   const should = !blocked && (
-    (totalQty >= 2 && !(has23 && non23Qty === 0)) ||
-    (has23 && non23Qty >= 1) ||
+    mainQty >= 2 ||
+    (has23 && mainQty >= 1) ||
     hasHighValue
   );
   
@@ -3131,9 +3657,9 @@ function autoUpdateFreeshipCheckbox() {
   if (should) {
     if (hasHighValue) {
       reason = '✓ Tự động (SP ≥ 120k)';
-    } else if (has23 && non23Qty >= 1) {
+    } else if (has23 && mainQty >= 1) {
       reason = '✓ Tự động (Mua kèm)';
-    } else if (totalQty >= 2) {
+    } else if (mainQty >= 2) {
       reason = '✓ Tự động (Mua từ 2+)';
     }
   }
@@ -3229,6 +3755,7 @@ function init() {
   // Create and inject sidebar
   createSidebar();
   setupEventListeners();
+  renderProducts();
   
   // Load data from API
   loadProducts();
