@@ -655,3 +655,568 @@ async function handleChangePassword(e) {
         btn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg><span>Đổi mật khẩu</span>';
     }
 }
+
+
+// ============================================
+// BACKUP & RESTORE
+// ============================================
+
+// Load backup metadata and history on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadBackupMetadata();
+    loadBackupHistory();
+});
+
+// Load backup metadata (table count, row count, estimated size)
+async function loadBackupMetadata() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getBackupMetadata&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success && data.metadata) {
+            document.getElementById('totalTables').textContent = data.metadata.tables;
+            document.getElementById('totalRows').textContent = data.metadata.totalRows.toLocaleString('vi-VN');
+            document.getElementById('estimatedSize').textContent = data.metadata.estimatedSize;
+        }
+    } catch (error) {
+        console.error('Error loading backup metadata:', error);
+    }
+}
+
+// ============================================
+// BACKUP HISTORY
+// ============================================
+
+/**
+ * Load backup history from database
+ * Displays list of backups stored in R2
+ */
+async function loadBackupHistory() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=getBackupHistory&timestamp=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderBackupHistory(data.backups);
+        } else {
+            throw new Error(data.error || 'Failed to load backup history');
+        }
+    } catch (error) {
+        console.error('Error loading backup history:', error);
+        showBackupHistoryError();
+    }
+}
+
+/**
+ * Render backup history table
+ * @param {Array} backups - Array of backup records
+ */
+function renderBackupHistory(backups) {
+    const tbody = document.getElementById('backupHistoryTable');
+    const emptyState = document.getElementById('backupHistoryEmpty');
+    
+    if (!tbody) return;
+    
+    // Show empty state if no backups
+    if (!backups || backups.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+        }
+        return;
+    }
+    
+    // Hide empty state
+    if (emptyState) {
+        emptyState.classList.add('hidden');
+    }
+    
+    // Render table rows
+    tbody.innerHTML = backups.map(backup => {
+        const date = formatBackupDateTime(backup.created_at);
+        const size = formatBackupFileSize(backup.file_size);
+        const isDownloaded = backup.downloaded_at ? true : false;
+        
+        return `
+            <tr class="transition-colors hover:bg-slate-50/50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium text-slate-900">${date.date}</span>
+                        <span class="text-xs text-slate-500">${date.time}</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 shrink-0 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                        </svg>
+                        <span class="text-sm text-slate-700 font-mono truncate max-w-xs" title="${backup.file_name}">
+                            ${backup.file_name}
+                        </span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-right whitespace-nowrap">
+                    <span class="text-sm font-semibold text-slate-900">${size}</span>
+                </td>
+                <td class="px-6 py-4 text-center whitespace-nowrap">
+                    <div class="flex flex-col items-center gap-0.5">
+                        <span class="text-sm font-medium text-slate-900">${backup.tables_count || 0}</span>
+                        <span class="text-xs text-slate-500">${formatNumber(backup.rows_count || 0)} rows</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center gap-1.5 rounded-full ${
+                        backup.status === 'completed' 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-slate-100 text-slate-600'
+                    } px-2.5 py-1 text-xs font-semibold">
+                        ${backup.status === 'completed' ? '✅' : '⏳'}
+                        ${backup.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center justify-center gap-2">
+                        <button 
+                            onclick="downloadBackupFromCloud(event, ${backup.id}, '${backup.file_name}')"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md hover:from-cyan-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Tải về từ cloud"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            <span>${isDownloaded ? 'Tải lại' : 'Tải xuống'}</span>
+                        </button>
+                        <button 
+                            onclick="deleteBackupFromCloud(event, ${backup.id}, '${backup.file_name}')"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-pink-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md hover:from-rose-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Xóa backup"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            <span>Xóa</span>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Format backup datetime for display
+ * @param {number} timestamp - Unix timestamp in milliseconds
+ * @returns {Object} Formatted date and time
+ */
+function formatBackupDateTime(timestamp) {
+    const date = new Date(timestamp);
+    const dateStr = date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const timeStr = date.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    return { date: dateStr, time: timeStr };
+}
+
+/**
+ * Format file size for display
+ * @param {number} bytes - File size in bytes
+ * @returns {string} Formatted size
+ */
+function formatBackupFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const size = (bytes / Math.pow(1024, i)).toFixed(1);
+    
+    return `${size} ${sizes[i]}`;
+}
+
+/**
+ * Format number with thousands separator
+ * @param {number} num - Number to format
+ * @returns {string} Formatted number
+ */
+function formatNumber(num) {
+    return num.toLocaleString('vi-VN');
+}
+
+/**
+ * Download backup file from R2 cloud storage
+ * @param {Event} event - Click event from button
+ * @param {number} backupId - Backup record ID
+ * @param {string} filename - Original filename
+ */
+async function downloadBackupFromCloud(event, backupId, filename) {
+    const btn = event.currentTarget;
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        // Update button to loading state
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Đang tải...</span>
+        `;
+        
+        const response = await fetch(`${CONFIG.API_URL}?action=downloadBackup&id=${backupId}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Không thể tải backup');
+        }
+        
+        // Download file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Reload history to update download status
+        setTimeout(() => {
+            loadBackupHistory();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Download from cloud error:', error);
+        showToast('❌ Lỗi khi tải backup: ' + error.message, 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+/**
+ * Delete backup from R2 cloud storage
+ * @param {Event} event - Click event from button
+ * @param {number} backupId - Backup record ID
+ * @param {string} filename - Filename for confirmation
+ */
+async function deleteBackupFromCloud(event, backupId, filename) {
+    // Confirm deletion
+    const confirmed = confirm(
+        `⚠️ XÓA BACKUP\n\n` +
+        `Bạn có chắc chắn muốn xóa backup này?\n\n` +
+        `File: ${filename}\n\n` +
+        `⚠️ Hành động này không thể hoàn tác!`
+    );
+    
+    if (!confirmed) return;
+    
+    const btn = event.currentTarget;
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        // Update button to loading state
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Đang xóa...</span>
+        `;
+        
+        const response = await fetch(`${CONFIG.API_URL}?action=deleteBackup&id=${backupId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Không thể xóa backup');
+        }
+        
+        showToast('✅ Đã xóa backup thành công!', 'success');
+        
+        // Reload history to remove deleted item
+        setTimeout(() => {
+            loadBackupHistory();
+        }, 500);
+        
+    } catch (error) {
+        console.error('Delete backup error:', error);
+        showToast('❌ Lỗi khi xóa backup: ' + error.message, 'error');
+        
+        // Restore button if error
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+/**
+ * Show error state in backup history table
+ */
+function showBackupHistoryError() {
+    const tbody = document.getElementById('backupHistoryTable');
+    if (!tbody) return;
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-6 py-8 text-center">
+                <div class="flex flex-col items-center gap-3">
+                    <svg class="h-12 w-12 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">Không thể tải lịch sử backup</p>
+                        <button onclick="loadBackupHistory()" class="mt-2 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
+                            Thử lại
+                        </button>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+// Create and download backup
+let selectedFile = null;
+
+async function createBackup() {
+    const btn = document.getElementById('backupBtn');
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang tạo backup...</span>';
+        
+        // Call API to create backup
+        const response = await fetch(`${CONFIG.API_URL}?action=createBackup&timestamp=${Date.now()}`);
+        
+        if (!response.ok) {
+            throw new Error('Không thể tạo backup');
+        }
+        
+        // Get filename from response headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+        const filename = filenameMatch ? filenameMatch[1] : `backup_${Date.now()}.sql`;
+        
+        // Get backup stats from headers
+        const tables = response.headers.get('X-Backup-Tables');
+        const rows = response.headers.get('X-Backup-Rows');
+        
+        // Download file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+    } catch (error) {
+        console.error('Backup error:', error);
+        showToast('❌ Lỗi khi tạo backup: ' + error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+// Handle file selection
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    selectedFile = file;
+    
+    // Show selected file name
+    const fileNameEl = document.getElementById('selectedFileName');
+    fileNameEl.textContent = `📄 ${file.name} (${formatFileSize(file.size)})`;
+    fileNameEl.classList.remove('hidden');
+    
+    // Enable restore button
+    document.getElementById('restoreBtn').disabled = false;
+    
+    // Validate file
+    validateBackupFileClient(file);
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// Validate backup file on client side
+async function validateBackupFileClient(file) {
+    try {
+        const formData = new FormData();
+        formData.append('backup_file', file);
+        
+        const response = await fetch(`${CONFIG.API_URL}?action=validateBackup`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.valid) {
+            showToast(`✅ File hợp lệ: ${data.info.tables} bảng, ~${data.info.inserts} dòng`, 'success');
+        } else {
+            showToast('⚠️ ' + (data.error || 'File không hợp lệ'), 'warning');
+        }
+    } catch (error) {
+        console.error('Validation error:', error);
+    }
+}
+
+// Restore database from backup
+async function restoreBackup() {
+    if (!selectedFile) {
+        showToast('⚠️ Vui lòng chọn file backup', 'warning');
+        return;
+    }
+    
+    // Confirm action
+    const confirmed = confirm(
+        '⚠️ CẢNH BÁO QUAN TRỌNG\n\n' +
+        'Thao tác này sẽ:\n' +
+        '• GHI ĐÈ toàn bộ dữ liệu hiện tại\n' +
+        '• KHÔNG THỂ HOÀN TÁC\n' +
+        '• Tạo backup an toàn trước khi restore\n\n' +
+        'Bạn có chắc chắn muốn tiếp tục?'
+    );
+    
+    if (!confirmed) return;
+    
+    // Double confirmation
+    const doubleConfirm = confirm(
+        '🔴 XÁC NHẬN LẦN CUỐI\n\n' +
+        'Dữ liệu hiện tại sẽ mất vĩnh viễn!\n\n' +
+        'Tiếp tục restore?'
+    );
+    
+    if (!doubleConfirm) return;
+    
+    const btn = document.getElementById('restoreBtn');
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang restore...</span>';
+        
+        showToast('⏳ Đang khôi phục database... Vui lòng đợi', 'info');
+        
+        const formData = new FormData();
+        formData.append('backup_file', selectedFile);
+        
+        const response = await fetch(`${CONFIG.API_URL}?action=restoreBackup`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(
+                `✅ Khôi phục thành công!\n` +
+                `• ${data.details.successCount} câu lệnh thực thi\n` +
+                `• ${data.details.tablesRestored} bảng được restore`,
+                'success'
+            );
+            
+            // Clear selected file
+            selectedFile = null;
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('selectedFileName').classList.add('hidden');
+            document.getElementById('restoreBtn').disabled = true;
+            
+            // Reload metadata
+            setTimeout(() => {
+                loadBackupMetadata();
+            }, 1000);
+            
+        } else {
+            throw new Error(data.error || 'Restore thất bại');
+        }
+        
+    } catch (error) {
+        console.error('Restore error:', error);
+        showToast('❌ Lỗi khi restore: ' + error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+// Drag and drop support
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    if (!dropZone) return;
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // Handle dropped files
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        dropZone.classList.add('border-rose-500', 'bg-rose-100');
+    }
+    
+    function unhighlight() {
+        dropZone.classList.remove('border-rose-500', 'bg-rose-100');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            const file = files[0];
+            
+            // Check file extension
+            if (!file.name.endsWith('.sql') && !file.name.endsWith('.sql.gz')) {
+                showToast('⚠️ Chỉ chấp nhận file .sql hoặc .sql.gz', 'warning');
+                return;
+            }
+            
+            // Set to input
+            const input = document.getElementById('backupFileInput');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
+            
+            // Trigger change event
+            handleFileSelect({ target: input });
+        }
+    }
+});

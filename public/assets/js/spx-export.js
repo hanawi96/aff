@@ -106,6 +106,8 @@ function parseProducts(productsJson) {
                 category_id: p.category_id ?? null,
                 category_ids: p.category_ids ?? null,
                 sizeOrWeight: p.size || p.weight || null,
+                size: p.size || null,
+                weight: p.weight || null,
                 quantity: p.quantity || 1,
                 price: p.price || p.unit_price || 0,
                 notes: p.notes || null

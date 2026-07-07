@@ -18,6 +18,7 @@
         "https://*.pancake.vn/*"
       ],
       "js": [
+        "smart-paste.js",
         "content.js"
       ],
       "css": [

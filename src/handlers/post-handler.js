@@ -128,6 +128,9 @@ import { getPackagingConfig, updatePackagingConfig } from '../services/settings/
 import { updateTaxRate } from '../services/settings/tax.js';
 import { updateDefaultAdSpend, updateDailyAdSpend } from '../services/settings/ad-spend.js';
 
+// Backup & Restore
+import { restoreFromBackup, validateBackupFile } from '../services/backup/restore-service.js';
+
 // Analytics
 import { getProfitReport } from '../services/analytics/index.js';
 
@@ -287,6 +290,13 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateDefaultAdSpend(data, env, corsHeaders);
         case 'updateDailyAdSpend':
             return await updateDailyAdSpend(data, env, corsHeaders);
+        
+        // Backup & Restore
+        case 'restoreBackup':
+            return await restoreFromBackup(request, env, corsHeaders);
+        case 'validateBackup':
+            return await validateBackupFile(request, env, corsHeaders);
+        
         case 'updateOrderNotes':
             return await updateOrderNotes(data, env, corsHeaders);
         case 'updateCustomerInfo':
@@ -658,6 +668,12 @@ export async function handlePost(path, request, env, corsHeaders) {
                     env,
                     corsHeaders
                 );
+
+            // Backup & Restore
+            case 'restoreBackup':
+                return await restoreFromBackup(request, env, corsHeaders);
+            case 'validateBackup':
+                return await validateBackupFile(request, env, corsHeaders);
 
             default:
                 return jsonResponse({

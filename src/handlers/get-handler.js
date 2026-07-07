@@ -119,6 +119,15 @@ import { getPackagingConfig } from '../services/settings/packaging.js';
 import { getCurrentTaxRate } from '../services/settings/tax.js';
 import { getDefaultAdSpend } from '../services/settings/ad-spend.js';
 
+// Backup
+import { 
+    createDatabaseBackup, 
+    getBackupMetadata,
+    getBackupHistory,
+    downloadBackupFromR2,
+    deleteBackupFromR2
+} from '../services/backup/backup-service.js';
+
 // Analytics
 import {
     getRevenueChart,
@@ -623,6 +632,24 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getFlashSalePurchaseStats':
             const purchaseStatsFlashSaleId = url.searchParams.get('flashSaleId');
             return await getFlashSalePurchaseStats(purchaseStatsFlashSaleId, env, corsHeaders);
+
+        // Backup & Restore
+        case 'createBackup':
+            return await createDatabaseBackup(env, corsHeaders);
+
+        case 'getBackupMetadata':
+            return await getBackupMetadata(env, corsHeaders);
+
+        case 'getBackupHistory':
+            return await getBackupHistory(env, corsHeaders);
+
+        case 'downloadBackup':
+            const backupId = url.searchParams.get('id');
+            return await downloadBackupFromR2(backupId, env, corsHeaders);
+
+        case 'deleteBackup':
+            const deleteId = url.searchParams.get('id');
+            return await deleteBackupFromR2(deleteId, env, corsHeaders);
 
         default:
             return jsonResponse({
