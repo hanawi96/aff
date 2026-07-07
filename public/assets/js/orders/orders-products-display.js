@@ -180,14 +180,14 @@ function createProductItemHtml(product, orderId, orderCode, index) {
     const metaChips = [];
     const sizeNorm = (value) => String(value || '').trim().toLowerCase();
 
-    if (!skipsWeight && trackMissingSize) {
+    if (!skipsWeight) {
         if (weight) {
             metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(weight)), 'weight'));
         }
         if (size && sizeNorm(size) !== sizeNorm(weight)) {
             metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(size)), 'weight'));
         }
-        if (!weight && !size) {
+        if (!weight && !size && trackMissingSize) {
             metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, '<span class="font-medium">Chưa có</span>', 'warn'));
         }
     }
