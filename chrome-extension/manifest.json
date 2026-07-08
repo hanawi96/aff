@@ -8,14 +8,16 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://*.pancake.vn/*",
+    "https://pancake.vn/vongdautambyvui",
+    "https://pancake.vn/vongdautambyvui/*",
     "https://shopvd.store/*",
     "https://ctv-api.yendev96.workers.dev/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://*.pancake.vn/*"
+        "https://pancake.vn/vongdautambyvui",
+        "https://pancake.vn/vongdautambyvui/*"
       ],
       "js": [
         "smart-paste.js",

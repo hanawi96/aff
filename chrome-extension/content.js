@@ -1,7 +1,56 @@
 // ShopVD Order Helper - Content Script
-// Inject sidebar vào trang pancake.vn
+// Inject sidebar chỉ trên https://pancake.vn/vongdautambyvui
 
-console.log('🚀 ShopVD Order Helper loaded');
+const ALLOWED_PAGE_PATH = '/vongdautambyvui';
+
+function isAllowedPage() {
+  const { hostname, pathname } = window.location;
+  return hostname === 'pancake.vn'
+    && (pathname === ALLOWED_PAGE_PATH || pathname.startsWith(`${ALLOWED_PAGE_PATH}/`));
+}
+
+function removeSidebarIfPresent() {
+  document.getElementById('shopvd-sidebar')?.remove();
+  document.getElementById('shopvd-expand-rail')?.remove();
+}
+
+function syncSidebarWithPageUrl() {
+  if (!isAllowedPage()) {
+    removeSidebarIfPresent();
+    return;
+  }
+  init();
+}
+
+function watchPageUrlChanges() {
+  let lastHref = window.location.href;
+
+  const check = () => {
+    if (window.location.href === lastHref) return;
+    lastHref = window.location.href;
+    syncSidebarWithPageUrl();
+  };
+
+  window.addEventListener('popstate', check);
+
+  const pushState = history.pushState;
+  history.pushState = function (...args) {
+    pushState.apply(this, args);
+    check();
+  };
+
+  const replaceState = history.replaceState;
+  history.replaceState = function (...args) {
+    replaceState.apply(this, args);
+    check();
+  };
+}
+
+if (isAllowedPage()) {
+  console.log('🚀 ShopVD Order Helper loaded');
+} else {
+  console.log('ShopVD Order Helper: skipped — not on allowed page');
+}
 
 // API Configuration
 const API_BASE_URL = 'https://ctv-api.yendev96.workers.dev';
@@ -22,6 +71,7 @@ let addressLoaded = false;
 
 // Cache discounts (active codes for order form)
 let allDiscountsCache = [];
+let discountCodeValidating = false;
 
 // Smart paste state
 let smartPasteBusy = false;
@@ -44,95 +94,131 @@ function createSidebar() {
       <!-- Smart Paste - Dán nhanh thông tin khách hàng -->
       <div class="shopvd-section shopvd-smart-paste-block">
         <div class="shopvd-smart-paste-header">
-          <div class="shopvd-smart-paste-title">
+          <div class="shopvd-smart-paste-icon-wrap" aria-hidden="true">
             <svg class="shopvd-smart-paste-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456z"/>
             </svg>
-            <span>DÁN NHANH THÔNG TIN KHÁCH HÀNG</span>
           </div>
-          <span class="shopvd-smart-paste-subtitle">Tên, SĐT, Địa chỉ</span>
+          <h3 class="shopvd-smart-paste-title">Dán nhanh thông tin khách hàng</h3>
         </div>
-        <textarea 
-          id="shopvd-smart-paste-input" 
-          rows="3" 
-          placeholder="Dán toàn bộ thông tin (Địa chỉ, SĐT, Tên) — hệ thống tự phân tích ngay&#10;&#10;Ví dụ:&#10;198/8 nguyễn bình khiêm, phường vĩnh quang, tp Rạch Giá, kiên giang&#10;0375323573"
-          class="shopvd-smart-paste-textarea"
-        ></textarea>
-        <div class="shopvd-smart-paste-actions">
-          <button type="button" id="shopvd-smart-paste-btn" class="shopvd-btn shopvd-btn-primary">
-            <svg class="shopvd-smart-paste-btn-icon" id="shopvd-smart-paste-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
-            </svg>
-            <span id="shopvd-smart-paste-btn-text">Phân tích lại</span>
-          </button>
-          <div id="shopvd-smart-paste-status" class="shopvd-smart-paste-status hidden"></div>
+        <div class="shopvd-smart-paste-body">
+          <textarea 
+            id="shopvd-smart-paste-input" 
+            rows="3" 
+            placeholder="Dán toàn bộ thông tin khách hàng vào đây…&#10;&#10;Ví dụ:&#10;198/8 Nguyễn Bình Khiêm, Phường Vĩnh Quang, TP Rạch Giá, Kiên Giang&#10;0375323573 Nguyễn Văn A"
+            class="shopvd-smart-paste-textarea"
+          ></textarea>
+          <div class="shopvd-smart-paste-actions">
+            <button type="button" id="shopvd-smart-paste-btn" class="shopvd-smart-paste-btn">
+              <svg class="shopvd-smart-paste-btn-icon" id="shopvd-smart-paste-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z"/>
+              </svg>
+              <span id="shopvd-smart-paste-btn-text">Phân tích &amp; điền form</span>
+            </button>
+            <div id="shopvd-smart-paste-status" class="shopvd-smart-paste-status hidden"></div>
+          </div>
         </div>
       </div>
 
       <div class="shopvd-divider"></div>
 
       <!-- Form khách hàng -->
-      <form id="shopvd-order-form">
+      <form id="shopvd-order-form" novalidate>
         <div class="shopvd-section">
           <h3>👤 Thông tin khách hàng</h3>
           
           <div class="shopvd-grid-2">
-            <div class="shopvd-form-group">
+            <div class="shopvd-form-group" data-validate-wrap="customer-name">
               <label>Tên khách hàng *</label>
               <input type="text" id="customer-name" placeholder="Nguyễn Văn A" required>
+              <p class="shopvd-field-error" id="validate-error-customer-name" hidden role="alert"></p>
             </div>
 
-            <div class="shopvd-form-group">
+            <div class="shopvd-form-group" data-validate-wrap="customer-phone">
               <label>Số điện thoại *</label>
               <input type="tel" id="customer-phone" placeholder="0901234567" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" required>
+              <p class="shopvd-field-error" id="validate-error-customer-phone" hidden role="alert"></p>
             </div>
           </div>
 
-          <!-- Địa chỉ giao hàng (Custom Combobox với Search - đồng bộ 100% từ m.html) -->
+          <!-- Địa chỉ giao hàng -->
           <div class="shopvd-address-section">
             <div class="shopvd-address-box">
-              <label class="shopvd-address-label">Địa chỉ giao hàng <span class="shopvd-required">*</span></label>
-              
+              <div class="shopvd-address-header">
+                <div class="shopvd-address-icon-wrap" aria-hidden="true">
+                  <svg class="shopvd-address-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                  </svg>
+                </div>
+                <h4 class="shopvd-address-title">Địa chỉ giao hàng <span class="shopvd-required">*</span></h4>
+              </div>
+
               <div class="shopvd-address-fields">
-                <!-- Province Combobox (hiển thị ngay) -->
-                <div class="shopvd-combobox-wrapper">
-                  <button type="button" id="province-combobox-btn" class="shopvd-combobox-button">
-                    <span class="shopvd-combobox-icon">📍</span>
-                    <span id="province-combobox-text" class="shopvd-combobox-text">Chọn tỉnh/thành phố</span>
-                  </button>
-                  <div id="province-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
-                    <input 
-                      type="text" 
-                      id="province-combobox-search" 
-                      class="shopvd-combobox-search" 
-                      placeholder="Tìm tỉnh/thành phố..."
-                      autocomplete="off"
-                    >
-                    <div class="shopvd-combobox-list-header">CHỌN TỈNH/THÀNH PHỐ</div>
-                    <div id="province-combobox-list" class="shopvd-combobox-list"></div>
+                <div class="shopvd-address-field" data-validate-wrap="customer-province">
+                  <label class="shopvd-address-field-label" for="province-combobox-btn">Tỉnh / Thành phố</label>
+                  <div class="shopvd-combobox-wrapper">
+                    <button type="button" id="province-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                      <span class="shopvd-combobox-lead-icon" aria-hidden="true">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                        </svg>
+                      </span>
+                      <span id="province-combobox-text" class="shopvd-combobox-text">Chọn tỉnh/thành phố</span>
+                      <span class="shopvd-combobox-chevron" aria-hidden="true">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </span>
+                    </button>
+                    <div id="province-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
+                      <input
+                        type="text"
+                        id="province-combobox-search"
+                        class="shopvd-combobox-search"
+                        placeholder="Tìm tỉnh/thành phố..."
+                        autocomplete="off"
+                      >
+                      <div class="shopvd-combobox-list-header">Tỉnh / Thành phố</div>
+                      <div id="province-combobox-list" class="shopvd-combobox-list"></div>
+                    </div>
                   </div>
+                  <p class="shopvd-field-error" id="validate-error-customer-province" hidden role="alert"></p>
                 </div>
 
-                <!-- Ward Combobox (ẩn, hiện sau khi chọn tỉnh) -->
-                <div id="ward-combobox-wrapper" class="shopvd-combobox-wrapper hidden">
-                  <button type="button" id="ward-combobox-btn" class="shopvd-combobox-button">
-                    <span class="shopvd-combobox-icon">📍</span>
-                    <span id="ward-combobox-text" class="shopvd-combobox-text">Chọn phường/xã</span>
-                  </button>
-                  <div id="ward-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
-                    <input 
-                      type="text" 
-                      id="ward-combobox-search" 
-                      class="shopvd-combobox-search" 
-                      placeholder="Tìm phường/xã..."
-                      autocomplete="off"
-                    >
-                    <div class="shopvd-combobox-list-header">CHỌN PHƯỜNG/XÃ</div>
-                    <div id="ward-combobox-list" class="shopvd-combobox-list"></div>
+                <div id="ward-combobox-wrapper" class="shopvd-address-field hidden" data-validate-wrap="customer-ward">
+                  <label class="shopvd-address-field-label" for="ward-combobox-btn">Phường / Xã</label>
+                  <div class="shopvd-combobox-wrapper">
+                    <button type="button" id="ward-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                      <span class="shopvd-combobox-lead-icon" aria-hidden="true">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                        </svg>
+                      </span>
+                      <span id="ward-combobox-text" class="shopvd-combobox-text">Chọn phường/xã</span>
+                      <span class="shopvd-combobox-chevron" aria-hidden="true">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </span>
+                    </button>
+                    <div id="ward-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
+                      <input
+                        type="text"
+                        id="ward-combobox-search"
+                        class="shopvd-combobox-search"
+                        placeholder="Tìm phường/xã..."
+                        autocomplete="off"
+                      >
+                      <div class="shopvd-combobox-list-header">Phường / Xã</div>
+                      <div id="ward-combobox-list" class="shopvd-combobox-list"></div>
+                    </div>
                   </div>
+                  <p class="shopvd-field-error" id="validate-error-customer-ward" hidden role="alert"></p>
                 </div>
 
-                <!-- Hidden selects for form submission -->
                 <select id="customer-province" required class="shopvd-hidden">
                   <option value="">-- Chọn Tỉnh/TP --</option>
                 </select>
@@ -140,18 +226,19 @@ function createSidebar() {
                   <option value="">-- Chọn Phường/Xã --</option>
                 </select>
 
-                <!-- Street Address (ẩn, hiện sau khi chọn phường/xã) -->
-                <input
-                  type="text"
-                  id="customer-street"
-                  placeholder="Số nhà, tên đường"
-                  class="shopvd-address-input hidden"
-                >
+                <div id="customer-street-field" class="shopvd-address-field hidden" data-validate-wrap="customer-street">
+                  <label class="shopvd-address-field-label" for="customer-street">Số nhà, tên đường</label>
+                  <input
+                    type="text"
+                    id="customer-street"
+                    placeholder="Ví dụ: 198/8 Nguyễn Bình Khiêm"
+                    class="shopvd-address-input"
+                  >
+                  <p class="shopvd-field-error" id="validate-error-customer-street" hidden role="alert"></p>
+                </div>
 
-                <!-- Address Preview -->
                 <p id="customer-address-preview" class="shopvd-address-preview"></p>
 
-                <!-- Hidden full address -->
                 <input type="hidden" id="customer-address">
               </div>
             </div>
@@ -165,15 +252,54 @@ function createSidebar() {
           <!-- Search Products (Global) -->
           <div class="shopvd-product-search-container">
             <div class="shopvd-search-input-wrapper">
-              <span class="shopvd-search-icon">🔍</span>
+              <span class="shopvd-search-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
+                </svg>
+              </span>
               <input 
                 type="text" 
                 id="product-search" 
                 placeholder="Tìm sản phẩm hoặc thêm tay..."
                 autocomplete="off"
               >
+              <button type="button" id="product-search-clear" class="shopvd-search-clear hidden" aria-label="Xóa tìm kiếm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
             <div id="product-search-results" class="shopvd-search-results hidden"></div>
+            <div id="product-search-form" class="shopvd-search-form hidden">
+              <div class="shopvd-search-form-header">
+                <div class="shopvd-search-form-main">
+                  <div class="shopvd-search-form-thumb-wrap">
+                    <img id="product-search-form-image" class="shopvd-search-form-thumb hidden" alt="">
+                    <div id="product-search-form-thumb-fallback" class="shopvd-search-form-thumb shopvd-search-form-thumb-fallback">📦</div>
+                  </div>
+                  <div class="shopvd-search-form-product">
+                    <div id="product-search-form-name" class="shopvd-search-form-name"></div>
+                    <div id="product-search-form-price" class="shopvd-search-form-price"></div>
+                  </div>
+                </div>
+                <button type="button" id="product-search-form-close" class="shopvd-search-form-close" aria-label="Đóng">×</button>
+              </div>
+              <div class="shopvd-search-form-row">
+                <div class="shopvd-search-form-field">
+                  <label for="product-search-qty">SL</label>
+                  <input type="number" id="product-search-qty" class="shopvd-search-form-input shopvd-search-form-qty" value="1" min="1">
+                </div>
+                <div id="product-search-form-weight-field" class="shopvd-search-form-field shopvd-search-form-field-weight">
+                  <label for="product-search-weight">Cân nặng</label>
+                  <input type="text" id="product-search-weight" class="shopvd-search-form-input" placeholder="5kg">
+                </div>
+                <div class="shopvd-search-form-field shopvd-search-form-field-notes">
+                  <label for="product-search-notes">Lưu ý</label>
+                  <input type="text" id="product-search-notes" class="shopvd-search-form-input" placeholder="Ghi chú...">
+                </div>
+              </div>
+              <button type="button" id="product-search-add-btn" class="shopvd-search-form-add-btn">Thêm vào đơn</button>
+            </div>
           </div>
 
           <!-- Product Tabs -->
@@ -183,21 +309,24 @@ function createSidebar() {
               class="shopvd-product-tab active" 
               data-tab="featured"
             >
-              🔥 Bán chạy
+              <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#f97316"/></svg>
+              Bán chạy
             </button>
             <button 
               type="button"
               class="shopvd-product-tab" 
               data-tab="all"
             >
-              📦 Tất cả
+              <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#6366f1"/></svg>
+              Tất cả
             </button>
             <button 
               type="button"
               class="shopvd-product-tab" 
               data-tab="manual"
             >
-              ✏️ Tùy chỉnh
+              <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#10b981"/></svg>
+              Tùy chỉnh
             </button>
           </div>
 
@@ -239,27 +368,29 @@ function createSidebar() {
           <!-- Manual Product Tab Content -->
           <div id="manual-tab-content" class="shopvd-tab-content hidden">
             <div class="shopvd-manual-form">
-              <div class="shopvd-manual-form-header">
-                <span class="shopvd-manual-form-title">➕ Thêm sản phẩm tùy chỉnh</span>
+              <div class="shopvd-manual-form-label">Thêm sản phẩm tùy chỉnh</div>
+              <input type="text" id="manual-product-name" placeholder="Tên sản phẩm" class="shopvd-edit-input">
+              <div class="shopvd-edit-row shopvd-edit-row-prices">
+                <input type="number" id="manual-product-price" placeholder="Giá bán" min="0" step="1000" class="shopvd-edit-input">
+                <input type="number" id="manual-product-cost" placeholder="Giá vốn" min="0" step="1" class="shopvd-edit-input">
+                <input type="text" id="manual-product-weight" placeholder="Cân nặng" class="shopvd-edit-input">
               </div>
-              <div class="shopvd-manual-form-body">
-                <input type="text" id="manual-product-name" placeholder="Tên sản phẩm" class="shopvd-manual-input">
-                <div class="shopvd-manual-row shopvd-manual-row-prices">
-                  <input type="number" id="manual-product-price" placeholder="Giá bán" min="0" step="1000" class="shopvd-manual-input">
-                  <input type="number" id="manual-product-cost" placeholder="Giá vốn" min="0" step="1000" class="shopvd-manual-input">
-                  <input type="number" id="manual-product-quantity" placeholder="SL" min="1" value="1" class="shopvd-manual-input">
+              <div class="shopvd-edit-row shopvd-edit-row-meta shopvd-edit-row-meta-manual">
+                <div class="shopvd-manual-qty-stepper">
+                  <button type="button" id="manual-product-qty-minus" class="shopvd-manual-qty-btn" aria-label="Giảm số lượng">−</button>
+                  <input type="number" id="manual-product-quantity" placeholder="SL" min="1" value="1" class="shopvd-manual-qty-input">
+                  <button type="button" id="manual-product-qty-plus" class="shopvd-manual-qty-btn" aria-label="Tăng số lượng">+</button>
                 </div>
-                <input type="text" id="manual-product-weight" placeholder="Cân nặng (vd: 5kg)" class="shopvd-manual-input">
-                <input type="text" id="manual-product-notes" placeholder="Lưu ý..." class="shopvd-manual-input">
-                <button type="button" id="add-manual-product-submit" class="shopvd-btn shopvd-btn-success">
-                  ✅ Thêm vào đơn
-                </button>
+                <input type="text" id="manual-product-notes" placeholder="Lưu ý..." class="shopvd-edit-input">
+              </div>
+              <div class="shopvd-edit-actions">
+                <button type="button" id="add-manual-product-submit" class="shopvd-btn-save">Thêm vào đơn</button>
               </div>
             </div>
           </div>
 
           <!-- Selected Products — Order Cart -->
-          <div class="shopvd-order-cart" id="shopvd-order-cart">
+          <div class="shopvd-order-cart" id="shopvd-order-cart" data-validate-wrap="order-products">
             <div class="shopvd-order-cart-header">
               <div class="shopvd-order-cart-header-left">
                 <span class="shopvd-order-cart-icon" aria-hidden="true">
@@ -272,6 +403,7 @@ function createSidebar() {
               </div>
               <span class="shopvd-order-cart-count" id="order-cart-count">0</span>
             </div>
+            <p class="shopvd-field-error shopvd-field-error-cart" id="validate-error-order-products" hidden role="alert"></p>
             <div id="products-list" class="shopvd-products-list">
               <!-- Products will be added here -->
             </div>
@@ -324,14 +456,22 @@ function createSidebar() {
             </div>
           </div>
           
-          <!-- Free Shipping Checkbox -->
-          <div class="shopvd-form-group">
-            <label class="shopvd-checkbox-label-simple">
-              <input type="checkbox" id="free-shipping">
-              <span>Miễn phí ship</span>
-            </label>
-            <small id="freeship-hint" style="color: #10b981; font-size: 11px; margin-top: 4px; display: none;"></small>
-          </div>
+          <!-- Free Shipping -->
+          <label class="shopvd-option-card shopvd-option-card-freeship">
+            <span class="shopvd-option-icon shopvd-option-icon-freeship" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="3" width="15" height="13"/>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/>
+                <circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+            </span>
+            <span class="shopvd-option-body">
+              <span class="shopvd-option-title">Miễn phí ship</span>
+              <span class="shopvd-option-desc" id="freeship-hint">Khách không trả phí vận chuyển</span>
+            </span>
+            <input type="checkbox" id="free-shipping" class="shopvd-option-checkbox-input">
+          </label>
         </div>
 
         <!-- Nguồn khách & Thông tin thêm -->
@@ -339,9 +479,9 @@ function createSidebar() {
           <h3>📋 Thông tin thêm</h3>
           
           <!-- Customer Source Buttons (Required) -->
-          <div class="shopvd-form-group">
+          <div class="shopvd-form-group" data-validate-wrap="customer-source">
             <label>Nguồn khách <span style="color: #ef4444;">*</span></label>
-            <div class="shopvd-button-group">
+            <div class="shopvd-button-group" id="customer-source-group">
               <button type="button" class="shopvd-source-btn" data-source="zalo">
                 <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#0068ff"/></svg>
                 Zalo
@@ -356,6 +496,7 @@ function createSidebar() {
               </button>
             </div>
             <input type="hidden" id="customer-source" value="">
+            <p class="shopvd-field-error" id="validate-error-customer-source" hidden role="alert"></p>
           </div>
           
           <div class="shopvd-grid-2">
@@ -683,7 +824,7 @@ async function loadProducts() {
       // So top products = best selling products
       featuredProducts = [...allProductsCache]
         .filter(p => (p.is_active === 1 || p.is_active === true))
-        .slice(0, 6);  // Take top 6 best-selling products
+        .slice(0, 10);  // Take top 10 best-selling products
       
       console.log('✅ Featured products (hot selling):', featuredProducts.map(p => ({
         name: p.name,
@@ -905,14 +1046,14 @@ function selectProvinceFromCombobox(provinceId) {
   }, 100);
 
   // Hide street input until ward is selected
-  const streetInput = document.getElementById('customer-street');
-  if (streetInput) streetInput.classList.add('hidden');
+  const streetField = document.getElementById('customer-street-field');
+  if (streetField) streetField.classList.add('hidden');
 
   // Update address
   updateFullAddress();
+  revalidateFieldIfActive('customer-province');
+  revalidateFieldIfActive('customer-ward');
 }
-
-// Open/close province combobox
 function toggleProvinceCombobox() {
   const dropdown = document.getElementById('province-combobox-dropdown');
   const search = document.getElementById('province-combobox-search');
@@ -926,6 +1067,7 @@ function toggleProvinceCombobox() {
   
   if (isHidden) {
     dropdown.classList.remove('hidden');
+    setComboboxOpen('province-combobox-btn', true);
     if (search) {
       search.value = '';
       search.focus();
@@ -934,9 +1076,15 @@ function toggleProvinceCombobox() {
   }
 }
 
+function setComboboxOpen(btnId, isOpen) {
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.toggle('is-open', isOpen);
+}
+
 function closeProvinceCombobox() {
   const dropdown = document.getElementById('province-combobox-dropdown');
   if (dropdown) dropdown.classList.add('hidden');
+  setComboboxOpen('province-combobox-btn', false);
 }
 
 // Ward combobox functions
@@ -999,14 +1147,15 @@ function selectWardFromCombobox(wardId, provinceId) {
   closeWardCombobox();
 
   // Show street input (progressive disclosure)
+  const streetField = document.getElementById('customer-street-field');
   const streetInput = document.getElementById('customer-street');
-  if (streetInput) {
-    streetInput.classList.remove('hidden');
-    streetInput.focus(); // Auto-focus for better UX
-  }
+  if (streetField) streetField.classList.remove('hidden');
+  if (streetInput) streetInput.focus();
 
   // Update address
   updateFullAddress();
+  revalidateFieldIfActive('customer-ward');
+  revalidateFieldIfActive('customer-street');
 }
 
 function toggleWardCombobox() {
@@ -1022,6 +1171,7 @@ function toggleWardCombobox() {
   
   if (isHidden) {
     dropdown.classList.remove('hidden');
+    setComboboxOpen('ward-combobox-btn', true);
     if (search) {
       search.value = '';
       search.focus();
@@ -1033,11 +1183,57 @@ function toggleWardCombobox() {
 function closeWardCombobox() {
   const dropdown = document.getElementById('ward-combobox-dropdown');
   if (dropdown) dropdown.classList.add('hidden');
+  setComboboxOpen('ward-combobox-btn', false);
 }
 
 function closeAllComboboxes() {
   closeProvinceCombobox();
   closeWardCombobox();
+}
+
+function resetCustomerAddressForm() {
+  closeAllComboboxes();
+
+  const provinceSelect = document.getElementById('customer-province');
+  const wardSelect = document.getElementById('customer-ward');
+  const streetInput = document.getElementById('customer-street');
+  const addressInput = document.getElementById('customer-address');
+  const previewEl = document.getElementById('customer-address-preview');
+
+  if (provinceSelect) provinceSelect.value = '';
+  if (wardSelect) {
+    wardSelect.value = '';
+    wardSelect.disabled = true;
+    wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+  }
+  if (streetInput) streetInput.value = '';
+  if (addressInput) addressInput.value = '';
+  if (previewEl) previewEl.textContent = '';
+
+  const provinceSearch = document.getElementById('province-combobox-search');
+  const wardSearch = document.getElementById('ward-combobox-search');
+  if (provinceSearch) provinceSearch.value = '';
+  if (wardSearch) wardSearch.value = '';
+
+  const provinceBtn = document.getElementById('province-combobox-btn');
+  const provinceText = document.getElementById('province-combobox-text');
+  if (provinceBtn) provinceBtn.classList.remove('selected', 'is-open');
+  if (provinceText) provinceText.textContent = 'Chọn tỉnh/thành phố';
+
+  document.getElementById('ward-combobox-wrapper')?.classList.add('hidden');
+  document.getElementById('customer-street-field')?.classList.add('hidden');
+
+  const wardBtn = document.getElementById('ward-combobox-btn');
+  const wardText = document.getElementById('ward-combobox-text');
+  const wardList = document.getElementById('ward-combobox-list');
+  if (wardBtn) {
+    wardBtn.classList.remove('selected', 'is-open');
+    wardBtn.disabled = false;
+  }
+  if (wardText) wardText.textContent = 'Chọn phường/xã';
+  if (wardList) wardList.innerHTML = '';
+
+  filterProvinceCombobox('');
 }
 
 // Render wards dropdown
@@ -1110,37 +1306,35 @@ function updateFullAddress() {
 // Functions available: smartParseCustomerInfo(), parseAddress(), etc.
 
 // Set smart paste button loading state
+function setSmartPasteStatus(type, message) {
+  const statusEl = document.getElementById('shopvd-smart-paste-status');
+  if (!statusEl) return;
+
+  statusEl.className = 'shopvd-smart-paste-status';
+  if (type) statusEl.classList.add(`is-${type}`);
+  statusEl.textContent = message || '';
+  statusEl.classList.toggle('hidden', !message);
+}
+
 function setSmartPasteLoading(loading) {
   const btn = document.getElementById('shopvd-smart-paste-btn');
   const btnText = document.getElementById('shopvd-smart-paste-btn-text');
   const btnIcon = document.getElementById('shopvd-smart-paste-btn-icon');
-  const statusEl = document.getElementById('shopvd-smart-paste-status');
   
   if (btn) btn.disabled = loading;
-  if (btnText) btnText.textContent = loading ? 'Đang phân tích...' : 'Phân tích lại';
+  if (btnText) btnText.textContent = loading ? 'Đang phân tích…' : 'Phân tích & điền form';
   if (btnIcon) {
     btnIcon.classList.toggle('animate-spin', loading);
   }
-  if (loading && statusEl) {
-    statusEl.className = 'shopvd-smart-paste-status';
-    statusEl.style.color = '#e0e7ff';
-    statusEl.style.background = '#667eea';
-    statusEl.textContent = 'Đang phân tích...';
-    statusEl.classList.remove('hidden');
+  if (loading) {
+    setSmartPasteStatus('loading', 'Đang phân tích thông tin khách hàng…');
   }
 }
 
 // Show smart paste result
 function showSmartPasteResult(parsedData) {
-  const statusEl = document.getElementById('shopvd-smart-paste-status');
-  if (!statusEl) return;
-  
   if (!parsedData?.success) {
-    statusEl.className = 'shopvd-smart-paste-status';
-    statusEl.style.color = '#fee2e2';
-    statusEl.style.background = '#ef4444';
-    statusEl.textContent = parsedData?.error || 'Không thể phân tích';
-    statusEl.classList.remove('hidden');
+    setSmartPasteStatus('error', parsedData?.error || 'Không thể phân tích');
     return;
   }
   
@@ -1151,24 +1345,17 @@ function showSmartPasteResult(parsedData) {
   if (d.address?.province) parts.push('Địa chỉ');
   
   const conf = parsedData.confidence;
-  
-  statusEl.className = 'shopvd-smart-paste-status';
-  
-  if (conf === 'high') {
-    statusEl.style.color = '#d1fae5';
-    statusEl.style.background = '#10b981';
-  } else if (conf === 'medium') {
-    statusEl.style.color = '#fef3c7';
-    statusEl.style.background = '#f59e0b';
-  } else {
-    statusEl.style.color = '#fee2e2';
-    statusEl.style.background = '#ef4444';
-  }
-  
-  statusEl.textContent = parts.length 
-    ? `✓ Đã điền: ${parts.join(', ')}` 
+  const message = parts.length
+    ? `Đã điền: ${parts.join(', ')}`
     : 'Không nhận diện được thông tin';
-  statusEl.classList.remove('hidden');
+
+  if (conf === 'high') {
+    setSmartPasteStatus('success', message);
+  } else if (conf === 'medium') {
+    setSmartPasteStatus('warning', message);
+  } else {
+    setSmartPasteStatus('error', message);
+  }
 }
 
 // Apply parsed data to extension form
@@ -1254,7 +1441,7 @@ async function applyParsedDataToExtensionForm(parsedData) {
       
       // Show street input if ward is selected (progressive disclosure)
       if (addr.ward) {
-        streetInput.classList.remove('hidden');
+        document.getElementById('customer-street-field')?.classList.remove('hidden');
       }
       
       // Update full address
@@ -1502,6 +1689,9 @@ function renderAllProducts() {
             >
           </div>
         </div>
+        <button type="button" class="shopvd-inline-add-btn" data-product-id="${product.id}">
+          Thêm vào đơn
+        </button>
       </div>
     </div>
   `}).join('');
@@ -1513,6 +1703,30 @@ function renderAllProducts() {
 
   document.querySelectorAll('.shopvd-product-list-item').forEach(item => {
     item.addEventListener('click', handleAllProductItemClick);
+  });
+
+  document.querySelectorAll('.shopvd-inline-add-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const productId = btn.getAttribute('data-product-id');
+      if (!productId) return;
+
+      const checkbox = document.querySelector(`.shopvd-product-checkbox[data-product-id="${productId}"]`);
+      if (!checkbox) return;
+
+      if (!checkbox.checked) {
+        checkbox.checked = true;
+        handleProductSelection({ target: checkbox });
+      }
+
+      const added = addCheckedAllTabProduct(checkbox);
+      if (added) {
+        showStatus('✅ Đã thêm vào đơn', 'success');
+        setTimeout(() => {
+          document.getElementById('shopvd-status')?.classList.add('hidden');
+        }, 2000);
+      }
+    });
   });
   
   console.log('Products rendered successfully');
@@ -1558,6 +1772,49 @@ function updateFAB() {
   }
 }
 
+// Add one checked product from the "Tất cả" tab inline form
+function addCheckedAllTabProduct(checkbox, options = {}) {
+  const productId = checkbox.getAttribute('data-product-id');
+  const productName = checkbox.getAttribute('data-product-name');
+  const productPrice = parseFloat(checkbox.getAttribute('data-product-price'));
+  const productCost = parseFloat(checkbox.getAttribute('data-product-cost')) || 0;
+  const productImage = checkbox.getAttribute('data-product-image');
+
+  const qtyInput = document.querySelector(`.shopvd-inline-qty[data-product-id="${productId}"]`);
+  const weightInput = document.querySelector(`.shopvd-inline-weight[data-product-id="${productId}"]`);
+  const notesInput = document.querySelector(`.shopvd-inline-notes[data-product-id="${productId}"]`);
+
+  const quantity = parseInt(qtyInput?.value) || 1;
+  const weight = weightInput?.value.trim() || '';
+  const notes = notesInput?.value.trim() || '';
+
+  const added = addProductRow(
+    productName,
+    productPrice,
+    quantity,
+    parseInt(productId),
+    productCost,
+    productImage,
+    weight,
+    notes,
+    {
+      silentWarning: options.silentWarning === true,
+      focusWeightEl: weightInput,
+    }
+  );
+
+  if (!added) return false;
+
+  checkbox.checked = false;
+  if (qtyInput) qtyInput.value = '1';
+  if (weightInput) weightInput.value = '';
+  if (notesInput) notesInput.value = '';
+
+  document.querySelector(`[data-form-id="${productId}"]`)?.classList.add('hidden');
+  updateFAB();
+  return true;
+}
+
 // Handle bulk add
 function handleBulkAdd() {
   const checkboxes = document.querySelectorAll('.shopvd-product-checkbox:checked');
@@ -1571,51 +1828,13 @@ function handleBulkAdd() {
   let missingWeightCount = 0;
   
   checkboxes.forEach(checkbox => {
-    const productId = checkbox.getAttribute('data-product-id');
-    const productName = checkbox.getAttribute('data-product-name');
-    const productPrice = parseFloat(checkbox.getAttribute('data-product-price'));
-    const productCost = parseFloat(checkbox.getAttribute('data-product-cost')) || 0;
-    const productImage = checkbox.getAttribute('data-product-image');
-    
-    // Get inline form values
-    const qtyInput = document.querySelector(`.shopvd-inline-qty[data-product-id="${productId}"]`);
-    const weightInput = document.querySelector(`.shopvd-inline-weight[data-product-id="${productId}"]`);
-    const notesInput = document.querySelector(`.shopvd-inline-notes[data-product-id="${productId}"]`);
-    
-    const quantity = parseInt(qtyInput?.value) || 1;
-    const weight = weightInput?.value.trim() || '';
-    const notes = notesInput?.value.trim() || '';
-    
-    const added = addProductRow(
-      productName,
-      productPrice,
-      quantity,
-      parseInt(productId),
-      productCost,
-      productImage,
-      weight,
-      notes,
-      { silentWarning: true, focusWeightEl: weightInput }
-    );
-
-    if (!added) {
+    if (addCheckedAllTabProduct(checkbox, { silentWarning: true })) {
+      addedCount++;
+    } else {
       missingWeightCount++;
-      return;
     }
-    
-    // Reset form
-    checkbox.checked = false;
-    if (qtyInput) qtyInput.value = '1';
-    if (weightInput) weightInput.value = '';
-    if (notesInput) notesInput.value = '';
-    
-    const inlineForm = document.querySelector(`[data-form-id="${productId}"]`);
-    inlineForm?.classList.add('hidden');
-    
-    addedCount++;
   });
-  
-  // Update FAB
+
   updateFAB();
   
   if (missingWeightCount > 0 && addedCount === 0) {
@@ -1826,6 +2045,8 @@ function renderFeaturedProducts() {
 
 // Search products with debounce
 let searchTimeout;
+let selectedSearchProduct = null;
+
 function handleProductSearch(query) {
   clearTimeout(searchTimeout);
   
@@ -1834,8 +2055,11 @@ function handleProductSearch(query) {
   
   if (!query || query.trim().length < 2) {
     resultsDiv.classList.add('hidden');
+    hideSearchProductForm();
     return;
   }
+
+  hideSearchProductForm();
   
   searchTimeout = setTimeout(() => {
     const results = searchProducts(query);
@@ -1884,54 +2108,150 @@ function renderSearchResults(results) {
         <div class="shopvd-search-result-name">${escapeHtml(product.name)}</div>
         <div class="shopvd-search-result-price">${formatPrice(product.price)}đ</div>
       </div>
-      <span class="shopvd-search-result-add">+</span>
+      <span class="shopvd-search-result-add">
+        <svg class="shopvd-search-result-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+        </svg>
+        Chọn
+      </span>
     </div>
   `).join('');
   
-  // Attach event listeners
   resultsDiv.querySelectorAll('.shopvd-search-result-item').forEach(item => {
     item.addEventListener('click', () => {
       const productId = parseInt(item.getAttribute('data-product-id'));
-      addProductById(productId);
-      resultsDiv.classList.add('hidden');
+      const product = allProductsCache.find(p => p.id === productId);
+      if (product) showSearchProductForm(product);
     });
   });
   
   resultsDiv.classList.remove('hidden');
 }
 
-// Add product by ID (from search or featured)
-function addProductById(productId) {
-  const product = allProductsCache.find(p => p.id === productId);
-  if (!product) return;
+function showSearchProductForm(product) {
+  selectedSearchProduct = product;
 
-  if (catalogProductSkipsWeight(product)) {
-    const added = addProductRow(
-      product.name,
-      product.price,
-      1,
-      product.id,
-      product.cost_price || 0,
-      product.image_url || '',
-      '',
-      ''
-    );
-    if (added) {
-      showStatus(`✅ Đã thêm: ${product.name}`, 'success');
-      setTimeout(() => {
-        const statusEl = document.getElementById('shopvd-status');
-        if (statusEl) statusEl.classList.add('hidden');
-      }, 2000);
-    }
+  document.getElementById('product-search-results')?.classList.add('hidden');
+
+  const form = document.getElementById('product-search-form');
+  if (!form) return;
+
+  const skipsWeight = catalogProductSkipsWeight(product);
+  const nameEl = document.getElementById('product-search-form-name');
+  const priceEl = document.getElementById('product-search-form-price');
+  const imageEl = document.getElementById('product-search-form-image');
+  const fallbackEl = document.getElementById('product-search-form-thumb-fallback');
+  const weightField = document.getElementById('product-search-form-weight-field');
+  const qtyInput = document.getElementById('product-search-qty');
+  const weightInput = document.getElementById('product-search-weight');
+  const notesInput = document.getElementById('product-search-notes');
+
+  if (nameEl) nameEl.textContent = product.name;
+  if (priceEl) priceEl.textContent = `${formatPrice(product.price)} đ`;
+
+  if (product.image_url && imageEl) {
+    imageEl.src = product.image_url;
+    imageEl.alt = product.name;
+    imageEl.classList.remove('hidden');
+    fallbackEl?.classList.add('hidden');
+    imageEl.onerror = () => {
+      imageEl.classList.add('hidden');
+      fallbackEl?.classList.remove('hidden');
+    };
   } else {
-    showStatus('⚠️ Vui lòng chọn sản phẩm từ tab Bán chạy/Tất cả và nhập cân nặng trước khi thêm!', 'warning');
+    if (imageEl) {
+      imageEl.removeAttribute('src');
+      imageEl.classList.add('hidden');
+    }
+    fallbackEl?.classList.remove('hidden');
   }
-  
-  // Clear search
+
+  weightField?.classList.toggle('hidden', skipsWeight);
+
+  if (qtyInput) qtyInput.value = '1';
+  if (weightInput) weightInput.value = '';
+  if (notesInput) notesInput.value = '';
+
+  form.classList.remove('hidden');
+
+  setTimeout(() => {
+    if (skipsWeight) {
+      notesInput?.focus();
+    } else {
+      weightInput?.focus();
+    }
+  }, 50);
+}
+
+function restoreSearchResultsIfQuery() {
   const searchInput = document.getElementById('product-search');
-  const resultsDiv = document.getElementById('product-search-results');
+  if (!searchInput) return;
+
+  const query = searchInput.value.trim();
+  if (query.length < 2) return;
+
+  renderSearchResults(searchProducts(query));
+}
+
+function updateProductSearchClearBtn() {
+  const input = document.getElementById('product-search');
+  const btn = document.getElementById('product-search-clear');
+  if (!input || !btn) return;
+  btn.classList.toggle('hidden', !input.value.trim());
+}
+
+function clearProductSearch() {
+  const input = document.getElementById('product-search');
+  if (input) input.value = '';
+  document.getElementById('product-search-results')?.classList.add('hidden');
+  hideSearchProductForm();
+  updateProductSearchClearBtn();
+  input?.focus();
+}
+
+function hideSearchProductForm(options = {}) {
+  selectedSearchProduct = null;
+  document.getElementById('product-search-form')?.classList.add('hidden');
+  if (options.restoreResults) {
+    restoreSearchResultsIfQuery();
+  }
+}
+
+function addSearchProductToOrder() {
+  if (!selectedSearchProduct) return;
+
+  const product = selectedSearchProduct;
+  const qtyInput = document.getElementById('product-search-qty');
+  const weightInput = document.getElementById('product-search-weight');
+  const notesInput = document.getElementById('product-search-notes');
+
+  const quantity = parseInt(qtyInput?.value) || 1;
+  const weight = weightInput?.value.trim() || '';
+  const notes = notesInput?.value.trim() || '';
+
+  const added = addProductRow(
+    product.name,
+    product.price,
+    quantity,
+    product.id,
+    product.cost_price || 0,
+    product.image_url || '',
+    weight,
+    notes,
+    { focusWeightEl: weightInput || undefined }
+  );
+
+  if (!added) return;
+
+  showStatus(`✅ Đã thêm: ${product.name}`, 'success');
+  setTimeout(() => {
+    document.getElementById('shopvd-status')?.classList.add('hidden');
+  }, 2000);
+
+  const searchInput = document.getElementById('product-search');
   if (searchInput) searchInput.value = '';
-  if (resultsDiv) resultsDiv.classList.add('hidden');
+  updateProductSearchClearBtn();
+  hideSearchProductForm();
 }
 
 // Helper: Escape HTML
@@ -1947,9 +2267,26 @@ function formatPrice(price) {
 }
 
 function getCartProductsTotal() {
-  return productsData.reduce((sum, p) => {
+  return getValidCartProducts().reduce((sum, p) => {
     return sum + (parseInt(p.price || 0, 10) * parseInt(p.quantity || 1, 10));
   }, 0);
+}
+
+function getValidCartProducts() {
+  return productsData.filter((p) => {
+    const name = String(p.name || '').trim();
+    const price = parseInt(p.price, 10);
+    return name && Number.isFinite(price) && price > 0;
+  });
+}
+
+function validateProductCostVsPrice(price, costPrice) {
+  const priceNum = parseInt(price, 10) || 0;
+  const costNum = parseInt(costPrice, 10) || 0;
+  if (costNum > 0 && priceNum > 0 && costNum >= priceNum) {
+    return 'Giá vốn phải thấp hơn giá bán';
+  }
+  return null;
 }
 
 function getDiscountOrderBaseTotal() {
@@ -1967,6 +2304,53 @@ function calcExtensionDiscountAmount(d, orderTotal, shipFee) {
   if (d.type === 'freeship') return shipFee || 0;
   if (d.type === 'gift') return 0;
   return 0;
+}
+
+function getCachedDiscountByCode(code) {
+  const normalized = String(code || '').trim().toUpperCase();
+  if (!normalized) return null;
+  return allDiscountsCache.find((d) => String(d.code || '').trim().toUpperCase() === normalized) || null;
+}
+
+function validateDiscountLocally(discount, orderAmount) {
+  if (!discount) return null;
+
+  const now = new Date();
+  if (discount.expiry_date && new Date(discount.expiry_date) < now) {
+    return 'Mã giảm giá đã hết hạn';
+  }
+  if (discount.start_date && new Date(discount.start_date) > now) {
+    return 'Mã giảm giá chưa có hiệu lực';
+  }
+  if (discount.min_order_amount && orderAmount < discount.min_order_amount) {
+    return `Đơn hàng tối thiểu ${formatPrice(discount.min_order_amount)}đ`;
+  }
+
+  return null;
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    const text = await response.text();
+    let data = {};
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('[ShopVD Extension] Invalid discount API response:', text.slice(0, 200));
+        throw new Error('Invalid JSON response');
+      }
+    }
+
+    return { response, data };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function getExtensionDiscountValueText(d) {
@@ -2167,6 +2551,18 @@ function addProductRow(name = '', price = '', quantity = 1, productId = null, co
 
   const skipsWeight = catalogProductSkipsWeight(cachedProduct || { category_id: categoryId, category_ids: categoryIds });
 
+  const priceNum = parseInt(price, 10) || 0;
+  const costNum = parseInt(costPrice, 10) || 0;
+  if (!productId) {
+    const costError = validateProductCostVsPrice(priceNum, costNum);
+    if (costError) {
+      if (!options.silentWarning) {
+        showStatus('⚠️ ' + costError, 'warning');
+      }
+      return false;
+    }
+  }
+
   if (name && !normalizedWeight && !skipsWeight) {
     if (!options.silentWarning) {
       showStatus('⚠️ Vui lòng nhập cân nặng trước khi thêm sản phẩm!', 'warning');
@@ -2179,11 +2575,11 @@ function addProductRow(name = '', price = '', quantity = 1, productId = null, co
   
   productsData.push({
     id, 
-    name, 
-    price, 
-    quantity,
+    name: String(name || '').trim(), 
+    price: priceNum,
+    quantity: Math.max(1, parseInt(quantity, 10) || 1),
     product_id: productId,
-    cost_price: costPrice,
+    cost_price: costNum,
     image_url: imageUrl,
     weight: normalizedWeight,
     notes: normalizedNotes,
@@ -2233,17 +2629,18 @@ function updateProduct(productId, field, value) {
 function updateOrderCartUI() {
   const countEl = document.getElementById('order-cart-count');
   const cartEl = document.getElementById('shopvd-order-cart');
-  const validCount = productsData.filter(p => p.name).length;
+  const validCount = getValidCartProducts().length;
 
   if (countEl) countEl.textContent = String(validCount);
   cartEl?.classList.toggle('shopvd-order-cart-empty', validCount === 0);
+  revalidateFieldIfActive('order-products');
 }
 
 function renderProducts() {
   const container = document.getElementById('products-list');
   if (!container) return;
 
-  const validProducts = productsData.filter(p => p.name);
+  const validProducts = getValidCartProducts();
 
   if (validProducts.length === 0) {
     container.innerHTML = '<p class="shopvd-empty-products">Chưa có sản phẩm nào trong đơn.<br><span class="shopvd-empty-products-hint">Chọn sản phẩm ở tab trên và bấm «Thêm vào đơn»</span></p>';
@@ -2301,15 +2698,20 @@ function renderProducts() {
       <!-- Edit Form (Hidden by default) -->
       <div class="shopvd-product-edit-form hidden" data-edit-form="${product.id}">
         <input type="text" placeholder="Tên sản phẩm" value="${escapeHtml(product.name)}" data-field="name" class="shopvd-edit-input">
-        <div class="shopvd-edit-row">
-          <input type="number" placeholder="Giá" value="${product.price}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
+        <div class="shopvd-edit-row shopvd-edit-row-prices">
+          <input type="number" placeholder="Giá bán" value="${product.price}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
+          <input type="number" placeholder="Giá vốn" value="${product.cost_price || 0}" data-field="cost_price" min="0" step="1" class="shopvd-edit-input">
           <input type="number" placeholder="SL" value="${product.quantity}" data-field="quantity" min="1" class="shopvd-edit-input">
         </div>
-        ${skipsWeight ? '' : `<input type="text" placeholder="Cân nặng (vd: 5kg)" value="${escapeHtml(product.weight || '')}" data-field="weight" class="shopvd-edit-input">`}
-        <input type="text" placeholder="Lưu ý..." value="${escapeHtml(product.notes || '')}" data-field="notes" class="shopvd-edit-input">
+        ${skipsWeight
+          ? `<input type="text" placeholder="Lưu ý..." value="${escapeHtml(product.notes || '')}" data-field="notes" class="shopvd-edit-input">`
+          : `<div class="shopvd-edit-row shopvd-edit-row-meta">
+          <input type="text" placeholder="Cân nặng" value="${escapeHtml(product.weight || '')}" data-field="weight" class="shopvd-edit-input">
+          <input type="text" placeholder="Lưu ý..." value="${escapeHtml(product.notes || '')}" data-field="notes" class="shopvd-edit-input">
+        </div>`}
         <div class="shopvd-edit-actions">
-          <button type="button" class="shopvd-btn-save" data-action="save">💾 Lưu</button>
-          <button type="button" class="shopvd-btn-cancel" data-action="cancel">✕ Hủy</button>
+          <button type="button" class="shopvd-btn-save" data-action="save">Lưu</button>
+          <button type="button" class="shopvd-btn-cancel" data-action="cancel">Hủy</button>
         </div>
       </div>
     </div>
@@ -2383,6 +2785,10 @@ function renderProducts() {
               const noteText = value.trim();
               if (noteText) product.notes = noteText;
               else delete product.notes;
+            } else if (field === 'price' || field === 'cost_price') {
+              product[field] = parseInt(value, 10) || 0;
+            } else if (field === 'quantity') {
+              product[field] = Math.max(1, parseInt(value, 10) || 1);
             } else {
               product[field] = value;
             }
@@ -2391,6 +2797,12 @@ function renderProducts() {
           if (skipsWeight) {
             product.weight = '';
             delete product.size;
+          }
+
+          const costError = validateProductCostVsPrice(product.price, product.cost_price);
+          if (costError) {
+            showStatus('⚠️ ' + costError, 'warning');
+            return;
           }
           
           // Re-render and recalculate
@@ -2429,9 +2841,7 @@ function renderProducts() {
 function calculateTotal() {
   const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0);
   const discountAmount = parseInt(document.getElementById('discount-amount')?.value || 0);
-  const productsTotal = productsData.reduce((sum, p) => {
-    return sum + (parseInt(p.price || 0) * parseInt(p.quantity || 1));
-  }, 0);
+  const productsTotal = getCartProductsTotal();
   
   const total = Math.max(0, productsTotal + shippingFee - discountAmount);
   const totalText = total.toLocaleString('vi-VN') + 'đ';
@@ -2455,6 +2865,184 @@ function showStatus(message, type = 'info', autoHideMs = 5000) {
   setTimeout(() => {
     statusEl.classList.add('hidden');
   }, autoHideMs);
+}
+
+// === Order form validation (Phase 1) ===
+let orderFormValidationActive = false;
+
+const VALIDATION_TARGETS = {
+  'customer-name': () => document.getElementById('customer-name'),
+  'customer-phone': () => document.getElementById('customer-phone'),
+  'customer-province': () => document.getElementById('province-combobox-btn'),
+  'customer-ward': () => document.getElementById('ward-combobox-btn'),
+  'customer-street': () => document.getElementById('customer-street'),
+  'order-products': () => document.getElementById('shopvd-order-cart'),
+};
+
+const VALIDATION_FOCUS = {
+  'customer-name': () => document.getElementById('customer-name'),
+  'customer-phone': () => document.getElementById('customer-phone'),
+  'customer-province': () => document.getElementById('province-combobox-btn'),
+  'customer-ward': () => document.getElementById('ward-combobox-btn'),
+  'customer-street': () => document.getElementById('customer-street'),
+  'customer-source': () => document.querySelector('.shopvd-source-btn'),
+  'order-products': () => document.getElementById('shopvd-order-cart'),
+};
+
+const VALIDATION_INPUT_KEYS = new Set([
+  'customer-name',
+  'customer-phone',
+  'customer-street',
+]);
+
+function isValidCustomerPhone(phone) {
+  return /^0\d{8,10}$/.test(phone);
+}
+
+function collectOrderFormValidationErrors() {
+  const errors = [];
+  const push = (key, message) => {
+    errors.push({ key, message });
+  };
+
+  const customerName = document.getElementById('customer-name')?.value.trim() || '';
+  if (!customerName) {
+    push('customer-name', 'Vui lòng nhập tên khách hàng');
+  }
+
+  const customerPhone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value);
+  if (!customerPhone) {
+    push('customer-phone', 'Vui lòng nhập số điện thoại');
+  } else if (!isValidCustomerPhone(customerPhone)) {
+    push('customer-phone', 'Số điện thoại không hợp lệ');
+  }
+
+  const provinceId = document.getElementById('customer-province')?.value;
+  if (!provinceId) {
+    push('customer-province', 'Vui lòng chọn tỉnh/thành phố');
+  }
+
+  const wardId = document.getElementById('customer-ward')?.value;
+  if (!wardId) {
+    push('customer-ward', 'Vui lòng chọn phường/xã');
+  }
+
+  const streetAddress = document.getElementById('customer-street')?.value.trim() || '';
+  if (!streetAddress) {
+    push('customer-street', 'Vui lòng nhập số nhà, tên đường');
+  }
+
+  const customerSource = document.getElementById('customer-source')?.value;
+  if (!customerSource) {
+    push('customer-source', 'Vui lòng chọn nguồn khách');
+  }
+
+  const validCartProducts = getValidCartProducts();
+  if (validCartProducts.length === 0) {
+    push('order-products', 'Vui lòng thêm ít nhất 1 sản phẩm');
+  } else {
+    const missingWeight = validCartProducts.filter(
+      (p) => !cartItemSkipsWeight(p) && !formatWeightSize(p.weight)
+    );
+    if (missingWeight.length > 0) {
+      const names = missingWeight.slice(0, 2).map((p) => p.name).join(', ');
+      const suffix = missingWeight.length > 2 ? '…' : '';
+      push(
+        'order-products',
+        `Còn ${missingWeight.length} sản phẩm chưa có cân nặng${names ? `: ${names}${suffix}` : ''}`
+      );
+    }
+  }
+
+  return errors;
+}
+
+function setValidationFieldError(key, message) {
+  const errorEl = document.getElementById(`validate-error-${key}`);
+  const hasError = Boolean(message);
+
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.hidden = !hasError;
+  }
+
+  if (key === 'customer-source') {
+    document.querySelectorAll('.shopvd-source-btn').forEach((btn) => {
+      btn.classList.toggle('is-invalid', hasError);
+    });
+    return;
+  }
+
+  VALIDATION_TARGETS[key]?.()?.classList.toggle('is-invalid', hasError);
+}
+
+function clearValidationFieldError(key) {
+  setValidationFieldError(key, '');
+}
+
+function clearOrderFormValidationUI() {
+  [...Object.keys(VALIDATION_TARGETS), 'customer-source'].forEach(clearValidationFieldError);
+  document.querySelector('.shopvd-sticky-footer')?.classList.remove('is-validation-shake');
+}
+
+function scrollToValidationField(key) {
+  const focusEl = VALIDATION_FOCUS[key]?.();
+  if (!focusEl) return;
+
+  focusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (typeof focusEl.focus === 'function') {
+    focusEl.focus({ preventScroll: true });
+  }
+}
+
+function focusFirstValidationError(errors) {
+  if (!errors.length) return;
+  scrollToValidationField(errors[0].key);
+}
+
+function applyOrderFormValidation(errors) {
+  orderFormValidationActive = true;
+  clearOrderFormValidationUI();
+  errors.forEach((err) => setValidationFieldError(err.key, err.message));
+  focusFirstValidationError(errors);
+  document.querySelector('.shopvd-sticky-footer')?.classList.add('is-validation-shake');
+}
+
+function revalidateFieldIfActive(key) {
+  if (!orderFormValidationActive) return;
+  const errors = collectOrderFormValidationErrors();
+  const fieldError = errors.find((err) => err.key === key);
+  if (fieldError) {
+    setValidationFieldError(key, fieldError.message);
+  } else {
+    clearValidationFieldError(key);
+  }
+  if (errors.length === 0) {
+    orderFormValidationActive = false;
+    clearOrderFormValidationUI();
+  }
+}
+
+function bindOrderFormValidationListeners() {
+  const form = document.getElementById('shopvd-order-form');
+  if (!form || form.dataset.validationBound === '1') return;
+  form.dataset.validationBound = '1';
+
+  form.addEventListener('input', (e) => {
+    const id = e.target.id;
+    if (VALIDATION_INPUT_KEYS.has(id)) {
+      revalidateFieldIfActive(id);
+    }
+  });
+
+  document.getElementById('customer-street')?.addEventListener('input', () => {
+    revalidateFieldIfActive('customer-street');
+  });
+}
+
+function clearOrderFormValidationOnReset() {
+  orderFormValidationActive = false;
+  clearOrderFormValidationUI();
 }
 
 const PAYMENT_METHOD_LABELS = {
@@ -2495,7 +3083,7 @@ function setCreateOrderLoading(isLoading) {
         <circle cx="12" cy="12" r="9" stroke-opacity="0.25"/>
         <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/>
       </svg>
-      Đang tạo đơn...
+      Đang tạo đơn
     `;
     return;
   }
@@ -2510,7 +3098,6 @@ function setCreateOrderLoading(isLoading) {
 // Create order via API
 async function createOrder(orderData) {
   try {
-    showStatus('⏳ Đang tạo đơn hàng...', 'info', 0);
     setCreateOrderLoading(true);
 
     console.group('[ShopVD Extension] POST /api/order/create');
@@ -2567,14 +3154,23 @@ async function createOrder(orderData) {
       
       // Reset form
       document.getElementById('shopvd-order-form').reset();
+      resetCustomerAddressForm();
+      const smartPasteInput = document.getElementById('shopvd-smart-paste-input');
+      if (smartPasteInput) smartPasteInput.value = '';
+      document.getElementById('shopvd-smart-paste-status')?.classList.add('hidden');
+      document.getElementById('product-search') && (document.getElementById('product-search').value = '');
+      updateProductSearchClearBtn();
+      hideSearchProductForm();
+      document.getElementById('product-search-results')?.classList.add('hidden');
       document.getElementById('send-later-fields')?.classList.add('hidden');
       document.getElementById('shipping-fee').value = defaultCustomerShippingFee;
       document.getElementById('shipping-cost').value = defaultActualShippingCost;
       document.getElementById('deposit-amount').value = '0';
       document.getElementById('discount-amount').value = '0';
       productsData = [];
-      addProductRow(); // Add one default product
+      renderProducts();
       calculateTotal();
+      clearOrderFormValidationOnReset();
 
       // Open shopvd.store in new tab (optional)
       // window.open(`https://shopvd.store/admin/index.html`, '_blank');
@@ -2640,6 +3236,8 @@ function setSidebarCollapsed(collapsed) {
 
 // Setup event listeners
 function setupEventListeners() {
+  bindOrderFormValidationListeners();
+
   document.getElementById('shopvd-toggle')?.addEventListener('click', () => {
     setSidebarCollapsed(true);
   });
@@ -2776,6 +3374,7 @@ function setupEventListeners() {
         // Deselect
         document.getElementById('customer-source').value = '';
       }
+      revalidateFieldIfActive('customer-source');
     });
   });
 
@@ -2791,6 +3390,16 @@ function setupEventListeners() {
     }
     calculateTotal();
   });
+
+  // Manual product quantity stepper
+  const manualQtyInput = document.getElementById('manual-product-quantity');
+  const stepManualQty = (delta) => {
+    if (!manualQtyInput) return;
+    const next = Math.max(1, (parseInt(manualQtyInput.value, 10) || 1) + delta);
+    manualQtyInput.value = String(next);
+  };
+  document.getElementById('manual-product-qty-minus')?.addEventListener('click', () => stepManualQty(-1));
+  document.getElementById('manual-product-qty-plus')?.addEventListener('click', () => stepManualQty(1));
 
   // Submit manual product
   document.getElementById('add-manual-product-submit')?.addEventListener('click', () => {
@@ -2815,7 +3424,14 @@ function setupEventListeners() {
       return;
     }
 
-    const added = addProductRow(name, price, quantity, null, parseInt(costPrice) || 0, '', weight, notes);
+    const costError = validateProductCostVsPrice(price, costPrice);
+    if (costError) {
+      showStatus('⚠️ ' + costError, 'warning');
+      document.getElementById('manual-product-cost')?.focus();
+      return;
+    }
+
+    const added = addProductRow(name, price, quantity, null, parseInt(costPrice, 10) || 0, '', weight, notes);
     if (!added) return;
 
     document.getElementById('manual-product-name').value = '';
@@ -2937,20 +3553,20 @@ function setupEventListeners() {
     document.getElementById('discount-modal')?.classList.add('hidden');
   }
 
-  // Tab switching
-  document.querySelectorAll('.shopvd-tab-btn').forEach(btn => {
+  // Tab switching (scoped to discount modal — tránh ảnh hưởng tab sản phẩm Bán chạy/Tất cả)
+  document.querySelectorAll('#discount-modal .shopvd-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const tab = btn.getAttribute('data-tab');
       
       // Update tabs
-      document.querySelectorAll('.shopvd-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#discount-modal .shopvd-tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
       // Update content
-      document.querySelectorAll('.shopvd-tab-content').forEach(content => {
+      document.querySelectorAll('#discount-modal .shopvd-tab-content').forEach(content => {
         content.classList.remove('active');
       });
-      document.querySelector(`[data-tab-content="${tab}"]`)?.classList.add('active');
+      document.querySelector(`#discount-modal [data-tab-content="${tab}"]`)?.classList.add('active');
 
       if (tab === 'code') {
         loadAndRenderDiscountCodes();
@@ -3034,7 +3650,15 @@ function setupEventListeners() {
   });
 
   // Apply discount
-  document.getElementById('apply-discount-btn')?.addEventListener('click', () => {
+  document.getElementById('apply-discount-btn')?.addEventListener('click', async () => {
+    const activeTab = document.querySelector('#discount-modal .shopvd-tab-btn.active')?.getAttribute('data-tab');
+    if (activeTab === 'code') {
+      const code = document.getElementById('discount-code-input')?.value || '';
+      const ok = await applyExtensionDiscountCode(code);
+      if (ok) closeDiscountModal();
+      return;
+    }
+
     applyDiscount();
     closeDiscountModal();
   });
@@ -3063,7 +3687,11 @@ function setupEventListeners() {
 
     statusEl.textContent = message;
     statusEl.classList.remove('hidden', 'is-error', 'is-success');
-    statusEl.classList.add(type === 'error' ? 'is-error' : type === 'success' ? 'is-success' : '');
+    if (type === 'error') {
+      statusEl.classList.add('is-error');
+    } else if (type === 'success') {
+      statusEl.classList.add('is-success');
+    }
   }
 
   function renderDiscountCodesList() {
@@ -3131,11 +3759,53 @@ function setupEventListeners() {
     renderDiscountCodesList();
   }
 
+  function applyValidatedDiscountToForm(discount, orderAmount, shippingFee) {
+    const discountAmount = calcExtensionDiscountAmount(discount, orderAmount, shippingFee);
+
+    currentDiscountValue = 0;
+    currentDiscountUnit = 'percent';
+    document.querySelectorAll('.shopvd-dm-preset').forEach((b) => b.classList.remove('active'));
+
+    const customInput = document.getElementById('custom-discount-value');
+    if (customInput) customInput.value = '';
+
+    const discountCodeInput = document.getElementById('discount-code');
+    if (discountCodeInput) discountCodeInput.value = discount.code;
+
+    const discountCodeModalInput = document.getElementById('discount-code-input');
+    if (discountCodeModalInput) discountCodeModalInput.value = discount.code;
+
+    const discountAmountInput = document.getElementById('discount-amount');
+    if (discountAmountInput) discountAmountInput.value = discountAmount;
+
+    let displayText = discount.code;
+    if (discount.type === 'percentage') {
+      displayText = `${discount.code} (-${discount.discount_value}%)`;
+    } else if (discount.type === 'fixed') {
+      displayText = `${discount.code} (-${formatPrice(discountAmount)} đ)`;
+    } else if (discount.type === 'freeship') {
+      displayText = `${discount.code} (Miễn ship)`;
+    } else if (discount.type === 'gift') {
+      displayText = `${discount.code} (Quà tặng)`;
+    }
+
+    const discountDisplay = document.getElementById('discount-display');
+    if (discountDisplay) discountDisplay.textContent = displayText;
+
+    updateDiscountBadge(discountAmount);
+    calculateTotal();
+    return discountAmount;
+  }
+
   async function applyExtensionDiscountCode(rawCode) {
     const code = String(rawCode || '').trim().toUpperCase();
     if (!code) {
       setDiscountCodeStatus('Vui lòng nhập mã giảm giá', 'error');
       showStatus('⚠️ Vui lòng nhập mã giảm giá', 'warning');
+      return false;
+    }
+
+    if (discountCodeValidating) {
       return false;
     }
 
@@ -3149,8 +3819,16 @@ function setupEventListeners() {
       return false;
     }
 
+    const cachedDiscount = getCachedDiscountByCode(code);
+    const localError = validateDiscountLocally(cachedDiscount, orderAmount);
+    if (localError) {
+      setDiscountCodeStatus(localError, 'error');
+      showStatus('⚠️ ' + localError, 'warning');
+      return false;
+    }
+
     const applyBtn = document.getElementById('apply-discount-code-btn');
-    const prevBtnText = applyBtn?.textContent || 'Áp dụng';
+    discountCodeValidating = true;
     if (applyBtn) {
       applyBtn.disabled = true;
       applyBtn.textContent = 'Đang kiểm tra…';
@@ -3160,8 +3838,7 @@ function setupEventListeners() {
     try {
       const customerPhone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value || '');
       const validateUrl = `${API_BASE_URL}?action=validateDiscount&code=${encodeURIComponent(code)}&customerPhone=${encodeURIComponent(customerPhone)}&orderAmount=${orderAmount}&timestamp=${Date.now()}`;
-      const response = await fetch(validateUrl);
-      const data = await response.json();
+      const { response, data } = await fetchJsonWithTimeout(validateUrl);
 
       if (!response.ok || !data.success) {
         const errorMessage = data.error || 'Mã giảm giá không hợp lệ';
@@ -3171,33 +3848,13 @@ function setupEventListeners() {
       }
 
       const discount = data.discount;
-      const discountAmount = calcExtensionDiscountAmount(discount, orderAmount, shippingFee);
-
-      currentDiscountValue = 0;
-      currentDiscountUnit = 'percent';
-      document.querySelectorAll('.shopvd-dm-preset').forEach(b => b.classList.remove('active'));
-
-      const customInput = document.getElementById('custom-discount-value');
-      if (customInput) customInput.value = '';
-
-      document.getElementById('discount-code').value = discount.code;
-      document.getElementById('discount-code-input').value = discount.code;
-      document.getElementById('discount-amount').value = discountAmount;
-
-      let displayText = discount.code;
-      if (discount.type === 'percentage') {
-        displayText = `${discount.code} (-${discount.discount_value}%)`;
-      } else if (discount.type === 'fixed') {
-        displayText = `${discount.code} (-${formatPrice(discountAmount)} đ)`;
-      } else if (discount.type === 'freeship') {
-        displayText = `${discount.code} (Miễn ship)`;
-      } else if (discount.type === 'gift') {
-        displayText = `${discount.code} (Quà tặng)`;
+      if (!discount) {
+        setDiscountCodeStatus('Mã giảm giá không hợp lệ', 'error');
+        showStatus('⚠️ Mã giảm giá không hợp lệ', 'warning');
+        return false;
       }
 
-      document.getElementById('discount-display').textContent = displayText;
-      updateDiscountBadge(discountAmount);
-      calculateTotal();
+      applyValidatedDiscountToForm(discount, orderAmount, shippingFee);
       setDiscountCodeStatus(`Đã áp dụng mã ${discount.code}`, 'success');
 
       showStatus(`✅ Áp dụng mã ${discount.code} thành công`, 'success');
@@ -3209,13 +3866,17 @@ function setupEventListeners() {
       return true;
     } catch (error) {
       console.error('[ShopVD Extension] Error validating discount:', error);
-      setDiscountCodeStatus('Lỗi kết nối. Vui lòng thử lại.', 'error');
-      showStatus('⚠️ Lỗi kết nối. Vui lòng thử lại.', 'warning');
+      const errorMessage = error?.name === 'AbortError'
+        ? 'Kiểm tra mã quá lâu. Vui lòng thử lại.'
+        : 'Lỗi kết nối. Vui lòng thử lại.';
+      setDiscountCodeStatus(errorMessage, 'error');
+      showStatus('⚠️ ' + errorMessage, 'warning');
       return false;
     } finally {
+      discountCodeValidating = false;
       if (applyBtn) {
         applyBtn.disabled = false;
-        applyBtn.textContent = prevBtnText;
+        applyBtn.textContent = 'Áp dụng';
       }
     }
   }
@@ -3228,6 +3889,9 @@ function setupEventListeners() {
     const item = e.target.closest('.shopvd-dm-code-item');
     if (!item) return;
 
+    e.preventDefault();
+    e.stopPropagation();
+
     const code = item.getAttribute('data-code');
     const input = document.getElementById('discount-code-input');
     if (input) input.value = code || '';
@@ -3237,7 +3901,10 @@ function setupEventListeners() {
   });
 
   // Apply discount code
-  document.getElementById('apply-discount-code-btn')?.addEventListener('click', async () => {
+  document.getElementById('apply-discount-code-btn')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const code = document.getElementById('discount-code-input')?.value || '';
     const ok = await applyExtensionDiscountCode(code);
     if (ok) closeDiscountModal();
@@ -3246,6 +3913,8 @@ function setupEventListeners() {
   document.getElementById('discount-code-input')?.addEventListener('keydown', async (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
+    e.stopPropagation();
+
     const ok = await applyExtensionDiscountCode(e.target.value);
     if (ok) closeDiscountModal();
   });
@@ -3365,7 +4034,24 @@ function setupEventListeners() {
   // Product search
   document.getElementById('product-search')?.addEventListener('input', (e) => {
     handleProductSearch(e.target.value);
+    updateProductSearchClearBtn();
   });
+
+  document.getElementById('product-search')?.addEventListener('focus', () => {
+    const form = document.getElementById('product-search-form');
+    if (!form?.classList.contains('hidden')) return;
+    restoreSearchResultsIfQuery();
+  });
+
+  document.getElementById('product-search-clear')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearProductSearch();
+  });
+
+  document.getElementById('product-search-form-close')?.addEventListener('click', () => {
+    hideSearchProductForm({ restoreResults: true });
+  });
+  document.getElementById('product-search-add-btn')?.addEventListener('click', addSearchProductToOrder);
 
   // Product tabs
   document.querySelectorAll('.shopvd-product-tab').forEach(tab => {
@@ -3398,6 +4084,7 @@ function setupEventListeners() {
     const resultsDiv = document.getElementById('product-search-results');
     if (searchContainer && resultsDiv && !searchContainer.contains(e.target)) {
       resultsDiv.classList.add('hidden');
+      hideSearchProductForm();
     }
   });
 
@@ -3448,39 +4135,23 @@ function setupEventListeners() {
     const plannedSendTime = document.getElementById('planned-send-time').value;
     const notes = document.getElementById('order-notes').value.trim();
 
-    // Validate
-    if (!customerName || !customerPhone || !customerAddress) {
-      showStatus('⚠️ Vui lòng điền đầy đủ thông tin khách hàng!', 'warning');
+    // Validate — thu thập tất cả lỗi, hiển thị inline + summary
+    const validationErrors = collectOrderFormValidationErrors();
+    if (validationErrors.length > 0) {
+      applyOrderFormValidation(validationErrors);
       return;
     }
-    
-    if (!provinceId || !wardId) {
-      showStatus('⚠️ Vui lòng chọn Tỉnh/Thành phố và Phường/Xã!', 'warning');
-      return;
-    }
-    
-    if (!customerSource) {
-      showStatus('⚠️ Vui lòng chọn Nguồn khách (Zalo/Facebook/TikTok)!', 'warning');
-      return;
-    }
+    clearOrderFormValidationOnReset();
 
-    if (productsData.length === 0 || !productsData.every(p => p.name && p.price)) {
-      showStatus('⚠️ Vui lòng thêm ít nhất 1 sản phẩm hợp lệ!', 'warning');
-      return;
-    }
-
-    if (!productsData.every(p => cartItemSkipsWeight(p) || formatWeightSize(p.weight))) {
-      showStatus('⚠️ Mỗi sản phẩm phải có cân nặng!', 'warning');
-      return;
-    }
+    const validCartProducts = getValidCartProducts();
 
     // Build cart — đồng bộ format desktop (size + notes, không dùng id giả)
-    const cart = productsData.map(p => sanitizeCartItemForSubmit(p));
+    const cart = validCartProducts.map(p => sanitizeCartItemForSubmit(p));
 
     console.group('[ShopVD Extension] Chuẩn bị tạo đơn');
-    console.log('productsData (trước sanitize):', JSON.parse(JSON.stringify(productsData)));
+    console.log('validCartProducts:', JSON.parse(JSON.stringify(validCartProducts)));
     console.log('cart (sau sanitize):', JSON.parse(JSON.stringify(cart)));
-    console.log('Kiểm tra lưu ý SP:', productsData.map((p, i) => ({
+    console.log('Kiểm tra lưu ý SP:', validCartProducts.map((p, i) => ({
       index: i,
       name: p.name,
       notes_local: p.notes ?? '(trống)',
@@ -3559,6 +4230,12 @@ let defaultActualShippingCost = 0;
 const PRICE_THRESHOLD = 120000;  // 120k threshold for high-value products
 const FREESHIP_CAT = 23;  // Sản phẩm bán kèm
 const BI_CHARM_CAT = 24;  // Bi, charm bạc
+const FREESHIP_HINT_DEFAULT = 'Khách không trả phí vận chuyển';
+
+function setFreeshipHintText(hintElement, reason) {
+  if (!hintElement) return;
+  hintElement.textContent = reason || FREESHIP_HINT_DEFAULT;
+}
 
 // Helper: Check if product belongs to a category
 function productInCategory(product, categoryId) {
@@ -3602,8 +4279,7 @@ function autoUpdateFreeshipCheckbox() {
       shippingFeeInput.value = defaultCustomerShippingFee;
       shippingFeeInput.disabled = false;
       if (hintElement) {
-        hintElement.style.display = 'none';
-        hintElement.textContent = '';
+        setFreeshipHintText(hintElement, '');
       }
       calculateTotal();
     }
@@ -3672,23 +4348,21 @@ function autoUpdateFreeshipCheckbox() {
       shippingFeeInput.value = 0;
       shippingFeeInput.disabled = true;
       if (hintElement) {
-        hintElement.textContent = reason;
-        hintElement.style.display = 'block';
+        setFreeshipHintText(hintElement, reason);
       }
     } else {
       shippingFeeInput.value = defaultCustomerShippingFee;
       shippingFeeInput.disabled = false;
       if (hintElement) {
-        hintElement.style.display = 'none';
-        hintElement.textContent = '';
+        setFreeshipHintText(hintElement, '');
       }
     }
     
     calculateTotal();
   } else if (should && hintElement) {
-    // Update hint even if checkbox state didn't change
-    hintElement.textContent = reason;
-    hintElement.style.display = 'block';
+    setFreeshipHintText(hintElement, reason);
+  } else if (!should && hintElement) {
+    setFreeshipHintText(hintElement, '');
   }
 }
 
@@ -3747,6 +4421,11 @@ async function loadShippingFees() {
 }
 
 function init() {
+  if (!isAllowedPage()) {
+    removeSidebarIfPresent();
+    return;
+  }
+
   // Check if sidebar already exists
   if (document.getElementById('shopvd-sidebar')) {
     return;
@@ -3765,7 +4444,9 @@ function init() {
 
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', syncSidebarWithPageUrl);
 } else {
-  init();
+  syncSidebarWithPageUrl();
 }
+
+watchPageUrlChanges();

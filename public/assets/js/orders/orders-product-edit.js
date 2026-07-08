@@ -16,25 +16,23 @@ function removeProductFromOrder(index) {
     showToast('Đã xóa sản phẩm', 'info');
 }
 
-// Edit product in order
+/** Đổi sản phẩm trên đơn đang soạn → chọn SP khác từ kho (chỉ SP có product_id). */
+function replaceProductInOrder(index) {
+    const product = currentOrderProducts[index];
+    if (!product) return;
+    if (!product.product_id) {
+        showToast('Sản phẩm tùy chỉnh không thể đổi — hãy sửa thông tin hoặc xóa rồi thêm mới', 'info');
+        return;
+    }
+    if (typeof showProductSelectionModalForLocalEdit === 'function') {
+        showProductSelectionModalForLocalEdit(index);
+    }
+}
+
+/** Sửa toàn bộ thông tin dòng SP trên đơn (mọi loại SP). */
 function editProductInOrder(index) {
     const product = currentOrderProducts[index];
     if (!product) return;
-
-    // SP có trong database (có product_id) → mở modal "Chọn sản phẩm" để dễ chỉnh sửa / thay thế.
-    // SP tùy chỉnh (tự nhập, không có product_id) → giữ modal nhập tay bên dưới.
-    if (product.product_id && typeof showProductSelectionModalForLocalEdit === 'function') {
-        showProductSelectionModalForLocalEdit(index);
-        return;
-    }
-
-    console.log('🔧 editProductInOrder - Opening modal for product:', {
-        index,
-        product: JSON.parse(JSON.stringify(product)),
-        price: product.price,
-        cost_price: product.cost_price,
-        quantity: product.quantity
-    });
 
     const qtyInit = parseInt(product.quantity, 10) || 1;
     const unitPriceInit = parsePrice(product.price);
@@ -154,14 +152,6 @@ function editProductInOrder(index) {
     editOrderUnitPrice = parsePrice(product.price);
     editOrderUnitCost = parsePrice(product.cost_price);
 
-    console.log('💰 Initialized unit prices:', {
-        editOrderUnitPrice,
-        editOrderUnitCost,
-        quantity: product.quantity,
-        expectedTotalPrice: editOrderUnitPrice * (product.quantity || 1),
-        expectedTotalCost: editOrderUnitCost * (product.quantity || 1)
-    });
-
     // Focus first input
     setTimeout(() => {
         document.getElementById('editProductName')?.focus();
@@ -188,14 +178,6 @@ function updateEditModalDisplay() {
 
     const quantity = parseInt(quantityInput.value) || 1;
 
-    console.log('📊 updateEditModalDisplay called:', {
-        quantity,
-        editOrderUnitPrice,
-        editOrderUnitCost,
-        calculatedTotalPrice: editOrderUnitPrice * quantity,
-        calculatedTotalCost: editOrderUnitCost * quantity
-    });
-
     // Hiển thị tổng tiền (đơn giá × SL), format 90.000
     if (editOrderUnitPrice > 0) {
         priceInput.value = formatVnIntegerString(editOrderUnitPrice * quantity);
@@ -207,11 +189,6 @@ function updateEditModalDisplay() {
     } else {
         costPriceInput.value = '';
     }
-
-    console.log('✅ Updated input values:', {
-        priceInputValue: priceInput.value,
-        costPriceInputValue: costPriceInput.value
-    });
 
     // Update unit price labels
     updateUnitPriceLabels(quantity);
@@ -246,8 +223,6 @@ function updateUnitPriceLabels(quantity) {
 function calculateEditProfit(sourceField = null) {
     if (editOrderIsUpdating) return;
 
-    console.log('🧮 calculateEditProfit called:', { sourceField });
-
     const priceInput = document.getElementById('editProductPrice');
     const costPriceInput = document.getElementById('editProductCostPrice');
     const quantityInput = document.getElementById('editProductQty');
@@ -258,43 +233,23 @@ function calculateEditProfit(sourceField = null) {
     const currentPriceValue = parsePrice(priceInput.value);
     const currentCostValue = parsePrice(costPriceInput.value);
 
-    console.log('📥 Current values:', {
-        quantity,
-        currentPriceValue,
-        currentCostValue,
-        editOrderUnitPrice_before: editOrderUnitPrice,
-        editOrderUnitCost_before: editOrderUnitCost
-    });
-
-    // When user edits price/cost directly, update unit price
     if (sourceField === 'price') {
         editOrderUnitPrice = currentPriceValue / quantity;
-        console.log('💵 Updated unit price:', editOrderUnitPrice);
     }
     if (sourceField === 'cost') {
         editOrderUnitCost = currentCostValue / quantity;
-        console.log('💰 Updated unit cost:', editOrderUnitCost);
     }
 
-    // When quantity changes, recalculate total prices
     if (sourceField === 'quantity') {
-        console.log('🔢 Quantity changed, recalculating totals...');
         editOrderIsUpdating = true;
         if (editOrderUnitPrice > 0) {
             priceInput.value = formatVnIntegerString(editOrderUnitPrice * quantity);
-            console.log('  → New total price (formatted)');
         }
         if (editOrderUnitCost > 0) {
             costPriceInput.value = formatVnIntegerString(editOrderUnitCost * quantity);
-            console.log('  → New total cost (formatted)');
         }
         editOrderIsUpdating = false;
     }
-
-    console.log('📤 Final unit prices:', {
-        editOrderUnitPrice,
-        editOrderUnitCost
-    });
 
     // Update unit price labels
     updateUnitPriceLabels(quantity);
@@ -310,16 +265,6 @@ function saveEditedProduct(index) {
     const sizeRaw = document.getElementById('editProductSize')?.value.trim() || '';
     const size = normalizeOrderItemSizeClient(sizeRaw || null);
     const notes = document.getElementById('editProductNotes')?.value.trim();
-
-    console.log('💾 saveEditedProduct called:', {
-        index,
-        name,
-        quantity,
-        unitPrice: price,
-        unitCost: costPrice,
-        size,
-        notes
-    });
 
     if (!name) {
         showToast('Vui lòng nhập tên sản phẩm', 'warning');
@@ -350,9 +295,11 @@ function saveEditedProduct(index) {
         delete currentOrderProducts[index].size;
     }
     delete currentOrderProducts[index].weight; // normalize: sau khi edit chỉ dùng size
-    if (notes) currentOrderProducts[index].notes = notes;
-
-    console.log('✅ Product saved:', currentOrderProducts[index]);
+    if (notes) {
+        currentOrderProducts[index].notes = notes;
+    } else {
+        delete currentOrderProducts[index].notes;
+    }
 
     closeEditProductModal();
     renderOrderProducts();
