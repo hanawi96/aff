@@ -441,19 +441,39 @@ function createSidebar() {
             <small style="color: #64748b; font-size: 11px;">Khách đã cọc — COD chỉ thu phần còn lại</small>
           </div>
           
-          <!-- Phí ship & Miễn phí -->
-          <div class="shopvd-grid-2">
-            <div class="shopvd-form-group">
-              <label>PHÍ SHIP (KHÁCH TRẢ)</label>
-              <input type="number" id="shipping-fee" value="0" min="0" step="1000">
-              <small style="color: #64748b; font-size: 11px;">Số tiền khách thanh toán</small>
+          <!-- Phí ship (badge) & Miễn phí -->
+          <div class="shopvd-shipping-row">
+            <div class="shopvd-shipping-row-head">
+              <span class="shopvd-shipping-row-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="3" width="15" height="13"/>
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/>
+                  <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+              </span>
+              <span class="shopvd-shipping-row-title">Phí ship</span>
             </div>
-
-            <div class="shopvd-form-group">
-              <label>CHI PHÍ SHIP (COST)</label>
-              <input type="number" id="shipping-cost" value="0" min="0" step="1000">
-              <small style="color: #64748b; font-size: 11px;">Chi phí trả đơn vị vận chuyển</small>
+            <div class="shopvd-shipping-badges">
+              <button type="button" class="shopvd-shipping-badge" id="shipping-fee-badge" data-shipping-field="fee" title="Phí ship khách trả — bấm để sửa">
+                <span class="shopvd-shipping-badge-kicker">Khách trả</span>
+                <span class="shopvd-shipping-badge-value" id="shipping-fee-display">0đ</span>
+              </button>
+              <button type="button" class="shopvd-shipping-badge shopvd-shipping-badge-cost" id="shipping-cost-badge" data-shipping-field="cost" title="Chi phí ship thực tế — bấm để sửa">
+                <span class="shopvd-shipping-badge-kicker">Cost</span>
+                <span class="shopvd-shipping-badge-value" id="shipping-cost-display">0đ</span>
+              </button>
             </div>
+            <div id="shipping-edit-popover" class="shopvd-shipping-popover hidden" role="dialog" aria-modal="true" aria-labelledby="shipping-edit-label">
+              <label id="shipping-edit-label" for="shipping-edit-input">Phí ship khách trả</label>
+              <input type="number" id="shipping-edit-input" min="0" step="1000" inputmode="numeric">
+              <div class="shopvd-shipping-popover-actions">
+                <button type="button" class="shopvd-shipping-popover-cancel" id="shipping-edit-cancel">Hủy</button>
+                <button type="button" class="shopvd-shipping-popover-save" id="shipping-edit-save">Lưu</button>
+              </div>
+            </div>
+            <input type="hidden" id="shipping-fee" value="0">
+            <input type="hidden" id="shipping-cost" value="0">
           </div>
           
           <!-- Free Shipping -->
@@ -499,36 +519,61 @@ function createSidebar() {
             <p class="shopvd-field-error" id="validate-error-customer-source" hidden role="alert"></p>
           </div>
           
-          <div class="shopvd-grid-2">
-            <div class="shopvd-form-group">
-              <label>Mã CTV</label>
-              <input type="text" id="referral-code" placeholder="Mã cộng tác viên">
-            </div>
-
-            <div class="shopvd-form-group">
-              <label>Mã giảm giá</label>
-              <input type="text" id="discount-code" placeholder="GIAMGIA20">
-              <input type="hidden" id="discount-amount" value="0">
-            </div>
+          <div class="shopvd-form-group">
+            <label>Mã CTV</label>
+            <input type="text" id="referral-code" placeholder="Mã cộng tác viên">
           </div>
 
-          <div class="shopvd-options-stack">
-            <button type="button" id="open-discount-modal" class="shopvd-option-card shopvd-option-card-discount">
-              <span class="shopvd-option-icon shopvd-option-icon-discount" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="shopvd-discount-panel" id="shopvd-discount-panel">
+            <div class="shopvd-discount-panel-head">
+              <span class="shopvd-discount-panel-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                   <line x1="7" y1="7" x2="7.01" y2="7"/>
                 </svg>
               </span>
-              <span class="shopvd-option-body">
-                <span class="shopvd-option-title">Chọn ưu đãi</span>
-                <span class="shopvd-option-desc shopvd-option-desc-accent" id="discount-display">Chưa áp dụng</span>
-              </span>
-              <svg class="shopvd-option-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
+              <span class="shopvd-discount-panel-title">Ưu đãi & giảm giá</span>
+            </div>
 
+            <div id="discount-applied-bar" class="shopvd-discount-applied hidden">
+              <div class="shopvd-discount-applied-main">
+                <span class="shopvd-discount-applied-dot" aria-hidden="true"></span>
+                <span class="shopvd-discount-applied-text">
+                  <span id="discount-display">Chưa áp dụng</span>
+                  <strong id="discount-applied-amount"></strong>
+                </span>
+              </div>
+              <button type="button" class="shopvd-discount-applied-remove" id="discount-applied-remove" title="Xóa giảm giá" aria-label="Xóa giảm giá">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div id="discount-entry" class="shopvd-discount-entry">
+              <div class="shopvd-discount-code-row">
+                <input type="text" id="discount-code-quick" placeholder="Nhập mã giảm giá" autocomplete="off" spellcheck="false">
+                <button type="button" id="discount-code-quick-apply" class="shopvd-discount-code-apply">Áp dụng</button>
+              </div>
+              <p id="discount-quick-status" class="shopvd-discount-quick-status hidden" role="status"></p>
+
+              <div class="shopvd-discount-quick-actions">
+                <div class="shopvd-discount-inline-presets" id="discount-inline-presets">
+                  <span class="shopvd-discount-inline-empty">Thêm SP để gợi ý giảm</span>
+                </div>
+                <button type="button" id="open-discount-modal" class="shopvd-discount-more-btn" data-open-tab="custom">
+                  Thêm tùy chọn
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button type="button" class="shopvd-discount-more-btn shopvd-discount-codes-btn" id="open-discount-codes" data-open-tab="code">
+                  Danh sách mã
+                </button>
+              </div>
+            </div>
+
+            <input type="hidden" id="discount-code">
+            <input type="hidden" id="discount-amount" value="0">
+          </div>
+
+          <div class="shopvd-options-stack">
             <label class="shopvd-option-card shopvd-option-card-priority">
               <span class="shopvd-option-icon shopvd-option-icon-priority" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -684,14 +729,7 @@ function createSidebar() {
 
           <!-- Tab Mã giảm giá -->
           <div class="shopvd-tab-content" data-tab-content="code">
-            <div class="shopvd-dm-section">
-              <div class="shopvd-dm-section-label">Nhập mã giảm giá</div>
-              <div class="shopvd-dm-code-row">
-                <input type="text" id="discount-code-input" placeholder="Nhập mã..." class="shopvd-dm-code-input">
-                <button type="button" id="apply-discount-code-btn" class="shopvd-dm-code-btn">Áp dụng</button>
-              </div>
-              <p class="shopvd-dm-code-hint">Nhập mã và bấm Áp dụng để kiểm tra.</p>
-            </div>
+            <p class="shopvd-dm-code-browse-hint">Nhập mã ở ô trên form đơn, hoặc chọn trực tiếp từ danh sách:</p>
 
             <div class="shopvd-dm-section shopvd-dm-codes-section">
               <div class="shopvd-dm-section-label">Mã đang hoạt động</div>
@@ -2837,6 +2875,37 @@ function renderProducts() {
   updateOrderCartUI();
 }
 
+function computeCashDiscountSuggestions(base) {
+  const rounded = Math.max(0, Math.round(base));
+  if (rounded < 1000) return [];
+
+  const k = Math.floor(rounded / 1000) % 10;
+  const n0 = k === 0 ? 10 : k;
+  return [n0, n0 + 10, n0 + 20].map((n) => n * 1000);
+}
+
+function renderInlineDiscountPresets() {
+  const container = document.getElementById('discount-inline-presets');
+  if (!container) return;
+
+  const productsTotal = getCartProductsTotal();
+  const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10);
+  const base = Math.max(0, Math.round(productsTotal + shippingFee));
+  const suggestions = computeCashDiscountSuggestions(base);
+  const appliedAmount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
+
+  if (!suggestions.length) {
+    container.innerHTML = '<span class="shopvd-discount-inline-empty">Thêm SP để gợi ý giảm</span>';
+    return;
+  }
+
+  container.innerHTML = suggestions.map((amount) => {
+    const disabled = amount >= base;
+    const isActive = !disabled && appliedAmount === amount;
+    return `<button type="button" class="shopvd-discount-inline-preset${isActive ? ' active' : ''}${disabled ? ' is-disabled' : ''}" data-type="amount" data-value="${amount}"${disabled ? ' disabled' : ''}>-${formatPrice(amount)}đ</button>`;
+  }).join('');
+}
+
 // Calculate total amount
 function calculateTotal() {
   const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0);
@@ -2849,6 +2918,8 @@ function calculateTotal() {
   if (stickyTotal) {
     stickyTotal.textContent = totalText;
   }
+
+  renderInlineDiscountPresets();
 }
 
 // Show status message
@@ -3163,10 +3234,20 @@ async function createOrder(orderData) {
       hideSearchProductForm();
       document.getElementById('product-search-results')?.classList.add('hidden');
       document.getElementById('send-later-fields')?.classList.add('hidden');
-      document.getElementById('shipping-fee').value = defaultCustomerShippingFee;
-      document.getElementById('shipping-cost').value = defaultActualShippingCost;
+      setShippingFeeValue(defaultCustomerShippingFee, { recalc: false });
+      setShippingCostValue(defaultActualShippingCost, { recalc: false });
       document.getElementById('deposit-amount').value = '0';
       document.getElementById('discount-amount').value = '0';
+      document.getElementById('discount-code').value = '';
+      const discountQuickInput = document.getElementById('discount-code-quick');
+      if (discountQuickInput) discountQuickInput.value = '';
+      const discountDisplay = document.getElementById('discount-display');
+      if (discountDisplay) discountDisplay.textContent = 'Chưa áp dụng';
+      document.getElementById('discount-applied-bar')?.classList.add('hidden');
+      document.getElementById('discount-entry')?.classList.remove('hidden');
+      document.getElementById('shopvd-discount-panel')?.classList.remove('is-applied');
+      document.getElementById('discount-quick-status')?.classList.add('hidden');
+      document.getElementById('current-discount-badge')?.classList.add('hidden');
       productsData = [];
       renderProducts();
       calculateTotal();
@@ -3380,16 +3461,14 @@ function setupEventListeners() {
 
   // Free shipping checkbox
   document.getElementById('free-shipping')?.addEventListener('change', (e) => {
-    const shippingFeeInput = document.getElementById('shipping-fee');
     if (e.target.checked) {
-      shippingFeeInput.value = 0;
-      shippingFeeInput.disabled = true;
+      setShippingFeeValue(0);
     } else {
-      shippingFeeInput.value = defaultCustomerShippingFee;
-      shippingFeeInput.disabled = false;
+      setShippingFeeValue(defaultCustomerShippingFee);
     }
-    calculateTotal();
   });
+
+  setupShippingBadgeListeners();
 
   // Manual product quantity stepper
   const manualQtyInput = document.getElementById('manual-product-quantity');
@@ -3462,45 +3541,78 @@ function setupEventListeners() {
     return currentDiscountValue;
   }
 
-  function clearDiscountSelection() {
-    currentDiscountValue = 0;
-
-    document.querySelectorAll('.shopvd-dm-preset').forEach(b => b.classList.remove('active'));
-
-    const customInput = document.getElementById('custom-discount-value');
-    if (customInput) customInput.value = '';
-
-    const discountAmountInput = document.getElementById('discount-amount');
-    if (discountAmountInput) discountAmountInput.value = '0';
-
-    const discountDisplay = document.getElementById('discount-display');
-    if (discountDisplay) discountDisplay.textContent = 'Chưa áp dụng';
-
-    const discountCodeInput = document.getElementById('discount-code');
-    if (discountCodeInput) discountCodeInput.value = '';
-
-    const discountCodeModalInput = document.getElementById('discount-code-input');
-    if (discountCodeModalInput) discountCodeModalInput.value = '';
-
-    setDiscountCodeStatus('');
-
-    updateDiscountBadge(0);
-    updateDiscountModalTotal();
-    calculateTotal();
+  function syncDiscountCodeInputs(code) {
+    const normalized = String(code || '').trim().toUpperCase();
+    const hiddenInput = document.getElementById('discount-code');
+    const quickInput = document.getElementById('discount-code-quick');
+    if (hiddenInput) hiddenInput.value = normalized;
+    if (quickInput) quickInput.value = normalized;
   }
 
-  function updateDiscountSelectionUI() {
-    const previewAmount = getSelectedDiscountAmount();
-    const appliedAmount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
-    updateDiscountBadge(previewAmount > 0 ? previewAmount : appliedAmount);
-    updateDiscountModalTotal();
+  function setDiscountQuickStatus(message, type = 'info') {
+    const statusEl = document.getElementById('discount-quick-status');
+    if (!statusEl) return;
+
+    if (!message) {
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+      statusEl.classList.remove('is-error', 'is-success');
+      return;
+    }
+
+    statusEl.textContent = message;
+    statusEl.classList.remove('hidden', 'is-error', 'is-success');
+    if (type === 'error') {
+      statusEl.classList.add('is-error');
+    } else if (type === 'success') {
+      statusEl.classList.add('is-success');
+    }
   }
 
-  // Open discount modal
-  document.getElementById('open-discount-modal')?.addEventListener('click', () => {
+  function updateDiscountPanelUI() {
+    const amount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
+    const appliedBar = document.getElementById('discount-applied-bar');
+    const entry = document.getElementById('discount-entry');
+    const panel = document.getElementById('shopvd-discount-panel');
+    const amountEl = document.getElementById('discount-applied-amount');
+
+    if (amount > 0) {
+      appliedBar?.classList.remove('hidden');
+      entry?.classList.add('hidden');
+      panel?.classList.add('is-applied');
+      if (amountEl) amountEl.textContent = `-${formatPrice(amount)}đ`;
+    } else {
+      appliedBar?.classList.add('hidden');
+      entry?.classList.remove('hidden');
+      panel?.classList.remove('is-applied');
+      if (amountEl) amountEl.textContent = '';
+    }
+  }
+
+  function updateDiscountModalFooter() {
+    const activeTab = document.querySelector('#discount-modal .shopvd-tab-btn.active')?.getAttribute('data-tab');
+    const applyBtn = document.getElementById('apply-discount-btn');
+    if (applyBtn) {
+      applyBtn.classList.toggle('hidden', activeTab === 'code');
+    }
+  }
+
+  function openDiscountModal(preferredTab = 'custom') {
     const modal = document.getElementById('discount-modal');
     modal?.classList.remove('hidden');
     generateAmountPresets();
+
+    const tab = preferredTab === 'code' ? 'code' : 'custom';
+    document.querySelectorAll('#discount-modal .shopvd-tab-btn').forEach((b) => {
+      b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+    });
+    document.querySelectorAll('#discount-modal .shopvd-tab-content').forEach((content) => {
+      content.classList.toggle('active', content.getAttribute('data-tab-content') === tab);
+    });
+    if (tab === 'code') {
+      loadAndRenderDiscountCodes();
+    }
+    updateDiscountModalFooter();
 
     // Khôi phục lựa chọn từ giảm giá đã áp dụng
     const appliedAmount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
@@ -3542,6 +3654,115 @@ function setupEventListeners() {
     }
 
     updateDiscountSelectionUI();
+  }
+
+  function applyInlineDiscountPreset(type, value) {
+    const cartTotal = calculateCartTotal();
+    const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10);
+    const orderBase = cartTotal + shippingFee;
+
+    if (orderBase <= 0) {
+      setDiscountQuickStatus('Thêm sản phẩm trước khi giảm giá', 'error');
+      showStatus('⚠️ Thêm sản phẩm trước khi giảm giá', 'warning');
+      return;
+    }
+
+    let discountAmount = 0;
+    if (type === 'percent') {
+      discountAmount = Math.round(cartTotal * value / 100);
+    } else {
+      discountAmount = value;
+    }
+
+    if (discountAmount <= 0 || discountAmount >= orderBase) {
+      setDiscountQuickStatus('Chọn mức giảm nhỏ hơn tổng đơn', 'error');
+      showStatus('⚠️ Chọn mức giảm nhỏ hơn tổng đơn', 'warning');
+      return;
+    }
+
+    currentDiscountUnit = type;
+    currentDiscountValue = value;
+    applyDiscount();
+    setDiscountQuickStatus('');
+  }
+
+  function clearDiscountSelection() {
+    currentDiscountValue = 0;
+
+    document.querySelectorAll('.shopvd-dm-preset').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.shopvd-discount-inline-preset').forEach(b => b.classList.remove('active'));
+
+    const customInput = document.getElementById('custom-discount-value');
+    if (customInput) customInput.value = '';
+
+    const discountAmountInput = document.getElementById('discount-amount');
+    if (discountAmountInput) discountAmountInput.value = '0';
+
+    const discountDisplay = document.getElementById('discount-display');
+    if (discountDisplay) discountDisplay.textContent = 'Chưa áp dụng';
+
+    syncDiscountCodeInputs('');
+    setDiscountCodeStatus('');
+    setDiscountQuickStatus('');
+
+    updateDiscountBadge(0);
+    updateDiscountPanelUI();
+    updateDiscountModalTotal();
+    calculateTotal();
+  }
+
+  function updateDiscountSelectionUI() {
+    const previewAmount = getSelectedDiscountAmount();
+    const appliedAmount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
+    updateDiscountBadge(previewAmount > 0 ? previewAmount : appliedAmount);
+    updateDiscountModalTotal();
+  }
+
+  // Open discount modal
+  document.getElementById('open-discount-modal')?.addEventListener('click', (e) => {
+    const tab = e.currentTarget?.getAttribute('data-open-tab') || 'custom';
+    openDiscountModal(tab);
+  });
+
+  document.getElementById('open-discount-codes')?.addEventListener('click', () => {
+    openDiscountModal('code');
+  });
+
+  document.getElementById('discount-applied-remove')?.addEventListener('click', () => {
+    clearDiscountSelection();
+    showStatus('✅ Đã xóa giảm giá', 'success');
+    setTimeout(() => {
+      const statusEl = document.getElementById('shopvd-status');
+      if (statusEl) statusEl.classList.add('hidden');
+    }, 2000);
+  });
+
+  document.getElementById('discount-code-quick-apply')?.addEventListener('click', async () => {
+    const code = document.getElementById('discount-code-quick')?.value || '';
+    await applyExtensionDiscountCode(code);
+  });
+
+  document.getElementById('discount-code-quick')?.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = e.target.value || '';
+    await applyExtensionDiscountCode(code);
+  });
+
+  document.getElementById('discount-inline-presets')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.shopvd-discount-inline-preset');
+    if (!btn || btn.disabled) return;
+
+    const type = btn.getAttribute('data-type');
+    const value = parseFloat(btn.getAttribute('data-value'));
+    const appliedAmount = parseInt(document.getElementById('discount-amount')?.value || '0', 10);
+
+    if (btn.classList.contains('active') && appliedAmount > 0) {
+      clearDiscountSelection();
+      return;
+    }
+
+    applyInlineDiscountPreset(type, value);
   });
 
   // Close discount modal
@@ -3571,6 +3792,7 @@ function setupEventListeners() {
       if (tab === 'code') {
         loadAndRenderDiscountCodes();
       }
+      updateDiscountModalFooter();
     });
   });
 
@@ -3653,9 +3875,7 @@ function setupEventListeners() {
   document.getElementById('apply-discount-btn')?.addEventListener('click', async () => {
     const activeTab = document.querySelector('#discount-modal .shopvd-tab-btn.active')?.getAttribute('data-tab');
     if (activeTab === 'code') {
-      const code = document.getElementById('discount-code-input')?.value || '';
-      const ok = await applyExtensionDiscountCode(code);
-      if (ok) closeDiscountModal();
+      closeDiscountModal();
       return;
     }
 
@@ -3769,11 +3989,7 @@ function setupEventListeners() {
     const customInput = document.getElementById('custom-discount-value');
     if (customInput) customInput.value = '';
 
-    const discountCodeInput = document.getElementById('discount-code');
-    if (discountCodeInput) discountCodeInput.value = discount.code;
-
-    const discountCodeModalInput = document.getElementById('discount-code-input');
-    if (discountCodeModalInput) discountCodeModalInput.value = discount.code;
+    syncDiscountCodeInputs(discount.code);
 
     const discountAmountInput = document.getElementById('discount-amount');
     if (discountAmountInput) discountAmountInput.value = discountAmount;
@@ -3792,7 +4008,10 @@ function setupEventListeners() {
     const discountDisplay = document.getElementById('discount-display');
     if (discountDisplay) discountDisplay.textContent = displayText;
 
+    document.querySelectorAll('.shopvd-discount-inline-preset').forEach(b => b.classList.remove('active'));
+
     updateDiscountBadge(discountAmount);
+    updateDiscountPanelUI();
     calculateTotal();
     return discountAmount;
   }
@@ -3800,6 +4019,7 @@ function setupEventListeners() {
   async function applyExtensionDiscountCode(rawCode) {
     const code = String(rawCode || '').trim().toUpperCase();
     if (!code) {
+      setDiscountQuickStatus('Vui lòng nhập mã giảm giá', 'error');
       setDiscountCodeStatus('Vui lòng nhập mã giảm giá', 'error');
       showStatus('⚠️ Vui lòng nhập mã giảm giá', 'warning');
       return false;
@@ -3814,6 +4034,7 @@ function setupEventListeners() {
     const orderAmount = cartTotal + shippingFee;
 
     if (orderAmount <= 0) {
+      setDiscountQuickStatus('Thêm sản phẩm trước khi áp dụng mã', 'error');
       setDiscountCodeStatus('Thêm sản phẩm trước khi áp dụng mã', 'error');
       showStatus('⚠️ Thêm sản phẩm trước khi áp dụng mã', 'warning');
       return false;
@@ -3822,17 +4043,19 @@ function setupEventListeners() {
     const cachedDiscount = getCachedDiscountByCode(code);
     const localError = validateDiscountLocally(cachedDiscount, orderAmount);
     if (localError) {
+      setDiscountQuickStatus(localError, 'error');
       setDiscountCodeStatus(localError, 'error');
       showStatus('⚠️ ' + localError, 'warning');
       return false;
     }
 
-    const applyBtn = document.getElementById('apply-discount-code-btn');
+    const quickApplyBtn = document.getElementById('discount-code-quick-apply');
     discountCodeValidating = true;
-    if (applyBtn) {
-      applyBtn.disabled = true;
-      applyBtn.textContent = 'Đang kiểm tra…';
+    if (quickApplyBtn) {
+      quickApplyBtn.disabled = true;
+      quickApplyBtn.textContent = 'Đang kiểm tra…';
     }
+    setDiscountQuickStatus('Đang kiểm tra mã…');
     setDiscountCodeStatus('Đang kiểm tra mã…');
 
     try {
@@ -3842,6 +4065,7 @@ function setupEventListeners() {
 
       if (!response.ok || !data.success) {
         const errorMessage = data.error || 'Mã giảm giá không hợp lệ';
+        setDiscountQuickStatus(errorMessage, 'error');
         setDiscountCodeStatus(errorMessage, 'error');
         showStatus('⚠️ ' + errorMessage, 'warning');
         return false;
@@ -3849,12 +4073,14 @@ function setupEventListeners() {
 
       const discount = data.discount;
       if (!discount) {
+        setDiscountQuickStatus('Mã giảm giá không hợp lệ', 'error');
         setDiscountCodeStatus('Mã giảm giá không hợp lệ', 'error');
         showStatus('⚠️ Mã giảm giá không hợp lệ', 'warning');
         return false;
       }
 
       applyValidatedDiscountToForm(discount, orderAmount, shippingFee);
+      setDiscountQuickStatus(`Đã áp dụng mã ${discount.code}`, 'success');
       setDiscountCodeStatus(`Đã áp dụng mã ${discount.code}`, 'success');
 
       showStatus(`✅ Áp dụng mã ${discount.code} thành công`, 'success');
@@ -3869,14 +4095,15 @@ function setupEventListeners() {
       const errorMessage = error?.name === 'AbortError'
         ? 'Kiểm tra mã quá lâu. Vui lòng thử lại.'
         : 'Lỗi kết nối. Vui lòng thử lại.';
+      setDiscountQuickStatus(errorMessage, 'error');
       setDiscountCodeStatus(errorMessage, 'error');
       showStatus('⚠️ ' + errorMessage, 'warning');
       return false;
     } finally {
       discountCodeValidating = false;
-      if (applyBtn) {
-        applyBtn.disabled = false;
-        applyBtn.textContent = 'Áp dụng';
+      if (quickApplyBtn) {
+        quickApplyBtn.disabled = false;
+        quickApplyBtn.textContent = 'Áp dụng';
       }
     }
   }
@@ -3893,29 +4120,9 @@ function setupEventListeners() {
     e.stopPropagation();
 
     const code = item.getAttribute('data-code');
-    const input = document.getElementById('discount-code-input');
-    if (input) input.value = code || '';
+    syncDiscountCodeInputs(code || '');
 
     const ok = await applyExtensionDiscountCode(code);
-    if (ok) closeDiscountModal();
-  });
-
-  // Apply discount code
-  document.getElementById('apply-discount-code-btn')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const code = document.getElementById('discount-code-input')?.value || '';
-    const ok = await applyExtensionDiscountCode(code);
-    if (ok) closeDiscountModal();
-  });
-
-  document.getElementById('discount-code-input')?.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const ok = await applyExtensionDiscountCode(e.target.value);
     if (ok) closeDiscountModal();
   });
 
@@ -3930,22 +4137,14 @@ function setupEventListeners() {
     const container = document.getElementById('amount-presets');
     if (!container) return;
 
-    // Desktop algorithm: dDiscComputeCashSuggestDiscounts
-    // Base = products + shipping (đúng với "Tổng đơn" hiển thị trong modal)
     const base = Math.max(0, Math.round(cartTotal + shippingFee));
-    
-    if (base < 1000) {
+    const suggestions = computeCashDiscountSuggestions(base);
+
+    if (!suggestions.length) {
       container.innerHTML = '<p style="font-size: 12px; color: #9ca3af;">Thêm sản phẩm để xem gợi ý</p>';
       return;
     }
-    
-    // Calculate k = last digit of thousands place
-    const k = Math.floor(base / 1000) % 10;
-    const n0 = k === 0 ? 10 : k;
-    
-    // Generate 3 suggestions: [n0, n0+10, n0+20] * 1000
-    const suggestions = [n0, n0 + 10, n0 + 20].map(n => n * 1000);
-    
+
     container.innerHTML = suggestions.map(amount => {
       // Disable if amount >= base (would result in negative or zero total)
       const disabled = amount >= base;
@@ -3994,9 +4193,9 @@ function setupEventListeners() {
       }
     }
 
-    document.getElementById('discount-code').value = '';
-    document.getElementById('discount-code-input').value = '';
+    syncDiscountCodeInputs('');
     setDiscountCodeStatus('');
+    setDiscountQuickStatus('');
     
     // Update hidden discount amount
     document.getElementById('discount-amount').value = discountAmount;
@@ -4006,6 +4205,7 @@ function setupEventListeners() {
     
     // Update badge
     updateDiscountBadge(discountAmount);
+    updateDiscountPanelUI();
     
     // Recalculate total
     calculateTotal();
@@ -4088,9 +4288,6 @@ function setupEventListeners() {
     }
   });
 
-  // Shipping fee change
-  document.getElementById('shipping-fee')?.addEventListener('change', calculateTotal);
-  
   // Discount amount change
   document.getElementById('discount-amount')?.addEventListener('change', calculateTotal);
 
@@ -4225,6 +4422,122 @@ function setupEventListeners() {
 // Global shipping fee defaults (loaded from API)
 let defaultCustomerShippingFee = 21000;
 let defaultActualShippingCost = 0;
+let shippingEditTarget = null;
+
+function getShippingFeeValue() {
+  return parseInt(document.getElementById('shipping-fee')?.value || 0, 10);
+}
+
+function getShippingCostValue() {
+  return parseInt(document.getElementById('shipping-cost')?.value || 0, 10);
+}
+
+function setShippingFeeValue(value, options = {}) {
+  const input = document.getElementById('shipping-fee');
+  if (!input) return;
+  input.value = String(Math.max(0, parseInt(value, 10) || 0));
+  updateShippingBadgeDisplay();
+  if (options.recalc !== false) {
+    calculateTotal();
+  }
+}
+
+function setShippingCostValue(value, options = {}) {
+  const input = document.getElementById('shipping-cost');
+  if (!input) return;
+  input.value = String(Math.max(0, parseInt(value, 10) || 0));
+  updateShippingBadgeDisplay();
+  if (options.recalc !== false) {
+    calculateTotal();
+  }
+}
+
+function updateShippingBadgeDisplay() {
+  const feeDisplay = document.getElementById('shipping-fee-display');
+  const costDisplay = document.getElementById('shipping-cost-display');
+  const feeBadge = document.getElementById('shipping-fee-badge');
+  const isFreeShip = document.getElementById('free-shipping')?.checked;
+
+  if (feeDisplay) feeDisplay.textContent = `${formatPrice(getShippingFeeValue())}đ`;
+  if (costDisplay) costDisplay.textContent = `${formatPrice(getShippingCostValue())}đ`;
+
+  if (feeBadge) {
+    feeBadge.classList.toggle('is-disabled', !!isFreeShip);
+    feeBadge.classList.toggle('is-free', !!isFreeShip);
+  }
+}
+
+function closeShippingEditPopover() {
+  document.getElementById('shipping-edit-popover')?.classList.add('hidden');
+  shippingEditTarget = null;
+}
+
+function openShippingEditPopover(target) {
+  if (target === 'fee' && document.getElementById('free-shipping')?.checked) {
+    return;
+  }
+
+  const popover = document.getElementById('shipping-edit-popover');
+  const input = document.getElementById('shipping-edit-input');
+  const label = document.getElementById('shipping-edit-label');
+  if (!popover || !input || !label) return;
+
+  shippingEditTarget = target;
+  if (target === 'fee') {
+    label.textContent = 'Phí ship khách trả';
+    input.value = String(getShippingFeeValue());
+  } else {
+    label.textContent = 'Chi phí ship thực tế';
+    input.value = String(getShippingCostValue());
+  }
+
+  popover.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function saveShippingEditPopover() {
+  const input = document.getElementById('shipping-edit-input');
+  const value = parseInt(input?.value || 0, 10);
+
+  if (shippingEditTarget === 'fee') {
+    setShippingFeeValue(value);
+  } else if (shippingEditTarget === 'cost') {
+    setShippingCostValue(value);
+  }
+
+  closeShippingEditPopover();
+}
+
+function setupShippingBadgeListeners() {
+  document.getElementById('shipping-fee-badge')?.addEventListener('click', () => {
+    openShippingEditPopover('fee');
+  });
+
+  document.getElementById('shipping-cost-badge')?.addEventListener('click', () => {
+    openShippingEditPopover('cost');
+  });
+
+  document.getElementById('shipping-edit-save')?.addEventListener('click', saveShippingEditPopover);
+  document.getElementById('shipping-edit-cancel')?.addEventListener('click', closeShippingEditPopover);
+
+  document.getElementById('shipping-edit-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveShippingEditPopover();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeShippingEditPopover();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const popover = document.getElementById('shipping-edit-popover');
+    if (!popover || popover.classList.contains('hidden')) return;
+    if (popover.contains(e.target) || e.target.closest('.shopvd-shipping-badge')) return;
+    closeShippingEditPopover();
+  });
+}
 
 // Free shipping constants (sync with desktop m.html)
 const PRICE_THRESHOLD = 120000;  // 120k threshold for high-value products
@@ -4267,21 +4580,20 @@ function isMainProductForFreeship(product) {
 // Auto-update free shipping checkbox based on cart (sync with desktop logic)
 function autoUpdateFreeshipCheckbox() {
   const checkbox = document.getElementById('free-shipping');
-  const shippingFeeInput = document.getElementById('shipping-fee');
   const hintElement = document.getElementById('freeship-hint');
   
-  if (!checkbox || !shippingFeeInput) return;
+  if (!checkbox) return;
   
   // If no products, uncheck and enable input
   if (productsData.length === 0) {
     if (checkbox.checked) {
       checkbox.checked = false;
-      shippingFeeInput.value = defaultCustomerShippingFee;
-      shippingFeeInput.disabled = false;
+      setShippingFeeValue(defaultCustomerShippingFee);
       if (hintElement) {
         setFreeshipHintText(hintElement, '');
       }
-      calculateTotal();
+    } else {
+      updateShippingBadgeDisplay();
     }
     return;
   }
@@ -4345,14 +4657,12 @@ function autoUpdateFreeshipCheckbox() {
     checkbox.checked = should;
     
     if (should) {
-      shippingFeeInput.value = 0;
-      shippingFeeInput.disabled = true;
+      setShippingFeeValue(0, { recalc: false });
       if (hintElement) {
         setFreeshipHintText(hintElement, reason);
       }
     } else {
-      shippingFeeInput.value = defaultCustomerShippingFee;
-      shippingFeeInput.disabled = false;
+      setShippingFeeValue(defaultCustomerShippingFee, { recalc: false });
       if (hintElement) {
         setFreeshipHintText(hintElement, '');
       }
@@ -4389,19 +4699,11 @@ async function loadShippingFees() {
         }
       });
       
-      // Set values in the form
-      const shippingFeeInput = document.getElementById('shipping-fee');
-      const shippingCostInput = document.getElementById('shipping-cost');
+      setShippingFeeValue(customerFee, { recalc: false });
+      setShippingCostValue(actualCost, { recalc: false });
       
-      if (shippingFeeInput) {
-        shippingFeeInput.value = customerFee;
-        console.log('✅ Set shipping-fee to:', customerFee);
-      }
-      
-      if (shippingCostInput) {
-        shippingCostInput.value = actualCost;
-        console.log('✅ Set shipping-cost to:', actualCost);
-      }
+      console.log('✅ Set shipping-fee to:', customerFee);
+      console.log('✅ Set shipping-cost to:', actualCost);
       
       // Update global defaults
       defaultCustomerShippingFee = customerFee;

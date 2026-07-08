@@ -383,11 +383,9 @@ function setupShippingCostSync() {
     // Auto-sync shipping cost with shipping fee (with 5k difference)
     shippingFeeInput.addEventListener('input', function () {
         const fee = parseFloat(this.value) || 0;
-        // Auto-calculate cost as fee - 5000 (but minimum 0)
         const cost = Math.max(0, fee - 5000);
         shippingCostInput.value = cost;
-        
-        // Update order summary
+        if (typeof refreshShippingFeeBadges === 'function') refreshShippingFeeBadges();
         updateOrderSummary();
     });
 }

@@ -18,9 +18,11 @@ function renderBestSellingProductsBox() {
         return;
     }
 
-    // Get TOP 6 BEST SELLING products
+    // TOP 6 bán chạy — loại DM 14, 23, 24 (phụ kiện / bán kèm, không hiển thị ở đây)
+    const bestSellingExcludeCatSet = new Set([14, 23, 24]);
     const bestSellingProducts = allProductsList
         .filter(p => p.is_active !== 0 && (p.purchases || 0) > 0)
+        .filter(p => !catalogProductSkipsWeight(p, bestSellingExcludeCatSet))
         .sort((a, b) => (b.purchases || 0) - (a.purchases || 0))
         .slice(0, 6);
 
@@ -45,6 +47,8 @@ function renderBestSellingProductsBox() {
         { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-700' }
     ];
 
+    const noWeightIdSet = getOrderNoWeightCategoryIdSet();
+
     bestSellingBox.innerHTML = `
         <div class="flex items-center gap-2 mb-2">
             <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
@@ -57,6 +61,16 @@ function renderBestSellingProductsBox() {
         const qtyId = `best_qty_${product.id}`;
         const sizeId = `best_size_${product.id}`;
         const purchases = product.purchases || 0;
+        const skipsWeight = catalogProductSkipsWeight(product, noWeightIdSet);
+
+        const sizeInputHtml = skipsWeight ? '' : `
+                            <input type="text" id="${sizeId}" placeholder="Size" oninput="delete this.dataset.sizeExplicitNull"
+                                class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500" />`;
+        const presetRowHtml = skipsWeight ? '' : `
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            <button type="button" onclick="setQuickProductSize('${sizeId}', null)" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">chưa có</button>
+                            ${[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg => `<button type="button" onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
+                        </div>`;
 
         return `
                     <div class="bg-white border border-orange-200 rounded-lg p-2 hover:border-orange-400 transition-all">
@@ -70,9 +84,8 @@ function renderBestSellingProductsBox() {
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <input type="text" id="${sizeId}" placeholder="Size" oninput="delete this.dataset.sizeExplicitNull"
-                                class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500" />
-                            <div class="flex items-center border border-gray-300 rounded overflow-hidden">
+                            ${sizeInputHtml}
+                            <div class="flex items-center border border-gray-300 rounded overflow-hidden${skipsWeight ? ' flex-1' : ''}">
                                 <button onclick="quickChangeQty('${qtyId}', -1)" class="px-1.5 py-1 bg-gray-50 hover:bg-gray-100">
                                     <svg class="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4" />
@@ -85,15 +98,12 @@ function renderBestSellingProductsBox() {
                                     </svg>
                                 </button>
                             </div>
-                            <button onclick="quickAddProductToOrder(${product.id}, '${escapeHtml(product.name).replace(/'/g, "\\'")}', ${product.price}, ${product.cost_price || 0}, '${qtyId}', '${sizeId}')" 
-                                class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-semibold transition-all">
+                            <button onclick="quickAddProductToOrder(${product.id}, '${escapeHtml(product.name).replace(/'/g, "\\'")}', ${product.price}, ${product.cost_price || 0}, '${qtyId}', ${skipsWeight ? 'null' : `'${sizeId}'`})" 
+                                class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-semibold transition-all${skipsWeight ? ' flex-1' : ''}">
                                 Thêm
                             </button>
                         </div>
-                        <div class="flex flex-wrap gap-1 mt-1.5">
-                            <button type="button" onclick="setQuickProductSize('${sizeId}', null)" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">chưa có</button>
-                            ${[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(kg => `<button type="button" onclick="setQuickProductSize('${sizeId}', '${kg}kg')" class="px-2 py-0.5 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 rounded font-medium transition-colors">${kg}kg</button>`).join('')}
-                        </div>
+                        ${presetRowHtml}
                     </div>
                 `;
     }).join('')}
@@ -245,28 +255,35 @@ function setQuickProductSize(sizeInputId, value) {
 // Quick add product to order (for best selling products)
 function quickAddProductToOrder(productId, productName, price, costPrice, qtyInputId, sizeInputId) {
     const qtyInput = document.getElementById(qtyInputId);
-    const sizeInput = document.getElementById(sizeInputId);
+    const catalogProduct = allProductsList.find(p => p.id === productId);
+    const skipsWeight = catalogProductSkipsWeight(catalogProduct);
 
     const quantity = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-    const rawSize = sizeInput ? sizeInput.value.trim() : '';
-    // "chưa có" (qua preset hoặc gõ tay) → coi như chọn NULL, không lưu chuỗi
-    const explicitNull = (sizeInput?.dataset?.sizeExplicitNull === '1') || rawSize.toLowerCase() === 'chưa có';
-    const sizeTrim = explicitNull ? '' : rawSize;
 
-    if (!sizeTrim && !explicitNull) {
-        showToast('Vui lòng nhập size hoặc chọn "chưa có" trước khi thêm sản phẩm', 'warning');
-        if (sizeInput) {
-            sizeInput.focus();
-            sizeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
-            setTimeout(() => {
-                sizeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
-            }, 2000);
+    let explicitNull = false;
+    let sizeTrim = '';
+
+    if (!skipsWeight) {
+        const sizeInput = sizeInputId ? document.getElementById(sizeInputId) : null;
+        const rawSize = sizeInput ? sizeInput.value.trim() : '';
+        explicitNull = (sizeInput?.dataset?.sizeExplicitNull === '1') || rawSize.toLowerCase() === 'chưa có';
+        sizeTrim = explicitNull ? '' : rawSize;
+
+        if (!sizeTrim && !explicitNull) {
+            showToast('Vui lòng nhập size hoặc chọn "chưa có" trước khi thêm sản phẩm', 'warning');
+            if (sizeInput) {
+                sizeInput.focus();
+                sizeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+                setTimeout(() => {
+                    sizeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+                }, 2000);
+            }
+            return;
         }
-        return;
     }
 
     const product = {
-        product_id: productId,  // CRITICAL: Add product_id for order_items table
+        product_id: productId,
         id: productId,
         name: productName,
         price: price,
@@ -274,7 +291,9 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
         quantity: quantity,
         notes: null
     };
-    if (explicitNull) {
+    if (skipsWeight) {
+        product.size = null;
+    } else if (explicitNull) {
         product.size = null;
     } else {
         product.size = sizeTrim;
@@ -282,20 +301,21 @@ function quickAddProductToOrder(productId, productName, price, costPrice, qtyInp
 
     currentOrderProducts.push(product);
 
-    // Reset quantity to 1 and clear size
     if (qtyInput) {
         qtyInput.value = 1;
     }
-    if (sizeInput) {
-        sizeInput.value = '';
-        delete sizeInput.dataset.sizeExplicitNull;
+    if (sizeInputId) {
+        const sizeInput = document.getElementById(sizeInputId);
+        if (sizeInput) {
+            sizeInput.value = '';
+            delete sizeInput.dataset.sizeExplicitNull;
+        }
     }
 
-    // Re-render products list and update summary
     renderOrderProducts();
     updateOrderSummary();
 
-    const sizeText = explicitNull ? ' (chưa có cân)' : (sizeTrim ? ` (${sizeTrim})` : '');
+    const sizeText = skipsWeight ? '' : (explicitNull ? ' (chưa có cân)' : (sizeTrim ? ` (${sizeTrim})` : ''));
     showToast(`Đã thêm ${quantity}x ${productName}${sizeText}`, 'success');
 }
 

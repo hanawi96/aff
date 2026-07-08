@@ -145,6 +145,7 @@ function removeDiscountCode() {
     // Update order summary
     updateOrderSummary();
 
+    if (typeof refreshDesktopDiscountQuickBadges === 'function') refreshDesktopDiscountQuickBadges();
     showToast('Đã xóa mã giảm giá', 'info');
 }
 

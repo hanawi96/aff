@@ -45,6 +45,65 @@ function dDiscComputeCashSuggestDiscounts(base) {
     });
 }
 
+/** Badge gợi ý giảm nhanh trên form (đồng bộ gợi ý chẵn trong modal). */
+function refreshDesktopDiscountQuickBadges() {
+    const container = document.getElementById('deskDiscQuickBadges');
+    if (!container) return;
+
+    const base = getDesktopDiscBaseTotal();
+    const suggestions = dDiscComputeCashSuggestDiscounts(base);
+    if (!suggestions.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const appliedSrc = document.getElementById('appliedDiscountSource')?.value;
+    const appliedKind = document.getElementById('appliedDiscountManualKind')?.value;
+    const appliedVal = Math.round(parseFloat(document.getElementById('appliedDiscountManualValue')?.value) || 0);
+
+    container.innerHTML = suggestions.map(({ label, amt }) => {
+        const active = appliedSrc === 'manual' && appliedKind === 'fixed' && appliedVal === amt;
+        const cls = active
+            ? 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold border-2 border-violet-500 bg-violet-50 text-violet-800'
+            : 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-violet-200/70 bg-white/90 text-violet-600/80 hover:border-violet-300 hover:text-violet-700 transition-colors';
+        return `<button type="button" onclick="applyDesktopQuickManualDiscount(${amt})" class="${cls}">${escapeHtml(label)}</button>`;
+    }).join('');
+}
+
+/** Áp dụng giảm cố định nhanh từ badge (không mở modal). */
+function applyDesktopQuickManualDiscount(amount) {
+    const base = getDesktopDiscBaseTotal();
+    if (base <= 0) {
+        showToast('Thêm sản phẩm trước', 'warning');
+        return;
+    }
+    const amt = dDiscClampDisc(Math.round(amount), base);
+    if (amt <= 0) {
+        showToast('Số tiền giảm không hợp lệ', 'warning');
+        return;
+    }
+
+    const input = document.getElementById('newOrderDiscountCode');
+    if (input) input.value = '';
+    document.getElementById('appliedDiscountId').value = '';
+    document.getElementById('appliedDiscountCode').value = DESK_MANUAL_DISCOUNT_CODE;
+    document.getElementById('appliedDiscountAmount').value = String(amt);
+    document.getElementById('appliedDiscountType').value = 'manual';
+    const srcEl = document.getElementById('appliedDiscountSource');
+    if (srcEl) srcEl.value = 'manual';
+    document.getElementById('appliedDiscountManualKind').value = 'fixed';
+    document.getElementById('appliedDiscountManualValue').value = String(amt);
+    document.getElementById('appliedDiscountRoundPay').value = '0';
+
+    showDiscountSuccess(
+        { code: DESK_MANUAL_DISCOUNT_CODE, type: 'manual', title: `Giảm cố định · thủ công` },
+        amt
+    );
+    updateOrderSummary();
+    refreshDesktopDiscountQuickBadges();
+    showToast('Đã áp dụng giảm giá', 'success');
+}
+
 function dDiscParseMoneyInput(val) {
     const n = String(val || '').replace(/\./g, '').replace(/,/g, '').replace(/\s/g, '');
     const x = parseInt(n, 10);
@@ -441,6 +500,7 @@ function dDiscCommitManual() {
             : `Giảm cố định · thủ công${ch}`;
     showDiscountSuccess({ code: DESK_MANUAL_DISCOUNT_CODE, type: 'manual', title: desc }, amt);
     updateOrderSummary();
+    refreshDesktopDiscountQuickBadges();
     closeDesktopDiscountSheet();
     showToast('Đã áp dụng giảm thủ công', 'success');
 }

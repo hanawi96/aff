@@ -37,6 +37,99 @@ function getNewOrderDepositAmount() {
  * Update order summary and profit preview
  * Calculates totals, discounts, costs, and profit
  */
+
+/** Cập nhật text badge phí ship (hidden input giữ giá trị thật). */
+function refreshShippingFeeBadges() {
+    const feeInput = document.getElementById('newOrderShippingFee');
+    const costInput = document.getElementById('newOrderShippingCost');
+    const feeBtn = document.getElementById('shippingFeeBadgeBtn');
+    const costBtn = document.getElementById('shippingCostBadgeBtn');
+    if (!feeInput || !costInput) return;
+
+    const fee = parseFloat(feeInput.value) || 0;
+    const cost = parseFloat(costInput.value) || 0;
+    const freeShip = document.getElementById('freeShippingCheckbox')?.checked;
+
+    if (feeBtn) {
+        feeBtn.textContent = freeShip ? 'Khách: Miễn phí' : `Khách: ${formatCurrency(fee)}`;
+        feeBtn.disabled = !!freeShip;
+        feeBtn.classList.toggle('opacity-50', !!freeShip);
+        feeBtn.classList.toggle('cursor-not-allowed', !!freeShip);
+        feeBtn.classList.toggle('pointer-events-none', !!freeShip);
+    }
+    if (costBtn) {
+        costBtn.textContent = `Vốn: ${formatCurrency(cost)}`;
+    }
+}
+
+function startQuickEditShippingField(field) {
+    if (field === 'fee' && document.getElementById('freeShippingCheckbox')?.checked) return;
+
+    const isFee = field === 'fee';
+    const hiddenId = isFee ? 'newOrderShippingFee' : 'newOrderShippingCost';
+    const btnId = isFee ? 'shippingFeeBadgeBtn' : 'shippingCostBadgeBtn';
+    const inputId = isFee ? 'shippingFeeBadgeInput' : 'shippingCostBadgeInput';
+
+    const hidden = document.getElementById(hiddenId);
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    if (!hidden || !btn || !input || input.classList.contains('hidden') === false) return;
+
+    input.value = formatVnIntegerString(parseFloat(hidden.value) || 0);
+    btn.classList.add('hidden');
+    input.classList.remove('hidden');
+
+    const onInput = () => { if (typeof formatVnMoneyInput === 'function') formatVnMoneyInput(input); };
+    const onKeyDown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        else if (e.key === 'Escape') { e.preventDefault(); cancelQuickEditShippingField(field); }
+    };
+    const onBlur = () => commitQuickEditShippingField(field);
+
+    input.addEventListener('input', onInput);
+    input.addEventListener('keydown', onKeyDown);
+    input.addEventListener('blur', onBlur, { once: true });
+
+    input.focus();
+    input.select();
+}
+
+function commitQuickEditShippingField(field) {
+    const isFee = field === 'fee';
+    const hiddenId = isFee ? 'newOrderShippingFee' : 'newOrderShippingCost';
+    const btnId = isFee ? 'shippingFeeBadgeBtn' : 'shippingCostBadgeBtn';
+    const inputId = isFee ? 'shippingFeeBadgeInput' : 'shippingCostBadgeInput';
+
+    const hidden = document.getElementById(hiddenId);
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    if (!hidden || !btn || !input) return;
+
+    hidden.value = String(Math.max(0, parsePrice(input.value)));
+    input.classList.add('hidden');
+    btn.classList.remove('hidden');
+    input.value = '';
+
+    if (isFee) {
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+        refreshShippingFeeBadges();
+        updateOrderSummary();
+    }
+}
+
+function cancelQuickEditShippingField(field) {
+    const isFee = field === 'fee';
+    const btnId = isFee ? 'shippingFeeBadgeBtn' : 'shippingCostBadgeBtn';
+    const inputId = isFee ? 'shippingFeeBadgeInput' : 'shippingCostBadgeInput';
+    document.getElementById(btnId)?.classList.remove('hidden');
+    const input = document.getElementById(inputId);
+    if (input) {
+        input.classList.add('hidden');
+        input.value = '';
+    }
+}
+
 function updateOrderSummary() {
     if (typeof recalcDesktopManualDiscount === 'function') recalcDesktopManualDiscount();
     if (typeof maybeRefreshDesktopDiscountSheet === 'function') maybeRefreshDesktopDiscountSheet();
@@ -250,6 +343,9 @@ function updateOrderSummary() {
         profitMarginEl.className = 'text-xs text-emerald-600 font-medium';
         profitWarningEl.classList.add('hidden');
     }
+
+    refreshShippingFeeBadges();
+    if (typeof refreshDesktopDiscountQuickBadges === 'function') refreshDesktopDiscountQuickBadges();
 }
 
 /** Index dòng đang sửa giá nhanh (null = không có). field: 'unit' | 'total' */

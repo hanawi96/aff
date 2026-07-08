@@ -770,90 +770,91 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             }
                         </style>
 
-                        <!-- Shipping Costs -->
-                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <!-- Shipping Costs (compact badges) -->
+                        <div class="bg-blue-50 rounded-lg px-3 py-2 border border-blue-200">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
                                     </svg>
-                                    <h4 class="text-sm font-bold text-gray-800">Phí vận chuyển</h4>
+                                    <span class="text-xs font-bold text-gray-800">Phí vận chuyển</span>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="inline-flex items-center">
+                                            <button type="button" id="shippingFeeBadgeBtn" onclick="startQuickEditShippingField('fee')"
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/90 border border-blue-200 text-blue-700 hover:bg-white hover:border-blue-300 transition-colors"
+                                                title="Click để sửa phí ship khách trả">Khách: ${formatCurrency(shippingFee)}</button>
+                                            <input type="text" id="shippingFeeBadgeInput" inputmode="numeric" autocomplete="off"
+                                                class="hidden w-[5.5rem] px-1.5 py-0.5 text-[11px] font-semibold border border-blue-400 rounded focus:ring-1 focus:ring-blue-400 outline-none" />
+                                        </span>
+                                        <span class="inline-flex items-center">
+                                            <button type="button" id="shippingCostBadgeBtn" onclick="startQuickEditShippingField('cost')"
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/90 border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 transition-colors"
+                                                title="Click để sửa chi phí ship thực tế">Vốn: ${formatCurrency(shippingCost)}</button>
+                                            <input type="text" id="shippingCostBadgeInput" inputmode="numeric" autocomplete="off"
+                                                class="hidden w-[5.5rem] px-1.5 py-0.5 text-[11px] font-semibold border border-slate-400 rounded focus:ring-1 focus:ring-slate-400 outline-none" />
+                                        </span>
+                                    </div>
                                 </div>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="freeShippingCheckbox" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleFreeShipping()" />
-                                    <span class="text-xs font-semibold text-green-700">Miễn phí ship</span>
+                                <label class="flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <input type="checkbox" id="freeShippingCheckbox" class="w-3.5 h-3.5 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleFreeShipping()" />
+                                    <span class="text-[11px] font-semibold text-green-700">Miễn phí ship</span>
                                 </label>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Phí ship khách trả</label>
-                                    <div class="relative">
-                                        <input type="number" id="newOrderShippingFee" min="0" step="1000" value="${shippingFee}" placeholder="30000" class="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="updateOrderSummary()" />
-                                        <span class="absolute right-3 top-2 text-xs text-gray-500">đ</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Số tiền khách thanh toán</p>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-700 mb-1.5">Chi phí ship thực tế</label>
-                                    <div class="relative">
-                                        <input type="number" id="newOrderShippingCost" min="0" step="1000" value="${shippingCost}" placeholder="25000" class="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="updateOrderSummary()" />
-                                        <span class="absolute right-3 top-2 text-xs text-gray-500">đ</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Chi phí trả đơn vị vận chuyển</p>
-                                </div>
-                            </div>
+                            <input type="hidden" id="newOrderShippingFee" value="${shippingFee}" />
+                            <input type="hidden" id="newOrderShippingCost" value="${shippingCost}" />
                         </div>
 
-                        <!-- Discount Code Section - Compact -->
-                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2.5 border border-purple-200">
-                            <div class="flex items-center gap-1.5 mb-2">
-                                <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                </svg>
-                                <h4 class="text-sm font-semibold text-gray-800">Mã giảm giá</h4>
-                                <span class="text-xs text-gray-500">(tùy chọn)</span>
-                            </div>
-                            
-                            <div class="flex gap-2">
-                                <div class="flex-1 relative">
-                                    <input 
-                                        type="text" 
-                                        id="newOrderDiscountCode" 
-                                        placeholder="NHẬP MÃ HOẶC CHỌN TỪ DANH SÁCH" 
-                                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase font-medium"
-                                        oninput="this.value = this.value.toUpperCase()"
-                                    />
-                                </div>
-                                <button 
-                                    type="button"
-                                    onclick="openDesktopDiscountSheet(event)"
-                                    class="px-3 py-1.5 bg-white border border-purple-300 text-purple-600 text-sm font-semibold rounded-lg hover:bg-purple-50 transition-all flex items-center gap-1.5 whitespace-nowrap"
-                                    title="Chọn ưu đãi (mã có sẵn / giảm tùy chỉnh)"
-                                >
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        <!-- Discount — Ưu đãi & giảm giá -->
+                        <div class="bg-violet-50/90 rounded-xl px-3 py-2.5 border border-violet-200/80">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-600 flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
                                     </svg>
-                                    Chọn
-                                </button>
-                                <button 
+                                </span>
+                                <h4 class="text-sm font-bold text-violet-900">Ưu đãi & giảm giá</h4>
+                            </div>
+
+                            <div class="flex gap-2 mb-2">
+                                <input
+                                    type="text"
+                                    id="newOrderDiscountCode"
+                                    placeholder="Nhập mã giảm giá"
+                                    class="flex-1 min-w-0 px-3 py-1.5 text-sm bg-white border border-violet-200/80 rounded-lg focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 uppercase font-medium placeholder:normal-case placeholder:font-normal"
+                                    oninput="this.value = this.value.toUpperCase()"
+                                />
+                                <button
                                     type="button"
                                     onclick="applyDiscountCode()"
-                                    class="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                    class="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
                                 >
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                                    </svg>
                                     Áp dụng
                                 </button>
                             </div>
-                            <p class="text-[11px] text-gray-500 leading-snug mt-2 flex flex-wrap items-center gap-x-1">
-                                <span>Chọn</span>
-                                <button type="button" class="font-semibold text-purple-600 hover:text-purple-800" onclick="openDesktopDiscountSheet(event, 'codes')">mã có sẵn</button>
-                                <span>hoặc</span>
-                                <button type="button" class="font-semibold text-purple-600 hover:text-purple-800" onclick="openDesktopDiscountSheet(event, 'manual')">giảm tùy chỉnh</button>
-                                <span>— chỉ một hình thức.</span>
-                            </p>
+
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                                    <div id="deskDiscQuickBadges" class="flex items-center gap-1.5 flex-wrap"></div>
+                                    <button
+                                        type="button"
+                                        onclick="openDesktopDiscountSheet(event, 'manual')"
+                                        class="inline-flex items-center gap-0.5 text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors whitespace-nowrap"
+                                    >
+                                        Thêm tùy chọn
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="openDesktopDiscountSheet(event, 'codes')"
+                                    class="text-xs font-medium text-gray-500 hover:text-violet-700 transition-colors whitespace-nowrap flex-shrink-0"
+                                >
+                                    Danh sách mã
+                                </button>
+                            </div>
 
                             <!-- Discount Status Display -->
                             <div id="discountStatus" class="mt-2 hidden">
@@ -1217,6 +1218,8 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
     setTimeout(() => {
         setupCustomerCheck();
         setupShippingCostSync();
+        if (typeof refreshShippingFeeBadges === 'function') refreshShippingFeeBadges();
+        if (typeof refreshDesktopDiscountQuickBadges === 'function') refreshDesktopDiscountQuickBadges();
         initAddressSelector(duplicateData);
 
         if (duplicateData?.discount_code || (duplicateData?.discount_amount > 0 && isEdit)) {
@@ -1356,20 +1359,15 @@ function toggleFreeShipping() {
     if (!checkbox || !shippingFeeInput) return;
 
     if (checkbox.checked) {
-        // Enable free shipping - only set customer fee to 0
         shippingFeeInput.value = '0';
-        shippingFeeInput.disabled = true;
-        shippingFeeInput.classList.add('bg-gray-100', 'cursor-not-allowed');
     } else {
-        // Disable free shipping - restore default value
         const customerShippingFeeItem = packagingConfig.find(item => item.item_name === 'customer_shipping_fee');
         const defaultShippingFee = customerShippingFeeItem ? customerShippingFeeItem.item_cost : 30000;
         shippingFeeInput.value = defaultShippingFee;
-        shippingFeeInput.disabled = false;
-        shippingFeeInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+        shippingFeeInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    // Update order summary
+    if (typeof refreshShippingFeeBadges === 'function') refreshShippingFeeBadges();
     updateOrderSummary();
 }
 
