@@ -2,6 +2,7 @@ import { jsonResponse } from '../../utils/response.js';
 import { sendOrderNotification } from '../notifications/telegram-service.js';
 import { computeOrderSnapshot, insertOrderLineItems, isBankPaymentMethod, normalizeDepositAmount, computeCodCollectAmount, normalizeCustomerSource } from './order-persist-helpers.js';
 import { findRecentDuplicateOrders } from '../../utils/order-duplicate-check.js';
+import { resolvePendingUnsavedByPhone } from './pending-unsaved-service.js';
 
 /** Shape đầy đủ giống getRecentOrders — dùng trả về sau tạo/sửa đơn desktop. */
 async function fetchOrderRowForList(env, orderDbId) {
@@ -119,6 +120,16 @@ export async function createOrder(data, env, corsHeaders) {
             await insertOrderLineItems(env, insertedOrderId, snap.itemsData, orderDate);
         } catch (itemsError) {
             console.error('Error inserting order items:', itemsError);
+        }
+
+        // Clear "chưa lưu" pending for this phone (extension / admin / phone — mọi kênh tạo đơn)
+        try {
+            await resolvePendingUnsavedByPhone(env, data.customer.phone, {
+                orderDbId: insertedOrderId,
+                orderCode: data.orderId,
+            });
+        } catch (pendingErr) {
+            console.warn('⚠️ resolvePendingUnsavedByPhone:', pendingErr?.message || pendingErr);
         }
 
         const discountCode = snap.discountCode;
@@ -647,6 +658,15 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             } catch (discountError) {
                 console.error('duplicateOrderByDbId: discount_usage insert', discountError);
             }
+        }
+
+        try {
+            await resolvePendingUnsavedByPhone(env, orderData.customer.phone, {
+                orderDbId: insertedOrderId,
+                orderCode: newOrderId,
+            });
+        } catch (pendingErr) {
+            console.warn('duplicateOrderByDbId resolvePending:', pendingErr?.message || pendingErr);
         }
 
         console.log(`duplicateOrderByDbId: ${sourceOrderDbId} -> ${insertedOrderId} (${newOrderId})`);

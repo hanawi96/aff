@@ -24,6 +24,11 @@ import {
 } from '../services/ctv/custom-slug.js';
 
 // Orders
+import {
+    upsertPendingUnsaved,
+    dismissPendingUnsaved,
+} from '../services/orders/pending-unsaved-service.js';
+
 import { 
     createOrder,
     duplicateOrderByDbId,
@@ -459,6 +464,14 @@ export async function handlePost(path, request, env, corsHeaders) {
 
     if (path === '/api/order/duplicate') {
         return await duplicateOrderByDbId(data, env, corsHeaders);
+    }
+
+    if (path === '/api/order/pending-unsaved/upsert') {
+        return await upsertPendingUnsaved(data, env, corsHeaders);
+    }
+
+    if (path === '/api/order/pending-unsaved/dismiss') {
+        return await dismissPendingUnsaved(data, env, corsHeaders);
     }
     
     if (path === '/api/ctv/update-commission') {

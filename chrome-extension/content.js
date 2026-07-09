@@ -12,6 +12,72 @@ function isAllowedPage() {
 function removeSidebarIfPresent() {
   document.getElementById('shopvd-sidebar')?.remove();
   document.getElementById('shopvd-expand-rail')?.remove();
+  if (shopvdHeaderOffsetRaf) {
+    cancelAnimationFrame(shopvdHeaderOffsetRaf);
+    shopvdHeaderOffsetRaf = 0;
+  }
+}
+
+/** Offset dưới header Pancake để sidebar không đè lên nav/profile */
+let shopvdHeaderOffsetRaf = 0;
+let shopvdHeaderOffsetBound = false;
+
+function measurePancakeTopHeaderOffset() {
+  const fallback = 56;
+  try {
+    let best = 0;
+    // Quét vài điểm ngang mép trên (tránh vùng sidebar bên phải)
+    const probeXs = [
+      Math.floor(window.innerWidth * 0.2),
+      Math.floor(window.innerWidth * 0.45),
+      Math.floor(window.innerWidth * 0.55),
+    ];
+    for (const x of probeXs) {
+      const stack = document.elementsFromPoint(Math.max(8, x), 4) || [];
+      for (const el of stack) {
+        if (!el || el.id === 'shopvd-sidebar' || el.id === 'shopvd-expand-rail') continue;
+        if (el.closest?.('#shopvd-sidebar, #shopvd-expand-rail')) continue;
+        const style = window.getComputedStyle(el);
+        const pos = style.position;
+        if (pos !== 'fixed' && pos !== 'sticky') continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top > 4 || rect.height < 36 || rect.height > 96) continue;
+        if (rect.width < window.innerWidth * 0.35) continue;
+        best = Math.max(best, Math.round(rect.bottom));
+      }
+    }
+    // Clamp hợp lý: header Pancake thường ~48–64px
+    if (best < 40 || best > 96) return fallback;
+    return best;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function applyPancakeHeaderOffset() {
+  const offset = measurePancakeTopHeaderOffset();
+  document.documentElement.style.setProperty('--shopvd-pancake-header-offset', `${offset}px`);
+}
+
+function schedulePancakeHeaderOffsetSync() {
+  if (shopvdHeaderOffsetRaf) cancelAnimationFrame(shopvdHeaderOffsetRaf);
+  shopvdHeaderOffsetRaf = requestAnimationFrame(() => {
+    shopvdHeaderOffsetRaf = 0;
+    applyPancakeHeaderOffset();
+  });
+}
+
+function bindPancakeHeaderOffsetSync() {
+  if (shopvdHeaderOffsetBound) {
+    schedulePancakeHeaderOffsetSync();
+    return;
+  }
+  shopvdHeaderOffsetBound = true;
+  applyPancakeHeaderOffset();
+  window.addEventListener('resize', schedulePancakeHeaderOffsetSync, { passive: true });
+  // Pancake đôi khi render header chậm / đổi layout
+  setTimeout(schedulePancakeHeaderOffsetSync, 300);
+  setTimeout(schedulePancakeHeaderOffsetSync, 1200);
 }
 
 function syncSidebarWithPageUrl() {
@@ -29,6 +95,7 @@ function watchPageUrlChanges() {
     if (window.location.href === lastHref) return;
     lastHref = window.location.href;
     syncSidebarWithPageUrl();
+    schedulePancakeCustomerNameSync();
   };
 
   window.addEventListener('popstate', check);
@@ -82,12 +149,37 @@ function createSidebar() {
   sidebar.id = 'shopvd-sidebar';
   sidebar.innerHTML = `
     <div class="shopvd-sidebar-header">
-      <h2>📦 Tạo đơn ShopVD</h2>
-      <button id="shopvd-toggle" class="shopvd-btn-toggle" title="Thu gọn sidebar" aria-label="Thu gọn sidebar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
+      <div class="shopvd-header-brand">
+        <span class="shopvd-header-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </span>
+        <div class="shopvd-header-text">
+          <h2>ShopVD</h2>
+          <span class="shopvd-header-sub">Tạo đơn</span>
+        </div>
+      </div>
+      <div class="shopvd-header-actions">
+        <button type="button" id="shopvd-unsaved-badge" class="shopvd-unsaved-badge hidden" title="Các chat đã lấy thông tin nhưng chưa tạo đơn">
+          <span id="shopvd-unsaved-count" class="shopvd-unsaved-count">0</span>
+          <span class="shopvd-unsaved-label">chưa lưu</span>
+        </button>
+        <button id="shopvd-toggle" class="shopvd-btn-toggle" title="Thu gọn sidebar" aria-label="Thu gọn sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="shopvd-unsaved-panel" class="shopvd-unsaved-panel hidden" aria-live="polite">
+      <div class="shopvd-unsaved-panel-head">
+        <strong>Đơn chưa lưu</strong>
+        <span class="shopvd-unsaved-panel-hint">SĐT từ Pancake · chưa có đơn Chưa gửi hàng</span>
+      </div>
+      <div id="shopvd-unsaved-list" class="shopvd-unsaved-list"></div>
     </div>
     
     <div class="shopvd-sidebar-content">
@@ -99,15 +191,35 @@ function createSidebar() {
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456z"/>
             </svg>
           </div>
-          <h3 class="shopvd-smart-paste-title">Dán nhanh thông tin khách hàng</h3>
+          <h3 class="shopvd-smart-paste-title">Lấy thông tin khách hàng</h3>
         </div>
         <div class="shopvd-smart-paste-body">
-          <textarea 
-            id="shopvd-smart-paste-input" 
-            rows="3" 
-            placeholder="Dán toàn bộ thông tin khách hàng vào đây…&#10;&#10;Ví dụ:&#10;198/8 Nguyễn Bình Khiêm, Phường Vĩnh Quang, TP Rạch Giá, Kiên Giang&#10;0375323573 Nguyễn Văn A"
-            class="shopvd-smart-paste-textarea"
-          ></textarea>
+          <div class="shopvd-grab-actions">
+            <button type="button" id="shopvd-grab-selection-btn" class="shopvd-grab-btn shopvd-grab-btn-primary" title="Bôi đen tin khách trên Pancake rồi bấm (Ctrl+Shift+G)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a4 4 0 0 0-4 4v1"/>
+              </svg>
+              Lấy từ tin đã chọn
+            </button>
+            <button type="button" id="shopvd-grab-latest-btn" class="shopvd-grab-btn shopvd-grab-btn-secondary" title="Tự tìm tin địa chỉ/SĐT gần nhất của khách">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+              </svg>
+              Tin gần nhất
+            </button>
+          </div>
+          <p class="shopvd-grab-hint">Khách gửi SĐT + địa chỉ → tự báo <strong>chưa lưu</strong> · Nút <strong>→ ShopVD</strong> chỉ hiện khi rê chuột · Không che tin nhắn</p>
+
+          <details class="shopvd-grab-manual" open>
+            <summary>Dán thủ công</summary>
+            <textarea 
+              id="shopvd-smart-paste-input" 
+              rows="3" 
+              placeholder="Dán toàn bộ thông tin khách hàng vào đây…&#10;&#10;Ví dụ:&#10;198/8 Nguyễn Bình Khiêm, Phường Vĩnh Quang, TP Rạch Giá, Kiên Giang&#10;0375323573 Nguyễn Văn A"
+              class="shopvd-smart-paste-textarea"
+            ></textarea>
+          </details>
+
           <div class="shopvd-smart-paste-actions">
             <button type="button" id="shopvd-smart-paste-btn" class="shopvd-smart-paste-btn">
               <svg class="shopvd-smart-paste-btn-icon" id="shopvd-smart-paste-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -130,7 +242,8 @@ function createSidebar() {
           <div class="shopvd-grid-2">
             <div class="shopvd-form-group" data-validate-wrap="customer-name">
               <label>Tên khách hàng *</label>
-              <input type="text" id="customer-name" placeholder="Nguyễn Văn A" required>
+              <input type="text" id="customer-name" placeholder="Nguyễn Văn A" required autocomplete="name">
+              <p class="shopvd-pancake-name-hint hidden" id="customer-name-pancake-hint">Tự lấy từ Pancake</p>
               <p class="shopvd-field-error" id="validate-error-customer-name" hidden role="alert"></p>
             </div>
 
@@ -756,52 +869,25 @@ function createSidebar() {
       </div>
     </div>
 
-    <!-- Order Success Modal -->
-    <div id="shopvd-order-success-modal" class="shopvd-osm hidden">
-      <div class="shopvd-osm-overlay"></div>
-      <div class="shopvd-osm-content">
-        <div class="shopvd-osm-icon-wrap">
-          <div class="shopvd-osm-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-        </div>
-        <h3 class="shopvd-osm-title">Đơn hàng đã tạo thành công!</h3>
-        <p class="shopvd-osm-subtitle">Đơn đã được lưu vào hệ thống ShopVD</p>
-
-        <div class="shopvd-osm-order-id-box">
-          <span class="shopvd-osm-order-id-label">Mã đơn hàng</span>
-          <strong id="osm-order-id" class="shopvd-osm-order-id">—</strong>
-        </div>
-
-        <div class="shopvd-osm-details">
-          <div class="shopvd-osm-detail-row">
-            <span class="shopvd-osm-detail-label">Khách hàng</span>
-            <span id="osm-customer-name" class="shopvd-osm-detail-value">—</span>
-          </div>
-          <div class="shopvd-osm-detail-row">
-            <span class="shopvd-osm-detail-label">Số điện thoại</span>
-            <span id="osm-customer-phone" class="shopvd-osm-detail-value">—</span>
-          </div>
-          <div class="shopvd-osm-detail-row">
-            <span class="shopvd-osm-detail-label">Sản phẩm</span>
-            <span id="osm-product-count" class="shopvd-osm-detail-value">—</span>
-          </div>
-          <div class="shopvd-osm-detail-row">
-            <span class="shopvd-osm-detail-label">Thanh toán</span>
-            <span id="osm-payment-method" class="shopvd-osm-detail-value">—</span>
-          </div>
-          <div class="shopvd-osm-detail-row shopvd-osm-detail-row-total">
-            <span class="shopvd-osm-detail-label">Tổng đơn</span>
-            <strong id="osm-total" class="shopvd-osm-detail-total">0 đ</strong>
-          </div>
-        </div>
-
-        <button type="button" id="shopvd-osm-close" class="shopvd-osm-btn">
-          Tiếp tục tạo đơn mới
-        </button>
+    <!-- Order success toast (auto-hide, không chặn thao tác) -->
+    <div id="shopvd-order-success-toast" class="shopvd-ost hidden" role="status" aria-live="polite">
+      <div class="shopvd-ost-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
       </div>
+      <div class="shopvd-ost-body">
+        <div class="shopvd-ost-row">
+          <strong class="shopvd-ost-title">Đã tạo đơn</strong>
+          <button type="button" id="ost-order-id" class="shopvd-ost-order-id" title="Bấm để copy mã đơn">—</button>
+        </div>
+        <p id="ost-summary" class="shopvd-ost-summary"></p>
+      </div>
+      <button type="button" id="shopvd-ost-close" class="shopvd-ost-close" title="Đóng" aria-label="Đóng thông báo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
   `;
 
@@ -1318,6 +1404,7 @@ function updateFullAddress() {
   if (!provinceId || !wardId) {
     addressInput.value = '';
     if (previewEl) previewEl.textContent = '';
+    scheduleMarkCurrentDraftFromForm(200);
     return;
   }
 
@@ -1337,6 +1424,8 @@ function updateFullAddress() {
   if (previewEl) {
     previewEl.textContent = fullAddress;
   }
+
+  scheduleMarkCurrentDraftFromForm(250);
 }
 
 // === SMART PASTE FUNCTIONALITY ===
@@ -1358,8 +1447,12 @@ function setSmartPasteLoading(loading) {
   const btn = document.getElementById('shopvd-smart-paste-btn');
   const btnText = document.getElementById('shopvd-smart-paste-btn-text');
   const btnIcon = document.getElementById('shopvd-smart-paste-btn-icon');
+  const grabSelectionBtn = document.getElementById('shopvd-grab-selection-btn');
+  const grabLatestBtn = document.getElementById('shopvd-grab-latest-btn');
   
   if (btn) btn.disabled = loading;
+  if (grabSelectionBtn) grabSelectionBtn.disabled = loading;
+  if (grabLatestBtn) grabLatestBtn.disabled = loading;
   if (btnText) btnText.textContent = loading ? 'Đang phân tích…' : 'Phân tích & điền form';
   if (btnIcon) {
     btnIcon.classList.toggle('animate-spin', loading);
@@ -1486,6 +1579,1175 @@ async function applyParsedDataToExtensionForm(parsedData) {
       updateFullAddress();
     }
   }
+
+  applyPancakeNameIfEmpty();
+  scrollToCustomerInfoSection();
+}
+
+function applyPancakeNameIfEmpty() {
+  const nameInput = document.getElementById('customer-name');
+  if (!nameInput || nameInput.value.trim()) return;
+
+  const pancakeName = extractPancakeCustomerName();
+  if (!pancakeName) return;
+
+  nameInput.value = pancakeName;
+  lastAutoFilledCustomerName = pancakeName;
+  customerNameUserEdited = false;
+  updatePancakeNameHint(true);
+  clearValidationFieldError('customer-name');
+  revalidateFieldIfActive('customer-name');
+}
+
+function scrollToCustomerInfoSection() {
+  document.querySelector('.shopvd-address-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+const PANCAKE_MSG_ROOT_SELECTOR = '.inbox-message-ele, [id^="message_m_"], [id^="message_"]';
+const PANCAKE_CUSTOMER_MSG_SELECTOR = '.media-message-from-customer, .client-message, .media-current-customer';
+const PANCAKE_SHOP_MSG_SELECTOR = '.media-message-from-page, .message-from-page, .media-message-from-shop, .media-current-page';
+
+const PANCAKE_MESSAGE_SELECTOR = [
+  '.inbox-message-ele',
+  '[id^="message_m_"]',
+  '.media-message-from-customer',
+  '.client-message',
+  '[class*="message-item"]',
+  '[class*="MessageItem"]',
+  '[class*="chat-message"]',
+  '[class*="ChatMessage"]',
+  '[class*="message-bubble"]',
+  '[class*="MessageBubble"]',
+  '[class*="bubble-content"]',
+  '[class*="msg-content"]',
+  '[class*="MsgContent"]',
+  '[class*="conversation-message"]',
+  '[class*="ConversationMessage"]',
+  '[class*="message-content"]',
+  '[class*="MessageContent"]',
+  '[class*="msg-row"]',
+  '[class*="MsgRow"]',
+  '[class*="text-msg"]',
+  '[class*="content-message"]',
+  '[data-message-id]',
+  '[data-msg-id]',
+].join(',');
+
+const PANCAKE_CHAT_PANEL_SELECTOR = [
+  '[class*="conversation-detail"]',
+  '[class*="ConversationDetail"]',
+  '[class*="message-list"]',
+  '[class*="MessageList"]',
+  '[class*="messages-wrapper"]',
+  '[class*="MessagesWrapper"]',
+  '[class*="chat-box"]',
+  '[class*="ChatBox"]',
+  '[class*="inbox-conversation"]',
+  '[class*="conv-content"]',
+  '[class*="messages-container"]',
+  '[class*="MessagesContainer"]',
+].join(',');
+
+const PANCAKE_MESSAGE_CLASS_HINT = /message|bubble|msg-item|MsgItem|comment-item|text-content|TextContent|chat-item|ChatItem|msg-row|MsgRow/i;
+const PANCAKE_GRAB_EXCLUDE_SELECTOR = [
+  '[class*="conversation-header"]',
+  '[class*="ConversationHeader"]',
+  '[class*="chat-header"]',
+  '[class*="ChatHeader"]',
+  '[class*="conv-header"]',
+  '[class*="header-info"]',
+  '[class*="customer-info"]',
+  '[class*="toolbar"]',
+  '[class*="composer"]',
+  '[class*="reply-box"]',
+  '[class*="input-box"]',
+  '[class*="InputBox"]',
+  '#shopvd-sidebar',
+  '#shopvd-expand-rail',
+].join(',');
+
+const PANCAKE_OUTBOUND_PATTERN = /outbound|sent-by-page|from-page|from-shop|merchant|staff|page-message|message-out|message-sent|is-sent|is-out|msg-out|MsgOut|from_me|from-me|is-me|is_me/i;
+const PANCAKE_INBOUND_PATTERN = /inbound|from-customer|customer-message|message-in|message-received|is-received|is-in|user-message|msg-in|MsgIn|from_customer|from-customer|is-customer|is_customer|media-message-from-customer|media-current-customer|client-message|inbox-message-ele|phone-tag|phone-lag/i;
+// Có dấu + không dấu (khách hay gõ telex/không dấu trên chat)
+const PANCAKE_ADDRESS_HINT_PATTERN = /xã|xa\b|phường|phuong|huyện|huyen|tỉnh|tinh\b|thành phố|thanh pho|tp\.|quận|quan\b|đường|duong|thôn|thon\b|ấp|ap\b|khu\s*vực|khu\s*vuc|phố|pho\b|phường|p\.|h\.|tx\.|tt\.|\bHN\b|\bHCM\b|\bTP\.?HCM\b|cần thơ|can tho|ô môn|o mon|onmon|thanh xuân|thanh xuan|bình thạnh|binh thanh|thủ đức|thu duc|gò vấp|go vap|tân bình|tan binh|đống đa|dong da|cầu giấy|cau giay|long biên|long bien|hoàng mai|hoang mai|hà nội|ha noi|sài gòn|sai gon|đà nẵng|da nang|hải phòng|hai phong|biên hòa|bien hoa|vũng tàu|vung tau|nha trang|buôn ma|buon ma|pleiku|rạch giá|rach gia|mỹ tho|my tho|cà mau|ca mau|an giang|kiên giang|kien giang|bạc liêu|bac lieu|sóc trăng|soc trang|trà vinh|tra vinh|vĩnh long|vinh long|đồng tháp|dong thap|tiền giang|tien giang|bến tre|ben tre|hậu giang|hau giang|phước|phuoc|khánh|khanh|thới|thoi|địa chỉ|dia chi/i;
+const PANCAKE_PHONE_PATTERN = /(?:\+84|0)[35789]\d{8}|(?<!\d)[35789]\d{8}(?!\d)/;
+/** Pancake bọc SĐT: .phone-tag / .phone-tag-trusted (đôi khi class phone-lag) */
+const PANCAKE_PHONE_TAG_SELECTOR = '.phone-tag, .phone-tag-trusted, .phone-lag, .phone-lag-trusted, [class*="phone-tag"], [class*="phone-lag"]';
+const PANCAKE_CLIENT_TEXT_SELECTOR = '.message-text-ele.client-message, .client-message, .message-text-field, .message-text';
+/** Số tin khách liền kề để ghép SĐT + địa chỉ (2 tin tách) */
+const PANCAKE_SPLIT_INTENT_WINDOW = 6;
+
+function textHasCustomerPhone(text) {
+  return PANCAKE_PHONE_PATTERN.test(String(text || ''));
+}
+
+function textHasAddressHint(text) {
+  return PANCAKE_ADDRESS_HINT_PATTERN.test(String(text || ''));
+}
+
+function looksLikeFreeformAddress(text) {
+  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  if (value.length < 10) return false;
+  if (value.includes(',') && /[a-zA-ZÀ-ỹ0-9]/.test(value)) return true;
+  if (/\b(HN|HCM|SG|TP\.?\s*HCM|Hà Nội|Thành phố)\b/i.test(value)) return true;
+  // Địa chỉ chat không dấu, không dấu phẩy: "khu vuc binh khanh phuoc thoi onmon can tho"
+  const words = value.split(/\s+/).filter(Boolean);
+  if (words.length >= 4 && /[a-zA-ZÀ-ỹ]/.test(value) && textHasAddressHint(value)) return true;
+  if (words.length >= 5 && /[a-zA-ZÀ-ỹ]/.test(value) && !/^[\d\s+().-]+$/.test(value)) return true;
+  return false;
+}
+
+/** Chuẩn hoá text địa chỉ hiển thị (bỏ nhãn SĐT/Địa chỉ, gọn khoảng trắng). */
+function normalizeDetectedAddressText(raw) {
+  let value = String(raw || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!value) return '';
+
+  value = value
+    .replace(/^(?:sđt|sdt|đt|dt|phone|tel)\s*[:：-]?\s*/i, '')
+    .replace(/^(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/i, '')
+    .replace(/\b(?:sđt|sdt|đt|dt)\s*[:：-]?\s*(?:\+84|0)?[35789]\d{8}\b/gi, ' ')
+    .replace(PANCAKE_PHONE_PATTERN, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[,:：\-–—.\s]+/, '')
+    .replace(/[,:：\-–—.\s]+$/, '')
+    .trim();
+
+  return value.slice(0, 220);
+}
+
+function isUsableDetectedAddress(text) {
+  const value = normalizeDetectedAddressText(text);
+  if (!value || value.length < 8) return false;
+  const words = value.split(/\s+/).filter(Boolean);
+  if (words.length < 3 && !textHasAddressHint(value)) return false;
+  return textHasAddressHint(value) || looksLikeFreeformAddress(value) || words.length >= 4;
+}
+
+/** Lấy text địa chỉ từ DOM tin Pancake (bỏ phone-tag / copy). */
+function extractAddressTextFromMessageBubble(bubble) {
+  if (!bubble) return '';
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const textRoot = root.querySelector(PANCAKE_CLIENT_TEXT_SELECTOR) || root;
+  const clone = textRoot.cloneNode(true);
+  clone.querySelectorAll(
+    `${PANCAKE_PHONE_TAG_SELECTOR}, copy, a[href^="tel:"], script, style, .message-time, .msg-time`
+  ).forEach((el) => el.remove());
+
+  // Giữ xuống dòng giữa SĐT và địa chỉ (Pancake dùng <br>)
+  clone.querySelectorAll('br').forEach((br) => {
+    br.replaceWith(document.createTextNode('\n'));
+  });
+
+  const raw = String(clone.innerText || clone.textContent || '')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+
+  return normalizeDetectedAddressText(raw);
+}
+
+function messageHasPhoneTag(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  return !!root?.querySelector?.(PANCAKE_PHONE_TAG_SELECTOR)
+    || !!root?.querySelector?.('a[href^="tel:"]');
+}
+
+function collectCustomerMessageRootsInOrder() {
+  const seen = new Set();
+  const roots = [];
+
+  const push = (el) => {
+    const root = resolvePancakeMessageRoot(el) || el;
+    if (!root || seen.has(root)) return;
+    if (isGrabExcludedTarget(root) || isPancakeShopMessage(root)) return;
+    if (!isPancakeCustomerMessage(root) && !isCustomerSideMessage(root)) return;
+    seen.add(root);
+    roots.push(root);
+  };
+
+  document.querySelectorAll(PANCAKE_MSG_ROOT_SELECTOR).forEach(push);
+  document.querySelectorAll('.chat-message.customer, .mock-pancake-customer-message').forEach(push);
+
+  if (roots.length === 0) {
+    document.querySelectorAll(PANCAKE_CUSTOMER_MSG_SELECTOR).forEach(push);
+  }
+
+  // Giữ đúng thứ tự DOM (cũ → mới) khi gộp nhiều selector
+  roots.sort((a, b) => {
+    if (a === b) return 0;
+    const pos = a.compareDocumentPosition(b);
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+
+  return roots;
+}
+
+function resolvePancakeMessageRoot(el) {
+  if (!el) return null;
+
+  const mock = el.closest('.chat-message.customer, .mock-pancake-customer-message');
+  if (mock) return mock;
+
+  return el.closest(PANCAKE_MSG_ROOT_SELECTOR)
+    || el.closest('.inbox-message-ele')
+    || el.closest(PANCAKE_MESSAGE_SELECTOR);
+}
+
+function resolvePancakeGrabAnchor(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  return root.querySelector('.media-body')
+    || root.querySelector('.message-text-field')
+    || root.querySelector('.client-message')
+    || root;
+}
+
+function isPancakeShopMessage(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  if (root.matches?.(PANCAKE_SHOP_MSG_SELECTOR)) return true;
+  if (root.querySelector?.(PANCAKE_SHOP_MSG_SELECTOR)) return true;
+  return /media-message-from-page|message-from-page|media-current-page|from-page/i.test(String(root.className || ''));
+}
+
+function isPancakeCustomerMessage(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  if (isPancakeShopMessage(root)) return false;
+  if (root.matches?.(PANCAKE_CUSTOMER_MSG_SELECTOR)) return true;
+  if (root.querySelector?.(PANCAKE_CUSTOMER_MSG_SELECTOR)) return true;
+  if (root.classList?.contains('media-current-customer')) return true;
+  if (root.querySelector?.(PANCAKE_PHONE_TAG_SELECTOR)) return true;
+  return false;
+}
+
+function getSelectionTextOutsideSidebar() {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed) return '';
+
+  const text = String(selection.toString() || '').trim();
+  if (!text) return '';
+
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if (isInsideShopvdSidebar(anchor) || isInsideShopvdSidebar(focus)) {
+    return '';
+  }
+
+  return text;
+}
+
+function findPancakeMessageBubble(target) {
+  if (!target || isInsideShopvdSidebar(target)) return null;
+
+  const mock = target.closest('.chat-message.customer, .mock-pancake-customer-message');
+  if (mock && isGrabWorthyMessage(mock)) return mock;
+
+  const root = target.closest(PANCAKE_MSG_ROOT_SELECTOR);
+  if (root && isGrabWorthyMessage(root)) return root;
+
+  const inner = target.closest(PANCAKE_CUSTOMER_MSG_SELECTOR);
+  if (inner) {
+    const resolved = resolvePancakeMessageRoot(inner);
+    if (resolved && isGrabWorthyMessage(resolved)) return resolved;
+  }
+
+  return findMessageBubbleFromTarget(target);
+}
+
+function isGrabExcludedTarget(el) {
+  if (!el) return true;
+  if (isInsideShopvdSidebar(el) || isInsideConversationList(el)) return true;
+  if (el.closest(PANCAKE_GRAB_EXCLUDE_SELECTOR)) return true;
+  if (el.closest('textarea, input, button, select, [contenteditable="true"], [role="textbox"]')) return true;
+  return false;
+}
+
+function isInPancakeChatPanel(el) {
+  if (!el || isGrabExcludedTarget(el)) return false;
+
+  const rect = el.getBoundingClientRect();
+  if (!rect.width && !rect.height) return false;
+
+  const sidebar = document.getElementById('shopvd-sidebar');
+  const sidebarRect = sidebar?.getBoundingClientRect();
+  const sidebarLeft = sidebarRect?.left ?? (window.innerWidth - 380);
+
+  if (rect.right > sidebarLeft - 8) return false;
+  if (rect.left < 260) return false;
+
+  if (el.closest(PANCAKE_CHAT_PANEL_SELECTOR)) return true;
+
+  return rect.left >= 260 && rect.right <= sidebarLeft - 12;
+}
+
+function isLikelyShopMessage(el, text) {
+  if (isPancakeShopMessage(el)) return true;
+
+  const combined = `${String(el.className || '')} ${JSON.stringify(el.dataset || {})}`;
+  if (PANCAKE_OUTBOUND_PATTERN.test(combined)) return true;
+
+  const alignRoot = el.closest(PANCAKE_CHAT_PANEL_SELECTOR) || el.parentElement;
+  if (!alignRoot) return false;
+
+  const rootRect = alignRoot.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const isRightSide = centerX > rootRect.left + rootRect.width * 0.62;
+
+  if (isRightSide && !textHasCustomerPhone(text) && !textHasAddressHint(text)) {
+    return true;
+  }
+
+  return false;
+}
+
+function scoreMessageBubble(el) {
+  if (isGrabExcludedTarget(el)) return -1;
+
+  const text = (el.innerText || el.textContent || '').trim();
+  if (!text || text.length < 2 || text.length > 4000) return -1;
+
+  const rect = el.getBoundingClientRect();
+  if (rect.width < 28 || rect.height < 16) return -1;
+  if (rect.width > window.innerWidth * 0.72 || rect.height > window.innerHeight * 0.55) return -1;
+  if (!isInPancakeChatPanel(el)) return -1;
+
+  let score = 0;
+  const cls = String(el.className || '');
+
+  if (el.matches?.(PANCAKE_MSG_ROOT_SELECTOR) || el.matches?.('.inbox-message-ele')) score += 40;
+  if (el.querySelector?.(PANCAKE_PHONE_TAG_SELECTOR)) score += 45;
+  if (isPancakeCustomerMessage(el)) score += 35;
+  if (el.matches?.(PANCAKE_MESSAGE_SELECTOR)) score += 34;
+  if (textHasCustomerPhone(text)) score += 42;
+  if (textHasAddressHint(text)) score += 36;
+  if (PANCAKE_INBOUND_PATTERN.test(cls)) score += 24;
+  if (rect.height >= 20 && rect.height <= 420) score += 8;
+  if (el.querySelector?.('a[href^="tel:"]')) score += 20;
+
+  if (isLikelyShopMessage(el, text)) score -= 55;
+  if (el.children.length > 10 && rect.height > 480) score -= 35;
+
+  return score;
+}
+
+function isCustomerSideMessage(el) {
+  if (!el) return false;
+  if (isPancakeShopMessage(el)) return false;
+  if (isPancakeCustomerMessage(el)) return true;
+
+  const alignRoot = el.closest(PANCAKE_CHAT_PANEL_SELECTOR);
+  const rect = el.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+
+  if (alignRoot) {
+    const rootRect = alignRoot.getBoundingClientRect();
+    return centerX < rootRect.left + rootRect.width * 0.52;
+  }
+
+  return centerX < window.innerWidth * 0.46;
+}
+
+function isGrabWorthyMessage(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  if (!root || isGrabExcludedTarget(root)) return false;
+  if (isPancakeShopMessage(root)) return false;
+  if (!isPancakeCustomerMessage(root) && !isCustomerSideMessage(root)) return false;
+
+  const text = extractTextFromMessageBubble(root);
+  const hasPhone = textHasCustomerPhone(text) || messageHasPhoneTag(root);
+  const addressOnly = extractAddressTextFromMessageBubble(root);
+  const hasAddress = isUsableDetectedAddress(addressOnly)
+    || textHasAddressHint(text)
+    || looksLikeFreeformAddress(text);
+
+  if (!hasPhone && !hasAddress) return false;
+  if (text.length < 6 && !hasPhone) return false;
+  if (isLikelyShopMessage(root, text)) return false;
+
+  if (isPancakeCustomerMessage(root) && (hasPhone || hasAddress)) return true;
+  return scoreMessageBubble(root) >= 30;
+}
+
+function findMessageBubbleFromTarget(target) {
+  if (!target || isInsideShopvdSidebar(target)) return null;
+
+  const pancakeRoot = target.closest(PANCAKE_MSG_ROOT_SELECTOR);
+  if (pancakeRoot && isGrabWorthyMessage(pancakeRoot)) {
+    return pancakeRoot;
+  }
+
+  let node = target.nodeType === Node.ELEMENT_NODE ? target : target.parentElement;
+  let best = null;
+  let bestScore = 0;
+
+  while (node && node !== document.body) {
+    if (isGrabExcludedTarget(node)) break;
+
+    const score = scoreMessageBubble(node);
+    if (score > bestScore) {
+      bestScore = score;
+      best = node;
+    }
+
+    node = node.parentElement;
+  }
+
+  if (!best || bestScore < 30) return null;
+  const root = resolvePancakeMessageRoot(best) || best;
+  return isGrabWorthyMessage(root) ? root : null;
+}
+
+function isLikelyCustomerMessage(el) {
+  return isGrabWorthyMessage(el);
+}
+
+function collectCandidateMessageBubbles() {
+  const results = new Set();
+  const addIfWorthy = (el) => {
+    const root = resolvePancakeMessageRoot(el) || el;
+    if (isGrabWorthyMessage(root)) {
+      results.add(root);
+    }
+  };
+
+  document.querySelectorAll(PANCAKE_MSG_ROOT_SELECTOR).forEach(addIfWorthy);
+  document.querySelectorAll('.chat-message.customer, .mock-pancake-customer-message').forEach(addIfWorthy);
+
+  if (results.size === 0) {
+    document.querySelectorAll(`${PANCAKE_MESSAGE_SELECTOR}, [data-message-id], [data-msg-id]`)
+      .forEach(addIfWorthy);
+  }
+
+  const panel = document.querySelector(PANCAKE_CHAT_PANEL_SELECTOR);
+  if (panel && results.size < 3) {
+    panel.querySelectorAll('div, li, article').forEach(addIfWorthy);
+  }
+
+  return [...results];
+}
+
+function extractTextFromMessageBubble(bubble) {
+  if (!bubble) return '';
+
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const lines = [];
+  const seen = new Set();
+
+  const pushLine = (value) => {
+    const line = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!line || seen.has(line.toLowerCase())) return;
+    seen.add(line.toLowerCase());
+    lines.push(line);
+  };
+
+  const textField = root.querySelector(PANCAKE_CLIENT_TEXT_SELECTOR);
+  if (textField) {
+    textField.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+      pushLine(link.textContent || link.getAttribute('href')?.replace(/^tel:/i, ''));
+    });
+
+    textField.querySelectorAll(PANCAKE_PHONE_TAG_SELECTOR).forEach((el) => {
+      pushLine(el.textContent);
+    });
+
+    String(textField.innerText || textField.textContent || '')
+      .split('\n')
+      .forEach((line) => pushLine(line));
+  }
+
+  root.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+    pushLine(link.textContent || link.getAttribute('href')?.replace(/^tel:/i, ''));
+  });
+
+  root.querySelectorAll(PANCAKE_PHONE_TAG_SELECTOR).forEach((el) => {
+    pushLine(el.textContent);
+  });
+
+  root.querySelectorAll('[class*="phone"], [class*="Phone"]').forEach((el) => {
+    if (el.closest(PANCAKE_PHONE_TAG_SELECTOR)) return;
+    pushLine(el.textContent);
+  });
+
+  if (lines.length === 0) {
+    String(root.innerText || root.textContent || '')
+      .split('\n')
+      .forEach((line) => pushLine(line));
+  }
+
+  return lines.join('\n').trim();
+}
+
+function findLatestGrabableCustomerMessage() {
+  const pancakeRoots = [...document.querySelectorAll(PANCAKE_MSG_ROOT_SELECTOR)];
+  if (pancakeRoots.length > 0) {
+    for (let i = pancakeRoots.length - 1; i >= 0; i -= 1) {
+      if (isGrabWorthyMessage(pancakeRoots[i])) {
+        return pancakeRoots[i];
+      }
+    }
+  }
+
+  const candidates = collectCandidateMessageBubbles();
+
+  for (let i = candidates.length - 1; i >= 0; i -= 1) {
+    const text = extractTextFromMessageBubble(candidates[i]);
+    if (text.length >= 4 && (textHasCustomerPhone(text) || textHasAddressHint(text) || looksLikeFreeformAddress(text))) {
+      return candidates[i];
+    }
+  }
+
+  return candidates.length ? candidates[candidates.length - 1] : null;
+}
+
+/** Tin khách có ĐỦ SĐT + địa chỉ trong CÙNG bubble. */
+function isOrderIntentMessage(el) {
+  const root = resolvePancakeMessageRoot(el) || el;
+  if (!root || isGrabExcludedTarget(root)) return false;
+  if (isPancakeShopMessage(root)) return false;
+  if (!isPancakeCustomerMessage(root) && !isCustomerSideMessage(root)) return false;
+
+  const hasPhoneTag = messageHasPhoneTag(root);
+  const text = extractTextFromMessageBubble(root);
+  const addressOnly = extractAddressTextFromMessageBubble(root);
+  const hasPhone = hasPhoneTag || textHasCustomerPhone(text);
+  const hasAddress = isUsableDetectedAddress(addressOnly);
+
+  // Pancake thật: .phone-tag + dòng địa chỉ cùng .client-message
+  if (hasPhone && hasAddress) {
+    return !isLikelyShopMessage(root, text);
+  }
+
+  return false;
+}
+
+function extractFirstPhoneFromText(text) {
+  const match = String(text || '').match(PANCAKE_PHONE_PATTERN);
+  if (!match) return '';
+  return sanitizePhoneDigits(match[0]);
+}
+
+function extractPhoneFromMessageBubble(bubble) {
+  if (!bubble) return '';
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const tag = root.querySelector(PANCAKE_PHONE_TAG_SELECTOR);
+  if (tag) {
+    const fromTag = sanitizePhoneDigits(tag.textContent || '');
+    if (isValidDraftPhone(fromTag)) return fromTag;
+  }
+  const tel = root.querySelector('a[href^="tel:"]');
+  if (tel) {
+    const fromTel = sanitizePhoneDigits(tel.textContent || tel.getAttribute('href')?.replace(/^tel:/i, '') || '');
+    if (isValidDraftPhone(fromTel)) return fromTel;
+  }
+  return extractFirstPhoneFromText(extractTextFromMessageBubble(root));
+}
+
+function buildAddressHintFromMessageText(text) {
+  const lines = String(text || '')
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  const addressLines = lines.filter((line) => {
+    if (textHasCustomerPhone(line) && line.replace(PANCAKE_PHONE_PATTERN, '').trim().length < 8) return false;
+    return textHasAddressHint(line) || looksLikeFreeformAddress(line) || line.includes(',') || line.split(/\s+/).length >= 4;
+  });
+
+  const joined = (addressLines.length ? addressLines : lines).join(', ').trim();
+  return normalizeDetectedAddressText(joined);
+}
+
+/**
+ * Tìm intent đặt hàng mới nhất trong chat đang mở.
+ * Dạng 1: SĐT + địa chỉ cùng 1 tin (.phone-tag + text địa chỉ).
+ * Dạng 2: SĐT 1 tin, địa chỉ tin liền kề (trong cửa sổ vài tin khách).
+ */
+function findLatestOrderIntentInOpenChat() {
+  const roots = collectCustomerMessageRootsInOrder();
+  if (!roots.length) return null;
+
+  const findNearbyAddress = (phoneIndex, preferAfter = true) => {
+    const tryRange = (from, to, step) => {
+      for (let j = from; step > 0 ? j <= to : j >= to; j += step) {
+        const other = roots[j];
+        if (messageHasPhoneTag(other) || isValidDraftPhone(extractPhoneFromMessageBubble(other))) continue;
+        const address = extractAddressTextFromMessageBubble(other);
+        if (isUsableDetectedAddress(address)) {
+          return { address, addressRoot: other };
+        }
+      }
+      return null;
+    };
+
+    const afterEnd = Math.min(roots.length - 1, phoneIndex + PANCAKE_SPLIT_INTENT_WINDOW);
+    const beforeStart = Math.max(0, phoneIndex - PANCAKE_SPLIT_INTENT_WINDOW);
+
+    if (preferAfter) {
+      return tryRange(phoneIndex + 1, afterEnd, 1) || tryRange(phoneIndex - 1, beforeStart, -1);
+    }
+    return tryRange(phoneIndex - 1, beforeStart, -1) || tryRange(phoneIndex + 1, afterEnd, 1);
+  };
+
+  // Ưu tiên tin mới nhất
+  for (let i = roots.length - 1; i >= 0; i -= 1) {
+    const root = roots[i];
+
+    // Dạng 1: cùng bubble
+    if (isOrderIntentMessage(root)) {
+      const phone = extractPhoneFromMessageBubble(root);
+      const address = extractAddressTextFromMessageBubble(root)
+        || normalizeDetectedAddressText(buildAddressHintFromMessageText(extractTextFromMessageBubble(root)));
+      if (isValidDraftPhone(phone) && isUsableDetectedAddress(address)) {
+        return { phone, address, root, mode: 'same-bubble' };
+      }
+    }
+
+    // Dạng 2: tin có SĐT (không đủ địa chỉ) → ghép địa chỉ gần nhất
+    const phoneHere = extractPhoneFromMessageBubble(root);
+    if (isValidDraftPhone(phoneHere) && !isUsableDetectedAddress(extractAddressTextFromMessageBubble(root))) {
+      const nearby = findNearbyAddress(i, true);
+      if (nearby) {
+        return {
+          phone: phoneHere,
+          address: nearby.address,
+          root,
+          addressRoot: nearby.addressRoot,
+          mode: 'split',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/** Ghép text SĐT + địa chỉ để parse/điền form (cùng tin hoặc 2 tin tách). */
+function buildOrderIntentTextForGrab(bubble) {
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const phone = extractPhoneFromMessageBubble(root);
+  const addressHere = extractAddressTextFromMessageBubble(root);
+
+  if (isValidDraftPhone(phone) && isUsableDetectedAddress(addressHere)) {
+    return `SĐT: ${phone}\nĐịa chỉ: ${addressHere}`;
+  }
+
+  const intent = findLatestOrderIntentInOpenChat();
+  if (intent && isValidDraftPhone(intent.phone) && isUsableDetectedAddress(intent.address)) {
+    // Chỉ dùng intent ghép nếu bubble đang grab là một nửa của cặp đó
+    if (root === intent.root || root === intent.addressRoot) {
+      return `SĐT: ${intent.phone}\nĐịa chỉ: ${intent.address}`;
+    }
+  }
+
+  // Bubble chỉ có địa chỉ → tìm SĐT gần đó
+  if (isUsableDetectedAddress(addressHere) && !isValidDraftPhone(phone)) {
+    const roots = collectCustomerMessageRootsInOrder();
+    const idx = roots.indexOf(root);
+    if (idx >= 0) {
+      const start = Math.max(0, idx - PANCAKE_SPLIT_INTENT_WINDOW);
+      const end = Math.min(roots.length - 1, idx + PANCAKE_SPLIT_INTENT_WINDOW);
+      for (let j = idx - 1; j >= start; j -= 1) {
+        const p = extractPhoneFromMessageBubble(roots[j]);
+        if (isValidDraftPhone(p) && !isOrderIntentMessage(roots[j])) {
+          return `SĐT: ${p}\nĐịa chỉ: ${addressHere}`;
+        }
+      }
+      for (let j = idx + 1; j <= end; j += 1) {
+        const p = extractPhoneFromMessageBubble(roots[j]);
+        if (isValidDraftPhone(p) && !isOrderIntentMessage(roots[j])) {
+          return `SĐT: ${p}\nĐịa chỉ: ${addressHere}`;
+        }
+      }
+    }
+  }
+
+  // Bubble chỉ có SĐT → tìm địa chỉ gần đó
+  if (isValidDraftPhone(phone) && !isUsableDetectedAddress(addressHere)) {
+    const roots = collectCustomerMessageRootsInOrder();
+    const idx = roots.indexOf(root);
+    if (idx >= 0) {
+      const nearby = (() => {
+        const end = Math.min(roots.length - 1, idx + PANCAKE_SPLIT_INTENT_WINDOW);
+        const start = Math.max(0, idx - PANCAKE_SPLIT_INTENT_WINDOW);
+        for (let j = idx + 1; j <= end; j += 1) {
+          const a = extractAddressTextFromMessageBubble(roots[j]);
+          if (isUsableDetectedAddress(a) && !isValidDraftPhone(extractPhoneFromMessageBubble(roots[j]))) {
+            return a;
+          }
+        }
+        for (let j = idx - 1; j >= start; j -= 1) {
+          const a = extractAddressTextFromMessageBubble(roots[j]);
+          if (isUsableDetectedAddress(a) && !isValidDraftPhone(extractPhoneFromMessageBubble(roots[j]))) {
+            return a;
+          }
+        }
+        return '';
+      })();
+      if (nearby) return `SĐT: ${phone}\nĐịa chỉ: ${nearby}`;
+    }
+  }
+
+  return extractTextFromMessageBubble(root);
+}
+
+/**
+ * Quét tin trong chat đang mở: nếu khách đã gửi SĐT+địa chỉ → đánh dấu chưa lưu ngay.
+ * Không điền form (chỉ badge). Bỏ qua SĐT đã có đơn / đã scan.
+ */
+function scanChatForUnsavedOrderIntent() {
+  if (!isAllowedPage() || shopvdRestoringDraft) return false;
+  if (shopvdPendingPullInFlight || shopvdPendingPushInFlight) return false;
+
+  const conversationKey = getPancakeConversationKey();
+  if (!conversationKey) return false;
+
+  // Đã xử lý chat này rồi → không quét lại (tránh badge nhấp nháy)
+  if (shopvdAutoDetectDone.has(conversationKey)) return true;
+
+  const intent = findLatestOrderIntentInOpenChat();
+  if (!intent) return false;
+
+  const { phone, address } = intent;
+  if (!isValidDraftPhone(phone) || !isUsableDetectedAddress(address)) return false;
+
+  if (isPhoneKnownOrdered(phone)) {
+    shopvdAutoDetectDone.set(conversationKey, phone);
+    return true;
+  }
+  if (isPhoneDismissed(phone)) {
+    shopvdAutoDetectDone.set(conversationKey, phone);
+    return true;
+  }
+
+  const existing = shopvdDraftMap.get(phone);
+  if (existing) {
+    // Bổ sung địa chỉ nếu draft cũ thiếu / ngắn hơn
+    const prevAddr = String(existing.address || '').trim();
+    if (address.length > prevAddr.length + 4) {
+      upsertUnsavedDraft(conversationKey, {
+        ...existing,
+        name: existing.name || extractPancakeCustomerName() || '',
+        phone,
+        address,
+      }, 'auto-detect');
+    }
+    shopvdAutoDetectDone.set(conversationKey, phone);
+    return true;
+  }
+
+  const name = extractPancakeCustomerName() || '';
+  const ok = upsertUnsavedDraft(conversationKey, {
+    name,
+    phone,
+    address,
+    street: '',
+    provinceId: '',
+    provinceName: '',
+    wardId: '',
+    wardName: '',
+  }, 'auto-detect');
+
+  if (ok || isPhoneKnownOrdered(phone)) {
+    shopvdAutoDetectDone.set(conversationKey, phone);
+    return true;
+  }
+  return false;
+}
+
+let shopvdAutoDetectTimer = null;
+let shopvdAutoDetectObserver = null;
+let shopvdAutoDetectLastKey = '';
+
+function scheduleScanChatForUnsavedOrderIntent(delayMs = 800) {
+  clearTimeout(shopvdAutoDetectTimer);
+  shopvdAutoDetectTimer = setTimeout(() => {
+    try {
+      scanChatForUnsavedOrderIntent();
+    } catch (err) {
+      console.warn('[ShopVD] Auto-detect unsaved failed:', err);
+    }
+  }, delayMs);
+}
+
+function setupAutoDetectUnsavedFromChat() {
+  if (shopvdAutoDetectObserver) return;
+
+  // Không quét theo mọi mutation DOM (Pancake rất ồn) — đổi chat + poll nhẹ khi chưa bắt đủ
+  shopvdAutoDetectObserver = true;
+
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    const key = getPancakeConversationKey();
+    if (!key) return;
+
+    if (key !== shopvdAutoDetectLastKey) {
+      shopvdAutoDetectLastKey = key;
+      scheduleScanChatForUnsavedOrderIntent(600);
+      return;
+    }
+
+    // Cùng chat: khách có thể gửi SĐT trước, địa chỉ sau → quét lại đến khi đủ cặp
+    if (!shopvdAutoDetectDone.has(key)) {
+      scheduleScanChatForUnsavedOrderIntent(500);
+    }
+  }, 2000);
+
+  scheduleScanChatForUnsavedOrderIntent(1200);
+  // Quét preview list bên trái — không cần mở từng box (case xem trên ĐT)
+  scheduleScanConversationListPreviews(1800);
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      scheduleScanConversationListPreviews(0);
+    }
+  }, 20_000);
+}
+
+/** Quét preview danh sách hội thoại (không mở box) để bắt SĐT chưa lưu */
+let shopvdListScanTimer = 0;
+let shopvdListScanInFlight = false;
+const shopvdListScanDone = new Set();
+
+function scheduleScanConversationListPreviews(delayMs = 400) {
+  clearTimeout(shopvdListScanTimer);
+  shopvdListScanTimer = setTimeout(() => {
+    scanConversationListPreviews();
+  }, delayMs);
+}
+
+function collectConversationListItems() {
+  const items = new Set();
+  document.querySelectorAll(PANCAKE_LIST_SELECTOR).forEach((root) => {
+    root.querySelectorAll('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]')
+      .forEach((el) => items.add(el));
+  });
+  if (!items.size) {
+    document.querySelectorAll('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]')
+      .forEach((el) => {
+        if (isInsideShopvdSidebar(el)) return;
+        if (isInsideConversationList(el)) items.add(el);
+      });
+  }
+  return [...items];
+}
+
+function scanConversationListPreviews() {
+  if (!isAllowedPage() || shopvdRestoringDraft || shopvdListScanInFlight) return 0;
+  if (shopvdPendingPullInFlight || shopvdPendingPushInFlight) return 0;
+
+  shopvdListScanInFlight = true;
+  let marked = 0;
+  try {
+    const items = collectConversationListItems().slice(0, 40);
+    for (const item of items) {
+      if (isInsideShopvdSidebar(item)) continue;
+      const itemKey = getConversationItemKey(item) || `preview:${normalizeDraftPhone(item.textContent || '').slice(0, 40)}`;
+      if (shopvdListScanDone.has(itemKey)) continue;
+
+      const text = String(item.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text.length < 10) continue;
+
+      const phone = extractFirstPhoneFromText(text);
+      if (!isValidDraftPhone(phone)) continue;
+      if (isPhoneKnownOrdered(phone) || isPhoneDismissed(phone) || shopvdDraftMap.has(phone)) {
+        shopvdListScanDone.add(itemKey);
+        continue;
+      }
+
+      // Preview list thường cắt ngắn — chỉ cần SĐT; địa chỉ lấy phần còn lại nếu có
+      const address = buildAddressHintFromMessageText(text) || `SĐT từ list: ${phone}`;
+      const nameMatch = text.split(phone)[0]?.trim().slice(0, 60) || '';
+      const name = nameMatch.length >= 2 ? nameMatch.replace(/[|·•].*$/, '').trim() : '';
+
+      const ok = upsertUnsavedDraft(itemKey, {
+        name,
+        phone,
+        address: address.slice(0, 220),
+        street: '',
+        provinceId: '',
+        provinceName: '',
+        wardId: '',
+        wardName: '',
+      }, 'auto-detect');
+
+      shopvdListScanDone.add(itemKey);
+      if (ok) marked += 1;
+    }
+  } finally {
+    shopvdListScanInFlight = false;
+  }
+
+  if (marked > 0) {
+    scheduleUnsavedDraftUi(60);
+    schedulePullPendingFromServer(800);
+  }
+  return marked;
+}
+
+async function parseAndApplyCustomerText(rawText, options = {}) {
+  const silentEmpty = options.silentEmpty === true;
+  const text = String(rawText || '').trim();
+
+  if (!text) {
+    if (!silentEmpty) {
+      showStatus('⚠️ Không có nội dung để phân tích!', 'warning');
+    }
+    return { ok: false, reason: 'empty' };
+  }
+
+  if (text.length < 8) {
+    if (!silentEmpty) {
+      showStatus('⚠️ Nội dung quá ngắn để phân tích!', 'warning');
+    }
+    return { ok: false, reason: 'short' };
+  }
+
+  if (smartPasteBusy) return { ok: false, reason: 'busy' };
+
+  const textarea = document.getElementById('shopvd-smart-paste-input');
+  if (textarea) textarea.value = text;
+
+  if (!addressLoaded) {
+    showStatus('⏳ Đang tải dữ liệu địa chỉ...', 'info');
+    await loadAddressData();
+    if (!addressLoaded) {
+      showStatus('⚠️ Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.', 'warning');
+      return { ok: false, reason: 'address_data_not_loaded' };
+    }
+  }
+
+  if (typeof smartParseCustomerInfo !== 'function') {
+    showStatus('⚠️ Module phân tích chưa sẵn sàng. Vui lòng reload extension.', 'warning');
+    return { ok: false, reason: 'function_not_available' };
+  }
+
+  smartPasteBusy = true;
+  setSmartPasteLoading(true);
+
+  try {
+    const parsedData = await smartParseCustomerInfo(text);
+
+    if (!parsedData?.success) {
+      showSmartPasteResult(parsedData);
+      return { ok: false, data: parsedData };
+    }
+
+    await applyParsedDataToExtensionForm(parsedData);
+    showSmartPasteResult(parsedData);
+    showStatus('✅ Đã lấy thông tin khách từ tin nhắn', 'success', 2500);
+    markCurrentChatAsUnsavedDraft('grab');
+
+    return { ok: true, data: parsedData };
+  } catch (error) {
+    console.error('Smart paste error:', error);
+    showSmartPasteResult({
+      success: false,
+      error: error.message || 'Lỗi phân tích',
+    });
+    return { ok: false, error };
+  } finally {
+    smartPasteBusy = false;
+    setSmartPasteLoading(false);
+  }
+}
+
+async function handleGrabFromSelection() {
+  const text = getSelectionTextOutsideSidebar();
+  if (!text) {
+    showStatus('⚠️ Bôi đen tin nhắn khách trên Pancake trước', 'warning');
+    return { ok: false, reason: 'no_selection' };
+  }
+  return parseAndApplyCustomerText(text);
+}
+
+async function handleGrabFromMessage(bubble) {
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const text = buildOrderIntentTextForGrab(root);
+  if (!text) {
+    showStatus('⚠️ Không đọc được nội dung tin nhắn', 'warning');
+    return { ok: false, reason: 'empty_message' };
+  }
+  setGrabBubbleHighlight(root);
+  setTimeout(() => clearGrabBubbleHighlight(), 900);
+  return parseAndApplyCustomerText(text);
+}
+
+async function handleGrabFromLatestMessage() {
+  const bubble = findLatestGrabableCustomerMessage();
+  if (!bubble) {
+    showStatus('⚠️ Không tìm thấy tin địa chỉ/SĐT gần nhất', 'warning');
+    return { ok: false, reason: 'no_message' };
+  }
+  return handleGrabFromMessage(bubble);
+}
+
+let shopvdFloatGrabBtn = null;
+let shopvdFloatGrabBubble = null;
+let shopvdFloatHideTimer = null;
+let shopvdGrabHighlightBubble = null;
+
+function removeAllInlineGrabButtons() {
+  document.querySelectorAll('.shopvd-pancake-grab-btn').forEach((btn) => btn.remove());
+  document.querySelectorAll('.shopvd-pancake-msg-wrap').forEach((el) => {
+    el.classList.remove('shopvd-pancake-msg-wrap');
+  });
+}
+
+function setGrabBubbleHighlight(bubble) {
+  clearGrabBubbleHighlight();
+  if (!bubble) return;
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  root.classList.add('shopvd-pancake-msg-hover');
+  shopvdGrabHighlightBubble = root;
+}
+
+function clearGrabBubbleHighlight() {
+  shopvdGrabHighlightBubble?.classList.remove('shopvd-pancake-msg-hover');
+  shopvdGrabHighlightBubble = null;
+}
+
+function getOrCreateFloatGrabButton() {
+  if (shopvdFloatGrabBtn) return shopvdFloatGrabBtn;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'shopvd-pancake-grab-float';
+  btn.title = 'Lấy SĐT & địa chỉ sang ShopVD';
+  btn.innerHTML = '<span class="shopvd-pancake-grab-float-icon" aria-hidden="true">→</span><span>ShopVD</span>';
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (shopvdFloatGrabBubble) {
+      handleGrabFromMessage(resolvePancakeMessageRoot(shopvdFloatGrabBubble) || shopvdFloatGrabBubble);
+    }
+    hideFloatGrabButton();
+  });
+  btn.addEventListener('mouseenter', () => {
+    clearTimeout(shopvdFloatHideTimer);
+  });
+  btn.addEventListener('mouseleave', () => {
+    hideFloatGrabButton(180);
+  });
+
+  document.documentElement.appendChild(btn);
+  shopvdFloatGrabBtn = btn;
+  return btn;
+}
+
+function showFloatGrabButton(bubble) {
+  if (!bubble) return;
+
+  const root = resolvePancakeMessageRoot(bubble) || bubble;
+  const anchor = resolvePancakeGrabAnchor(root);
+  const btn = getOrCreateFloatGrabButton();
+  const rect = anchor.getBoundingClientRect();
+  if (!rect.width && !rect.height) return;
+
+  shopvdFloatGrabBubble = root;
+  setGrabBubbleHighlight(root);
+
+  const btnRect = btn.getBoundingClientRect();
+  const btnWidth = btnRect.width || 78;
+  const btnHeight = btnRect.height || 28;
+  const gap = 10;
+
+  const sidebar = document.getElementById('shopvd-sidebar');
+  const sidebarLeft = sidebar?.getBoundingClientRect().left ?? window.innerWidth;
+  const maxLeft = sidebarLeft - btnWidth - 8;
+
+  let left = rect.right + gap;
+  let top = rect.top + rect.height / 2;
+  let isBelow = false;
+
+  if (left > maxLeft) {
+    isBelow = true;
+    left = Math.max(280, rect.left);
+    top = rect.bottom + gap;
+  }
+
+  if (isBelow) {
+    top = Math.max(8, Math.min(window.innerHeight - btnHeight - 8, top));
+  } else {
+    top = Math.max(btnHeight / 2 + 8, Math.min(window.innerHeight - btnHeight / 2 - 8, top));
+  }
+  left = Math.max(8, Math.min(maxLeft, left));
+
+  btn.style.top = `${top}px`;
+  btn.style.left = `${left}px`;
+  btn.classList.toggle('is-below', isBelow);
+  btn.classList.add('is-visible');
+}
+
+function hideFloatGrabButton(delayMs = 0) {
+  clearTimeout(shopvdFloatHideTimer);
+  shopvdFloatHideTimer = setTimeout(() => {
+    shopvdFloatGrabBtn?.classList.remove('is-visible', 'is-below');
+    shopvdFloatGrabBubble = null;
+    clearGrabBubbleHighlight();
+  }, delayMs);
+}
+
+function setupPancakeHoverGrabButton() {
+  document.addEventListener('mouseover', (e) => {
+    if (!isAllowedPage()) return;
+    if (isInsideShopvdSidebar(e.target)) return;
+    if (shopvdFloatGrabBtn?.contains(e.target)) return;
+
+    const bubble = findPancakeMessageBubble(e.target);
+    if (!bubble) {
+      hideFloatGrabButton(140);
+      return;
+    }
+
+    if (bubble === shopvdFloatGrabBubble) {
+      clearTimeout(shopvdFloatHideTimer);
+      return;
+    }
+
+    clearTimeout(shopvdFloatHideTimer);
+    showFloatGrabButton(bubble);
+  }, true);
+
+  document.addEventListener('scroll', () => {
+    if (shopvdFloatGrabBubble) {
+      showFloatGrabButton(shopvdFloatGrabBubble);
+    }
+  }, true);
+
+  window.addEventListener('resize', () => hideFloatGrabButton());
+}
+
+function setupPancakeMessageGrab() {
+  removeAllInlineGrabButtons();
+
+  if (window.__shopvdPancakeGrabObserver) {
+    window.__shopvdPancakeGrabObserver.disconnect();
+    window.__shopvdPancakeGrabObserver = null;
+  }
+
+  document.getElementById('shopvd-grab-selection-btn')?.addEventListener('click', () => {
+    handleGrabFromSelection();
+  });
+
+  document.getElementById('shopvd-grab-latest-btn')?.addEventListener('click', () => {
+    handleGrabFromLatestMessage();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!isAllowedPage()) return;
+    if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'g')) return;
+    if (isInsideShopvdSidebar(document.activeElement)) return;
+
+    e.preventDefault();
+    handleGrabFromSelection();
+  });
+
+  setupPancakeHoverGrabButton();
 }
 
 // Handle smart paste button click
@@ -1500,58 +2762,8 @@ async function handleSmartPaste(options = {}) {
     }
     return { ok: false, reason: 'empty' };
   }
-  
-  if (text.length < 8) {
-    if (!silentEmpty) {
-      showStatus('⚠️ Nội dung quá ngắn để phân tích!', 'warning');
-    }
-    return { ok: false, reason: 'short' };
-  }
-  
-  if (smartPasteBusy) return { ok: false, reason: 'busy' };
-  
-  // Ensure address data is loaded before parsing
-  if (!addressLoaded) {
-    showStatus('⏳ Đang tải dữ liệu địa chỉ...', 'info');
-    await loadAddressData();
-    if (!addressLoaded) {
-      showStatus('⚠️ Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.', 'warning');
-      return { ok: false, reason: 'address_data_not_loaded' };
-    }
-  }
-  
-  // smartParseCustomerInfo is loaded from smart-paste.js via manifest
-  if (typeof smartParseCustomerInfo !== 'function') {
-    showStatus('⚠️ Module phân tích chưa sẵn sàng. Vui lòng reload extension.', 'warning');
-    return { ok: false, reason: 'function_not_available' };
-  }
-  
-  smartPasteBusy = true;
-  setSmartPasteLoading(true);
-  
-  try {
-    const parsedData = await smartParseCustomerInfo(text);
-    
-    if (!parsedData?.success) {
-      showSmartPasteResult(parsedData);
-      return { ok: false, data: parsedData };
-    }
-    
-    await applyParsedDataToExtensionForm(parsedData);
-    showSmartPasteResult(parsedData);
-    
-    return { ok: true, data: parsedData };
-  } catch (error) {
-    console.error('Smart paste error:', error);
-    showSmartPasteResult({ 
-      success: false, 
-      error: error.message || 'Lỗi phân tích' 
-    });
-    return { ok: false, error };
-  } finally {
-    smartPasteBusy = false;
-    setSmartPasteLoading(false);
-  }
+
+  return parseAndApplyCustomerText(text, { silentEmpty });
 }
 
 // Render category filter
@@ -3111,35 +4323,126 @@ function bindOrderFormValidationListeners() {
   });
 }
 
+function resetCustomerSourceSelection() {
+  document.querySelectorAll('.shopvd-source-btn').forEach((btn) => btn.classList.remove('active'));
+  const sourceInput = document.getElementById('customer-source');
+  if (sourceInput) sourceInput.value = '';
+}
+
+function resetPaymentMethodSelection() {
+  document.querySelectorAll('.shopvd-payment-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-payment') === 'cod');
+  });
+  const paymentInput = document.getElementById('payment-method');
+  if (paymentInput) paymentInput.value = 'cod';
+  document.getElementById('deposit-amount-wrapper')?.classList.add('hidden');
+  const depositInput = document.getElementById('deposit-amount');
+  if (depositInput) depositInput.value = '0';
+}
+
 function clearOrderFormValidationOnReset() {
   orderFormValidationActive = false;
   clearOrderFormValidationUI();
 }
 
 const PAYMENT_METHOD_LABELS = {
-  cod: 'COD — Thu khi giao',
-  bank_transfer: 'Đã chuyển khoản',
-  deposit: 'Cọc trước',
+  cod: 'COD',
+  bank_transfer: 'CK',
+  deposit: 'Cọc',
 };
 
+const SHOPVD_OST_AUTO_HIDE_MS = 3200;
+let shopvdOstHideTimer = 0;
+let shopvdOstFadeTimer = 0;
+
+function hideOrderSuccessToast(immediate = false) {
+  const toast = document.getElementById('shopvd-order-success-toast');
+  if (!toast) return;
+
+  clearTimeout(shopvdOstHideTimer);
+  clearTimeout(shopvdOstFadeTimer);
+  shopvdOstHideTimer = 0;
+  shopvdOstFadeTimer = 0;
+
+  if (immediate || toast.classList.contains('hidden')) {
+    toast.classList.add('hidden');
+    toast.classList.remove('is-leaving');
+    return;
+  }
+
+  toast.classList.add('is-leaving');
+  shopvdOstFadeTimer = setTimeout(() => {
+    toast.classList.add('hidden');
+    toast.classList.remove('is-leaving');
+    shopvdOstFadeTimer = 0;
+  }, 220);
+}
+
 function closeOrderSuccessModal() {
-  document.getElementById('shopvd-order-success-modal')?.classList.add('hidden');
+  hideOrderSuccessToast(true);
+}
+
+function showOrderSuccessToast(summary = {}) {
+  const toast = document.getElementById('shopvd-order-success-toast');
+  if (!toast) return;
+
+  const orderId = String(summary.orderId || '—').trim() || '—';
+  const phone = String(summary.customerPhone || '').trim();
+  const name = String(summary.customerName || '').trim();
+  const pay = PAYMENT_METHOD_LABELS[summary.paymentMethod] || summary.paymentMethod || '';
+  const total = `${formatPrice(summary.totalAmount)} đ`;
+  const parts = [
+    phone || name || null,
+    summary.productCount ? `${summary.productCount} SP` : null,
+    pay || null,
+    total,
+  ].filter(Boolean);
+
+  const idBtn = document.getElementById('ost-order-id');
+  if (idBtn) {
+    idBtn.textContent = orderId;
+    idBtn.dataset.orderId = orderId;
+  }
+  const summaryEl = document.getElementById('ost-summary');
+  if (summaryEl) summaryEl.textContent = parts.join(' · ');
+
+  document.getElementById('shopvd-status')?.classList.add('hidden');
+
+  clearTimeout(shopvdOstHideTimer);
+  clearTimeout(shopvdOstFadeTimer);
+  toast.classList.remove('hidden', 'is-leaving');
+  // Restart enter animation if toast already visible
+  toast.classList.remove('is-enter');
+  void toast.offsetWidth;
+  toast.classList.add('is-enter');
+
+  shopvdOstHideTimer = setTimeout(() => {
+    hideOrderSuccessToast(false);
+  }, SHOPVD_OST_AUTO_HIDE_MS);
 }
 
 function showOrderSuccessModal(summary) {
-  const modal = document.getElementById('shopvd-order-success-modal');
-  if (!modal) return;
+  showOrderSuccessToast(summary);
+}
 
-  document.getElementById('osm-order-id').textContent = summary.orderId || '—';
-  document.getElementById('osm-customer-name').textContent = summary.customerName || '—';
-  document.getElementById('osm-customer-phone').textContent = summary.customerPhone || '—';
-  document.getElementById('osm-product-count').textContent = `${summary.productCount || 0} sản phẩm`;
-  document.getElementById('osm-payment-method').textContent =
-    PAYMENT_METHOD_LABELS[summary.paymentMethod] || summary.paymentMethod || '—';
-  document.getElementById('osm-total').textContent = `${formatPrice(summary.totalAmount)} đ`;
-
-  document.getElementById('shopvd-status')?.classList.add('hidden');
-  modal.classList.remove('hidden');
+async function copyOrderSuccessId() {
+  const idBtn = document.getElementById('ost-order-id');
+  const orderId = idBtn?.dataset?.orderId || idBtn?.textContent || '';
+  if (!orderId || orderId === '—') return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(orderId);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = orderId;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    idBtn?.classList.add('is-copied');
+    setTimeout(() => idBtn?.classList.remove('is-copied'), 900);
+  } catch (_) { /* ignore */ }
 }
 
 function setCreateOrderLoading(isLoading) {
@@ -3214,6 +4517,13 @@ async function createOrder(orderData) {
     console.groupEnd();
 
     if (result.success) {
+      const savedPhone = sanitizePhoneDigits(orderData.customer?.phone || '');
+      if (savedPhone) {
+        markPhoneAsOrdered(savedPhone);
+        removeUnsavedDraft(savedPhone);
+      }
+      schedulePullPendingFromServer(500);
+
       showOrderSuccessModal({
         orderId: result.orderId || orderData.orderId,
         customerName: orderData.customer?.name,
@@ -3226,6 +4536,8 @@ async function createOrder(orderData) {
       // Reset form
       document.getElementById('shopvd-order-form').reset();
       resetCustomerAddressForm();
+      resetCustomerSourceSelection();
+      resetPaymentMethodSelection();
       const smartPasteInput = document.getElementById('shopvd-smart-paste-input');
       if (smartPasteInput) smartPasteInput.value = '';
       document.getElementById('shopvd-smart-paste-status')?.classList.add('hidden');
@@ -3252,6 +4564,11 @@ async function createOrder(orderData) {
       renderProducts();
       calculateTotal();
       clearOrderFormValidationOnReset();
+
+      lastPancakeConversationKey = '';
+      customerNameUserEdited = false;
+      scheduleUnsavedDraftUi(80);
+      schedulePancakeCustomerNameSync(300);
 
       // Open shopvd.store in new tab (optional)
       // window.open(`https://shopvd.store/admin/index.html`, '_blank');
@@ -3329,8 +4646,11 @@ function setupEventListeners() {
 
   bindPhoneNumericInput();
 
-  document.getElementById('shopvd-osm-close')?.addEventListener('click', closeOrderSuccessModal);
-  document.querySelector('.shopvd-osm-overlay')?.addEventListener('click', closeOrderSuccessModal);
+  document.getElementById('shopvd-ost-close')?.addEventListener('click', () => hideOrderSuccessToast(true));
+  document.getElementById('ost-order-id')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    copyOrderSuccessId();
+  });
 
   // Smart paste button
   document.getElementById('shopvd-smart-paste-btn')?.addEventListener('click', () => {
@@ -4377,6 +5697,14 @@ function setupEventListeners() {
       plannedSendAtUnix = new Date(plannedSendTime).getTime();
     }
 
+    // Giữ ID dạng string tree_2 ("01", "00329") — không parseInt (tránh 1.0 / 329.0)
+    const provinceIdStr = String(provinceId || '').trim();
+    const wardIdStr = String(wardId || '').trim();
+    const provinceObj = provinceMap.get(provinceIdStr);
+    const wardObj = wardMap.get(`${provinceIdStr}-${wardIdStr}`);
+    const provinceName = provinceObj?.Name || null;
+    const wardName = wardObj?.Name || null;
+
     // Build order data
     const orderData = {
       orderId: 'DH' + Date.now(),
@@ -4408,9 +5736,11 @@ function setupEventListeners() {
       planned_send_at_unix: plannedSendAtUnix,
       acknowledgeDuplicate: true, // Bỏ qua check trùng vì đã parse từ chat
       notes: notes || null,
-      // Address fields (2-level)
-      province_id: parseInt(provinceId),
-      ward_id: parseInt(wardId),
+      // Address 2 cấp — ID string + tên (export SPX / báo cáo không phụ thuộc tree client)
+      province_id: provinceIdStr || null,
+      province_name: provinceName,
+      ward_id: wardIdStr || null,
+      ward_name: wardName,
       street_address: streetAddress || null
     };
 
@@ -4722,6 +6052,1201 @@ async function loadShippingFees() {
   }
 }
 
+// === Unsaved order drafts — local cache + ShopVD DB (source of truth) ===
+const SHOPVD_DRAFT_STORAGE_KEY = 'shopvdUnsavedDrafts';
+const SHOPVD_DRAFT_MAX = 40;
+const SHOPVD_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SHOPVD_PENDING_SYNC_MS = 450;
+const SHOPVD_PENDING_PULL_MS = 45_000;
+
+let shopvdDraftMap = new Map(); // key = phone
+let shopvdDraftReady = false;
+let shopvdDraftPersistTimer = null;
+let shopvdDraftUiTimer = null;
+let shopvdDraftFormTimer = null;
+let shopvdDraftServerTimer = null;
+let shopvdDraftPullTimer = null;
+let shopvdDraftListObserver = null;
+let shopvdUnsavedPanelOpen = false;
+let shopvdRestoringDraft = false;
+let shopvdLeavingUnsavedKey = '';
+let shopvdPendingPullInFlight = false;
+let shopvdPendingPushInFlight = false;
+let shopvdLastBadgeFingerprint = '';
+/** SĐT đã có đơn thật — không auto-detect / không tạo pending lại */
+const shopvdKnownOrderedPhones = new Set();
+/** SĐT user đã bấm × — không auto-detect tạo lại trong phiên */
+const shopvdDismissedPhones = new Set();
+/** conversationKey → phone đã scan thành công (tránh quét lặp) */
+const shopvdAutoDetectDone = new Map();
+
+function markPhoneAsOrdered(phone) {
+  const p = normalizeDraftPhone(phone);
+  if (!isValidDraftPhone(p)) return;
+  shopvdKnownOrderedPhones.add(p);
+  shopvdDismissedPhones.delete(p);
+  if (shopvdDraftMap.has(p)) {
+    shopvdDraftMap.delete(p);
+    schedulePersistDrafts(80);
+  }
+}
+
+function markPhoneAsDismissed(phone) {
+  const p = normalizeDraftPhone(phone);
+  if (!isValidDraftPhone(p)) return;
+  shopvdDismissedPhones.add(p);
+  if (shopvdDraftMap.has(p)) {
+    shopvdDraftMap.delete(p);
+    schedulePersistDrafts(80);
+  }
+}
+
+function isPhoneKnownOrdered(phone) {
+  return shopvdKnownOrderedPhones.has(normalizeDraftPhone(phone));
+}
+
+function isPhoneDismissed(phone) {
+  return shopvdDismissedPhones.has(normalizeDraftPhone(phone));
+}
+
+function isValidDraftPhone(phone) {
+  const digits = sanitizePhoneDigits(phone || '');
+  return /^0\d{8,10}$/.test(digits);
+}
+
+function normalizeDraftPhone(phone) {
+  return sanitizePhoneDigits(phone || '');
+}
+
+function isCustomerSnapshotWorthy(snap) {
+  if (!snap || !isValidDraftPhone(snap.phone)) return false;
+  if (isPhoneKnownOrdered(snap.phone)) return false;
+  if (snap.provinceId && snap.wardId) return true;
+  const address = String(snap.address || '').trim();
+  if (address.length >= 10) return true;
+  const street = String(snap.street || '').trim();
+  return street.length >= 8 && Boolean(snap.provinceId);
+}
+
+function getCurrentCustomerSnapshot() {
+  const provinceSelect = document.getElementById('customer-province');
+  const wardSelect = document.getElementById('customer-ward');
+  const provinceId = provinceSelect?.value || '';
+  const wardId = wardSelect?.value || '';
+  const province = provinceId ? provinceMap.get(provinceId) : null;
+  const ward = province?.Wards?.find((w) => String(w.Id) === String(wardId));
+
+  return {
+    name: document.getElementById('customer-name')?.value.trim() || '',
+    phone: normalizeDraftPhone(document.getElementById('customer-phone')?.value || ''),
+    provinceId,
+    provinceName: province?.Name || document.getElementById('province-combobox-text')?.textContent || '',
+    wardId,
+    wardName: ward?.Name || document.getElementById('ward-combobox-text')?.textContent || '',
+    street: document.getElementById('customer-street')?.value.trim() || '',
+    address: document.getElementById('customer-address')?.value.trim() || '',
+  };
+}
+
+function draftMapKey(phoneOrDraft) {
+  if (!phoneOrDraft) return '';
+  if (typeof phoneOrDraft === 'string') return normalizeDraftPhone(phoneOrDraft);
+  return normalizeDraftPhone(phoneOrDraft.phone || '');
+}
+
+function findDraftByConversationKey(conversationKey) {
+  if (!conversationKey) return null;
+  for (const draft of shopvdDraftMap.values()) {
+    if (draft?.conversationKey === conversationKey) return draft;
+  }
+  return null;
+}
+
+function pruneExpiredDrafts(map = shopvdDraftMap) {
+  const now = Date.now();
+  for (const [key, draft] of map) {
+    if (!draft?.updatedAt || now - draft.updatedAt > SHOPVD_DRAFT_TTL_MS) {
+      map.delete(key);
+    }
+  }
+  while (map.size > SHOPVD_DRAFT_MAX) {
+    let oldestKey = null;
+    let oldestAt = Infinity;
+    for (const [key, draft] of map) {
+      const ts = draft?.updatedAt || 0;
+      if (ts < oldestAt) {
+        oldestAt = ts;
+        oldestKey = key;
+      }
+    }
+    if (!oldestKey) break;
+    map.delete(oldestKey);
+  }
+}
+
+function isExtensionContextAlive() {
+  try {
+    return typeof chrome !== 'undefined'
+      && !!chrome.runtime?.id
+      && !!chrome.storage?.local;
+  } catch (_) {
+    return false;
+  }
+}
+
+function isExtensionContextError(err) {
+  const msg = String(err?.message || err || '');
+  return /Extension context invalidated|context invalidated/i.test(msg);
+}
+
+function writeDraftsToLocalStorage(payload) {
+  localStorage.setItem(SHOPVD_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function schedulePersistDrafts(delayMs = 250) {
+  clearTimeout(shopvdDraftPersistTimer);
+  shopvdDraftPersistTimer = setTimeout(() => {
+    persistDraftsNow();
+  }, delayMs);
+}
+
+function persistDraftsNow() {
+  pruneExpiredDrafts();
+  const payload = Object.fromEntries(shopvdDraftMap);
+  try {
+    if (isExtensionContextAlive()) {
+      try {
+        chrome.storage.local.set({ [SHOPVD_DRAFT_STORAGE_KEY]: payload });
+        return;
+      } catch (err) {
+        // Reload extension khi tab còn mở → chrome.storage chết; fallback localStorage
+        if (!isExtensionContextError(err)) throw err;
+      }
+    }
+    writeDraftsToLocalStorage(payload);
+  } catch (err) {
+    if (!isExtensionContextError(err)) {
+      console.warn('[ShopVD] Không lưu được draft chưa chốt:', err);
+    }
+  }
+}
+
+function applyServerPendingItems(items) {
+  const next = new Map();
+  (items || []).forEach((item) => {
+    const phone = normalizeDraftPhone(item.phone || item.customer_phone);
+    if (!isValidDraftPhone(phone)) return;
+    if (isPhoneKnownOrdered(phone)) return;
+    next.set(phone, {
+      key: phone,
+      phone,
+      serverId: item.id || null,
+      name: item.name || '',
+      conversationKey: item.conversationKey || '',
+      provinceId: item.provinceId || '',
+      provinceName: item.provinceName || '',
+      wardId: item.wardId || '',
+      wardName: item.wardName || '',
+      street: item.street || '',
+      address: item.address || '',
+      source: item.source || 'extension',
+      updatedAt: item.updatedAt || Date.now(),
+    });
+  });
+
+  // Phones that were local but not on server → likely already ordered / dismissed
+  for (const [phone] of shopvdDraftMap) {
+    if (!next.has(phone) && !shopvdPendingPushInFlight) {
+      // Keep only if still pushing; otherwise drop (server is truth)
+    }
+  }
+
+  const nextFp = [...next.keys()].sort().join('|');
+  const prevFp = [...shopvdDraftMap.keys()].sort().join('|');
+  shopvdDraftMap = next;
+  pruneExpiredDrafts();
+  persistDraftsNow();
+  if (nextFp !== prevFp) {
+    scheduleUnsavedDraftUi(40);
+  }
+}
+
+async function pullPendingFromServer() {
+  if (shopvdPendingPullInFlight || shopvdPendingPushInFlight) return;
+  shopvdPendingPullInFlight = true;
+  try {
+    const res = await fetch(`${API_BASE_URL}?action=getPendingUnsavedOrders&timestamp=${Date.now()}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const data = await res.json();
+    if (data?.success && Array.isArray(data.items)) {
+      applyServerPendingItems(data.items);
+    }
+  } catch (err) {
+    console.warn('[ShopVD] Không tải được pending từ server:', err);
+  } finally {
+    shopvdPendingPullInFlight = false;
+    shopvdDraftReady = true;
+  }
+}
+
+function schedulePullPendingFromServer(delayMs = 0) {
+  clearTimeout(shopvdDraftPullTimer);
+  shopvdDraftPullTimer = setTimeout(() => {
+    pullPendingFromServer();
+  }, delayMs);
+}
+
+async function pushPendingToServer(draft) {
+  if (!draft || !isValidDraftPhone(draft.phone)) return null;
+  if (isPhoneKnownOrdered(draft.phone)) {
+    shopvdDraftMap.delete(draftMapKey(draft.phone));
+    schedulePersistDrafts(80);
+    scheduleUnsavedDraftUi();
+    return { alreadyOrdered: true };
+  }
+
+  shopvdPendingPushInFlight = true;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/order/pending-unsaved/upsert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        phone: draft.phone,
+        name: draft.name || '',
+        conversationKey: draft.conversationKey || '',
+        address: draft.address || '',
+        provinceId: draft.provinceId || '',
+        provinceName: draft.provinceName || '',
+        wardId: draft.wardId || '',
+        wardName: draft.wardName || '',
+        street: draft.street || '',
+        source: draft.source || 'extension',
+      }),
+    });
+    const data = await res.json();
+    if (data?.alreadyOrdered) {
+      markPhoneAsOrdered(draft.phone);
+      scheduleUnsavedDraftUi();
+      return data;
+    }
+    if (data?.dismissed) {
+      markPhoneAsDismissed(draft.phone);
+      scheduleUnsavedDraftUi();
+      return data;
+    }
+    if (data?.success && data.pending) {
+      const phone = normalizeDraftPhone(data.pending.phone);
+      if (isPhoneKnownOrdered(phone)) {
+        shopvdDraftMap.delete(phone);
+      } else {
+        const prev = shopvdDraftMap.get(phone) || draft;
+        shopvdDraftMap.set(phone, {
+          ...prev,
+          ...draft,
+          phone,
+          serverId: data.pending.id,
+          updatedAt: data.pending.updatedAt || Date.now(),
+        });
+      }
+      schedulePersistDrafts(80);
+      scheduleUnsavedDraftUi();
+    }
+    return data;
+  } catch (err) {
+    console.warn('[ShopVD] Sync pending lên server thất bại (giữ local):', err);
+    return null;
+  } finally {
+    shopvdPendingPushInFlight = false;
+  }
+}
+
+function schedulePushPendingToServer(draft, delayMs = SHOPVD_PENDING_SYNC_MS) {
+  clearTimeout(shopvdDraftServerTimer);
+  shopvdDraftServerTimer = setTimeout(() => {
+    pushPendingToServer(draft);
+  }, delayMs);
+}
+
+async function dismissPendingOnServer(draft) {
+  if (!draft) return;
+  try {
+    await fetch(`${API_BASE_URL}/api/order/pending-unsaved/dismiss`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        id: draft.serverId || undefined,
+        phone: draft.phone,
+      }),
+    });
+  } catch (err) {
+    console.warn('[ShopVD] Dismiss pending trên server thất bại:', err);
+  }
+}
+
+async function loadDraftsFromStorage() {
+  try {
+    let raw = null;
+    if (isExtensionContextAlive()) {
+      try {
+        const data = await chrome.storage.local.get(SHOPVD_DRAFT_STORAGE_KEY);
+        raw = data?.[SHOPVD_DRAFT_STORAGE_KEY] || null;
+      } catch (err) {
+        if (!isExtensionContextError(err)) throw err;
+        raw = JSON.parse(localStorage.getItem(SHOPVD_DRAFT_STORAGE_KEY) || 'null');
+      }
+    } else {
+      raw = JSON.parse(localStorage.getItem(SHOPVD_DRAFT_STORAGE_KEY) || 'null');
+    }
+
+    shopvdDraftMap = new Map();
+    if (raw && typeof raw === 'object') {
+      Object.entries(raw).forEach(([key, draft]) => {
+        const phone = normalizeDraftPhone(draft?.phone || key);
+        if (phone && draft && isValidDraftPhone(phone)) {
+          shopvdDraftMap.set(phone, { ...draft, phone, key: phone });
+        }
+      });
+    }
+    pruneExpiredDrafts();
+  } catch (err) {
+    if (!isExtensionContextError(err)) {
+      console.warn('[ShopVD] Không đọc được draft chưa chốt:', err);
+    }
+    shopvdDraftMap = new Map();
+  } finally {
+    shopvdDraftReady = true;
+    scheduleUnsavedDraftUi();
+    // Server is source of truth — overwrite local after pull
+    schedulePullPendingFromServer(200);
+  }
+}
+
+function getUnsavedDraftCount() {
+  pruneExpiredDrafts();
+  return shopvdDraftMap.size;
+}
+
+function getUnsavedDraftEntries() {
+  pruneExpiredDrafts();
+  return [...shopvdDraftMap.values()]
+    .map((draft) => ({
+      key: draft.phone,
+      ...draft,
+    }))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+function upsertUnsavedDraft(conversationKey, snapshot, source = 'form') {
+  if (!isCustomerSnapshotWorthy(snapshot)) return false;
+  const phone = normalizeDraftPhone(snapshot.phone);
+  if (!phone || isPhoneKnownOrdered(phone)) return false;
+
+  // Bấm × rồi: auto-detect không tạo lại; grab/form vẫn được
+  if (source === 'auto-detect' && isPhoneDismissed(phone)) return false;
+
+  if (source !== 'auto-detect') {
+    shopvdDismissedPhones.delete(phone);
+  }
+
+  const prev = shopvdDraftMap.get(phone);
+  if (
+    prev
+    && prev.phone === phone
+    && prev.address === (snapshot.address || '')
+    && prev.conversationKey === (conversationKey || prev.conversationKey || '')
+    && prev.serverId
+  ) {
+    return true;
+  }
+
+  const draft = {
+    ...prev,
+    key: phone,
+    phone,
+    serverId: prev?.serverId || null,
+    name: snapshot.name || prev?.name || '',
+    conversationKey: conversationKey || prev?.conversationKey || '',
+    provinceId: snapshot.provinceId || '',
+    provinceName: snapshot.provinceName || '',
+    wardId: snapshot.wardId || '',
+    wardName: snapshot.wardName || '',
+    street: snapshot.street || '',
+    address: snapshot.address || '',
+    source,
+    updatedAt: Date.now(),
+  };
+
+  // auto-detect: chỉ hiện badge sau khi server xác nhận chưa có đơn (tránh nhấp nháy)
+  if (source === 'auto-detect') {
+    schedulePushPendingToServer(draft, 200);
+    return true;
+  }
+
+  shopvdDraftMap.set(phone, draft);
+  schedulePersistDrafts();
+  scheduleUnsavedDraftUi();
+  schedulePushPendingToServer(draft);
+  return true;
+}
+
+function removeUnsavedDraft(phoneOrKey) {
+  const phone = normalizeDraftPhone(phoneOrKey);
+  let draft = phone ? shopvdDraftMap.get(phone) : null;
+  if (!draft && phoneOrKey) {
+    draft = findDraftByConversationKey(phoneOrKey);
+  }
+  if (!draft) return false;
+
+  markPhoneAsDismissed(draft.phone);
+  shopvdDraftMap.delete(draft.phone);
+  schedulePersistDrafts(80);
+  scheduleUnsavedDraftUi();
+  dismissPendingOnServer(draft);
+  return true;
+}
+
+function markCurrentChatAsUnsavedDraft(source = 'form') {
+  if (shopvdRestoringDraft) return false;
+  const key = getPancakeConversationKey();
+  return upsertUnsavedDraft(key, getCurrentCustomerSnapshot(), source);
+}
+
+function scheduleMarkCurrentDraftFromForm(delayMs = 400) {
+  clearTimeout(shopvdDraftFormTimer);
+  shopvdDraftFormTimer = setTimeout(() => {
+    const snap = getCurrentCustomerSnapshot();
+    const key = getPancakeConversationKey();
+
+    if (isCustomerSnapshotWorthy(snap)) {
+      upsertUnsavedDraft(key, snap, 'form');
+    } else if (isValidDraftPhone(snap.phone) === false) {
+      // Phone cleared — drop any draft for previous phone is hard; only drop if current empty
+      // Keep server truth via next pull
+    }
+  }, delayMs);
+}
+
+async function restoreDraftToForm(draft) {
+  if (!draft || shopvdRestoringDraft) return false;
+  shopvdRestoringDraft = true;
+
+  try {
+    const nameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('customer-phone');
+    if (nameInput && draft.name) nameInput.value = draft.name;
+    if (phoneInput && draft.phone) phoneInput.value = sanitizePhoneDigits(draft.phone);
+
+    if (draft.provinceId) {
+      if (!addressLoaded) {
+        await loadAddressData();
+      }
+
+      const provinceSelect = document.getElementById('customer-province');
+      const wardSelect = document.getElementById('customer-ward');
+      const streetInput = document.getElementById('customer-street');
+      if (provinceSelect && wardSelect) {
+        provinceSelect.value = draft.provinceId;
+
+        const provinceBtn = document.getElementById('province-combobox-btn');
+        const provinceText = document.getElementById('province-combobox-text');
+        if (provinceBtn && provinceText) {
+          provinceBtn.classList.add('selected');
+          provinceText.textContent = draft.provinceName || provinceMap.get(draft.provinceId)?.Name || 'Đã chọn';
+        }
+
+        renderWards(draft.provinceId);
+        renderWardCombobox(draft.provinceId);
+        document.getElementById('ward-combobox-wrapper')?.classList.remove('hidden');
+
+        const wardBtn = document.getElementById('ward-combobox-btn');
+        if (wardBtn) wardBtn.disabled = false;
+
+        if (draft.wardId) {
+          await new Promise((r) => setTimeout(r, 40));
+          wardSelect.value = draft.wardId;
+          const wardText = document.getElementById('ward-combobox-text');
+          if (wardBtn && wardText) {
+            wardBtn.classList.add('selected');
+            wardText.textContent = draft.wardName || 'Đã chọn';
+          }
+          document.getElementById('customer-street-field')?.classList.remove('hidden');
+        }
+
+        if (streetInput && draft.street) {
+          streetInput.value = draft.street;
+        }
+        updateFullAddress();
+      }
+    }
+
+    clearValidationFieldError('customer-name');
+    clearValidationFieldError('customer-phone');
+    updatePancakeNameHint(Boolean(draft.name));
+    lastAutoFilledCustomerName = draft.name || '';
+    customerNameUserEdited = false;
+    return true;
+  } finally {
+    shopvdRestoringDraft = false;
+  }
+}
+
+function formatDraftRelativeTime(ts) {
+  if (!ts) return '';
+  const diff = Math.max(0, Date.now() - ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'vừa xong';
+  if (mins < 60) return `${mins} phút trước`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  return `${days} ngày trước`;
+}
+
+function scheduleUnsavedDraftUi(delayMs = 120) {
+  clearTimeout(shopvdDraftUiTimer);
+  shopvdDraftUiTimer = setTimeout(() => {
+    updateUnsavedBadgeUI();
+    paintConversationListBadges();
+  }, delayMs);
+}
+
+function updateUnsavedBadgeUI() {
+  const badge = document.getElementById('shopvd-unsaved-badge');
+  const countEl = document.getElementById('shopvd-unsaved-count');
+  const panel = document.getElementById('shopvd-unsaved-panel');
+  const list = document.getElementById('shopvd-unsaved-list');
+  if (!badge || !countEl) return;
+
+  const entries = getUnsavedDraftEntries().filter((d) => !isPhoneKnownOrdered(d.phone));
+  const count = entries.length;
+  const fingerprint = `${count}|${entries.map((d) => d.phone).join(',')}|${shopvdUnsavedPanelOpen ? 1 : 0}`;
+  if (fingerprint === shopvdLastBadgeFingerprint && countEl.textContent === String(count)) {
+    return;
+  }
+  shopvdLastBadgeFingerprint = fingerprint;
+
+  countEl.textContent = String(count);
+  badge.classList.toggle('hidden', count === 0);
+  badge.classList.toggle('is-active', shopvdUnsavedPanelOpen && count > 0);
+
+  if (!panel || !list) return;
+
+  if (count === 0) {
+    shopvdUnsavedPanelOpen = false;
+    panel.classList.add('hidden');
+    list.innerHTML = '';
+    return;
+  }
+
+  panel.classList.toggle('hidden', !shopvdUnsavedPanelOpen);
+  if (!shopvdUnsavedPanelOpen) return;
+
+  const currentKey = getPancakeConversationKey();
+  const copyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  list.innerHTML = entries.map((d) => {
+    const title = escapeHtml(d.name || d.phone || 'Khách chưa tên');
+    const phone = escapeHtml(d.phone || '');
+    const addr = escapeHtml((d.address || [d.street, d.wardName, d.provinceName].filter(Boolean).join(', ')).slice(0, 72));
+    const time = escapeHtml(formatDraftRelativeTime(d.updatedAt));
+    const isCurrent = (d.conversationKey && d.conversationKey === currentKey)
+      || d.phone === normalizeDraftPhone(document.getElementById('customer-phone')?.value || '');
+    return `
+      <div class="shopvd-unsaved-item${isCurrent ? ' is-current' : ''}" data-draft-key="${escapeHtml(d.key)}">
+        <div class="shopvd-unsaved-item-main">
+          <div class="shopvd-unsaved-item-title">${title}</div>
+          <div class="shopvd-unsaved-phone-row">
+            <span class="shopvd-unsaved-phone">${phone}</span>
+            <button type="button" class="shopvd-unsaved-copy-btn" data-phone="${phone}" title="Copy SĐT" aria-label="Copy số điện thoại ${phone}">
+              ${copyIcon}
+            </button>
+          </div>
+          ${addr ? `<div class="shopvd-unsaved-item-meta">${addr}</div>` : ''}
+          <div class="shopvd-unsaved-item-time">${time}${isCurrent ? ' · đang mở' : ''}</div>
+        </div>
+        <div class="shopvd-unsaved-item-actions">
+          <button type="button" class="shopvd-unsaved-open-btn" data-draft-key="${escapeHtml(d.key)}" title="Khôi phục form">Mở</button>
+          <button type="button" class="shopvd-unsaved-dismiss-btn" data-draft-key="${escapeHtml(d.key)}" title="Bỏ đánh dấu">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // stash icons for copy feedback (avoid re-querying constants in handler)
+  list.dataset.copyIcon = copyIcon;
+  list.dataset.checkIcon = checkIcon;
+}
+
+function getConversationItemKey(item) {
+  if (!item) return '';
+  return item.getAttribute('data-id')
+    || item.getAttribute('data-conversation-id')
+    || item.getAttribute('id')
+    || '';
+}
+
+function conversationItemMatchesDraft(item, draftKey, draft) {
+  const itemKey = getConversationItemKey(item);
+  if (itemKey && draft?.conversationKey && itemKey === draft.conversationKey) return true;
+  if (itemKey && draftKey && itemKey === draftKey) return true;
+
+  const text = normalizePancakeCustomerName(item.textContent || '').toLowerCase();
+  if (!text) return false;
+
+  if (draft?.phone && text.includes(String(draft.phone))) return true;
+  if (draft?.name) {
+    const name = normalizePancakeCustomerName(draft.name).toLowerCase();
+    if (name.length >= 3 && text.includes(name)) return true;
+  }
+  return false;
+}
+
+function paintConversationListBadges() {
+  const roots = [];
+  document.querySelectorAll(PANCAKE_LIST_SELECTOR).forEach((el) => roots.push(el));
+  if (!roots.length) {
+    document.querySelectorAll('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]')
+      .forEach((el) => {
+        if (isInsideConversationList(el)) roots.push(el.parentElement);
+      });
+  }
+
+  const scoped = roots.length
+    ? roots
+    : [document.body];
+
+  const items = new Set();
+  scoped.forEach((root) => {
+    root?.querySelectorAll?.('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]')
+      ?.forEach((el) => items.add(el));
+  });
+
+  const drafts = getUnsavedDraftEntries();
+  items.forEach((item) => {
+    if (isInsideShopvdSidebar(item)) return;
+
+    const matched = drafts.find((d) => conversationItemMatchesDraft(item, d.key, d));
+    let badge = item.querySelector('.shopvd-conv-unsaved-dot');
+
+    if (!matched) {
+      badge?.remove();
+      item.classList.remove('shopvd-conv-has-unsaved');
+      return;
+    }
+
+    item.classList.add('shopvd-conv-has-unsaved');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'shopvd-conv-unsaved-dot';
+      badge.title = 'Chưa lưu đơn ShopVD';
+      badge.setAttribute('aria-label', 'Chưa lưu đơn ShopVD');
+      item.appendChild(badge);
+    }
+  });
+}
+
+async function handleConversationSwitch(fromKey, toKey, options = {}) {
+  const warn = options.warn !== false;
+
+  if (fromKey && fromKey !== toKey) {
+    const snap = getCurrentCustomerSnapshot();
+    if (isCustomerSnapshotWorthy(snap)) {
+      upsertUnsavedDraft(fromKey, snap, 'form');
+      if (warn && shopvdLeavingUnsavedKey !== fromKey) {
+        shopvdLeavingUnsavedKey = fromKey;
+        showStatus('⚠️ Chat trước chưa tạo đơn — đã giữ lại trong “chưa lưu”', 'warning', 3200);
+      }
+    }
+  }
+
+  if (toKey) {
+    const draft = findDraftByConversationKey(toKey);
+    if (draft) {
+      await restoreDraftToForm(draft);
+      applyPancakeNameIfEmpty();
+      showStatus('📋 Đã khôi phục thông tin chưa lưu của chat này', 'info', 2200);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function setupUnsavedDraftSystem() {
+  loadDraftsFromStorage();
+
+  document.getElementById('shopvd-unsaved-badge')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    shopvdUnsavedPanelOpen = !shopvdUnsavedPanelOpen;
+    updateUnsavedBadgeUI();
+    if (shopvdUnsavedPanelOpen) {
+      schedulePullPendingFromServer(0);
+    }
+  });
+
+  document.getElementById('shopvd-unsaved-list')?.addEventListener('click', async (e) => {
+    const copyBtn = e.target.closest('.shopvd-unsaved-copy-btn');
+    if (copyBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const phone = copyBtn.getAttribute('data-phone') || '';
+      if (!phone) return;
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(phone);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = phone;
+          ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+
+        const list = document.getElementById('shopvd-unsaved-list');
+        const checkIcon = list?.dataset.checkIcon
+          || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+        const copyIcon = list?.dataset.copyIcon
+          || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+        copyBtn.classList.add('is-copied');
+        copyBtn.innerHTML = checkIcon;
+        copyBtn.title = 'Đã copy';
+        showStatus(`📋 Đã copy ${phone}`, 'success', 1400);
+        setTimeout(() => {
+          copyBtn.classList.remove('is-copied');
+          copyBtn.innerHTML = copyIcon;
+          copyBtn.title = 'Copy SĐT';
+        }, 1400);
+      } catch (err) {
+        showStatus('⚠️ Không copy được SĐT', 'warning', 2000);
+      }
+      return;
+    }
+
+    const dismissBtn = e.target.closest('.shopvd-unsaved-dismiss-btn');
+    if (dismissBtn) {
+      e.preventDefault();
+      removeUnsavedDraft(dismissBtn.getAttribute('data-draft-key'));
+      return;
+    }
+
+    const openBtn = e.target.closest('.shopvd-unsaved-open-btn');
+    if (!openBtn) return;
+
+    e.preventDefault();
+    const key = openBtn.getAttribute('data-draft-key');
+    const draft = key ? (shopvdDraftMap.get(normalizeDraftPhone(key)) || findDraftByConversationKey(key)) : null;
+    if (!draft) return;
+
+    await restoreDraftToForm(draft);
+    shopvdUnsavedPanelOpen = false;
+    updateUnsavedBadgeUI();
+    scrollToCustomerInfoSection();
+    showStatus('📋 Đã mở lại thông tin chưa lưu', 'success', 2000);
+  });
+
+  ['customer-name', 'customer-phone', 'customer-street'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', () => scheduleMarkCurrentDraftFromForm());
+    document.getElementById(id)?.addEventListener('change', () => scheduleMarkCurrentDraftFromForm());
+  });
+
+  document.getElementById('customer-province')?.addEventListener('change', () => scheduleMarkCurrentDraftFromForm(200));
+  document.getElementById('customer-ward')?.addEventListener('change', () => scheduleMarkCurrentDraftFromForm(200));
+
+  if (!shopvdDraftListObserver) {
+    let scheduled = false;
+    shopvdDraftListObserver = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        paintConversationListBadges();
+      });
+    });
+    shopvdDraftListObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  window.addEventListener('beforeunload', () => {
+    const key = getPancakeConversationKey();
+    const snap = getCurrentCustomerSnapshot();
+    if (isCustomerSnapshotWorthy(snap)) {
+      upsertUnsavedDraft(key, snap, 'form');
+      persistDraftsNow();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      schedulePullPendingFromServer(100);
+      triggerPancakeUnsavedSync(600);
+      scheduleScanConversationListPreviews(900);
+    }
+  });
+
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      schedulePullPendingFromServer(0);
+    }
+  }, SHOPVD_PENDING_PULL_MS);
+
+  scheduleUnsavedDraftUi(500);
+
+  // Kéo pending từ server + kích hoạt sync Pancake API (không cần mở từng box)
+  schedulePullPendingFromServer(300);
+  triggerPancakeUnsavedSync(800);
+  scheduleScanConversationListPreviews(1600);
+}
+
+let shopvdPancakeSyncTimer = 0;
+
+function triggerPancakeUnsavedSync(delayMs = 0) {
+  clearTimeout(shopvdPancakeSyncTimer);
+  shopvdPancakeSyncTimer = setTimeout(() => {
+    fetch(`${API_BASE_URL}?action=syncPancakeUnsavedOrders&hours=48&pages=3&timestamp=${Date.now()}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+      .then(() => schedulePullPendingFromServer(350))
+      .catch(() => {});
+  }, delayMs);
+}
+
+// === Pancake: auto-sync customer name from active chat header ===
+let lastPancakeConversationKey = '';
+let lastAutoFilledCustomerName = '';
+let customerNameUserEdited = false;
+let pancakeNameSyncTimer = null;
+let pancakeNameObserver = null;
+
+const PANCAKE_NAME_META_PATTERN = /đã xem|thành phố|tỉnh|tp\.|hội thoại|inbox|facebook|zalo|tiktok|instagram|shopee|\d{2}\/\d{2}\/\d{4}|\d{1,2}:\d{2}/i;
+const PANCAKE_HEADER_SELECTOR = [
+  '[class*="conversation-header"]',
+  '[class*="ConversationHeader"]',
+  '[class*="message-header"]',
+  '[class*="MessageHeader"]',
+  '[class*="chat-header"]',
+  '[class*="ChatHeader"]',
+  '[class*="conv-header"]',
+  '[class*="header-info"]',
+  '[class*="customer-info"]',
+  '[class*="CustomerInfo"]',
+  '[data-pancake-customer-name]',
+  '[data-shopvd-pancake-customer-name]',
+].join(',');
+
+const PANCAKE_NAME_SELECTOR = [
+  '[data-pancake-customer-name]',
+  '[data-shopvd-pancake-customer-name]',
+  '[class*="customer-name"]',
+  '[class*="CustomerName"]',
+  '[class*="conv-name"]',
+  '[class*="display-name"]',
+  '[class*="DisplayName"]',
+  '[class*="full-name"]',
+  '[class*="FullName"]',
+].join(',');
+
+const PANCAKE_LIST_SELECTOR = [
+  '[class*="conversation-list"]',
+  '[class*="ConversationList"]',
+  '[class*="inbox-list"]',
+  '[class*="InboxList"]',
+  '[class*="sidebar-inbox"]',
+  '[class*="thread-list"]',
+].join(',');
+
+function isInsideShopvdSidebar(el) {
+  if (!el) return false;
+  const node = el.nodeType === Node.ELEMENT_NODE ? el : el.parentElement;
+  return !!node?.closest('#shopvd-sidebar, #shopvd-expand-rail');
+}
+
+function isInsideConversationList(el) {
+  if (!el) return false;
+  if (el.closest(PANCAKE_LIST_SELECTOR)) return true;
+
+  const rect = el.getBoundingClientRect();
+  if (!rect.width && !rect.height) return false;
+
+  // Danh sách hội thoại bên trái — tránh lấy nhầm tên trong list
+  return rect.left < 280 && rect.width < 360;
+}
+
+function isPlausiblePancakeCustomerName(text) {
+  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!value || value.length < 2 || value.length > 60) return false;
+  if (PANCAKE_NAME_META_PATTERN.test(value)) return false;
+  if (/^[\d+\s().-]+$/.test(value)) return false;
+  if (!/^[\p{L}\s'.-]+$/u.test(value)) return false;
+
+  const words = value.split(/\s+/).filter(Boolean);
+  if (words.length > 6) return false;
+
+  return true;
+}
+
+function normalizePancakeCustomerName(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+function extractNameFromPancakeHeaderRoot(root) {
+  if (!root || isInsideShopvdSidebar(root) || isInsideConversationList(root)) {
+    return '';
+  }
+
+  const explicit = root.querySelector(PANCAKE_NAME_SELECTOR);
+  if (explicit) {
+    const explicitName = normalizePancakeCustomerName(
+      explicit.getAttribute('data-pancake-customer-name')
+      || explicit.getAttribute('data-shopvd-pancake-customer-name')
+      || explicit.textContent
+    );
+    if (isPlausiblePancakeCustomerName(explicitName)) {
+      return explicitName;
+    }
+  }
+
+  const candidates = [];
+  root.querySelectorAll('h1, h2, h3, h4, span, div, a, p, strong').forEach((el) => {
+    if (isInsideShopvdSidebar(el) || isInsideConversationList(el)) return;
+    if (el.closest('[class*="viewed"], [class*="seen"], [class*="meta"], [class*="subtitle"], [class*="location"], [class*="address"]')) {
+      return;
+    }
+
+    const text = normalizePancakeCustomerName(el.textContent);
+    if (!isPlausiblePancakeCustomerName(text)) return;
+
+    const rect = el.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return;
+
+    const fontSize = parseFloat(style.fontSize) || 14;
+    const fontWeight = parseInt(style.fontWeight, 10) || 400;
+    candidates.push({ text, top: rect.top, fontSize, fontWeight });
+  });
+
+  if (!candidates.length) return '';
+
+  candidates.sort((a, b) => {
+    if (a.top !== b.top) return a.top - b.top;
+    if (a.fontWeight !== b.fontWeight) return b.fontWeight - a.fontWeight;
+    return b.fontSize - a.fontSize;
+  });
+
+  return candidates[0].text;
+}
+
+function extractPancakeCustomerName() {
+  const headers = document.querySelectorAll(PANCAKE_HEADER_SELECTOR);
+  for (const header of headers) {
+    const name = extractNameFromPancakeHeaderRoot(header);
+    if (name) return name;
+  }
+
+  // Fallback: tìm avatar + tên ở panel chat chính (không nằm trong list trái)
+  const avatars = document.querySelectorAll('[class*="avatar"], img[class*="avatar"], [class*="Avatar"]');
+  for (const avatar of avatars) {
+    if (isInsideShopvdSidebar(avatar) || isInsideConversationList(avatar)) continue;
+
+    const container = avatar.closest('[class*="header"], [class*="Header"], [class*="info"], [class*="Info"]');
+    if (!container) continue;
+
+    const name = extractNameFromPancakeHeaderRoot(container);
+    if (name) return name;
+  }
+
+  return '';
+}
+
+function isActivePancakeConversationItem(el) {
+  const item = el?.closest?.('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]');
+  if (!item) return false;
+  return item.matches?.('[class*="active"], .selected, [aria-selected="true"]') === true
+    || item.classList?.contains('selected');
+}
+
+function getPancakeConversationKey() {
+  const activeItem = document.querySelector(
+    '[class*="conversation-item"][class*="active"], '
+    + '[class*="conversation-item"].selected, '
+    + '[class*="ConversationItem"][aria-selected="true"], '
+    + '[class*="thread-item"][class*="active"]'
+  );
+
+  if (activeItem) {
+    return activeItem.getAttribute('data-id')
+      || activeItem.getAttribute('data-conversation-id')
+      || activeItem.getAttribute('id')
+      || `active:${normalizePancakeCustomerName(activeItem.textContent).slice(0, 80)}`;
+  }
+
+  const name = extractPancakeCustomerName();
+  return `${window.location.pathname}${window.location.search}#${name}`;
+}
+
+function updatePancakeNameHint(isAutoFilled) {
+  const hint = document.getElementById('customer-name-pancake-hint');
+  if (!hint) return;
+  hint.classList.toggle('hidden', !isAutoFilled);
+}
+
+function clearCustomerInfoForm() {
+  const nameInput = document.getElementById('customer-name');
+  const phoneInput = document.getElementById('customer-phone');
+
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+
+  resetCustomerAddressForm();
+
+  const smartPasteInput = document.getElementById('shopvd-smart-paste-input');
+  if (smartPasteInput) smartPasteInput.value = '';
+  document.getElementById('shopvd-smart-paste-status')?.classList.add('hidden');
+
+  clearValidationFieldError('customer-name');
+  clearValidationFieldError('customer-phone');
+
+  lastAutoFilledCustomerName = '';
+  updatePancakeNameHint(false);
+
+  hideFloatGrabButton(0);
+  clearGrabBubbleHighlight();
+}
+
+function syncPancakeCustomerName(force = false) {
+  const nameInput = document.getElementById('customer-name');
+  if (!nameInput) return;
+
+  const conversationKey = getPancakeConversationKey();
+  const extractedName = extractPancakeCustomerName();
+  const conversationChanged = lastPancakeConversationKey !== ''
+    && conversationKey !== lastPancakeConversationKey;
+
+  if (conversationChanged) {
+    const fromKey = lastPancakeConversationKey;
+    lastPancakeConversationKey = conversationKey;
+    customerNameUserEdited = false;
+
+    // Save outgoing chat draft BEFORE clearing form
+    const outgoingSnap = getCurrentCustomerSnapshot();
+    if (isCustomerSnapshotWorthy(outgoingSnap)) {
+      upsertUnsavedDraft(fromKey, outgoingSnap, 'form');
+      if (shopvdLeavingUnsavedKey !== fromKey) {
+        shopvdLeavingUnsavedKey = fromKey;
+        showStatus('⚠️ Chat trước chưa tạo đơn — đã giữ trong “chưa lưu”', 'warning', 3200);
+      }
+    }
+
+    clearCustomerInfoForm();
+    scheduleScanChatForUnsavedOrderIntent(700);
+
+    if (conversationKey) {
+      const draft = findDraftByConversationKey(conversationKey);
+      if (draft) {
+        restoreDraftToForm(draft).then((ok) => {
+          if (ok) {
+            applyPancakeNameIfEmpty();
+            showStatus('📋 Đã khôi phục thông tin chưa lưu của chat này', 'info', 2200);
+          }
+          scheduleUnsavedDraftUi();
+        });
+        return;
+      }
+    }
+  } else if (lastPancakeConversationKey === '' && conversationKey) {
+    lastPancakeConversationKey = conversationKey;
+    customerNameUserEdited = false;
+
+    const draft = findDraftByConversationKey(conversationKey);
+    if (draft && !getCurrentCustomerSnapshot().phone) {
+      restoreDraftToForm(draft).then(() => {
+        applyPancakeNameIfEmpty();
+        scheduleUnsavedDraftUi();
+      });
+      return;
+    }
+  }
+
+  if (!extractedName) {
+    updatePancakeNameHint(false);
+    return;
+  }
+
+  if (customerNameUserEdited && !conversationChanged && !force) {
+    updatePancakeNameHint(false);
+    return;
+  }
+
+  if (nameInput.value.trim() !== extractedName) {
+    nameInput.value = extractedName;
+    lastAutoFilledCustomerName = extractedName;
+    clearValidationFieldError('customer-name');
+    revalidateFieldIfActive('customer-name');
+  }
+
+  updatePancakeNameHint(true);
+}
+
+function schedulePancakeCustomerNameSync(delayMs = 180) {
+  clearTimeout(pancakeNameSyncTimer);
+  pancakeNameSyncTimer = setTimeout(() => {
+    syncPancakeCustomerName();
+  }, delayMs);
+}
+
+function setupPancakeCustomerNameSync() {
+  document.getElementById('customer-name')?.addEventListener('input', () => {
+    const value = document.getElementById('customer-name')?.value.trim() || '';
+    customerNameUserEdited = Boolean(value && value !== lastAutoFilledCustomerName);
+    updatePancakeNameHint(!customerNameUserEdited && value === lastAutoFilledCustomerName);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (isInsideShopvdSidebar(e.target)) return;
+
+    const convItem = e.target.closest('[class*="conversation-item"], [class*="ConversationItem"], [class*="thread-item"]');
+    if (!convItem) return;
+    if (!convItem.closest(PANCAKE_LIST_SELECTOR) && !isInsideConversationList(convItem)) return;
+
+    // Persist current chat draft early (before Pancake swaps the active item)
+    if (!isActivePancakeConversationItem(convItem)) {
+      const fromKey = lastPancakeConversationKey || getPancakeConversationKey();
+      const snap = getCurrentCustomerSnapshot();
+      if (fromKey && isCustomerSnapshotWorthy(snap)) {
+        upsertUnsavedDraft(fromKey, snap, 'form');
+      }
+    }
+
+    schedulePancakeCustomerNameSync(220);
+  }, true);
+
+  if (!pancakeNameObserver) {
+    pancakeNameObserver = new MutationObserver(() => {
+      schedulePancakeCustomerNameSync();
+    });
+
+    pancakeNameObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  }
+
+  schedulePancakeCustomerNameSync(400);
+  schedulePancakeCustomerNameSync(1200);
+}
+
 function init() {
   if (!isAllowedPage()) {
     removeSidebarIfPresent();
@@ -4735,7 +7260,12 @@ function init() {
 
   // Create and inject sidebar
   createSidebar();
+  bindPancakeHeaderOffsetSync();
   setupEventListeners();
+  setupUnsavedDraftSystem();
+  setupAutoDetectUnsavedFromChat();
+  setupPancakeCustomerNameSync();
+  setupPancakeMessageGrab();
   renderProducts();
   
   // Load data from API

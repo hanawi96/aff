@@ -10,6 +10,7 @@ import { handleShopRoutes } from '../public/shop/api/routes.js';
 import { handleTelegramWebhook } from './services/notifications/telegram-commands.js';
 import { sendDailyReport } from './services/notifications/daily-report.js';
 import { snapshotYesterdayAdSpend } from './services/settings/ad-spend.js';
+import { syncPancakeUnsavedOrders } from './services/orders/pancake-unsaved-sync.js';
 
 async function handleRequest(request, env, ctx) {
     const DB = initTurso(env);
@@ -85,12 +86,23 @@ export default {
         }
     },
 
-    // Cron trigger for daily report at 21:00 Vietnam time (14:00 UTC)
+    // Cron triggers
     async scheduled(event, env, ctx) {
         console.log('⏰ Cron triggered:', event.cron, new Date().toISOString());
 
         const DB = initTurso(env);
         env.DB = DB;
+
+        // Mỗi 5 phút — sync hội thoại Pancake có SĐT → pending chưa lưu
+        if (event.cron === '*/5 * * * *') {
+            try {
+                const result = await syncPancakeUnsavedOrders(env);
+                console.log('🥞 [CRON] Pancake unsaved sync:', result);
+            } catch (err) {
+                console.error('💥 [CRON] Pancake unsaved sync failed:', err);
+            }
+            return;
+        }
 
         // 00:00 VN (17:00 UTC) — chốt chi QC hôm qua vào daily_ad_spend
         if (event.cron === '0 17 * * *') {

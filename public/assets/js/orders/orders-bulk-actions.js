@@ -547,8 +547,16 @@ async function skipShippedOrders() {
  */
 async function performExport(orders) {
     showToast('Đang tạo file Excel...', 'info');
-    
-    // Export to SPX format and save to R2
+
+    // Cần tree_2 để resolve province_id/ward_id → tên (đơn extension thường thiếu *_name)
+    if (window.addressSelector && !window.addressSelector.loaded) {
+        try {
+            await window.addressSelector.init();
+        } catch (e) {
+            console.warn('⚠️ Không load được tree địa chỉ trước khi export:', e);
+        }
+    }
+
     const result = await exportToSPXExcelAndSave(orders);
     
     if (result.success) {

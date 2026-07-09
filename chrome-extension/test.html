@@ -178,6 +178,28 @@
     .chat-message.customer {
       background: #dbeafe;
       border-left: 4px solid #3b82f6;
+      position: relative;
+    }
+
+    .inbox-message-ele.media-message-from-customer {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0;
+      max-width: 90%;
+    }
+
+    .message-text-ele.client-message {
+      font-size: 14px;
+      line-height: 1.45;
+      color: #111827;
+    }
+
+    .phone-tag,
+    .phone-tag-trusted {
+      color: #2563eb;
+      font-weight: 600;
     }
     
     .btn {
@@ -244,6 +266,19 @@
         2. Click nút <strong>"✨ Lấy thông tin"</strong> trên sidebar<br>
         3. Kiểm tra form tự động điền<br>
         4. Thêm sản phẩm → Click "Tạo đơn"</p>
+      </div>
+
+      <!-- Mock Pancake chat header (auto-sync tên khách) -->
+      <div class="section">
+        <h2>👤 Mock header chat Pancake</h2>
+        <div class="mock-pancake-header conversation-header" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#c7d2fe;flex-shrink:0;"></div>
+          <div>
+            <div class="customer-name" data-pancake-customer-name="Phương Trang" style="font-size:16px;font-weight:700;color:#111827;">Phương Trang</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">Đã xem bởi Nguyễn Văn Yên - 02/07/2026 15:40</div>
+          </div>
+        </div>
+        <p class="hint">Mở sidebar → tên <strong>Phương Trang</strong> tự điền vào ô Tên khách hàng</p>
       </div>
 
       <!-- Test Scenarios -->
@@ -320,15 +355,42 @@ Hoàng Thị F
       <!-- Mock Chat Box -->
       <div class="section">
         <h2>💬 Mock Chat (Giả lập Pancake)</h2>
-        <div class="mock-chat">
+        <div class="mock-chat" id="mock-pancake-chat">
           <div class="chat-message">
             <strong>Shop:</strong> Chào chị, shop có thể giúp gì cho chị ạ?
           </div>
-          <div class="chat-message customer">
+
+          <!-- Dạng 1: SĐT + địa chỉ CÙNG 1 tin (DOM giống Pancake) -->
+          <div class="inbox-message-ele media-message-from-customer mock-pancake-customer-message" id="message_m_same_bubble">
+            <div class="media-body">
+              <div class="message-text-ele client-message">
+                Sdt <copy><span class="phone-tag phone-tag-trusted">0352490837</span></copy><br>
+                Địa chỉ: Đội 4 bình hà 1 xã đa kia h. bù gia mập bình phước
+              </div>
+            </div>
+          </div>
+
+          <!-- Dạng 2: SĐT 1 tin, địa chỉ tin sau -->
+          <div class="inbox-message-ele media-message-from-customer mock-pancake-customer-message" id="message_m_phone_only">
+            <div class="media-body">
+              <div class="message-text-ele client-message">
+                <copy><span class="phone-tag phone-tag-trusted">0987654321</span></copy>
+              </div>
+            </div>
+          </div>
+          <div class="inbox-message-ele media-message-from-customer mock-pancake-customer-message" id="message_m_address_only">
+            <div class="media-body">
+              <div class="message-text-ele client-message">
+                Địa chỉ ấp 11 xã thanh hưng huyện định hoá thái nguyên
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-message customer mock-pancake-customer-message message-item inbound">
             <strong>Khách:</strong><br>
             Cho em đặt 2 bình sữa Comotomo 250ml ạ<br>
             Tên: Nguyễn Thị Lan<br>
-            SĐT: 0987654321<br>
+            SĐT: 0971851829<br>
             Địa chỉ: 123 Nguyễn Văn Cừ, Phường An Hòa, Quận Ninh Kiều, Cần Thơ
           </div>
           <div class="chat-message">
@@ -336,7 +398,7 @@ Hoàng Thị F
           </div>
         </div>
         <p class="hint" style="margin-top: 12px;">
-          👆 Bôi đen tin nhắn của khách → Test parse
+          👆 Dạng 1: SĐT+địa chỉ cùng tin · Dạng 2: SĐT / địa chỉ tách 2 tin · Hover → <strong>→ ShopVD</strong>
         </p>
       </div>
 

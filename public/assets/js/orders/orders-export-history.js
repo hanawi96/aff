@@ -502,6 +502,9 @@ async function bulkMergeAndDownloadExports() {
         if (!data.success) throw new Error(data.error || 'Không thể gộp file');
 
         showToast(`Đã gộp ${data.exportCount} file (${data.totalOrders} đơn), đang tạo Excel...`, 'info');
+        if (window.addressSelector && !window.addressSelector.loaded) {
+            try { await window.addressSelector.init(); } catch (_) { /* fallback parse address string */ }
+        }
         const { wb, filename } = createSPXExcelWorkbook(data.orders);
         const exportIdsArr = Array.from(selectedExportIds);
         closeExportHistoryModal();

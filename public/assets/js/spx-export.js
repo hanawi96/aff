@@ -1,12 +1,53 @@
 // SPX Export Module - Export orders to SPX Excel format
 
 /**
- * Parse address into components for SPX export (Tỉnh/Quận/Xã/Địa chỉ chi tiết)
- * PRIORITY 1: Look up name_with_type from addressSelector using stored IDs (most accurate)
- * PRIORITY 2: Use stored structured name fields (may have short names without type prefix)
- * PRIORITY 3: Parse old address string (backward compatibility)
+ * Parse chuỗi address đầy đủ (street, ward, [district,] province) → các cột SPX.
+ */
+function parseLegacyAddressString(address) {
+    if (!address || typeof address !== 'string') {
+        return { province: '', district: '', ward: '', detail: '' };
+    }
+    const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 4) {
+        return {
+            province: parts[parts.length - 1],
+            district: parts[parts.length - 2],
+            ward: parts[parts.length - 3],
+            detail: parts.slice(0, parts.length - 3).join(', ')
+        };
+    }
+    if (parts.length === 3) {
+        // 2 cấp mới: detail, ward, province — hoặc 3 cấp thiếu 1 phần
+        return {
+            province: parts[2],
+            district: '',
+            ward: parts[1],
+            detail: parts[0]
+        };
+    }
+    if (parts.length === 2) {
+        return {
+            province: parts[1],
+            district: '',
+            ward: '',
+            detail: parts[0]
+        };
+    }
+    return { province: '', district: '', ward: '', detail: parts[0] || address };
+}
+
+/**
+ * Parse địa chỉ đơn → cột SPX (Tỉnh / Quận / Xã / Chi tiết).
+ * 1) Lookup tree_2 theo ID (đơn 2 cấp khớp)
+ * 2) Tên đã lưu DB
+ * 3) Parse chuỗi address đầy đủ khi thiếu tỉnh/phường
+ *    (tránh bug: chỉ có street_address → return sớm, bỏ trống tỉnh/phường)
  */
 function parseAddressForExport(order) {
+    if (!order) {
+        return { province: '', district: '', ward: '', detail: '' };
+    }
+
     if (order.province_id && window.addressSelector?.loaded
         && !window.addressSelector.isLegacyOrderAddress(order)) {
         const pId = String(order.province_id);
@@ -23,72 +64,25 @@ function parseAddressForExport(order) {
         }
     }
 
-    // Địa chỉ 3 cấp cũ hoặc ID không khớp tree_2 — dùng tên đã lưu
-    if (order.province_name || order.ward_name || order.street_address) {
-        return {
-            province: order.province_name || '',
-            district: order.district_name || '',
-            ward: order.ward_name || '',
-            detail: order.street_address || ''
-        };
-    }
-    
-    // PRIORITY 2: Parse old address field (backward compatibility)
-    const address = order.address;
-    
-    if (!address) {
-        return {
-            province: '',
-            district: '',
-            ward: '',
-            detail: ''
-        };
+    let province = order.province_name || '';
+    let district = order.district_name || '';
+    let ward = order.ward_name || '';
+    let detail = order.street_address || '';
+
+    // Chỉ có street / thiếu tên → lấy từ address đầy đủ (extension, legacy, ID lệch tree)
+    if ((!province || !ward) && order.address) {
+        const parsed = parseLegacyAddressString(order.address);
+        if (!province && parsed.province) province = parsed.province;
+        if (!district && parsed.district) district = parsed.district;
+        if (!ward && parsed.ward) ward = parsed.ward;
+        if (!detail && parsed.detail) detail = parsed.detail;
     }
 
-    // Split by comma
-    const parts = address.split(',').map(p => p.trim());
-    
-    if (parts.length >= 4) {
-        // Full format: detail, ward, district, province
-        return {
-            province: parts[parts.length - 1],
-            district: parts[parts.length - 2],
-            ward: parts[parts.length - 3],
-            detail: parts.slice(0, parts.length - 3).join(', ')
-        };
-    } else if (parts.length === 3) {
-        // Missing ward: detail, district, province
-        return {
-            province: parts[2],
-            district: parts[1],
-            ward: '',
-            detail: parts[0]
-        };
-    } else if (parts.length === 2) {
-        // Only district and province: detail, province
-        return {
-            province: parts[1],
-            district: '',
-            ward: '',
-            detail: parts[0]
-        };
-    } else {
-        // Only one part - treat as detail
-        return {
-            province: '',
-            district: '',
-            ward: '',
-            detail: address
-        };
+    if (!detail && !province && !ward && order.address) {
+        detail = String(order.address).trim();
     }
-}
 
-/**
- * SPX Excel: cột Tỉnh/TP chỉ cần tên địa danh, không kèm "Tỉnh " / "Thành phố ".
- */
-function stripProvinceAdministrativePrefix(name) {
-    if (!name || typeof name !== 'string') return '';
-    return name.trim().replace(/^(?:Thành [Pp]hố|Tỉnh)\s+/u, '');
+    return { province, district, ward, detail };
 }
 
 /**
@@ -207,7 +201,6 @@ function createSPXExcelWorkbook(orders) {
     orders.forEach(order => {
         orderIds.push(order.id);
         
-        // IMPROVED: Pass entire order object to parseAddressForExport
         const address = parseAddressForExport(order);
         const products = parseProducts(order.products);
         

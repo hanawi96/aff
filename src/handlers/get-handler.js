@@ -29,6 +29,9 @@ import {
     getOrderById 
 } from '../services/orders/order-queries.js';
 
+import { listPendingUnsaved } from '../services/orders/pending-unsaved-service.js';
+import { handleSyncPancakeUnsaved } from '../services/orders/pancake-unsaved-sync.js';
+
 // Products
 import { 
     getAllProducts,
@@ -200,6 +203,16 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getOrderById':
             return await getOrderById(url.searchParams.get('id'), env, corsHeaders);
+
+        case 'getPendingUnsavedOrders':
+            return await listPendingUnsaved(env, corsHeaders);
+
+        case 'syncPancakeUnsavedOrders':
+            return await handleSyncPancakeUnsaved(env, corsHeaders, {
+                lookbackHours: parseFloat(url.searchParams.get('hours') || '48') || 48,
+                maxPages: parseInt(url.searchParams.get('pages') || '3', 10) || 3,
+                debugName: url.searchParams.get('debugName') || '',
+            });
 
         case 'getDashboardStats':
             return await getDashboardStats(env, corsHeaders);
