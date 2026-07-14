@@ -2631,6 +2631,20 @@
   font-weight: 600;
 }
 
+.shopvd-meta-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shopvd-meta-notes-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
 .shopvd-product-notes {
   font-size: 12px;
   color: #9ca3af;
@@ -4837,7 +4851,7 @@
   min-height: 72px;
 }
 
-/* Nút lấy tin — chỉ 1 nút nổi khi hover (không gắn trên bubble) */
+/* Nút lấy tin — nổi khi hover, ưu tiên góc trên (không đè tin sau) */
 .shopvd-pancake-grab-float {
   position: fixed;
   /* Dưới modal Pancake (~1000+), trên nội dung chat */
@@ -4856,14 +4870,18 @@
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-50%);
+  transform: none;
   transition: opacity 0.12s ease;
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
   white-space: nowrap;
 }
 
-.shopvd-pancake-grab-float.is-below {
-  transform: none;
+.shopvd-pancake-grab-float.is-above {
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.4);
+}
+
+.shopvd-pancake-grab-float.is-inside {
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.45);
 }
 
 .shopvd-pancake-grab-float.is-visible {

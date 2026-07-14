@@ -1177,6 +1177,7 @@ function selectProvinceFromCombobox(provinceId) {
   updateFullAddress();
   revalidateFieldIfActive('customer-province');
   revalidateFieldIfActive('customer-ward');
+  onCustomerInfoChangedForProductScroll(80);
 }
 function toggleProvinceCombobox() {
   const dropdown = document.getElementById('province-combobox-dropdown');
@@ -1280,6 +1281,7 @@ function selectWardFromCombobox(wardId, provinceId) {
   updateFullAddress();
   revalidateFieldIfActive('customer-ward');
   revalidateFieldIfActive('customer-street');
+  onCustomerInfoChangedForProductScroll(180);
 }
 
 function toggleWardCombobox() {
@@ -1317,6 +1319,7 @@ function closeAllComboboxes() {
 
 function resetCustomerAddressForm() {
   closeAllComboboxes();
+  resetProductSectionScrollGate();
 
   const provinceSelect = document.getElementById('customer-province');
   const wardSelect = document.getElementById('customer-ward');
@@ -1581,7 +1584,10 @@ async function applyParsedDataToExtensionForm(parsedData) {
   }
 
   applyPancakeNameIfEmpty();
-  scrollToCustomerInfoSection();
+  // Đủ thông tin khách → nhảy sang chọn SP; chưa đủ thì vẫn đưa mắt tới địa chỉ
+  if (!maybeScrollToProductSectionAfterCustomerReady({ focus: true })) {
+    scrollToCustomerInfoSection();
+  }
 }
 
 function applyPancakeNameIfEmpty() {
@@ -1601,6 +1607,103 @@ function applyPancakeNameIfEmpty() {
 
 function scrollToCustomerInfoSection() {
   document.querySelector('.shopvd-address-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/** Chỉ scroll 1 lần khi form khách vừa đủ → sang phần sản phẩm */
+let shopvdScrolledToProductsForCustomer = false;
+let shopvdProductScrollTimer = 0;
+
+function isCustomerInfoCompleteForProductScroll() {
+  const name = document.getElementById('customer-name')?.value.trim() || '';
+  const phone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value);
+  const provinceId = document.getElementById('customer-province')?.value;
+  const wardId = document.getElementById('customer-ward')?.value;
+  const street = document.getElementById('customer-street')?.value.trim() || '';
+  return Boolean(name && isValidCustomerPhone(phone) && provinceId && wardId && street);
+}
+
+function isAddressComboboxOpen() {
+  return Boolean(
+    document.querySelector('#province-combobox-dropdown:not(.hidden), #ward-combobox-dropdown:not(.hidden)')
+  );
+}
+
+function isProductSearchComfortablyVisible() {
+  const search = document.getElementById('product-search');
+  const sidebar = document.getElementById('shopvd-sidebar');
+  if (!search || !sidebar) return false;
+  const er = search.getBoundingClientRect();
+  const sr = sidebar.getBoundingClientRect();
+  return er.top >= sr.top + 48 && er.bottom <= sr.bottom - 24;
+}
+
+function resetProductSectionScrollGate() {
+  shopvdScrolledToProductsForCustomer = false;
+  clearTimeout(shopvdProductScrollTimer);
+  shopvdProductScrollTimer = 0;
+}
+
+function scrollToProductSection({ focus = true } = {}) {
+  const search = document.getElementById('product-search');
+  const target = search?.closest('.shopvd-section')
+    || document.querySelector('.shopvd-product-search-container')
+    || search;
+  if (!target) return;
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  if (!focus || !search) return;
+  setTimeout(() => {
+    if (document.activeElement === search) return;
+    const active = document.activeElement;
+    // Đang gõ field khách / combobox → chỉ scroll, không cướp focus
+    if (active?.closest?.('#shopvd-order-form') && (
+      active.id === 'customer-name'
+      || active.id === 'customer-phone'
+      || active.id === 'customer-street'
+      || active.closest?.('.shopvd-combobox-wrapper')
+    )) return;
+    if (active?.closest?.('.shopvd-product-search-container, #products-list, .shopvd-order-cart')) return;
+    if (isAddressComboboxOpen()) return;
+    search.focus({ preventScroll: true });
+  }, 280);
+}
+
+/**
+ * Khi thông tin khách vừa đủ → scroll tới tìm SP (1 lần / chu kỳ đủ form).
+ * Trả true nếu đã scroll (hoặc đã đánh dấu bỏ qua vì đang nhìn thấy).
+ */
+function maybeScrollToProductSectionAfterCustomerReady(options = {}) {
+  if (shopvdScrolledToProductsForCustomer) return false;
+  if (shopvdRestoringDraft && !options.allowDuringRestore) return false;
+  if (!isCustomerInfoCompleteForProductScroll()) return false;
+  if (isAddressComboboxOpen()) return false;
+
+  shopvdScrolledToProductsForCustomer = true;
+
+  if (isProductSearchComfortablyVisible() && document.activeElement?.id === 'product-search') {
+    return true;
+  }
+
+  scrollToProductSection({ focus: options.focus !== false });
+  return true;
+}
+
+function scheduleMaybeScrollToProductSection(delayMs = 140) {
+  clearTimeout(shopvdProductScrollTimer);
+  shopvdProductScrollTimer = setTimeout(() => {
+    shopvdProductScrollTimer = 0;
+    maybeScrollToProductSectionAfterCustomerReady();
+  }, delayMs);
+}
+
+/** Gọi khi field khách đổi: thiếu → mở lại gate; đủ → schedule scroll. */
+function onCustomerInfoChangedForProductScroll(delayMs = 140) {
+  if (!isCustomerInfoCompleteForProductScroll()) {
+    resetProductSectionScrollGate();
+    return;
+  }
+  scheduleMaybeScrollToProductSection(delayMs);
 }
 
 const PANCAKE_MSG_ROOT_SELECTOR = '.inbox-message-ele, [id^="message_m_"], [id^="message_"]';
@@ -2651,42 +2754,98 @@ function showFloatGrabButton(bubble) {
   shopvdFloatGrabBubble = root;
   setGrabBubbleHighlight(root);
 
+  // Đo size thật (nút có thể đang ẩn → force layout nhẹ)
+  btn.classList.add('is-visible');
   const btnRect = btn.getBoundingClientRect();
   const btnWidth = btnRect.width || 78;
   const btnHeight = btnRect.height || 28;
-  const gap = 10;
+  const gap = 8;
+  const edgePad = 8;
 
   const sidebar = document.getElementById('shopvd-sidebar');
-  const sidebarLeft = sidebar?.getBoundingClientRect().left ?? window.innerWidth;
-  const maxLeft = sidebarLeft - btnWidth - 8;
+  const sidebarLeft = sidebar && !sidebar.classList.contains('collapsed')
+    ? (sidebar.getBoundingClientRect().left || window.innerWidth)
+    : window.innerWidth;
+  const maxLeft = Math.max(edgePad, sidebarLeft - btnWidth - edgePad);
+  const minTop = edgePad;
+  const maxTop = window.innerHeight - btnHeight - edgePad;
 
-  let left = rect.right + gap;
-  let top = rect.top + rect.height / 2;
-  let isBelow = false;
+  // Ưu tiên: góc trên-phải bubble (không đè tin sau)
+  // Fallback: bên phải giữa bubble → trên bubble → trong bubble
+  const candidates = [
+    {
+      // Góc trên-phải, hơi nhô ra ngoài cạnh phải
+      left: rect.right - btnWidth * 0.15,
+      top: rect.top - btnHeight - 4,
+      mode: 'above',
+    },
+    {
+      // Bên phải, căn mép trên bubble
+      left: rect.right + gap,
+      top: rect.top,
+      mode: 'side',
+    },
+    {
+      // Bên phải, giữa bubble
+      left: rect.right + gap,
+      top: rect.top + (rect.height - btnHeight) / 2,
+      mode: 'side',
+    },
+    {
+      // Trong bubble, góc trên-phải (khi sát sidebar)
+      left: rect.right - btnWidth - 6,
+      top: rect.top + 4,
+      mode: 'inside',
+    },
+    {
+      // Trên bubble, căn trái (tin hẹp)
+      left: rect.left,
+      top: rect.top - btnHeight - 4,
+      mode: 'above',
+    },
+  ];
 
-  if (left > maxLeft) {
-    isBelow = true;
-    left = Math.max(280, rect.left);
-    top = rect.bottom + gap;
+  const fits = (c) => {
+    const left = Math.max(edgePad, Math.min(maxLeft, c.left));
+    const top = Math.max(minTop, Math.min(maxTop, c.top));
+    // Không lệch quá xa so với bubble theo trục X
+    if (left + btnWidth < rect.left - 4) return false;
+    if (left > rect.right + gap + 4 && c.mode === 'side') return false;
+    // Không đè quá sâu vào tin kế dưới
+    if (c.mode !== 'above' && top >= rect.bottom - 4) return false;
+    return { left, top };
+  };
+
+  let placed = null;
+  let mode = 'above';
+  for (const c of candidates) {
+    const ok = fits(c);
+    if (!ok) continue;
+    placed = ok;
+    mode = c.mode;
+    break;
   }
 
-  if (isBelow) {
-    top = Math.max(8, Math.min(window.innerHeight - btnHeight - 8, top));
-  } else {
-    top = Math.max(btnHeight / 2 + 8, Math.min(window.innerHeight - btnHeight / 2 - 8, top));
+  if (!placed) {
+    placed = {
+      left: Math.max(edgePad, Math.min(maxLeft, rect.right - btnWidth)),
+      top: Math.max(minTop, Math.min(maxTop, rect.top - btnHeight - 4)),
+    };
+    mode = 'above';
   }
-  left = Math.max(8, Math.min(maxLeft, left));
 
-  btn.style.top = `${top}px`;
-  btn.style.left = `${left}px`;
-  btn.classList.toggle('is-below', isBelow);
+  btn.style.top = `${placed.top}px`;
+  btn.style.left = `${placed.left}px`;
+  btn.classList.remove('is-below');
+  btn.classList.toggle('is-above', mode === 'above');
+  btn.classList.toggle('is-inside', mode === 'inside');
   btn.classList.add('is-visible');
 }
 
 function hideFloatGrabButton(delayMs = 0) {
   clearTimeout(shopvdFloatHideTimer);
   shopvdFloatHideTimer = setTimeout(() => {
-    shopvdFloatGrabBtn?.classList.remove('is-visible', 'is-below');
+    shopvdFloatGrabBtn?.classList.remove('is-visible', 'is-below', 'is-above', 'is-inside');
     shopvdFloatGrabBubble = null;
     clearGrabBubbleHighlight();
   }, delayMs);
@@ -3938,7 +4097,7 @@ function renderProducts() {
             <div class="shopvd-product-meta">
               ${product.weight ? `<span class="shopvd-meta-item">● ${escapeHtml(formatWeightSize(product.weight))}</span>` : ''}
               <span class="shopvd-product-qty-badge">×${product.quantity}</span>
-              ${product.notes ? `<span class="shopvd-meta-item">📝 ${escapeHtml(product.notes)}</span>` : ''}
+              ${product.notes ? `<span class="shopvd-meta-item shopvd-meta-notes"><svg class="shopvd-meta-notes-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>${escapeHtml(product.notes)}</span>` : ''}
             </div>
             <div class="shopvd-product-total">${formatPrice(totalPrice)} đ</div>
           </div>
@@ -4316,6 +4475,14 @@ function bindOrderFormValidationListeners() {
     if (VALIDATION_INPUT_KEYS.has(id)) {
       revalidateFieldIfActive(id);
     }
+    if (id === 'customer-name' || id === 'customer-phone' || id === 'customer-street') {
+      // Street: debounce dài hơn để khỏi nhảy khi đang gõ
+      onCustomerInfoChangedForProductScroll(id === 'customer-street' ? 420 : 160);
+    }
+  });
+
+  document.getElementById('customer-street')?.addEventListener('blur', () => {
+    maybeScrollToProductSectionAfterCustomerReady({ focus: true });
   });
 
   document.getElementById('customer-street')?.addEventListener('input', () => {
@@ -6587,6 +6754,9 @@ async function restoreDraftToForm(draft) {
     updatePancakeNameHint(Boolean(draft.name));
     lastAutoFilledCustomerName = draft.name || '';
     customerNameUserEdited = false;
+
+    // Mở draft đủ thông tin → đưa thẳng tới chọn SP
+    maybeScrollToProductSectionAfterCustomerReady({ allowDuringRestore: true, focus: true });
     return true;
   } finally {
     shopvdRestoringDraft = false;
@@ -6849,7 +7019,9 @@ function setupUnsavedDraftSystem() {
     await restoreDraftToForm(draft);
     shopvdUnsavedPanelOpen = false;
     updateUnsavedBadgeUI();
-    scrollToCustomerInfoSection();
+    if (!shopvdScrolledToProductsForCustomer) {
+      scrollToCustomerInfoSection();
+    }
     showStatus('📋 Đã mở lại thông tin chưa lưu', 'success', 2000);
   });
 

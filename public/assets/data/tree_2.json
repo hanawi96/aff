@@ -2639,8 +2639,8 @@
       },
       {
         "code": "00651",
-        "name": "Hoà Bình",
-        "fullName": "Phường Hoà Bình, Thành phố Hải Phòng",
+        "name": "Hòa Bình",
+        "fullName": "Phường Hòa Bình, Thành phố Hải Phòng",
         "slug": "hoa-binh",
         "type": "ward"
       },
@@ -3293,8 +3293,8 @@
     "wards": [
       {
         "code": "00202",
-        "name": "Hoà Bình",
-        "fullName": "Phường Hoà Bình, Tỉnh Phú Thọ",
+        "name": "Hòa Bình",
+        "fullName": "Phường Hòa Bình, Tỉnh Phú Thọ",
         "slug": "hoa-binh",
         "type": "ward"
       },
@@ -4331,1171 +4331,1171 @@
   },
   {
     "code": "07",
-    "name": "Thanh Hoá",
+    "name": "Thanh Hóa",
     "slug": "thanh-hoa",
     "type": "province",
     "isCentral": false,
-    "fullName": "Tỉnh Thanh Hoá",
+    "fullName": "Tỉnh Thanh Hóa",
     "wards": [
       {
         "code": "00007",
         "name": "Hạc Thành",
-        "fullName": "Phường Hạc Thành, Tỉnh Thanh Hoá",
+        "fullName": "Phường Hạc Thành, Tỉnh Thanh Hóa",
         "slug": "hac-thanh",
         "type": "ward"
       },
       {
         "code": "00121",
         "name": "Sầm Sơn",
-        "fullName": "Phường Sầm Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Sầm Sơn, Tỉnh Thanh Hóa",
         "slug": "sam-son",
         "type": "ward"
       },
       {
         "code": "00208",
         "name": "Quảng Phú",
-        "fullName": "Phường Quảng Phú, Tỉnh Thanh Hoá",
+        "fullName": "Phường Quảng Phú, Tỉnh Thanh Hóa",
         "slug": "quang-phu",
         "type": "ward"
       },
       {
         "code": "00279",
         "name": "Vạn Lộc",
-        "fullName": "Xã Vạn Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Vạn Lộc, Tỉnh Thanh Hóa",
         "slug": "van-loc",
         "type": "commune"
       },
       {
         "code": "00349",
         "name": "Hàm Rồng",
-        "fullName": "Phường Hàm Rồng, Tỉnh Thanh Hoá",
+        "fullName": "Phường Hàm Rồng, Tỉnh Thanh Hóa",
         "slug": "ham-rong",
         "type": "ward"
       },
       {
         "code": "00376",
         "name": "Đông Quang",
-        "fullName": "Phường Đông Quang, Tỉnh Thanh Hoá",
+        "fullName": "Phường Đông Quang, Tỉnh Thanh Hóa",
         "slug": "dong-quang",
         "type": "ward"
       },
       {
         "code": "00410",
         "name": "Đông Sơn",
-        "fullName": "Phường Đông Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Đông Sơn, Tỉnh Thanh Hóa",
         "slug": "dong-son",
         "type": "ward"
       },
       {
         "code": "00415",
         "name": "Tĩnh Gia",
-        "fullName": "Phường Tĩnh Gia, Tỉnh Thanh Hoá",
+        "fullName": "Phường Tĩnh Gia, Tỉnh Thanh Hóa",
         "slug": "tinh-gia",
         "type": "ward"
       },
       {
         "code": "00426",
         "name": "Đông Tiến",
-        "fullName": "Phường Đông Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Phường Đông Tiến, Tỉnh Thanh Hóa",
         "slug": "dong-tien",
         "type": "ward"
       },
       {
         "code": "00474",
         "name": "Triệu Sơn",
-        "fullName": "Xã Triệu Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Triệu Sơn, Tỉnh Thanh Hóa",
         "slug": "trieu-son",
         "type": "commune"
       },
       {
         "code": "00568",
         "name": "Nông Cống",
-        "fullName": "Xã Nông Cống, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nông Cống, Tỉnh Thanh Hóa",
         "slug": "nong-cong",
         "type": "commune"
       },
       {
         "code": "00611",
         "name": "Thiệu Hóa",
-        "fullName": "Xã Thiệu Hóa, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiệu Hóa, Tỉnh Thanh Hóa",
         "slug": "thieu-hoa",
         "type": "commune"
       },
       {
         "code": "00631",
         "name": "Ngọc Sơn",
-        "fullName": "Phường Ngọc Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Ngọc Sơn, Tỉnh Thanh Hóa",
         "slug": "ngoc-son",
         "type": "ward"
       },
       {
         "code": "00650",
         "name": "Nga Sơn",
-        "fullName": "Xã Nga Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nga Sơn, Tỉnh Thanh Hóa",
         "slug": "nga-son",
         "type": "commune"
       },
       {
         "code": "00692",
         "name": "Bỉm Sơn",
-        "fullName": "Phường Bỉm Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Bỉm Sơn, Tỉnh Thanh Hóa",
         "slug": "bim-son",
         "type": "ward"
       },
       {
         "code": "00732",
         "name": "Sao Vàng",
-        "fullName": "Xã Sao Vàng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Sao Vàng, Tỉnh Thanh Hóa",
         "slug": "sao-vang",
         "type": "commune"
       },
       {
         "code": "00758",
         "name": "Hoằng Hóa",
-        "fullName": "Xã Hoằng Hóa, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Hóa, Tỉnh Thanh Hóa",
         "slug": "hoang-hoa",
         "type": "commune"
       },
       {
         "code": "00839",
         "name": "Hoa Lộc",
-        "fullName": "Xã Hoa Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoa Lộc, Tỉnh Thanh Hóa",
         "slug": "hoa-loc",
         "type": "commune"
       },
       {
         "code": "00868",
         "name": "Tiên Trang",
-        "fullName": "Xã Tiên Trang, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tiên Trang, Tỉnh Thanh Hóa",
         "slug": "tien-trang",
         "type": "commune"
       },
       {
         "code": "00869",
         "name": "Kim Tân",
-        "fullName": "Xã Kim Tân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Kim Tân, Tỉnh Thanh Hóa",
         "slug": "kim-tan",
         "type": "commune"
       },
       {
         "code": "00885",
         "name": "Lưu Vệ",
-        "fullName": "Xã Lưu Vệ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Lưu Vệ, Tỉnh Thanh Hóa",
         "slug": "luu-ve",
         "type": "commune"
       },
       {
         "code": "00886",
         "name": "Vĩnh Lộc",
-        "fullName": "Xã Vĩnh Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Vĩnh Lộc, Tỉnh Thanh Hóa",
         "slug": "vinh-loc",
         "type": "commune"
       },
       {
         "code": "00913",
         "name": "Thọ Phú",
-        "fullName": "Xã Thọ Phú, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Phú, Tỉnh Thanh Hóa",
         "slug": "tho-phu",
         "type": "commune"
       },
       {
         "code": "00929",
         "name": "Thạch Bình",
-        "fullName": "Xã Thạch Bình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thạch Bình, Tỉnh Thanh Hóa",
         "slug": "thach-binh",
         "type": "commune"
       },
       {
         "code": "00933",
         "name": "Ngọc Lặc",
-        "fullName": "Xã Ngọc Lặc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Ngọc Lặc, Tỉnh Thanh Hóa",
         "slug": "ngoc-lac",
         "type": "commune"
       },
       {
         "code": "00977",
         "name": "Yên Định",
-        "fullName": "Xã Yên Định, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Định, Tỉnh Thanh Hóa",
         "slug": "yen-dinh",
         "type": "commune"
       },
       {
         "code": "00990",
         "name": "Hoằng Thanh",
-        "fullName": "Xã Hoằng Thanh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Thanh, Tỉnh Thanh Hóa",
         "slug": "hoang-thanh",
         "type": "commune"
       },
       {
         "code": "01007",
         "name": "Quảng Bình",
-        "fullName": "Xã Quảng Bình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quảng Bình, Tỉnh Thanh Hóa",
         "slug": "quang-binh",
         "type": "commune"
       },
       {
         "code": "01029",
         "name": "Nam Sầm Sơn",
-        "fullName": "Phường Nam Sầm Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Nam Sầm Sơn, Tỉnh Thanh Hóa",
         "slug": "nam-sam-son",
         "type": "ward"
       },
       {
         "code": "01099",
         "name": "Hoằng Lộc",
-        "fullName": "Xã Hoằng Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Lộc, Tỉnh Thanh Hóa",
         "slug": "hoang-loc",
         "type": "commune"
       },
       {
         "code": "01104",
         "name": "Xuân Lập",
-        "fullName": "Xã Xuân Lập, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Lập, Tỉnh Thanh Hóa",
         "slug": "xuan-lap",
         "type": "commune"
       },
       {
         "code": "01161",
         "name": "Trung Chính",
-        "fullName": "Xã Trung Chính, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trung Chính, Tỉnh Thanh Hóa",
         "slug": "trung-chinh",
         "type": "commune"
       },
       {
         "code": "01209",
         "name": "Nguyệt Viên",
-        "fullName": "Phường Nguyệt Viên, Tỉnh Thanh Hoá",
+        "fullName": "Phường Nguyệt Viên, Tỉnh Thanh Hóa",
         "slug": "nguyet-vien",
         "type": "ward"
       },
       {
         "code": "01210",
         "name": "Thọ Xuân",
-        "fullName": "Xã Thọ Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Xuân, Tỉnh Thanh Hóa",
         "slug": "tho-xuan",
         "type": "commune"
       },
       {
         "code": "01244",
         "name": "Hoằng Châu",
-        "fullName": "Xã Hoằng Châu, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Châu, Tỉnh Thanh Hóa",
         "slug": "hoang-chau",
         "type": "commune"
       },
       {
         "code": "01250",
         "name": "Thiệu Quang",
-        "fullName": "Xã Thiệu Quang, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiệu Quang, Tỉnh Thanh Hóa",
         "slug": "thieu-quang",
         "type": "commune"
       },
       {
         "code": "01251",
         "name": "Hải Bình",
-        "fullName": "Phường Hải Bình, Tỉnh Thanh Hoá",
+        "fullName": "Phường Hải Bình, Tỉnh Thanh Hóa",
         "slug": "hai-binh",
         "type": "ward"
       },
       {
         "code": "01255",
         "name": "Quảng Ngọc",
-        "fullName": "Xã Quảng Ngọc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quảng Ngọc, Tỉnh Thanh Hóa",
         "slug": "quang-ngoc",
         "type": "commune"
       },
       {
         "code": "01265",
         "name": "Thường Xuân",
-        "fullName": "Xã Thường Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thường Xuân, Tỉnh Thanh Hóa",
         "slug": "thuong-xuan",
         "type": "commune"
       },
       {
         "code": "01277",
         "name": "Hậu Lộc",
-        "fullName": "Xã Hậu Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hậu Lộc, Tỉnh Thanh Hóa",
         "slug": "hau-loc",
         "type": "commune"
       },
       {
         "code": "01292",
         "name": "Lam Sơn",
-        "fullName": "Xã Lam Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Lam Sơn, Tỉnh Thanh Hóa",
         "slug": "lam-son",
         "type": "commune"
       },
       {
         "code": "01296",
         "name": "Hợp Tiến",
-        "fullName": "Xã Hợp Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hợp Tiến, Tỉnh Thanh Hóa",
         "slug": "hop-tien",
         "type": "commune"
       },
       {
         "code": "01308",
         "name": "Nghi Sơn",
-        "fullName": "Phường Nghi Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Phường Nghi Sơn, Tỉnh Thanh Hóa",
         "slug": "nghi-son",
         "type": "ward"
       },
       {
         "code": "01318",
         "name": "Quang Trung",
-        "fullName": "Phường Quang Trung, Tỉnh Thanh Hoá",
+        "fullName": "Phường Quang Trung, Tỉnh Thanh Hóa",
         "slug": "quang-trung",
         "type": "ward"
       },
       {
         "code": "01338",
         "name": "Hoằng Giang",
-        "fullName": "Xã Hoằng Giang, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Giang, Tỉnh Thanh Hóa",
         "slug": "hoang-giang",
         "type": "commune"
       },
       {
         "code": "01360",
         "name": "Thiệu Trung",
-        "fullName": "Xã Thiệu Trung, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiệu Trung, Tỉnh Thanh Hóa",
         "slug": "thieu-trung",
         "type": "commune"
       },
       {
         "code": "01373",
         "name": "Biện Thượng",
-        "fullName": "Xã Biện Thượng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Biện Thượng, Tỉnh Thanh Hóa",
         "slug": "bien-thuong",
         "type": "commune"
       },
       {
         "code": "01376",
         "name": "Cẩm Thạch",
-        "fullName": "Xã Cẩm Thạch, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cẩm Thạch, Tỉnh Thanh Hóa",
         "slug": "cam-thach",
         "type": "commune"
       },
       {
         "code": "01438",
         "name": "Thọ Long",
-        "fullName": "Xã Thọ Long, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Long, Tỉnh Thanh Hóa",
         "slug": "tho-long",
         "type": "commune"
       },
       {
         "code": "01463",
         "name": "Quảng Chính",
-        "fullName": "Xã Quảng Chính, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quảng Chính, Tỉnh Thanh Hóa",
         "slug": "quang-chinh",
         "type": "commune"
       },
       {
         "code": "01478",
         "name": "Cẩm Thủy",
-        "fullName": "Xã Cẩm Thủy, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cẩm Thủy, Tỉnh Thanh Hóa",
         "slug": "cam-thuy",
         "type": "commune"
       },
       {
         "code": "01494",
         "name": "Đông Thành",
-        "fullName": "Xã Đông Thành, Tỉnh Thanh Hoá",
+        "fullName": "Xã Đông Thành, Tỉnh Thanh Hóa",
         "slug": "dong-thanh",
         "type": "commune"
       },
       {
         "code": "01504",
         "name": "Hà Trung",
-        "fullName": "Xã Hà Trung, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hà Trung, Tỉnh Thanh Hóa",
         "slug": "ha-trung",
         "type": "commune"
       },
       {
         "code": "01526",
         "name": "Thiệu Toán",
-        "fullName": "Xã Thiệu Toán, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiệu Toán, Tỉnh Thanh Hóa",
         "slug": "thieu-toan",
         "type": "commune"
       },
       {
         "code": "01540",
         "name": "Hoằng Tiến",
-        "fullName": "Xã Hoằng Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Tiến, Tỉnh Thanh Hóa",
         "slug": "hoang-tien",
         "type": "commune"
       },
       {
         "code": "01565",
         "name": "Minh Sơn",
-        "fullName": "Xã Minh Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Minh Sơn, Tỉnh Thanh Hóa",
         "slug": "minh-son",
         "type": "commune"
       },
       {
         "code": "01573",
         "name": "Yên Trường",
-        "fullName": "Xã Yên Trường, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Trường, Tỉnh Thanh Hóa",
         "slug": "yen-truong",
         "type": "commune"
       },
       {
         "code": "01577",
         "name": "Công Chính",
-        "fullName": "Xã Công Chính, Tỉnh Thanh Hoá",
+        "fullName": "Xã Công Chính, Tỉnh Thanh Hóa",
         "slug": "cong-chinh",
         "type": "commune"
       },
       {
         "code": "01598",
         "name": "Thăng Bình",
-        "fullName": "Xã Thăng Bình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thăng Bình, Tỉnh Thanh Hóa",
         "slug": "thang-binh",
         "type": "commune"
       },
       {
         "code": "01611",
         "name": "Tống Sơn",
-        "fullName": "Xã Tống Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tống Sơn, Tỉnh Thanh Hóa",
         "slug": "tong-son",
         "type": "commune"
       },
       {
         "code": "01614",
         "name": "An Nông",
-        "fullName": "Xã An Nông, Tỉnh Thanh Hoá",
+        "fullName": "Xã An Nông, Tỉnh Thanh Hóa",
         "slug": "an-nong",
         "type": "commune"
       },
       {
         "code": "01623",
         "name": "Quý Lộc",
-        "fullName": "Xã Quý Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quý Lộc, Tỉnh Thanh Hóa",
         "slug": "quy-loc",
         "type": "commune"
       },
       {
         "code": "01634",
         "name": "Định Hòa",
-        "fullName": "Xã Định Hòa, Tỉnh Thanh Hoá",
+        "fullName": "Xã Định Hòa, Tỉnh Thanh Hóa",
         "slug": "dinh-hoa",
         "type": "commune"
       },
       {
         "code": "01635",
         "name": "Định Tân",
-        "fullName": "Xã Định Tân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Định Tân, Tỉnh Thanh Hóa",
         "slug": "dinh-tan",
         "type": "commune"
       },
       {
         "code": "01667",
         "name": "Thắng Lợi",
-        "fullName": "Xã Thắng Lợi, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thắng Lợi, Tỉnh Thanh Hóa",
         "slug": "thang-loi",
         "type": "commune"
       },
       {
         "code": "01671",
         "name": "Thọ Lập",
-        "fullName": "Xã Thọ Lập, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Lập, Tỉnh Thanh Hóa",
         "slug": "tho-lap",
         "type": "commune"
       },
       {
         "code": "01683",
         "name": "Ngọc Liên",
-        "fullName": "Xã Ngọc Liên, Tỉnh Thanh Hoá",
+        "fullName": "Xã Ngọc Liên, Tỉnh Thanh Hóa",
         "slug": "ngoc-lien",
         "type": "commune"
       },
       {
         "code": "01685",
         "name": "Quảng Yên",
-        "fullName": "Xã Quảng Yên, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quảng Yên, Tỉnh Thanh Hóa",
         "slug": "quang-yen",
         "type": "commune"
       },
       {
         "code": "01701",
         "name": "Hoằng Sơn",
-        "fullName": "Xã Hoằng Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Sơn, Tỉnh Thanh Hóa",
         "slug": "hoang-son",
         "type": "commune"
       },
       {
         "code": "01710",
         "name": "Tây Đô",
-        "fullName": "Xã Tây Đô, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tây Đô, Tỉnh Thanh Hóa",
         "slug": "tay-do",
         "type": "commune"
       },
       {
         "code": "01711",
         "name": "Tân Ninh",
-        "fullName": "Xã Tân Ninh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tân Ninh, Tỉnh Thanh Hóa",
         "slug": "tan-ninh",
         "type": "commune"
       },
       {
         "code": "01741",
         "name": "Hồ Vương",
-        "fullName": "Xã Hồ Vương, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hồ Vương, Tỉnh Thanh Hóa",
         "slug": "ho-vuong",
         "type": "commune"
       },
       {
         "code": "01746",
         "name": "Thành Vinh",
-        "fullName": "Xã Thành Vinh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thành Vinh, Tỉnh Thanh Hóa",
         "slug": "thanh-vinh",
         "type": "commune"
       },
       {
         "code": "01775",
         "name": "Xuân Hòa",
-        "fullName": "Xã Xuân Hòa, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Hòa, Tỉnh Thanh Hóa",
         "slug": "xuan-hoa",
         "type": "commune"
       },
       {
         "code": "01781",
         "name": "Quảng Ninh",
-        "fullName": "Xã Quảng Ninh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quảng Ninh, Tỉnh Thanh Hóa",
         "slug": "quang-ninh",
         "type": "commune"
       },
       {
         "code": "01787",
         "name": "Nga Thắng",
-        "fullName": "Xã Nga Thắng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nga Thắng, Tỉnh Thanh Hóa",
         "slug": "nga-thang",
         "type": "commune"
       },
       {
         "code": "01788",
         "name": "Xuân Tín",
-        "fullName": "Xã Xuân Tín, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Tín, Tỉnh Thanh Hóa",
         "slug": "xuan-tin",
         "type": "commune"
       },
       {
         "code": "01795",
         "name": "Triệu Lộc",
-        "fullName": "Xã Triệu Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Triệu Lộc, Tỉnh Thanh Hóa",
         "slug": "trieu-loc",
         "type": "commune"
       },
       {
         "code": "01804",
         "name": "Như Thanh",
-        "fullName": "Xã Như Thanh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Như Thanh, Tỉnh Thanh Hóa",
         "slug": "nhu-thanh",
         "type": "commune"
       },
       {
         "code": "01805",
         "name": "Đào Duy Tư",
-        "fullName": "Phường Đào Duy Tư, Tỉnh Thanh Hoá",
+        "fullName": "Phường Đào Duy Tư, Tỉnh Thanh Hóa",
         "slug": "dao-duy-tu",
         "type": "ward"
       },
       {
         "code": "01818",
         "name": "Cẩm Tú",
-        "fullName": "Xã Cẩm Tú, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cẩm Tú, Tỉnh Thanh Hóa",
         "slug": "cam-tu",
         "type": "commune"
       },
       {
         "code": "01869",
         "name": "Thiệu Tiến",
-        "fullName": "Xã Thiệu Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiệu Tiến, Tỉnh Thanh Hóa",
         "slug": "thieu-tien",
         "type": "commune"
       },
       {
         "code": "01900",
         "name": "Nga An",
-        "fullName": "Xã Nga An, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nga An, Tỉnh Thanh Hóa",
         "slug": "nga-an",
         "type": "commune"
       },
       {
         "code": "01908",
         "name": "Lĩnh Toại",
-        "fullName": "Xã Lĩnh Toại, Tỉnh Thanh Hoá",
+        "fullName": "Xã Lĩnh Toại, Tỉnh Thanh Hóa",
         "slug": "linh-toai",
         "type": "commune"
       },
       {
         "code": "01956",
         "name": "Thọ Ngọc",
-        "fullName": "Xã Thọ Ngọc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Ngọc, Tỉnh Thanh Hóa",
         "slug": "tho-ngoc",
         "type": "commune"
       },
       {
         "code": "01972",
         "name": "Vân Du",
-        "fullName": "Xã Vân Du, Tỉnh Thanh Hoá",
+        "fullName": "Xã Vân Du, Tỉnh Thanh Hóa",
         "slug": "van-du",
         "type": "commune"
       },
       {
         "code": "01985",
         "name": "Trúc Lâm",
-        "fullName": "Phường Trúc Lâm, Tỉnh Thanh Hoá",
+        "fullName": "Phường Trúc Lâm, Tỉnh Thanh Hóa",
         "slug": "truc-lam",
         "type": "ward"
       },
       {
         "code": "02015",
         "name": "Yên Ninh",
-        "fullName": "Xã Yên Ninh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Ninh, Tỉnh Thanh Hóa",
         "slug": "yen-ninh",
         "type": "commune"
       },
       {
         "code": "02025",
         "name": "Ngọc Trạo",
-        "fullName": "Xã Ngọc Trạo, Tỉnh Thanh Hoá",
+        "fullName": "Xã Ngọc Trạo, Tỉnh Thanh Hóa",
         "slug": "ngoc-trao",
         "type": "commune"
       },
       {
         "code": "02027",
         "name": "Nguyệt Ấn",
-        "fullName": "Xã Nguyệt Ấn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nguyệt Ấn, Tỉnh Thanh Hóa",
         "slug": "nguyet-an",
         "type": "commune"
       },
       {
         "code": "02044",
         "name": "Hà Long",
-        "fullName": "Xã Hà Long, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hà Long, Tỉnh Thanh Hóa",
         "slug": "ha-long",
         "type": "commune"
       },
       {
         "code": "02061",
         "name": "Yên Thọ",
-        "fullName": "Xã Yên Thọ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Thọ, Tỉnh Thanh Hóa",
         "slug": "yen-tho",
         "type": "commune"
       },
       {
         "code": "02063",
         "name": "Hoằng Phú",
-        "fullName": "Xã Hoằng Phú, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoằng Phú, Tỉnh Thanh Hóa",
         "slug": "hoang-phu",
         "type": "commune"
       },
       {
         "code": "02067",
         "name": "Đồng Tiến",
-        "fullName": "Xã Đồng Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Xã Đồng Tiến, Tỉnh Thanh Hóa",
         "slug": "dong-tien",
         "type": "commune"
       },
       {
         "code": "02078",
         "name": "Cẩm Vân",
-        "fullName": "Xã Cẩm Vân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cẩm Vân, Tỉnh Thanh Hóa",
         "slug": "cam-van",
         "type": "commune"
       },
       {
         "code": "02116",
         "name": "Xuân Du",
-        "fullName": "Xã Xuân Du, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Du, Tỉnh Thanh Hóa",
         "slug": "xuan-du",
         "type": "commune"
       },
       {
         "code": "02124",
         "name": "Kiên Thọ",
-        "fullName": "Xã Kiên Thọ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Kiên Thọ, Tỉnh Thanh Hóa",
         "slug": "kien-tho",
         "type": "commune"
       },
       {
         "code": "02126",
         "name": "Trường Văn",
-        "fullName": "Xã Trường Văn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trường Văn, Tỉnh Thanh Hóa",
         "slug": "truong-van",
         "type": "commune"
       },
       {
         "code": "02130",
         "name": "Tân Dân",
-        "fullName": "Phường Tân Dân, Tỉnh Thanh Hoá",
+        "fullName": "Phường Tân Dân, Tỉnh Thanh Hóa",
         "slug": "tan-dan",
         "type": "ward"
       },
       {
         "code": "02160",
         "name": "Trường Lâm",
-        "fullName": "Xã Trường Lâm, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trường Lâm, Tỉnh Thanh Hóa",
         "slug": "truong-lam",
         "type": "commune"
       },
       {
         "code": "02162",
         "name": "Hoạt Giang",
-        "fullName": "Xã Hoạt Giang, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hoạt Giang, Tỉnh Thanh Hóa",
         "slug": "hoat-giang",
         "type": "commune"
       },
       {
         "code": "02164",
         "name": "Tân Tiến",
-        "fullName": "Xã Tân Tiến, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tân Tiến, Tỉnh Thanh Hóa",
         "slug": "tan-tien",
         "type": "commune"
       },
       {
         "code": "02170",
         "name": "Các Sơn",
-        "fullName": "Xã Các Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Các Sơn, Tỉnh Thanh Hóa",
         "slug": "cac-son",
         "type": "commune"
       },
       {
         "code": "02173",
         "name": "Bá Thước",
-        "fullName": "Xã Bá Thước, Tỉnh Thanh Hoá",
+        "fullName": "Xã Bá Thước, Tỉnh Thanh Hóa",
         "slug": "ba-thuoc",
         "type": "commune"
       },
       {
         "code": "02197",
         "name": "Cẩm Tân",
-        "fullName": "Xã Cẩm Tân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cẩm Tân, Tỉnh Thanh Hóa",
         "slug": "cam-tan",
         "type": "commune"
       },
       {
         "code": "02202",
         "name": "Điền Lư",
-        "fullName": "Xã Điền Lư, Tỉnh Thanh Hoá",
+        "fullName": "Xã Điền Lư, Tỉnh Thanh Hóa",
         "slug": "dien-lu",
         "type": "commune"
       },
       {
         "code": "02223",
         "name": "Ba Đình",
-        "fullName": "Xã Ba Đình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Ba Đình, Tỉnh Thanh Hóa",
         "slug": "ba-dinh",
         "type": "commune"
       },
       {
         "code": "02295",
         "name": "Thạch Lập",
-        "fullName": "Xã Thạch Lập, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thạch Lập, Tỉnh Thanh Hóa",
         "slug": "thach-lap",
         "type": "commune"
       },
       {
         "code": "02336",
         "name": "Mậu Lâm",
-        "fullName": "Xã Mậu Lâm, Tỉnh Thanh Hoá",
+        "fullName": "Xã Mậu Lâm, Tỉnh Thanh Hóa",
         "slug": "mau-lam",
         "type": "commune"
       },
       {
         "code": "02361",
         "name": "Thọ Bình",
-        "fullName": "Xã Thọ Bình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thọ Bình, Tỉnh Thanh Hóa",
         "slug": "tho-binh",
         "type": "commune"
       },
       {
         "code": "02370",
         "name": "Hải Lĩnh",
-        "fullName": "Phường Hải Lĩnh, Tỉnh Thanh Hoá",
+        "fullName": "Phường Hải Lĩnh, Tỉnh Thanh Hóa",
         "slug": "hai-linh",
         "type": "ward"
       },
       {
         "code": "02393",
         "name": "Tượng Lĩnh",
-        "fullName": "Xã Tượng Lĩnh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tượng Lĩnh, Tỉnh Thanh Hóa",
         "slug": "tuong-linh",
         "type": "commune"
       },
       {
         "code": "02486",
         "name": "Điền Quang",
-        "fullName": "Xã Điền Quang, Tỉnh Thanh Hoá",
+        "fullName": "Xã Điền Quang, Tỉnh Thanh Hóa",
         "slug": "dien-quang",
         "type": "commune"
       },
       {
         "code": "02498",
         "name": "Xuân Bình",
-        "fullName": "Xã Xuân Bình, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Bình, Tỉnh Thanh Hóa",
         "slug": "xuan-binh",
         "type": "commune"
       },
       {
         "code": "02526",
         "name": "Luận Thành",
-        "fullName": "Xã Luận Thành, Tỉnh Thanh Hoá",
+        "fullName": "Xã Luận Thành, Tỉnh Thanh Hóa",
         "slug": "luan-thanh",
         "type": "commune"
       },
       {
         "code": "02552",
         "name": "Thạch Quảng",
-        "fullName": "Xã Thạch Quảng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thạch Quảng, Tỉnh Thanh Hóa",
         "slug": "thach-quang",
         "type": "commune"
       },
       {
         "code": "02582",
         "name": "Quý Lương",
-        "fullName": "Xã Quý Lương, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quý Lương, Tỉnh Thanh Hóa",
         "slug": "quy-luong",
         "type": "commune"
       },
       {
         "code": "02593",
         "name": "Yên Phú",
-        "fullName": "Xã Yên Phú, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Phú, Tỉnh Thanh Hóa",
         "slug": "yen-phu",
         "type": "commune"
       },
       {
         "code": "02662",
         "name": "Thượng Ninh",
-        "fullName": "Xã Thượng Ninh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thượng Ninh, Tỉnh Thanh Hóa",
         "slug": "thuong-ninh",
         "type": "commune"
       },
       {
         "code": "02686",
         "name": "Như Xuân",
-        "fullName": "Xã Như Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Như Xuân, Tỉnh Thanh Hóa",
         "slug": "nhu-xuan",
         "type": "commune"
       },
       {
         "code": "02699",
         "name": "Thiết Ống",
-        "fullName": "Xã Thiết Ống, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiết Ống, Tỉnh Thanh Hóa",
         "slug": "thiet-ong",
         "type": "commune"
       },
       {
         "code": "02722",
         "name": "Tân Thành",
-        "fullName": "Xã Tân Thành, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tân Thành, Tỉnh Thanh Hóa",
         "slug": "tan-thanh",
         "type": "commune"
       },
       {
         "code": "02741",
         "name": "Thanh Kỳ",
-        "fullName": "Xã Thanh Kỳ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thanh Kỳ, Tỉnh Thanh Hóa",
         "slug": "thanh-ky",
         "type": "commune"
       },
       {
         "code": "02747",
         "name": "Linh Sơn",
-        "fullName": "Xã Linh Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Linh Sơn, Tỉnh Thanh Hóa",
         "slug": "linh-son",
         "type": "commune"
       },
       {
         "code": "02770",
         "name": "Thanh Quân",
-        "fullName": "Xã Thanh Quân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thanh Quân, Tỉnh Thanh Hóa",
         "slug": "thanh-quan",
         "type": "commune"
       },
       {
         "code": "02780",
         "name": "Hóa Quỳ",
-        "fullName": "Xã Hóa Quỳ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hóa Quỳ, Tỉnh Thanh Hóa",
         "slug": "hoa-quy",
         "type": "commune"
       },
       {
         "code": "02783",
         "name": "Đồng Lương",
-        "fullName": "Xã Đồng Lương, Tỉnh Thanh Hoá",
+        "fullName": "Xã Đồng Lương, Tỉnh Thanh Hóa",
         "slug": "dong-luong",
         "type": "commune"
       },
       {
         "code": "02884",
         "name": "Hồi Xuân",
-        "fullName": "Xã Hồi Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hồi Xuân, Tỉnh Thanh Hóa",
         "slug": "hoi-xuan",
         "type": "commune"
       },
       {
         "code": "02910",
         "name": "Văn Nho",
-        "fullName": "Xã Văn Nho, Tỉnh Thanh Hoá",
+        "fullName": "Xã Văn Nho, Tỉnh Thanh Hóa",
         "slug": "van-nho",
         "type": "commune"
       },
       {
         "code": "02938",
         "name": "Cổ Lũng",
-        "fullName": "Xã Cổ Lũng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Cổ Lũng, Tỉnh Thanh Hóa",
         "slug": "co-lung",
         "type": "commune"
       },
       {
         "code": "02944",
         "name": "Thanh Phong",
-        "fullName": "Xã Thanh Phong, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thanh Phong, Tỉnh Thanh Hóa",
         "slug": "thanh-phong",
         "type": "commune"
       },
       {
         "code": "02946",
         "name": "Lương Sơn",
-        "fullName": "Xã Lương Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Lương Sơn, Tỉnh Thanh Hóa",
         "slug": "luong-son",
         "type": "commune"
       },
       {
         "code": "02947",
         "name": "Pù Luông",
-        "fullName": "Xã Pù Luông, Tỉnh Thanh Hoá",
+        "fullName": "Xã Pù Luông, Tỉnh Thanh Hóa",
         "slug": "pu-luong",
         "type": "commune"
       },
       {
         "code": "02974",
         "name": "Trung Hạ",
-        "fullName": "Xã Trung Hạ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trung Hạ, Tỉnh Thanh Hóa",
         "slug": "trung-ha",
         "type": "commune"
       },
       {
         "code": "03003",
         "name": "Thắng Lộc",
-        "fullName": "Xã Thắng Lộc, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thắng Lộc, Tỉnh Thanh Hóa",
         "slug": "thang-loc",
         "type": "commune"
       },
       {
         "code": "03026",
         "name": "Văn Phú",
-        "fullName": "Xã Văn Phú, Tỉnh Thanh Hoá",
+        "fullName": "Xã Văn Phú, Tỉnh Thanh Hóa",
         "slug": "van-phu",
         "type": "commune"
       },
       {
         "code": "03042",
         "name": "Giao An",
-        "fullName": "Xã Giao An, Tỉnh Thanh Hoá",
+        "fullName": "Xã Giao An, Tỉnh Thanh Hóa",
         "slug": "giao-an",
         "type": "commune"
       },
       {
         "code": "03082",
         "name": "Xuân Chinh",
-        "fullName": "Xã Xuân Chinh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Chinh, Tỉnh Thanh Hóa",
         "slug": "xuan-chinh",
         "type": "commune"
       },
       {
         "code": "03084",
         "name": "Quan Sơn",
-        "fullName": "Xã Quan Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quan Sơn, Tỉnh Thanh Hóa",
         "slug": "quan-son",
         "type": "commune"
       },
       {
         "code": "03099",
         "name": "Trung Lý",
-        "fullName": "Xã Trung Lý, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trung Lý, Tỉnh Thanh Hóa",
         "slug": "trung-ly",
         "type": "commune"
       },
       {
         "code": "03110",
         "name": "Hiền Kiệt",
-        "fullName": "Xã Hiền Kiệt, Tỉnh Thanh Hoá",
+        "fullName": "Xã Hiền Kiệt, Tỉnh Thanh Hóa",
         "slug": "hien-kiet",
         "type": "commune"
       },
       {
         "code": "03117",
         "name": "Mường Lát",
-        "fullName": "Xã Mường Lát, Tỉnh Thanh Hoá",
+        "fullName": "Xã Mường Lát, Tỉnh Thanh Hóa",
         "slug": "muong-lat",
         "type": "commune"
       },
       {
         "code": "03141",
         "name": "Phú Lệ",
-        "fullName": "Xã Phú Lệ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Phú Lệ, Tỉnh Thanh Hóa",
         "slug": "phu-le",
         "type": "commune"
       },
       {
         "code": "03145",
         "name": "Yên Thắng",
-        "fullName": "Xã Yên Thắng, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Thắng, Tỉnh Thanh Hóa",
         "slug": "yen-thang",
         "type": "commune"
       },
       {
         "code": "03165",
         "name": "Thiên Phủ",
-        "fullName": "Xã Thiên Phủ, Tỉnh Thanh Hoá",
+        "fullName": "Xã Thiên Phủ, Tỉnh Thanh Hóa",
         "slug": "thien-phu",
         "type": "commune"
       },
       {
         "code": "03188",
         "name": "Vạn Xuân",
-        "fullName": "Xã Vạn Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Vạn Xuân, Tỉnh Thanh Hóa",
         "slug": "van-xuan",
         "type": "commune"
       },
       {
         "code": "03189",
         "name": "Tam Lư",
-        "fullName": "Xã Tam Lư, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tam Lư, Tỉnh Thanh Hóa",
         "slug": "tam-lu",
         "type": "commune"
       },
       {
         "code": "03198",
         "name": "Quang Chiểu",
-        "fullName": "Xã Quang Chiểu, Tỉnh Thanh Hoá",
+        "fullName": "Xã Quang Chiểu, Tỉnh Thanh Hóa",
         "slug": "quang-chieu",
         "type": "commune"
       },
       {
         "code": "03206",
         "name": "Pù Nhi",
-        "fullName": "Xã Pù Nhi, Tỉnh Thanh Hoá",
+        "fullName": "Xã Pù Nhi, Tỉnh Thanh Hóa",
         "slug": "pu-nhi",
         "type": "commune"
       },
       {
         "code": "03210",
         "name": "Mường Lý",
-        "fullName": "Xã Mường Lý, Tỉnh Thanh Hoá",
+        "fullName": "Xã Mường Lý, Tỉnh Thanh Hóa",
         "slug": "muong-ly",
         "type": "commune"
       },
       {
         "code": "03213",
         "name": "Nam Xuân",
-        "fullName": "Xã Nam Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nam Xuân, Tỉnh Thanh Hóa",
         "slug": "nam-xuan",
         "type": "commune"
       },
       {
         "code": "03226",
         "name": "Yên Nhân",
-        "fullName": "Xã Yên Nhân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Nhân, Tỉnh Thanh Hóa",
         "slug": "yen-nhan",
         "type": "commune"
       },
       {
         "code": "03234",
         "name": "Yên Khương",
-        "fullName": "Xã Yên Khương, Tỉnh Thanh Hoá",
+        "fullName": "Xã Yên Khương, Tỉnh Thanh Hóa",
         "slug": "yen-khuong",
         "type": "commune"
       },
       {
         "code": "03237",
         "name": "Trung Thành",
-        "fullName": "Xã Trung Thành, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trung Thành, Tỉnh Thanh Hóa",
         "slug": "trung-thanh",
         "type": "commune"
       },
       {
         "code": "03251",
         "name": "Phú Xuân",
-        "fullName": "Xã Phú Xuân, Tỉnh Thanh Hoá",
+        "fullName": "Xã Phú Xuân, Tỉnh Thanh Hóa",
         "slug": "phu-xuan",
         "type": "commune"
       },
       {
         "code": "03258",
         "name": "Sơn Điện",
-        "fullName": "Xã Sơn Điện, Tỉnh Thanh Hoá",
+        "fullName": "Xã Sơn Điện, Tỉnh Thanh Hóa",
         "slug": "son-dien",
         "type": "commune"
       },
       {
         "code": "03271",
         "name": "Tam chung",
-        "fullName": "Xã Tam chung, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tam chung, Tỉnh Thanh Hóa",
         "slug": "tam-chung",
         "type": "commune"
       },
       {
         "code": "03276",
         "name": "Xuân Thái",
-        "fullName": "Xã Xuân Thái, Tỉnh Thanh Hoá",
+        "fullName": "Xã Xuân Thái, Tỉnh Thanh Hóa",
         "slug": "xuan-thai",
         "type": "commune"
       },
       {
         "code": "03282",
         "name": "Tam Thanh",
-        "fullName": "Xã Tam Thanh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Tam Thanh, Tỉnh Thanh Hóa",
         "slug": "tam-thanh",
         "type": "commune"
       },
       {
         "code": "03284",
         "name": "Na Mèo",
-        "fullName": "Xã Na Mèo, Tỉnh Thanh Hoá",
+        "fullName": "Xã Na Mèo, Tỉnh Thanh Hóa",
         "slug": "na-meo",
         "type": "commune"
       },
       {
         "code": "03285",
         "name": "Bát Mọt",
-        "fullName": "Xã Bát Mọt, Tỉnh Thanh Hoá",
+        "fullName": "Xã Bát Mọt, Tỉnh Thanh Hóa",
         "slug": "bat-mot",
         "type": "commune"
       },
       {
         "code": "03286",
         "name": "Sơn Thủy",
-        "fullName": "Xã Sơn Thủy, Tỉnh Thanh Hoá",
+        "fullName": "Xã Sơn Thủy, Tỉnh Thanh Hóa",
         "slug": "son-thuy",
         "type": "commune"
       },
       {
         "code": "03287",
         "name": "Mường Chanh",
-        "fullName": "Xã Mường Chanh, Tỉnh Thanh Hoá",
+        "fullName": "Xã Mường Chanh, Tỉnh Thanh Hóa",
         "slug": "muong-chanh",
         "type": "commune"
       },
       {
         "code": "03294",
         "name": "Nhi Sơn",
-        "fullName": "Xã Nhi Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Nhi Sơn, Tỉnh Thanh Hóa",
         "slug": "nhi-son",
         "type": "commune"
       },
       {
         "code": "03298",
         "name": "Trung Sơn",
-        "fullName": "Xã Trung Sơn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Trung Sơn, Tỉnh Thanh Hóa",
         "slug": "trung-son",
         "type": "commune"
       },
       {
         "code": "03301",
         "name": "Mường Mìn",
-        "fullName": "Xã Mường Mìn, Tỉnh Thanh Hoá",
+        "fullName": "Xã Mường Mìn, Tỉnh Thanh Hóa",
         "slug": "muong-min",
         "type": "commune"
       }
@@ -6609,8 +6609,8 @@
       },
       {
         "code": "00149",
-        "name": "Hiệp Hoà",
-        "fullName": "Xã Hiệp Hoà, Tỉnh Bắc Ninh",
+        "name": "Hiệp Hòa",
+        "fullName": "Xã Hiệp Hòa, Tỉnh Bắc Ninh",
         "slug": "hiep-hoa",
         "type": "commune"
       },
@@ -9012,8 +9012,8 @@
       },
       {
         "code": "00831",
-        "name": "Giao Hoà",
-        "fullName": "Xã Giao Hoà, Tỉnh Ninh Bình",
+        "name": "Giao Hòa",
+        "fullName": "Xã Giao Hòa, Tỉnh Ninh Bình",
         "slug": "giao-hoa",
         "type": "commune"
       },
@@ -10432,8 +10432,8 @@
       },
       {
         "code": "00861",
-        "name": "Hoà Thành",
-        "fullName": "Phường Hoà Thành, Tỉnh Tây Ninh",
+        "name": "Hòa Thành",
+        "fullName": "Phường Hòa Thành, Tỉnh Tây Ninh",
         "slug": "hoa-thanh",
         "type": "ward"
       },
@@ -10509,8 +10509,8 @@
       },
       {
         "code": "01143",
-        "name": "Hoà Khánh",
-        "fullName": "Xã Hoà Khánh, Tỉnh Tây Ninh",
+        "name": "Hòa Khánh",
+        "fullName": "Xã Hòa Khánh, Tỉnh Tây Ninh",
         "slug": "hoa-khanh",
         "type": "commune"
       },
@@ -10523,8 +10523,8 @@
       },
       {
         "code": "01315",
-        "name": "Hiệp Hoà",
-        "fullName": "Xã Hiệp Hoà, Tỉnh Tây Ninh",
+        "name": "Hiệp Hòa",
+        "fullName": "Xã Hiệp Hòa, Tỉnh Tây Ninh",
         "slug": "hiep-hoa",
         "type": "commune"
       },
@@ -10761,8 +10761,8 @@
       },
       {
         "code": "02040",
-        "name": "Lương Hoà",
-        "fullName": "Xã Lương Hoà, Tỉnh Tây Ninh",
+        "name": "Lương Hòa",
+        "fullName": "Xã Lương Hòa, Tỉnh Tây Ninh",
         "slug": "luong-hoa",
         "type": "commune"
       },
@@ -10901,8 +10901,8 @@
       },
       {
         "code": "02629",
-        "name": "Hoà Hội",
-        "fullName": "Xã Hoà Hội, Tỉnh Tây Ninh",
+        "name": "Hòa Hội",
+        "fullName": "Xã Hòa Hội, Tỉnh Tây Ninh",
         "slug": "hoa-hoi",
         "type": "commune"
       },
@@ -10915,8 +10915,8 @@
       },
       {
         "code": "02682",
-        "name": "Bình Hoà",
-        "fullName": "Xã Bình Hoà, Tỉnh Tây Ninh",
+        "name": "Bình Hòa",
+        "fullName": "Xã Bình Hòa, Tỉnh Tây Ninh",
         "slug": "binh-hoa",
         "type": "commune"
       },
@@ -15912,8 +15912,8 @@
       },
       {
         "code": "00924",
-        "name": "Hoà Bình",
-        "fullName": "Xã Hoà Bình, Tỉnh Vĩnh Long",
+        "name": "Hòa Bình",
+        "fullName": "Xã Hòa Bình, Tỉnh Vĩnh Long",
         "slug": "hoa-binh",
         "type": "commune"
       },
@@ -20480,8 +20480,8 @@
       },
       {
         "code": "00291",
-        "name": "Hoà Bình",
-        "fullName": "Phường Hoà Bình, Thành phố Hồ Chí Minh",
+        "name": "Hòa Bình",
+        "fullName": "Phường Hòa Bình, Thành phố Hồ Chí Minh",
         "slug": "hoa-binh",
         "type": "ward"
       },
@@ -22519,8 +22519,8 @@
       },
       {
         "code": "01832",
-        "name": "Hoà Bình",
-        "fullName": "Xã Hoà Bình, Tỉnh Cà Mau",
+        "name": "Hòa Bình",
+        "fullName": "Xã Hòa Bình, Tỉnh Cà Mau",
         "slug": "hoa-binh",
         "type": "commune"
       },
@@ -22921,8 +22921,8 @@
       },
       {
         "code": "02372",
-        "name": "Thái Hoà",
-        "fullName": "Xã Thái Hoà, Tỉnh Tuyên Quang",
+        "name": "Thái Hòa",
+        "fullName": "Xã Thái Hòa, Tỉnh Tuyên Quang",
         "slug": "thai-hoa",
         "type": "commune"
       },
@@ -23117,8 +23117,8 @@
       },
       {
         "code": "02700",
-        "name": "Hoà An",
-        "fullName": "Xã Hoà An, Tỉnh Tuyên Quang",
+        "name": "Hòa An",
+        "fullName": "Xã Hòa An, Tỉnh Tuyên Quang",
         "slug": "hoa-an",
         "type": "commune"
       },
@@ -23425,8 +23425,8 @@
       },
       {
         "code": "03066",
-        "name": "Thuận Hoà",
-        "fullName": "Xã Thuận Hoà, Tỉnh Tuyên Quang",
+        "name": "Thuận Hòa",
+        "fullName": "Xã Thuận Hòa, Tỉnh Tuyên Quang",
         "slug": "thuan-hoa",
         "type": "commune"
       },
