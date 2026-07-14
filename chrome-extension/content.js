@@ -181,6 +181,14 @@ function createSidebar() {
       </div>
       <div id="shopvd-unsaved-list" class="shopvd-unsaved-list"></div>
     </div>
+
+    <div id="shopvd-ship-status" class="shopvd-ship-status" aria-live="polite">
+      <div class="shopvd-ship-status-head">
+        <span class="shopvd-ship-status-title">📦 Trạng thái đơn</span>
+        <button type="button" id="shopvd-ship-status-refresh" class="shopvd-ship-status-refresh hidden" title="Làm mới">↻</button>
+      </div>
+      <div id="shopvd-ship-status-body" class="shopvd-ship-status-body">Mở chat có SĐT để kiểm tra</div>
+    </div>
     
     <div class="shopvd-sidebar-content">
       <!-- Smart Paste - Dán nhanh thông tin khách hàng -->
@@ -2235,6 +2243,227 @@ function extractFirstPhoneFromText(text) {
   return sanitizePhoneDigits(match[0]);
 }
 
+/** SĐT mới nhất trong chat đang mở (không cần địa chỉ). */
+function extractLatestPhoneFromOpenChat() {
+  const roots = collectCustomerMessageRootsInOrder();
+  for (let i = roots.length - 1; i >= 0; i -= 1) {
+    const p = extractPhoneFromMessageBubble(roots[i]);
+    if (isValidDraftPhone(p)) return p;
+  }
+  const tags = document.querySelectorAll(PANCAKE_PHONE_TAG_SELECTOR);
+  for (let i = tags.length - 1; i >= 0; i -= 1) {
+    const p = sanitizePhoneDigits(tags[i].textContent || '');
+    if (isValidDraftPhone(p)) return p;
+  }
+  const formPhone = normalizeDraftPhone(document.getElementById('customer-phone')?.value || '');
+  if (isValidDraftPhone(formPhone)) return formPhone;
+  return '';
+}
+
+const SHOPVD_ORDER_STATUS_VI = {
+  pending: 'Chưa gửi hàng',
+  processing: 'Đang xử lý',
+  send_later: 'Gửi sau',
+  awaiting_reship: 'Chờ gửi lại',
+  shipped: 'Đã gửi hàng',
+  in_transit: 'Đang vận chuyển',
+  delivered: 'Đã giao',
+  failed: 'Giao thất bại',
+  cancelled: 'Đã hủy',
+  'mới': 'Chưa gửi hàng',
+  'chờ xử lý': 'Chưa gửi hàng',
+  'chưa gửi hàng': 'Chưa gửi hàng',
+  'chờ gửi lại': 'Chờ gửi lại',
+  'gửi sau': 'Gửi sau',
+  'đã gửi hàng': 'Đã gửi hàng',
+  'đang vận chuyển': 'Đang vận chuyển',
+  'đã giao hàng': 'Đã giao',
+  'giao hàng thất bại': 'Giao thất bại',
+};
+
+const SHOPVD_STATUS_TONE = {
+  pending: 'wait',
+  processing: 'wait',
+  send_later: 'later',
+  awaiting_reship: 'warn',
+  shipped: 'ship',
+  in_transit: 'ship',
+  delivered: 'done',
+  failed: 'bad',
+  cancelled: 'bad',
+};
+
+let shopvdShipStatusCache = new Map();
+let shopvdShipStatusTimer = null;
+let shopvdShipStatusAbort = null;
+const SHOPVD_SHIP_STATUS_CACHE_MS = 45000;
+
+function shopvdFormatStatusDate(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  try {
+    return new Date(n).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch (_) {
+    return '';
+  }
+}
+
+function shopvdFormatStatusMoney(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '';
+  return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+}
+
+function shopvdNormalizeStatusSlug(status) {
+  const s = String(status || 'pending').toLowerCase().trim();
+  const map = {
+    'mới': 'pending',
+    'chờ xử lý': 'pending',
+    'chưa gửi hàng': 'pending',
+    'chờ gửi lại': 'awaiting_reship',
+    'gửi sau': 'send_later',
+    'đã gửi hàng': 'shipped',
+    'đang vận chuyển': 'in_transit',
+    'đã giao hàng': 'delivered',
+    'giao hàng thất bại': 'failed',
+  };
+  return map[s] || s;
+}
+
+function shopvdStatusLabel(status) {
+  const slug = shopvdNormalizeStatusSlug(status);
+  return SHOPVD_ORDER_STATUS_VI[slug] || SHOPVD_ORDER_STATUS_VI[status] || status || 'Không rõ';
+}
+
+function shopvdStatusTone(status) {
+  const slug = shopvdNormalizeStatusSlug(status);
+  return SHOPVD_STATUS_TONE[slug] || 'neutral';
+}
+
+function invalidateShippingStatusCache(phone) {
+  if (!phone) {
+    shopvdShipStatusCache.clear();
+    return;
+  }
+  shopvdShipStatusCache.delete(normalizeDraftPhone(phone));
+}
+
+function renderShippingStatusCard(payload = {}) {
+  const card = document.getElementById('shopvd-ship-status');
+  const body = document.getElementById('shopvd-ship-status-body');
+  const refreshBtn = document.getElementById('shopvd-ship-status-refresh');
+  if (!card || !body) return;
+
+  card.classList.remove('is-wait', 'is-later', 'is-warn', 'is-ship', 'is-done', 'is-bad', 'is-neutral', 'is-loading', 'is-empty');
+
+  if (payload.state === 'no_phone') {
+    body.innerHTML = '<span class="shopvd-ship-status-muted">Chưa có SĐT trong chat</span>';
+    refreshBtn?.classList.add('hidden');
+    return;
+  }
+
+  if (payload.state === 'loading') {
+    card.classList.add('is-loading');
+    body.innerHTML = `<span class="shopvd-ship-status-muted">Đang kiểm tra ${payload.phone || ''}…</span>`;
+    refreshBtn?.classList.add('hidden');
+    return;
+  }
+
+  if (payload.state === 'error') {
+    body.innerHTML = '<span class="shopvd-ship-status-muted">Không tra được — thử lại</span>';
+    refreshBtn?.classList.remove('hidden');
+    return;
+  }
+
+  refreshBtn?.classList.remove('hidden');
+
+  if (!payload.hasOrders || !payload.order) {
+    card.classList.add('is-empty');
+    body.innerHTML = `<div class="shopvd-ship-status-row"><span class="shopvd-ship-status-badge is-new">Khách mới</span><span class="shopvd-ship-status-muted">${payload.phone || ''} · chưa có đơn</span></div>`;
+    return;
+  }
+
+  const o = payload.order;
+  const tone = shopvdStatusTone(o.status);
+  card.classList.add(`is-${tone}`);
+  const label = shopvdStatusLabel(o.status);
+  const when = shopvdFormatStatusDate(o.shipped_at_unix || o.created_at_unix);
+  const planned = o.planned_send_at_unix ? shopvdFormatStatusDate(o.planned_send_at_unix) : '';
+  const metaParts = [o.order_id || ''].filter(Boolean);
+  if (when) metaParts.push(when);
+  if (o.total_amount) metaParts.push(shopvdFormatStatusMoney(o.total_amount));
+  const meta = metaParts.join(' · ');
+  const preview = o.products_preview ? `<div class="shopvd-ship-status-preview">${o.products_preview}</div>` : '';
+  const plannedLine = (shopvdNormalizeStatusSlug(o.status) === 'send_later' && planned)
+    ? `<div class="shopvd-ship-status-planned">Dự kiến gửi: ${planned}</div>`
+    : '';
+  const activeNote = payload.isActive && payload.totalOrders > 1
+    ? `<div class="shopvd-ship-status-note">${payload.totalOrders} đơn · đang xem đơn mới nhất chưa gửi</div>`
+    : '';
+
+  body.innerHTML = `
+    <div class="shopvd-ship-status-row">
+      <span class="shopvd-ship-status-badge is-${tone}">${label}</span>
+      <span class="shopvd-ship-status-phone">${payload.phone || ''}</span>
+    </div>
+    <div class="shopvd-ship-status-meta">${meta}</div>
+    ${preview}
+    ${plannedLine}
+    ${activeNote}
+  `;
+}
+
+async function refreshShippingStatusCard(force = false) {
+  const phone = extractLatestPhoneFromOpenChat();
+  if (!isValidDraftPhone(phone)) {
+    renderShippingStatusCard({ state: 'no_phone' });
+    return;
+  }
+
+  const cached = shopvdShipStatusCache.get(phone);
+  if (!force && cached && (Date.now() - cached.at) < SHOPVD_SHIP_STATUS_CACHE_MS) {
+    renderShippingStatusCard({ state: 'ok', phone, ...cached.data });
+    return;
+  }
+
+  renderShippingStatusCard({ state: 'loading', phone });
+
+  if (shopvdShipStatusAbort) shopvdShipStatusAbort.abort();
+  shopvdShipStatusAbort = new AbortController();
+
+  try {
+    const url = `${API_BASE_URL}/?action=getCustomerShippingStatus&phone=${encodeURIComponent(phone)}`;
+    const response = await fetch(url, { signal: shopvdShipStatusAbort.signal });
+    const data = await response.json();
+    if (!data?.success) {
+      renderShippingStatusCard({ state: 'error', phone });
+      return;
+    }
+    shopvdShipStatusCache.set(phone, { data, at: Date.now() });
+    renderShippingStatusCard({ state: 'ok', phone, ...data });
+  } catch (err) {
+    if (err?.name === 'AbortError') return;
+    renderShippingStatusCard({ state: 'error', phone });
+  }
+}
+
+function scheduleShippingStatusRefresh(delayMs = 450) {
+  clearTimeout(shopvdShipStatusTimer);
+  shopvdShipStatusTimer = setTimeout(() => {
+    refreshShippingStatusCard().catch(() => {});
+  }, delayMs);
+}
+
+function setupShippingStatusCard() {
+  document.getElementById('shopvd-ship-status-refresh')?.addEventListener('click', () => {
+    refreshShippingStatusCard(true).catch(() => {});
+  });
+  document.getElementById('customer-phone')?.addEventListener('input', () => {
+    scheduleShippingStatusRefresh(600);
+  });
+  scheduleShippingStatusRefresh(800);
+}
+
 function extractPhoneFromMessageBubble(bubble) {
   if (!bubble) return '';
   const root = resolvePancakeMessageRoot(bubble) || bubble;
@@ -2475,6 +2704,7 @@ function scheduleScanChatForUnsavedOrderIntent(delayMs = 800) {
     } catch (err) {
       console.warn('[ShopVD] Auto-detect unsaved failed:', err);
     }
+    scheduleShippingStatusRefresh(120);
   }, delayMs);
 }
 
@@ -2492,6 +2722,7 @@ function setupAutoDetectUnsavedFromChat() {
     if (key !== shopvdAutoDetectLastKey) {
       shopvdAutoDetectLastKey = key;
       scheduleScanChatForUnsavedOrderIntent(600);
+      scheduleShippingStatusRefresh(500);
       return;
     }
 
@@ -4688,6 +4919,8 @@ async function createOrder(orderData) {
       if (savedPhone) {
         markPhoneAsOrdered(savedPhone);
         removeUnsavedDraft(savedPhone);
+        invalidateShippingStatusCache(savedPhone);
+        scheduleShippingStatusRefresh(400);
       }
       schedulePullPendingFromServer(500);
 
@@ -7322,6 +7555,7 @@ function syncPancakeCustomerName(force = false) {
 
     clearCustomerInfoForm();
     scheduleScanChatForUnsavedOrderIntent(700);
+    scheduleShippingStatusRefresh(400);
 
     if (conversationKey) {
       const draft = findDraftByConversationKey(conversationKey);
@@ -7437,6 +7671,7 @@ function init() {
   setupUnsavedDraftSystem();
   setupAutoDetectUnsavedFromChat();
   setupPancakeCustomerNameSync();
+  setupShippingStatusCard();
   setupPancakeMessageGrab();
   renderProducts();
   

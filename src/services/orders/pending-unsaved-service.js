@@ -473,3 +473,79 @@ export async function dismissPendingUnsaved(data, env, corsHeaders) {
         return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
     }
 }
+
+const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products';
+
+function formatShippingStatusOrder(row) {
+    if (!row) return null;
+    let preview = '';
+    try {
+        let items = row.products;
+        if (typeof items === 'string') items = JSON.parse(items);
+        if (Array.isArray(items)) {
+            preview = items.slice(0, 2).map((p) => {
+                const name = p?.name || p?.product_name || 'SP';
+                const qty = parseInt(p?.quantity, 10) || 1;
+                return `${name} ×${qty}`;
+            }).join(', ');
+            if (items.length > 2) preview += ` (+${items.length - 2})`;
+        }
+    } catch (_) { /* ignore */ }
+    return {
+        id: row.id,
+        order_id: row.order_id,
+        customer_name: row.customer_name,
+        status: row.status,
+        created_at_unix: row.created_at_unix,
+        shipped_at_unix: row.shipped_at_unix,
+        planned_send_at_unix: row.planned_send_at_unix,
+        total_amount: row.total_amount,
+        products_preview: preview
+    };
+}
+
+/** Tra cứu nhanh trạng thái gửi hàng theo SĐT — tối đa 2 query, dùng cho extension Pancake. */
+export async function getCustomerShippingStatus(phone, env, corsHeaders) {
+    try {
+        const normalized = normalizeOrderPhone(phone);
+        if (!/^0\d{8,10}$/.test(normalized)) {
+            return jsonResponse({ success: false, error: 'SĐT không hợp lệ' }, 400, corsHeaders);
+        }
+
+        let order = await env.DB.prepare(`
+            SELECT ${SHIPPING_STATUS_COLS}
+            FROM orders
+            WHERE customer_phone = ?
+              AND LOWER(TRIM(status)) IN ('pending', 'processing', 'send_later', 'awaiting_reship')
+            ORDER BY created_at_unix DESC
+            LIMIT 1
+        `).bind(normalized).first();
+
+        const isActive = !!order;
+        if (!order) {
+            order = await env.DB.prepare(`
+                SELECT ${SHIPPING_STATUS_COLS}
+                FROM orders
+                WHERE customer_phone = ?
+                ORDER BY created_at_unix DESC
+                LIMIT 1
+            `).bind(normalized).first();
+        }
+
+        const countRow = await env.DB.prepare(`
+            SELECT COUNT(*) as c FROM orders WHERE customer_phone = ?
+        `).bind(normalized).first();
+
+        return jsonResponse({
+            success: true,
+            phone: normalized,
+            hasOrders: (countRow?.c || 0) > 0,
+            totalOrders: countRow?.c || 0,
+            isActive,
+            order: formatShippingStatusOrder(order)
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('[shipping-status] error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
