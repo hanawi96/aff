@@ -127,79 +127,237 @@
   }
 }
 
-.shopvd-sidebar-header {
-  --shopvd-header-h: 44px;
-  height: var(--shopvd-header-h);
-  min-height: var(--shopvd-header-h);
-  padding: 0 12px 0 14px;
+/* ── Sticky top: brand + kiểm tra đã lưu DB ── */
+.shopvd-top-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.shopvd-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
+  padding: 10px 12px 10px 14px;
+  min-height: 36px;
   box-sizing: border-box;
-  background: #ffffff;
-  color: #0f172a;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: none;
 }
 
-.shopvd-header-brand {
+.shopvd-top-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shopvd-top-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.shopvd-top-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.shopvd-top-actions {
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-width: 0;
-  flex: 1;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-.shopvd-header-mark {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+.shopvd-ship-refresh {
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: linear-gradient(145deg, #4f46e5 0%, #6366f1 100%);
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.28);
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.shopvd-header-mark svg {
+.shopvd-ship-refresh:hover {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.shopvd-ship-refresh.hidden {
+  display: none !important;
+}
+
+/* Dải kiểm tra đã lưu đơn vào DB */
+.shopvd-ship-strip {
+  padding: 12px 14px 12px;
+  margin-top: 2px;
+  border-top: 1px solid #eef2f6;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.shopvd-ship-strip.is-idle {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.shopvd-ship-strip-body {
+  min-height: 0;
+  padding-top: 2px;
+}
+
+.shopvd-ship-idle {
   display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.35;
+  padding: 2px 0 1px;
 }
 
-.shopvd-header-text {
+.shopvd-ship-idle strong {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.shopvd-ship-main {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.shopvd-ship-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  line-height: 1.2;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+}
+
+.shopvd-ship-badge.is-wait { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.shopvd-ship-badge.is-later { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+.shopvd-ship-badge.is-warn { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+.shopvd-ship-badge.is-ship { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.shopvd-ship-badge.is-done { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.shopvd-ship-badge.is-bad { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.shopvd-ship-badge.is-new { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+.shopvd-ship-time {
+  display: inline-flex;
   align-items: baseline;
-  gap: 7px;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.shopvd-ship-time-label {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.shopvd-ship-time strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.shopvd-ship-phone-inline {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.shopvd-ship-detail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 10.5px;
+  color: #64748b;
+  line-height: 1.35;
   min-width: 0;
 }
 
-.shopvd-header-text h2 {
-  margin: 0;
-  font-size: 14px;
+.shopvd-ship-amount {
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: #0f172a;
-  white-space: nowrap;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
 }
 
-.shopvd-header-sub {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #64748b;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  line-height: 1.15;
+.shopvd-ship-sep {
+  color: #cbd5e1;
 }
 
-.shopvd-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+.shopvd-ship-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.shopvd-ship-multi {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.shopvd-ship-strip.is-ship .shopvd-ship-time strong,
+.shopvd-ship-strip.is-done .shopvd-ship-time strong {
+  color: #1d4ed8;
+}
+
+.shopvd-ship-strip.is-wait .shopvd-ship-time strong,
+.shopvd-ship-strip.is-warn .shopvd-ship-time strong {
+  color: #b45309;
+}
+
+.shopvd-ship-strip.is-saved {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-color: #bbf7d0;
+}
+
+.shopvd-ship-strip.is-not-saved {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fed7aa;
+}
+
+.shopvd-ship-strip.is-loading {
+  opacity: 0.75;
+}
+
+.shopvd-top-sticky .shopvd-unsaved-panel {
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
 }
 
 .shopvd-unsaved-badge {
@@ -267,114 +425,6 @@
 
 .shopvd-unsaved-panel.hidden {
   display: none !important;
-}
-
-/* Trạng thái đơn theo SĐT chat */
-.shopvd-ship-status {
-  flex-shrink: 0;
-  margin: 0 10px 8px;
-  padding: 10px 11px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.shopvd-ship-status-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.shopvd-ship-status-title {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #374151;
-  letter-spacing: -0.01em;
-}
-
-.shopvd-ship-status-refresh {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  color: #6b7280;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.shopvd-ship-status-refresh:hover {
-  background: #f3f4f6;
-  color: #111827;
-  border-color: #d1d5db;
-}
-
-.shopvd-ship-status-refresh.hidden {
-  display: none !important;
-}
-
-.shopvd-ship-status-body {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: #4b5563;
-}
-
-.shopvd-ship-status-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-.shopvd-ship-status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.shopvd-ship-status-badge.is-wait { background: #fef3c7; color: #92400e; }
-.shopvd-ship-status-badge.is-later { background: #ede9fe; color: #5b21b6; }
-.shopvd-ship-status-badge.is-warn { background: #ffedd5; color: #c2410c; }
-.shopvd-ship-status-badge.is-ship { background: #dbeafe; color: #1d4ed8; }
-.shopvd-ship-status-badge.is-done { background: #dcfce7; color: #166534; }
-.shopvd-ship-status-badge.is-bad { background: #fee2e2; color: #b91c1c; }
-.shopvd-ship-status-badge.is-new { background: #f3f4f6; color: #4b5563; }
-
-.shopvd-ship-status-phone,
-.shopvd-ship-status-muted {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-.shopvd-ship-status-meta {
-  font-size: 11px;
-  color: #374151;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.shopvd-ship-status-preview,
-.shopvd-ship-status-planned,
-.shopvd-ship-status-note {
-  margin-top: 4px;
-  font-size: 10.5px;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
-.shopvd-ship-status.is-loading {
-  opacity: 0.85;
 }
 
 .shopvd-unsaved-panel-head {

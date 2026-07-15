@@ -94,11 +94,73 @@ export async function loadPhoneOrderState(env, phone) {
 function hasEnoughAddress(data = {}, source = '') {
     // Sync từ Pancake API: chỉ cần SĐT (list đã có recent_phone_numbers)
     if (source === 'pancake-api') return true;
-    if (data.province_id && data.ward_id) return true;
+    if (data.province_id && data.ward_id) return !isJunkPendingAddress(data.address, source);
     const address = String(data.address || '').trim();
+    if (isJunkPendingAddress(address, source)) return false;
     if (address.length >= 10) return true;
     const street = String(data.street_address || data.street || '').trim();
     return street.length >= 8 && Boolean(data.province_id);
+}
+
+/** Loại text preview/list hoặc UI Facebook — không phải địa chỉ chốt đơn thật. */
+function isJunkPendingAddress(address, source = '') {
+    const a = String(address || '').trim().toLowerCase();
+    if (!a) return true;
+    if (a.startsWith('sđt từ list') || a.startsWith('sdt tu list')) return true;
+
+    const junkPatterns = [
+        /bạn đang phản hồi/,
+        /bình luận của người dùng/,
+        /bài viết trên trang/,
+        /trên trang của/,
+        /trang của mì/,
+        /facebook/,
+        /messenger/,
+        /instagram/,
+        /đã xem tin/,
+        /seen at/,
+        /preview:/,
+        /^\s*sđt\s*[:：]/,
+        /^\s*sdt\s*[:：]/,
+    ];
+    if (junkPatterns.some((re) => re.test(a))) return true;
+
+    const src = String(source || '').trim();
+    if (AUTO_SOURCES.has(src) || src === 'auto-detect') {
+        const hasGeoHint = /(phường|xã|quận|huyện|tỉnh|thành phố|tp\.|đường|ấp|thôn|sn |số |khu phố|tổ dân)/i.test(a);
+        const words = a.split(/\s+/).filter(Boolean);
+        if (!hasGeoHint && words.length < 4) return true;
+    }
+    return false;
+}
+
+async function resolvePendingAsOrdered(env, row, matchedOrder, now) {
+    if (!row) return;
+    await env.DB.prepare(`
+        UPDATE pending_unsaved_orders
+        SET status = ?,
+            resolved_order_db_id = ?,
+            resolved_order_code = ?,
+            resolved_at_unix = ?,
+            updated_at_unix = ?
+        WHERE id = ?
+    `).bind(
+        RESOLVED_STATUS,
+        matchedOrder?.id || null,
+        matchedOrder?.order_id || null,
+        now,
+        now,
+        row.id
+    ).run();
+}
+
+async function dismissPendingRow(env, row, now) {
+    if (!row) return;
+    await env.DB.prepare(`
+        UPDATE pending_unsaved_orders
+        SET status = ?, updated_at_unix = ?, resolved_at_unix = ?
+        WHERE id = ?
+    `).bind(DISMISSED_STATUS, now, now, row.id).run();
 }
 
 function rowToPending(row) {
@@ -218,6 +280,9 @@ export async function upsertPendingUnsavedCore(env, data = {}) {
 
     if (!hasEnoughAddress(payload, source)) {
         return { ok: false, error: 'Thiếu địa chỉ (cần tỉnh/phường hoặc địa chỉ đủ)' };
+    }
+    if (isJunkPendingAddress(payload.address, source)) {
+        return { ok: false, error: 'Địa chỉ không hợp lệ (preview/UI)' };
     }
 
     const now = Date.now();
@@ -428,7 +493,24 @@ export async function listPendingUnsaved(env, corsHeaders) {
             LIMIT 100
         `).bind(OPEN_STATUS).all();
 
-        const items = (rows?.results || []).map(rowToPending);
+        const items = [];
+        for (const row of rows?.results || []) {
+            const phone = normalizeOrderPhone(row.customer_phone);
+            if (!isValidPendingPhone(phone) || isJunkPendingAddress(row.address, row.source)) {
+                await dismissPendingRow(env, row, now);
+                continue;
+            }
+
+            const { unshippedOrder, lastShippedOrder } = await loadPhoneOrderState(env, phone);
+            const savedState = evaluatePhoneSavedState(unshippedOrder, lastShippedOrder, null, now);
+            if (savedState.saved) {
+                await resolvePendingAsOrdered(env, row, savedState.matchedOrder, now);
+                continue;
+            }
+
+            items.push(rowToPending(row));
+        }
+
         return jsonResponse({
             success: true,
             count: items.length,
