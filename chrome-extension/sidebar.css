@@ -5246,27 +5246,57 @@
 }
 
 .shopvd-address-box {
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 55%);
-  border: 1px solid #e0e7ff;
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08);
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  padding: 14px 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   overflow: visible;
+}
+
+.shopvd-address-box::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 55%, #a5b4fc 100%);
+  pointer-events: none;
 }
 
 .shopvd-address-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 14px;
+  padding-top: 2px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 380px) {
+  .shopvd-legacy-toggle-label {
+    max-width: 9.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.shopvd-address-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .shopvd-address-icon-wrap {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  background: #eef2ff;
+  background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
   border: 1px solid #c7d2fe;
   display: flex;
   align-items: center;
@@ -5274,17 +5304,30 @@
 }
 
 .shopvd-address-icon {
-  width: 18px;
-  height: 18px;
-  color: #6366f1;
+  width: 17px;
+  height: 17px;
+  color: #4f46e5;
+}
+
+.shopvd-address-header-text {
+  min-width: 0;
+  padding-top: 1px;
 }
 
 .shopvd-address-title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  line-height: 1.3;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.shopvd-address-subtitle {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.35;
 }
 
 .shopvd-required {
@@ -5296,6 +5339,193 @@
   flex-direction: column;
   gap: 12px;
   overflow: visible;
+}
+
+/* Toggle chuyển đổi — pill góc phải header */
+.shopvd-legacy-address {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.shopvd-legacy-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #ccfbf1;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shopvd-legacy-toggle:hover {
+  background: #ccfbf1;
+  border-color: #99f6e4;
+  color: #0d9488;
+}
+
+.shopvd-legacy-toggle:focus-visible {
+  outline: 2px solid rgba(13, 148, 136, 0.35);
+  outline-offset: 2px;
+}
+
+.shopvd-address-box.legacy-open .shopvd-legacy-toggle {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.25);
+}
+
+.shopvd-legacy-toggle-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.shopvd-legacy-toggle-label {
+  letter-spacing: 0.01em;
+}
+
+.shopvd-legacy-toggle-chevron {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+.shopvd-address-box.legacy-open .shopvd-legacy-toggle-chevron {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+/* Panel địa chỉ cũ */
+.shopvd-legacy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  animation: shopvd-legacy-reveal 0.2s ease;
+}
+
+.shopvd-legacy-panel[hidden] {
+  display: none !important;
+  animation: none;
+}
+
+@keyframes shopvd-legacy-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shopvd-legacy-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shopvd-legacy-panel-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.shopvd-legacy-panel-desc,
+.shopvd-legacy-address-hint {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.shopvd-legacy-address-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopvd-legacy-panel .shopvd-combobox-button {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  gap: 6px;
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+.shopvd-legacy-panel .shopvd-combobox-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shopvd-legacy-convert-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: opacity 0.15s, filter 0.15s;
+}
+
+.shopvd-legacy-convert-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.shopvd-legacy-convert-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.shopvd-legacy-convert-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shopvd-legacy-convert-status {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.shopvd-legacy-convert-status.is-ok {
+  color: #047857;
+}
+
+.shopvd-legacy-convert-status.is-error {
+  color: #b91c1c;
+}
+
+.shopvd-legacy-convert-status.is-info {
+  color: #0369a1;
 }
 
 /* Tỉnh + Phường cùng 1 hàng */

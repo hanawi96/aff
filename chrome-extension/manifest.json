@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ShopVD Order Helper",
-  "version": "1.3.0",
+  "version": "1.4.5",
   "description": "Tạo đơn hàng nhanh từ pancake.vn sang ShopVD",
   "permissions": [
     "storage",
@@ -21,6 +21,7 @@
       ],
       "js": [
         "smart-paste.js",
+        "ward-mapping-convert.js",
         "content.js"
       ],
       "css": [

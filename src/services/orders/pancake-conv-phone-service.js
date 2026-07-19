@@ -7,9 +7,12 @@ import { normalizeOrderPhone } from '../../utils/order-duplicate-check.js';
 
 const CONV_ID_RE = /^\d+_\d+$/;
 const PHONE_RE = /^0\d{8,10}$/;
-const BATCH_MAX = 100;
+const BATCH_MAX = 50;
 const LIST_DEFAULT_LIMIT = 500;
 const LIST_MAX_LIMIT = 1000;
+
+/** Tránh CREATE TABLE/INDEX lặp lại mỗi item → treo Turso / vượt subrequest. */
+let ensureTablePromise = null;
 
 function normalizeConversationId(raw) {
     let s = String(raw || '').trim();
@@ -45,7 +48,9 @@ function rowToItem(row) {
 }
 
 async function ensureConvPhoneTable(env) {
-    try {
+    if (ensureTablePromise) return ensureTablePromise;
+
+    ensureTablePromise = (async () => {
         await env.DB.prepare(`
             CREATE TABLE IF NOT EXISTS pancake_conversation_phones (
                 conversation_id TEXT PRIMARY KEY NOT NULL,
@@ -64,18 +69,15 @@ async function ensureConvPhoneTable(env) {
             CREATE INDEX IF NOT EXISTS idx_pancake_conv_phones_updated
             ON pancake_conversation_phones(updated_at_unix)
         `).run();
-    } catch (_) {
-        // already exists
-    }
+    })().catch((err) => {
+        ensureTablePromise = null;
+        throw err;
+    });
+
+    return ensureTablePromise;
 }
 
-/**
- * Upsert 1 mapping. newer updated_at thắng; cùng thời điểm thì ghi đè incoming.
- * @returns {{ ok: boolean, skipped?: boolean, item?: object, error?: string }}
- */
-export async function upsertConvPhoneCore(env, data = {}) {
-    await ensureConvPhoneTable(env);
-
+function normalizeUpsertInput(data = {}) {
     const conversationId = normalizeConversationId(data.conversationId || data.conversation_id);
     const phone = normalizeOrderPhone(data.phone || data.customer_phone);
     if (!isValidConversationId(conversationId)) {
@@ -89,10 +91,30 @@ export async function upsertConvPhoneCore(env, data = {}) {
     const now = Date.now();
     let updatedAt = Number(data.updatedAt ?? data.updated_at_unix ?? now);
     if (!Number.isFinite(updatedAt) || updatedAt <= 0) updatedAt = now;
-    // Không cho client đẩy timestamp tương lai quá xa (> 5 phút)
     if (updatedAt > now + 5 * 60 * 1000) updatedAt = now;
 
-    const pageId = extractPageId(conversationId);
+    return {
+        ok: true,
+        conversationId,
+        phone,
+        source,
+        updatedAt,
+        pageId: extractPageId(conversationId),
+    };
+}
+
+/**
+ * Upsert 1 mapping. newer updated_at thắng; cùng thời điểm thì ghi đè incoming.
+ * @returns {{ ok: boolean, skipped?: boolean, item?: object, error?: string }}
+ */
+export async function upsertConvPhoneCore(env, data = {}) {
+    await ensureConvPhoneTable(env);
+
+    const parsed = normalizeUpsertInput(data);
+    if (!parsed.ok) return parsed;
+
+    const { conversationId, phone, source, updatedAt, pageId } = parsed;
+
     const existing = await env.DB.prepare(`
         SELECT conversation_id, phone, source, page_id, created_at_unix, updated_at_unix
         FROM pancake_conversation_phones
@@ -114,15 +136,17 @@ export async function upsertConvPhoneCore(env, data = {}) {
             WHERE conversation_id = ?
         `).bind(phone, source, pageId, updatedAt, conversationId).run();
 
-        const item = {
-            conversationId,
-            phone,
-            source,
-            pageId,
-            updatedAt,
-            createdAt: Number(existing.created_at_unix) || updatedAt,
+        return {
+            ok: true,
+            item: {
+                conversationId,
+                phone,
+                source,
+                pageId,
+                updatedAt,
+                createdAt: Number(existing.created_at_unix) || updatedAt,
+            },
         };
-        return { ok: true, item };
     }
 
     await env.DB.prepare(`
@@ -161,6 +185,9 @@ export async function upsertConvPhone(data, env, corsHeaders) {
     }
 }
 
+/**
+ * Batch upsert — 1 lần ensure table + 1 Turso batch (tránh N*DDL / treo Worker).
+ */
 export async function upsertConvPhoneBatch(data, env, corsHeaders) {
     try {
         const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
@@ -174,21 +201,53 @@ export async function upsertConvPhoneBatch(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
+        await ensureConvPhoneTable(env);
+
         let upserted = 0;
         let skipped = 0;
         let failed = 0;
         const errors = [];
+        const statements = [];
 
         for (const row of items) {
-            const result = await upsertConvPhoneCore(env, row);
-            if (!result.ok) {
+            const parsed = normalizeUpsertInput(row);
+            if (!parsed.ok) {
                 failed += 1;
-                if (errors.length < 5) errors.push(result.error);
+                if (errors.length < 5) errors.push(parsed.error);
                 continue;
             }
-            if (result.skipped) skipped += 1;
-            else upserted += 1;
+
+            const { conversationId, phone, source, updatedAt, pageId } = parsed;
+            // ON CONFLICT: chỉ ghi khi incoming mới hơn hoặc bằng
+            statements.push({
+                sql: `
+                    INSERT INTO pancake_conversation_phones (
+                        conversation_id, phone, source, page_id, created_at_unix, updated_at_unix
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(conversation_id) DO UPDATE SET
+                        phone = excluded.phone,
+                        source = excluded.source,
+                        page_id = excluded.page_id,
+                        updated_at_unix = excluded.updated_at_unix
+                    WHERE excluded.updated_at_unix >= pancake_conversation_phones.updated_at_unix
+                `,
+                params: [conversationId, phone, source, pageId, updatedAt, updatedAt],
+            });
+            upserted += 1;
         }
+
+        if (statements.length) {
+            if (typeof env.DB.batch === 'function') {
+                await env.DB.batch(statements);
+            } else {
+                for (const stmt of statements) {
+                    await env.DB.prepare(stmt.sql).bind(...stmt.params).run();
+                }
+            }
+        }
+
+        // skipped không đếm chính xác với UPSERT gộp — giữ field cho tương thích client
+        skipped = Math.max(0, items.length - upserted - failed);
 
         return jsonResponse({
             success: true,
