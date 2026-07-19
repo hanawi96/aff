@@ -4929,66 +4929,6 @@
   gap: 10px;
 }
 
-.shopvd-grab-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.shopvd-grab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 10px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.shopvd-grab-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.shopvd-grab-btn-primary {
-  border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
-}
-
-.shopvd-grab-btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.34);
-}
-
-.shopvd-grab-btn-secondary {
-  border: 1px solid #c7d2fe;
-  background: #fff;
-  color: #4f46e5;
-}
-
-.shopvd-grab-btn-secondary:hover:not(:disabled) {
-  background: #eef2ff;
-  border-color: #a5b4fc;
-}
-
-.shopvd-grab-hint {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: #6b7280;
-}
-
-.shopvd-grab-hint strong {
-  color: #4f46e5;
-  font-weight: 700;
-}
-
 .shopvd-grab-manual {
   border: 1px dashed #dbeafe;
   border-radius: 10px;
@@ -5251,6 +5191,44 @@
   overflow: visible;
 }
 
+/* Tỉnh + Phường cùng 1 hàng */
+.shopvd-address-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+/* Chưa chọn tỉnh → ward ẩn → tỉnh full hàng */
+.shopvd-address-row:has(#ward-combobox-wrapper.hidden) {
+  grid-template-columns: 1fr;
+}
+
+.shopvd-address-row > .shopvd-address-field {
+  min-width: 0;
+}
+
+.shopvd-address-row .shopvd-combobox-button {
+  gap: 6px;
+  padding: 9px 10px;
+  font-size: 13px;
+}
+
+.shopvd-address-row .shopvd-combobox-lead-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.shopvd-address-row .shopvd-combobox-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .shopvd-address-field {
   display: flex;
   flex-direction: column;
@@ -5288,22 +5266,6 @@
   background: #f8fafc;
   color: #94a3b8;
   cursor: not-allowed;
-}
-
-.shopvd-address-preview {
-  font-size: 13px;
-  color: #334155;
-  margin: 0;
-  padding: 10px 12px 10px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 3px solid #6366f1;
-  border-radius: 8px;
-  line-height: 1.5;
-}
-
-.shopvd-address-preview:empty {
-  display: none;
 }
 
 /* === CUSTOM COMBOBOX === */

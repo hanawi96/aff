@@ -10,12 +10,21 @@ function getShopvdExtensionVersion() {
 }
 
 const SHOPVD_EXT_VERSION = getShopvdExtensionVersion();
-console.warn('[ShopVD] content.js loaded', { version: SHOPVD_EXT_VERSION, url: location.href });
 
 const ALLOWED_PAGE_PATH = '/vongdautambyvui';
 
-/** Bật log debug kiểm tra DB — xem Console (F12) filter [ShopVD DbCheck] */
-const SHOPVD_DEBUG_DB = true;
+/**
+ * Log debug DB — mặc định TẮT.
+ * Bật tạm: localStorage.setItem('shopvd_debug_db', '1') rồi F5.
+ * Dùng console.debug (không bị Chrome Extensions page báo là Errors).
+ */
+const SHOPVD_DEBUG_DB = (() => {
+  try {
+    return localStorage.getItem('shopvd_debug_db') === '1';
+  } catch (_) {
+    return false;
+  }
+})();
 let shopvdCoreHandlersBound = false;
 let shopvdPancakeClickBound = false;
 let shopvdUnsavedSystemBound = false;
@@ -23,8 +32,8 @@ let shopvdUnsavedSystemBound = false;
 function shopvdDbLog(step, data) {
   if (!SHOPVD_DEBUG_DB) return;
   const msg = `[ShopVD DbCheck] ${step}`;
-  if (data === undefined) console.warn(msg);
-  else console.warn(msg, data);
+  if (data === undefined) console.debug(msg);
+  else console.debug(msg, data);
 }
 
 function isAllowedPage() {
@@ -218,57 +227,6 @@ function createSidebar() {
     </div>
     
     <div class="shopvd-sidebar-content">
-      <!-- Smart Paste - Dán nhanh thông tin khách hàng -->
-      <div class="shopvd-section shopvd-smart-paste-block">
-        <div class="shopvd-smart-paste-header">
-          <div class="shopvd-smart-paste-icon-wrap" aria-hidden="true">
-            <svg class="shopvd-smart-paste-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456z"/>
-            </svg>
-          </div>
-          <h3 class="shopvd-smart-paste-title">Lấy thông tin khách hàng</h3>
-        </div>
-        <div class="shopvd-smart-paste-body">
-          <div class="shopvd-grab-actions">
-            <button type="button" id="shopvd-grab-selection-btn" class="shopvd-grab-btn shopvd-grab-btn-primary" title="Bôi đen tin khách trên Pancake rồi bấm (Ctrl+Shift+G)">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a4 4 0 0 0-4 4v1"/>
-              </svg>
-              Lấy từ tin đã chọn
-            </button>
-            <button type="button" id="shopvd-grab-latest-btn" class="shopvd-grab-btn shopvd-grab-btn-secondary" title="Tự tìm tin địa chỉ/SĐT gần nhất của khách">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-              </svg>
-              Tin gần nhất
-            </button>
-          </div>
-          <p class="shopvd-grab-hint">Khách gửi SĐT + địa chỉ → tự báo <strong>chưa lưu</strong> · Nút <strong>→ ShopVD</strong> chỉ hiện khi rê chuột · Không che tin nhắn</p>
-
-          <details class="shopvd-grab-manual" open>
-            <summary>Dán thủ công</summary>
-            <textarea 
-              id="shopvd-smart-paste-input" 
-              rows="3" 
-              placeholder="Dán toàn bộ thông tin khách hàng vào đây…&#10;&#10;Ví dụ:&#10;198/8 Nguyễn Bình Khiêm, Phường Vĩnh Quang, TP Rạch Giá, Kiên Giang&#10;0375323573 Nguyễn Văn A"
-              class="shopvd-smart-paste-textarea"
-            ></textarea>
-          </details>
-
-          <div class="shopvd-smart-paste-actions">
-            <button type="button" id="shopvd-smart-paste-btn" class="shopvd-smart-paste-btn">
-              <svg class="shopvd-smart-paste-btn-icon" id="shopvd-smart-paste-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z"/>
-              </svg>
-              <span id="shopvd-smart-paste-btn-text">Phân tích &amp; điền form</span>
-            </button>
-            <div id="shopvd-smart-paste-status" class="shopvd-smart-paste-status hidden"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="shopvd-divider"></div>
-
       <!-- Form khách hàng -->
       <form id="shopvd-order-form" novalidate>
         <div class="shopvd-section">
@@ -303,68 +261,70 @@ function createSidebar() {
               </div>
 
               <div class="shopvd-address-fields">
-                <div class="shopvd-address-field" data-validate-wrap="customer-province">
-                  <label class="shopvd-address-field-label" for="province-combobox-btn">Tỉnh / Thành phố</label>
-                  <div class="shopvd-combobox-wrapper">
-                    <button type="button" id="province-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
-                      <span class="shopvd-combobox-lead-icon" aria-hidden="true">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
-                        </svg>
-                      </span>
-                      <span id="province-combobox-text" class="shopvd-combobox-text">Chọn tỉnh/thành phố</span>
-                      <span class="shopvd-combobox-chevron" aria-hidden="true">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
-                        </svg>
-                      </span>
-                    </button>
-                    <div id="province-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
-                      <input
-                        type="text"
-                        id="province-combobox-search"
-                        class="shopvd-combobox-search"
-                        placeholder="Tìm tỉnh/thành phố..."
-                        autocomplete="off"
-                      >
-                      <div class="shopvd-combobox-list-header">Tỉnh / Thành phố</div>
-                      <div id="province-combobox-list" class="shopvd-combobox-list"></div>
+                <div class="shopvd-address-row">
+                  <div class="shopvd-address-field" data-validate-wrap="customer-province">
+                    <label class="shopvd-address-field-label" for="province-combobox-btn">Tỉnh / TP</label>
+                    <div class="shopvd-combobox-wrapper">
+                      <button type="button" id="province-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                        <span class="shopvd-combobox-lead-icon" aria-hidden="true">
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                          </svg>
+                        </span>
+                        <span id="province-combobox-text" class="shopvd-combobox-text">Chọn tỉnh/TP</span>
+                        <span class="shopvd-combobox-chevron" aria-hidden="true">
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                          </svg>
+                        </span>
+                      </button>
+                      <div id="province-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
+                        <input
+                          type="text"
+                          id="province-combobox-search"
+                          class="shopvd-combobox-search"
+                          placeholder="Tìm tỉnh/thành phố..."
+                          autocomplete="off"
+                        >
+                        <div class="shopvd-combobox-list-header">Tỉnh / Thành phố</div>
+                        <div id="province-combobox-list" class="shopvd-combobox-list"></div>
+                      </div>
                     </div>
+                    <p class="shopvd-field-error" id="validate-error-customer-province" hidden role="alert"></p>
                   </div>
-                  <p class="shopvd-field-error" id="validate-error-customer-province" hidden role="alert"></p>
-                </div>
 
-                <div id="ward-combobox-wrapper" class="shopvd-address-field hidden" data-validate-wrap="customer-ward">
-                  <label class="shopvd-address-field-label" for="ward-combobox-btn">Phường / Xã</label>
-                  <div class="shopvd-combobox-wrapper">
-                    <button type="button" id="ward-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
-                      <span class="shopvd-combobox-lead-icon" aria-hidden="true">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
-                        </svg>
-                      </span>
-                      <span id="ward-combobox-text" class="shopvd-combobox-text">Chọn phường/xã</span>
-                      <span class="shopvd-combobox-chevron" aria-hidden="true">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
-                        </svg>
-                      </span>
-                    </button>
-                    <div id="ward-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
-                      <input
-                        type="text"
-                        id="ward-combobox-search"
-                        class="shopvd-combobox-search"
-                        placeholder="Tìm phường/xã..."
-                        autocomplete="off"
-                      >
-                      <div class="shopvd-combobox-list-header">Phường / Xã</div>
-                      <div id="ward-combobox-list" class="shopvd-combobox-list"></div>
+                  <div id="ward-combobox-wrapper" class="shopvd-address-field hidden" data-validate-wrap="customer-ward">
+                    <label class="shopvd-address-field-label" for="ward-combobox-btn">Phường / Xã</label>
+                    <div class="shopvd-combobox-wrapper">
+                      <button type="button" id="ward-combobox-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                        <span class="shopvd-combobox-lead-icon" aria-hidden="true">
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                          </svg>
+                        </span>
+                        <span id="ward-combobox-text" class="shopvd-combobox-text">Chọn phường/xã</span>
+                        <span class="shopvd-combobox-chevron" aria-hidden="true">
+                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                          </svg>
+                        </span>
+                      </button>
+                      <div id="ward-combobox-dropdown" class="shopvd-combobox-dropdown hidden">
+                        <input
+                          type="text"
+                          id="ward-combobox-search"
+                          class="shopvd-combobox-search"
+                          placeholder="Tìm phường/xã..."
+                          autocomplete="off"
+                        >
+                        <div class="shopvd-combobox-list-header">Phường / Xã</div>
+                        <div id="ward-combobox-list" class="shopvd-combobox-list"></div>
+                      </div>
                     </div>
+                    <p class="shopvd-field-error" id="validate-error-customer-ward" hidden role="alert"></p>
                   </div>
-                  <p class="shopvd-field-error" id="validate-error-customer-ward" hidden role="alert"></p>
                 </div>
 
                 <select id="customer-province" required class="shopvd-hidden">
@@ -385,8 +345,6 @@ function createSidebar() {
                   <p class="shopvd-field-error" id="validate-error-customer-street" hidden role="alert"></p>
                 </div>
 
-                <p id="customer-address-preview" class="shopvd-address-preview"></p>
-
                 <input type="hidden" id="customer-address">
               </div>
             </div>
@@ -394,7 +352,7 @@ function createSidebar() {
         </div>
 
         <!-- Sản phẩm -->
-        <div class="shopvd-section">
+        <div class="shopvd-section" id="shopvd-products-section">
           <h3>🛍️ Sản phẩm</h3>
           
           <!-- Search Products (Global) -->
@@ -1212,7 +1170,6 @@ function selectProvinceFromCombobox(provinceId) {
   updateFullAddress();
   revalidateFieldIfActive('customer-province');
   revalidateFieldIfActive('customer-ward');
-  onCustomerInfoChangedForProductScroll(80);
 }
 function toggleProvinceCombobox() {
   const dropdown = document.getElementById('province-combobox-dropdown');
@@ -1316,7 +1273,6 @@ function selectWardFromCombobox(wardId, provinceId) {
   updateFullAddress();
   revalidateFieldIfActive('customer-ward');
   revalidateFieldIfActive('customer-street');
-  onCustomerInfoChangedForProductScroll(180);
 }
 
 function toggleWardCombobox() {
@@ -1354,13 +1310,11 @@ function closeAllComboboxes() {
 
 function resetCustomerAddressForm() {
   closeAllComboboxes();
-  resetProductSectionScrollGate();
 
   const provinceSelect = document.getElementById('customer-province');
   const wardSelect = document.getElementById('customer-ward');
   const streetInput = document.getElementById('customer-street');
   const addressInput = document.getElementById('customer-address');
-  const previewEl = document.getElementById('customer-address-preview');
 
   if (provinceSelect) provinceSelect.value = '';
   if (wardSelect) {
@@ -1370,7 +1324,6 @@ function resetCustomerAddressForm() {
   }
   if (streetInput) streetInput.value = '';
   if (addressInput) addressInput.value = '';
-  if (previewEl) previewEl.textContent = '';
 
   const provinceSearch = document.getElementById('province-combobox-search');
   const wardSearch = document.getElementById('ward-combobox-search');
@@ -1380,7 +1333,7 @@ function resetCustomerAddressForm() {
   const provinceBtn = document.getElementById('province-combobox-btn');
   const provinceText = document.getElementById('province-combobox-text');
   if (provinceBtn) provinceBtn.classList.remove('selected', 'is-open');
-  if (provinceText) provinceText.textContent = 'Chọn tỉnh/thành phố';
+  if (provinceText) provinceText.textContent = 'Chọn tỉnh/TP';
 
   document.getElementById('ward-combobox-wrapper')?.classList.add('hidden');
   document.getElementById('customer-street-field')?.classList.add('hidden');
@@ -1431,7 +1384,6 @@ function updateFullAddress() {
   const wardSelect = document.getElementById('customer-ward');
   const streetInput = document.getElementById('customer-street');
   const addressInput = document.getElementById('customer-address');
-  const previewEl = document.getElementById('customer-address-preview');
 
   if (!provinceSelect || !wardSelect || !streetInput || !addressInput) return;
 
@@ -1441,7 +1393,6 @@ function updateFullAddress() {
 
   if (!provinceId || !wardId) {
     addressInput.value = '';
-    if (previewEl) previewEl.textContent = '';
     scheduleMarkCurrentDraftFromForm(200);
     return;
   }
@@ -1455,13 +1406,7 @@ function updateFullAddress() {
   if (ward) parts.push(ward.Name);
   if (province) parts.push(province.Name);
 
-  const fullAddress = parts.join(', ');
-  addressInput.value = fullAddress;
-  
-  // Update preview (sync with m.html)
-  if (previewEl) {
-    previewEl.textContent = fullAddress;
-  }
+  addressInput.value = parts.join(', ');
 
   scheduleMarkCurrentDraftFromForm(250);
 }
@@ -1485,12 +1430,8 @@ function setSmartPasteLoading(loading) {
   const btn = document.getElementById('shopvd-smart-paste-btn');
   const btnText = document.getElementById('shopvd-smart-paste-btn-text');
   const btnIcon = document.getElementById('shopvd-smart-paste-btn-icon');
-  const grabSelectionBtn = document.getElementById('shopvd-grab-selection-btn');
-  const grabLatestBtn = document.getElementById('shopvd-grab-latest-btn');
-  
+
   if (btn) btn.disabled = loading;
-  if (grabSelectionBtn) grabSelectionBtn.disabled = loading;
-  if (grabLatestBtn) grabLatestBtn.disabled = loading;
   if (btnText) btnText.textContent = loading ? 'Đang phân tích…' : 'Phân tích & điền form';
   if (btnIcon) {
     btnIcon.classList.toggle('animate-spin', loading);
@@ -1603,9 +1544,9 @@ async function applyParsedDataToExtensionForm(parsedData) {
         }
       }
       
-      // Set street
+      // Set street (bỏ nhãn SĐT:/Địa chỉ: nếu parse còn sót)
       if (addr.street) {
-        streetInput.value = addr.street;
+        streetInput.value = sanitizeStreetAddressText(addr.street);
       }
       
       // Show street input if ward is selected (progressive disclosure)
@@ -1619,10 +1560,8 @@ async function applyParsedDataToExtensionForm(parsedData) {
   }
 
   applyPancakeNameIfEmpty();
-  // Đủ thông tin khách → nhảy sang chọn SP; chưa đủ thì vẫn đưa mắt tới địa chỉ
-  if (!maybeScrollToProductSectionAfterCustomerReady({ focus: true })) {
-    scrollToCustomerInfoSection();
-  }
+  // Giữ mắt ở địa chỉ để kiểm tra — không auto nhảy xuống SP
+  scrollToCustomerInfoSection();
 }
 
 function applyPancakeNameIfEmpty() {
@@ -1644,10 +1583,6 @@ function scrollToCustomerInfoSection() {
   document.querySelector('.shopvd-address-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-/** Chỉ scroll 1 lần khi form khách vừa đủ → sang phần sản phẩm */
-let shopvdScrolledToProductsForCustomer = false;
-let shopvdProductScrollTimer = 0;
-
 function isCustomerInfoCompleteForProductScroll() {
   const name = document.getElementById('customer-name')?.value.trim() || '';
   const phone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value);
@@ -1655,90 +1590,6 @@ function isCustomerInfoCompleteForProductScroll() {
   const wardId = document.getElementById('customer-ward')?.value;
   const street = document.getElementById('customer-street')?.value.trim() || '';
   return Boolean(name && isValidCustomerPhone(phone) && provinceId && wardId && street);
-}
-
-function isAddressComboboxOpen() {
-  return Boolean(
-    document.querySelector('#province-combobox-dropdown:not(.hidden), #ward-combobox-dropdown:not(.hidden)')
-  );
-}
-
-function isProductSearchComfortablyVisible() {
-  const search = document.getElementById('product-search');
-  const sidebar = document.getElementById('shopvd-sidebar');
-  if (!search || !sidebar) return false;
-  const er = search.getBoundingClientRect();
-  const sr = sidebar.getBoundingClientRect();
-  return er.top >= sr.top + 48 && er.bottom <= sr.bottom - 24;
-}
-
-function resetProductSectionScrollGate() {
-  shopvdScrolledToProductsForCustomer = false;
-  clearTimeout(shopvdProductScrollTimer);
-  shopvdProductScrollTimer = 0;
-}
-
-function scrollToProductSection({ focus = true } = {}) {
-  const search = document.getElementById('product-search');
-  const target = search?.closest('.shopvd-section')
-    || document.querySelector('.shopvd-product-search-container')
-    || search;
-  if (!target) return;
-
-  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  if (!focus || !search) return;
-  setTimeout(() => {
-    if (document.activeElement === search) return;
-    const active = document.activeElement;
-    // Đang gõ field khách / combobox → chỉ scroll, không cướp focus
-    if (active?.closest?.('#shopvd-order-form') && (
-      active.id === 'customer-name'
-      || active.id === 'customer-phone'
-      || active.id === 'customer-street'
-      || active.closest?.('.shopvd-combobox-wrapper')
-    )) return;
-    if (active?.closest?.('.shopvd-product-search-container, #products-list, .shopvd-order-cart')) return;
-    if (isAddressComboboxOpen()) return;
-    search.focus({ preventScroll: true });
-  }, 280);
-}
-
-/**
- * Khi thông tin khách vừa đủ → scroll tới tìm SP (1 lần / chu kỳ đủ form).
- * Trả true nếu đã scroll (hoặc đã đánh dấu bỏ qua vì đang nhìn thấy).
- */
-function maybeScrollToProductSectionAfterCustomerReady(options = {}) {
-  if (shopvdScrolledToProductsForCustomer) return false;
-  if (shopvdRestoringDraft && !options.allowDuringRestore) return false;
-  if (!isCustomerInfoCompleteForProductScroll()) return false;
-  if (isAddressComboboxOpen()) return false;
-
-  shopvdScrolledToProductsForCustomer = true;
-
-  if (isProductSearchComfortablyVisible() && document.activeElement?.id === 'product-search') {
-    return true;
-  }
-
-  scrollToProductSection({ focus: options.focus !== false });
-  return true;
-}
-
-function scheduleMaybeScrollToProductSection(delayMs = 140) {
-  clearTimeout(shopvdProductScrollTimer);
-  shopvdProductScrollTimer = setTimeout(() => {
-    shopvdProductScrollTimer = 0;
-    maybeScrollToProductSectionAfterCustomerReady();
-  }, delayMs);
-}
-
-/** Gọi khi field khách đổi: thiếu → mở lại gate; đủ → schedule scroll. */
-function onCustomerInfoChangedForProductScroll(delayMs = 140) {
-  if (!isCustomerInfoCompleteForProductScroll()) {
-    resetProductSectionScrollGate();
-    return;
-  }
-  scheduleMaybeScrollToProductSection(delayMs);
 }
 
 const PANCAKE_MSG_ROOT_SELECTOR = '.inbox-message-ele, [id^="message_m_"], [id^="message_"]';
@@ -1878,16 +1729,32 @@ function normalizeDetectedAddressText(raw) {
   if (!value) return '';
 
   value = value
-    .replace(/^(?:sđt|sdt|đt|dt|phone|tel)\s*[:：-]?\s*/i, '')
-    .replace(/^(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/i, '')
     .replace(/\b(?:sđt|sdt|đt|dt)\s*[:：-]?\s*(?:\+84|0)?[35789]\d{8}\b/gi, ' ')
     .replace(PANCAKE_PHONE_PATTERN, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/^[,:：\-–—.\s]+/, '')
-    .replace(/[,:：\-–—.\s]+$/, '')
     .trim();
 
+  // Lặp: "SĐT:, Địa chỉ: ..." — sau khi bỏ SĐT còn dấu phẩy rồi mới tới Địa chỉ
+  for (let i = 0; i < 4; i += 1) {
+    const next = value
+      .replace(/^(?:sđt|sdt|đt|dt|phone|tel|tên|ten|name)\s*[:：-]?\s*/i, '')
+      .replace(/^(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/i, '')
+      .replace(/(?:^|[,;]\s*)(?:sđt|sdt|đt|dt|phone|tel)\s*[:：-]?\s*/gi, ' ')
+      .replace(/(?:^|[,;]\s*)(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[,:：\-–—.\s]+/, '')
+      .replace(/[,:：\-–—.\s]+$/, '')
+      .trim();
+    if (next === value) break;
+    value = next;
+  }
+
   return value.slice(0, 220);
+}
+
+/** Làm sạch ô số nhà/đường trước khi điền form. */
+function sanitizeStreetAddressText(raw) {
+  return normalizeDetectedAddressText(raw);
 }
 
 function isUsableDetectedAddress(text) {
@@ -2067,22 +1934,6 @@ function isPancakeCustomerMessage(el) {
   if (root.classList?.contains('media-current-customer')) return true;
   if (root.querySelector?.(PANCAKE_PHONE_TAG_SELECTOR)) return true;
   return false;
-}
-
-function getSelectionTextOutsideSidebar() {
-  const selection = window.getSelection();
-  if (!selection || selection.isCollapsed) return '';
-
-  const text = String(selection.toString() || '').trim();
-  if (!text) return '';
-
-  const anchor = selection.anchorNode;
-  const focus = selection.focusNode;
-  if (isInsideShopvdSidebar(anchor) || isInsideShopvdSidebar(focus)) {
-    return '';
-  }
-
-  return text;
 }
 
 function findPancakeMessageBubble(target) {
@@ -2319,35 +2170,6 @@ function findMessageBubbleFromTarget(target) {
   return isGrabWorthyMessage(root) ? root : null;
 }
 
-function isLikelyCustomerMessage(el) {
-  return isGrabWorthyMessage(el);
-}
-
-function collectCandidateMessageBubbles() {
-  const results = new Set();
-  const addIfWorthy = (el) => {
-    const root = resolvePancakeMessageRoot(el) || el;
-    if (isGrabWorthyMessage(root)) {
-      results.add(root);
-    }
-  };
-
-  document.querySelectorAll(PANCAKE_MSG_ROOT_SELECTOR).forEach(addIfWorthy);
-  document.querySelectorAll('.chat-message.customer, .mock-pancake-customer-message').forEach(addIfWorthy);
-
-  if (results.size === 0) {
-    document.querySelectorAll(`${PANCAKE_MESSAGE_SELECTOR}, [data-message-id], [data-msg-id]`)
-      .forEach(addIfWorthy);
-  }
-
-  const panel = document.querySelector(PANCAKE_CHAT_PANEL_SELECTOR);
-  if (panel && results.size < 3) {
-    panel.querySelectorAll('div, li, article').forEach(addIfWorthy);
-  }
-
-  return [...results];
-}
-
 function extractTextFromMessageBubble(bubble) {
   if (!bubble) return '';
 
@@ -2397,28 +2219,6 @@ function extractTextFromMessageBubble(bubble) {
   }
 
   return lines.join('\n').trim();
-}
-
-function findLatestGrabableCustomerMessage() {
-  const pancakeRoots = [...document.querySelectorAll(PANCAKE_MSG_ROOT_SELECTOR)];
-  if (pancakeRoots.length > 0) {
-    for (let i = pancakeRoots.length - 1; i >= 0; i -= 1) {
-      if (isGrabWorthyMessage(pancakeRoots[i])) {
-        return pancakeRoots[i];
-      }
-    }
-  }
-
-  const candidates = collectCandidateMessageBubbles();
-
-  for (let i = candidates.length - 1; i >= 0; i -= 1) {
-    const text = extractTextFromMessageBubble(candidates[i]);
-    if (text.length >= 4 && (textHasCustomerPhone(text) || textHasAddressHint(text) || looksLikeFreeformAddress(text))) {
-      return candidates[i];
-    }
-  }
-
-  return candidates.length ? candidates[candidates.length - 1] : null;
 }
 
 /** Tin khách có ĐỦ SĐT + địa chỉ trong CÙNG bubble. */
@@ -3369,6 +3169,8 @@ function handlePancakeChatDbSaveCheck(force = true, options = {}) {
     }
     shopvdOpenChatCheckKey = key;
     shopvdAutoDetectDone.delete(key);
+    // Chỉ reset auto-fill khi đổi chat / refresh thủ công (không phải mỗi click trong box)
+    if (switched || forceRefresh) shopvdAutoFillDone.delete(key);
 
     if (!isValidDraftPhone(phone) || isPlaceholderDraftPhone(phone)) {
       if (tryIndex === 2) {
@@ -3649,6 +3451,10 @@ function scanChatForUnsavedOrderIntent() {
 }
 
 let shopvdAutoDetectTimer = null;
+/** Chat đã auto-fill form trong lần mở hiện tại (tránh ghi đè / chạy lặp) */
+const shopvdAutoFillDone = new Set();
+let shopvdAutoFillTimer = 0;
+let shopvdAutoFillInFlight = false;
 
 function scheduleScanChatForUnsavedOrderIntent(delayMs = 800) {
   clearTimeout(shopvdAutoDetectTimer);
@@ -3659,11 +3465,88 @@ function scheduleScanChatForUnsavedOrderIntent(delayMs = 800) {
     } catch (err) {
       console.warn('[ShopVD] Auto-detect unsaved failed:', err);
     }
+    scheduleMaybeAutoFillFromOpenChat(120);
+  }, delayMs);
+}
+
+/**
+ * Mở chat đã có SĐT + địa chỉ → tự điền form (1 lần / chat mở).
+ * Không ghi đè khi form đã đủ hoặc user đang nhập SĐT khác.
+ */
+async function maybeAutoFillFromOpenChat() {
+  if (!isAllowedPage() || shopvdRestoringDraft || smartPasteBusy || shopvdAutoFillInFlight) {
+    return false;
+  }
+  if (!isPancakeChatOpen()) return false;
+
+  const conversationKey = getPancakeConversationKey();
+  if (!conversationKey || shopvdAutoFillDone.has(conversationKey)) return false;
+
+  if (isCustomerInfoCompleteForProductScroll()) {
+    shopvdAutoFillDone.add(conversationKey);
+    return false;
+  }
+
+  const intent = findLatestOrderIntentInOpenChat();
+  if (!intent || !isValidDraftPhone(intent.phone) || !isUsableDetectedAddress(intent.address)) {
+    return false;
+  }
+
+  if (isPhoneKnownOrdered(intent.phone) || isPhoneDismissed(intent.phone)) {
+    shopvdAutoFillDone.add(conversationKey);
+    return false;
+  }
+
+  const currentPhone = sanitizePhoneDigits(document.getElementById('customer-phone')?.value);
+  if (currentPhone && isValidCustomerPhone(currentPhone) && currentPhone !== intent.phone) {
+    shopvdAutoFillDone.add(conversationKey);
+    return false;
+  }
+
+  // Có tỉnh/xã rồi mà cùng SĐT → coi như user đang chỉnh, không auto đè
+  const hasProvince = Boolean(document.getElementById('customer-province')?.value);
+  if (hasProvince && currentPhone && currentPhone === intent.phone) {
+    shopvdAutoFillDone.add(conversationKey);
+    return false;
+  }
+
+  shopvdAutoFillDone.add(conversationKey);
+  shopvdAutoFillInFlight = true;
+
+  try {
+    const text = `SĐT: ${intent.phone}\nĐịa chỉ: ${intent.address}`;
+    const result = await parseAndApplyCustomerText(text, {
+      silentEmpty: true,
+      quietStatus: true,
+      draftSource: 'auto-fill',
+      successMessage: '✅ Đã tự lấy địa chỉ từ chat',
+      successDurationMs: 2800,
+    });
+    if (!result?.ok) {
+      shopvdAutoFillDone.delete(conversationKey);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    shopvdAutoFillDone.delete(conversationKey);
+    console.warn('[ShopVD] Auto-fill from chat failed:', err);
+    return false;
+  } finally {
+    shopvdAutoFillInFlight = false;
+  }
+}
+
+function scheduleMaybeAutoFillFromOpenChat(delayMs = 500) {
+  clearTimeout(shopvdAutoFillTimer);
+  shopvdAutoFillTimer = setTimeout(() => {
+    maybeAutoFillFromOpenChat().catch(() => {});
   }, delayMs);
 }
 
 async function parseAndApplyCustomerText(rawText, options = {}) {
   const silentEmpty = options.silentEmpty === true;
+  const quietStatus = options.quietStatus === true;
+  const successMessage = options.successMessage || '✅ Đã lấy thông tin khách từ tin nhắn';
   const text = String(rawText || '').trim();
 
   if (!text) {
@@ -3682,20 +3565,19 @@ async function parseAndApplyCustomerText(rawText, options = {}) {
 
   if (smartPasteBusy) return { ok: false, reason: 'busy' };
 
-  const textarea = document.getElementById('shopvd-smart-paste-input');
-  if (textarea) textarea.value = text;
-
   if (!addressLoaded) {
-    showStatus('⏳ Đang tải dữ liệu địa chỉ...', 'info');
+    if (!quietStatus) showStatus('⏳ Đang tải dữ liệu địa chỉ...', 'info');
     await loadAddressData();
     if (!addressLoaded) {
-      showStatus('⚠️ Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.', 'warning');
+      if (!silentEmpty) showStatus('⚠️ Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.', 'warning');
       return { ok: false, reason: 'address_data_not_loaded' };
     }
   }
 
   if (typeof smartParseCustomerInfo !== 'function') {
-    showStatus('⚠️ Module phân tích chưa sẵn sàng. Vui lòng reload extension.', 'warning');
+    if (!silentEmpty) {
+      showStatus('⚠️ Module phân tích chưa sẵn sàng. Vui lòng reload extension.', 'warning');
+    }
     return { ok: false, reason: 'function_not_available' };
   }
 
@@ -3706,36 +3588,29 @@ async function parseAndApplyCustomerText(rawText, options = {}) {
     const parsedData = await smartParseCustomerInfo(text);
 
     if (!parsedData?.success) {
-      showSmartPasteResult(parsedData);
+      if (!quietStatus) showSmartPasteResult(parsedData);
       return { ok: false, data: parsedData };
     }
 
     await applyParsedDataToExtensionForm(parsedData);
-    showSmartPasteResult(parsedData);
-    showStatus('✅ Đã lấy thông tin khách từ tin nhắn', 'success', 2500);
-    markCurrentChatAsUnsavedDraft('grab');
+    if (!quietStatus) showSmartPasteResult(parsedData);
+    showStatus(successMessage, 'success', options.successDurationMs || 2500);
+    markCurrentChatAsUnsavedDraft(options.draftSource || 'grab');
 
     return { ok: true, data: parsedData };
   } catch (error) {
     console.error('Smart paste error:', error);
-    showSmartPasteResult({
-      success: false,
-      error: error.message || 'Lỗi phân tích',
-    });
+    if (!quietStatus) {
+      showSmartPasteResult({
+        success: false,
+        error: error.message || 'Lỗi phân tích',
+      });
+    }
     return { ok: false, error };
   } finally {
     smartPasteBusy = false;
     setSmartPasteLoading(false);
   }
-}
-
-async function handleGrabFromSelection() {
-  const text = getSelectionTextOutsideSidebar();
-  if (!text) {
-    showStatus('⚠️ Bôi đen tin nhắn khách trên Pancake trước', 'warning');
-    return { ok: false, reason: 'no_selection' };
-  }
-  return parseAndApplyCustomerText(text);
 }
 
 async function handleGrabFromMessage(bubble) {
@@ -3750,13 +3625,31 @@ async function handleGrabFromMessage(bubble) {
   return parseAndApplyCustomerText(text);
 }
 
-async function handleGrabFromLatestMessage() {
-  const bubble = findLatestGrabableCustomerMessage();
-  if (!bubble) {
-    showStatus('⚠️ Không tìm thấy tin địa chỉ/SĐT gần nhất', 'warning');
-    return { ok: false, reason: 'no_message' };
-  }
-  return handleGrabFromMessage(bubble);
+/** Double-click tin khách → nhận diện SĐT/địa chỉ ngay. */
+function setupPancakeDoubleClickGrab() {
+  if (window.__shopvdDblClickGrabBound) return;
+  window.__shopvdDblClickGrabBound = true;
+
+  document.addEventListener('dblclick', (e) => {
+    if (!isAllowedPage()) return;
+    if (isInsideShopvdSidebar(e.target)) return;
+    if (e.target.closest?.(PANCAKE_GRAB_EXCLUDE_SELECTOR)) return;
+
+    const bubble = findPancakeMessageBubble(e.target);
+    if (!bubble) return;
+    if (isPancakeShopMessage(bubble)) return;
+    if (!isGrabWorthyMessage(bubble) && !isOrderIntentMessage(bubble)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      window.getSelection()?.removeAllRanges();
+    } catch (_) { /* ignore */ }
+
+    const root = resolvePancakeMessageRoot(bubble) || bubble;
+    hideFloatGrabButton(0);
+    handleGrabFromMessage(root);
+  }, true);
 }
 
 let shopvdFloatGrabBtn = null;
@@ -3959,40 +3852,8 @@ function setupPancakeMessageGrab() {
     window.__shopvdPancakeGrabObserver = null;
   }
 
-  document.getElementById('shopvd-grab-selection-btn')?.addEventListener('click', () => {
-    handleGrabFromSelection();
-  });
-
-  document.getElementById('shopvd-grab-latest-btn')?.addEventListener('click', () => {
-    handleGrabFromLatestMessage();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (!isAllowedPage()) return;
-    if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'g')) return;
-    if (isInsideShopvdSidebar(document.activeElement)) return;
-
-    e.preventDefault();
-    handleGrabFromSelection();
-  });
-
   setupPancakeHoverGrabButton();
-}
-
-// Handle smart paste button click
-async function handleSmartPaste(options = {}) {
-  const silentEmpty = options.silentEmpty === true;
-  const textarea = document.getElementById('shopvd-smart-paste-input');
-  const text = (textarea?.value || '').trim();
-  
-  if (!text) {
-    if (!silentEmpty) {
-      showStatus('⚠️ Vui lòng dán thông tin khách hàng vào khung trên!', 'warning');
-    }
-    return { ok: false, reason: 'empty' };
-  }
-
-  return parseAndApplyCustomerText(text, { silentEmpty });
+  setupPancakeDoubleClickGrab();
 }
 
 // Render category filter
@@ -5545,14 +5406,6 @@ function bindOrderFormValidationListeners() {
     if (VALIDATION_INPUT_KEYS.has(id)) {
       revalidateFieldIfActive(id);
     }
-    if (id === 'customer-name' || id === 'customer-phone' || id === 'customer-street') {
-      // Street: debounce dài hơn để khỏi nhảy khi đang gõ
-      onCustomerInfoChangedForProductScroll(id === 'customer-street' ? 420 : 160);
-    }
-  });
-
-  document.getElementById('customer-street')?.addEventListener('blur', () => {
-    maybeScrollToProductSectionAfterCustomerReady({ focus: true });
   });
 
   document.getElementById('customer-street')?.addEventListener('input', () => {
@@ -5776,9 +5629,6 @@ async function createOrder(orderData) {
       resetCustomerAddressForm();
       resetCustomerSourceSelection();
       resetPaymentMethodSelection();
-      const smartPasteInput = document.getElementById('shopvd-smart-paste-input');
-      if (smartPasteInput) smartPasteInput.value = '';
-      document.getElementById('shopvd-smart-paste-status')?.classList.add('hidden');
       document.getElementById('product-search') && (document.getElementById('product-search').value = '');
       updateProductSearchClearBtn();
       hideSearchProductForm();
@@ -5889,21 +5739,6 @@ function setupEventListeners() {
     e.preventDefault();
     copyOrderSuccessId();
   });
-
-  // Smart paste button
-  document.getElementById('shopvd-smart-paste-btn')?.addEventListener('click', () => {
-    handleSmartPaste({ silentEmpty: false });
-  });
-
-  // Smart paste - auto trigger on paste
-  const smartPasteTextarea = document.getElementById('shopvd-smart-paste-input');
-  if (smartPasteTextarea) {
-    smartPasteTextarea.addEventListener('paste', () => {
-      setTimeout(() => {
-        handleSmartPaste({ silentEmpty: true });
-      }, 100);
-    });
-  }
 
   // Province combobox
   document.getElementById('province-combobox-btn')?.addEventListener('click', toggleProvinceCombobox);
@@ -7849,8 +7684,6 @@ async function restoreDraftToForm(draft) {
     lastAutoFilledCustomerName = draft.name || '';
     customerNameUserEdited = false;
 
-    // Mở draft đủ thông tin → đưa thẳng tới chọn SP
-    maybeScrollToProductSectionAfterCustomerReady({ allowDuringRestore: true, focus: true });
     return true;
   } finally {
     shopvdRestoringDraft = false;
@@ -8114,9 +7947,7 @@ function setupUnsavedDraftSystem() {
     await restoreDraftToForm(draft);
     shopvdUnsavedPanelOpen = false;
     updateUnsavedBadgeUI();
-    if (!shopvdScrolledToProductsForCustomer) {
-      scrollToCustomerInfoSection();
-    }
+    scrollToCustomerInfoSection();
     showStatus('📋 Đã mở lại thông tin chưa lưu', 'success', 2000);
   });
 
@@ -8340,17 +8171,36 @@ function isActivePancakeConversationItem(el) {
     || item.classList?.contains('selected');
 }
 
+function getStableConversationItemKey(item) {
+  if (!item) return '';
+  const stable = item.getAttribute('data-id')
+    || item.getAttribute('data-conversation-id')
+    || item.getAttribute('id');
+  if (stable) return String(stable).trim();
+
+  // Không dùng full textContent (có snippet tin cuối → đổi khi chat cập nhật)
+  const nameEl = item.querySelector?.(
+    '[class*="customer-name"], [class*="CustomerName"], [class*="conv-name"], [class*="thread-name"], strong, b'
+  );
+  const name = normalizePancakeCustomerName(
+    nameEl?.textContent || String(item.textContent || '').split('\n')[0]
+  ).slice(0, 80);
+  return name ? `active:${name}` : '';
+}
+
 function getPancakeConversationKey() {
   const activeItem = getActivePancakeConversationItem();
+  const key = getStableConversationItemKey(activeItem);
+  // Sticky: lúc bôi đen / DOM nhấp nháy tạm mất active → giữ key cũ, tránh clear form
+  if (!key) return lastPancakeConversationKey || '';
+  return key;
+}
 
-  if (activeItem) {
-    return activeItem.getAttribute('data-id')
-      || activeItem.getAttribute('data-conversation-id')
-      || activeItem.getAttribute('id')
-      || `active:${normalizePancakeCustomerName(activeItem.textContent).slice(0, 80)}`;
-  }
-
-  return '';
+/** Chỉ coi là đổi chat khi cả 2 key đều hợp lệ và khác nhau (không clear khi key tạm rỗng). */
+function isRealConversationSwitch(fromKey, toKey) {
+  const from = String(fromKey || '').trim();
+  const to = String(toKey || '').trim();
+  return Boolean(from && to && from !== to);
 }
 
 function updatePancakeNameHint(isAutoFilled) {
@@ -8368,10 +8218,6 @@ function clearCustomerInfoForm() {
 
   resetCustomerAddressForm();
 
-  const smartPasteInput = document.getElementById('shopvd-smart-paste-input');
-  if (smartPasteInput) smartPasteInput.value = '';
-  document.getElementById('shopvd-smart-paste-status')?.classList.add('hidden');
-
   clearValidationFieldError('customer-name');
   clearValidationFieldError('customer-phone');
 
@@ -8380,6 +8226,9 @@ function clearCustomerInfoForm() {
 
   hideFloatGrabButton(0);
   clearGrabBubbleHighlight();
+
+  const fillKey = lastPancakeConversationKey || getPancakeConversationKey();
+  if (fillKey) shopvdAutoFillDone.delete(fillKey);
 }
 
 function syncPancakeCustomerName(force = false) {
@@ -8388,13 +8237,15 @@ function syncPancakeCustomerName(force = false) {
 
   const conversationKey = getPancakeConversationKey();
   const extractedName = extractPancakeCustomerName();
-  const conversationChanged = lastPancakeConversationKey !== ''
-    && conversationKey !== lastPancakeConversationKey;
+  // Chỉ clear form khi đổi chat THẬT (A → B). Không clear khi key tạm '' lúc bôi đen tin.
+  const conversationChanged = isRealConversationSwitch(lastPancakeConversationKey, conversationKey);
 
   if (conversationChanged) {
     const fromKey = lastPancakeConversationKey;
     lastPancakeConversationKey = conversationKey;
     customerNameUserEdited = false;
+    shopvdAutoFillDone.delete(fromKey);
+    shopvdAutoFillDone.delete(conversationKey);
 
     // Save outgoing chat draft BEFORE clearing form
     const outgoingSnap = getCurrentCustomerSnapshot();
@@ -8412,19 +8263,23 @@ function syncPancakeCustomerName(force = false) {
     shopvdOpenChatCheckKey = '';
     resetDbCheckStateForConversationSwitch(conversationKey);
 
-    if (conversationKey) {
-      const draft = findDraftByConversationKey(conversationKey);
-      if (draft) {
-        restoreDraftToForm(draft).then((ok) => {
-          if (ok) {
-            applyPancakeNameIfEmpty();
-            showStatus('📋 Đã khôi phục thông tin chưa lưu của chat này', 'info', 2200);
+    const draftToRestore = findDraftByConversationKey(conversationKey);
+    if (draftToRestore) {
+      restoreDraftToForm(draftToRestore).then((ok) => {
+        if (ok) {
+          applyPancakeNameIfEmpty();
+          showStatus('📋 Đã khôi phục thông tin chưa lưu của chat này', 'info', 2200);
+          // Draft đã có địa chỉ → đánh dấu khỏi auto-fill đè lại
+          if (isCustomerInfoCompleteForProductScroll() || draftToRestore.provinceId) {
+            shopvdAutoFillDone.add(conversationKey);
           }
-          scheduleUnsavedDraftUi();
-        });
-        return;
-      }
+        }
+        scheduleUnsavedDraftUi();
+        scheduleMaybeAutoFillFromOpenChat(650);
+      });
+      return;
     }
+    scheduleMaybeAutoFillFromOpenChat(650);
   } else if (lastPancakeConversationKey === '' && conversationKey) {
     lastPancakeConversationKey = conversationKey;
     customerNameUserEdited = false;
@@ -8434,9 +8289,18 @@ function syncPancakeCustomerName(force = false) {
       restoreDraftToForm(draft).then(() => {
         applyPancakeNameIfEmpty();
         scheduleUnsavedDraftUi();
+        if (isCustomerInfoCompleteForProductScroll() || draft.provinceId) {
+          shopvdAutoFillDone.add(conversationKey);
+        } else {
+          scheduleMaybeAutoFillFromOpenChat(650);
+        }
       });
       return;
     }
+    scheduleMaybeAutoFillFromOpenChat(650);
+  } else if (conversationKey && !lastPancakeConversationKey) {
+    lastPancakeConversationKey = conversationKey;
+    scheduleMaybeAutoFillFromOpenChat(650);
   }
 
   if (!extractedName) {

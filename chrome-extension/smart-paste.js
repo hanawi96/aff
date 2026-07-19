@@ -1564,8 +1564,37 @@ function _bestWardInProvince(text, province) {
     return best ? { ward: best.ward, exact: best.exact === 1, score: best.score } : null;
 }
 
+/** Bỏ nhãn form chat: "SĐT:", "Địa chỉ:", "Tên:" … — tránh dính vào ô số nhà/đường */
+function _stripAddressFieldLabels(text) {
+    let s = String(text || '');
+    if (!s) return '';
+
+    // Lặp vài vòng: "SĐT:, Địa chỉ: ..." sau khi xóa SĐT còn dấu phẩy rồi mới tới Địa chỉ
+    for (let i = 0; i < 4; i += 1) {
+        const next = s
+            .replace(/^(?:sđt|sdt|đt|dt|phone|tel|tên|ten|name|họ\s*tên|ho\s*ten)\s*[:：-]?\s*/i, '')
+            .replace(/^(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/i, '')
+            .replace(/^[,:：\-–—.\s]+/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (next === s) break;
+        s = next;
+    }
+
+    // Dạng giữa chuỗi sau khi join bằng dấu phẩy: "SĐT:, Địa chỉ: 176 ..."
+    s = s
+        .replace(/(?:^|[,;]\s*)(?:sđt|sdt|đt|dt|phone|tel)\s*[:：-]?\s*/gi, ' ')
+        .replace(/(?:^|[,;]\s*)(?:địa\s*chỉ|dia\s*chi|dc|addr|address)\s*[:：-]?\s*/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/^[,:：\-–—.\s]+/, '')
+        .replace(/[,:：\-–—.\s]+$/, '')
+        .trim();
+
+    return s;
+}
+
 function _extractStreet(expanded, province, ward, subward) {
-    let s = expanded;
+    let s = _stripAddressFieldLabels(expanded);
     s = s.replace(/\b(?:t\u1ec9nh|tinh)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:th\u00e0nh ph\u1ed1|thanh pho|tp\.?)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:qu\u1eadn|quan|huy\u1ec7n|huyen|th\u1ecb x\u00e3|thi xa|tx\.?)\s+[^,]+/gi, ' ');
@@ -1578,6 +1607,7 @@ function _extractStreet(expanded, province, ward, subward) {
     }
     if (subward) s = s.replace(_SUBWARD_RE, ' ');
     s = s.replace(/\b[QPF]\.\s*/gi, ' ');
+    s = _stripAddressFieldLabels(s);
     s = s.replace(/[,\s]+$/, '').replace(/^[,\s]+/, '').replace(/,\s*,+/g, ',').replace(/\s+/g, ' ').trim();
     return subward ? subward + (s ? ', ' + s : '') : s;
 }
@@ -1782,18 +1812,22 @@ async function smartParseCustomerInfo(text) {
                 line.includes(phoneInfo.phone) ? phoneInfo.phone :
                 (phoneInfo.original && line.includes(phoneInfo.original)) ? phoneInfo.original : null
             );
+            let cleaned = line;
             if (phoneMatch) {
-                return line
+                cleaned = line
                     .replace(phoneMatch, '')
                     .replace(/[,.\-\s]+$/, '') // Remove trailing punctuation
                     .replace(/^[,.\-\s]+/, '') // Remove leading punctuation
                     .trim();
             }
-            return line;
+            cleaned = _stripAddressFieldLabels(cleaned);
+            // Dòng chỉ còn nhãn rỗng / "SĐT:" → bỏ
+            if (!cleaned || /^(?:sđt|sdt|đt|dt|địa\s*chỉ|dia\s*chi|dc)$/i.test(cleaned)) return '';
+            return cleaned;
         })
         .filter(line => line.length > 0); // Remove empty lines after phone removal
     
-    const addressText = addressLines.join(', ');
+    const addressText = _stripAddressFieldLabels(addressLines.join(', '));
     const addressInfo = await parseAddress(addressText, customerHint);
     
     // Calculate overall confidence
