@@ -1,5 +1,5 @@
 // ShopVD Order Helper - Content Script
-// Inject sidebar chỉ trên https://pancake.vn/vongdautambyvui
+// Inject sidebar trên Pancake (/vongdautambyvui) và Zalo Web (chat.zalo.me)
 
 function getShopvdExtensionVersion() {
   try {
@@ -19,11 +19,42 @@ let shopvdUnsavedSystemBound = false;
 
 function isAllowedPage() {
   const { hostname, pathname } = window.location;
+  if (hostname === 'chat.zalo.me') return true;
   return hostname === 'pancake.vn'
     && (pathname === ALLOWED_PAGE_PATH || pathname.startsWith(`${ALLOWED_PAGE_PATH}/`));
 }
 
+function isZaloPage() {
+  return window.location.hostname === 'chat.zalo.me';
+}
+
+/** Zalo: co #chatViewContainer khi sidebar mở để không che tin nhắn */
+function syncZaloChatLayoutOffset() {
+  if (!isZaloPage()) {
+    clearZaloChatLayoutOffset();
+    return;
+  }
+
+  const sidebar = document.getElementById('shopvd-sidebar');
+  const open = !!(sidebar && !sidebar.classList.contains('collapsed'));
+  const width = open ? 330 : 0;
+
+  // Class trên <html> + CSS selector #chatViewContainer — bền khi Zalo re-render DOM
+  document.documentElement.classList.toggle('shopvd-zalo-sidebar-open', open);
+  if (open) {
+    document.documentElement.style.setProperty('--shopvd-zalo-chat-offset', `${width}px`);
+  } else {
+    document.documentElement.style.removeProperty('--shopvd-zalo-chat-offset');
+  }
+}
+
+function clearZaloChatLayoutOffset() {
+  document.documentElement.classList.remove('shopvd-zalo-sidebar-open', 'shopvd-zalo-page');
+  document.documentElement.style.removeProperty('--shopvd-zalo-chat-offset');
+}
+
 function removeSidebarIfPresent() {
+  clearZaloChatLayoutOffset();
   document.getElementById('shopvd-sidebar')?.remove();
   document.getElementById('shopvd-expand-rail')?.remove();
   shopvdCoreHandlersBound = false;
@@ -72,6 +103,13 @@ function measurePancakeTopHeaderOffset() {
 }
 
 function applyPancakeHeaderOffset() {
+  // Zalo: sidebar full màn hình — không chừa khoảng header
+  if (isZaloPage()) {
+    document.documentElement.classList.add('shopvd-zalo-page');
+    document.documentElement.style.setProperty('--shopvd-pancake-header-offset', '0px');
+    return;
+  }
+  document.documentElement.classList.remove('shopvd-zalo-page');
   const offset = measurePancakeTopHeaderOffset();
   document.documentElement.style.setProperty('--shopvd-pancake-header-offset', `${offset}px`);
 }
@@ -85,6 +123,11 @@ function schedulePancakeHeaderOffsetSync() {
 }
 
 function bindPancakeHeaderOffsetSync() {
+  // Zalo chỉ set offset 0 một lần, không đo header
+  if (isZaloPage()) {
+    applyPancakeHeaderOffset();
+    return;
+  }
   if (shopvdHeaderOffsetBound) {
     schedulePancakeHeaderOffsetSync();
     return;
@@ -4750,7 +4793,7 @@ function getOrCreateFloatGrabButton() {
   btn.type = 'button';
   btn.className = 'shopvd-pancake-grab-float';
   btn.title = 'Lấy SĐT & địa chỉ sang ShopVD';
-  btn.innerHTML = '<span class="shopvd-pancake-grab-float-icon" aria-hidden="true">→</span><span>ShopVD</span>';
+  btn.innerHTML = '<span class="shopvd-pancake-grab-float-icon" aria-hidden="true">→</span><span>Lấy thông tin</span>';
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -4799,14 +4842,20 @@ function showFloatGrabButton(bubble) {
   const minTop = edgePad;
   const maxTop = window.innerHeight - btnHeight - edgePad;
 
-  // Ưu tiên: góc trên-phải bubble (không đè tin sau)
-  // Fallback: bên phải giữa bubble → trên bubble → trong bubble
+  // Ưu tiên trong bubble (tránh gap hover khi di chuột lên nút)
+  // Fallback: bên phải → trên bubble
   const candidates = [
     {
-      // Góc trên-phải, hơi nhô ra ngoài cạnh phải
-      left: rect.right - btnWidth * 0.15,
-      top: rect.top - btnHeight - 4,
-      mode: 'above',
+      // Trong bubble, góc trên-phải — dễ hover nhất
+      left: rect.right - btnWidth - 6,
+      top: rect.top + 4,
+      mode: 'inside',
+    },
+    {
+      // Trong bubble, góc dưới-phải (tin cao / sát mép trên)
+      left: rect.right - btnWidth - 6,
+      top: rect.bottom - btnHeight - 4,
+      mode: 'inside',
     },
     {
       // Bên phải, căn mép trên bubble
@@ -4821,14 +4870,8 @@ function showFloatGrabButton(bubble) {
       mode: 'side',
     },
     {
-      // Trong bubble, góc trên-phải (khi sát sidebar)
-      left: rect.right - btnWidth - 6,
-      top: rect.top + 4,
-      mode: 'inside',
-    },
-    {
-      // Trên bubble, căn trái (tin hẹp)
-      left: rect.left,
+      // Trên bubble (chỉ khi không chỗ trong/cạnh)
+      left: rect.right - btnWidth * 0.15,
       top: rect.top - btnHeight - 4,
       mode: 'above',
     },
@@ -4840,13 +4883,19 @@ function showFloatGrabButton(bubble) {
     // Không lệch quá xa so với bubble theo trục X
     if (left + btnWidth < rect.left - 4) return false;
     if (left > rect.right + gap + 4 && c.mode === 'side') return false;
+    // Inside: nút phải còn overlap vùng bubble (tránh nhảy ra ngoài rồi mất hover)
+    if (c.mode === 'inside') {
+      if (top + btnHeight < rect.top + 2) return false;
+      if (top > rect.bottom - 2) return false;
+      if (left + btnWidth < rect.left + 2) return false;
+    }
     // Không đè quá sâu vào tin kế dưới
-    if (c.mode !== 'above' && top >= rect.bottom - 4) return false;
+    if (c.mode === 'side' && top >= rect.bottom - 4) return false;
     return { left, top };
   };
 
   let placed = null;
-  let mode = 'above';
+  let mode = 'inside';
   for (const c of candidates) {
     const ok = fits(c);
     if (!ok) continue;
@@ -4857,10 +4906,10 @@ function showFloatGrabButton(bubble) {
 
   if (!placed) {
     placed = {
-      left: Math.max(edgePad, Math.min(maxLeft, rect.right - btnWidth)),
-      top: Math.max(minTop, Math.min(maxTop, rect.top - btnHeight - 4)),
+      left: Math.max(edgePad, Math.min(maxLeft, rect.right - btnWidth - 6)),
+      top: Math.max(minTop, Math.min(maxTop, rect.top + 4)),
     };
-    mode = 'above';
+    mode = 'inside';
   }
 
   btn.style.top = `${placed.top}px`;
@@ -4884,11 +4933,14 @@ function setupPancakeHoverGrabButton() {
   document.addEventListener('mouseover', (e) => {
     if (!isAllowedPage()) return;
     if (isInsideShopvdSidebar(e.target)) return;
-    if (shopvdFloatGrabBtn?.contains(e.target)) return;
+    if (shopvdFloatGrabBtn?.contains(e.target)) {
+      clearTimeout(shopvdFloatHideTimer);
+      return;
+    }
 
     const bubble = findPancakeMessageBubble(e.target);
     if (!bubble) {
-      hideFloatGrabButton(140);
+      hideFloatGrabButton(180);
       return;
     }
 
@@ -6726,6 +6778,8 @@ function setSidebarCollapsed(collapsed) {
     document.getElementById('discount-modal')?.classList.add('hidden');
     closeOrderSuccessModal();
   }
+
+  syncZaloChatLayoutOffset();
 }
 
 // Setup event listeners
@@ -9454,6 +9508,13 @@ function init() {
     existing.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
     const sub = existing.querySelector('.shopvd-top-sub');
     if (sub) sub.textContent = `Tạo đơn · v${SHOPVD_EXT_VERSION}`;
+  }
+
+  syncZaloChatLayoutOffset();
+  // Zalo render chatViewContainer trễ hơn content script
+  if (isZaloPage()) {
+    setTimeout(syncZaloChatLayoutOffset, 300);
+    setTimeout(syncZaloChatLayoutOffset, 1200);
   }
 
   ensureShopvdCoreHandlers();

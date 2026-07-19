@@ -10,6 +10,7 @@
   "host_permissions": [
     "https://pancake.vn/vongdautambyvui",
     "https://pancake.vn/vongdautambyvui/*",
+    "https://chat.zalo.me/*",
     "https://shopvd.store/*",
     "https://ctv-api.yendev96.workers.dev/*"
   ],
@@ -17,7 +18,8 @@
     {
       "matches": [
         "https://pancake.vn/vongdautambyvui",
-        "https://pancake.vn/vongdautambyvui/*"
+        "https://pancake.vn/vongdautambyvui/*",
+        "https://chat.zalo.me/*"
       ],
       "js": [
         "smart-paste.js",

@@ -32,6 +32,21 @@
   pointer-events: none;
 }
 
+/* Zalo Web: sidebar full chiều cao (không chừa header như Pancake) */
+html.shopvd-zalo-page #shopvd-sidebar {
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Zalo Web: co vùng chat (#chatViewContainer) khi sidebar ShopVD mở */
+html.shopvd-zalo-sidebar-open #chatViewContainer {
+  margin-right: var(--shopvd-zalo-chat-offset, 330px) !important;
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
 /* Expand rail — visible when sidebar is collapsed */
 .shopvd-expand-rail {
   position: fixed;
@@ -146,6 +161,22 @@
   padding: 10px 12px 10px 14px;
   min-height: 36px;
   box-sizing: border-box;
+}
+
+/* Pancake: đồng bộ chiều cao header box chat (65px) */
+html:not(.shopvd-zalo-page) #shopvd-sidebar .shopvd-top-bar {
+  height: 65px;
+  min-height: 65px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Zalo: header extension 66px */
+html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
+  height: 66px;
+  min-height: 66px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .shopvd-top-brand {
@@ -771,7 +802,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 20px;
+  height: 91.33px;
+  min-height: 91.33px;
+  box-sizing: border-box;
+  padding: 0 20px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
   border-top: 1px solid #e2e8f0;
@@ -5056,7 +5090,7 @@
   min-height: 72px;
 }
 
-/* Nút lấy tin — nổi khi hover, ưu tiên góc trên (không đè tin sau) */
+/* Nút lấy tin — nổi khi hover, ưu tiên trong bubble (dễ di chuột tới nút) */
 .shopvd-pancake-grab-float {
   position: fixed;
   /* Dưới modal Pancake (~1000+), trên nội dung chat */
