@@ -217,6 +217,14 @@ function createSidebar() {
         </div>
       </div>
 
+      <div id="shopvd-edit-order-banner" class="shopvd-edit-order-banner hidden" aria-live="polite">
+        <div class="shopvd-edit-order-banner-main">
+          <span class="shopvd-edit-order-badge">Đang sửa</span>
+          <strong id="shopvd-edit-order-code">—</strong>
+        </div>
+        <button type="button" id="shopvd-edit-order-cancel" class="shopvd-edit-order-cancel">Hủy</button>
+      </div>
+
       <div id="shopvd-unsaved-panel" class="shopvd-unsaved-panel hidden" aria-live="polite">
         <div class="shopvd-unsaved-panel-head">
           <strong>Đơn chưa lưu</strong>
@@ -1640,6 +1648,8 @@ const PANCAKE_CHAT_PANEL_SELECTOR = [
 ].join(',');
 
 const PANCAKE_CONV_ITEM_SELECTOR = [
+  '.conversation-list-item',
+  '[class*="conversation-list-item"]',
   '[class*="conversation-item"]',
   '[class*="ConversationItem"]',
   '[class*="thread-item"]',
@@ -2412,23 +2422,420 @@ let shopvdPhoneScanConvKey = '';
 let shopvdLastDbCheckConvKey = '';
 let shopvdPrevConvPhone = { key: '', phone: '' };
 
+/** Map bền chatId → SĐT (chrome.storage), sống qua F5 / đổi chat */
+const SHOPVD_CONV_PHONE_MAP_KEY = 'shopvd_conv_phone_map_v1';
+const SHOPVD_CONV_PHONE_SYNC_KEY = 'shopvd_conv_phone_sync_since_v1';
+const SHOPVD_CONV_PHONE_MAP_MAX = 400;
+/** @type {Record<string, { phone: string, at: number, source?: string }>} */
+let shopvdPersistedConvPhones = Object.create(null);
+let shopvdConvPhoneMapLoaded = false;
+let shopvdConvPhonePersistTimer = null;
+let shopvdConvPhonePushTimer = null;
+let shopvdConvPhonePullTimer = null;
+let shopvdConvPhoneSyncSince = 0;
+let shopvdConvPhonePushQueue = new Set();
+let shopvdConvPhonePushInFlight = false;
+let shopvdConvPhonePullInFlight = false;
+let shopvdConvPhoneInitialUploadDone = false;
+
+/** Chuẩn hoá id Pancake: bỏ suffix __0/__1 trên .conversation-list-item */
+function normalizePancakeConversationId(raw) {
+  let s = String(raw || '').trim();
+  if (!s) return '';
+  s = s.replace(/__\d+$/, '');
+  return s;
+}
+
+/** Chỉ persist key dạng pageId_threadId (ổn định), bỏ fallback tên khách */
+function isPersistableConversationKey(key) {
+  const k = normalizePancakeConversationId(key);
+  return /^\d+_\d+$/.test(k);
+}
+
+function getPersistedConversationPhone(conversationKey) {
+  const key = normalizePancakeConversationId(conversationKey);
+  if (!isPersistableConversationKey(key)) return '';
+  const p = normalizeDraftPhone(shopvdPersistedConvPhones[key]?.phone);
+  if (!isValidDraftPhone(p) || isPlaceholderDraftPhone(p)) return '';
+  return p;
+}
+
+function prunePersistedConvPhoneMap() {
+  const keys = Object.keys(shopvdPersistedConvPhones);
+  if (keys.length <= SHOPVD_CONV_PHONE_MAP_MAX) return;
+  keys.sort((a, b) => (shopvdPersistedConvPhones[a]?.at || 0) - (shopvdPersistedConvPhones[b]?.at || 0));
+  const drop = keys.length - SHOPVD_CONV_PHONE_MAP_MAX;
+  for (let i = 0; i < drop; i += 1) {
+    delete shopvdPersistedConvPhones[keys[i]];
+  }
+}
+
+function schedulePersistConvPhoneMap() {
+  clearTimeout(shopvdConvPhonePersistTimer);
+  shopvdConvPhonePersistTimer = setTimeout(() => {
+    prunePersistedConvPhoneMap();
+    const payload = shopvdPersistedConvPhones;
+    try {
+      if (isExtensionContextAlive()) {
+        chrome.storage.local.set({
+          [SHOPVD_CONV_PHONE_MAP_KEY]: payload,
+          [SHOPVD_CONV_PHONE_SYNC_KEY]: shopvdConvPhoneSyncSince,
+        });
+        return;
+      }
+    } catch (_) { /* fallback below */ }
+    try {
+      localStorage.setItem(SHOPVD_CONV_PHONE_MAP_KEY, JSON.stringify(payload));
+      localStorage.setItem(SHOPVD_CONV_PHONE_SYNC_KEY, String(shopvdConvPhoneSyncSince || 0));
+    } catch (_) { /* ignore */ }
+  }, 180);
+}
+
+function queueConvPhoneServerPush(conversationKey) {
+  const key = normalizePancakeConversationId(conversationKey);
+  if (!isPersistableConversationKey(key)) return;
+  if (!shopvdPersistedConvPhones[key]) return;
+  shopvdConvPhonePushQueue.add(key);
+  schedulePushConvPhonesToServer();
+}
+
+function schedulePushConvPhonesToServer(delayMs = 400) {
+  clearTimeout(shopvdConvPhonePushTimer);
+  shopvdConvPhonePushTimer = setTimeout(() => {
+    pushConvPhonesToServer().catch(() => {});
+  }, delayMs);
+}
+
+function schedulePullConvPhonesFromServer(delayMs = 600) {
+  clearTimeout(shopvdConvPhonePullTimer);
+  shopvdConvPhonePullTimer = setTimeout(() => {
+    pullConvPhonesFromServer().catch(() => {});
+  }, delayMs);
+}
+
+function mergeServerConvPhoneItem(item) {
+  const key = normalizePancakeConversationId(item?.conversationId || item?.conversation_id);
+  const phone = normalizeDraftPhone(item?.phone);
+  if (!isPersistableConversationKey(key)) return false;
+  if (!isValidDraftPhone(phone) || isPlaceholderDraftPhone(phone)) return false;
+
+  const at = Number(item?.updatedAt ?? item?.updated_at_unix) || Date.now();
+  const source = String(item?.source || 'server').slice(0, 40);
+  const prev = shopvdPersistedConvPhones[key];
+
+  if (prev) {
+    const prevAt = Number(prev.at) || 0;
+    if (at < prevAt) return false;
+    if (at === prevAt && prev.phone === phone) return false;
+  }
+
+  shopvdPersistedConvPhones[key] = { phone, at, source };
+  return true;
+}
+
+async function pushConvPhonesToServer() {
+  if (shopvdConvPhonePushInFlight) {
+    schedulePushConvPhonesToServer(800);
+    return;
+  }
+  const keys = [...shopvdConvPhonePushQueue];
+  if (!keys.length) return;
+
+  shopvdConvPhonePushQueue.clear();
+  const items = [];
+  for (const key of keys) {
+    const row = shopvdPersistedConvPhones[key];
+    if (!row) continue;
+    items.push({
+      conversationId: key,
+      phone: row.phone,
+      source: row.source || 'extension',
+      updatedAt: row.at || Date.now(),
+    });
+  }
+  if (!items.length) return;
+
+  shopvdConvPhonePushInFlight = true;
+  try {
+    for (let i = 0; i < items.length; i += 100) {
+      const chunk = items.slice(i, i + 100);
+      const res = await fetch(`${API_BASE_URL}/api/pancake/conv-phone/upsert-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ items: chunk }),
+        cache: 'no-store',
+      });
+      const data = await res.json().catch(() => null);
+      if (!data?.success) {
+        chunk.forEach((it) => shopvdConvPhonePushQueue.add(it.conversationId));
+        shopvdDbLog('conv-phone:push-fail', { error: data?.error || res.status });
+      } else {
+        shopvdDbLog('conv-phone:push-ok', {
+          upserted: data.upserted,
+          skipped: data.skipped,
+          failed: data.failed,
+        });
+      }
+    }
+  } catch (err) {
+    items.forEach((it) => shopvdConvPhonePushQueue.add(it.conversationId));
+    shopvdDbLog('conv-phone:push-error', { error: err?.message || String(err) });
+  } finally {
+    shopvdConvPhonePushInFlight = false;
+    if (shopvdConvPhonePushQueue.size) schedulePushConvPhonesToServer(2000);
+  }
+}
+
+async function pullConvPhonesFromServer() {
+  if (shopvdConvPhonePullInFlight) {
+    schedulePullConvPhonesFromServer(1200);
+    return;
+  }
+
+  shopvdConvPhonePullInFlight = true;
+  let changed = false;
+  try {
+    let since = shopvdConvPhoneSyncSince || 0;
+    let guard = 0;
+    while (guard < 8) {
+      guard += 1;
+      const url = `${API_BASE_URL}/?action=getPancakeConvPhones&since=${encodeURIComponent(since)}&limit=500&timestamp=${Date.now()}`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (!data?.success || !Array.isArray(data.items)) break;
+
+      for (const item of data.items) {
+        if (mergeServerConvPhoneItem(item)) changed = true;
+      }
+
+      const nextSince = Number(data.nextSince);
+      if (Number.isFinite(nextSince) && nextSince > since) {
+        since = nextSince;
+        shopvdConvPhoneSyncSince = nextSince;
+      }
+
+      if (!data.hasMore || !data.items.length) break;
+    }
+
+    schedulePersistConvPhoneMap();
+    shopvdDbLog('conv-phone:pull-ok', {
+      since: shopvdConvPhoneSyncSince,
+      mapSize: Object.keys(shopvdPersistedConvPhones).length,
+      changed,
+    });
+  } catch (err) {
+    shopvdDbLog('conv-phone:pull-error', { error: err?.message || String(err) });
+  } finally {
+    shopvdConvPhonePullInFlight = false;
+  }
+}
+
+/** Lần đầu sau load local: đẩy toàn bộ map lên server (máy đã có data). */
+async function uploadLocalConvPhoneMapOnce() {
+  if (shopvdConvPhoneInitialUploadDone) return;
+  shopvdConvPhoneInitialUploadDone = true;
+  const keys = Object.keys(shopvdPersistedConvPhones);
+  if (!keys.length) return;
+  keys.forEach((k) => shopvdConvPhonePushQueue.add(k));
+  await pushConvPhonesToServer();
+}
+
+function persistConversationPhone(conversationKey, phone, source = 'dom') {
+  const key = normalizePancakeConversationId(conversationKey);
+  const p = normalizeDraftPhone(phone);
+  if (!isPersistableConversationKey(key)) return;
+  if (!isValidDraftPhone(p) || isPlaceholderDraftPhone(p)) return;
+
+  const prev = shopvdPersistedConvPhones[key];
+  if (prev?.phone === p) {
+    // Cùng SĐT — chỉ refresh timestamp thưa (tránh ghi storage liên tục)
+    if (Date.now() - (prev.at || 0) < 10 * 60 * 1000) return;
+    shopvdPersistedConvPhones[key] = { ...prev, at: Date.now(), source: source || prev.source };
+    schedulePersistConvPhoneMap();
+    // Không spam server khi chỉ touch timestamp
+    return;
+  }
+
+  shopvdPersistedConvPhones[key] = { phone: p, at: Date.now(), source };
+  schedulePersistConvPhoneMap();
+  queueConvPhoneServerPush(key);
+  shopvdDbLog('phone:persist', { key, phone: p, source });
+}
+
+async function loadPersistedConvPhoneMap() {
+  try {
+    let raw = null;
+    let syncSinceRaw = null;
+    if (isExtensionContextAlive()) {
+      try {
+        const data = await chrome.storage.local.get([
+          SHOPVD_CONV_PHONE_MAP_KEY,
+          SHOPVD_CONV_PHONE_SYNC_KEY,
+        ]);
+        raw = data?.[SHOPVD_CONV_PHONE_MAP_KEY] || null;
+        syncSinceRaw = data?.[SHOPVD_CONV_PHONE_SYNC_KEY];
+      } catch (_) {
+        raw = null;
+      }
+    }
+    if (!raw) {
+      try {
+        raw = JSON.parse(localStorage.getItem(SHOPVD_CONV_PHONE_MAP_KEY) || 'null');
+      } catch (_) {
+        raw = null;
+      }
+    }
+    if (syncSinceRaw == null) {
+      try {
+        syncSinceRaw = localStorage.getItem(SHOPVD_CONV_PHONE_SYNC_KEY);
+      } catch (_) { /* ignore */ }
+    }
+    const syncN = Number(syncSinceRaw);
+    if (Number.isFinite(syncN) && syncN > 0) shopvdConvPhoneSyncSince = syncN;
+
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const next = Object.create(null);
+      Object.keys(raw).forEach((k) => {
+        const nk = normalizePancakeConversationId(k);
+        if (!isPersistableConversationKey(nk)) return;
+        const p = normalizeDraftPhone(raw[k]?.phone || raw[k]);
+        if (!isValidDraftPhone(p) || isPlaceholderDraftPhone(p)) return;
+        next[nk] = {
+          phone: p,
+          at: Number(raw[k]?.at) || Date.now(),
+          source: raw[k]?.source || 'storage',
+        };
+      });
+      shopvdPersistedConvPhones = next;
+    }
+  } catch (err) {
+    console.warn('[ShopVD] Không tải map chat→SĐT:', err);
+  } finally {
+    shopvdConvPhoneMapLoaded = true;
+  }
+}
+
+async function initConvPhoneMapWithServerSync() {
+  await loadPersistedConvPhoneMap();
+  // Server sync nền — không chặn check DB lần đầu
+  pullConvPhonesFromServer()
+    .then(() => uploadLocalConvPhoneMapOnce())
+    .catch(() => {});
+}
+
+/** Hybrid: hỏi Pancake API (qua ShopVD) khi mở chat — bổ sung/xác nhận SĐT */
+const shopvdPancakeApiPhoneAt = new Map(); // convKey → last fetch ms
+let shopvdPancakeApiPhoneTimer = null;
+let shopvdPancakeApiPhonePendingKey = '';
+
+function scheduleEnrichPhoneFromPancakeApi(conversationKey, delayMs = 280) {
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey;
+  if (!key || !isPersistableConversationKey(key)) return;
+
+  shopvdPancakeApiPhonePendingKey = key;
+  clearTimeout(shopvdPancakeApiPhoneTimer);
+  shopvdPancakeApiPhoneTimer = setTimeout(() => {
+    const k = shopvdPancakeApiPhonePendingKey;
+    shopvdPancakeApiPhonePendingKey = '';
+    if (k) enrichPhoneFromPancakeApi(k).catch(() => {});
+  }, delayMs);
+}
+
+async function enrichPhoneFromPancakeApi(conversationKey) {
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey;
+  if (!key || !isPersistableConversationKey(key)) return;
+
+  // Debounce: cùng chat không gọi lại trong 25s
+  const lastAt = shopvdPancakeApiPhoneAt.get(key) || 0;
+  if (Date.now() - lastAt < 25000) return;
+  shopvdPancakeApiPhoneAt.set(key, Date.now());
+
+  // Chỉ enrich khi vẫn đang ở đúng chat
+  if (normalizePancakeConversationId(getPancakeConversationKey()) !== key) return;
+
+  try {
+    const url = `${API_BASE_URL}/?action=getPancakeConversationPhone&id=${encodeURIComponent(key)}&timestamp=${Date.now()}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const data = await res.json().catch(() => null);
+    if (!data?.success) {
+      shopvdDbLog('pancake-api-phone:fail', { key, error: data?.error || res.status });
+      return;
+    }
+
+    const phone = normalizeDraftPhone(data.phone || '');
+    const storageId = normalizePancakeConversationId(data.storageId || key) || key;
+
+    if (!isValidDraftPhone(phone) || isPlaceholderDraftPhone(phone)) {
+      shopvdDbLog('pancake-api-phone:empty', {
+        key,
+        hasPhone: data.hasPhone,
+        source: data.source,
+      });
+      return;
+    }
+
+    if (normalizePancakeConversationId(getPancakeConversationKey()) !== key) return;
+
+  const prevLocal = getPersistedConversationPhone(key) || getPersistedConversationPhone(storageId);
+  const beforePhone = normalizeDraftPhone(
+    shopvdDbStatusSettled.phone
+    || document.getElementById('customer-phone')?.value
+    || prevLocal
+    || ''
+  );
+
+  persistConversationPhone(storageId || key, phone, data.source || 'pancake-api');
+  if (storageId && storageId !== key) {
+    persistConversationPhone(key, phone, data.source || 'pancake-api');
+  }
+  rememberConversationPhone(storageId || key, phone);
+
+  shopvdDbLog('pancake-api-phone:ok', {
+    key,
+    phone,
+    source: data.source,
+    beforePhone: beforePhone || '(none)',
+  });
+
+  // SĐT mới hoặc chưa settle đúng số này → check / check lại
+  if (!beforePhone || beforePhone !== phone) {
+    clearDbStatusSettled();
+    refreshDbSaveStatusForOpenChat(phone, { force: true }).catch(() => {});
+  } else if (!isDbStatusSettledFor(key, phone)) {
+    refreshDbSaveStatusForOpenChat(phone).catch(() => {});
+  }
+  } catch (err) {
+    shopvdDbLog('pancake-api-phone:error', { key, error: err?.message || String(err) });
+  }
+}
+
 function clearAllConversationPhoneCache() {
   shopvdConvPhoneCache.clear();
 }
 
 function clearConversationPhoneCache(conversationKey) {
-  if (conversationKey) shopvdConvPhoneCache.delete(conversationKey);
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey;
+  if (key) shopvdConvPhoneCache.delete(key);
+  if (conversationKey && conversationKey !== key) shopvdConvPhoneCache.delete(conversationKey);
 }
 
 function noteResolvedConvPhone(conversationKey, phone) {
-  const key = conversationKey || getPancakeConversationKey();
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey || getPancakeConversationKey();
   const p = normalizeDraftPhone(phone);
   if (key && p) shopvdPrevConvPhone = { key, phone: p };
+  if (key && p) persistConversationPhone(key, p, 'db-status');
 }
 
 function isLikelyStalePhoneFromPrevChat(conversationKey, phone) {
-  if (!conversationKey || !phone) return false;
-  if (!shopvdPrevConvPhone.phone || shopvdPrevConvPhone.key === conversationKey) return false;
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey;
+  if (!key || !phone) return false;
+  if (!shopvdPrevConvPhone.phone) return false;
+  const prevKey = normalizePancakeConversationId(shopvdPrevConvPhone.key) || shopvdPrevConvPhone.key;
+  if (prevKey === key) return false;
   return normalizeDraftPhone(phone) === shopvdPrevConvPhone.phone;
 }
 
@@ -2474,9 +2881,10 @@ function resetDbCheckStateForConversationSwitch(nextConvKey) {
   return true;
 }
 
-/** SĐT mới nhất trong chat đang mở — chỉ từ tin khách trong box chat (không list/header/cache). */
+/** SĐT mới nhất trong chat đang mở — DOM trước, rồi cache/map bền theo conversation id. */
 function extractLatestPhoneFromOpenChat() {
   const convKey = getPancakeConversationKey();
+  const mapKey = normalizePancakeConversationId(convKey) || convKey;
 
   const fromTags = extractPhoneFromVisiblePhoneTagsInChat();
   if (fromTags && !isLikelyStalePhoneFromPrevChat(convKey, fromTags)) {
@@ -2492,6 +2900,23 @@ function extractLatestPhoneFromOpenChat() {
     return fromMessages;
   }
 
+  // RAM session (cùng chat, DOM tạm trống)
+  const fromRam = (mapKey && shopvdConvPhoneCache.get(mapKey))
+    || (convKey && shopvdConvPhoneCache.get(convKey))
+    || '';
+  if (fromRam && isValidDraftPhone(fromRam) && !isPlaceholderDraftPhone(fromRam)) {
+    shopvdDbLog('phone:from-ram', { phone: fromRam, convKey: mapKey || convKey });
+    return fromRam;
+  }
+
+  // Map bền theo id hội thoại Pancake (vd. 8216…_1590…) — không phụ thuộc tin đã load
+  const fromPersisted = getPersistedConversationPhone(convKey);
+  if (fromPersisted) {
+    if (mapKey) shopvdConvPhoneCache.set(mapKey, fromPersisted);
+    shopvdDbLog('phone:from-persisted', { phone: fromPersisted, convKey: mapKey || convKey });
+    return fromPersisted;
+  }
+
   if (fromTags || fromMessages) {
     shopvdDbLog('phone:rejected-stale', {
       convKey,
@@ -2504,6 +2929,7 @@ function extractLatestPhoneFromOpenChat() {
       convKey,
       scrollRoot: !!getActiveChatMessageQueryRoot(),
       msgRoots: collectCustomerMessageRootsInOrder().length,
+      mapLoaded: shopvdConvPhoneMapLoaded,
     });
   }
 
@@ -2511,7 +2937,7 @@ function extractLatestPhoneFromOpenChat() {
 }
 
 function rememberConversationPhone(conversationKey, phone) {
-  const key = conversationKey || getPancakeConversationKey();
+  const key = normalizePancakeConversationId(conversationKey) || conversationKey || getPancakeConversationKey();
   const p = normalizeDraftPhone(phone);
   if (!key || !isValidDraftPhone(p) || isPlaceholderDraftPhone(p)) return;
   if (isLikelyStalePhoneFromPrevChat(key, p)) {
@@ -2519,6 +2945,7 @@ function rememberConversationPhone(conversationKey, phone) {
     return;
   }
   shopvdConvPhoneCache.set(key, p);
+  persistConversationPhone(key, p, 'remember');
 }
 
 function findPancakeChatScrollRoot(options = {}) {
@@ -2817,12 +3244,22 @@ function renderDbSaveStatusCard(payload = {}) {
         ? `<span class="shopvd-ship-multi">${count} đơn · xem đơn chưa gửi mới nhất</span>`
         : (count > 1 ? `<span class="shopvd-ship-multi">${count} đơn trên hệ thống</span>` : '');
 
+      const canEdit = isShopvdOrderEditable(o.status) && Number(o.id) > 0;
+      const editBtn = canEdit
+        ? `<button type="button" class="shopvd-edit-order-btn" data-order-id="${Number(o.id)}" title="Sửa đơn ${escapeHtml(o.order_id || '')}" aria-label="Sửa đơn hàng">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>`
+        : '';
+
       body.innerHTML = `
         <div class="shopvd-ship-main">
           <span class="shopvd-ship-badge is-done">Đã lưu DB</span>
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-phone-inline">${phone}</span>
+          ${editBtn}
         </div>
         <div class="shopvd-ship-detail">
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
@@ -3074,8 +3511,18 @@ async function refreshDbSaveStatusForOpenChat(knownPhone = '', { force = false }
 function handlePancakeChatDbSaveCheck(force = true, options = {}) {
   if (!isAllowedPage()) return;
 
+  if (!shopvdConvPhoneMapLoaded) {
+    loadPersistedConvPhoneMap().then(() => handlePancakeChatDbSaveCheck(force, options));
+    return;
+  }
+
   const convKey = getPancakeConversationKey() || '';
   const forceRefresh = options.forceRefresh === true;
+
+  // Hybrid: song song hỏi Pancake API (không chặn local check)
+  if (convKey && isPersistableConversationKey(normalizePancakeConversationId(convKey))) {
+    scheduleEnrichPhoneFromPancakeApi(convKey, forceRefresh ? 120 : 300);
+  }
 
   const switched = resetDbCheckStateForConversationSwitch(convKey);
   if (switched) {
@@ -3089,6 +3536,7 @@ function handlePancakeChatDbSaveCheck(force = true, options = {}) {
     const domPhone = extractBestPhoneFromOpenChatDom();
     if (!domPhone || domPhone === normalizeDraftPhone(shopvdDbStatusSettled.phone)) {
       shopvdDbLog('check:skip-settled', { convKey, state: shopvdDbStatusSettled.state });
+      // Vẫn để API enrich chạy nền (đã schedule ở trên)
       return;
     }
     shopvdDbLog('check:skip-settled-overridden', { convKey, was: shopvdDbStatusSettled.phone, now: domPhone });
@@ -3208,11 +3656,521 @@ function handlePancakeChatDbSaveCheck(force = true, options = {}) {
   runAttempt(0);
 }
 
+// === Edit order (P1): icon sửa trên strip → hydrate form → updateOrderFull ===
+const SHOPVD_EDITABLE_ORDER_STATUSES = new Set(['pending', 'processing', 'send_later', 'awaiting_reship']);
+/** @type {{ dbId: number, orderId: string, status: string, orderDate: number|null } | null} */
+let shopvdEditingOrder = null;
+const shopvdOrderDetailCache = new Map();
+let shopvdEditOrderLoading = false;
+
+function isShopvdOrderEditable(status) {
+  return SHOPVD_EDITABLE_ORDER_STATUSES.has(shopvdNormalizeStatusSlug(status));
+}
+
+function parseOrderMoneyValue(value) {
+  if (value == null || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : 0;
+  const n = parseInt(String(value).replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toDatetimeLocalValue(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const d = new Date(n);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function normalizeFormPaymentMethod(raw) {
+  const pm = String(raw || 'cod').toLowerCase().trim();
+  if (pm === 'bank' || pm === 'bank_transfer' || pm === 'transfer') return 'bank_transfer';
+  if (pm === 'deposit') return 'cod';
+  return pm || 'cod';
+}
+
+function getCreateOrderButtonDefaultHtml(isEdit) {
+  if (isEdit) {
+    return `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+      </svg>
+      Cập nhật đơn`;
+  }
+  return `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Tạo đơn hàng`;
+}
+
+function syncEditOrderModeUI() {
+  const banner = document.getElementById('shopvd-edit-order-banner');
+  const codeEl = document.getElementById('shopvd-edit-order-code');
+  const btn = document.getElementById('create-order-btn');
+  const editing = Boolean(shopvdEditingOrder);
+
+  banner?.classList.toggle('hidden', !editing);
+  if (codeEl) {
+    codeEl.textContent = editing
+      ? (shopvdEditingOrder.orderId || `#${shopvdEditingOrder.dbId}`)
+      : '—';
+  }
+  if (btn && !btn.disabled) {
+    btn.classList.toggle('is-edit-mode', editing);
+    btn.innerHTML = getCreateOrderButtonDefaultHtml(editing);
+    delete btn.dataset.originalHtml;
+  } else if (btn) {
+    btn.classList.toggle('is-edit-mode', editing);
+  }
+}
+
+function exitEditOrderMode() {
+  shopvdEditingOrder = null;
+  syncEditOrderModeUI();
+}
+
+async function fetchOrderById(orderDbId) {
+  const id = Number(orderDbId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+
+  if (shopvdOrderDetailCache.has(id)) {
+    return shopvdOrderDetailCache.get(id);
+  }
+
+  const url = `${API_BASE_URL}/?action=getOrderById&id=${encodeURIComponent(id)}&timestamp=${Date.now()}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if (!data?.success || !data.order) {
+    throw new Error(data?.error || 'Không tải được đơn hàng');
+  }
+  shopvdOrderDetailCache.set(id, data.order);
+  return data.order;
+}
+
+function parseOrderProductsForExtension(order) {
+  let products = order?.products;
+  if (typeof products === 'string') {
+    try {
+      products = JSON.parse(products);
+    } catch (_) {
+      products = [];
+    }
+  }
+  if (!Array.isArray(products)) return [];
+
+  return products.map((p) => {
+    const name = String(p?.name || p?.product_name || '').trim();
+    const price = parseOrderMoneyValue(p?.price ?? p?.product_price);
+    const cost = parseOrderMoneyValue(p?.cost_price ?? p?.product_cost ?? p?.cost);
+    const qty = Math.max(1, parseInt(p?.quantity, 10) || 1);
+    let productId = p?.product_id ?? p?.id ?? null;
+    if (productId != null && productId !== '') {
+      const n = parseInt(String(productId), 10);
+      productId = Number.isFinite(n) ? n : null;
+    } else {
+      productId = null;
+    }
+    if (!productId && name && allProductsCache.length) {
+      const found = allProductsCache.find((x) => String(x.name || '').trim() === name);
+      if (found?.id != null) productId = parseInt(String(found.id), 10) || null;
+    }
+    const sizeRaw = p?.size ?? p?.weight ?? '';
+    const weight = formatWeightSize(sizeRaw) || '';
+    const notes = String(p?.notes || '').trim();
+    const imageUrl = String(p?.image_url || p?.image || '').trim();
+
+    let categoryId = null;
+    let categoryIds = null;
+    if (productId) {
+      const cached = allProductsCache.find((x) => parseInt(String(x.id), 10) === productId);
+      if (cached) {
+        categoryId = cached.category_id || null;
+        categoryIds = cached.category_ids || null;
+        if (!categoryIds && Array.isArray(cached.categories) && cached.categories.length) {
+          categoryIds = cached.categories.map((c) => (typeof c === 'object' ? c.id : c)).filter((id) => id != null);
+        }
+        if (!categoryId && Array.isArray(categoryIds) && categoryIds.length) {
+          categoryId = categoryIds[0];
+        }
+        if (!imageUrl && cached.image_url) {
+          // keep local
+        }
+      }
+    }
+
+    return {
+      name,
+      price,
+      cost_price: cost,
+      quantity: qty,
+      product_id: productId,
+      weight,
+      notes,
+      image_url: imageUrl || (productId
+        ? (allProductsCache.find((x) => parseInt(String(x.id), 10) === productId)?.image_url || '')
+        : ''),
+      category_id: categoryId,
+      category_ids: categoryIds,
+    };
+  }).filter((p) => p.name && p.price > 0);
+}
+
+/** Đổ cart từ đơn DB — bỏ qua validate cân nặng để giữ đúng dữ liệu đã lưu. */
+function replaceCartFromOrderProducts(parsedProducts) {
+  productsData = [];
+  let seq = Date.now();
+  for (const p of parsedProducts) {
+    seq += 1;
+    productsData.push({
+      id: seq,
+      name: p.name,
+      price: p.price,
+      quantity: p.quantity,
+      product_id: p.product_id,
+      cost_price: p.cost_price || 0,
+      image_url: p.image_url || '',
+      weight: p.weight || '',
+      notes: p.notes || '',
+      category_id: p.category_id || null,
+      category_ids: p.category_ids || null,
+    });
+  }
+  renderProducts();
+  calculateTotal();
+}
+
+function applyDiscountFieldsToForm(code, amount) {
+  const amt = Math.max(0, parseOrderMoneyValue(amount));
+  const codeNorm = String(code || '').trim().toUpperCase();
+  const discountCode = document.getElementById('discount-code');
+  const discountQuick = document.getElementById('discount-code-quick');
+  const discountAmount = document.getElementById('discount-amount');
+  if (discountCode) discountCode.value = codeNorm;
+  if (discountQuick) discountQuick.value = codeNorm;
+  if (discountAmount) discountAmount.value = String(amt);
+
+  const display = document.getElementById('discount-display');
+  if (display) {
+    display.textContent = amt > 0
+      ? (codeNorm ? `${codeNorm} (-${formatPrice(amt)}đ)` : `Giảm ${formatPrice(amt)}đ`)
+      : 'Chưa áp dụng';
+  }
+  const amountEl = document.getElementById('discount-applied-amount');
+  if (amountEl) amountEl.textContent = amt > 0 ? `-${formatPrice(amt)}đ` : '';
+
+  document.getElementById('discount-applied-bar')?.classList.toggle('hidden', amt <= 0);
+  document.getElementById('discount-entry')?.classList.toggle('hidden', amt > 0);
+  document.getElementById('shopvd-discount-panel')?.classList.toggle('is-applied', amt > 0);
+  document.getElementById('current-discount-badge')?.classList.toggle('hidden', amt <= 0);
+}
+
+function setFormCustomerSource(source) {
+  const value = String(source || '').trim().toLowerCase();
+  document.querySelectorAll('.shopvd-source-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-source') === value);
+  });
+  const input = document.getElementById('customer-source');
+  if (input) input.value = value;
+}
+
+function setFormPaymentFromOrder(order) {
+  const deposit = Math.max(0, parseOrderMoneyValue(order.deposit_amount ?? order.depositAmount));
+  const pm = normalizeFormPaymentMethod(order.payment_method ?? order.paymentMethod);
+  const depositWrapper = document.getElementById('deposit-amount-wrapper');
+  const depositInput = document.getElementById('deposit-amount');
+  const paymentInput = document.getElementById('payment-method');
+
+  document.querySelectorAll('.shopvd-payment-btn').forEach((btn) => btn.classList.remove('active'));
+
+  if (deposit > 0) {
+    document.querySelector('.shopvd-payment-btn[data-payment="deposit"]')?.classList.add('active');
+    depositWrapper?.classList.remove('hidden');
+    if (depositInput) depositInput.value = String(deposit);
+    if (paymentInput) paymentInput.value = pm;
+    return;
+  }
+
+  depositWrapper?.classList.add('hidden');
+  if (depositInput) depositInput.value = '0';
+  if (pm === 'bank_transfer') {
+    document.querySelector('.shopvd-payment-btn[data-payment="bank_transfer"]')?.classList.add('active');
+    if (paymentInput) paymentInput.value = 'bank_transfer';
+  } else {
+    document.querySelector('.shopvd-payment-btn[data-payment="cod"]')?.classList.add('active');
+    if (paymentInput) paymentInput.value = 'cod';
+  }
+}
+
+async function setFormAddressFromOrder(order) {
+  const provinceId = order.province_id != null && order.province_id !== ''
+    ? String(order.province_id).trim()
+    : '';
+  const wardId = order.ward_id != null && order.ward_id !== ''
+    ? String(order.ward_id).trim()
+    : '';
+  const street = String(order.street_address || '').trim();
+  const provinceName = String(order.province_name || '').trim();
+  const wardName = String(order.ward_name || '').trim();
+
+  if (!provinceId) {
+    resetCustomerAddressForm();
+    if (order.address) {
+      const addressInput = document.getElementById('customer-address');
+      if (addressInput) addressInput.value = String(order.address);
+    }
+    return;
+  }
+
+  if (!addressLoaded) {
+    await loadAddressData();
+  }
+
+  const provinceSelect = document.getElementById('customer-province');
+  const wardSelect = document.getElementById('customer-ward');
+  const streetInput = document.getElementById('customer-street');
+  if (!provinceSelect || !wardSelect) return;
+
+  provinceSelect.value = provinceId;
+  const provinceBtn = document.getElementById('province-combobox-btn');
+  const provinceText = document.getElementById('province-combobox-text');
+  if (provinceBtn && provinceText) {
+    provinceBtn.classList.add('selected');
+    provinceText.textContent = provinceName || provinceMap.get(provinceId)?.Name || 'Đã chọn';
+  }
+
+  renderWards(provinceId);
+  renderWardCombobox(provinceId);
+  document.getElementById('ward-combobox-wrapper')?.classList.remove('hidden');
+  const wardBtn = document.getElementById('ward-combobox-btn');
+  if (wardBtn) wardBtn.disabled = false;
+
+  if (wardId) {
+    await new Promise((r) => setTimeout(r, 30));
+    wardSelect.value = wardId;
+    const wardText = document.getElementById('ward-combobox-text');
+    if (wardBtn && wardText) {
+      wardBtn.classList.add('selected');
+      wardText.textContent = wardName || wardMap.get(`${provinceId}-${wardId}`)?.Name || 'Đã chọn';
+    }
+    document.getElementById('customer-street-field')?.classList.remove('hidden');
+  }
+
+  if (streetInput) streetInput.value = street;
+  updateFullAddress();
+
+  // Fallback: nếu generate address trống nhưng DB có address đầy đủ
+  const addressInput = document.getElementById('customer-address');
+  if (addressInput && !addressInput.value.trim() && order.address) {
+    addressInput.value = String(order.address);
+  }
+}
+
+async function hydrateOrderIntoForm(order) {
+  if (!order) return false;
+
+  const nameInput = document.getElementById('customer-name');
+  const phoneInput = document.getElementById('customer-phone');
+  if (nameInput) nameInput.value = String(order.customer_name || '').trim();
+  if (phoneInput) phoneInput.value = sanitizePhoneDigits(order.customer_phone || '');
+
+  await setFormAddressFromOrder(order);
+
+  const cartProducts = parseOrderProductsForExtension(order);
+  replaceCartFromOrderProducts(cartProducts);
+
+  // Ship sau cart để không bị auto-freeship ghi đè
+  const fee = parseOrderMoneyValue(order.shipping_fee);
+  const cost = parseOrderMoneyValue(order.shipping_cost);
+  const freeShip = document.getElementById('free-shipping');
+  if (freeShip) freeShip.checked = fee === 0;
+  setShippingFeeValue(fee, { recalc: false });
+  setShippingCostValue(cost, { recalc: false });
+
+  setFormPaymentFromOrder(order);
+  setFormCustomerSource(order.customer_source || order.customerSource || '');
+
+  const referralInput = document.getElementById('referral-code');
+  if (referralInput) referralInput.value = String(order.referral_code || '').trim();
+
+  applyDiscountFieldsToForm(order.discount_code, order.discount_amount);
+
+  const priority = document.getElementById('is-priority');
+  if (priority) priority.checked = Number(order.is_priority) === 1;
+
+  const status = shopvdNormalizeStatusSlug(order.status);
+  const sendLater = document.getElementById('send-later');
+  const sendLaterFields = document.getElementById('send-later-fields');
+  const plannedInput = document.getElementById('planned-send-time');
+  const isSendLater = status === 'send_later';
+  if (sendLater) sendLater.checked = isSendLater;
+  sendLaterFields?.classList.toggle('hidden', !isSendLater);
+  if (plannedInput) {
+    plannedInput.value = isSendLater ? toDatetimeLocalValue(order.planned_send_at_unix) : '';
+  }
+
+  const notesInput = document.getElementById('order-notes');
+  if (notesInput) notesInput.value = String(order.notes || '');
+
+  clearValidationFieldError('customer-name');
+  clearValidationFieldError('customer-phone');
+  clearValidationFieldError('customer-source');
+  clearValidationFieldError('order-products');
+  updatePancakeNameHint(false);
+  lastAutoFilledCustomerName = String(order.customer_name || '').trim();
+  customerNameUserEdited = true;
+
+  calculateTotal();
+  updateShippingBadgeDisplay();
+  return true;
+}
+
+function resetShopvdOrderFormAfterSave() {
+  document.getElementById('shopvd-order-form')?.reset();
+  resetCustomerAddressForm();
+  resetCustomerSourceSelection();
+  resetPaymentMethodSelection();
+  document.getElementById('product-search') && (document.getElementById('product-search').value = '');
+  updateProductSearchClearBtn();
+  hideSearchProductForm();
+  document.getElementById('product-search-results')?.classList.add('hidden');
+  document.getElementById('send-later-fields')?.classList.add('hidden');
+  setShippingFeeValue(defaultCustomerShippingFee, { recalc: false });
+  setShippingCostValue(defaultActualShippingCost, { recalc: false });
+  document.getElementById('deposit-amount').value = '0';
+  applyDiscountFieldsToForm('', 0);
+  document.getElementById('discount-entry')?.classList.remove('hidden');
+  document.getElementById('discount-quick-status')?.classList.add('hidden');
+  productsData = [];
+  renderProducts();
+  calculateTotal();
+  clearOrderFormValidationOnReset();
+  exitEditOrderMode();
+}
+
+async function startEditSavedOrder(orderDbId) {
+  const id = Number(orderDbId);
+  if (!Number.isFinite(id) || id <= 0 || shopvdEditOrderLoading) return;
+
+  shopvdEditOrderLoading = true;
+  const editBtn = document.querySelector(`.shopvd-edit-order-btn[data-order-id="${id}"]`);
+  editBtn?.classList.add('is-loading');
+  showStatus('⏳ Đang tải đơn để sửa...', 'info', 4000);
+
+  try {
+    if (!addressLoaded) await loadAddressData();
+    if (!allProductsCache.length) {
+      try { await loadProducts(); } catch (_) { /* keep going with order products */ }
+    }
+
+    const order = await fetchOrderById(id);
+    if (!isShopvdOrderEditable(order.status)) {
+      showStatus('⚠️ Đơn này không thể sửa trên extension (đã gửi/hủy)', 'warning', 2800);
+      return;
+    }
+
+    shopvdRestoringDraft = true;
+    try {
+      await hydrateOrderIntoForm(order);
+    } finally {
+      shopvdRestoringDraft = false;
+    }
+
+    shopvdEditingOrder = {
+      dbId: Number(order.id),
+      orderId: String(order.order_id || ''),
+      status: shopvdNormalizeStatusSlug(order.status) || 'pending',
+      orderDate: Number(order.created_at_unix) || null,
+    };
+    syncEditOrderModeUI();
+
+    document.querySelector('.shopvd-address-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showStatus(`✏️ Đã đổ đơn ${shopvdEditingOrder.orderId || '#' + id} vào form — chỉnh rồi bấm Cập nhật`, 'success', 3200);
+  } catch (err) {
+    console.warn('[ShopVD] startEditSavedOrder failed:', err);
+    showStatus(`❌ ${err?.message || 'Không tải được đơn'}`, 'error', 3200);
+  } finally {
+    shopvdEditOrderLoading = false;
+    editBtn?.classList.remove('is-loading');
+  }
+}
+
+function cancelEditSavedOrder() {
+  if (!shopvdEditingOrder) return;
+  exitEditOrderMode();
+  resetShopvdOrderFormAfterSave();
+  showStatus('Đã hủy sửa đơn', 'info', 1800);
+}
+
+async function updateOrder(orderData) {
+  try {
+    setCreateOrderLoading(true);
+
+    const response = await fetch(`${API_BASE_URL}/api/order/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      const savedPhone = sanitizePhoneDigits(orderData.customer?.phone || '');
+      if (savedPhone) {
+        markPhoneAsOrdered(savedPhone);
+        removeUnsavedDraft(savedPhone);
+      }
+      if (orderData.orderDbId) {
+        shopvdOrderDetailCache.delete(Number(orderData.orderDbId));
+      }
+
+      showOrderSuccessModal({
+        orderId: result.orderId || orderData.orderId,
+        customerName: orderData.customer?.name,
+        customerPhone: orderData.customer?.phone,
+        totalAmount: orderData.totalAmount,
+        productCount: (orderData.cart || []).length,
+        paymentMethod: orderData.paymentMethod,
+        updated: true,
+      });
+
+      resetShopvdOrderFormAfterSave();
+      handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
+      schedulePullPendingFromServer(500);
+      showStatus('✅ Đã cập nhật đơn hàng', 'success', 2500);
+    } else {
+      showStatus(`❌ Lỗi: ${result.error || 'Không thể cập nhật đơn'}`, 'error');
+    }
+  } catch (error) {
+    console.error('[ShopVD Extension] Lỗi cập nhật đơn:', error);
+    showStatus(`❌ Lỗi kết nối API: ${error.message}`, 'error');
+  } finally {
+    setCreateOrderLoading(false);
+  }
+}
+
 function setupDbSaveStatusCard() {
   document.getElementById('shopvd-ship-status-refresh')?.addEventListener('click', () => {
     handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
   });
+
+  document.getElementById('shopvd-ship-status')?.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.shopvd-edit-order-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = Number(btn.getAttribute('data-order-id'));
+    if (id > 0) startEditSavedOrder(id);
+  });
+
+  document.getElementById('shopvd-edit-order-cancel')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    cancelEditSavedOrder();
+  });
+
   renderDbSaveStatusCard({ state: 'idle' });
+  syncEditOrderModeUI();
 }
 
 function extractPhoneFromMessageBubble(bubble) {
@@ -3222,11 +4180,8 @@ function extractPhoneFromMessageBubble(bubble) {
 
   const tags = clientMsg.querySelectorAll(PANCAKE_PHONE_TAG_SELECTOR);
   if (tags.length) {
-    const tag = tags[tags.length - 1];
-    const fromTag = sanitizePhoneDigits(tag.textContent || '');
-    if (isValidDraftPhone(fromTag) && !isPlaceholderDraftPhone(fromTag)) return fromTag;
-    const fromId = extractPhoneFromPancakeSpanId(tag);
-    if (fromId) return fromId;
+    const fromTag = extractPhoneFromPhoneTagElement(tags[tags.length - 1]);
+    if (fromTag) return fromTag;
   }
 
   const tel = root.querySelector('a[href^="tel:"]');
@@ -3625,6 +4580,82 @@ async function handleGrabFromMessage(bubble) {
   return parseAndApplyCustomerText(text);
 }
 
+/** Lấy SĐT từ .phone-tag Pancake (text hoặc id span). */
+function extractPhoneFromPhoneTagElement(tag) {
+  if (!tag) return '';
+  const fromTag = sanitizePhoneDigits(tag.textContent || '');
+  if (isValidDraftPhone(fromTag) && !isPlaceholderDraftPhone(fromTag)) {
+    return normalizeDraftPhone(fromTag);
+  }
+  return extractPhoneFromPancakeSpanId(tag) || '';
+}
+
+/**
+ * Click SĐT xanh (.phone-tag) → điền ngay vào #customer-phone.
+ * Không chặn copy clipboard của Pancake; không chạy smart-parse (nhẹ/nhanh).
+ */
+let shopvdLastPhoneTagFill = { phone: '', at: 0 };
+
+function applyPhoneFromPancakeTagClick(phone) {
+  const p = normalizeDraftPhone(phone);
+  if (!isValidDraftPhone(p) || isPlaceholderDraftPhone(p)) return false;
+
+  const phoneInput = document.getElementById('customer-phone');
+  if (!phoneInput) return false;
+
+  const current = sanitizePhoneDigits(phoneInput.value);
+  const unchanged = current === p;
+  if (!unchanged) {
+    phoneInput.value = p;
+  }
+
+  clearValidationFieldError('customer-phone');
+  revalidateFieldIfActive('customer-phone');
+  rememberConversationPhone(getPancakeConversationKey(), p);
+  scheduleMarkCurrentDraftFromForm(100);
+
+  const now = Date.now();
+  const suppressToast = unchanged
+    && shopvdLastPhoneTagFill.phone === p
+    && (now - shopvdLastPhoneTagFill.at) < 2000;
+  shopvdLastPhoneTagFill = { phone: p, at: now };
+
+  if (!suppressToast) {
+    showStatus(unchanged ? `✅ SĐT ${p} đã sẵn sàng` : `✅ Đã điền SĐT ${p}`, 'success', 1500);
+  }
+
+  phoneInput.classList.remove('shopvd-phone-just-filled');
+  // force reflow so animation can replay
+  void phoneInput.offsetWidth;
+  phoneInput.classList.add('shopvd-phone-just-filled');
+  setTimeout(() => phoneInput.classList.remove('shopvd-phone-just-filled'), 700);
+
+  return true;
+}
+
+function setupPancakePhoneTagClickFill() {
+  if (window.__shopvdPhoneTagClickBound) return;
+  window.__shopvdPhoneTagClickBound = true;
+
+  document.addEventListener('click', (e) => {
+    if (!isAllowedPage()) return;
+
+    const el = e.target instanceof Element ? e.target : e.target?.parentElement;
+    if (!el || isInsideShopvdSidebar(el)) return;
+
+    // Nhanh: chỉ quan tâm khi click gần phone-tag
+    const tag = el.closest?.(PANCAKE_PHONE_TAG_SELECTOR);
+    if (!tag) return;
+    if (!isPancakeCustomerPhoneTag(tag)) return;
+
+    const phone = extractPhoneFromPhoneTagElement(tag);
+    if (!phone) return;
+
+    // Không preventDefault — giữ hành vi copy clipboard của Pancake
+    applyPhoneFromPancakeTagClick(phone);
+  }, true);
+}
+
 /** Double-click tin khách → nhận diện SĐT/địa chỉ ngay. */
 function setupPancakeDoubleClickGrab() {
   if (window.__shopvdDblClickGrabBound) return;
@@ -3634,6 +4665,14 @@ function setupPancakeDoubleClickGrab() {
     if (!isAllowedPage()) return;
     if (isInsideShopvdSidebar(e.target)) return;
     if (e.target.closest?.(PANCAKE_GRAB_EXCLUDE_SELECTOR)) return;
+
+    // Double-click đúng vào SĐT xanh → chỉ điền phone (đã xử lý ở click), khỏi grab cả bubble
+    const phoneTag = e.target instanceof Element
+      ? e.target.closest?.(PANCAKE_PHONE_TAG_SELECTOR)
+      : null;
+    if (phoneTag && isPancakeCustomerPhoneTag(phoneTag) && extractPhoneFromPhoneTagElement(phoneTag)) {
+      return;
+    }
 
     const bubble = findPancakeMessageBubble(e.target);
     if (!bubble) return;
@@ -3853,6 +4892,7 @@ function setupPancakeMessageGrab() {
   }
 
   setupPancakeHoverGrabButton();
+  setupPancakePhoneTagClickFill();
   setupPancakeDoubleClickGrab();
 }
 
@@ -5542,12 +6582,13 @@ function setCreateOrderLoading(isLoading) {
   if (isLoading) {
     createBtn.disabled = true;
     createBtn.dataset.originalHtml = createBtn.innerHTML;
+    const loadingLabel = shopvdEditingOrder ? 'Đang cập nhật' : 'Đang tạo đơn';
     createBtn.innerHTML = `
       <svg class="shopvd-btn-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <circle cx="12" cy="12" r="9" stroke-opacity="0.25"/>
         <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/>
       </svg>
-      Đang tạo đơn
+      ${loadingLabel}
     `;
     return;
   }
@@ -5555,8 +6596,11 @@ function setCreateOrderLoading(isLoading) {
   createBtn.disabled = false;
   if (createBtn.dataset.originalHtml) {
     createBtn.innerHTML = createBtn.dataset.originalHtml;
-    delete createBtn.dataset.originalHtml;
+  } else {
+    createBtn.innerHTML = getCreateOrderButtonDefaultHtml(Boolean(shopvdEditingOrder));
   }
+  delete createBtn.dataset.originalHtml;
+  createBtn.classList.toggle('is-edit-mode', Boolean(shopvdEditingOrder));
 }
 
 // Create order via API
@@ -5623,43 +6667,13 @@ async function createOrder(orderData) {
         productCount: (orderData.cart || []).length,
         paymentMethod: orderData.paymentMethod,
       });
-      
-      // Reset form
-      document.getElementById('shopvd-order-form').reset();
-      resetCustomerAddressForm();
-      resetCustomerSourceSelection();
-      resetPaymentMethodSelection();
-      document.getElementById('product-search') && (document.getElementById('product-search').value = '');
-      updateProductSearchClearBtn();
-      hideSearchProductForm();
-      document.getElementById('product-search-results')?.classList.add('hidden');
-      document.getElementById('send-later-fields')?.classList.add('hidden');
-      setShippingFeeValue(defaultCustomerShippingFee, { recalc: false });
-      setShippingCostValue(defaultActualShippingCost, { recalc: false });
-      document.getElementById('deposit-amount').value = '0';
-      document.getElementById('discount-amount').value = '0';
-      document.getElementById('discount-code').value = '';
-      const discountQuickInput = document.getElementById('discount-code-quick');
-      if (discountQuickInput) discountQuickInput.value = '';
-      const discountDisplay = document.getElementById('discount-display');
-      if (discountDisplay) discountDisplay.textContent = 'Chưa áp dụng';
-      document.getElementById('discount-applied-bar')?.classList.add('hidden');
-      document.getElementById('discount-entry')?.classList.remove('hidden');
-      document.getElementById('shopvd-discount-panel')?.classList.remove('is-applied');
-      document.getElementById('discount-quick-status')?.classList.add('hidden');
-      document.getElementById('current-discount-badge')?.classList.add('hidden');
-      productsData = [];
-      renderProducts();
-      calculateTotal();
-      clearOrderFormValidationOnReset();
+
+      resetShopvdOrderFormAfterSave();
 
       lastPancakeConversationKey = '';
       customerNameUserEdited = false;
       scheduleUnsavedDraftUi(80);
       schedulePancakeCustomerNameSync(300);
-
-      // Open shopvd.store in new tab (optional)
-      // window.open(`https://shopvd.store/admin/index.html`, '_blank');
     } else {
       console.warn('[ShopVD Extension] Tạo đơn thất bại:', result.error || result);
       showStatus(`❌ Lỗi: ${result.error || 'Không thể tạo đơn'}`, 'error');
@@ -6758,8 +7772,9 @@ function setupEventListeners() {
       return;
     }
 
-    // Handle send later
-    let status = 'pending';
+    // Handle send later / giữ status khi sửa đơn
+    const editing = shopvdEditingOrder;
+    let status = editing?.status || 'pending';
     let plannedSendAtUnix = null;
     if (sendLater) {
       if (!plannedSendTime) {
@@ -6768,6 +7783,8 @@ function setupEventListeners() {
       }
       status = 'send_later';
       plannedSendAtUnix = new Date(plannedSendTime).getTime();
+    } else if (status === 'send_later') {
+      status = 'pending';
     }
 
     // Giữ ID dạng string tree_2 ("01", "00329") — không parseInt (tránh 1.0 / 329.0)
@@ -6780,8 +7797,8 @@ function setupEventListeners() {
 
     // Build order data
     const orderData = {
-      orderId: 'DH' + Date.now(),
-      orderDate: Date.now(),
+      orderId: editing?.orderId || ('DH' + Date.now()),
+      orderDate: editing?.orderDate || Date.now(),
       customer: {
         name: customerName,
         phone: customerPhone,
@@ -6807,9 +7824,7 @@ function setupEventListeners() {
       is_priority: isPriority ? 1 : 0,
       plannedSendAtUnix: plannedSendAtUnix,
       planned_send_at_unix: plannedSendAtUnix,
-      acknowledgeDuplicate: true, // Bỏ qua check trùng vì đã parse từ chat
       notes: notes || null,
-      // Address 2 cấp — ID string + tên (export SPX / báo cáo không phụ thuộc tree client)
       province_id: provinceIdStr || null,
       province_name: provinceName,
       ward_id: wardIdStr || null,
@@ -6817,7 +7832,15 @@ function setupEventListeners() {
       street_address: streetAddress || null
     };
 
-    await createOrder(orderData);
+    if (editing?.dbId) {
+      await updateOrder({
+        ...orderData,
+        orderDbId: editing.dbId,
+      });
+    } else {
+      orderData.acknowledgeDuplicate = true;
+      await createOrder(orderData);
+    }
   });
 }
 
@@ -7985,10 +9008,20 @@ function setupUnsavedDraftSystem() {
     if (document.visibilityState === 'visible' && shopvdUnsavedPanelOpen) {
       schedulePullPendingFromServer(100);
     }
+    if (document.visibilityState === 'visible') {
+      schedulePullConvPhonesFromServer(400);
+    }
   });
 
   scheduleUnsavedDraftUi(500);
   }
+
+  void initConvPhoneMapWithServerSync().then(() => {
+    shopvdDbLog('conv-phone-map:loaded', {
+      count: Object.keys(shopvdPersistedConvPhones).length,
+      syncSince: shopvdConvPhoneSyncSince,
+    });
+  });
 
   loadDraftsFromStorage().then(() => {
     pruneInvalidDraftsFromMap();
@@ -8173,10 +9206,24 @@ function isActivePancakeConversationItem(el) {
 
 function getStableConversationItemKey(item) {
   if (!item) return '';
-  const stable = item.getAttribute('data-id')
-    || item.getAttribute('data-conversation-id')
-    || item.getAttribute('id');
-  if (stable) return String(stable).trim();
+
+  // HTML Pancake: wrapper id="page_thread" + inner .conversation-list-item id="page_thread__N"
+  const candidates = [
+    item.getAttribute('data-id'),
+    item.getAttribute('data-conversation-id'),
+    item.getAttribute('id'),
+    item.parentElement?.getAttribute('id'),
+    item.closest?.('[id*="_"]')?.getAttribute('id'),
+  ];
+
+  for (const raw of candidates) {
+    const n = normalizePancakeConversationId(raw);
+    if (/^\d+_\d+$/.test(n)) return n;
+  }
+  for (const raw of candidates) {
+    const n = normalizePancakeConversationId(raw);
+    if (n) return n;
+  }
 
   // Không dùng full textContent (có snippet tin cuối → đổi khi chat cập nhật)
   const nameEl = item.querySelector?.(
@@ -8257,6 +9304,7 @@ function syncPancakeCustomerName(force = false) {
       }
     }
 
+    if (shopvdEditingOrder) exitEditOrderMode();
     clearCustomerInfoForm();
     clearAllConversationPhoneCache();
     clearDbStatusSettled();
@@ -8419,6 +9467,8 @@ function init() {
     removeSidebarIfPresent();
     return;
   }
+
+  void initConvPhoneMapWithServerSync();
 
   const existing = document.getElementById('shopvd-sidebar');
   const staleSidebar = existing && existing.dataset.shopvdVersion !== SHOPVD_EXT_VERSION;

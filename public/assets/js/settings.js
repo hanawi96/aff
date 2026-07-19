@@ -1000,7 +1000,12 @@ async function createBackup() {
         const response = await fetch(`${CONFIG.API_URL}?action=createBackup&timestamp=${Date.now()}`);
         
         if (!response.ok) {
-            throw new Error('Không thể tạo backup');
+            let detail = 'Không thể tạo backup';
+            try {
+                const errBody = await response.json();
+                if (errBody?.error) detail = errBody.error;
+            } catch (_) { /* body có thể là file/empty */ }
+            throw new Error(detail);
         }
         
         // Get filename from response headers

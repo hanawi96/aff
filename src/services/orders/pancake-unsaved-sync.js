@@ -76,6 +76,103 @@ function extractPhonesFromText(text, intoSet) {
     for (const m of matches) addNormalizedPhone(intoSet, m);
 }
 
+/**
+ * MessageCustomer / page_customer — SĐT chính thức từ profile khách.
+ * Ưu tiên: recent_phone_numbers → shop_customer_addresses.phone_number → phone field lẻ.
+ */
+function extractPhonesFromMessageCustomer(customer, intoSet) {
+    if (!customer || typeof customer !== 'object') return;
+    addNormalizedPhone(intoSet, customer.phone_number || customer.phone || customer.mobile);
+
+    const recent = customer.recent_phone_numbers || customer.phone_numbers || customer.phones;
+    if (Array.isArray(recent)) {
+        for (const item of recent) {
+            addNormalizedPhone(intoSet, item?.phone_number || item?.captured || item);
+        }
+    }
+
+    const addresses = customer.shop_customer_addresses || customer.addresses;
+    if (Array.isArray(addresses)) {
+        for (const addr of addresses) {
+            addNormalizedPhone(intoSet, addr?.phone_number || addr?.phone || addr?.mobile);
+        }
+    }
+}
+
+/** Lấy MessageCustomer từ response Get messages / Get conversation. */
+function collectMessageCustomersFromPayload(data) {
+    if (!data || typeof data !== 'object') return [];
+    const bags = [
+        data.customer,
+        data.page_customer,
+        data.conversation?.page_customer,
+        data.conversation?.customer,
+        ...(Array.isArray(data.customers) ? data.customers : []),
+        ...(Array.isArray(data.conversation?.customers) ? data.conversation.customers : []),
+    ].filter(Boolean);
+    // Dedup theo id / fb_id / customer_id
+    const seen = new Set();
+    const out = [];
+    for (const c of bags) {
+        if (!c || typeof c !== 'object') continue;
+        const key = String(c.id || c.fb_id || c.customer_id || c.global_id || JSON.stringify(c).slice(0, 80));
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(c);
+    }
+    return out;
+}
+
+/** Thêm SĐT từ mảng string hoặc object { phone_number }. */
+function addPhonesFromList(list, intoSet) {
+    if (!Array.isArray(list)) return;
+    for (const item of list) {
+        if (item == null) continue;
+        if (typeof item === 'string' || typeof item === 'number') {
+            addNormalizedPhone(intoSet, item);
+            continue;
+        }
+        if (typeof item === 'object') {
+            addNormalizedPhone(intoSet, item.phone_number || item.captured || item.phone || item.number);
+        }
+    }
+}
+
+/**
+ * MessagesResponse — SĐT chính thức ở root (không cần quét text tin).
+ * Thứ tự thêm: profile → root lists → conv_* (ưu tiên cao hơn khi chọn preferred = phần tử cuối).
+ */
+function extractPhonesFromMessagesResponse(data) {
+    const apiPhones = new Set();
+    if (!data || typeof data !== 'object') {
+        return { apiPhones: [], phones: [], customerCount: 0, customers: [] };
+    }
+
+    const customers = collectMessageCustomersFromPayload(data);
+    for (const customer of customers) {
+        extractPhonesFromMessageCustomer(customer, apiPhones);
+    }
+
+    addPhonesFromList(data.recent_phone_numbers, apiPhones);
+    addPhonesFromList(data.available_for_report_phone_numbers, apiPhones);
+    addPhonesFromList(data.conv_phone_numbers, apiPhones);
+    addPhonesFromList(data.conv_recent_phone_numbers, apiPhones);
+
+    if (data.reports_by_phone && typeof data.reports_by_phone === 'object' && !Array.isArray(data.reports_by_phone)) {
+        for (const key of Object.keys(data.reports_by_phone)) {
+            addNormalizedPhone(apiPhones, key);
+        }
+    }
+
+    return {
+        apiPhones: [...apiPhones],
+        phones: [...apiPhones],
+        customerCount: customers.length,
+        customers,
+        convFromName: data.conv_from?.name || customers[0]?.name || '',
+    };
+}
+
 function extractPhonesFromConversation(conv) {
     const apiPhones = new Set();
     const snippetPhones = new Set();
@@ -85,21 +182,16 @@ function extractPhonesFromConversation(conv) {
         addNormalizedPhone(apiPhones, item?.phone_number || item?.captured || item);
     }
 
-    // Một số bản ghi chỉ gắn SĐT trên customer / page_customer cho đến khi mở chat
+    // Conversation + MessageCustomer (page_customer / customers)
     const customerBags = [
         conv?.from,
         conv?.page_customer,
+        conv?.customer,
         ...(Array.isArray(conv?.customers) ? conv.customers : []),
     ].filter(Boolean);
 
     for (const customer of customerBags) {
-        addNormalizedPhone(apiPhones, customer.phone_number || customer.phone || customer.mobile);
-        const nested = customer.phone_numbers || customer.recent_phone_numbers || customer.phones;
-        if (Array.isArray(nested)) {
-            for (const item of nested) {
-                addNormalizedPhone(apiPhones, item?.phone_number || item?.captured || item);
-            }
-        }
+        extractPhonesFromMessageCustomer(customer, apiPhones);
     }
 
     extractPhonesFromText(conv?.snippet, snippetPhones);
@@ -163,30 +255,53 @@ function extractMessageText(msg) {
     return '';
 }
 
+function extractPhonesFromPhoneInfoList(phoneInfoList, intoSet) {
+    if (!Array.isArray(phoneInfoList)) return;
+    for (const item of phoneInfoList) {
+        if (item == null) continue;
+        if (typeof item === 'string' || typeof item === 'number') {
+            addNormalizedPhone(intoSet, item);
+            continue;
+        }
+        if (typeof item !== 'object') continue;
+        addNormalizedPhone(
+            intoSet,
+            item.phone_number
+            || item.phoneNumber
+            || item.captured
+            || item.number
+            || item.phone
+            || item.value
+            || item.text
+        );
+    }
+}
+
 function extractPhonesAndAddressFromMessages(messages) {
     const phones = new Set();
+    const apiPhones = new Set();
     let bestAddress = '';
     const list = Array.isArray(messages) ? messages : [];
 
     for (const msg of list) {
-        // Field SĐT trực tiếp trên message (Pancake đôi khi gắn riêng)
-        addNormalizedPhone(phones, msg?.phone_number || msg?.phone || msg?.mobile);
+        // Schema chính thức: phone_info[] + has_phone
+        extractPhonesFromPhoneInfoList(msg?.phone_info, apiPhones);
+
+        // Field legacy / biến thể
+        addNormalizedPhone(apiPhones, msg?.phone_number || msg?.phone || msg?.mobile);
         if (Array.isArray(msg?.recent_phone_numbers)) {
-            for (const item of msg.recent_phone_numbers) {
-                addNormalizedPhone(phones, item?.phone_number || item?.captured || item);
-            }
+            extractPhonesFromPhoneInfoList(msg.recent_phone_numbers, apiPhones);
         }
         if (Array.isArray(msg?.phone_numbers)) {
-            for (const item of msg.phone_numbers) {
-                addNormalizedPhone(phones, item?.phone_number || item?.captured || item);
-            }
+            extractPhonesFromPhoneInfoList(msg.phone_numbers, apiPhones);
         }
 
         const text = extractMessageText(msg);
         if (text) extractPhonesFromText(text, phones);
 
-        // Quét object message lồng (tránh page_id)
+        // Quét object message lồng (tránh page_id) — ưu tiên phone_info
         collectPhonesFromValue({
+            phone_info: msg?.phone_info,
             message: msg?.message,
             text: msg?.text,
             original_message: msg?.original_message,
@@ -208,7 +323,13 @@ function extractPhonesAndAddressFromMessages(messages) {
         }
     }
 
-    return { phones: [...phones], address: bestAddress };
+    // apiPhones (phone_info) ưu tiên hơn regex từ text
+    const merged = [...apiPhones];
+    for (const p of phones) {
+        if (!merged.includes(p)) merged.push(p);
+    }
+
+    return { phones: merged, apiPhones: [...apiPhones], address: bestAddress };
 }
 
 /**
@@ -441,6 +562,9 @@ function collectPhonesFromValue(value, intoSet, depth = 0) {
         const preferKeys = [
             'original_message', 'message', 'text', 'snippet', 'content', 'body',
             'phone_number', 'phone', 'mobile', 'recent_phone_numbers', 'phone_numbers',
+            'phone_info', 'shop_customer_addresses', 'addresses',
+            'conv_phone_numbers', 'conv_recent_phone_numbers',
+            'available_for_report_phone_numbers', 'reports_by_phone',
             'customers', 'customer', 'page_customer', 'from', 'sender', 'psid',
         ];
         for (const key of preferKeys) {
@@ -488,17 +612,48 @@ async function enrichConversationPhonesFromMessages(pageId, token, conv, phoneIn
     try {
         const data = await fetchRecentMessages(pageId, token, conversationId);
         const messages = normalizeMessagesPayload(data);
-        const extracted = extractPhonesAndAddressFromMessages(messages);
 
-        // Fallback có kiểm soát: field tin nhắn/SĐT/customer — tránh stringify cả response
+        // 1) MessagesResponse root — conv_phone_numbers / conv_recent_phone_numbers / customers
+        const fromResponse = extractPhonesFromMessagesResponse(data);
+        const responseApiPhones = fromResponse.apiPhones.filter((p) => !isFalsePositivePhone(p, pageId));
+
+        // 2) phone_info / text trên từng message
+        const extracted = extractPhonesAndAddressFromMessages(messages);
+        extracted.apiPhones = extracted.apiPhones.filter((p) => !isFalsePositivePhone(p, pageId));
+        extracted.phones = extracted.phones.filter((p) => !isFalsePositivePhone(p, pageId));
+
+        // Merge: response snapshot trước, message fields sau (preferred = phần tử cuối)
+        for (const phone of responseApiPhones) {
+            if (!extracted.apiPhones.includes(phone)) extracted.apiPhones.unshift(phone);
+            if (!extracted.phones.includes(phone)) extracted.phones.unshift(phone);
+        }
+
+        // Địa chỉ từ shop_customer_addresses nếu tin chưa có
+        if (!extracted.address && fromResponse.customers?.length) {
+            for (const customer of fromResponse.customers) {
+                const addrs = customer.shop_customer_addresses || customer.addresses;
+                if (!Array.isArray(addrs)) continue;
+                for (const addr of addrs) {
+                    const full = String(addr?.full_address || addr?.address || '').trim();
+                    if (full.length > (extracted.address || '').length) {
+                        extracted.address = full.slice(0, 220);
+                    }
+                }
+            }
+        }
+
+        // Fallback có kiểm soát — chỉ khi chưa có SĐT chính thức
         if (!extracted.phones.length) {
             const safePhones = new Set();
-            collectPhonesFromValue(data, safePhones);
-            collectPhonesFromValue(data?.customers, safePhones);
-            collectPhonesFromValue(data?.conversation, safePhones);
-            collectPhonesFromValue(messages, safePhones);
+            collectPhonesFromValue({
+                recent_phone_numbers: data?.recent_phone_numbers,
+                conv_phone_numbers: data?.conv_phone_numbers,
+                conv_recent_phone_numbers: data?.conv_recent_phone_numbers,
+                available_for_report_phone_numbers: data?.available_for_report_phone_numbers,
+                customers: data?.customers,
+                messages,
+            }, safePhones);
 
-            // Chỉ scrub JSON khi có tin đánh dấu has_phone (tránh bắt số từ Botcake greeting)
             const anyMsgHasPhone = messages.some((m) => m?.has_phone === true || m?.has_phone === 1);
             if (anyMsgHasPhone) {
                 try {
@@ -515,39 +670,35 @@ async function enrichConversationPhonesFromMessages(pageId, token, conv, phoneIn
             for (const phone of safePhones) {
                 if (!isFalsePositivePhone(phone, pageId)) extracted.phones.push(phone);
             }
-        } else {
-            extracted.phones = extracted.phones.filter((p) => !isFalsePositivePhone(p, pageId));
         }
 
         if (!extracted.phones.length) {
             stats.messageLookupEmpty = (stats.messageLookupEmpty || 0) + 1;
-            const samples = messages.slice(0, 6).map((m) => {
-                const rich = m?.rich_message;
-                return {
-                    has_phone: m?.has_phone ?? null,
-                    type: m?.type ?? null,
-                    messageType: typeof m?.message,
-                    messageRaw: typeof m?.message === 'string' ? String(m.message).slice(0, 180) : null,
-                    messageKeys: m?.message && typeof m.message === 'object' ? Object.keys(m.message).slice(0, 15) : null,
-                    richType: rich == null ? null : typeof rich,
-                    richKeys: rich && typeof rich === 'object' ? Object.keys(rich).slice(0, 15) : null,
-                    richPreview: typeof rich === 'string' ? rich.slice(0, 180) : null,
-                    attachmentCount: Array.isArray(m?.attachments) ? m.attachments.length : 0,
-                    attachment0Keys: Array.isArray(m?.attachments) && m.attachments[0] && typeof m.attachments[0] === 'object'
-                        ? Object.keys(m.attachments[0]).slice(0, 15)
-                        : null,
-                    fromKeys: m?.from && typeof m.from === 'object' ? Object.keys(m.from).slice(0, 15) : null,
-                };
-            });
+            const responsePhoneSnapshot = {
+                recent_phone_numbers: Array.isArray(data?.recent_phone_numbers) ? data.recent_phone_numbers.slice(0, 5) : null,
+                conv_phone_numbers: Array.isArray(data?.conv_phone_numbers) ? data.conv_phone_numbers.slice(0, 5) : null,
+                conv_recent_phone_numbers: Array.isArray(data?.conv_recent_phone_numbers)
+                    ? data.conv_recent_phone_numbers.slice(0, 3)
+                    : null,
+                customersCount: Array.isArray(data?.customers) ? data.customers.length : 0,
+                responseKeys: Object.keys(data || {}).slice(0, 30),
+            };
+            const samples = messages.slice(0, 6).map((m) => ({
+                has_phone: m?.has_phone ?? null,
+                phone_info: Array.isArray(m?.phone_info) ? m.phone_info.slice(0, 3) : null,
+                type: m?.type ?? null,
+                messageRaw: typeof m?.message === 'string' ? String(m.message).slice(0, 120) : null,
+            }));
             return {
                 ...phoneInfo,
                 needsMessageLookup: false,
                 messageCount: messages.length,
-                messageSampleKeys: messages[0] ? Object.keys(messages[0]).slice(0, 25) : [],
-                responseKeys: Object.keys(data || {}).slice(0, 25),
-                usedConversationId: data?.__usedConversationId || conversationId,
+                customerCount: fromResponse.customerCount,
+                responseKeys: responsePhoneSnapshot.responseKeys,
+                usedConversationId: data?.__usedConversationId || data?.conversation_id || conversationId,
                 sampleHasPhone: samples,
-                sampleHasPhoneJson: JSON.stringify(samples).slice(0, 3500),
+                responsePhoneSnapshot,
+                sampleHasPhoneJson: JSON.stringify({ responsePhoneSnapshot, samples }).slice(0, 3500),
             };
         }
 
@@ -555,14 +706,21 @@ async function enrichConversationPhonesFromMessages(pageId, token, conv, phoneIn
             ...(phoneInfo.phones || []).filter((p) => !isFalsePositivePhone(p, pageId)),
             ...extracted.phones,
         ]);
+        const mergedApi = new Set([
+            ...(phoneInfo.apiPhones || []).filter((p) => !isFalsePositivePhone(p, pageId)),
+            ...responseApiPhones,
+            ...(extracted.apiPhones || []),
+        ]);
         return {
             ...phoneInfo,
             phones: [...merged],
-            apiPhones: [...new Set([...(phoneInfo.apiPhones || []), ...extracted.phones])],
-            hasApiPhones: true,
+            apiPhones: [...mergedApi],
+            hasApiPhones: mergedApi.size > 0 || Boolean(phoneInfo.hasPhoneFlag),
             needsMessageLookup: false,
             addressFromMessages: extracted.address || '',
             messageCount: messages.length,
+            customerCount: fromResponse.customerCount,
+            convFromName: fromResponse.convFromName || '',
         };
     } catch (err) {
         console.warn('[pancake-sync] message lookup failed:', conversationId, err?.message || err);
@@ -1188,6 +1346,188 @@ export async function handleSyncPancakeUnsaved(env, corsHeaders, options = {}) {
         return jsonResponse(result, status, corsHeaders);
     } catch (error) {
         console.error('[pancake-sync] handler error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/** Chuẩn hoá id hội thoại từ DOM (pageId_psid / psid / …__N) */
+function normalizeConversationIdInput(raw) {
+    let s = String(raw || '').trim();
+    if (!s) return '';
+    s = s.replace(/__\d+$/, '');
+    return s;
+}
+
+function buildConversationIdVariants(raw, pageId) {
+    const n = normalizeConversationIdInput(raw);
+    const variants = [];
+    const push = (v) => {
+        const x = String(v || '').trim();
+        if (x && !variants.includes(x)) variants.push(x);
+    };
+    push(n);
+    if (n.includes('_')) {
+        const suffix = n.split('_').slice(1).join('_');
+        push(suffix);
+        // pageId_psid chuẩn
+        if (pageId && /^\d+$/.test(suffix)) push(`${pageId}_${suffix}`);
+    } else if (/^\d+$/.test(n) && pageId) {
+        push(`${pageId}_${n}`);
+    }
+    return variants;
+}
+
+function toStorageConversationId(raw, pageId) {
+    const n = normalizeConversationIdInput(raw);
+    if (/^\d+_\d+$/.test(n)) return n;
+    if (/^\d+$/.test(n) && pageId) return `${pageId}_${n}`;
+    return n;
+}
+
+/**
+ * GET một conversation (nếu API hỗ trợ). Fail → null, không throw.
+ */
+async function fetchSingleConversation(pageId, token, conversationId) {
+    const url = new URL(
+        `${PANCAKE_API_BASE}/pages/${encodeURIComponent(pageId)}/conversations/${encodeURIComponent(conversationId)}`
+    );
+    url.searchParams.set('page_access_token', token);
+
+    try {
+        const res = await fetch(url.toString(), {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+        if (res.status === 429) {
+            await sleep(900);
+            return null;
+        }
+        if (!res.ok) return null;
+        const data = await res.json();
+        // Payload có thể bọc { conversation } hoặc trả thẳng object
+        const conv = data?.conversation || data?.data || data;
+        if (conv && typeof conv === 'object' && (conv.id || conv.recent_phone_numbers || conv.has_phone != null)) {
+            return conv;
+        }
+        return null;
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Tra SĐT theo conversation id (DOM/API) — dùng khi CTV mở chat.
+ * Ưu tiên recent_phone_numbers; thiếu thì đọc messages gần đây.
+ *
+ * @returns {{ ok, phone, phones, storageId, source, hasPhone, name, error? }}
+ */
+export async function lookupPhoneByConversationId(env, conversationIdRaw) {
+    const { pageId, token, ok } = getPancakeConfig(env);
+    if (!ok) {
+        return { ok: false, error: 'Thiếu PANCAKE_PAGE_ID hoặc PANCAKE_PAGE_ACCESS_TOKEN' };
+    }
+
+    const variants = buildConversationIdVariants(conversationIdRaw, pageId);
+    if (!variants.length) {
+        return { ok: false, error: 'conversationId không hợp lệ' };
+    }
+
+    let conv = null;
+    let usedId = variants[0];
+    for (const id of variants) {
+        conv = await fetchSingleConversation(pageId, token, id);
+        if (conv) {
+            usedId = String(conv.id || id);
+            break;
+        }
+    }
+
+    let phoneInfo = conv
+        ? extractPhonesFromConversation(conv)
+        : {
+            apiPhones: [],
+            snippetPhones: [],
+            phones: [],
+            hasPhoneFlag: true, // chưa có conv → thử messages
+            hasApiPhones: false,
+            needsMessageLookup: true,
+        };
+
+    // Lọc false positive sớm
+    phoneInfo.phones = (phoneInfo.phones || []).filter((p) => !isFalsePositivePhone(p, pageId));
+    phoneInfo.apiPhones = (phoneInfo.apiPhones || []).filter((p) => !isFalsePositivePhone(p, pageId));
+
+    if (!phoneInfo.phones.length) {
+        const stats = { messageLookups: 0, messageLookupEmpty: 0, messageLookupSkipped: 0 };
+        const fakeConv = conv || { id: usedId, has_phone: true };
+        phoneInfo = await enrichConversationPhonesFromMessages(
+            pageId,
+            token,
+            fakeConv,
+            { ...phoneInfo, phones: phoneInfo.phones || [], needsMessageLookup: true },
+            stats
+        );
+        phoneInfo.phones = (phoneInfo.phones || []).filter((p) => !isFalsePositivePhone(p, pageId));
+    }
+
+    // Ưu tiên số từ API field, sau đó số cuối trong list (thường mới hơn)
+    const preferred = phoneInfo.apiPhones?.length
+        ? phoneInfo.apiPhones[phoneInfo.apiPhones.length - 1]
+        : (phoneInfo.phones?.length ? phoneInfo.phones[phoneInfo.phones.length - 1] : '');
+
+    const storageId = toStorageConversationId(
+        /^\d+_\d+$/.test(normalizeConversationIdInput(usedId)) ? usedId : variants.find((v) => /^\d+_\d+$/.test(v)) || usedId,
+        pageId
+    );
+
+    return {
+        ok: true,
+        phone: preferred || '',
+        phones: phoneInfo.phones || [],
+        storageId: /^\d+_\d+$/.test(storageId) ? storageId : '',
+        source: phoneInfo.apiPhones?.length ? 'pancake-api' : (preferred ? 'pancake-messages' : 'pancake-empty'),
+        hasPhone: Boolean(phoneInfo.hasPhoneFlag || preferred),
+        name: conversationDisplayName(conv) || phoneInfo.convFromName || '',
+        conversationId: usedId,
+    };
+}
+
+export async function handleGetPancakeConversationPhone(rawId, env, corsHeaders) {
+    try {
+        const result = await lookupPhoneByConversationId(env, rawId);
+        if (!result.ok) {
+            const status = result.error?.includes('Thiếu') ? 400 : 502;
+            return jsonResponse({ success: false, error: result.error }, status, corsHeaders);
+        }
+
+        // Persist map server khi có SĐT + storageId chuẩn
+        if (result.phone && result.storageId) {
+            try {
+                const { upsertConvPhoneCore } = await import('./pancake-conv-phone-service.js');
+                await upsertConvPhoneCore(env, {
+                    conversationId: result.storageId,
+                    phone: result.phone,
+                    source: result.source || 'pancake-api',
+                    updatedAt: Date.now(),
+                });
+            } catch (err) {
+                console.warn('[conv-phone] persist after lookup failed:', err?.message || err);
+            }
+        }
+
+        return jsonResponse({
+            success: true,
+            found: Boolean(result.phone),
+            phone: result.phone || null,
+            phones: result.phones || [],
+            conversationId: result.conversationId || null,
+            storageId: result.storageId || null,
+            source: result.source,
+            hasPhone: result.hasPhone,
+            name: result.name || null,
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('[conv-phone] lookup handler error:', error);
         return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
     }
 }

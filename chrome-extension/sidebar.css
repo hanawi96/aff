@@ -293,6 +293,96 @@
   white-space: nowrap;
 }
 
+.shopvd-edit-order-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #fff;
+  color: #15803d;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.shopvd-edit-order-btn:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.shopvd-edit-order-btn:active {
+  transform: translateY(1px);
+}
+
+.shopvd-edit-order-btn.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.shopvd-edit-order-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.shopvd-edit-order-banner.hidden {
+  display: none !important;
+}
+
+.shopvd-edit-order-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shopvd-edit-order-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  flex-shrink: 0;
+}
+
+#shopvd-edit-order-code {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #78350f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopvd-edit-order-cancel {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #fcd34d;
+  border-radius: 7px;
+  background: #fff;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shopvd-edit-order-cancel:hover {
+  background: #fffbeb;
+}
+
 .shopvd-ship-detail {
   display: flex;
   align-items: center;
@@ -824,6 +914,15 @@
   box-shadow: none;
 }
 
+.shopvd-sticky-create-btn.is-edit-mode {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.35);
+}
+
+.shopvd-sticky-create-btn.is-edit-mode:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+}
+
 #shopvd-sidebar.collapsed .shopvd-sticky-footer {
   display: none;
 }
@@ -1122,6 +1221,14 @@
   border-color: #6366f1;
   background: white;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
+/* Flash nhẹ khi điền SĐT từ phone-tag Pancake */
+#customer-phone.shopvd-phone-just-filled {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .shopvd-form-group textarea {

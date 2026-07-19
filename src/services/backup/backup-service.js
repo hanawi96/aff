@@ -20,28 +20,30 @@ async function getAllTables(DB) {
 }
 
 /**
- * Get table schema (CREATE TABLE statement)
+ * Lấy name + CREATE TABLE trong 1 query (tiết kiệm subrequest Workers).
+ * Tránh 1 query schema / bảng — createBackup dễ vượt limit 50 subrequest.
  */
-async function getTableSchema(DB, tableName) {
+async function getAllTablesWithSchema(DB) {
     const result = await DB.prepare(`
-        SELECT sql FROM sqlite_master 
-        WHERE type='table' AND name = ?
-    `).bind(tableName).first();
-    
-    return result ? result.sql : null;
+        SELECT name, sql FROM sqlite_master 
+        WHERE type='table' 
+        AND name NOT LIKE 'sqlite_%'
+        AND name NOT LIKE '_litestream_%'
+        ORDER BY name
+    `).all();
+
+    return (result.results || []).map((row) => ({
+        name: row.name,
+        schema: row.sql || null,
+    }));
 }
 
 /**
  * Get all data from a table
  */
 async function getTableData(DB, tableName) {
-    try {
-        const result = await DB.prepare(`SELECT * FROM ${tableName}`).all();
-        return result.results || [];
-    } catch (error) {
-        console.error(`Error getting data from ${tableName}:`, error);
-        return [];
-    }
+    const result = await DB.prepare(`SELECT * FROM ${tableName}`).all();
+    return result.results || [];
 }
 
 /**
@@ -78,9 +80,10 @@ export async function createDatabaseBackup(env, corsHeaders) {
         
         console.log('🔄 Starting database backup...');
         
-        // Get all tables
-        const tables = await getAllTables(DB);
-        console.log(`📊 Found ${tables.length} tables:`, tables);
+        // 1 query lấy toàn bộ schema — mỗi bảng chỉ còn 1 SELECT data
+        const tables = await getAllTablesWithSchema(DB);
+        const tableNames = tables.map((t) => t.name);
+        console.log(`📊 Found ${tables.length} tables:`, tableNames);
         
         // Build SQL backup content
         let sqlContent = [];
@@ -97,8 +100,8 @@ export async function createDatabaseBackup(env, corsHeaders) {
         
         let totalRows = 0;
         
-        // Export each table
-        for (const tableName of tables) {
+        // Export each table (schema đã có sẵn — không query lại)
+        for (const { name: tableName, schema } of tables) {
             console.log(`📦 Exporting table: ${tableName}`);
             
             sqlContent.push('');
@@ -107,8 +110,6 @@ export async function createDatabaseBackup(env, corsHeaders) {
             sqlContent.push(`-- ============================================`);
             sqlContent.push('');
             
-            // Get schema
-            const schema = await getTableSchema(DB, tableName);
             if (schema) {
                 sqlContent.push(`-- Schema`);
                 sqlContent.push(`DROP TABLE IF EXISTS ${tableName};`);
@@ -116,7 +117,6 @@ export async function createDatabaseBackup(env, corsHeaders) {
                 sqlContent.push('');
             }
             
-            // Get data
             const rows = await getTableData(DB, tableName);
             
             if (rows.length > 0) {
@@ -149,18 +149,16 @@ export async function createDatabaseBackup(env, corsHeaders) {
         const dateStr = new Date(now).toISOString().replace(/[:.]/g, '-').slice(0, -5);
         const filename = `shopvd_backup_${dateStr}.sql`;
         const filePath = `backups/${now}_${filename}`;
+        let r2Uploaded = false;
         
         // ============================================
-        // UPLOAD TO R2 STORAGE (Parallel operation)
+        // UPLOAD TO R2 STORAGE (không chặn download nếu fail)
         // ============================================
         try {
             console.log(`☁️ Uploading to R2: ${filePath}`);
             
-            // Convert SQL string to buffer
             const fileBuffer = new TextEncoder().encode(finalSQL);
             const fileSize = fileBuffer.byteLength;
-            
-            // Upload to R2 (use existing R2_BUCKET or R2_EXCEL_BUCKET)
             const r2Bucket = env.R2_BUCKET || env.R2_EXCEL_BUCKET;
             
             if (r2Bucket) {
@@ -170,15 +168,14 @@ export async function createDatabaseBackup(env, corsHeaders) {
                         cacheControl: 'private, max-age=31536000',
                     },
                     customMetadata: {
-                        'backup-tables': tables.length.toString(),
-                        'backup-rows': totalRows.toString(),
+                        'backup-tables': String(tables.length),
+                        'backup-rows': String(totalRows),
                         'backup-date': dateStr,
                     }
                 });
                 
                 console.log(`✅ R2 upload successful: ${fileSize} bytes`);
                 
-                // Save metadata to database
                 await DB.prepare(`
                     INSERT INTO backup_history 
                     (created_at, file_name, file_path, file_size, tables_count, rows_count, status)
@@ -192,13 +189,13 @@ export async function createDatabaseBackup(env, corsHeaders) {
                     totalRows
                 ).run();
                 
+                r2Uploaded = true;
                 console.log(`✅ Backup metadata saved to database`);
             } else {
                 console.warn('⚠️ R2 bucket not configured, skipping upload');
             }
         } catch (uploadError) {
             console.error('❌ R2 upload error (continuing with download):', uploadError);
-            // Don't fail the entire backup if R2 upload fails
         }
         
         // ============================================
@@ -210,10 +207,10 @@ export async function createDatabaseBackup(env, corsHeaders) {
                 ...corsHeaders,
                 'Content-Type': 'application/sql; charset=utf-8',
                 'Content-Disposition': `attachment; filename="${filename}"`,
-                'X-Backup-Tables': tables.length.toString(),
-                'X-Backup-Rows': totalRows.toString(),
-                'X-Backup-R2-Uploaded': 'true',
-                'X-Backup-R2-Path': filePath,
+                'X-Backup-Tables': String(tables.length),
+                'X-Backup-Rows': String(totalRows),
+                'X-Backup-R2-Uploaded': r2Uploaded ? 'true' : 'false',
+                'X-Backup-R2-Path': r2Uploaded ? filePath : '',
             }
         });
         

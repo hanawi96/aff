@@ -29,6 +29,11 @@ import {
     dismissPendingUnsaved,
 } from '../services/orders/pending-unsaved-service.js';
 
+import {
+    upsertConvPhone,
+    upsertConvPhoneBatch,
+} from '../services/orders/pancake-conv-phone-service.js';
+
 import { 
     createOrder,
     duplicateOrderByDbId,
@@ -472,6 +477,14 @@ export async function handlePost(path, request, env, corsHeaders) {
 
     if (path === '/api/order/pending-unsaved/dismiss') {
         return await dismissPendingUnsaved(data, env, corsHeaders);
+    }
+
+    if (path === '/api/pancake/conv-phone/upsert') {
+        return await upsertConvPhone(data, env, corsHeaders);
+    }
+
+    if (path === '/api/pancake/conv-phone/upsert-batch') {
+        return await upsertConvPhoneBatch(data, env, corsHeaders);
     }
     
     if (path === '/api/ctv/update-commission') {

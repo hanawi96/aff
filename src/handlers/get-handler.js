@@ -30,7 +30,14 @@ import {
 } from '../services/orders/order-queries.js';
 
 import { listPendingUnsaved, getCustomerShippingStatus } from '../services/orders/pending-unsaved-service.js';
-import { handleSyncPancakeUnsaved } from '../services/orders/pancake-unsaved-sync.js';
+import {
+    handleSyncPancakeUnsaved,
+    handleGetPancakeConversationPhone,
+} from '../services/orders/pancake-unsaved-sync.js';
+import {
+    listConvPhones,
+    getPhoneByConversation,
+} from '../services/orders/pancake-conv-phone-service.js';
 
 // Products
 import { 
@@ -206,6 +213,26 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getPendingUnsavedOrders':
             return await listPendingUnsaved(env, corsHeaders);
+
+        case 'getPancakeConvPhones':
+            return await listConvPhones(env, corsHeaders, {
+                since: url.searchParams.get('since') || 0,
+                limit: url.searchParams.get('limit') || 500,
+            });
+
+        case 'getPhoneByConversation':
+            return await getPhoneByConversation(
+                url.searchParams.get('id') || url.searchParams.get('conversationId'),
+                env,
+                corsHeaders
+            );
+
+        case 'getPancakeConversationPhone':
+            return await handleGetPancakeConversationPhone(
+                url.searchParams.get('id') || url.searchParams.get('conversationId'),
+                env,
+                corsHeaders
+            );
 
         case 'syncPancakeUnsavedOrders':
             return await handleSyncPancakeUnsaved(env, corsHeaders, {
