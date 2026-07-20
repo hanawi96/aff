@@ -130,7 +130,7 @@
     if (loadingPromise) return loadingPromise;
 
     loadingPromise = (async () => {
-      const res = await fetch(MAPPING_URL);
+      const res = await (globalThis.shopvdFetch || fetch)(MAPPING_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       mappingRaw = await res.json();
       tree = buildTree(mappingRaw);

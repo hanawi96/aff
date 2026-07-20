@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ShopVD Order Helper",
-  "version": "1.4.5",
+  "version": "1.5.2",
   "description": "Tạo đơn hàng nhanh từ pancake.vn sang ShopVD",
   "permissions": [
     "storage",
@@ -14,6 +14,9 @@
     "https://shopvd.store/*",
     "https://ctv-api.yendev96.workers.dev/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -22,6 +25,7 @@
         "https://chat.zalo.me/*"
       ],
       "js": [
+        "fetch-bridge.js",
         "smart-paste.js",
         "ward-mapping-convert.js",
         "content.js"

@@ -1595,6 +1595,7 @@ function _stripAddressFieldLabels(text) {
 
 function _extractStreet(expanded, province, ward, subward) {
     let s = _stripAddressFieldLabels(expanded);
+    s = _stripChatMarkupNoise(s);
     s = s.replace(/\b(?:t\u1ec9nh|tinh)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:th\u00e0nh ph\u1ed1|thanh pho|tp\.?)\s+[^,]+/gi, ' ');
     s = s.replace(/\b(?:qu\u1eadn|quan|huy\u1ec7n|huyen|th\u1ecb x\u00e3|thi xa|tx\.?)\s+[^,]+/gi, ' ');
@@ -1608,8 +1609,28 @@ function _extractStreet(expanded, province, ward, subward) {
     if (subward) s = s.replace(_SUBWARD_RE, ' ');
     s = s.replace(/\b[QPF]\.\s*/gi, ' ');
     s = _stripAddressFieldLabels(s);
+    s = _stripChatMarkupNoise(s);
     s = s.replace(/[,\s]+$/, '').replace(/^[,\s]+/, '').replace(/,\s*,+/g, ',').replace(/\s+/g, ' ').trim();
     return subward ? subward + (s ? ', ' + s : '') : s;
+}
+
+/** Bỏ emoticon/HTML rác từ Zalo (vd /heart, />:o:, strong/) khỏi địa chỉ. */
+function _stripChatMarkupNoise(text) {
+    let s = String(text || '');
+    if (!s) return '';
+    s = s.replace(/<\/?[a-zA-Z][^>]*>/g, ' ');
+    s = s.replace(/\/[-A-Za-z0-9_:>()|=+]{1,24}/g, ' ');
+    s = s.replace(
+        /(^|[\s,;]+)(?:strong\/?|heart(?::>?:?o:?)?|>:o:|\(\(:|:>|:o|:-h|:-\(\(|:-\)|:-\(|:\)|:\(|:D|:p|:-D)(?=[\s,;]+|$)/gi,
+        '$1'
+    );
+    s = s.replace(/(?:^|,\s*)[a-zA-Z]\s*(?=,|$)/g, ' ');
+    return s
+        .replace(/\s+/g, ' ')
+        .replace(/,\s*,+/g, ',')
+        .replace(/^[,:：\-–—.\s]+/, '')
+        .replace(/[,:：\-–—.\s]+$/, '')
+        .trim();
 }
 
 /**
@@ -1827,7 +1848,7 @@ async function smartParseCustomerInfo(text) {
         })
         .filter(line => line.length > 0); // Remove empty lines after phone removal
     
-    const addressText = _stripAddressFieldLabels(addressLines.join(', '));
+    const addressText = _stripChatMarkupNoise(_stripAddressFieldLabels(addressLines.join(', ')));
     const addressInfo = await parseAddress(addressText, customerHint);
     
     // Calculate overall confidence

@@ -32,7 +32,77 @@
   pointer-events: none;
 }
 
-/* Zalo Web: sidebar full chiều cao (không chừa header như Pancake) */
+/* Debug panel — log fill/clear (Zalo) */
+#shopvd-debug-panel {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2147483646;
+  width: min(520px, calc(100vw - 16px));
+  max-height: 42vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.94);
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow: hidden;
+}
+
+#shopvd-debug-panel.is-min {
+  max-height: none;
+}
+
+#shopvd-debug-panel.is-min .shopvd-debug-body {
+  display: none;
+}
+
+#shopvd-debug-panel .shopvd-debug-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #334155;
+  background: rgba(30, 41, 59, 0.9);
+  flex-shrink: 0;
+}
+
+#shopvd-debug-panel .shopvd-debug-hint {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+#shopvd-debug-panel .shopvd-debug-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+#shopvd-debug-panel .shopvd-debug-actions button {
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+#shopvd-debug-panel .shopvd-debug-actions button:hover {
+  background: #334155;
+}
+
+#shopvd-debug-panel .shopvd-debug-body {
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #cbd5e1;
+  min-height: 120px;
+}
 html.shopvd-zalo-page #shopvd-sidebar {
   top: 0;
   height: 100vh;
@@ -184,6 +254,7 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   align-items: baseline;
   gap: 6px;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .shopvd-top-title {
@@ -199,6 +270,178 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   font-weight: 500;
   color: #94a3b8;
   white-space: nowrap;
+}
+
+/* Header hẹp: ẩn subtitle để nhường chỗ ô tra SĐT */
+@media (max-width: 720px) {
+  #shopvd-sidebar .shopvd-top-sub {
+    display: none;
+  }
+}
+
+/* Tra cứu đơn theo SĐT — gọn trong header */
+.shopvd-phone-search {
+  flex: 1 1 auto;
+  min-width: 120px;
+  max-width: 240px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #f8fafc;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.shopvd-phone-search:focus-within {
+  background: #fff;
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.shopvd-phone-search.is-loading {
+  border-color: #c7d2fe;
+}
+
+.shopvd-phone-search-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: #94a3b8;
+}
+
+.shopvd-phone-search:focus-within .shopvd-phone-search-icon {
+  color: #6366f1;
+}
+
+.shopvd-phone-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.shopvd-phone-search-input::placeholder {
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0;
+}
+
+.shopvd-phone-search-clear {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.shopvd-phone-search-clear:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.shopvd-phone-search-clear.hidden {
+  display: none !important;
+}
+
+/* Panel kết quả tra SĐT — tách riêng khỏi strip trạng thái chat */
+.shopvd-phone-search-panel {
+  margin: 0 12px 8px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.shopvd-phone-search-panel.hidden {
+  display: none !important;
+}
+
+.shopvd-phone-search-panel.is-loading {
+  border-color: #c7d2fe;
+  background: #f5f3ff;
+}
+
+.shopvd-phone-search-panel.is-not-saved {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.shopvd-phone-search-panel.is-saved {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.shopvd-phone-search-panel.is-error {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+}
+
+.shopvd-phone-search-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.shopvd-phone-search-panel-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.shopvd-phone-search-panel-close {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.shopvd-phone-search-panel-close:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.shopvd-phone-search-panel-body {
+  min-height: 0;
+}
+
+.shopvd-phone-search-msg {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.shopvd-phone-search-msg strong {
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
 }
 
 .shopvd-top-actions {
