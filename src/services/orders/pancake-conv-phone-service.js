@@ -1,11 +1,14 @@
 /**
- * Sync map: Pancake conversation_id → customer phone
+ * Sync map: conversation_id → customer phone
+ * - Pancake: pageId_threadId (vd. 8216…_1590…)
+ * - Zalo: zalo:{anim-data-id} (vd. zalo:3732123456789012)
  * Dùng cho extension: nhớ SĐT theo chat, đồng bộ nhiều máy.
  */
 import { jsonResponse } from '../../utils/response.js';
 import { normalizeOrderPhone } from '../../utils/order-duplicate-check.js';
 
-const CONV_ID_RE = /^\d+_\d+$/;
+const PANCAKE_CONV_ID_RE = /^\d+_\d+$/;
+const ZALO_CONV_ID_RE = /^zalo:\d{6,}$/;
 const PHONE_RE = /^0\d{8,10}$/;
 const BATCH_MAX = 50;
 const LIST_DEFAULT_LIMIT = 500;
@@ -17,12 +20,16 @@ let ensureTablePromise = null;
 function normalizeConversationId(raw) {
     let s = String(raw || '').trim();
     if (!s) return '';
+    // Zalo: giữ nguyên zalo:{id}
+    if (ZALO_CONV_ID_RE.test(s)) return s;
+    // Pancake: bỏ suffix __0/__1 trên list item id
     s = s.replace(/__\d+$/, '');
     return s;
 }
 
 function isValidConversationId(id) {
-    return CONV_ID_RE.test(normalizeConversationId(id));
+    const normalized = normalizeConversationId(id);
+    return PANCAKE_CONV_ID_RE.test(normalized) || ZALO_CONV_ID_RE.test(normalized);
 }
 
 function isValidPhone(phone) {
@@ -31,6 +38,7 @@ function isValidPhone(phone) {
 
 function extractPageId(conversationId) {
     const id = normalizeConversationId(conversationId);
+    if (ZALO_CONV_ID_RE.test(id)) return null;
     const i = id.indexOf('_');
     return i > 0 ? id.slice(0, i) : null;
 }

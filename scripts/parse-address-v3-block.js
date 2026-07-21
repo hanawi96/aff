@@ -207,6 +207,20 @@ function _scoreItemMatch(cn, iN) {
     if (cn === iN || _bareNumericEqual(cn, iN)) return 1;
     if (cn.length >= 2 && iN.includes(cn)) return cn.length / iN.length * 0.95;
     if (iN.length >= 2 && cn.includes(iN)) return iN.length / cn.length * 0.90;
+
+    // Đa từ: từ cuối khác nhau rõ (vd "dong cao" ≠ "dong da") → không cho fuzzy cao
+    const ct = cn.split(/\s+/).filter(Boolean);
+    const it = iN.replace(/^(phuong|xa|thi tran|tt|p|f)\s+/i, '').split(/\s+/).filter(Boolean);
+    if (ct.length >= 2 && it.length >= 2) {
+        const lastC = ct[ct.length - 1];
+        const lastI = it[it.length - 1];
+        if (lastC.length >= 2 && lastI.length >= 2) {
+            const lastMax = Math.max(lastC.length, lastI.length);
+            const lastSim = 1 - levenshteinDistance(lastC, lastI) / lastMax;
+            if (lastSim < 0.8) return Math.min(0.55, lastSim);
+        }
+    }
+
     const maxL = Math.max(cn.length, iN.length);
     if (Math.abs(cn.length - iN.length) <= maxL * 0.5) {
         return 1 - levenshteinDistance(cn, iN) / maxL;
@@ -468,23 +482,31 @@ var _provFromEndText = null;
 function _inferProvFromEnd(text, data, thr) {
     _provFromEndText = null;
     const aliasMap = _buildProvinceAliasMap(data);
-    const words = text.split(/[\s,]+/).filter(function (w) { return w.length > 1; });
-    for (let n = Math.min(3, words.length); n >= 1; n--) {
-        const candidate = words.slice(-n).join(' ');
-        const fromAlias = aliasMap.get(_nn(candidate));
-        if (fromAlias) {
-            _provFromEndText = candidate;
-            return fromAlias;
-        }
-        const p = _match(candidate, data, thr);
-        if (p) {
-            _provFromEndText = candidate;
-            return p;
-        }
-        const fromWard = _findProvinceByWardNeedle(candidate, data);
-        if (fromWard) {
-            _provFromEndText = candidate;
-            return fromWard;
+    let words = text.split(/[\s,]+/).filter(function (w) { return w.length > 1; });
+    // Bỏ badge số đuôi (vd "09") trước khi lấy tỉnh cuối chuỗi
+    while (words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1])) {
+        words = words.slice(0, -1);
+    }
+    // Peel tên người dính sau tỉnh (vd "... Hà Nội Nguyễn Văn Yên")
+    for (let peel = 0; peel <= Math.min(4, Math.max(0, words.length - 1)); peel++) {
+        const use = words.slice(0, words.length - peel);
+        for (let n = Math.min(3, use.length); n >= 1; n--) {
+            const candidate = use.slice(-n).join(' ');
+            const fromAlias = aliasMap.get(_nn(candidate));
+            if (fromAlias) {
+                _provFromEndText = candidate;
+                return fromAlias;
+            }
+            const p = _match(candidate, data, thr);
+            if (p) {
+                _provFromEndText = candidate;
+                return p;
+            }
+            const fromWard = _findProvinceByWardNeedle(candidate, data);
+            if (fromWard) {
+                _provFromEndText = candidate;
+                return fromWard;
+            }
         }
     }
     return null;
@@ -524,7 +546,8 @@ function _fallback2(text, data) {
         }
     }
 
-    const words = text.split(/\s+/).filter(Boolean);
+    // Tách cả dấu phẩy — tránh ghép xuyên segment (vd "linh, Thành" → Vĩnh Thanh)
+    const words = text.split(/[\s,]+/).filter(Boolean);
     for (let n = Math.min(3, words.length); n >= 1; n--) {
         for (let s = words.length - n; s >= 0; s--) {
             const p = _match(words.slice(s, s + n).join(' '), data, 0.82);
@@ -533,8 +556,12 @@ function _fallback2(text, data) {
             const rem = words.slice(0, s).concat(words.slice(s + n));
             for (let wn = Math.min(3, rem.length); wn >= 1; wn--) {
                 for (let ws = rem.length - wn; ws >= 0; ws--) {
+                    const cand = rem.slice(ws, ws + wn).join(' ');
+                    if (_WARD_SCAN_SKIP_TOKENS.has(_nn(cand))) continue;
+                    if (/\b(?:thanh pho|thanh|pho|tinh|tp)\b/i.test(_nn(cand)) && wn >= 2) continue;
+                    if (_isProvinceNameFragment(cand, p)) continue;
                     const w = _matchWard(
-                        _stripTrailingProvinceSuffix(rem.slice(ws, ws + wn).join(' '), p),
+                        _stripTrailingProvinceSuffix(cand, p),
                         p.Wards, 0.75, p
                     );
                     if (w) { out.ward = w; return out; }
@@ -546,7 +573,10 @@ function _fallback2(text, data) {
 
     for (let wn = Math.min(3, words.length); wn >= 1; wn--) {
         for (let ws = words.length - wn; ws >= 0; ws--) {
-            const r = _globalWard(words.slice(ws, ws + wn).join(' '), data, null, 0.78);
+            const cand = words.slice(ws, ws + wn).join(' ');
+            if (_WARD_SCAN_SKIP_TOKENS.has(_nn(cand))) continue;
+            if (/\b(?:thanh pho|thanh|pho|tinh|tp)\b/i.test(_nn(cand)) && wn >= 2) continue;
+            const r = _globalWard(cand, data, null, 0.78);
             if (r) { out.ward = r.ward; out.province = r.province; return out; }
         }
     }
@@ -564,11 +594,13 @@ function _partialWardFallback(text, province, hints) {
         const w = _matchWard(_stripTrailingProvinceSuffix(segs[si], province), province.Wards, 0.73, province);
         if (w) return w;
     }
-    const words = text.split(/\s+/).filter(Boolean);
+    // Tách cả dấu phẩy — tránh ghép xuyên segment (vd "Cao, Thành" → Đại Thanh)
+    const words = text.split(/[\s,]+/).filter(Boolean);
     for (let n = Math.min(3, words.length); n >= 1; n--) {
         for (let i = words.length - n; i >= 0; i--) {
             const cand = words.slice(i, i + n).join(' ');
             if (_isProvinceNameFragment(cand, province)) continue;
+            if (/\b(?:thanh pho|thanh|pho|tinh|tp)\b/i.test(_nn(cand)) && n >= 2) continue;
             const w = _matchWard(_stripTrailingProvinceSuffix(cand, province), province.Wards, 0.75, province);
             if (w) return w;
         }
@@ -593,6 +625,32 @@ function _betterWardCand(a, b) {
 }
 
 const _WARD_KW = new Set(['phuong', 'p', 'f', 'xa', 'x', 'thi tran', 'tt', 'tdp', 'kp', 'khu pho', 'khom', 'ap']);
+/** Token hành chính / mảnh tên tỉnh — không dùng làm ứng viên phường đơn lẻ */
+const _WARD_SCAN_SKIP_TOKENS = new Set([
+    'thanh', 'pho', 'tinh', 'tp', 'quan', 'huyen', 'thi', 'xa', 'phuong', 'p', 'f', 'tt',
+    'thanh pho', 'thi xa', 'thi tran',
+]);
+
+/**
+ * Ưu tiên tuyệt đối: tên phường/xã xuất hiện nguyên cụm trong text (vd "mê linh").
+ * Tránh fuzzy "Đông Cao"→Đống Đa / nhiễu "Thành"→Vĩnh Thanh.
+ */
+function _findExactWardMention(text, province) {
+    if (!province?.Wards?.length || !text) return null;
+    const hay = ` ${_nn(text)} `;
+    let best = null;
+    for (const ward of province.Wards) {
+        for (const label of _wardLabels(ward)) {
+            const bare = _bare(label);
+            if (!bare || bare.length < 3) continue;
+            const needle = ` ${bare} `;
+            if (!hay.includes(needle)) continue;
+            const len = bare.split(/\s+/).filter(Boolean).length;
+            if (!best || len > best.len) best = { ward, len, bare };
+        }
+    }
+    return best ? best.ward : null;
+}
 
 /**
  * Quét toàn chuỗi tìm phường/xã khớp tốt nhất TRONG MỘT TỈNH.
@@ -607,6 +665,7 @@ function _bestWardInProvince(text, province) {
     for (let i = 0; i < rawTokens.length; i++) {
         const bare = _nn(rawTokens[i]);
         if (!bare) continue;
+        if (_WARD_SCAN_SKIP_TOKENS.has(bare)) continue;
         const prev = i > 0 ? _nn(rawTokens[i - 1]) : '';
         let afterKw = _WARD_KW.has(prev);
         // "thị xã" là huyện cũ (không phải phường) → không tính là keyword phường/xã
@@ -624,6 +683,7 @@ function _bestWardInProvince(text, province) {
         for (let i = 0; i + n <= N; i++) {
             const cand = toks.slice(i, i + n).map(t => t.bare).join(' ');
             if (!cand || /^\d+$/.test(cand)) continue;
+            if (_WARD_SCAN_SKIP_TOKENS.has(cand)) continue;
             if (_isProvinceNameFragment(cand, province)) continue;
             let wWard = null, wScore = 0;
             for (const ward of province.Wards) {
@@ -697,6 +757,12 @@ async function parseAddress(addressText, customerHint) {
     if (!province) province = _inferProvFromEnd(cleaned, data, 0.88);
 
     _addrDbg('1-normalize', { input: addressText, expanded, cleaned, anchors: anc, legacyHints });
+
+    // Ưu tiên: tên xã/phường có nguyên văn trong địa chỉ (vd "mê linh") — chặn fuzzy nhiễu
+    if (province && !ward) {
+        ward = _findExactWardMention(cleaned, province) || _findExactWardMention(addressText, province);
+        if (ward) _addrDbg('1a-exact-mention', { ward: ward.Name });
+    }
 
     // Chỉ khớp anc.province như phường khi KHÔNG phải tên tỉnh (vd "Long An" trong Tây Ninh — OK; "Ninh Bình" — không)
     if (province && anc.province && !ward

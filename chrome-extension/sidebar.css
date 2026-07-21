@@ -32,77 +32,6 @@
   pointer-events: none;
 }
 
-/* Debug panel — log fill/clear (Zalo) */
-#shopvd-debug-panel {
-  position: fixed;
-  left: 8px;
-  bottom: 8px;
-  z-index: 2147483646;
-  width: min(520px, calc(100vw - 16px));
-  max-height: 42vh;
-  display: flex;
-  flex-direction: column;
-  background: rgba(15, 23, 42, 0.94);
-  color: #e2e8f0;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
-  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  overflow: hidden;
-}
-
-#shopvd-debug-panel.is-min {
-  max-height: none;
-}
-
-#shopvd-debug-panel.is-min .shopvd-debug-body {
-  display: none;
-}
-
-#shopvd-debug-panel .shopvd-debug-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #334155;
-  background: rgba(30, 41, 59, 0.9);
-  flex-shrink: 0;
-}
-
-#shopvd-debug-panel .shopvd-debug-hint {
-  color: #94a3b8;
-  font-size: 10px;
-}
-
-#shopvd-debug-panel .shopvd-debug-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
-}
-
-#shopvd-debug-panel .shopvd-debug-actions button {
-  border: 1px solid #475569;
-  background: #1e293b;
-  color: #f8fafc;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-#shopvd-debug-panel .shopvd-debug-actions button:hover {
-  background: #334155;
-}
-
-#shopvd-debug-panel .shopvd-debug-body {
-  margin: 0;
-  padding: 8px 10px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #cbd5e1;
-  min-height: 120px;
-}
 html.shopvd-zalo-page #shopvd-sidebar {
   top: 0;
   height: 100vh;
@@ -1139,12 +1068,185 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   min-width: 0;
 }
 
+.shopvd-sticky-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.shopvd-sticky-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.shopvd-sticky-copy-btn:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.shopvd-sticky-copy-btn:active {
+  transform: translateY(1px);
+}
+
+.shopvd-sticky-copy-btn.is-copied {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.shopvd-sticky-copy-btn:disabled,
+.shopvd-sticky-combo-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.shopvd-sticky-combo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: all 0.18s ease;
+}
+
+.shopvd-sticky-combo-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+}
+
+.shopvd-sticky-combo-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.shopvd-sticky-combo-btn.hidden {
+  display: none !important;
+}
+
 .shopvd-sticky-footer-label {
   font-size: 11px;
   font-weight: 600;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+}
+
+.shopvd-debug-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.shopvd-debug-toggle:hover,
+.shopvd-debug-toggle.is-on {
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.shopvd-debug-panel {
+  margin-top: 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+  overflow: hidden;
+}
+
+.shopvd-debug-panel.hidden {
+  display: none !important;
+}
+
+.shopvd-debug-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #fde68a;
+  background: #fef3c7;
+}
+
+.shopvd-debug-panel-head strong {
+  font-size: 12px;
+  color: #92400e;
+}
+
+.shopvd-debug-panel-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.shopvd-debug-btn {
+  border: 1px solid #f59e0b;
+  background: #fff;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.shopvd-debug-btn:hover {
+  background: #fffbeb;
+}
+
+.shopvd-debug-panel-meta {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #a16207;
+}
+
+.shopvd-debug-log {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 8px 10px 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #78350f;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fffdf5;
 }
 
 .shopvd-sticky-footer-total {
@@ -1161,12 +1263,12 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 28px;
+  padding: 12px 18px;
   border: none;
   border-radius: 12px;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
