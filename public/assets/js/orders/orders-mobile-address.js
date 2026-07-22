@@ -77,6 +77,9 @@ function hideMobileLegacyAddressBlock() {
 }
 
 function destroyMobileAddressSelector() {
+    if (typeof destroyDeskLegacyAddressConvert === 'function') {
+        destroyDeskLegacyAddressConvert();
+    }
     if (typeof destroyDeskAddressCombobox === 'function') {
         destroyDeskAddressCombobox();
     }
@@ -165,6 +168,9 @@ async function initMobileAddressSelector(orderForHydrate) {
         if (streetInput) streetInput.addEventListener('input', updateAddressPreview);
         syncDeskOrderStreetInputVisibility();
         updateAddressPreview();
+        if (typeof initDeskLegacyAddressConvert === 'function') {
+            initDeskLegacyAddressConvert();
+        }
         return;
     }
 
@@ -195,6 +201,10 @@ async function initMobileAddressSelector(orderForHydrate) {
 
     syncDeskOrderStreetInputVisibility();
     updateAddressPreview();
+
+    if (typeof initDeskLegacyAddressConvert === 'function') {
+        initDeskLegacyAddressConvert();
+    }
 }
 
 function getMobileAddressFormData() {

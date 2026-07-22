@@ -145,15 +145,23 @@
     const tree = Core().getTree();
     if (!list || !tree) return;
     const C = Core();
-    const pairs = tree.districtPairs || [];
-    const ordered = state.province
-      ? [
-          ...pairs.filter((p) => p.province === state.province),
-          ...pairs.filter((p) => p.province !== state.province),
-        ]
-      : pairs;
 
-    list.innerHTML = ordered
+    // Đã chọn tỉnh → chỉ huyện thuộc tỉnh, không kèm tên tỉnh
+    if (state.province) {
+      const districts = [...(tree.byProvince.get(state.province)?.keys() || [])].sort((a, b) =>
+        a.localeCompare(b, 'vi', { sensitivity: 'base' })
+      );
+      list.innerHTML = districts
+        .map(
+          (d) =>
+            `<button type="button" data-desk-legacy-item data-district="${escapeAttr(d)}" data-province="${escapeAttr(state.province)}" class="w-full text-left px-3 py-2 text-sm hover:bg-teal-50">${escapeHtml(C.toDisplayLabel(d))}</button>`
+        )
+        .join('');
+      return;
+    }
+
+    const pairs = tree.districtPairs || [];
+    list.innerHTML = pairs
       .map((pair) => {
         const label = `${C.toDisplayLabel(pair.district)} · ${C.abbreviateAdminLabel(pair.province)}`;
         return `<button type="button" data-desk-legacy-item data-district="${escapeAttr(pair.district)}" data-province="${escapeAttr(pair.province)}" class="w-full text-left px-3 py-2 text-sm hover:bg-teal-50">${escapeHtml(label)}</button>`;

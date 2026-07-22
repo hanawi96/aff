@@ -48,43 +48,57 @@
         border-radius: 999px;
     }
 
-    /* Convert địa chỉ cũ → mới trong modal thêm đơn */
+    /* Convert địa chỉ cũ → mới — nút phụ, không át combobox địa chỉ chính */
     .desk-legacy-convert-toggle {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.375rem;
-        padding: 0.4rem 0.7rem;
-        border-radius: 0.5rem;
-        border: 1px solid #0f766e;
-        background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
-        color: #fff !important;
+        width: 100%;
+        padding: 0.45rem 0.65rem;
+        border-radius: 9999px;
+        border: 1px dashed #94a3b8;
+        background: transparent;
+        color: #64748b !important;
         font-size: 0.75rem;
-        font-weight: 650;
+        font-weight: 600;
         line-height: 1.2;
-        box-shadow: 0 1px 2px rgba(15, 118, 110, 0.25);
+        box-shadow: none;
         cursor: pointer;
-        transition: filter 0.15s, box-shadow 0.15s;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .desk-legacy-convert-box {
+        padding: 0;
+        border: none;
+        background: transparent;
     }
 
     .desk-legacy-convert-toggle:hover {
-        filter: brightness(1.06);
-        box-shadow: 0 2px 6px rgba(15, 118, 110, 0.3);
+        border-color: #64748b;
+        background: rgba(255, 255, 255, 0.65);
+        color: #475569 !important;
+        filter: none;
+        box-shadow: none;
     }
 
     .desk-legacy-convert-toggle.is-open {
-        background: linear-gradient(135deg, #115e59 0%, #0f766e 100%);
-        border-color: #115e59;
+        border-style: solid;
+        border-color: #94a3b8;
+        background: #fff;
+        color: #334155 !important;
     }
 
     .desk-legacy-convert-toggle svg {
         width: 0.875rem;
         height: 0.875rem;
         flex-shrink: 0;
-        color: #fff;
+        color: currentColor;
     }
 
     .desk-legacy-convert-toggle [data-desk-legacy-chevron] {
         transition: transform 0.15s;
+        opacity: 0.75;
     }
 
     .desk-legacy-convert-toggle.is-open [data-desk-legacy-chevron] {
@@ -134,5 +148,13 @@
 
     .desk-legacy-field-btn.is-open {
         box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.45);
+    }
+
+    #deskLegacyConvertPanel [id$="Dropdown"] {
+        z-index: 10002;
+    }
+
+    #deskLegacyQuickResults {
+        z-index: 10003;
     }
 }
