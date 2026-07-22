@@ -11,8 +11,23 @@
     let trendChart = null;
     let adsDayPickView = { y: 0, m: 0 };
 
-    const fmt = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
     const fmtN = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+    const fmt = (n) => `${fmtN(n)}đ`;
+
+    function parseSpendInput(s) {
+        const digits = String(s || '').replace(/\D/g, '');
+        return digits ? parseInt(digits, 10) : 0;
+    }
+
+    function formatSpendInput(n) {
+        const v = Math.max(0, Math.floor(Number(n) || 0));
+        return fmtN(v);
+    }
+
+    function onEditSpendInput(el) {
+        if (!el) return;
+        el.value = formatSpendInput(parseSpendInput(el.value));
+    }
 
     function fmtPerOrder(v) {
         if (v == null || !Number.isFinite(v)) return '—';
@@ -268,7 +283,7 @@
                 </span>
                 <span class="mt-1 block tabular-nums text-slate-500">
                     TS gộp ${fmtPct(grossMargin)} · TS thực ${fmtPct(netMargin)}
-                    · ${netProfitPerOrder != null ? `${fmt(netProfitPerOrder)}/đơn · ` : ''}${fmtN(s.fb_orders)} đơn FB
+                    · ${netProfitPerOrder != null ? `${fmt(Math.round(netProfitPerOrder))}/đơn · ` : ''}${fmtN(s.fb_orders)} đơn FB
                 </span>`;
         }
     }
@@ -449,7 +464,7 @@
             ? s.revenue_per_order
             : (s.fb_orders > 0 ? s.fb_revenue / s.fb_orders : null);
         document.getElementById('kpiRevenuePerOrder').textContent =
-            revenuePerOrder != null ? fmt(revenuePerOrder) + '/đơn' : '—';
+            revenuePerOrder != null ? fmt(Math.round(revenuePerOrder)) + '/đơn' : '—';
         document.getElementById('kpiRevenuePerOrderCmp').innerHTML =
             fmtCmp(c.revenue_per_order_pct, false);
 
@@ -464,7 +479,7 @@
             roasHint.className = 'mt-1 text-xs ' + qcShareCls(s.ad_spend, s.fb_revenue);
         }
 
-        document.getElementById('kpiCpa').textContent = s.cpa != null ? fmt(s.cpa) + '/đơn' : '—';
+        document.getElementById('kpiCpa').textContent = s.cpa != null ? fmt(Math.round(s.cpa)) + '/đơn' : '—';
         document.getElementById('kpiCpaCmp').innerHTML = fmtCmp(c.cpa_pct, true);
 
         const netProfitPerOrder = s.net_profit_per_order != null
@@ -472,7 +487,7 @@
             : (s.fb_orders > 0 ? s.net_profit / s.fb_orders : null);
 
         const ppoEl = document.getElementById('kpiProfitPerOrder');
-        ppoEl.textContent = netProfitPerOrder != null ? fmt(netProfitPerOrder) + '/đơn' : '—';
+        ppoEl.textContent = netProfitPerOrder != null ? fmt(Math.round(netProfitPerOrder)) + '/đơn' : '—';
         ppoEl.className = 'ads-kpi-val mt-2 text-xl font-bold ' + netClass(netProfitPerOrder);
         document.getElementById('kpiProfitPerOrderCmp').innerHTML =
             fmtCmp(c.net_profit_per_order_pct, false);
@@ -631,7 +646,7 @@
         return [
             `<span>QC/DT <b class="${qcCls}">${qcPct}</b></span>`,
             `<span>ROAS <b class="${roasClass(row.ad_spend, row.fb_revenue)}">${fmtRoas(row.roas)}</b></span>`,
-            `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(row.cpa) : '—'}</b></span>`
+            `<span>CPA <b class="text-slate-800">${row.cpa != null ? fmt(Math.round(row.cpa)) : '—'}</b></span>`
         ].join('<span class="text-slate-300 px-1.5 select-none" aria-hidden="true">|</span>');
     }
 
@@ -766,11 +781,13 @@
     function openEditModal(date, amount) {
         editDate = date;
         document.getElementById('editSpendDateLabel').textContent = fmtDateLabel(date);
-        document.getElementById('editSpendAmount').value = amount || 0;
+        const amountInput = document.getElementById('editSpendAmount');
+        if (amountInput) amountInput.value = formatSpendInput(amount || 0);
         const modal = document.getElementById('editSpendModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        document.getElementById('editSpendAmount').focus();
+        amountInput?.focus();
+        amountInput?.select();
     }
 
     function closeEditModal() {
@@ -781,7 +798,7 @@
     }
 
     async function saveEditSpend() {
-        const amount = Number(document.getElementById('editSpendAmount').value);
+        const amount = parseSpendInput(document.getElementById('editSpendAmount')?.value);
         if (!editDate || !Number.isFinite(amount) || amount < 0) {
             if (typeof showToast === 'function') showToast('Số tiền không hợp lệ', 'error');
             return;
@@ -825,10 +842,12 @@
     });
 
     document.getElementById('heroEditSpendBtn')?.addEventListener('click', openHeroEditSpend);
+    document.getElementById('editSpendClose')?.addEventListener('click', closeEditModal);
     document.getElementById('editSpendCancel')?.addEventListener('click', closeEditModal);
     document.getElementById('editSpendSave')?.addEventListener('click', saveEditSpend);
-    document.getElementById('editSpendModal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'editSpendModal') closeEditModal();
+    document.getElementById('editSpendAmount')?.addEventListener('input', (e) => onEditSpendInput(e.target));
+    document.getElementById('editSpendAmount')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveEditSpend();
     });
 
     document.addEventListener('DOMContentLoaded', () => load('today'));

@@ -201,6 +201,9 @@ async function initAddressSelector(duplicateData = null) {
         if (streetInput) streetInput.addEventListener('input', updateAddressPreview);
         syncDeskOrderStreetInputVisibility();
         updateAddressPreview();
+        if (typeof initDeskLegacyAddressConvert === 'function') {
+            initDeskLegacyAddressConvert();
+        }
         return;
     }
 
@@ -228,4 +231,8 @@ async function initAddressSelector(duplicateData = null) {
 
     syncDeskOrderStreetInputVisibility();
     updateAddressPreview();
+
+    if (typeof initDeskLegacyAddressConvert === 'function') {
+        initDeskLegacyAddressConvert();
+    }
 }

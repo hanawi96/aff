@@ -194,7 +194,6 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         
         // 1. Exact match (highest priority)
         if (normalizedOption === normalizedInput || cleanOption === cleanInput) {
-            // console.log(`      [EXACT] ${option.Name}: 1.00`);
             return { match: option, score: 1.0, confidence: 'high' };
         }
         
@@ -203,7 +202,6 @@ function fuzzyMatch(input, options, threshold = 0.6) {
         if (normalizedInput.includes(cleanOption) && cleanOption.length >= 4) {
             score = 0.9;
             type = 'input-contains-option';
-            // console.log(`      [CONTAINS-1] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Check if option contains input (user typed less)
         else if (cleanOption.includes(cleanInput) && cleanInput.length >= 4) {
@@ -241,13 +239,11 @@ function fuzzyMatch(input, options, threshold = 0.6) {
                     type = 'option-contains-input-reversed';
                 }
             }
-            // console.log(`      [CONTAINS-2] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         // Full normalized contains
         else if (normalizedOption.includes(normalizedInput) || normalizedInput.includes(normalizedOption)) {
             score = 0.8;
             type = 'contains-full';
-            // console.log(`      [CONTAINS-3] ${option.Name}: ${score.toFixed(2)} (${type})`);
         }
         
         // 3. Word-by-word matching with ALL words must match
@@ -285,16 +281,13 @@ function fuzzyMatch(input, options, threshold = 0.6) {
                     if (isSequential) {
                         score = 0.98; // Higher than reversed order
                         type = `word-match-sequential-${matchCount}`;
-                        // console.log(`      [WORD-SEQ] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
                     } else {
                         score = 0.80; // Reversed or mixed order - LOWER than contains match (0.85)
                         type = `word-match-all-${matchCount}`;
-                        // console.log(`      [WORD-REV] ${option.Name}: ${score.toFixed(2)} (indices: ${matchedIndices.join(',')})`);
                     }
                 } else {
                     score = (matchCount / Math.max(inputWords.length, optionWords.length)) * 0.7;
                     type = `word-match-${matchCount}/${inputWords.length}`;
-                    // console.log(`      [WORD-PARTIAL] ${option.Name}: ${score.toFixed(2)} (${type})`);
                 }
             }
         }
@@ -336,7 +329,6 @@ function fuzzyMatch(input, options, threshold = 0.6) {
     // ============================================
     if (OPTIMIZATION_FLAGS.FUZZY_EARLY_EXIT && skippedCount > 0) {
         OPTIMIZATION_METRICS.fuzzySkipped += skippedCount;
-        // console.log(`  ⚡ Fuzzy: Skipped ${skippedCount}/${options.length} weak candidates`);
     }
     
     if (bestScore >= threshold) {
@@ -452,7 +444,6 @@ function extractLandmark(addressText) {
             
             if (hasLocationKeywordBefore) {
                 // Skip this match - it's likely part of a location name, not a landmark
-                console.log(`  ⚠️ Skipping landmark after location keyword: "${keyword}"`);
                 continue;
             }
             
@@ -465,7 +456,6 @@ function extractLandmark(addressText) {
             
             if (hasLocationAfter) {
                 // This is likely part of address structure, not a landmark
-                console.log(`  ⚠️ Skipping landmark before location keyword: "${keyword}"`);
                 continue;
             }
             
@@ -483,7 +473,8 @@ function extractLandmark(addressText) {
             landmark: null,
             cleanAddress: addressText
         };
-    }// Find where landmark ends
+    }
+    // Find where landmark ends
     let landmarkEnd = addressText.length;
     
     // Strategy 1: Look for comma after landmark
@@ -682,7 +673,6 @@ function extractCustomerName(lines, phoneInfo) {
         'dak lak', 'dak nong', 'gia lai', 'kon tum'
     ];
     
-    console.log('🔍 Extracting name from', lines.length, 'lines:', lines);
     
     const candidateLines = lines.filter(line => {
         const lower = line.toLowerCase();
@@ -690,38 +680,32 @@ function extractCustomerName(lines, phoneInfo) {
         
         // Skip if contains phone (check both normalized and original 9-digit form)
         if (phoneInfo && (line.includes(phoneInfo.phone) || (phoneInfo.original && line.includes(phoneInfo.original)))) {
-            console.log(`  ✗ Skip (has phone): "${line}"`);
             return false;
         }
         
         // Skip if contains district abbreviations (Q1, Q2, P1, P2, etc.)
         if (/\b[qp]\d+\b/i.test(line)) {
-            console.log(`  ✗ Skip (has district abbreviation): "${line}"`);
             return false;
         }
         
         // Skip if contains address keywords
         if (addressKeywords.some(kw => normalized.includes(kw))) {
-            console.log(`  ✗ Skip (has address keyword): "${line}"`);
             return false;
         }
         
         // IMPROVED: Skip if contains place names
         if (placeNames.some(place => normalized.includes(place))) {
-            console.log(`  ✗ Skip (has place name): "${line}"`);
             return false;
         }
         
         // IMPROVED: Skip if starts with house number pattern
         // Pattern: "123 Street Name" or "123/45 Street Name"
         if (/^\d+[\/\-]?\d*\s+[a-zA-ZÀ-ỹ]/.test(line)) {
-            console.log(`  ✗ Skip (starts with house number): "${line}"`);
             return false;
         }
         
         // Skip if too long (likely address)
         if (line.length > 50) {
-            console.log(`  ✗ Skip (too long): "${line}"`);
             return false;
         }
         
@@ -731,16 +715,13 @@ function extractCustomerName(lines, phoneInfo) {
         const hasNumberSlash = /\d+[\/\-]\d+/.test(line);
         
         if (numberCount > 2 || hasNumberSlash) {
-            console.log(`  ✗ Skip (too many numbers or has number slash): "${line}"`);
             return false;
         }
         
-        console.log(`  ✓ Candidate: "${line}"`);
         return true;
     });
     
     if (candidateLines.length === 0) {
-        console.log('  ❌ No name candidates found');
         return null;
     }
     
@@ -751,7 +732,6 @@ function extractCustomerName(lines, phoneInfo) {
     if (lastLine.length >= 2 && lastLine.length <= 50) {
         const letterCount = (lastLine.match(/[a-zA-ZÀ-ỹ]/g) || []).length;
         if (letterCount / lastLine.length > 0.7) {
-            console.log(`  ✅ Name extracted: "${lastLine}"`);
             return {
                 name: lastLine,
                 confidence: candidateLines.length === 1 ? 'high' : 'medium'
@@ -759,7 +739,6 @@ function extractCustomerName(lines, phoneInfo) {
         }
     }
     
-    console.log('  ❌ No valid name found');
     return null;
 }
 
@@ -827,7 +806,6 @@ function expandShortCodesAtEnd(address) {
                 lastWords[lastWords.length - 1] = expanded;
                 segments[lastIdx] = lastWords.join(' ');
                 changed = true;
-                console.log(`  ✓ ${type} code at end: "${code}" → "${expanded}"`);
             }
         }
 
@@ -843,7 +821,6 @@ function expandShortCodesAtEnd(address) {
                     prevWords[prevWords.length - 1] = expanded;
                     segments[prevIdx] = prevWords.join(' ');
                     changed = true;
-                    console.log(`  ✓ ${type} code at second-to-last: "${code}" → "${expanded}"`);
                 }
             }
         }
@@ -860,12 +837,10 @@ function expandShortCodesAtEnd(address) {
             const type = PROVINCE_SHORT_CODES[code] ? 'Province' : 'District';
             words[words.length - 1] = expanded;
             changed = true;
-            console.log(`  ✓ ${type} code as last word (no commas): "${code}" → "${expanded}"`);
         }
     }
 
     if (!changed) {
-        console.log('  ⏭️ No position-appropriate short codes found');
     }
 
     return changed ? words.join(' ') : address;
@@ -1164,41 +1139,25 @@ function _isProvinceNameFragment(seg, province) {
     });
 }
 
-/** Bật log chi tiết trong DevTools: window.ADDR_PARSE_DEBUG = true */
-function _addrDbg(step, detail) {
-    if (typeof window !== 'undefined' && typeof window.__shopvdOnAddrDbg === 'function') {
-        try { window.__shopvdOnAddrDbg(step, detail); } catch (_) { /* ignore */ }
-    }
-    if (typeof window !== 'undefined' && window.ADDR_PARSE_DEBUG) {
-        console.log('[parseAddress:v3]', step, detail);
-    }
-}
+function _addrDbg() {}
 
 function _matchWard(cand, wards, thr, province) {
     if (!cand || !wards?.length) return null;
     const cn = _bare(cand);
     if (!cn || /^\d+$/.test(cn)) return null;
     if (province && _sameBareAsProvince(cand, province)) {
-        _addrDbg('skip ward (same as province name)', { cand, province: province.Name });
         return null;
     }
     if (province && _isProvinceNameFragment(cand, province)) {
-        _addrDbg('skip ward (province name fragment)', { cand, province: province.Name });
         return null;
     }
     let best = null, bScore = 0;
-    const top = [];
     for (const ward of wards) {
         for (const label of _wardLabels(ward)) {
             const iN = _bare(label);
             const score = _scoreItemMatch(cn, iN);
-            if (score >= thr - 0.05) top.push({ ward: ward.Name, label, score: +score.toFixed(3) });
             if (score > bScore && score >= thr) { best = ward; bScore = score; }
         }
-    }
-    if (typeof window !== 'undefined' && window.ADDR_PARSE_DEBUG && top.length) {
-        top.sort(function (a, b) { return b.score - a.score; });
-        _addrDbg('matchWard', { cand, thr, top: top.slice(0, 5), picked: best ? best.Name : null });
     }
     return best;
 }
@@ -1812,13 +1771,6 @@ async function parseAddress(addressText, customerHint) {
     result.ward = ward;
     result.confidence = province && ward ? 'high' : province ? 'medium' : 'low';
 
-    console.log(
-        '\uD83D\uDCCD parseAddress v3:',
-        (province ? province.Name : '(none)') + ' \u2192 ' +
-        (ward ? ward.Name + ' [' + ward.Id + ']' : '(no ward)') +
-        ' | street: ' + (result.street || '(empty)') +
-        ' | ' + result.confidence
-    );
     _addrDbg('6-final', {
         province: province?.Name,
         ward: ward?.Name,
@@ -1827,7 +1779,6 @@ async function parseAddress(addressText, customerHint) {
     });
     return result;
 }
-
 
 async function smartParseCustomerInfo(text) {
     if (!text || !text.trim()) {
@@ -1845,7 +1796,6 @@ async function smartParseCustomerInfo(text) {
     
     // Ensure addressSelector is loaded (it should be loaded when modal opens)
     if (!window.addressSelector || !window.addressSelector.loaded) {
-        console.log('⏳ Waiting for addressSelector to load...');
         // Wait up to 2 seconds
         let attempts = 0;
         while ((!window.addressSelector || !window.addressSelector.loaded) && attempts < 20) {
@@ -1861,7 +1811,6 @@ async function smartParseCustomerInfo(text) {
         }
     }
     
-    console.log('✅ AddressSelector ready with', window.addressSelector.data.length, 'provinces');
     
     // Split into lines and clean
     const lines = text
@@ -1882,7 +1831,6 @@ async function smartParseCustomerInfo(text) {
     // Customer address hint: zero-cost lookup từ dữ liệu đã load trong bộ nhớ
     const customerHint = phoneInfo?.phone ? getCustomerAddressHint(phoneInfo.phone) : null;
     if (customerHint) {
-        console.log(`🧑 Customer hint found: province=${customerHint.province_id}, ward=${customerHint.ward_id} (${customerHint.orderCount} đơn)`);
     }
     
     // Extract name
@@ -2130,16 +2078,6 @@ async function applyParsedDataToForm(parsedData) {
     const { data, confidence } = parsedData;
     
     const addr = data.address;
-    console.log(
-        '\uD83D\uDCCB Smart paste result:',
-        'phone=' + (data.phone || '(none)') +
-        ' | name=' + (data.name || '(none)') +
-        ' | ' + (addr.province?.Name || '(no province)') +
-        ' \u2192 ' + (addr.ward?.Name || '(no ward)') +
-        (addr.ward?.Id ? ' [' + addr.ward.Id + ']' : '') +
-        ' | street: ' + (addr.street || '(empty)') +
-        ' | confidence=' + confidence
-    );
     
     // Apply phone
     if (data.phone) {
@@ -2189,11 +2127,6 @@ async function applyParsedDataToForm(parsedData) {
                 applyWard();
             }
             const wardMatched = wardSelect.value === data.address.ward.Id;
-            console.log(
-                '[applyParsedDataToForm] ward:',
-                data.address.ward.Name + ' [' + data.address.ward.Id + ']',
-                wardMatched ? '\u2713 applied' : '\u2717 mismatch (selected=' + wardSelect.value + ', options=' + wardSelect.options.length + ')'
-            );
             if (wardSelect.value === data.address.ward.Id) {
                 wardSelect.dispatchEvent(new Event('change'));
                 clearWardSuggestions();
@@ -2255,11 +2188,6 @@ function _resolveWardForMobileApply(province, addressData) {
 
     const suggestions = _scoreWardSuggestions(province.Wards, text, 1);
     if (suggestions.length && suggestions[0].score >= 0.6) {
-        console.log(
-            '[applyParsedDataToMobileForm] auto-picked ward:',
-            suggestions[0].ward.Name,
-            suggestions[0].score.toFixed(2)
-        );
         return suggestions[0].ward;
     }
     return null;
@@ -2274,17 +2202,6 @@ async function applyParsedDataToMobileForm(parsedData) {
 
     const { data, confidence } = parsedData;
     const addr = data.address;
-
-    console.log(
-        '\uD83D\uDCF1 Mobile smart paste result:',
-        'phone=' + (data.phone || '(none)') +
-        ' | name=' + (data.name || '(none)') +
-        ' | ' + (addr?.province?.Name || '(no province)') +
-        ' \u2192 ' + (addr?.ward?.Name || '(no ward)') +
-        (addr?.ward?.Id ? ' [' + addr.ward.Id + ']' : '') +
-        ' | street: ' + (addr?.street || '(empty)') +
-        ' | confidence=' + confidence
-    );
 
     if (data.phone) {
         const phoneEl = document.getElementById('cPhone');

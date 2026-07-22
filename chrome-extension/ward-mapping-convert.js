@@ -1,6 +1,7 @@
 /**
  * Chuyển địa chỉ cũ 3 cấp → 2 cấp (ward_mapping_2025.json)
- * CTV chọn thủ công Tỉnh → Quận/Huyện → Phường/Xã rồi bấm chuyển đổi.
+ * - Tìm nhanh theo xã/huyện/tỉnh cũ
+ * - Chọn tay linh hoạt: huyện tự ra tỉnh, xã tự ra huyện+tỉnh
  */
 (function () {
   'use strict';
@@ -14,13 +15,25 @@
     'thành phố cần thơ',
     'thành phố huế',
   ];
+  const SEARCH_LIMIT = 10;
+  const SEARCH_MIN_LEN = 2;
+  const SEARCH_MIN_SCORE = 50;
+  const SEARCH_DEBOUNCE_MS = 140;
+  const WARD_DROPDOWN_LIMIT = 40;
+  const ADMIN_TOKEN_RE = /\b(phuong|xa|thi\s*tran|thi\s*xa|quan|huyen|tinh|thanh\s*pho|tp\.?)\b/g;
 
-  /** @type {Map<string, string>|null} */
+  /** @type {Record<string, string>|null} */
   let mappingRaw = null;
-  /** @type {{ provinces: string[], byProvince: Map<string, Map<string, string[]>>, keySet: Set<string> }|null} */
+  /** @type {{ provinces: string[], byProvince: Map<string, Map<string, string[]>>, keySet: Set<string>, searchRecords: object[], districtPairs: object[] }|null} */
   let tree = null;
   let loaded = false;
   let loadingPromise = null;
+  let searchTimer = null;
+  let searchActiveIndex = -1;
+  /** @type {object[]} */
+  let searchCurrentResults = [];
+  /** 'scoped' | 'search' — chế độ list xã khi mở dropdown */
+  let wardListMode = 'scoped';
 
   const state = {
     province: '',
@@ -47,12 +60,43 @@
       .trim();
   }
 
+  function cleanSearchQuery(str) {
+    return normalizeVn(str)
+      .replace(ADMIN_TOKEN_RE, ' ')
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   /** Title-case nhẹ để hiển thị dropdown */
   function toDisplayLabel(raw) {
     return String(raw || '')
       .split(' ')
       .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
       .join(' ');
+  }
+
+  function abbreviateAdminLabel(raw) {
+    const s = String(raw || '').trim();
+    return s
+      .replace(/^phường\s+/i, 'P. ')
+      .replace(/^xã\s+/i, 'X. ')
+      .replace(/^thị trấn\s+/i, 'TT. ')
+      .replace(/^thị xã\s+/i, 'TX. ')
+      .replace(/^quận\s+/i, 'Q. ')
+      .replace(/^huyện\s+/i, 'H. ')
+      .replace(/^tỉnh\s+/i, '')
+      .replace(/^thành phố\s+/i, 'TP. ');
+  }
+
+  function formatOldLabel(rec) {
+    return `${abbreviateAdminLabel(rec.ward)} · ${abbreviateAdminLabel(rec.district)} · ${abbreviateAdminLabel(rec.province)}`;
+  }
+
+  function formatNewLabel(value) {
+    const parts = splitNewAddress(value);
+    if (!parts) return toDisplayLabel(value);
+    return `${abbreviateAdminLabel(parts.ward)} · ${abbreviateAdminLabel(parts.province)}`;
   }
 
   function parseOldAddressKey(key) {
@@ -91,6 +135,8 @@
   function buildTree(mapping) {
     const byProvince = new Map();
     const keySet = new Set();
+    const searchRecords = [];
+    const districtMap = new Map();
 
     for (const [key, value] of Object.entries(mapping)) {
       const parsed = parseOldAddressKey(key);
@@ -106,6 +152,32 @@
       }
       const wards = byDistrict.get(parsed.district);
       if (!wards.includes(parsed.ward)) wards.push(parsed.ward);
+
+      const wardShort = stripAdminPrefix(parsed.ward);
+      const districtShort = stripAdminPrefix(parsed.district);
+      const provinceShort = stripAdminPrefix(parsed.province);
+      searchRecords.push({
+        key: parsed.key,
+        ward: parsed.ward,
+        district: parsed.district,
+        province: parsed.province,
+        newValue: value,
+        wardShort,
+        districtShort,
+        provinceShort,
+        haystack: `${wardShort} ${districtShort} ${provinceShort}`,
+      });
+
+      const dKey = `${parsed.district}\t${parsed.province}`;
+      if (!districtMap.has(dKey)) {
+        districtMap.set(dKey, {
+          district: parsed.district,
+          province: parsed.province,
+          districtShort,
+          provinceShort,
+          haystack: `${districtShort} ${provinceShort}`,
+        });
+      }
     }
 
     const provinces = [...byProvince.keys()].sort((a, b) =>
@@ -115,14 +187,17 @@
     for (const [, byDistrict] of byProvince) {
       for (const [district, wards] of byDistrict) {
         wards.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
-        byDistrict.set(
-          district,
-          wards
-        );
+        byDistrict.set(district, wards);
       }
     }
 
-    return { provinces, byProvince, keySet };
+    const districtPairs = [...districtMap.values()].sort((a, b) => {
+      const d = a.district.localeCompare(b.district, 'vi', { sensitivity: 'base' });
+      if (d !== 0) return d;
+      return a.province.localeCompare(b.province, 'vi', { sensitivity: 'base' });
+    });
+
+    return { provinces, byProvince, keySet, searchRecords, districtPairs };
   }
 
   async function ensureMappingLoaded() {
@@ -135,7 +210,6 @@
       mappingRaw = await res.json();
       tree = buildTree(mappingRaw);
       loaded = true;
-      console.log('[ShopVD] ward_mapping loaded:', tree.provinces.length, 'provinces,', tree.keySet.size, 'keys');
       return tree;
     })().catch((err) => {
       loadingPromise = null;
@@ -202,6 +276,71 @@
     return null;
   }
 
+  /** Token ngắn (<=2) chỉ khớp nguyên từ; token dài hơn cho phép prefix từ. */
+  function fieldHasToken(field, token) {
+    const words = String(field || '').split(' ').filter(Boolean);
+    if (!token) return false;
+    if (token.length <= 2) return words.includes(token);
+    return words.some((w) => w === token || w.startsWith(token));
+  }
+
+  function fieldHasAllTokens(field, tokens) {
+    return tokens.every((t) => fieldHasToken(field, t));
+  }
+
+  function searchLegacyAddresses(query) {
+    if (!tree?.searchRecords?.length) return [];
+    const cleaned = cleanSearchQuery(query);
+    if (cleaned.length < SEARCH_MIN_LEN) return [];
+
+    const tokens = cleaned.split(' ').filter(Boolean);
+    if (!tokens.length) return [];
+
+    const scored = [];
+    for (const rec of tree.searchRecords) {
+      if (!fieldHasAllTokens(rec.haystack, tokens)) continue;
+
+      const allInWard = fieldHasAllTokens(rec.wardShort, tokens);
+      const allInDist = fieldHasAllTokens(rec.districtShort, tokens);
+      const wardHit = tokens.some((t) => fieldHasToken(rec.wardShort, t));
+      const distHit = tokens.some((t) => fieldHasToken(rec.districtShort, t));
+      const provHit = tokens.some((t) => fieldHasToken(rec.provinceShort, t));
+      const exactWard = rec.wardShort === cleaned;
+      const exactDist = rec.districtShort === cleaned;
+      // Query kiểu "xã + huyện" (>=3 token) mới nhận split đa cấp; tránh "trang"+"viet"/"ha"+"noi" ghép nhầm
+      const splitStrong = wardHit && distHit && tokens.length >= 3;
+
+      if (!(exactWard || exactDist || allInWard || allInDist || splitStrong)) continue;
+
+      let score = 0;
+      if (exactWard) score += 100;
+      else if (allInWard) score += 72;
+      else if (wardHit) score += 20;
+
+      if (exactDist) score += 85;
+      else if (allInDist) score += 58;
+      else if (distHit) score += 18;
+
+      if (rec.provinceShort === cleaned) score += 12;
+      else if (provHit) score += 6;
+
+      if (splitStrong) score += 55;
+      if (allInWard && provHit) score += 16;
+      if (allInDist && provHit) score += 12;
+      if ((' ' + rec.haystack + ' ').includes(' ' + cleaned + ' ')) score += 25;
+
+      if (score < SEARCH_MIN_SCORE) continue;
+      scored.push({ rec, score });
+    }
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.rec.ward.localeCompare(b.rec.ward, 'vi', { sensitivity: 'base' });
+    });
+
+    return scored.slice(0, SEARCH_LIMIT).map((s) => s.rec);
+  }
+
   function setStatus(message, type) {
     const el = document.getElementById('legacy-convert-status');
     if (!el) return;
@@ -242,6 +381,25 @@
     closeLegacyCombobox('ward');
   }
 
+  function hideQuickSearchResults() {
+    const box = document.getElementById('legacy-quick-results');
+    if (!box) return;
+    box.hidden = true;
+    box.innerHTML = '';
+    searchActiveIndex = -1;
+    searchCurrentResults = [];
+  }
+
+  function clearQuickSearch() {
+    const input = document.getElementById('legacy-quick-search');
+    if (input) input.value = '';
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      searchTimer = null;
+    }
+    hideQuickSearchResults();
+  }
+
   function filterList(listId, searchText) {
     const list = document.getElementById(listId);
     if (!list) return;
@@ -266,35 +424,105 @@
   function renderDistrictList() {
     const list = document.getElementById('legacy-district-list');
     if (!list || !tree) return;
-    if (!state.province) {
-      list.innerHTML = '';
+
+    // Đã chọn tỉnh → chỉ huyện thuộc tỉnh, không kèm tên tỉnh (thừa)
+    // Chưa chọn tỉnh → list toàn quốc, kèm tỉnh để phân biệt trùng tên
+    if (state.province) {
+      const districts = [...(tree.byProvince.get(state.province)?.keys() || [])].sort((a, b) =>
+        a.localeCompare(b, 'vi', { sensitivity: 'base' })
+      );
+      list.innerHTML = districts
+        .map(
+          (d) =>
+            `<div class="shopvd-combobox-item" data-district="${escapeAttr(d)}" data-province="${escapeAttr(state.province)}">${escapeHtml(toDisplayLabel(d))}</div>`
+        )
+        .join('');
       return;
     }
-    const districts = [...(tree.byProvince.get(state.province)?.keys() || [])].sort((a, b) =>
-      a.localeCompare(b, 'vi', { sensitivity: 'base' })
-    );
-    list.innerHTML = districts
-      .map(
-        (d) =>
-          `<div class="shopvd-combobox-item" data-value="${escapeAttr(d)}">${escapeHtml(toDisplayLabel(d))}</div>`
-      )
+
+    list.innerHTML = (tree.districtPairs || [])
+      .map((pair) => {
+        const label = `${toDisplayLabel(pair.district)} · ${abbreviateAdminLabel(pair.province)}`;
+        return `<div class="shopvd-combobox-item" data-district="${escapeAttr(pair.district)}" data-province="${escapeAttr(pair.province)}">${escapeHtml(label)}</div>`;
+      })
       .join('');
   }
 
-  function renderWardList() {
+  function setWardListHeader(text) {
+    const el = document.getElementById('legacy-ward-list-header');
+    if (el) el.textContent = text;
+  }
+
+  function renderWardListScoped() {
     const list = document.getElementById('legacy-ward-list');
     if (!list || !tree) return;
-    if (!state.province || !state.district) {
-      list.innerHTML = '';
-      return;
-    }
     const wards = tree.byProvince.get(state.province)?.get(state.district) || [];
     list.innerHTML = wards
       .map(
         (w) =>
-          `<div class="shopvd-combobox-item" data-value="${escapeAttr(w)}">${escapeHtml(toDisplayLabel(w))}</div>`
+          `<div class="shopvd-combobox-item" data-ward="${escapeAttr(w)}" data-district="${escapeAttr(state.district)}" data-province="${escapeAttr(state.province)}">${escapeHtml(toDisplayLabel(w))}</div>`
       )
       .join('');
+  }
+
+  function renderWardListSearch(query) {
+    const list = document.getElementById('legacy-ward-list');
+    if (!list || !tree) return;
+
+    const cleaned = cleanSearchQuery(query);
+    if (cleaned.length < SEARCH_MIN_LEN) {
+      list.innerHTML =
+        '<div class="shopvd-combobox-empty">Gõ ít nhất 2 ký tự để tìm phường/xã (tự nhận huyện + tỉnh)</div>';
+      return;
+    }
+
+    const tokens = cleaned.split(' ').filter(Boolean);
+    const scored = [];
+    for (const rec of tree.searchRecords) {
+      if (!fieldHasAllTokens(rec.haystack, tokens)) continue;
+      const allInWard = fieldHasAllTokens(rec.wardShort, tokens);
+      const exactWard = rec.wardShort === cleaned;
+      if (!(exactWard || allInWard || rec.wardShort.startsWith(cleaned) || rec.wardShort.includes(cleaned))) {
+        continue;
+      }
+      let score = 0;
+      if (exactWard) score += 100;
+      else if (allInWard) score += 72;
+      else if (rec.wardShort.startsWith(cleaned)) score += 60;
+      else score += 40;
+      if (state.province && rec.province === state.province) score += 15;
+      if (state.district && rec.district === state.district) score += 20;
+      scored.push({ rec, score });
+    }
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.rec.ward.localeCompare(b.rec.ward, 'vi', { sensitivity: 'base' });
+    });
+
+    const rows = scored.slice(0, WARD_DROPDOWN_LIMIT);
+    if (!rows.length) {
+      list.innerHTML = '<div class="shopvd-combobox-empty">Không tìm thấy phường/xã phù hợp</div>';
+      return;
+    }
+
+    list.innerHTML = rows
+      .map(({ rec }) => {
+        const label = `${toDisplayLabel(rec.ward)} · ${abbreviateAdminLabel(rec.district)} · ${abbreviateAdminLabel(rec.province)}`;
+        return `<div class="shopvd-combobox-item" data-ward="${escapeAttr(rec.ward)}" data-district="${escapeAttr(rec.district)}" data-province="${escapeAttr(rec.province)}">${escapeHtml(label)}</div>`;
+      })
+      .join('');
+  }
+
+  function renderWardList(query) {
+    if (wardListMode === 'scoped') {
+      setWardListHeader('Phường / Xã (cũ)');
+      renderWardListScoped();
+      filterList('legacy-ward-list', query || '');
+      return;
+    }
+    setWardListHeader('Gõ để tìm phường/xã');
+    renderWardListSearch(query || '');
   }
 
   function escapeHtml(str) {
@@ -309,6 +537,101 @@
     return escapeHtml(str).replace(/'/g, '&#39;');
   }
 
+  function syncLegacySelection(province, district, ward) {
+    state.province = province || '';
+    state.district = district || '';
+    state.ward = ward || '';
+
+    if (state.province) {
+      setComboboxLabel('legacy-province-text', 'legacy-province-btn', toDisplayLabel(state.province), true);
+    } else {
+      setComboboxLabel('legacy-province-text', 'legacy-province-btn', 'Chọn tỉnh/TP cũ', false);
+    }
+
+    if (state.district) {
+      setComboboxLabel('legacy-district-text', 'legacy-district-btn', toDisplayLabel(state.district), true);
+    } else {
+      setComboboxLabel('legacy-district-text', 'legacy-district-btn', 'Chọn quận/huyện', false);
+    }
+
+    if (state.ward) {
+      setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', toDisplayLabel(state.ward), true);
+    } else {
+      setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', 'Chọn phường/xã', false);
+    }
+
+    updateConvertButton();
+  }
+
+  function renderQuickSearchResults(results, query) {
+    const box = document.getElementById('legacy-quick-results');
+    if (!box) return;
+
+    searchCurrentResults = results;
+    searchActiveIndex = results.length ? 0 : -1;
+
+    const cleaned = cleanSearchQuery(query);
+    if (cleaned.length < SEARCH_MIN_LEN) {
+      hideQuickSearchResults();
+      return;
+    }
+
+    if (!results.length) {
+      box.hidden = false;
+      box.innerHTML =
+        '<div class="shopvd-legacy-search-empty">Không tìm thấy. Thử tên xã/huyện cụ thể hơn, hoặc chọn tay bên dưới.</div>';
+      return;
+    }
+
+    box.hidden = false;
+    box.innerHTML = results
+      .map(
+        (rec, idx) => `
+        <button type="button" class="shopvd-legacy-search-item${idx === 0 ? ' is-active' : ''}" role="option" data-index="${idx}" data-key="${escapeAttr(rec.key)}">
+          <span class="shopvd-legacy-search-old">${escapeHtml(formatOldLabel(rec))}</span>
+          <span class="shopvd-legacy-search-new">→ ${escapeHtml(formatNewLabel(rec.newValue))}</span>
+        </button>`
+      )
+      .join('');
+  }
+
+  function setSearchActiveIndex(next) {
+    const box = document.getElementById('legacy-quick-results');
+    if (!box || box.hidden || !searchCurrentResults.length) return;
+    const max = searchCurrentResults.length - 1;
+    searchActiveIndex = Math.max(0, Math.min(max, next));
+    box.querySelectorAll('.shopvd-legacy-search-item').forEach((el, idx) => {
+      el.classList.toggle('is-active', idx === searchActiveIndex);
+    });
+    box.querySelector('.shopvd-legacy-search-item.is-active')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  async function runQuickSearch(query) {
+    try {
+      await ensureMappingLoaded();
+    } catch (err) {
+      setStatus('Không tải được bảng đổi địa chỉ', 'is-error');
+      console.error('[ShopVD] ward_mapping load failed:', err);
+      hideQuickSearchResults();
+      return;
+    }
+    const results = searchLegacyAddresses(query);
+    renderQuickSearchResults(results, query);
+  }
+
+  function scheduleQuickSearch(query) {
+    if (searchTimer) clearTimeout(searchTimer);
+    const cleaned = cleanSearchQuery(query);
+    if (cleaned.length < SEARCH_MIN_LEN) {
+      hideQuickSearchResults();
+      return;
+    }
+    searchTimer = setTimeout(() => {
+      searchTimer = null;
+      runQuickSearch(query);
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
   async function openLegacyCombobox(which) {
     try {
       await ensureMappingLoaded();
@@ -318,6 +641,7 @@
       return;
     }
 
+    hideQuickSearchResults();
     closeAllLegacyComboboxes();
     if (typeof window.closeAllComboboxes === 'function') {
       window.closeAllComboboxes();
@@ -334,10 +658,6 @@
       }
       filterList('legacy-province-list', '');
     } else if (which === 'district') {
-      if (!state.province) {
-        setStatus('Chọn tỉnh/TP cũ trước', 'is-info');
-        return;
-      }
       renderDistrictList();
       document.getElementById('legacy-district-dropdown')?.classList.remove('hidden');
       document.getElementById('legacy-district-btn')?.classList.add('is-open');
@@ -347,12 +667,11 @@
         search.focus();
       }
       filterList('legacy-district-list', '');
-    } else if (which === 'ward') {
-      if (!state.district) {
-        setStatus('Chọn quận/huyện cũ trước', 'is-info');
-        return;
+      if (!state.province) {
+        setStatus('Chọn huyện — hệ thống tự điền tỉnh', 'is-info');
       }
-      renderWardList();
+    } else if (which === 'ward') {
+      wardListMode = state.province && state.district ? 'scoped' : 'search';
       document.getElementById('legacy-ward-dropdown')?.classList.remove('hidden');
       document.getElementById('legacy-ward-btn')?.classList.add('is-open');
       const search = document.getElementById('legacy-ward-search');
@@ -360,49 +679,101 @@
         search.value = '';
         search.focus();
       }
-      filterList('legacy-ward-list', '');
+      renderWardList('');
+      if (wardListMode === 'search') {
+        setStatus('Gõ tên xã — hệ thống tự điền huyện + tỉnh', 'is-info');
+      }
     }
   }
 
   function selectLegacyProvince(value) {
-    state.province = value;
-    state.district = '';
-    state.ward = '';
-    setComboboxLabel('legacy-province-text', 'legacy-province-btn', toDisplayLabel(value), true);
-    setComboboxLabel('legacy-district-text', 'legacy-district-btn', 'Chọn quận/huyện', false);
-    setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', 'Chọn phường/xã', false);
-    document.getElementById('legacy-district-btn')?.removeAttribute('disabled');
-    document.getElementById('legacy-ward-btn')?.setAttribute('disabled', 'disabled');
+    syncLegacySelection(value, '', '');
     closeLegacyCombobox('province');
     setStatus('', null);
-    updateConvertButton();
     setTimeout(() => openLegacyCombobox('district'), 80);
   }
 
-  function selectLegacyDistrict(value) {
-    state.district = value;
-    state.ward = '';
-    setComboboxLabel('legacy-district-text', 'legacy-district-btn', toDisplayLabel(value), true);
-    setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', 'Chọn phường/xã', false);
-    document.getElementById('legacy-ward-btn')?.removeAttribute('disabled');
+  function selectLegacyDistrict(district, province) {
+    const nextProvince = province || state.province;
+    if (!district || !nextProvince) {
+      setStatus('Không xác định được tỉnh của huyện này', 'is-error');
+      return;
+    }
+    syncLegacySelection(nextProvince, district, '');
     closeLegacyCombobox('district');
     setStatus('', null);
-    updateConvertButton();
     setTimeout(() => openLegacyCombobox('ward'), 80);
   }
 
-  function selectLegacyWard(value) {
-    state.ward = value;
-    setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', toDisplayLabel(value), true);
+  function selectLegacyWard(ward, district, province) {
+    const nextDistrict = district || state.district;
+    const nextProvince = province || state.province;
+    if (!ward || !nextDistrict || !nextProvince) {
+      setStatus('Không xác định đủ địa chỉ của xã này', 'is-error');
+      return;
+    }
+    syncLegacySelection(nextProvince, nextDistrict, ward);
     closeLegacyCombobox('ward');
     setStatus('', null);
-    updateConvertButton();
-    // Đủ 3 cấp → tự chuyển sang 2 cấp (vẫn có thể bấm nút Áp dụng lại)
     convertLegacyAddress();
   }
 
-  async function convertLegacyAddress() {
+  async function applyMappedValue(mapped, oldParts) {
     const btn = document.getElementById('legacy-convert-btn');
+    const parts = splitNewAddress(mapped);
+    if (!parts) {
+      setStatus('Dữ liệu mới không hợp lệ', 'is-error');
+      return false;
+    }
+
+    if (typeof window.ShopVDAddressAPI?.ensureLoaded === 'function') {
+      await window.ShopVDAddressAPI.ensureLoaded();
+    }
+
+    const addressData = window.ShopVDAddressAPI?.getAddressData?.() || [];
+    const province = findProvinceMatch(parts.province, addressData);
+    if (!province) {
+      setStatus(`Không khớp tỉnh mới: ${parts.province}`, 'is-error');
+      return false;
+    }
+
+    const ward = findWardMatch(parts.ward, province);
+    if (!ward) {
+      setStatus(`Không khớp phường/xã mới: ${parts.ward}`, 'is-error');
+      return false;
+    }
+
+    if (oldParts) {
+      syncLegacySelection(oldParts.province, oldParts.district, oldParts.ward);
+    }
+
+    if (btn) btn.disabled = true;
+    window.ShopVDAddressAPI.selectProvince(province.Id, { silent: true });
+    window.ShopVDAddressAPI.selectWard(ward.Id, province.Id, { silent: true });
+    setStatus(`Đã điền: ${ward.Name} · ${province.Name}`, 'is-ok');
+    updateConvertButton();
+    return true;
+  }
+
+  async function applySearchResult(rec) {
+    if (!rec?.key) return;
+    try {
+      await ensureMappingLoaded();
+      const mapped = rec.newValue || mappingRaw?.[rec.key];
+      if (!mapped) {
+        setStatus('Không tìm thấy trong bảng đổi địa chỉ', 'is-error');
+        return;
+      }
+      hideQuickSearchResults();
+      await applyMappedValue(mapped, rec);
+    } catch (err) {
+      console.error('[ShopVD] apply search result failed:', err);
+      setStatus(err?.message || 'Chuyển đổi thất bại', 'is-error');
+      updateConvertButton();
+    }
+  }
+
+  async function convertLegacyAddress() {
     if (!state.province || !state.district || !state.ward) {
       setStatus('Chọn đủ 3 cấp địa chỉ cũ', 'is-info');
       return;
@@ -410,45 +781,20 @@
 
     try {
       await ensureMappingLoaded();
-      if (typeof window.ShopVDAddressAPI?.ensureLoaded === 'function') {
-        await window.ShopVDAddressAPI.ensureLoaded();
-      }
-
       const key = composeKey(state.province, state.district, state.ward);
-      const mapped = mappingRaw[key];
+      const mapped = mappingRaw?.[key];
       if (!mapped) {
         setStatus('Không tìm thấy trong bảng đổi địa chỉ', 'is-error');
         return;
       }
-
-      const parts = splitNewAddress(mapped);
-      if (!parts) {
-        setStatus('Dữ liệu mới không hợp lệ', 'is-error');
-        return;
-      }
-
-      const addressData = window.ShopVDAddressAPI?.getAddressData?.() || [];
-      const province = findProvinceMatch(parts.province, addressData);
-      if (!province) {
-        setStatus(`Không khớp tỉnh mới: ${parts.province}`, 'is-error');
-        return;
-      }
-
-      const ward = findWardMatch(parts.ward, province);
-      if (!ward) {
-        setStatus(`Không khớp phường/xã mới: ${parts.ward}`, 'is-error');
-        return;
-      }
-
-      if (btn) btn.disabled = true;
-      window.ShopVDAddressAPI.selectProvince(province.Id, { silent: true });
-      window.ShopVDAddressAPI.selectWard(ward.Id, province.Id, { silent: true });
-
-      setStatus(`Đã điền: ${ward.Name} · ${province.Name}`, 'is-ok');
+      await applyMappedValue(mapped, {
+        province: state.province,
+        district: state.district,
+        ward: state.ward,
+      });
     } catch (err) {
       console.error('[ShopVD] convert legacy address failed:', err);
       setStatus(err?.message || 'Chuyển đổi thất bại', 'is-error');
-    } finally {
       updateConvertButton();
     }
   }
@@ -465,8 +811,10 @@
     if (open) {
       panel.hidden = false;
       ensureMappingLoaded().catch(() => {});
+      setTimeout(() => document.getElementById('legacy-quick-search')?.focus(), 60);
     } else {
       closeAllLegacyComboboxes();
+      hideQuickSearchResults();
       panel.hidden = true;
     }
   }
@@ -483,8 +831,7 @@
     setComboboxLabel('legacy-province-text', 'legacy-province-btn', 'Chọn tỉnh/TP cũ', false);
     setComboboxLabel('legacy-district-text', 'legacy-district-btn', 'Chọn quận/huyện', false);
     setComboboxLabel('legacy-ward-text', 'legacy-ward-btn', 'Chọn phường/xã', false);
-    document.getElementById('legacy-district-btn')?.setAttribute('disabled', 'disabled');
-    document.getElementById('legacy-ward-btn')?.setAttribute('disabled', 'disabled');
+    clearQuickSearch();
     closeAllLegacyComboboxes();
     setStatus('', null);
     updateConvertButton();
@@ -508,7 +855,11 @@
       filterList('legacy-district-list', e.target.value);
     });
     document.getElementById('legacy-ward-search')?.addEventListener('input', (e) => {
-      filterList('legacy-ward-list', e.target.value);
+      if (wardListMode === 'search') {
+        renderWardList(e.target.value);
+      } else {
+        filterList('legacy-ward-list', e.target.value);
+      }
     });
 
     document.getElementById('legacy-province-list')?.addEventListener('click', (e) => {
@@ -518,22 +869,78 @@
     });
     document.getElementById('legacy-district-list')?.addEventListener('click', (e) => {
       const item = e.target.closest('.shopvd-combobox-item');
-      const value = item?.getAttribute('data-value');
-      if (value) selectLegacyDistrict(value);
+      if (!item) return;
+      const district = item.getAttribute('data-district');
+      const province = item.getAttribute('data-province');
+      if (district) selectLegacyDistrict(district, province);
     });
     document.getElementById('legacy-ward-list')?.addEventListener('click', (e) => {
       const item = e.target.closest('.shopvd-combobox-item');
-      const value = item?.getAttribute('data-value');
-      if (value) selectLegacyWard(value);
+      if (!item) return;
+      const ward = item.getAttribute('data-ward');
+      const district = item.getAttribute('data-district');
+      const province = item.getAttribute('data-province');
+      if (ward) selectLegacyWard(ward, district, province);
     });
 
     document.getElementById('legacy-convert-btn')?.addEventListener('click', convertLegacyAddress);
 
+    const quickSearch = document.getElementById('legacy-quick-search');
+    const quickResults = document.getElementById('legacy-quick-results');
+
+    quickSearch?.addEventListener('input', (e) => {
+      closeAllLegacyComboboxes();
+      scheduleQuickSearch(e.target.value);
+    });
+
+    quickSearch?.addEventListener('keydown', (e) => {
+      const open = quickResults && !quickResults.hidden && searchCurrentResults.length;
+      if (e.key === 'ArrowDown' && open) {
+        e.preventDefault();
+        setSearchActiveIndex(searchActiveIndex < 0 ? 0 : searchActiveIndex + 1);
+      } else if (e.key === 'ArrowUp' && open) {
+        e.preventDefault();
+        setSearchActiveIndex(searchActiveIndex < 0 ? 0 : searchActiveIndex - 1);
+      } else if (e.key === 'Enter' && open && searchActiveIndex >= 0) {
+        e.preventDefault();
+        applySearchResult(searchCurrentResults[searchActiveIndex]);
+      } else if (e.key === 'Escape') {
+        hideQuickSearchResults();
+      }
+    });
+
+    quickSearch?.addEventListener('focus', () => {
+      if (cleanSearchQuery(quickSearch.value).length >= SEARCH_MIN_LEN && searchCurrentResults.length) {
+        const box = document.getElementById('legacy-quick-results');
+        if (box) box.hidden = false;
+      }
+    });
+
+    quickResults?.addEventListener('click', (e) => {
+      const item = e.target.closest('.shopvd-legacy-search-item');
+      if (!item) return;
+      const idx = Number(item.getAttribute('data-index'));
+      const rec = searchCurrentResults[idx];
+      if (rec) applySearchResult(rec);
+    });
+
+    quickResults?.addEventListener('mousemove', (e) => {
+      const item = e.target.closest('.shopvd-legacy-search-item');
+      if (!item) return;
+      const idx = Number(item.getAttribute('data-index'));
+      if (!Number.isNaN(idx) && idx !== searchActiveIndex) setSearchActiveIndex(idx);
+    });
+
     document.addEventListener('click', (e) => {
       const panel = document.getElementById('legacy-address-panel');
       const toggle = document.getElementById('legacy-toggle-btn');
-      if ((panel && panel.contains(e.target)) || (toggle && toggle.contains(e.target))) return;
+      const searchWrap = document.querySelector('.shopvd-legacy-search-wrap');
+      if ((panel && panel.contains(e.target)) || (toggle && toggle.contains(e.target))) {
+        if (searchWrap && !searchWrap.contains(e.target)) hideQuickSearchResults();
+        return;
+      }
       closeAllLegacyComboboxes();
+      hideQuickSearchResults();
     });
   }
 

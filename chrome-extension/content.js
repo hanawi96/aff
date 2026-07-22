@@ -245,12 +245,6 @@ function createSidebar() {
             <span id="shopvd-unsaved-count" class="shopvd-unsaved-count">0</span>
             <span class="shopvd-unsaved-label">chưa lưu</span>
           </button>
-          <button type="button" id="shopvd-debug-toggle" class="shopvd-debug-toggle" title="Bật/tắt panel debug grab/địa chỉ" aria-label="Debug">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
-              <circle cx="12" cy="12" r="3.5"/>
-            </svg>
-          </button>
           <button type="button" id="shopvd-ship-status-refresh" class="shopvd-ship-refresh hidden" title="Kiểm tra lại đã lưu DB" aria-label="Kiểm tra lại đã lưu DB">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
           </button>
@@ -357,55 +351,74 @@ function createSidebar() {
               <div class="shopvd-address-fields">
                 <div id="legacy-address-panel" class="shopvd-legacy-panel" hidden>
                   <div class="shopvd-legacy-panel-head">
-                    <span class="shopvd-legacy-panel-title">Địa chỉ cũ · 3 cấp</span>
-                    <span class="shopvd-legacy-panel-desc">Chọn tay rồi áp dụng sang form bên dưới</span>
+                    <span class="shopvd-legacy-panel-title">Địa chỉ cũ → mới</span>
+                    <span class="shopvd-legacy-panel-desc">Tìm nhanh hoặc chọn tay — huyện/xã tự suy ra cấp trên</span>
+                  </div>
+                  <div class="shopvd-legacy-search">
+                    <label class="shopvd-address-field-label" for="legacy-quick-search">Tìm nhanh địa chỉ cũ</label>
+                    <div class="shopvd-legacy-search-wrap">
+                      <input
+                        type="text"
+                        id="legacy-quick-search"
+                        class="shopvd-legacy-search-input"
+                        placeholder="Gõ xã hoặc huyện cũ… (vd: Tráng Việt, Mê Linh)"
+                        autocomplete="off"
+                        spellcheck="false"
+                      >
+                      <div id="legacy-quick-results" class="shopvd-legacy-search-results" hidden role="listbox" aria-label="Kết quả tìm địa chỉ cũ"></div>
+                    </div>
+                  </div>
+                  <div class="shopvd-legacy-divider" aria-hidden="true">
+                    <span>Hoặc chọn tay 3 cấp</span>
                   </div>
                   <div class="shopvd-legacy-address-fields">
-                    <div class="shopvd-address-field">
-                      <label class="shopvd-address-field-label" for="legacy-province-btn">Tỉnh / TP cũ</label>
-                      <div class="shopvd-combobox-wrapper">
-                        <button type="button" id="legacy-province-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
-                          <span id="legacy-province-text" class="shopvd-combobox-text">Chọn tỉnh/TP cũ</span>
-                          <span class="shopvd-combobox-chevron" aria-hidden="true">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-                          </span>
-                        </button>
-                        <div id="legacy-province-dropdown" class="shopvd-combobox-dropdown hidden">
-                          <input type="text" id="legacy-province-search" class="shopvd-combobox-search" placeholder="Tìm tỉnh/TP..." autocomplete="off">
-                          <div class="shopvd-combobox-list-header">Tỉnh / TP (cũ)</div>
-                          <div id="legacy-province-list" class="shopvd-combobox-list"></div>
+                    <div class="shopvd-legacy-address-row">
+                      <div class="shopvd-address-field">
+                        <label class="shopvd-address-field-label" for="legacy-province-btn">Tỉnh / TP cũ</label>
+                        <div class="shopvd-combobox-wrapper">
+                          <button type="button" id="legacy-province-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                            <span id="legacy-province-text" class="shopvd-combobox-text">Chọn tỉnh/TP cũ</span>
+                            <span class="shopvd-combobox-chevron" aria-hidden="true">
+                              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                            </span>
+                          </button>
+                          <div id="legacy-province-dropdown" class="shopvd-combobox-dropdown hidden">
+                            <input type="text" id="legacy-province-search" class="shopvd-combobox-search" placeholder="Tìm tỉnh/TP..." autocomplete="off">
+                            <div class="shopvd-combobox-list-header">Tỉnh / TP (cũ)</div>
+                            <div id="legacy-province-list" class="shopvd-combobox-list"></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="shopvd-address-field">
-                      <label class="shopvd-address-field-label" for="legacy-district-btn">Quận / Huyện cũ</label>
-                      <div class="shopvd-combobox-wrapper">
-                        <button type="button" id="legacy-district-btn" class="shopvd-combobox-button" disabled aria-haspopup="listbox">
-                          <span id="legacy-district-text" class="shopvd-combobox-text">Chọn quận/huyện</span>
-                          <span class="shopvd-combobox-chevron" aria-hidden="true">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-                          </span>
-                        </button>
-                        <div id="legacy-district-dropdown" class="shopvd-combobox-dropdown hidden">
-                          <input type="text" id="legacy-district-search" class="shopvd-combobox-search" placeholder="Tìm quận/huyện..." autocomplete="off">
-                          <div class="shopvd-combobox-list-header">Quận / Huyện (cũ)</div>
-                          <div id="legacy-district-list" class="shopvd-combobox-list"></div>
+                      <div class="shopvd-address-field">
+                        <label class="shopvd-address-field-label" for="legacy-district-btn">Quận / Huyện cũ</label>
+                        <div class="shopvd-combobox-wrapper">
+                          <button type="button" id="legacy-district-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                            <span id="legacy-district-text" class="shopvd-combobox-text">Chọn quận/huyện</span>
+                            <span class="shopvd-combobox-chevron" aria-hidden="true">
+                              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                            </span>
+                          </button>
+                          <div id="legacy-district-dropdown" class="shopvd-combobox-dropdown hidden">
+                            <input type="text" id="legacy-district-search" class="shopvd-combobox-search" placeholder="Tìm quận/huyện (có thể chưa chọn tỉnh)..." autocomplete="off">
+                            <div class="shopvd-combobox-list-header">Quận / Huyện (cũ)</div>
+                            <div id="legacy-district-list" class="shopvd-combobox-list"></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="shopvd-address-field">
-                      <label class="shopvd-address-field-label" for="legacy-ward-btn">Phường / Xã cũ</label>
-                      <div class="shopvd-combobox-wrapper">
-                        <button type="button" id="legacy-ward-btn" class="shopvd-combobox-button" disabled aria-haspopup="listbox">
-                          <span id="legacy-ward-text" class="shopvd-combobox-text">Chọn phường/xã</span>
-                          <span class="shopvd-combobox-chevron" aria-hidden="true">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-                          </span>
-                        </button>
-                        <div id="legacy-ward-dropdown" class="shopvd-combobox-dropdown hidden">
-                          <input type="text" id="legacy-ward-search" class="shopvd-combobox-search" placeholder="Tìm phường/xã..." autocomplete="off">
-                          <div class="shopvd-combobox-list-header">Phường / Xã (cũ)</div>
-                          <div id="legacy-ward-list" class="shopvd-combobox-list"></div>
+                      <div class="shopvd-address-field">
+                        <label class="shopvd-address-field-label" for="legacy-ward-btn">Phường / Xã cũ</label>
+                        <div class="shopvd-combobox-wrapper">
+                          <button type="button" id="legacy-ward-btn" class="shopvd-combobox-button" aria-haspopup="listbox">
+                            <span id="legacy-ward-text" class="shopvd-combobox-text">Chọn phường/xã</span>
+                            <span class="shopvd-combobox-chevron" aria-hidden="true">
+                              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                            </span>
+                          </button>
+                          <div id="legacy-ward-dropdown" class="shopvd-combobox-dropdown hidden">
+                            <input type="text" id="legacy-ward-search" class="shopvd-combobox-search" placeholder="Gõ tìm phường/xã..." autocomplete="off">
+                            <div id="legacy-ward-list-header" class="shopvd-combobox-list-header">Phường / Xã (cũ)</div>
+                            <div id="legacy-ward-list" class="shopvd-combobox-list"></div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -888,23 +901,6 @@ function createSidebar() {
 
       <!-- Status message -->
       <div id="shopvd-status" class="shopvd-status hidden"></div>
-
-      <!-- Debug panel: grab / parse địa chỉ -->
-      <div id="shopvd-debug-panel" class="shopvd-debug-panel hidden" aria-live="polite">
-        <div class="shopvd-debug-panel-head">
-          <strong>Debug grab / địa chỉ</strong>
-          <div class="shopvd-debug-panel-actions">
-            <button type="button" id="shopvd-debug-copy" class="shopvd-debug-btn" title="Copy toàn bộ log">Copy log</button>
-            <button type="button" id="shopvd-debug-clear" class="shopvd-debug-btn" title="Xóa log">Xóa</button>
-            <button type="button" id="shopvd-debug-close" class="shopvd-debug-btn" title="Đóng">Đóng</button>
-          </div>
-        </div>
-        <div class="shopvd-debug-panel-meta">
-          v<span id="shopvd-debug-ver">${SHOPVD_EXT_VERSION}</span>
-          · bật ADDR_PARSE_DEBUG khi panel mở
-        </div>
-        <pre id="shopvd-debug-log" class="shopvd-debug-log"></pre>
-      </div>
     </div>
 
     <!-- Sticky footer: Copy xác nhận + Tạo đơn -->
@@ -5424,27 +5420,11 @@ async function parseAndApplyCustomerText(rawText, options = {}) {
     const parsedData = await smartParseCustomerInfo(text);
 
     if (!parsedData?.success) {
-      shopvdDebugLog('parse.fail', {
-        source: options.debugSource || options.draftSource || 'parse',
-        error: parsedData?.error || '',
-        textPreview: text.slice(0, 200),
-      });
       if (!quietStatus) showSmartPasteResult(parsedData);
       return { ok: false, data: parsedData };
     }
 
     const addr = parsedData?.data?.address;
-    shopvdDebugLog('parse.ok', {
-      source: options.debugSource || options.draftSource || 'parse',
-      phone: parsedData?.data?.phone || '',
-      province: addr?.province?.Name || '',
-      provinceId: addr?.province?.Id || '',
-      ward: addr?.ward?.Name || '',
-      wardId: addr?.ward?.Id || '',
-      street: addr?.street || '',
-      confidence: parsedData?.confidence || addr?.confidence || '',
-      textPreview: text.slice(0, 220),
-    });
 
     await applyParsedDataToExtensionForm(parsedData);
     if (!quietStatus) showSmartPasteResult(parsedData);
@@ -5481,132 +5461,17 @@ async function parseAndApplyCustomerText(rawText, options = {}) {
   }
 }
 
-/** ===== Debug panel: grab / parse địa chỉ ===== */
-const SHOPVD_DEBUG_MAX = 120;
-let shopvdDebugEnabled = false;
-const shopvdDebugLines = [];
-
-function shopvdDebugSafe(value, depth = 0) {
-  if (value == null) return value;
-  if (typeof value !== 'object') return value;
-  if (depth > 3) return '[…]';
-  if (Array.isArray(value)) return value.slice(0, 12).map((v) => shopvdDebugSafe(v, depth + 1));
-  const out = {};
-  for (const [k, v] of Object.entries(value)) {
-    if (typeof v === 'function') continue;
-    if (v && typeof v === 'object' && v.nodeType) {
-      out[k] = `<${v.tagName || 'node'}>`;
-      continue;
-    }
-    out[k] = shopvdDebugSafe(v, depth + 1);
-  }
-  return out;
-}
-
-function shopvdDebugRender() {
-  const el = document.getElementById('shopvd-debug-log');
-  if (!el) return;
-  el.textContent = shopvdDebugLines.join('\n') || '(chưa có log — bấm Lấy thông tin hoặc dblclick tin nhắn)';
-  el.scrollTop = el.scrollHeight;
-}
-
-function shopvdDebugLog(event, detail) {
-  const ts = new Date().toLocaleTimeString('vi-VN', { hour12: false });
-  let line = `[${ts}] ${event}`;
-  if (detail !== undefined) {
-    try {
-      const payload = shopvdDebugSafe(detail);
-      const json = JSON.stringify(payload, null, 0);
-      line += ` ${json.length > 900 ? `${json.slice(0, 900)}…` : json}`;
-    } catch (_) {
-      line += ` ${String(detail)}`;
-    }
-  }
-  shopvdDebugLines.push(line);
-  while (shopvdDebugLines.length > SHOPVD_DEBUG_MAX) shopvdDebugLines.shift();
-  if (shopvdDebugEnabled) {
-    console.log('[ShopVD:debug]', event, detail);
-    shopvdDebugRender();
-  }
-}
-
-function setShopvdDebugPanelOpen(open) {
-  shopvdDebugEnabled = Boolean(open);
-  window.ADDR_PARSE_DEBUG = shopvdDebugEnabled;
-  const panel = document.getElementById('shopvd-debug-panel');
-  const toggle = document.getElementById('shopvd-debug-toggle');
-  panel?.classList.toggle('hidden', !shopvdDebugEnabled);
-  toggle?.classList.toggle('is-on', shopvdDebugEnabled);
-  if (shopvdDebugEnabled) {
-    shopvdDebugLog('debug.on', { version: SHOPVD_EXT_VERSION });
-    shopvdDebugRender();
-  }
-}
-
-function setupShopvdDebugPanel() {
-  document.getElementById('shopvd-debug-toggle')?.addEventListener('click', () => {
-    setShopvdDebugPanelOpen(!shopvdDebugEnabled);
-  });
-  document.getElementById('shopvd-debug-close')?.addEventListener('click', () => {
-    setShopvdDebugPanelOpen(false);
-  });
-  document.getElementById('shopvd-debug-clear')?.addEventListener('click', () => {
-    shopvdDebugLines.length = 0;
-    shopvdDebugRender();
-  });
-  document.getElementById('shopvd-debug-copy')?.addEventListener('click', async () => {
-    const text = shopvdDebugLines.join('\n') || '(empty)';
-    const ok = await copyTextToClipboard(text);
-    showStatus(ok ? '✅ Đã copy debug log' : '⚠️ Copy log thất bại', ok ? 'success' : 'warning', 2000);
-  });
-
-  window.__shopvdOnAddrDbg = (step, detail) => {
-    if (!shopvdDebugEnabled) return;
-    shopvdDebugLog(`parse.${step}`, detail);
-  };
-  window.__shopvdDebug = {
-    open: () => setShopvdDebugPanelOpen(true),
-    close: () => setShopvdDebugPanelOpen(false),
-    log: shopvdDebugLog,
-    dump: () => shopvdDebugLines.slice(),
-  };
-}
-
 async function handleGrabFromMessage(bubble, source = 'grab') {
   const root = resolvePancakeMessageRoot(bubble) || bubble;
-  const phone = extractPhoneFromMessageBubble(root);
-  const addressOnly = extractAddressTextFromMessageBubble(root);
   const text = buildOrderIntentTextForGrab(root);
-
-  shopvdDebugLog('grab.extract', {
-    source,
-    phone: phone || '(none)',
-    addressOnly: addressOnly || '(none)',
-    grabText: text || '(empty)',
-    rootTag: root?.tagName || '',
-    rootClass: String(root?.className || '').slice(0, 120),
-    quiet: isGrabQuietWindow(),
-    convKey: getPancakeConversationKey() || '',
-    lastKey: lastPancakeConversationKey || '',
-  });
 
   if (!text) {
     showStatus('⚠️ Không đọc được nội dung tin nhắn', 'warning');
-    shopvdDebugLog('grab.fail', { reason: 'empty_message' });
     return { ok: false, reason: 'empty_message' };
   }
   setGrabBubbleHighlight(root);
   setTimeout(() => clearGrabBubbleHighlight(), 900);
-  const result = await parseAndApplyCustomerText(text, { debugSource: source });
-  shopvdDebugLog('grab.done', {
-    source,
-    ok: Boolean(result?.ok),
-    reason: result?.reason || '',
-    formWard: document.getElementById('ward-combobox-text')?.textContent || '',
-    formProvince: document.getElementById('province-combobox-text')?.textContent || '',
-    formStreet: document.getElementById('customer-street')?.value || '',
-  });
-  return result;
+  return parseAndApplyCustomerText(text, { draftSource: source });
 }
 
 /** Chặn sync/auto-fill đè form ngay sau grab (dblclick tạo 2 click → race). */
@@ -5644,20 +5509,8 @@ function resolveGrabTargetRoot(fromEl) {
 async function grabCustomerInfoFromMessage(el, source = 'grab') {
   beginGrabQuietWindow(1400);
   const root = resolveGrabTargetRoot(el);
-  shopvdDebugLog('grab.start', {
-    source,
-    hasHoverBubble: Boolean(shopvdFloatGrabBubble),
-    usedHover: Boolean(
-      shopvdFloatGrabBubble
-      && root
-      && (root === shopvdFloatGrabBubble
-        || shopvdFloatGrabBubble.contains?.(root)
-        || root.contains?.(shopvdFloatGrabBubble))
-    ),
-  });
   if (!root) {
     showStatus('⚠️ Không đọc được nội dung tin nhắn', 'warning');
-    shopvdDebugLog('grab.fail', { reason: 'no_root', source });
     return { ok: false, reason: 'no_root' };
   }
   const result = await handleGrabFromMessage(root, source);
@@ -8424,6 +8277,10 @@ function canSendOrderConfirmToOpenChat(formPhone, formName, boundConvKey) {
   return false;
 }
 
+/** Tin nhắn hỏi xác nhận — gửi ngay sau tin —— XÁC NHẬN THÔNG TIN —— */
+const SHOPVD_ORDER_CONFIRM_FOLLOWUP =
+  'Phiền c kiểm tra và xác nhận thông tin giúp em với nha để em lưu đơn lại chị ha';
+
 /** Gửi tin xác nhận vào chat Pancake/Zalo. `text` truyền sẵn nếu form sắp bị reset. */
 async function sendOrderConfirmToChat(options = {}) {
   const quiet = Boolean(options.quiet);
@@ -8470,9 +8327,27 @@ async function sendOrderConfirmToChat(options = {}) {
   }
 
   const sent = await sendHostChatMessage();
+  let followSent = false;
+  if (sent) {
+    // Chờ ô chat trống rồi gửi tin follow-up (Pancake + Zalo)
+    await new Promise((r) => setTimeout(r, isZaloPage() ? 450 : 350));
+    let followFilled = false;
+    withHiddenHostComposer(() => {
+      followFilled = fillHostChatComposer(SHOPVD_ORDER_CONFIRM_FOLLOWUP);
+    });
+    if (followFilled) {
+      followSent = await sendHostChatMessage();
+    }
+  }
+
   if (!quiet) {
-    if (sent) showStatus('✅ Đã gửi tin xác nhận cho khách', 'success', 2000);
-    else showStatus('⚠️ Chưa gửi được — tin đã nằm sẵn ô chat, bấm Gửi giúp', 'warning', 3200);
+    if (sent && followSent) {
+      showStatus('✅ Đã gửi xác nhận + tin nhắc khách', 'success', 2200);
+    } else if (sent) {
+      showStatus('✅ Đã gửi tin xác nhận — tin nhắc chưa gửi được', 'warning', 3200);
+    } else {
+      showStatus('⚠️ Chưa gửi được — tin đã nằm sẵn ô chat, bấm Gửi giúp', 'warning', 3200);
+    }
   }
 
   if (flashBtn) {
@@ -8494,7 +8369,7 @@ async function sendOrderConfirmToChat(options = {}) {
     }
   }
 
-  return { ok: true, sent, filled, blocked: false };
+  return { ok: true, sent, followSent, filled, blocked: false };
 }
 
 /** 1 bấm = gửi xác nhận. Form đủ → gửi ngay; form trống → lấy đơn đã lưu theo SĐT chat. */
@@ -8914,8 +8789,6 @@ function setupEventListeners() {
   document.getElementById('confirm-and-create-order-btn')?.addEventListener('click', () => {
     confirmAndCreateOrder();
   });
-
-  setupShopvdDebugPanel();
 
   bindPhoneNumericInput();
 
