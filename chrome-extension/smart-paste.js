@@ -607,17 +607,21 @@ function extractLandmark(addressText) {
  */
 function extractPhoneNumber(text) {
     // Vietnamese phone: starts with 0 or +84, network prefix 3/5/7/8/9, total 10 digits
+    // Normalize separators first: "+84 37 6881837" / "037.688.1837"
+    const compact = String(text || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/(\d)[\s.\-]+(?=\d)/g, '$1');
     const phoneRegex = /(?:0|\+84)[35789]\d{8}/g;
-    let matches = text.match(phoneRegex);
+    let matches = compact.match(phoneRegex);
 
     if (matches && matches.length > 0) {
         const phone = matches[0].replace(/\+84/, '0');
         return { phone, confidence: 'high', original: matches[0] };
     }
 
-    // Fallback: 9-digit number missing leading 0 (e.g. 984923405)
+    // Fallback: 9-digit number missing leading 0 (e.g. 376881837 / 376 881 837)
     const fallbackRegex = /(?<!\d)[35789]\d{8}(?!\d)/g;
-    matches = text.match(fallbackRegex);
+    matches = compact.match(fallbackRegex);
     if (matches && matches.length > 0) {
         const phone = '0' + matches[0];
         return { phone, confidence: 'high', original: matches[0] };

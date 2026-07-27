@@ -316,60 +316,51 @@ function createSidebar() {
           <div class="shopvd-address-section">
             <div class="shopvd-address-box">
               <div class="shopvd-address-header">
-                <div class="shopvd-address-header-main">
-                  <div class="shopvd-address-icon-wrap" aria-hidden="true">
-                    <svg class="shopvd-address-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
-                    </svg>
-                  </div>
-                  <div class="shopvd-address-header-text">
-                    <h4 class="shopvd-address-title">Địa chỉ giao hàng <span class="shopvd-required">*</span></h4>
-                    <p class="shopvd-address-subtitle">Chọn tỉnh / phường theo hệ thống mới</p>
-                  </div>
-                </div>
-
-                <div id="legacy-address-convert" class="shopvd-legacy-address">
-                  <button
-                    type="button"
-                    id="legacy-toggle-btn"
-                    class="shopvd-legacy-toggle"
-                    aria-expanded="false"
-                    aria-controls="legacy-address-panel"
-                  >
-                    <svg class="shopvd-legacy-toggle-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
-                    </svg>
-                    <span class="shopvd-legacy-toggle-label">Chuyển đổi địa chỉ</span>
-                    <svg class="shopvd-legacy-toggle-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
-                    </svg>
-                  </button>
-                </div>
+                <h4 class="shopvd-address-title">Địa chỉ giao hàng <span class="shopvd-required">*</span></h4>
               </div>
 
               <div class="shopvd-address-fields">
-                <div id="legacy-address-panel" class="shopvd-legacy-panel" hidden>
-                  <div class="shopvd-legacy-panel-head">
-                    <span class="shopvd-legacy-panel-title">Địa chỉ cũ → mới</span>
-                    <span class="shopvd-legacy-panel-desc">Tìm nhanh hoặc chọn tay — huyện/xã tự suy ra cấp trên</span>
-                  </div>
-                  <div class="shopvd-legacy-search">
-                    <label class="shopvd-address-field-label" for="legacy-quick-search">Tìm nhanh địa chỉ cũ</label>
-                    <div class="shopvd-legacy-search-wrap">
-                      <input
-                        type="text"
-                        id="legacy-quick-search"
-                        class="shopvd-legacy-search-input"
-                        placeholder="Gõ xã hoặc huyện cũ… (vd: Tráng Việt, Mê Linh)"
-                        autocomplete="off"
-                        spellcheck="false"
+                <div class="shopvd-legacy-search shopvd-legacy-search-main">
+                  <div class="shopvd-legacy-search-head">
+                    <label class="shopvd-address-field-label" for="legacy-quick-search">Có địa chỉ cũ? Tìm nhanh để tự điền</label>
+                    <div id="legacy-address-convert" class="shopvd-legacy-address">
+                      <button
+                        type="button"
+                        id="legacy-toggle-btn"
+                        class="shopvd-legacy-toggle"
+                        aria-expanded="false"
+                        aria-controls="legacy-address-panel"
                       >
-                      <div id="legacy-quick-results" class="shopvd-legacy-search-results" hidden role="listbox" aria-label="Kết quả tìm địa chỉ cũ"></div>
+                        <span class="shopvd-legacy-toggle-label">Chọn tay 3 cấp</span>
+                        <svg class="shopvd-legacy-toggle-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <div class="shopvd-legacy-divider" aria-hidden="true">
-                    <span>Hoặc chọn tay 3 cấp</span>
+                  <div class="shopvd-legacy-search-wrap">
+                    <span class="shopvd-legacy-search-icon" aria-hidden="true">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      id="legacy-quick-search"
+                      class="shopvd-legacy-search-input"
+                      placeholder="Gõ xã / huyện cũ… ví dụ: Tráng Việt"
+                      autocomplete="off"
+                      spellcheck="false"
+                    >
+                    <div id="legacy-quick-results" class="shopvd-legacy-search-results" hidden role="listbox" aria-label="Kết quả tìm địa chỉ cũ"></div>
+                  </div>
+                  <p id="legacy-convert-status" class="shopvd-legacy-convert-status" hidden role="status"></p>
+                </div>
+
+                <div id="legacy-address-panel" class="shopvd-legacy-panel" hidden>
+                  <div class="shopvd-legacy-panel-head">
+                    <span class="shopvd-legacy-panel-title">Chọn tay địa chỉ cũ</span>
+                    <span class="shopvd-legacy-panel-desc">Chọn xã là đủ — hệ thống tự suy cấp trên</span>
                   </div>
                   <div class="shopvd-legacy-address-fields">
                     <div class="shopvd-legacy-address-row">
@@ -428,8 +419,11 @@ function createSidebar() {
                       </svg>
                       <span>Áp dụng vào địa chỉ 2 cấp</span>
                     </button>
-                    <p id="legacy-convert-status" class="shopvd-legacy-convert-status" hidden role="status"></p>
                   </div>
+                </div>
+
+                <div class="shopvd-address-divider" role="separator">
+                  <span>Hoặc chọn địa chỉ mới</span>
                 </div>
 
                 <div class="shopvd-address-row">
@@ -665,25 +659,25 @@ function createSidebar() {
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Selected Products — Order Cart -->
-          <div class="shopvd-order-cart" id="shopvd-order-cart" data-validate-wrap="order-products">
-            <div class="shopvd-order-cart-header">
-              <div class="shopvd-order-cart-header-left">
-                <span class="shopvd-order-cart-icon" aria-hidden="true">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                  </svg>
-                </span>
-                <span class="shopvd-order-cart-title">Sản phẩm trong đơn</span>
-              </div>
-              <span class="shopvd-order-cart-count" id="order-cart-count">0</span>
+        <!-- Selected Products — Order Cart (box riêng, ngoài section Sản phẩm) -->
+        <div class="shopvd-order-cart" id="shopvd-order-cart" data-validate-wrap="order-products">
+          <div class="shopvd-order-cart-header">
+            <div class="shopvd-order-cart-header-left">
+              <span class="shopvd-order-cart-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+              </span>
+              <span class="shopvd-order-cart-title">Sản phẩm trong đơn</span>
             </div>
-            <p class="shopvd-field-error shopvd-field-error-cart" id="validate-error-order-products" hidden role="alert"></p>
-            <div id="products-list" class="shopvd-products-list">
-              <!-- Products will be added here -->
-            </div>
+            <span class="shopvd-order-cart-count" id="order-cart-count">0</span>
+          </div>
+          <p class="shopvd-field-error shopvd-field-error-cart" id="validate-error-order-products" hidden role="alert"></p>
+          <div id="products-list" class="shopvd-products-list">
+            <!-- Products will be added here -->
           </div>
         </div>
 
@@ -7971,9 +7965,11 @@ function buildOrderConfirmText() {
   const productLines = products.map((p, idx) => {
     const qty = Math.max(1, parseInt(p.quantity, 10) || 1);
     const weight = formatWeightSize(p.weight || p.size || '');
+    const note = String(p.notes || '').trim();
     const parts = [`${idx + 1}. ${String(p.name || '').trim()}`];
     parts.push(`SL: ${qty} chiếc`);
     if (weight) parts.push(`Size: ${weight}`);
+    if (note) parts.push(`Lưu ý: ${note}`);
     return parts.join('  ·  ');
   });
 
@@ -8010,6 +8006,11 @@ function buildOrderConfirmText() {
     paymentLines.push('- Thanh toán: Nhận hàng thanh toán');
   }
 
+  const orderNote = document.getElementById('order-notes')?.value.trim() || '';
+  const orderNoteLines = orderNote
+    ? ['', '- Lưu ý đơn hàng:', orderNote]
+    : [];
+
   const lines = [
     '—— XÁC NHẬN THÔNG TIN ——',
     '',
@@ -8019,8 +8020,9 @@ function buildOrderConfirmText() {
     '- Sản phẩm:',
     ...productLines,
     '',
-    '- Địa chỉ nhận hàng:',
+    '- Địa chỉ sau xác nhập:',
     address,
+    ...orderNoteLines,
     '',
     `- ${totalLine}`,
     ...paymentLines,
@@ -8067,9 +8069,11 @@ function buildOrderConfirmTextFromOrder(order) {
   const productLines = products.map((p, idx) => {
     const qty = Math.max(1, parseInt(p.quantity, 10) || 1);
     const weight = formatWeightSize(p.weight || p.size || '');
+    const note = String(p.notes || '').trim();
     const parts = [`${idx + 1}. ${String(p.name || '').trim()}`];
     parts.push(`SL: ${qty} chiếc`);
     if (weight) parts.push(`Size: ${weight}`);
+    if (note) parts.push(`Lưu ý: ${note}`);
     return parts.join('  ·  ');
   });
 
@@ -8102,6 +8106,11 @@ function buildOrderConfirmTextFromOrder(order) {
     paymentLines.push('- Thanh toán: Nhận hàng thanh toán');
   }
 
+  const orderNote = String(order.notes || '').trim();
+  const orderNoteLines = orderNote
+    ? ['', '- Lưu ý đơn hàng:', orderNote]
+    : [];
+
   const lines = [
     '—— XÁC NHẬN THÔNG TIN ——',
     '',
@@ -8111,8 +8120,9 @@ function buildOrderConfirmTextFromOrder(order) {
     '- Sản phẩm:',
     ...productLines,
     '',
-    '- Địa chỉ nhận hàng:',
+    '- Địa chỉ sau xác nhập:',
     address,
+    ...orderNoteLines,
     '',
     `- ${totalLine}`,
     ...paymentLines,
@@ -8721,7 +8731,15 @@ async function confirmAndCreateOrder() {
 }
 
 function sanitizePhoneDigits(value) {
-  return String(value || '').replace(/\D/g, '');
+  let digits = String(value || '').replace(/\D/g, '');
+  // +84 / 84xxxxxxxxx → 0xxxxxxxxx (Zalo hay hiện "+84 37 6881837")
+  if (/^84[35789]\d{8}$/.test(digits)) {
+    digits = `0${digits.slice(2)}`;
+  } else if (/^[35789]\d{8}$/.test(digits)) {
+    // 9 số thiếu số 0 đầu
+    digits = `0${digits}`;
+  }
+  return digits;
 }
 
 function bindPhoneNumericInput() {
@@ -11406,19 +11424,13 @@ function updatePancakeNameHint(isAutoFilled) {
   hint.classList.toggle('hidden', !isAutoFilled);
 }
 
+/** Clear toàn bộ form khi đổi chat A→B (không chỉ tên/SĐT/địa chỉ). */
 function clearCustomerInfoForm() {
-  const nameInput = document.getElementById('customer-name');
-  const phoneInput = document.getElementById('customer-phone');
-
-  if (nameInput) nameInput.value = '';
-  if (phoneInput) phoneInput.value = '';
-
-  resetCustomerAddressForm();
-
-  clearValidationFieldError('customer-name');
-  clearValidationFieldError('customer-phone');
+  // Giỏ / thanh toán / ghi chú / ship / giảm giá / nguồn… — giống sau khi lưu đơn
+  resetShopvdOrderFormAfterSave();
 
   lastAutoFilledCustomerName = '';
+  customerNameUserEdited = false;
   updatePancakeNameHint(false);
 
   hideFloatGrabButton(0);

@@ -289,9 +289,7 @@ function filterOrdersData(preservePage = false) {
     const pageBeforeFilter = preservePage ? currentPage : null;
     const searchRaw = document.getElementById('searchInput')?.value || '';
     const searchTerm = searchRaw.toLowerCase();
-    const searchPhoneDigits = isPhoneLikeSearchQuery(searchRaw)
-        ? normalizeVNPhoneDigitsForSearch(searchRaw)
-        : '';
+    const searchScope = getSearchScope();
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
@@ -312,41 +310,9 @@ function filterOrdersData(preservePage = false) {
         const cached = searchIndexById.get(order.id);
 
         // ============================================
-        // OPTIMIZED SEARCH FILTER
+        // OPTIMIZED SEARCH FILTER (theo scope nếu chọn)
         // ============================================
-        let matchesSearch = !searchTerm;
-        if (searchTerm) {
-            if (cached) {
-                const normalizedSearchTerm = removeVietnameseTones(searchTerm);
-                
-                // Primary fields (always search)
-                const matchOrderId = cached.orderId.includes(searchTerm);
-                const matchCustomerName = cached.customerName.includes(normalizedSearchTerm);
-                const matchPhone = searchPhoneDigits
-                    ? (searchPhoneDigits.length >= 3 && cached.phoneDigits.includes(searchPhoneDigits))
-                    : cached.phone.includes(searchTerm);
-                const matchCTV = cached.ctvCode.includes(searchTerm);
-                
-                // Smart address search: only if term is long enough or has spaces
-                const shouldSearchAddress = 
-                    (searchTerm.includes(' ') && searchTerm.length >= 4) || 
-                    searchTerm.length >= 6;
-                const matchAddress = shouldSearchAddress && cached.address.includes(normalizedSearchTerm);
-                
-                // Product search: check cached product names
-                const matchProducts = cached.products.some(p => p.includes(normalizedSearchTerm));
-
-                // Lưu ý đơn hàng + lưu ý từng dòng sản phẩm (đã chuẩn hoá không dấu)
-                const matchOrderNotes = cached.orderNotes && cached.orderNotes.includes(normalizedSearchTerm);
-                const matchProductNotes = Array.isArray(cached.productNotes) && cached.productNotes.some(n => n.includes(normalizedSearchTerm));
-
-                matchesSearch = matchOrderId || matchCustomerName || matchPhone || matchCTV || matchAddress || matchProducts
-                    || matchOrderNotes || matchProductNotes;
-            } else {
-                // Fallback: shouldn't happen, but handle gracefully
-                matchesSearch = true;
-            }
-        }
+        const matchesSearch = cachedOrderMatchesSearch(cached, searchRaw, searchScope);
 
         // Priority filter
         const matchesPriority = !priorityFilterActive || order.is_priority === 1;
@@ -516,10 +482,138 @@ function orderCustomerSourceFilterKey(order) {
 }
 
 function closeOrderFilterDropdownMenus(exceptId) {
-    ['statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu', 'dateFilterMenu'].forEach((id) => {
+    ['searchScopeMenu', 'statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu', 'dateFilterMenu'].forEach((id) => {
         if (exceptId === id) return;
         document.getElementById(id)?.remove();
     });
+}
+
+// ============================================
+// SEARCH SCOPE (desktop — tìm theo 1 trường)
+// ============================================
+
+const SEARCH_SCOPE_OPTIONS = [
+    { value: 'all', label: 'Tất cả', placeholder: 'Mã đơn, KH, SĐT, CTV, sản phẩm, lưu ý đơn / lưu ý từng SP...' },
+    { value: 'name', label: 'Tên KH', placeholder: 'Tìm theo tên khách hàng...' },
+    { value: 'phone', label: 'SĐT', placeholder: 'Tìm theo số điện thoại...' },
+    { value: 'address', label: 'Địa chỉ', placeholder: 'Tìm theo địa chỉ...' },
+    { value: 'notes', label: 'Lưu ý', placeholder: 'Tìm theo lưu ý đơn / sản phẩm...' },
+    { value: 'product', label: 'Tên SP', placeholder: 'Tìm theo tên sản phẩm...' }
+];
+
+function getSearchScope() {
+    const v = (document.getElementById('searchScope')?.value || 'all').toLowerCase().trim();
+    return SEARCH_SCOPE_OPTIONS.some((o) => o.value === v) ? v : 'all';
+}
+
+/** Khớp 1 đơn (đã index) với từ khóa + scope. Scope hẹp = chính xác hơn, không lẫn field khác. */
+function cachedOrderMatchesSearch(cached, searchRaw, scope) {
+    const searchTerm = (searchRaw || '').toLowerCase();
+    if (!searchTerm) return true;
+    if (!cached) return true;
+
+    const normalized = removeVietnameseTones(searchTerm);
+
+    if (scope === 'name') {
+        return cached.customerName.includes(normalized);
+    }
+    if (scope === 'phone') {
+        const digits = normalizeVNPhoneDigitsForSearch(searchRaw);
+        return digits.length >= 3 && cached.phoneDigits.includes(digits);
+    }
+    if (scope === 'address') {
+        return !!(cached.address && cached.address.includes(normalized));
+    }
+    if (scope === 'notes') {
+        const inOrder = cached.orderNotes && cached.orderNotes.includes(normalized);
+        const inLines = Array.isArray(cached.productNotes)
+            && cached.productNotes.some((n) => n.includes(normalized));
+        return !!(inOrder || inLines);
+    }
+    if (scope === 'product') {
+        return cached.products.some((p) => p.includes(normalized));
+    }
+
+    // all — giữ hành vi cũ
+    const searchPhoneDigits = isPhoneLikeSearchQuery(searchRaw)
+        ? normalizeVNPhoneDigitsForSearch(searchRaw)
+        : '';
+    const matchOrderId = cached.orderId.includes(searchTerm);
+    const matchCustomerName = cached.customerName.includes(normalized);
+    const matchPhone = searchPhoneDigits
+        ? (searchPhoneDigits.length >= 3 && cached.phoneDigits.includes(searchPhoneDigits))
+        : cached.phone.includes(searchTerm);
+    const matchCTV = cached.ctvCode.includes(searchTerm);
+    const shouldSearchAddress =
+        (searchTerm.includes(' ') && searchTerm.length >= 4) ||
+        searchTerm.length >= 6;
+    const matchAddress = shouldSearchAddress && cached.address.includes(normalized);
+    const matchProducts = cached.products.some((p) => p.includes(normalized));
+    const matchOrderNotes = cached.orderNotes && cached.orderNotes.includes(normalized);
+    const matchProductNotes = Array.isArray(cached.productNotes)
+        && cached.productNotes.some((n) => n.includes(normalized));
+
+    return matchOrderId || matchCustomerName || matchPhone || matchCTV || matchAddress
+        || matchProducts || matchOrderNotes || matchProductNotes;
+}
+
+function syncSearchScopePlaceholder() {
+    const scope = getSearchScope();
+    const opt = SEARCH_SCOPE_OPTIONS.find((o) => o.value === scope) || SEARCH_SCOPE_OPTIONS[0];
+    const inp = document.getElementById('searchInput');
+    if (inp) inp.placeholder = opt.placeholder;
+}
+
+function toggleSearchScopeFilter(event) {
+    event.stopPropagation();
+    closeOrderFilterDropdownMenus('searchScopeMenu');
+
+    const existingMenu = document.getElementById('searchScopeMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        document.getElementById('searchScopeBtn')?.setAttribute('aria-expanded', 'false');
+        return;
+    }
+
+    const currentValue = getSearchScope();
+    const button = event.currentTarget;
+    const wrap = button.parentElement;
+
+    const menu = document.createElement('div');
+    menu.id = 'searchScopeMenu';
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[160px]';
+    menu.setAttribute('role', 'listbox');
+    menu.innerHTML = SEARCH_SCOPE_OPTIONS.map((s) => `
+        <button
+            type="button"
+            role="option"
+            aria-selected="${s.value === currentValue ? 'true' : 'false'}"
+            onclick="selectSearchScope('${s.value}', '${s.label}')"
+            class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <span class="text-sm text-gray-700 flex-1">${s.label}</span>
+            ${s.value === currentValue ? `
+                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    button.setAttribute('aria-expanded', 'true');
+    attachOrderFilterDropdown(menu, button, wrap);
+}
+
+function selectSearchScope(value, label) {
+    const hidden = document.getElementById('searchScope');
+    const labelEl = document.getElementById('searchScopeLabel');
+    if (hidden) hidden.value = value;
+    if (labelEl) labelEl.textContent = label;
+    document.getElementById('searchScopeMenu')?.remove();
+    document.getElementById('searchScopeBtn')?.setAttribute('aria-expanded', 'false');
+    syncSearchScopePlaceholder();
+    filterOrdersData();
+    document.getElementById('searchInput')?.focus();
 }
 
 const ORDER_FILTER_DROPDOWN_PAD = 12;

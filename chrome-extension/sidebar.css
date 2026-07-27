@@ -2852,15 +2852,21 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   font-weight: 600;
 }
 
-/* Products List — Order Cart Zone */
+/* Products List — Order Cart Zone (box riêng, nổi bật) */
 .shopvd-order-cart {
-  margin-top: 16px;
-  padding: 12px 14px 14px;
-  background: linear-gradient(180deg, #eef2ff 0%, #f5f7ff 55%, #fafbff 100%);
-  border: 1px solid #c7d2fe;
-  border-left: 4px solid #6366f1;
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.shopvd-order-cart:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .shopvd-order-cart-header {
@@ -2868,15 +2874,16 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #dbeafe;
+  margin: 0;
+  padding: 11px 14px 11px 16px;
+  background: linear-gradient(90deg, #eef2ff 0%, #f5f3ff 55%, #faf5ff 100%);
+  border-bottom: 1px solid #e0e7ff;
 }
 
 .shopvd-order-cart-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -2884,51 +2891,61 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: #6366f1;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #6366f1 0%, #7c3aed 100%);
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);
 }
 
 .shopvd-order-cart-title {
   font-size: 12px;
-  font-weight: 700;
-  color: #3730a3;
+  font-weight: 800;
+  color: #312e81;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   line-height: 1.2;
 }
 
 .shopvd-order-cart-count {
   flex-shrink: 0;
-  min-width: 22px;
-  padding: 3px 9px;
+  min-width: 26px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: #6366f1;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   text-align: center;
   line-height: 1.2;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.35);
 }
 
 .shopvd-order-cart-empty .shopvd-order-cart-count {
-  background: #94a3b8;
+  background: #cbd5e1;
+  box-shadow: none;
+  color: #475569;
+}
+
+.shopvd-order-cart:not(.shopvd-order-cart-empty) .shopvd-order-cart-header {
+  background: linear-gradient(90deg, #e0e7ff 0%, #ede9fe 60%, #faf5ff 100%);
 }
 
 .shopvd-order-cart .shopvd-products-list {
-  margin-bottom: 0;
+  margin: 0;
+  padding: 10px 12px 12px 14px;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 40%);
 }
 
 .shopvd-order-cart .shopvd-product-item {
   background: #fff;
-  border: 1px solid #e0e7ff;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.06);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .shopvd-order-cart .shopvd-product-item:last-child {
@@ -2937,13 +2954,13 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 
 .shopvd-order-cart .shopvd-product-item:hover {
   border-color: #a5b4fc;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.12);
 }
 
 .shopvd-order-cart .shopvd-product-thumb {
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: 8px;
   border-color: #e0e7ff;
 }
 
@@ -2961,20 +2978,20 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 
 .shopvd-empty-products {
   text-align: center;
-  padding: 20px 16px;
+  padding: 22px 16px;
   color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px dashed #c7d2fe;
-  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 650;
+  background: #fff;
+  border: 1.5px dashed #c7d2fe;
+  border-radius: 10px;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .shopvd-empty-products-hint {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 11px;
   font-weight: 500;
   color: #94a3b8;
@@ -5530,83 +5547,33 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 
 /* === ADDRESS SECTION === */
 .shopvd-address-section {
-  margin-top: 12px;
+  margin-top: 10px;
   overflow: visible;
 }
 
 .shopvd-address-box {
   position: relative;
-  background: #ffffff;
-  border: 1px solid #e8edf5;
-  border-radius: 16px;
-  padding: 14px 14px 16px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
   overflow: visible;
 }
 
 .shopvd-address-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding-top: 2px;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 380px) {
-  .shopvd-legacy-toggle-label {
-    max-width: 9.5em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-.shopvd-address-header-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
-
-.shopvd-address-icon-wrap {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
-  border: 1px solid #c7d2fe;
-  display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.shopvd-address-icon {
-  width: 17px;
-  height: 17px;
-  color: #4f46e5;
-}
-
-.shopvd-address-header-text {
-  min-width: 0;
-  padding-top: 1px;
+  margin-bottom: 8px;
 }
 
 .shopvd-address-title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #0f172a;
-  line-height: 1.25;
+  line-height: 1.3;
   letter-spacing: -0.01em;
-}
-
-.shopvd-address-subtitle {
-  margin: 3px 0 0;
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.35;
 }
 
 .shopvd-required {
@@ -5616,39 +5583,61 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 .shopvd-address-fields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   overflow: visible;
 }
 
-/* Toggle chuyển đổi — pill góc phải header */
+.shopvd-address-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.shopvd-address-divider::before,
+.shopvd-address-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.shopvd-address-divider span {
+  flex-shrink: 0;
+}
+
+/* Toggle chọn tay 3 cấp — text link dưới ô tìm */
 .shopvd-legacy-address {
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .shopvd-legacy-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  max-width: 100%;
+  gap: 3px;
   margin: 0;
-  padding: 6px 10px;
-  border: 1px solid #ccfbf1;
-  background: #f0fdfa;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: #0f766e;
   font-size: 11.5px;
-  font-weight: 650;
-  line-height: 1.2;
+  font-weight: 600;
+  line-height: 1.3;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: 4px;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .shopvd-legacy-toggle:hover {
-  background: #ccfbf1;
-  border-color: #99f6e4;
   color: #0d9488;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .shopvd-legacy-toggle:focus-visible {
@@ -5657,16 +5646,8 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 }
 
 .shopvd-address-box.legacy-open .shopvd-legacy-toggle {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.25);
-}
-
-.shopvd-legacy-toggle-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
+  color: #0f766e;
+  font-weight: 700;
 }
 
 .shopvd-legacy-toggle-label {
@@ -5674,10 +5655,10 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 }
 
 .shopvd-legacy-toggle-chevron {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.7;
   transition: transform 0.2s ease;
 }
 
@@ -5794,32 +5775,84 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 .shopvd-legacy-search {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+}
+
+.shopvd-legacy-search-main {
+  margin-bottom: 0;
+}
+
+.shopvd-legacy-search-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shopvd-legacy-search-head .shopvd-address-field-label {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.shopvd-legacy-search-main .shopvd-legacy-convert-status {
+  margin: 2px 0 0;
 }
 
 .shopvd-legacy-search-wrap {
   position: relative;
 }
 
+.shopvd-legacy-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: #0f766e;
+  pointer-events: none;
+  opacity: 0.7;
+  z-index: 1;
+}
+
+.shopvd-legacy-search-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .shopvd-legacy-search-input {
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
-  padding: 9px 11px;
+  padding: 9px 11px 9px 34px;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #fff;
   font-size: 12.5px;
   color: #0f172a;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.shopvd-legacy-search-main .shopvd-legacy-search-input {
+  border-color: #99f6e4;
+  background: #f0fdfa;
 }
 
 .shopvd-legacy-search-input::placeholder {
   color: #94a3b8;
 }
 
+.shopvd-legacy-search-main .shopvd-legacy-search-input::placeholder {
+  color: #5f8f88;
+}
+
 .shopvd-legacy-search-input:focus {
   border-color: #0d9488;
+  background: #fff;
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
 }
 
@@ -6011,6 +6044,8 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
   overflow: visible;
 }
 
@@ -6024,6 +6059,8 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 .shopvd-address-select,
 .shopvd-address-input {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   background: #ffffff;
   border: 1px solid #e2e8f0;

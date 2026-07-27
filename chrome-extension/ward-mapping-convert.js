@@ -579,7 +579,7 @@
     if (!results.length) {
       box.hidden = false;
       box.innerHTML =
-        '<div class="shopvd-legacy-search-empty">Không tìm thấy. Thử tên xã/huyện cụ thể hơn, hoặc chọn tay bên dưới.</div>';
+        '<div class="shopvd-legacy-search-empty">Không tìm thấy. Thử tên xã/huyện cụ thể hơn, hoặc dùng “Chọn tay 3 cấp”.</div>';
       return;
     }
 
@@ -811,10 +811,9 @@
     if (open) {
       panel.hidden = false;
       ensureMappingLoaded().catch(() => {});
-      setTimeout(() => document.getElementById('legacy-quick-search')?.focus(), 60);
+      setTimeout(() => document.getElementById('legacy-province-btn')?.focus(), 60);
     } else {
       closeAllLegacyComboboxes();
-      hideQuickSearchResults();
       panel.hidden = true;
     }
   }
@@ -910,6 +909,7 @@
     });
 
     quickSearch?.addEventListener('focus', () => {
+      ensureMappingLoaded().catch(() => {});
       if (cleanSearchQuery(quickSearch.value).length >= SEARCH_MIN_LEN && searchCurrentResults.length) {
         const box = document.getElementById('legacy-quick-results');
         if (box) box.hidden = false;
@@ -935,8 +935,9 @@
       const panel = document.getElementById('legacy-address-panel');
       const toggle = document.getElementById('legacy-toggle-btn');
       const searchWrap = document.querySelector('.shopvd-legacy-search-wrap');
+      if (searchWrap?.contains(e.target)) return;
       if ((panel && panel.contains(e.target)) || (toggle && toggle.contains(e.target))) {
-        if (searchWrap && !searchWrap.contains(e.target)) hideQuickSearchResults();
+        hideQuickSearchResults();
         return;
       }
       closeAllLegacyComboboxes();
@@ -945,7 +946,7 @@
   }
 
   function init() {
-    if (!document.getElementById('legacy-toggle-btn') || !document.getElementById('legacy-address-panel')) return;
+    if (!document.getElementById('legacy-quick-search') || !document.getElementById('legacy-address-panel')) return;
     bindEvents();
     resetLegacyAddressConvert();
   }
