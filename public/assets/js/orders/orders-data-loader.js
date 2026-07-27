@@ -598,6 +598,25 @@ function setupEventListeners() {
     });
 
     document.addEventListener('click', function (e) {
+        // Scope dropdown — gắn sau khi bundle load, tránh ReferenceError từ inline onclick
+        const scopeBtn = e.target.closest('#searchScopeBtn');
+        if (scopeBtn) {
+            e.preventDefault();
+            if (typeof toggleSearchScopeFilter === 'function') {
+                toggleSearchScopeFilter(e);
+            }
+            return;
+        }
+        const scopeOpt = e.target.closest('#searchScopeMenu [data-search-scope]');
+        if (scopeOpt) {
+            e.preventDefault();
+            selectSearchScope(
+                scopeOpt.getAttribute('data-search-scope'),
+                scopeOpt.getAttribute('data-search-scope-label')
+            );
+            return;
+        }
+
         if (!e.target.closest('#searchInputClearBtn')) return;
         e.preventDefault();
         const inp = document.getElementById('searchInput');
@@ -629,4 +648,5 @@ function setupEventListeners() {
     });
 
     syncOrdersSearchClearButton();
+    if (typeof syncSearchScopePlaceholder === 'function') syncSearchScopePlaceholder();
 }

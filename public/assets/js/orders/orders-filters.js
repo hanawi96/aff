@@ -565,7 +565,7 @@ function syncSearchScopePlaceholder() {
 }
 
 function toggleSearchScopeFilter(event) {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     closeOrderFilterDropdownMenus('searchScopeMenu');
 
     const existingMenu = document.getElementById('searchScopeMenu');
@@ -576,7 +576,8 @@ function toggleSearchScopeFilter(event) {
     }
 
     const currentValue = getSearchScope();
-    const button = event.currentTarget;
+    const button = document.getElementById('searchScopeBtn');
+    if (!button) return;
     const wrap = button.parentElement;
 
     const menu = document.createElement('div');
@@ -587,8 +588,9 @@ function toggleSearchScopeFilter(event) {
         <button
             type="button"
             role="option"
+            data-search-scope="${s.value}"
+            data-search-scope-label="${s.label}"
             aria-selected="${s.value === currentValue ? 'true' : 'false'}"
-            onclick="selectSearchScope('${s.value}', '${s.label}')"
             class="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
         >
             <span class="text-sm text-gray-700 flex-1">${s.label}</span>
@@ -605,16 +607,21 @@ function toggleSearchScopeFilter(event) {
 }
 
 function selectSearchScope(value, label) {
+    const opt = SEARCH_SCOPE_OPTIONS.find((o) => o.value === value);
+    const resolvedLabel = label || opt?.label || 'Tất cả';
     const hidden = document.getElementById('searchScope');
     const labelEl = document.getElementById('searchScopeLabel');
-    if (hidden) hidden.value = value;
-    if (labelEl) labelEl.textContent = label;
+    if (hidden) hidden.value = opt ? opt.value : 'all';
+    if (labelEl) labelEl.textContent = resolvedLabel;
     document.getElementById('searchScopeMenu')?.remove();
     document.getElementById('searchScopeBtn')?.setAttribute('aria-expanded', 'false');
     syncSearchScopePlaceholder();
     filterOrdersData();
     document.getElementById('searchInput')?.focus();
 }
+
+window.toggleSearchScopeFilter = toggleSearchScopeFilter;
+window.selectSearchScope = selectSearchScope;
 
 const ORDER_FILTER_DROPDOWN_PAD = 12;
 const ORDER_FILTER_DROPDOWN_GAP = 4;
