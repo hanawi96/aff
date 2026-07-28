@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Đơn hàng — Mobile</title>
+<meta name="description" content="Tạo và quản lý đơn hàng — Admin mobile ShopVD">
+<meta name="theme-color" content="#f4a261">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Đơn hàng">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
 <link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
 <link rel="dns-prefetch" href="https://ctv-api.yendev96.workers.dev">
@@ -6831,5 +6840,20 @@ async function loadMAdDetail(){
     </div>
   </div>
 </div>
+<script>
+/* PWA — đăng ký SW sau load, không chặn first paint */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var swUrl = new URL('sw.js', window.location.href).pathname;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register(swUrl, { scope: '/' })
+      .catch(function () {
+        /* local / thiếu Service-Worker-Allowed → scope mặc định /admin/ */
+        return navigator.serviceWorker.register(swUrl);
+      })
+      .catch(function () {});
+  });
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,36 @@
+{
+  "id": "/admin/m.html",
+  "name": "Quản lý đơn hàng",
+  "short_name": "Đơn hàng",
+  "description": "Tạo và quản lý đơn hàng — Admin mobile ShopVD",
+  "start_url": "/admin/m.html?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#f9fafb",
+  "theme_color": "#f4a261",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/admin/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/admin/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/admin/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

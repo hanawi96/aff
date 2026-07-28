@@ -9,3 +9,15 @@
 
 /assets/data/ward_mapping_2025.json
   Cache-Control: public, max-age=2592000
+
+# Admin mobile PWA
+/admin/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/admin/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
+
+/admin/icons/*
+  Cache-Control: public, max-age=604800
