@@ -511,7 +511,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <div id="deskLegacyConvertRoot" class="desk-legacy-convert-box space-y-2">
                                 <div class="space-y-1.5">
                                     <div class="flex items-center justify-between gap-2">
-                                        <label class="block text-xs font-semibold text-slate-600" for="deskLegacyQuickSearch">Có địa chỉ cũ? Tìm nhanh để tự điền</label>
+                                        <label class="block text-xs font-semibold text-slate-600" for="deskLegacyQuickSearch">Tìm nhanh địa chỉ cũ</label>
                                         <button
                                             type="button"
                                             id="deskLegacyConvertToggle"
