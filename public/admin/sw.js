@@ -3,7 +3,7 @@
  * Scope rộng (/) để /login.html vẫn ở trong standalone; chỉ can thiệp admin + login + asset.
  * API cross-origin: không đụng.
  */
-const CACHE_VERSION = 'admin-m-v1';
+const CACHE_VERSION = 'admin-m-v2';
 const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
