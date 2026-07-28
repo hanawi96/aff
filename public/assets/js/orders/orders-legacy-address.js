@@ -464,10 +464,10 @@
     toggle.classList.toggle('is-open', open);
     if (open) {
       Core().ensureLoaded().catch(() => {});
-      setTimeout(() => document.getElementById('deskLegacyQuickSearch')?.focus(), 40);
+      // Ô tìm nhanh đã luôn hiện — mở panel thì focus chọn tay
+      setTimeout(() => document.getElementById('deskLegacyWardBtn')?.focus(), 40);
     } else {
       closeAllDropdowns();
-      hideQuickResults();
     }
   }
 
@@ -484,12 +484,17 @@
   }
 
   function onDocumentClick(e) {
+    const searchWrap = document.getElementById('deskLegacyQuickSearchWrap');
     const panel = document.getElementById('deskLegacyConvertPanel');
     const toggle = document.getElementById('deskLegacyConvertToggle');
+
+    // Ô tìm luôn hiện ngoài panel — đóng kết quả khi click ngoài
+    if (searchWrap && !searchWrap.contains(e.target)) {
+      hideQuickResults();
+    }
+
     if (!panel || panel.classList.contains('hidden')) return;
-    if (panel.contains(e.target) || toggle?.contains(e.target)) {
-      const searchWrap = document.getElementById('deskLegacyQuickSearchWrap');
-      if (searchWrap && !searchWrap.contains(e.target)) hideQuickResults();
+    if (panel.contains(e.target) || toggle?.contains(e.target) || searchWrap?.contains(e.target)) {
       const inDropdown =
         e.target.closest('[id^="deskLegacy"][id$="Dropdown"]') ||
         e.target.closest('[id^="deskLegacy"][id$="Btn"]');
@@ -497,7 +502,6 @@
       return;
     }
     closeAllDropdowns();
-    hideQuickResults();
   }
 
   function bindEvents() {
@@ -595,6 +599,8 @@
     syncSelection('', '', '');
     setStatus('', null);
     setPanelOpen(false);
+    // Prefetch bảng map — ô tìm nhanh dùng ngay không cần mở panel
+    Core().ensureLoaded().catch(() => {});
   }
 
   window.initDeskLegacyAddressConvert = initDeskLegacyAddressConvert;

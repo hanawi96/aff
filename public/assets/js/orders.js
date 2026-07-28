@@ -509,47 +509,40 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <label class="block text-sm font-semibold text-gray-800 mb-1">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
 
                             <div id="deskLegacyConvertRoot" class="desk-legacy-convert-box space-y-2">
-                                <button
-                                    type="button"
-                                    id="deskLegacyConvertToggle"
-                                    class="desk-legacy-convert-toggle"
-                                    aria-expanded="false"
-                                    aria-controls="deskLegacyConvertPanel"
-                                >
-                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
-                                    </svg>
-                                    <span>Chuyển đổi địa chỉ</span>
-                                    <svg data-desk-legacy-chevron fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
-                                    </svg>
-                                </button>
-
-                                <div id="deskLegacyConvertPanel" class="desk-legacy-convert-panel hidden space-y-2.5">
-                                <div>
-                                    <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600">Địa chỉ cũ → mới</p>
-                                    <p class="text-[11px] text-slate-400 leading-snug">Tìm nhanh hoặc chọn tay — huyện/xã tự suy ra cấp trên</p>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1" for="deskLegacyQuickSearch">Tìm nhanh địa chỉ cũ</label>
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <label class="block text-xs font-semibold text-slate-600" for="deskLegacyQuickSearch">Có địa chỉ cũ? Tìm nhanh để tự điền</label>
+                                        <button
+                                            type="button"
+                                            id="deskLegacyConvertToggle"
+                                            class="desk-legacy-convert-toggle shrink-0"
+                                            aria-expanded="false"
+                                            aria-controls="deskLegacyConvertPanel"
+                                        >
+                                            <span>Chọn tay 3 cấp</span>
+                                            <svg data-desk-legacy-chevron fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                     <div id="deskLegacyQuickSearchWrap" class="relative">
                                         <input
                                             type="text"
                                             id="deskLegacyQuickSearch"
                                             class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"
-                                            placeholder="Gõ xã hoặc huyện cũ… (vd: Tráng Việt, Mê Linh)"
+                                            placeholder="Gõ xã / huyện cũ… ví dụ: Tráng Việt"
                                             autocomplete="off"
                                             spellcheck="false"
                                         >
                                         <div id="deskLegacyQuickResults" class="hidden absolute z-40 left-0 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg"></div>
                                     </div>
+                                    <p id="deskLegacyConvertStatus" class="hidden text-xs leading-snug" role="status"></p>
                                 </div>
 
-                                <div class="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                    <span class="flex-1 h-px bg-slate-200"></span>
-                                    <span>Hoặc chọn tay 3 cấp</span>
-                                    <span class="flex-1 h-px bg-slate-200"></span>
+                                <div id="deskLegacyConvertPanel" class="desk-legacy-convert-panel hidden space-y-2.5">
+                                <div>
+                                    <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600">Chọn tay địa chỉ cũ</p>
+                                    <p class="text-[11px] text-slate-400 leading-snug">Chọn xã là đủ — hệ thống tự suy cấp trên</p>
                                 </div>
 
                                 <div class="grid grid-cols-3 gap-2 min-w-0">
@@ -595,7 +588,6 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                                     <span>Áp dụng vào địa chỉ 2 cấp</span>
                                 </button>
-                                <p id="deskLegacyConvertStatus" class="hidden text-xs leading-snug" role="status"></p>
                                 </div>
                             </div>
 
