@@ -369,16 +369,14 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
     const codCollect = getOrderCodCollectAmount(order);
 
     const amountColor = makeupOrder ? 'text-violet-700' : (isBankTransfer ? 'text-green-600' : 'text-gray-900');
-    const payPillClass = makeupOrder
-        ? 'text-[10px] font-medium text-violet-700 bg-violet-50 px-1.5 py-px rounded'
-        : isBankTransfer
+    const payPillClass = isBankTransfer
         ? 'text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-px rounded'
         : 'text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-px rounded';
-    const payPillLabel = makeupOrder ? 'Gửi bù' : (isBankTransfer ? 'CK' : 'COD');
+    const payPillLabel = isBankTransfer ? 'CK' : 'COD';
 
     let amountSubLine = '';
     if (makeupOrder) {
-        amountSubLine = `<p class="text-[11px] text-violet-600 font-medium leading-tight mt-0.5">Không thu COD</p>`;
+        amountSubLine = `<p class="text-[11px] text-violet-600 font-medium leading-tight mt-0.5">Gửi bù</p>`;
     } else if (!isBankTransfer && depositAmount > 0) {
         amountSubLine = `<p class="text-[11px] text-orange-600 font-medium leading-tight mt-0.5 tabular-nums">cọc ${formatCurrency(depositAmount)} → thu ${formatCurrency(codCollect)}</p>`;
     }
@@ -389,7 +387,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
                 <div class="flex flex-col items-center">
                     <div class="inline-flex items-center gap-1.5">
                         <span class="text-sm font-semibold tabular-nums ${amountColor}">${formatCurrency(makeupOrder ? 0 : totalAmount)}</span>
-                        <span class="${payPillClass}">${payPillLabel}</span>
+                        ${makeupOrder ? '' : `<span class="${payPillClass}">${payPillLabel}</span>`}
                     </div>
                     ${amountSubLine}
                 </div>
