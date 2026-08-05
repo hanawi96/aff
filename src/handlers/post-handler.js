@@ -561,8 +561,11 @@ export async function handlePost(path, request, env, corsHeaders) {
                     ward_id: data.ward_id,
                     ward_name: data.ward_name,
                     street_address: data.street_address,
-                    // Priority
-                    is_priority: data.is_priority || 0,
+                    // Priority / gửi bù
+                    is_priority: data.is_priority ?? data.isPriority ?? 0,
+                    isPriority: data.isPriority ?? data.is_priority ?? 0,
+                    is_makeup: data.is_makeup ?? data.isMakeup ?? 0,
+                    isMakeup: data.isMakeup ?? data.is_makeup ?? 0,
                     deposit_amount: data.deposit_amount ?? data.depositAmount ?? 0,
                     depositAmount: data.depositAmount ?? data.deposit_amount ?? 0
                 };

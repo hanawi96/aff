@@ -99,6 +99,11 @@ function calculateOrderTotals(order) {
 
 // Helper function to calculate order profit dynamically
 function calculateOrderProfit(order) {
+    // Đơn gửi bù: không ghi doanh thu / lãi (giữ SP trong products chỉ để xuất/gửi hàng)
+    if (typeof isOrderMakeup === 'function' ? isOrderMakeup(order) : (Number(order?.is_makeup ?? order?.isMakeup) === 1)) {
+        return 0;
+    }
+
     const { totalAmount, productCost } = calculateOrderTotals(order);
     const shippingFee = order.shipping_fee || 0;
     const shippingCost = order.shipping_cost || 0;
