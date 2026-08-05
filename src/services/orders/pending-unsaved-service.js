@@ -556,7 +556,7 @@ export async function dismissPendingUnsaved(data, env, corsHeaders) {
     }
 }
 
-const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products';
+const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products, is_priority';
 
 function formatShippingStatusOrder(row) {
     if (!row) return null;
@@ -582,6 +582,7 @@ function formatShippingStatusOrder(row) {
         shipped_at_unix: row.shipped_at_unix,
         planned_send_at_unix: row.planned_send_at_unix,
         total_amount: row.total_amount,
+        is_priority: Number(row.is_priority) === 1 ? 1 : 0,
         products_preview: preview
     };
 }

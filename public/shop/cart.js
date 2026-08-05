@@ -13,6 +13,8 @@ import { checkoutValidationRules } from './assets/js/shared/constants/validation
 import { errorDisplayService } from './assets/js/shared/services/error-display.service.js';
 // Import CTV tracking
 import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } from './assets/js/shared/utils/ctv-tracking.js';
+// Shared API base (Workers URL on production — same as quick-checkout)
+import { CONFIG as SHARED_CONFIG } from './assets/js/shared/constants/config.js';
 
 // Configuration
 const CONFIG = {
@@ -21,8 +23,7 @@ const CONFIG = {
     STORAGE_KEY: 'cart',
     DISCOUNT_KEY: 'discount',
     DEBOUNCE_DELAY: 300,
-    // Backend API URL - use port 8787 if running on Live Server
-    API_BASE_URL: window.location.port === '5500' ? 'http://localhost:8787' : '',
+    API_BASE_URL: SHARED_CONFIG.API_BASE_URL,
     // Animation timing constants
     FADE_IN_BASE_DELAY: 50,      // Base delay for first section
     FADE_IN_STAGGER: 30,          // Delay between each section

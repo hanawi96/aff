@@ -526,6 +526,54 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   pointer-events: none;
 }
 
+.shopvd-priority-order-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.1s ease;
+}
+
+.shopvd-priority-order-btn:hover {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.shopvd-priority-order-btn:active {
+  transform: translateY(1px);
+}
+
+.shopvd-priority-order-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.shopvd-priority-order-btn.is-active {
+  border-color: #fbbf24;
+  background: #fef3c7;
+  color: #eab308;
+}
+
+.shopvd-priority-order-btn.is-active svg {
+  fill: currentColor;
+}
+
+.shopvd-priority-order-btn.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .shopvd-edit-order-banner {
   display: flex;
   align-items: center;
@@ -1922,6 +1970,43 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   font-size: 11px;
 }
 
+.shopvd-inline-weight-presets {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  width: 100%;
+}
+
+.shopvd-inline-weight-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  background: #fff;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.shopvd-inline-weight-preset:hover {
+  border-color: #fbbf24;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.shopvd-inline-weight-preset.active {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #fff;
+}
+
 .shopvd-inline-add-btn {
   width: 100%;
   margin-top: 2px;
@@ -2478,6 +2563,48 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 .shopvd-search-form-input:focus {
   outline: none;
   border-color: #6366f1;
+}
+
+.shopvd-search-weight-presets {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  width: 100%;
+}
+
+.shopvd-search-weight-presets.hidden {
+  display: none !important;
+}
+
+.shopvd-search-weight-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 3px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: -0.02em;
+}
+
+.shopvd-search-weight-preset:hover {
+  border-color: #fbbf24;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.shopvd-search-weight-preset.active {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #fff;
 }
 
 .shopvd-search-form-add-btn {

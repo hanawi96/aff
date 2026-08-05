@@ -569,6 +569,21 @@ function createSidebar() {
                   <input type="text" id="product-search-notes" class="shopvd-search-form-input" placeholder="Ghi chú...">
                 </div>
               </div>
+              <div id="product-search-weight-presets" class="shopvd-search-weight-presets">
+                <button type="button" class="shopvd-search-weight-preset" data-weight="3kg">3kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="4kg">4kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="5kg">5kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="6kg">6kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="7kg">7kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="8kg">8kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="9kg">9kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="10kg">10kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="11kg">11kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="12kg">12kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="13kg">13kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="14kg">14kg</button>
+                <button type="button" class="shopvd-search-weight-preset" data-weight="15kg">15kg</button>
+              </div>
               <button type="button" id="product-search-add-btn" class="shopvd-search-form-add-btn">Thêm vào đơn</button>
             </div>
           </div>
@@ -3702,6 +3717,7 @@ function renderDbSaveStatusCard(payload = {}) {
             </svg>
           </button>`
         : '';
+      const priorityBtn = shopvdPriorityStarBtnHtml(o);
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
@@ -3709,6 +3725,7 @@ function renderDbSaveStatusCard(payload = {}) {
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-phone-inline">${phone}</span>
+          ${priorityBtn}
           ${editBtn}
         </div>
         <div class="shopvd-ship-detail">
@@ -4264,6 +4281,58 @@ function isShopvdOrderEditable(status) {
   return SHOPVD_EDITABLE_ORDER_STATUSES.has(shopvdNormalizeStatusSlug(status));
 }
 
+/** Nút sao ưu tiên trên thanh trạng thái đơn đã lưu DB */
+function shopvdPriorityStarBtnHtml(order) {
+  const id = Number(order?.id) || 0;
+  if (id <= 0) return '';
+  const isPri = Number(order.is_priority) === 1;
+  return `<button type="button" class="shopvd-priority-order-btn${isPri ? ' is-active' : ''}" data-order-id="${id}" data-priority="${isPri ? 1 : 0}" title="${isPri ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên'}" aria-label="${isPri ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên'}" aria-pressed="${isPri ? 'true' : 'false'}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/>
+    </svg>
+  </button>`;
+}
+
+function syncShopvdPriorityBtnUi(btn, isPri) {
+  if (!btn) return;
+  const on = !!isPri;
+  btn.classList.toggle('is-active', on);
+  btn.setAttribute('data-priority', on ? '1' : '0');
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = on ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên';
+  btn.setAttribute('aria-label', on ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên');
+}
+
+async function toggleSavedOrderPriorityFromBtn(btn) {
+  const id = Number(btn?.getAttribute('data-order-id'));
+  if (!btn || !(id > 0) || btn.classList.contains('is-loading')) return;
+  const wasActive = btn.classList.contains('is-active');
+  btn.classList.add('is-loading');
+  syncShopvdPriorityBtnUi(btn, !wasActive);
+  try {
+    const response = await shopvdFetch(`${API_BASE_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggleOrderPriority', orderId: id }),
+    });
+    const data = await response.json();
+    if (!data?.success) throw new Error(data?.error || 'Không thể cập nhật ưu tiên');
+    const isPri = Number(data.isPriority) === 1;
+    syncShopvdPriorityBtnUi(btn, isPri);
+    const cached = shopvdOrderDetailCache.get(id);
+    if (cached) {
+      cached.is_priority = isPri ? 1 : 0;
+      shopvdOrderDetailCache.set(id, cached);
+    }
+    showStatus(isPri ? '⭐ Đã đánh dấu ưu tiên' : 'Đã bỏ ưu tiên', 'success', 1600);
+  } catch (err) {
+    syncShopvdPriorityBtnUi(btn, wasActive);
+    showStatus('⚠️ Không cập nhật được ưu tiên', 'error', 2000);
+  } finally {
+    btn.classList.remove('is-loading');
+  }
+}
+
 function parseOrderMoneyValue(value) {
   if (value == null || value === '') return 0;
   if (typeof value === 'number') return Number.isFinite(value) ? Math.round(value) : 0;
@@ -4760,6 +4829,13 @@ function setupDbSaveStatusCard() {
   });
 
   document.getElementById('shopvd-ship-status')?.addEventListener('click', (e) => {
+    const priorityBtn = e.target.closest?.('.shopvd-priority-order-btn');
+    if (priorityBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSavedOrderPriorityFromBtn(priorityBtn);
+      return;
+    }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');
     if (!btn) return;
     e.preventDefault();
@@ -4876,6 +4952,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
             </svg>
           </button>`
         : '';
+      const priorityBtn = shopvdPriorityStarBtnHtml(o);
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
@@ -4883,6 +4960,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-phone-inline">${escapeHtml(phone)}</span>
+          ${priorityBtn}
           ${editBtn}
         </div>
         <div class="shopvd-ship-detail">
@@ -4975,6 +5053,13 @@ function setupPhoneOrderSearch() {
   });
 
   panel?.addEventListener('click', (e) => {
+    const priorityBtn = e.target.closest?.('.shopvd-priority-order-btn');
+    if (priorityBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSavedOrderPriorityFromBtn(priorityBtn);
+      return;
+    }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');
     if (!btn) return;
     e.preventDefault();
@@ -6038,6 +6123,13 @@ function renderAllProducts() {
             >
           </div>
         </div>
+        ${skipsWeight ? '' : `
+        <div class="shopvd-inline-weight-presets" data-product-id="${product.id}">
+          ${[3, 4, 5, 6, 7, 8, 9, 10].map((kg) =>
+            `<button type="button" class="shopvd-inline-weight-preset" data-weight="${kg}kg" data-product-id="${product.id}">${kg}kg</button>`
+          ).join('')}
+        </div>
+        `}
         <button type="button" class="shopvd-inline-add-btn" data-product-id="${product.id}">
           Thêm vào đơn
         </button>
@@ -6075,6 +6167,23 @@ function renderAllProducts() {
           document.getElementById('shopvd-status')?.classList.add('hidden');
         }, 2000);
       }
+    });
+  });
+
+  document.querySelectorAll('.shopvd-inline-weight-preset').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const productId = btn.getAttribute('data-product-id');
+      const weight = btn.getAttribute('data-weight') || '';
+      if (!productId || !weight) return;
+      const weightInput = document.querySelector(`.shopvd-inline-weight[data-product-id="${productId}"]`);
+      if (!weightInput) return;
+      weightInput.value = weight;
+      const row = document.querySelector(`.shopvd-inline-weight-presets[data-product-id="${productId}"]`);
+      row?.querySelectorAll('.shopvd-inline-weight-preset').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      weightInput.focus();
     });
   });
   
@@ -6157,6 +6266,8 @@ function addCheckedAllTabProduct(checkbox, options = {}) {
   if (qtyInput) qtyInput.value = '1';
   if (weightInput) weightInput.value = '';
   if (notesInput) notesInput.value = '';
+  document.querySelectorAll(`.shopvd-inline-weight-preset[data-product-id="${productId}"]`)
+    .forEach((b) => b.classList.remove('active'));
 
   document.querySelector(`[data-form-id="${productId}"]`)?.classList.add('hidden');
   updateFAB();
@@ -6515,10 +6626,13 @@ function showSearchProductForm(product) {
   }
 
   weightField?.classList.toggle('hidden', skipsWeight);
+  document.getElementById('product-search-weight-presets')?.classList.toggle('hidden', skipsWeight);
 
   if (qtyInput) qtyInput.value = '1';
   if (weightInput) weightInput.value = '';
   if (notesInput) notesInput.value = '';
+  document.querySelectorAll('#product-search-weight-presets .shopvd-search-weight-preset')
+    .forEach((b) => b.classList.remove('active'));
 
   form.classList.remove('hidden');
 
@@ -9724,6 +9838,19 @@ function setupEventListeners() {
     hideSearchProductForm({ restoreResults: true });
   });
   document.getElementById('product-search-add-btn')?.addEventListener('click', addSearchProductToOrder);
+
+  document.getElementById('product-search-weight-presets')?.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.shopvd-search-weight-preset');
+    if (!btn) return;
+    e.preventDefault();
+    const weight = btn.getAttribute('data-weight') || '';
+    const weightInput = document.getElementById('product-search-weight');
+    if (!weightInput || !weight) return;
+    weightInput.value = weight;
+    document.querySelectorAll('#product-search-weight-presets .shopvd-search-weight-preset')
+      .forEach((b) => b.classList.toggle('active', b === btn));
+    weightInput.focus();
+  });
 
   // Product tabs
   document.querySelectorAll('.shopvd-product-tab').forEach(tab => {
