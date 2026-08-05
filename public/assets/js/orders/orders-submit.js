@@ -86,6 +86,7 @@ async function submitNewOrder() {
     const orderNotes = document.getElementById('newOrderNotes')?.value.trim() || '';
     const priorityCheckbox = document.getElementById('newOrderPriority');
     const isPriority = priorityCheckbox?.checked ? 1 : 0;
+    const isMakeup = document.getElementById('newOrderMakeup')?.checked ? 1 : 0;
 
     // Get address data (2 cấp: Tỉnh/TP → Phường/Xã) — hoặc bảo toàn 3 cấp cũ
     let provinceId;
@@ -233,6 +234,8 @@ async function submitNewOrder() {
         depositAmount: depositAmount,
         is_priority: isPriority,
         isPriority: isPriority,
+        is_makeup: isMakeup,
+        isMakeup: isMakeup,
         customer_source: typeof getCustomerSourceSelection === 'function' ? getCustomerSourceSelection() : null,
         customerSource: typeof getCustomerSourceSelection === 'function' ? getCustomerSourceSelection() : null
     };

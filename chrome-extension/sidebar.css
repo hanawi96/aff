@@ -3939,6 +3939,18 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   box-shadow: 0 2px 10px rgba(245, 158, 11, 0.12);
 }
 
+.shopvd-option-card-makeup {
+  background: #faf5ff;
+  border-color: #ddd6fe;
+}
+
+.shopvd-option-card-makeup:hover,
+.shopvd-option-card-makeup:has(input:checked) {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.12);
+}
+
 .shopvd-option-card-sendlater {
   background: #f8fbff;
   border-color: #bfdbfe;

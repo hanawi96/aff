@@ -691,6 +691,14 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             <p class="text-xs text-gray-600 mt-1.5 ml-6">Đơn ưu tiên sẽ hiển thị đầu tiên trong danh sách</p>
                         </div>
 
+                        <div class="bg-violet-50 rounded-lg p-3 border border-violet-200">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="newOrderMakeup" class="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500" onchange="typeof updateOrderSummary==='function'&&updateOrderSummary()" ${duplicateData != null && Number(duplicateData.is_makeup) === 1 ? 'checked' : ''} />
+                                <span class="text-sm font-medium text-gray-800">Gửi bù</span>
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1.5 ml-6">Thiếu hàng gửi bù — không thu COD, không ghi doanh thu / hoa hồng.</p>
+                        </div>
+
                         <div class="bg-sky-50 rounded-lg p-3 border border-sky-200">
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" id="newOrderSendLater" class="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500" onchange="toggleNewOrderSendLater()" ${duplicateData && duplicateData.status === 'send_later' ? 'checked' : ''} />

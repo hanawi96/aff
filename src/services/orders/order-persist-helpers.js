@@ -9,6 +9,15 @@ function normalizeOrderIsPriority(data) {
     return 0;
 }
 
+/** 0 | 1 — đơn gửi bù: không thu COD, không ghi doanh thu. */
+export function normalizeOrderIsMakeup(data) {
+    const raw = data?.is_makeup ?? data?.isMakeup;
+    if (raw === true || raw === 1 || raw === '1') return 1;
+    const n = Number(raw);
+    if (n === 1) return 1;
+    return 0;
+}
+
 function parseMoneyInt(value) {
     if (value == null || value === '') return 0;
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -24,7 +33,7 @@ function validationError(message) {
     return err;
 }
 
-/** COD thu khi giao = 0 nếu chuyển khoản; ngược lại total − deposit. */
+/** COD thu khi giao = 0 nếu chuyển khoản hoặc gửi bù; ngược lại total − deposit. */
 export function normalizeCustomerSource(raw) {
     if (raw == null || raw === '') return null;
     const s = String(raw).toLowerCase().trim();
@@ -36,7 +45,8 @@ export function isBankPaymentMethod(paymentMethod) {
     return pm === 'bank' || pm === 'bank_transfer' || pm === 'transfer';
 }
 
-export function computeCodCollectAmount(totalAmount, depositAmount, paymentMethod) {
+export function computeCodCollectAmount(totalAmount, depositAmount, paymentMethod, isMakeup = 0) {
+    if (Number(isMakeup) === 1) return 0;
     if (isBankPaymentMethod(paymentMethod)) return 0;
     const total = Math.max(0, Math.round(Number(totalAmount) || 0));
     const deposit = Math.max(0, Math.round(Number(depositAmount) || 0));
@@ -191,11 +201,12 @@ export async function computeOrderSnapshot(data, env) {
     const taxAmount = Math.round(revenue * currentTaxRate);
 
     const discountCode = data.discountCode || data.discount_code || null;
-    const discountAmount = data.discountAmount || data.discount_amount || 0;
+    let discountAmount = data.discountAmount || data.discount_amount || 0;
     const discountId = data.discountId || data.discount_id || null;
     const isPriority = normalizeOrderIsPriority(data);
+    const isMakeup = normalizeOrderIsMakeup(data);
     const paymentMethod = data.paymentMethod || data.payment_method || 'cod';
-    const depositAmount = normalizeDepositAmount(
+    let depositAmount = normalizeDepositAmount(
         totalAmountNumber,
         data.deposit_amount ?? data.depositAmount,
         paymentMethod
@@ -232,23 +243,60 @@ export async function computeOrderSnapshot(data, env) {
         });
     }
 
+    // Gửi bù: giữ danh sách SP để xuất/gửi hàng, nhưng không ghi doanh thu / COD / HH / chi phí SP
+    let outTotalAmount = totalAmountNumber;
+    let outShippingFee = shippingFee;
+    let outShippingCost = shippingCost;
+    let outPackagingCost = totalPackagingCost;
+    let outPackagingDetails = packagingDetails;
+    let outTaxAmount = taxAmount;
+    let outCommission = finalCommission;
+    let outCommissionRate = finalCommissionRate;
+    let outDiscountAmount = discountAmount;
+    let outDiscountCode = discountCode;
+    let outDiscountId = discountId;
+
+    if (isMakeup === 1) {
+        outTotalAmount = 0;
+        outShippingFee = 0;
+        outShippingCost = 0;
+        outPackagingCost = 0;
+        outPackagingDetails = {
+            ...packagingDetails,
+            per_order_cost: 0,
+            total_cost: 0,
+            is_makeup: true
+        };
+        outTaxAmount = 0;
+        outCommission = 0;
+        outCommissionRate = 0;
+        outDiscountAmount = 0;
+        outDiscountCode = null;
+        outDiscountId = null;
+        depositAmount = 0;
+        itemsData.forEach((item) => {
+            item.costPrice = 0;
+        });
+    }
+
     return {
-        totalAmountNumber,
+        totalAmountNumber: outTotalAmount,
         productsJson: JSON.stringify(data.cart),
-        shippingFee,
-        shippingCost,
+        shippingFee: outShippingFee,
+        shippingCost: outShippingCost,
         validReferralCode,
-        finalCommission,
-        finalCommissionRate,
+        finalCommission: outCommission,
+        finalCommissionRate: outCommissionRate,
         ctvPhone,
-        totalPackagingCost,
-        packagingDetails,
-        taxAmount,
+        totalPackagingCost: outPackagingCost,
+        packagingDetails: outPackagingDetails,
+        taxAmount: outTaxAmount,
         currentTaxRate,
-        discountCode,
-        discountAmount,
-        discountId,
+        discountCode: outDiscountCode,
+        discountAmount: outDiscountAmount,
+        discountId: outDiscountId,
         isPriority,
+        isMakeup,
         depositAmount,
         itemsData
     };

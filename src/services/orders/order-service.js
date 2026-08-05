@@ -72,8 +72,8 @@ export async function createOrder(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix, deposit_amount, customer_source
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount, customer_source, is_makeup
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             data.orderId,
             data.customer.name,
@@ -107,7 +107,8 @@ export async function createOrder(data, env, corsHeaders) {
             snap.isPriority,
             incomingStatus === 'send_later' ? plannedSendAtUnix : null,
             snap.depositAmount,
-            normalizeCustomerSource(data.customer_source ?? data.customerSource)
+            normalizeCustomerSource(data.customer_source ?? data.customerSource),
+            snap.isMakeup
         ).run();
 
         if (!result.success) {
@@ -297,7 +298,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
                 province_id = ?, province_name = ?, district_id = ?, district_name = ?,
                 ward_id = ?, ward_name = ?, street_address = ?,
                 discount_code = ?, discount_amount = ?, is_priority = ?,
-                planned_send_at_unix = ?, deposit_amount = ?, customer_source = ?
+                planned_send_at_unix = ?, deposit_amount = ?, customer_source = ?, is_makeup = ?
             WHERE id = ?
         `).bind(
             data.customer.name,
@@ -331,6 +332,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
             finalPlanned,
             snap.depositAmount,
             normalizeCustomerSource(data.customer_source ?? data.customerSource),
+            snap.isMakeup,
             orderDbId
         ).run();
 
@@ -522,7 +524,9 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             ward_name: src.ward_name || null,
             street_address: src.street_address != null && String(src.street_address).trim() !== '' ? String(src.street_address).trim() : null,
             is_priority: src.is_priority,
-            isPriority: src.is_priority
+            isPriority: src.is_priority,
+            is_makeup: src.is_makeup,
+            isMakeup: src.is_makeup
         };
 
         if (!orderData.customer.phone) {
@@ -576,8 +580,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
                 province_id, province_name, district_id, district_name,
                 ward_id, ward_name, street_address,
                 discount_code, discount_amount, is_priority,
-                planned_send_at_unix, deposit_amount, customer_source
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                planned_send_at_unix, deposit_amount, customer_source, is_makeup
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             newOrderId,
             orderData.customer.name,
@@ -611,7 +615,8 @@ export async function duplicateOrderByDbId(data, env, corsHeaders) {
             snap.isPriority,
             finalPlanned,
             0,
-            normalizeCustomerSource(src.customer_source)
+            normalizeCustomerSource(src.customer_source),
+            snap.isMakeup
         ).run();
 
         if (!result.success) {
@@ -941,7 +946,7 @@ export async function updateDepositAmount(data, env, corsHeaders) {
         }
 
         const order = await env.DB.prepare(`
-            SELECT id, total_amount, payment_method, deposit_amount
+            SELECT id, total_amount, payment_method, deposit_amount, is_makeup
             FROM orders WHERE id = ?
         `).bind(data.orderId).first();
 
@@ -971,7 +976,12 @@ export async function updateDepositAmount(data, env, corsHeaders) {
             return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
         }
 
-        const codCollect = computeCodCollectAmount(order.total_amount, depositAmount, order.payment_method);
+        const codCollect = computeCodCollectAmount(
+            order.total_amount,
+            depositAmount,
+            order.payment_method,
+            order.is_makeup
+        );
 
         return jsonResponse({
             success: true,

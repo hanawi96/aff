@@ -116,7 +116,7 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
                    orders.address, orders.products, orders.notes, orders.status,
                    orders.total_amount, orders.deposit_amount, orders.payment_method,
                    orders.shipping_fee, orders.commission, orders.commission_rate,
-                   orders.referral_code, orders.is_priority,
+                   orders.referral_code, orders.is_priority, orders.is_makeup,
                    orders.created_at_unix, orders.shipped_at_unix, orders.planned_send_at_unix,
                    orders.customer_source,
                    ctv.commission_rate as ctv_commission_rate

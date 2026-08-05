@@ -877,6 +877,21 @@ function createSidebar() {
               <input type="checkbox" id="is-priority" class="shopvd-option-checkbox-input">
             </label>
 
+            <label class="shopvd-option-card shopvd-option-card-makeup">
+              <span class="shopvd-option-icon shopvd-option-icon-makeup" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </span>
+              <span class="shopvd-option-body">
+                <span class="shopvd-option-title">Gửi bù</span>
+                <span class="shopvd-option-desc">Thiếu hàng gửi bù — không thu COD, không ghi doanh thu / hoa hồng.</span>
+              </span>
+              <input type="checkbox" id="is-makeup" class="shopvd-option-checkbox-input">
+            </label>
+
             <label class="shopvd-option-card shopvd-option-card-sendlater">
               <span class="shopvd-option-icon shopvd-option-icon-sendlater" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -4681,6 +4696,9 @@ async function hydrateOrderIntoForm(order) {
 
   const priority = document.getElementById('is-priority');
   if (priority) priority.checked = Number(order.is_priority) === 1;
+
+  const makeup = document.getElementById('is-makeup');
+  if (makeup) makeup.checked = Number(order.is_makeup) === 1;
 
   const status = shopvdNormalizeStatusSlug(order.status);
   const sendLater = document.getElementById('send-later');
@@ -8715,6 +8733,7 @@ function prepareOrderSubmitFromForm() {
   const discountCode = document.getElementById('discount-code')?.value.trim() || '';
   const discountAmount = parseInt(document.getElementById('discount-amount')?.value || 0, 10) || 0;
   const isPriority = Boolean(document.getElementById('is-priority')?.checked);
+  const isMakeup = Boolean(document.getElementById('is-makeup')?.checked);
   const sendLater = Boolean(document.getElementById('send-later')?.checked);
   const plannedSendTime = document.getElementById('planned-send-time')?.value || '';
   const notes = document.getElementById('order-notes')?.value.trim() || '';
@@ -8781,6 +8800,8 @@ function prepareOrderSubmitFromForm() {
     discount_amount: discountAmount,
     isPriority: isPriority ? 1 : 0,
     is_priority: isPriority ? 1 : 0,
+    isMakeup: isMakeup ? 1 : 0,
+    is_makeup: isMakeup ? 1 : 0,
     plannedSendAtUnix,
     planned_send_at_unix: plannedSendAtUnix,
     notes: notes || null,

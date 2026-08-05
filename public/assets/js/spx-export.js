@@ -213,11 +213,12 @@ function createSPXExcelWorkbook(orders) {
             getSPXReshipNamePrefix(order) +
             buildSPXProductColumnText(productBracketLines, orderDeliveryNote);
         
-        // COD: thu khi giao = total − cọc (CK → 0). Giá trị đơn hàng = full total_amount.
+        // COD: thu khi giao = total − cọc (CK / gửi bù → 0). Giá trị đơn hàng = total_amount.
         const isBankTransfer = isOrderBankPayment(order.payment_method);
+        const isMakeup = typeof isOrderMakeup === 'function' ? isOrderMakeup(order) : false;
         const orderValue = order.total_amount || 0;
         const codAmount = getOrderCodCollectAmount(order);
-        const collectCOD = isBankTransfer ? 'N' : 'Y';
+        const collectCOD = (isBankTransfer || isMakeup || codAmount <= 0) ? 'N' : 'Y';
         
         // Create single row per order
         const row = {

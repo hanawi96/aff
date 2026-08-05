@@ -167,9 +167,11 @@ function updateOrderSummary() {
     // Get discount amount
     const discountAmount = parseFloat(document.getElementById('appliedDiscountAmount')?.value) || 0;
 
+    const isMakeup = Boolean(document.getElementById('newOrderMakeup')?.checked);
+
     // Calculate revenue - same formula for both COD and Bank transfer
-    // Revenue = product total + shipping fee - discount
-    const totalRevenue = productTotal + shippingFee - discountAmount;
+    // Revenue = product total + shipping fee - discount (gửi bù → 0)
+    const totalRevenue = isMakeup ? 0 : (productTotal + shippingFee - discountAmount);
 
     // Calculate packaging costs dynamically from category_id = 5 only
     const packagingPerOrderCost = packagingConfig
@@ -234,14 +236,29 @@ function updateOrderSummary() {
         depositRow.classList.add('hidden');
     }
 
-    if (isOrderBankPayment(paymentMethod)) {
+    if (isMakeup || isOrderBankPayment(paymentMethod)) {
         codAmountEl.textContent = '0đ';
-        codAmountEl.className = 'text-xl font-bold text-green-600';
-        codNoteEl.classList.remove('hidden');
+        codAmountEl.className = isMakeup
+            ? 'text-xl font-bold text-violet-700'
+            : 'text-xl font-bold text-green-600';
+        if (codNoteEl) {
+            if (!codNoteEl.dataset.defaultText) {
+                codNoteEl.dataset.defaultText = '✓ Đã thanh toán qua chuyển khoản';
+            }
+            codNoteEl.classList.remove('hidden');
+            codNoteEl.textContent = isMakeup
+                ? 'Gửi bù — không thu COD, không ghi doanh thu'
+                : codNoteEl.dataset.defaultText;
+        }
     } else {
         codAmountEl.textContent = formatCurrency(codCollect);
         codAmountEl.className = 'text-xl font-bold text-orange-600';
-        codNoteEl.classList.add('hidden');
+        if (codNoteEl) {
+            if (codNoteEl.dataset.defaultText) {
+                codNoteEl.textContent = codNoteEl.dataset.defaultText;
+            }
+            codNoteEl.classList.add('hidden');
+        }
     }
 
     if (isNewOrderDepositPanelOpen() && totalRevenue > 0) {

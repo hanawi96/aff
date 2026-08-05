@@ -183,9 +183,17 @@ function getOrderDepositAmount(order) {
     return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
 }
 
-/** Số tiền COD thu khi giao = total_amount − deposit (0 nếu chuyển khoản). */
+/** Đơn gửi bù (is_makeup=1): không thu COD, không ghi doanh thu. */
+function isOrderMakeup(order) {
+    if (!order) return false;
+    const raw = order.is_makeup ?? order.isMakeup;
+    return raw === true || raw === 1 || raw === '1' || Number(raw) === 1;
+}
+
+/** Số tiền COD thu khi giao = total_amount − deposit (0 nếu CK hoặc gửi bù). */
 function getOrderCodCollectAmount(order) {
     if (!order) return 0;
+    if (isOrderMakeup(order)) return 0;
     const pm = order.payment_method ?? order.paymentMethod ?? 'cod';
     if (isOrderBankPayment(pm)) return 0;
     const total = Math.max(0, Math.round(Number(order.total_amount ?? order.totalAmount ?? 0) || 0));
@@ -591,7 +599,9 @@ const ORDER_STATUS_AWAITING_RESHIP = 'awaiting_reship';
  */
 function getSPXReshipNamePrefix(order) {
     const st = (order && order.status != null ? String(order.status) : '').toLowerCase().trim();
-    return st === ORDER_STATUS_AWAITING_RESHIP ? '[GỬI LẠI] ' : '';
+    if (st === ORDER_STATUS_AWAITING_RESHIP) return '[GỬI LẠI] ';
+    if (isOrderMakeup(order)) return '[GỬI BÙ] ';
+    return '';
 }
 
 /**
