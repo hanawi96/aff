@@ -28,7 +28,7 @@ function validationError(message) {
 export function normalizeCustomerSource(raw) {
     if (raw == null || raw === '') return null;
     const s = String(raw).toLowerCase().trim();
-    return s === 'zalo' || s === 'facebook' || s === 'tiktok' ? s : null;
+    return s === 'zalo' || s === 'facebook' || s === 'tiktok' || s === 'web' ? s : null;
 }
 
 export function isBankPaymentMethod(paymentMethod) {

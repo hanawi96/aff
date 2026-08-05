@@ -1,11 +1,12 @@
-/** Shared customer-source aggregation (facebook / zalo / tiktok / unknown). */
+/** Shared customer-source aggregation (facebook / zalo / tiktok / web / unknown). */
 
-export const SOURCE_ORDER = ['facebook', 'zalo', 'tiktok', 'unknown'];
+export const SOURCE_ORDER = ['facebook', 'zalo', 'tiktok', 'web', 'unknown'];
 
 export const SOURCE_LABELS = {
     facebook: 'Facebook',
     zalo: 'Zalo',
     tiktok: 'TikTok',
+    web: 'Web',
     unknown: 'Chưa ghi nguồn'
 };
 
@@ -14,6 +15,7 @@ export const ORDER_SOURCE_KEY_SQL = `
         WHEN LOWER(TRIM(customer_source)) = 'zalo' THEN 'zalo'
         WHEN LOWER(TRIM(customer_source)) = 'facebook' THEN 'facebook'
         WHEN LOWER(TRIM(customer_source)) = 'tiktok' THEN 'tiktok'
+        WHEN LOWER(TRIM(customer_source)) = 'web' THEN 'web'
         ELSE 'unknown'
     END`;
 
@@ -22,6 +24,7 @@ export const OI_SOURCE_KEY_SQL = `
         WHEN LOWER(TRIM(o.customer_source)) = 'zalo' THEN 'zalo'
         WHEN LOWER(TRIM(o.customer_source)) = 'facebook' THEN 'facebook'
         WHEN LOWER(TRIM(o.customer_source)) = 'tiktok' THEN 'tiktok'
+        WHEN LOWER(TRIM(o.customer_source)) = 'web' THEN 'web'
         ELSE 'unknown'
     END`;
 

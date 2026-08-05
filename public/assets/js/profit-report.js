@@ -547,6 +547,7 @@ const PR_SOURCE_COLORS = {
     facebook: '#3B82F6',
     zalo: '#22C55E',
     tiktok: '#1E293B',
+    web: '#7C3AED',
     unknown: '#9CA3AF'
 };
 
@@ -554,6 +555,7 @@ const PR_SOURCE_BADGE = {
     facebook: 'bg-blue-100 text-blue-700',
     zalo: 'bg-green-100 text-green-700',
     tiktok: 'bg-slate-200 text-slate-800',
+    web: 'bg-violet-100 text-violet-700',
     unknown: 'bg-gray-100 text-gray-600'
 };
 

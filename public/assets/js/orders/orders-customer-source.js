@@ -1,9 +1,10 @@
-// Nguồn khách — modal thêm/sửa đơn desktop (Zalo / Facebook / TikTok)
+// Nguồn khách — modal thêm/sửa đơn desktop (Zalo / Facebook / TikTok / Web)
 
 const CUSTOMER_SOURCE_OPTIONS = [
     { slug: 'zalo', label: 'Zalo', chipClass: 'customer-source-chip--zalo' },
     { slug: 'facebook', label: 'Facebook', chipClass: 'customer-source-chip--facebook' },
-    { slug: 'tiktok', label: 'TikTok', chipClass: 'customer-source-chip--tiktok' }
+    { slug: 'tiktok', label: 'TikTok', chipClass: 'customer-source-chip--tiktok' },
+    { slug: 'web', label: 'Web', chipClass: 'customer-source-chip--web' }
 ];
 
 function normalizeCustomerSourceClient(raw) {
@@ -83,7 +84,8 @@ function initCustomerSourcePicker(seedSource, opts = {}) {
 const _CUSTOMER_SOURCE_BADGE_CLS = {
     zalo: 'bg-green-100 text-green-700 border-green-200/80',
     facebook: 'bg-blue-100 text-blue-700 border-blue-200/80',
-    tiktok: 'bg-slate-100 text-slate-800 border-slate-200/80'
+    tiktok: 'bg-slate-100 text-slate-800 border-slate-200/80',
+    web: 'bg-violet-100 text-violet-700 border-violet-200/80'
 };
 
 /** Badge HTML nguồn khách — dùng cột Khách & giao hàng bảng đơn. */

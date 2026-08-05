@@ -478,7 +478,7 @@ function orderCustomerSourceFilterKey(order) {
         return normalizeCustomerSourceClient(raw) || 'facebook';
     }
     const s = String(raw).toLowerCase().trim();
-    return (s === 'zalo' || s === 'facebook' || s === 'tiktok') ? s : 'facebook';
+    return (s === 'zalo' || s === 'facebook' || s === 'tiktok' || s === 'web') ? s : 'facebook';
 }
 
 function closeOrderFilterDropdownMenus(exceptId) {
@@ -851,7 +851,7 @@ function toggleCustomerSourceFilter(event) {
     const button = event.currentTarget;
     const wrap = button.parentElement;
 
-    const countBySource = { facebook: 0, zalo: 0, tiktok: 0 };
+    const countBySource = { facebook: 0, zalo: 0, tiktok: 0, web: 0 };
     allOrdersData.forEach((o) => {
         const key = orderCustomerSourceFilterKey(o);
         if (countBySource[key] != null) countBySource[key]++;
@@ -862,7 +862,8 @@ function toggleCustomerSourceFilter(event) {
         { value: 'all', label: 'Tất cả nguồn', color: 'gray', count: totalOrders },
         { value: 'facebook', label: 'Facebook', color: 'blue', count: countBySource.facebook },
         { value: 'zalo', label: 'Zalo', color: 'green', count: countBySource.zalo },
-        { value: 'tiktok', label: 'TikTok', color: 'slate', count: countBySource.tiktok }
+        { value: 'tiktok', label: 'TikTok', color: 'slate', count: countBySource.tiktok },
+        { value: 'web', label: 'Web', color: 'violet', count: countBySource.web }
     ];
 
     const menu = document.createElement('div');

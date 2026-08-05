@@ -32,6 +32,8 @@
 
         tiktok: { cls: 'qs-src-badge--tiktok', text: 'TT' },
 
+        web: { cls: 'qs-src-badge--web', text: 'W' },
+
         unknown: { cls: 'qs-src-badge--unknown', text: '?' }
 
     };
@@ -290,7 +292,7 @@
 
             const profitCls = profit >= 0 ? 'is-pos' : 'is-neg';
 
-            const rowCls = ['facebook', 'zalo', 'tiktok'].includes(srcKey) ? srcKey : 'unknown';
+            const rowCls = ['facebook', 'zalo', 'tiktok', 'web'].includes(srcKey) ? srcKey : 'unknown';
 
 
 

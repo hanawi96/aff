@@ -634,7 +634,7 @@ let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
 let searchListScope=null;
 // ─── Filter state ───
 let mPriorityFilter=false, mMissingSizeFilter=false, mTheTenBeFilter=false, mHasNotesFilter=false;
-let mCustomerSourceFilter=null; // null | 'facebook' | 'zalo' | 'tiktok'
+let mCustomerSourceFilter=null; // null | 'facebook' | 'zalo' | 'tiktok' | 'web'
 let mDateSort=null; // null | 'newest' | 'oldest'
 /** Lần fetch đơn gần nhất — dùng để refresh khi mở lại PWA */
 let _ordersLastFetchedAt=0;
@@ -763,7 +763,7 @@ function deactivateMFilter(key){
 }
 
 function _syncMCustomerSourceFilterChips(){
-  const keys=['all','facebook','zalo','tiktok'];
+  const keys=['all','facebook','zalo','tiktok','web'];
   keys.forEach(k=>{
     const btn=document.getElementById('mfSrc_'+k);
     if(!btn)return;
@@ -1796,7 +1796,7 @@ function applyQuickEditOrderPayment(apiMethod){
 }
 
 let _detailSourceSaving=false;
-const M_DETAIL_SRC_DOTS={zalo:{off:'bg-green-500',on:'bg-white'},facebook:{off:'bg-blue-600',on:'bg-white'},tiktok:{off:'bg-slate-900',on:'bg-white'}};
+const M_DETAIL_SRC_DOTS={zalo:{off:'bg-green-500',on:'bg-white'},facebook:{off:'bg-blue-600',on:'bg-white'},tiktok:{off:'bg-slate-900',on:'bg-white'},web:{off:'bg-violet-500',on:'bg-white'}};
 function mDetailSourceDotClass(slug,active){
   const c=M_DETAIL_SRC_DOTS[slug]||{off:'bg-gray-400',on:'bg-white'};
   return'w-1.5 h-1.5 rounded-full shrink-0 '+(active?c.on:c.off);
@@ -1806,6 +1806,7 @@ function mDetailSourceChipClass(slug,active){
   if(!active)return`${base} border-transparent bg-white text-gray-600 shadow-sm`;
   if(slug==='zalo')return`${base} border-green-600 bg-green-600 text-white shadow-sm`;
   if(slug==='facebook')return`${base} border-blue-600 bg-blue-600 text-white shadow-sm`;
+  if(slug==='web')return`${base} border-violet-600 bg-violet-600 text-white shadow-sm`;
   return`${base} border-slate-900 bg-slate-900 text-white shadow-sm`;
 }
 function mDetailSourceChipsHtml(rawSource){
@@ -1814,7 +1815,7 @@ function mDetailSourceChipsHtml(rawSource){
     const active=cur===slug;
     return`<button type="button" data-src="${slug}" onclick="applyQuickEditCustomerSource('${slug}')" class="${mDetailSourceChipClass(slug,active)}" aria-pressed="${active?'true':'false'}"><span class="${mDetailSourceDotClass(slug,active)}"></span><span class="truncate">${label}</span></button>`;
   };
-  return[mk('zalo','Zalo'),mk('facebook','FB'),mk('tiktok','TikTok')].join('');
+  return[mk('zalo','Zalo'),mk('facebook','FB'),mk('tiktok','TikTok'),mk('web','Web')].join('');
 }
 function syncDetailCustomerSourceUI(){
   const id=detailOpenOrderId;if(!id)return;
@@ -1976,7 +1977,7 @@ function showDetail(id){
           </div>
           <div class="rounded-xl border border-gray-100 bg-gradient-to-br from-slate-50 to-white p-2.5">
             <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 px-0.5">Nguồn khách</p>
-            <div id="detailSourceChips" class="grid grid-cols-3 gap-1.5">${mDetailSourceChipsHtml(o.customer_source??o.customerSource)}</div>
+            <div id="detailSourceChips" class="grid grid-cols-2 gap-1.5">${mDetailSourceChipsHtml(o.customer_source??o.customerSource)}</div>
           </div>
         </div>
       </div>
@@ -2985,10 +2986,11 @@ function buildCreateForm(isEdit=false){
           <span class="text-[10px] text-red-500 font-medium">Bắt buộc *</span>
         </div>
         <input type="hidden" id="mCustomerSource" value="">
-        <div id="mSourceBtns" class="flex gap-2" role="group" aria-label="Nguồn khách">
-          <button type="button" onclick="setMobileCustomerSource('zalo')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="zalo" aria-pressed="false"><span class="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>Zalo</button>
-          <button type="button" onclick="setMobileCustomerSource('facebook')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="facebook" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>Facebook</button>
-          <button type="button" onclick="setMobileCustomerSource('tiktok')" class="src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="tiktok" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>TikTok</button>
+        <div id="mSourceBtns" class="grid grid-cols-2 gap-2" role="group" aria-label="Nguồn khách">
+          <button type="button" onclick="setMobileCustomerSource('zalo')" class="src-btn flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="zalo" aria-pressed="false"><span class="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>Zalo</button>
+          <button type="button" onclick="setMobileCustomerSource('facebook')" class="src-btn flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="facebook" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="4 -258 312 532" aria-hidden="true"><path d="M80 51v213h116V51h87l18-97H196v-35c0-52 20-72 73-72 16 0 29 1 37 2v-89c-15-4-50-8-70-8-107 0-156 51-156 159v43H14v97h66z" fill="currentColor"/></svg>Facebook</button>
+          <button type="button" onclick="setMobileCustomerSource('tiktok')" class="src-btn flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="tiktok" aria-pressed="false"><svg class="w-2.5 h-auto shrink-0" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>TikTok</button>
+          <button type="button" onclick="setMobileCustomerSource('web')" class="src-btn flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all border-gray-200 bg-white text-gray-600" data-val="web" aria-pressed="false"><span class="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"></span>Web</button>
         </div>
       </div>
 
@@ -4462,17 +4464,18 @@ function mPayBtnClass(val,active){
   if(val==='bank_transfer')return`${base} ${active?'border-green-400 bg-green-50 text-green-700':off}`;
   return`${base} ${active?'border-amber-500 bg-amber-50 text-amber-700':off}`;
 }
-const M_CUSTOMER_SOURCES=new Set(['zalo','facebook','tiktok']);
+const M_CUSTOMER_SOURCES=new Set(['zalo','facebook','tiktok','web']);
 function mNormCustomerSource(raw){
   const s=String(raw||'').toLowerCase().trim();
   return M_CUSTOMER_SOURCES.has(s)?s:'';
 }
 function mSrcBtnClass(val,active){
-  const base='src-btn flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all';
+  const base='src-btn flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold border-2 transition-all';
   const off='border-gray-200 bg-white text-gray-600';
   if(!active)return`${base} ${off}`;
   if(val==='zalo')return`${base} border-green-600 bg-green-600 text-white`;
   if(val==='facebook')return`${base} border-blue-600 bg-blue-600 text-white`;
+  if(val==='web')return`${base} border-violet-600 bg-violet-600 text-white`;
   return`${base} border-slate-900 bg-slate-900 text-white`;
 }
 function clearMobileCustomerSource(){
@@ -4505,8 +4508,9 @@ function mCustomerSourceBadgeHtml(raw){
   if(!slug)return'';
   const cls=slug==='zalo'?'bg-green-100 text-green-700 border-green-200/80'
     :slug==='facebook'?'bg-blue-100 text-blue-700 border-blue-200/80'
+    :slug==='web'?'bg-violet-100 text-violet-700 border-violet-200/80'
     :'bg-slate-100 text-slate-800 border-slate-200/80';
-  const label=slug==='zalo'?'Zalo':slug==='facebook'?'Facebook':'TikTok';
+  const label=slug==='zalo'?'Zalo':slug==='facebook'?'Facebook':slug==='web'?'Web':'TikTok';
   return `<span class="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none border ${cls}">${esc(label)}</span>`;
 }
 function mEnsureDepositPresetHelpers(){
@@ -5658,6 +5662,7 @@ const M_STATS_SOURCE_STYLE={
   facebook:{badge:'bg-blue-100 text-blue-700 border-blue-200/80',bar:'from-blue-500 to-blue-600',seg:'bg-blue-500'},
   zalo:{badge:'bg-green-100 text-green-700 border-green-200/80',bar:'from-green-500 to-emerald-600',seg:'bg-green-500'},
   tiktok:{badge:'bg-slate-100 text-slate-800 border-slate-200/80',bar:'from-slate-700 to-slate-900',seg:'bg-slate-800'},
+  web:{badge:'bg-violet-100 text-violet-700 border-violet-200/80',bar:'from-violet-500 to-violet-600',seg:'bg-violet-500'},
   unknown:{badge:'bg-gray-100 text-gray-600 border-gray-200',bar:'from-gray-400 to-gray-500',seg:'bg-gray-400'}
 };
 
@@ -6778,11 +6783,12 @@ async function loadMAdDetail(){
       <div class="flex-1 h-px bg-gray-100"></div>
     </div>
 
-    <div class="flex gap-2">
-      <button type="button" id="mfSrc_all" onclick="setMCustomerSourceFilter('all')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Tất cả</button>
-      <button type="button" id="mfSrc_facebook" onclick="setMCustomerSourceFilter('facebook')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Facebook</button>
-      <button type="button" id="mfSrc_zalo" onclick="setMCustomerSourceFilter('zalo')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Zalo</button>
-      <button type="button" id="mfSrc_tiktok" onclick="setMCustomerSourceFilter('tiktok')" class="flex-1 min-w-0 py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">TikTok</button>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" id="mfSrc_all" onclick="setMCustomerSourceFilter('all')" class="flex-1 min-w-[4.5rem] py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Tất cả</button>
+      <button type="button" id="mfSrc_facebook" onclick="setMCustomerSourceFilter('facebook')" class="flex-1 min-w-[4.5rem] py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Facebook</button>
+      <button type="button" id="mfSrc_zalo" onclick="setMCustomerSourceFilter('zalo')" class="flex-1 min-w-[4.5rem] py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Zalo</button>
+      <button type="button" id="mfSrc_tiktok" onclick="setMCustomerSourceFilter('tiktok')" class="flex-1 min-w-[4.5rem] py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">TikTok</button>
+      <button type="button" id="mfSrc_web" onclick="setMCustomerSourceFilter('web')" class="flex-1 min-w-[4.5rem] py-2.5 px-2 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-[11px] transition-all hover:bg-gray-50 text-center">Web</button>
     </div>
 
     <!-- Divider -->

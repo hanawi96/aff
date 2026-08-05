@@ -986,7 +986,7 @@ export async function updateDepositAmount(data, env, corsHeaders) {
     }
 }
 
-// Update customer source (zalo | facebook | tiktok)
+// Update customer source (zalo | facebook | tiktok | web)
 export async function updateCustomerSource(data, env, corsHeaders) {
     try {
         if (!data.orderId) {

@@ -86,7 +86,7 @@ export class ShopOrderService {
         // Format products as JSON
         const productsJson = JSON.stringify(data.cart);
 
-        // Insert order
+        // Insert order — luôn gắn nguồn khách "web" cho đơn từ website
         const insertResult = await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, customer_name, customer_phone, address,
@@ -97,8 +97,9 @@ export class ShopOrderService {
                 discount_code, discount_amount,
                 created_at_unix, is_priority,
                 referral_code, commission, commission_rate, ctv_phone,
-                packaging_cost, packaging_details, tax_amount, tax_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                packaging_cost, packaging_details, tax_amount, tax_rate,
+                customer_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             orderId,
             data.customer.name,
@@ -129,7 +130,8 @@ export class ShopOrderService {
             packagingDetails.total_cost,
             JSON.stringify(packagingDetails),
             taxData.amount,
-            taxData.rate
+            taxData.rate,
+            'web'
         ).run();
 
         const insertedOrderId = insertResult.meta.last_row_id;

@@ -670,6 +670,10 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                     <svg class="customer-source-icon customer-source-icon--tiktok" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -258 471 535" aria-hidden="true"><path d="M449-38c-44 0-87-14-123-39v178c0 34-10 66-29 93s-46 48-77 60c-31 11-65 13-97 5s-61-26-82-51c-22-25-36-56-39-89-4-33 2-66 18-95s40-53 70-68c29-15 63-20 95-16v90c-15-4-31-4-46 1-14 5-27 14-37 27-9 13-14 28-13 44 0 16 5 31 14 44 9 12 22 22 37 26 15 5 32 5 46 0 15-5 28-14 38-27 9-12 14-28 14-44v-349h88c0 7 0 15 2 22 3 17 9 32 18 46 10 14 22 26 36 35 20 13 43 20 67 20v87z" fill="currentColor"/></svg>
                                     <span>TikTok</span>
                                 </button>
+                                <button type="button" class="customer-source-chip customer-source-chip--web" data-source="web" aria-pressed="false" onclick="selectCustomerSource('web')">
+                                    <span class="customer-source-dot customer-source-dot--web" aria-hidden="true"></span>
+                                    <span>Web</span>
+                                </button>
                             </div>
                         </div>
 
@@ -728,7 +732,11 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 font-weight: 500;
                                 color: #9ca3af;
                             }
-                            .customer-source-chips,
+                            .customer-source-chips {
+                                display: grid;
+                                grid-template-columns: repeat(4, 1fr);
+                                gap: 0.375rem;
+                            }
                             .payment-method-chips {
                                 display: grid;
                                 grid-template-columns: repeat(3, 1fr);
@@ -819,6 +827,7 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                                 height: 0.8125rem;
                             }
                             .customer-source-dot--zalo { background: #22c55e; }
+                            .customer-source-dot--web { background: #8b5cf6; }
                             .customer-source-icon--facebook { color: #1e3050; }
                             .customer-source-icon--tiktok { color: #1e3050; }
                             .customer-source-chip--zalo.active {
@@ -850,6 +859,16 @@ async function showAddOrderModal(duplicateData = null, formOptions = null) {
                             }
                             .customer-source-chip--tiktok.active .customer-source-icon--tiktok {
                                 color: #ffffff;
+                            }
+                            .customer-source-chip--web.active {
+                                border-color: #7c3aed;
+                                background: #7c3aed;
+                                color: #ffffff;
+                                font-weight: 700;
+                                box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+                            }
+                            .customer-source-chip--web.active .customer-source-dot--web {
+                                background: #ffffff;
                             }
                         </style>
 
