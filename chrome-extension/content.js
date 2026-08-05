@@ -787,7 +787,7 @@ function createSidebar() {
           <!-- Customer Source Buttons (Required) -->
           <div class="shopvd-form-group" data-validate-wrap="customer-source">
             <label>Nguồn khách <span style="color: #ef4444;">*</span></label>
-            <div class="shopvd-button-group" id="customer-source-group">
+            <div class="shopvd-button-group shopvd-source-group" id="customer-source-group">
               <button type="button" class="shopvd-source-btn" data-source="zalo">
                 <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#0068ff"/></svg>
                 Zalo
@@ -799,6 +799,10 @@ function createSidebar() {
               <button type="button" class="shopvd-source-btn" data-source="tiktok">
                 <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#111827"/></svg>
                 TikTok
+              </button>
+              <button type="button" class="shopvd-source-btn" data-source="web">
+                <svg class="shopvd-btn-dot" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#7c3aed"/></svg>
+                Web
               </button>
             </div>
             <input type="hidden" id="customer-source" value="">
@@ -4456,6 +4460,7 @@ function parseOrderProductsForExtension(order) {
 
     let categoryId = null;
     let categoryIds = null;
+    let braceletType = String(p?.bracelet_type || '').trim() || null;
     if (productId) {
       const cached = allProductsCache.find((x) => parseInt(String(x.id), 10) === productId);
       if (cached) {
@@ -4466,6 +4471,9 @@ function parseOrderProductsForExtension(order) {
         }
         if (!categoryId && Array.isArray(categoryIds) && categoryIds.length) {
           categoryId = categoryIds[0];
+        }
+        if (!braceletType && cached.bracelet_type) {
+          braceletType = cached.bracelet_type;
         }
         if (!imageUrl && cached.image_url) {
           // keep local
@@ -4486,6 +4494,7 @@ function parseOrderProductsForExtension(order) {
         : ''),
       category_id: categoryId,
       category_ids: categoryIds,
+      bracelet_type: braceletType,
     };
   }).filter((p) => p.name && p.price > 0);
 }
@@ -4508,6 +4517,7 @@ function replaceCartFromOrderProducts(parsedProducts) {
       notes: p.notes || '',
       category_id: p.category_id || null,
       category_ids: p.category_ids || null,
+      bracelet_type: p.bracelet_type || null,
     });
   }
   renderProducts();
@@ -6893,6 +6903,51 @@ function formatWeightSize(value) {
   return str;
 }
 
+/** elastic | adjustable | other — lấy từ item hoặc catalog cache */
+function resolveBraceletType(product) {
+  const fromItem = String(product?.bracelet_type || '').toLowerCase().trim();
+  if (fromItem === 'elastic' || fromItem === 'adjustable' || fromItem === 'other') {
+    return fromItem;
+  }
+  const catalog = resolveCatalogProductForCartItem(product);
+  const fromCatalog = String(catalog?.bracelet_type || '').toLowerCase().trim();
+  if (fromCatalog === 'elastic' || fromCatalog === 'adjustable' || fromCatalog === 'other') {
+    return fromCatalog;
+  }
+  return '';
+}
+
+/**
+ * Size trong tin xác nhận:
+ * - adjustable + Nkg → "Nkg (có thể nới rộng đeo đến N+10kg)"
+ * - elastic → "Nkg (có gửi thêm dây + hạt để xỏ thêm nếu cần)"
+ */
+function formatConfirmSizeWithBraceletNote(weightRaw, braceletType) {
+  const weight = formatWeightSize(weightRaw);
+  if (!weight) return '';
+  const type = String(braceletType || '').toLowerCase().trim();
+
+  if (type === 'elastic') {
+    return `${weight} (có gửi thêm dây + hạt để xỏ thêm nếu cần)`;
+  }
+
+  if (type === 'adjustable') {
+    const m = weight.match(/^(\d+(?:\.\d+)?)kg$/i);
+    if (m) {
+      const base = parseFloat(m[1]);
+      if (Number.isFinite(base)) {
+        const maxKg = base + 10;
+        const maxStr = Number.isInteger(maxKg)
+          ? String(maxKg)
+          : String(Math.round(maxKg * 10) / 10);
+        return `${weight} (có thể nới rộng đeo đến ${maxStr}kg)`;
+      }
+    }
+  }
+
+  return weight;
+}
+
 // Đồng bộ desktop orders-utils.js — chuẩn hóa cân/size trước khi gửi API
 function normalizeOrderItemSizeClient(value) {
   if (value == null) return null;
@@ -7046,7 +7101,8 @@ function addProductRow(name = '', price = '', quantity = 1, productId = null, co
     weight: normalizedWeight,
     notes: normalizedNotes,
     category_id: categoryId,
-    category_ids: categoryIds
+    category_ids: categoryIds,
+    bracelet_type: cachedProduct?.bracelet_type || null,
   });
   renderProducts();
   calculateTotal();
@@ -8078,7 +8134,10 @@ function buildOrderConfirmText() {
 
   const productLines = products.map((p, idx) => {
     const qty = Math.max(1, parseInt(p.quantity, 10) || 1);
-    const weight = formatWeightSize(p.weight || p.size || '');
+    const weight = formatConfirmSizeWithBraceletNote(
+      p.weight || p.size || '',
+      resolveBraceletType(p)
+    );
     const note = String(p.notes || '').trim();
     const parts = [`${idx + 1}. ${String(p.name || '').trim()}`];
     parts.push(`SL: ${qty} chiếc`);
@@ -8182,7 +8241,10 @@ function buildOrderConfirmTextFromOrder(order) {
 
   const productLines = products.map((p, idx) => {
     const qty = Math.max(1, parseInt(p.quantity, 10) || 1);
-    const weight = formatWeightSize(p.weight || p.size || '');
+    const weight = formatConfirmSizeWithBraceletNote(
+      p.weight || p.size || '',
+      resolveBraceletType(p)
+    );
     const note = String(p.notes || '').trim();
     const parts = [`${idx + 1}. ${String(p.name || '').trim()}`];
     parts.push(`SL: ${qty} chiếc`);

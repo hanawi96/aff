@@ -131,6 +131,7 @@ function renderSources(sources) {
     facebook: { cls: 'facebook', text: 'FB' },
     zalo: { cls: 'zalo', text: 'Z' },
     tiktok: { cls: 'tiktok', text: 'TT' },
+    web: { cls: 'web', text: 'W' },
     unknown: { cls: 'unknown', text: '?' }
   };
   

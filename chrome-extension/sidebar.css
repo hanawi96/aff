@@ -3561,6 +3561,16 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   margin-top: 8px;
 }
 
+.shopvd-source-group {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.shopvd-source-group .shopvd-source-btn {
+  padding: 8px 4px;
+  font-size: 12px;
+  gap: 4px;
+}
+
 .shopvd-payment-btn {
   padding: 10px 12px;
   border: 1px solid #e5e7eb;
