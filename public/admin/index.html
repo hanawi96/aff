@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thá»‘ng KÃª ÄÆ¡n HÃ ng - Admin</title>
+    <title>Thống Kê Đơn Hàng - Admin</title>
     <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
     <link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
     <link rel="stylesheet" href="../assets/css/admin-tailwind-built.css?v=7">
@@ -61,7 +61,7 @@
             overflow: hidden;
         }
 
-        /* Modal lá»c tháº» tÃªn â€” Ä‘á»“ng bá»™ palette trang admin (tráº¯ng + pink accent) */
+        /* Modal lọc thẻ tên — đồng bộ palette trang admin (trắng + pink accent) */
         #theTenBePanelModal {
             padding: 0.75rem;
         }
@@ -387,7 +387,7 @@
             animation: fadeIn 0.2s ease-out;
         }
 
-        /* Tooltip nguá»“n khÃ¡ch â€” chip chá»n Ä‘Æ¡n theo ngÃ y */
+        /* Tooltip nguồn khách — chip chọn đơn theo ngày */
         .quick-select-day-btn--tip {
             position: relative;
         }
@@ -514,7 +514,7 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        /* â”€â”€ Quick Stats Modal v2 â€” dashboard hiá»‡n Ä‘áº¡i â”€â”€ */
+        /* ── Quick Stats Modal v2 — dashboard hiện đại ── */
         #quickStatsModal .qs-panel {
             display: flex;
             flex-direction: column;
@@ -616,7 +616,7 @@
             line-height: 1.2;
             font-variant-numeric: tabular-nums;
         }
-        /* Hero â€” Doanh thu + LN thá»±c */
+        /* Hero — Doanh thu + LN thực */
         #quickStatsModal .qs-hero-card {
             display: flex;
             align-items: stretch;
@@ -691,7 +691,7 @@
         }
         #quickStatsModal .qs-stat-item .qs-val.is-pos { color: #059669; }
         #quickStatsModal .qs-stat-item .qs-val.is-neg { color: #dc2626; }
-        /* Chi tiáº¿t phá»¥ */
+        /* Chi tiết phụ */
         #quickStatsModal .qs-detail-card {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -717,7 +717,7 @@
         }
         #quickStatsModal .qs-detail-line .qs-val.is-pos { color: #059669; }
         #quickStatsModal .qs-detail-line .qs-val.is-neg { color: #dc2626; }
-        /* Nguá»“n khÃ¡ch */
+        /* Nguồn khách */
         #quickStatsModal .qs-sources-head {
             display: flex;
             align-items: center;
@@ -943,42 +943,42 @@
                     </div>
                     <div>
                         <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
-                        <p class="text-gray-500 text-xs">Quáº£n lÃ½ há»‡ thá»‘ng</p>
+                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
                     </div>
                 </div>
             </div>
             <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
                 <a href="ctv.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    <span>Danh sÃ¡ch CTV</span>
+                    <span>Danh sách CTV</span>
                 </a>
                 <a href="index.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                    <span>ÄÆ¡n hÃ ng</span>
+                    <span>Đơn hàng</span>
                 </a>
                 <a href="payments.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    <span>Thanh toÃ¡n CTV</span>
+                    <span>Thanh toán CTV</span>
                 </a>
                 <a href="products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                    <span>Sáº£n pháº©m</span>
+                    <span>Sản phẩm</span>
                 </a>
                 <a href="featured-products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                    <span>Sáº£n pháº©m ná»•i báº­t</span>
+                    <span>Sản phẩm nổi bật</span>
                 </a>
                 <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                    <span>NguyÃªn liá»‡u</span>
+                    <span>Nguyên liệu</span>
                 </a>
                 <a href="categories.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                    <span>Danh má»¥c</span>
+                    <span>Danh mục</span>
                 </a>
                 <a href="discounts.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                    <span>MÃ£ giáº£m giÃ¡</span>
+                    <span>Mã giảm giá</span>
                 </a>
                 <a href="flash-sales.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -986,27 +986,27 @@
                 </a>
                 <a href="profit-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    <span>Thá»‘ng kÃª</span>
+                    <span>Thống kê</span>
                 </a>
                 <a href="ads.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                    <span>Quáº£ng cÃ¡o</span>
+                    <span>Quảng cáo</span>
                 </a>
                 <a href="location-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span>Äá»‹a lÃ½</span>
+                    <span>Địa lý</span>
                 </a>
                 <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span>CÃ i Ä‘áº·t</span>
+                    <span>Cài đặt</span>
                 </a>
                 <a href="customers.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <span>KhÃ¡ch hÃ ng</span>
+                    <span>Khách hàng</span>
                 </a>
                 <a href="users.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <span>Quáº£n lÃ½ Admin</span>
+                    <span>Quản lý Admin</span>
                 </a>
                 <div class="border-t border-gray-200 my-2"></div>
                 <a href="m.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
@@ -1029,7 +1029,7 @@
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span>ÄÄƒng xuáº¥t</span>
+                    <span>Đăng xuất</span>
                 </button>
             </div>
         </div>
@@ -1043,8 +1043,8 @@
                 <div class="flex justify-between items-center h-16">
                     <!-- Page Title -->
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900">Thá»‘ng KÃª ÄÆ¡n HÃ ng</h2>
-                        <p class="text-sm text-gray-500">Theo dÃµi vÃ  quáº£n lÃ½ Ä‘Æ¡n hÃ ng tá»« CTV</p>
+                        <h2 class="text-xl font-bold text-gray-900">Thống Kê Đơn Hàng</h2>
+                        <p class="text-sm text-gray-500">Theo dõi và quản lý đơn hàng từ CTV</p>
                     </div>
 
                     <!-- Actions -->
@@ -1055,7 +1055,7 @@
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
-                            Thá»‘ng kÃª nhanh
+                            Thống kê nhanh
                         </button>
 
                         <!-- Export History Button -->
@@ -1065,7 +1065,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            Lá»‹ch sá»­ Export
+                            Lịch sử Export
                             <!-- Badge for pending exports -->
                             <span id="exportHistoryBadge" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                                 0
@@ -1078,7 +1078,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            ThÃªm Ä‘Æ¡n hÃ ng
+                            Thêm đơn hàng
                         </button>
                     </div>
                 </div>
@@ -1093,7 +1093,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p id="totalOrdersLabel" class="text-sm font-medium text-gray-600">Tá»•ng Ä‘Æ¡n hÃ ng</p>
+                            <p id="totalOrdersLabel" class="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
                             <div id="totalOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -1109,7 +1109,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p id="totalRevenueLabel" class="text-sm font-medium text-gray-600">Tá»•ng doanh thu</p>
+                            <p id="totalRevenueLabel" class="text-sm font-medium text-gray-600">Tổng doanh thu</p>
                             <div id="totalRevenue" class="skeleton h-10 w-24 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -1122,11 +1122,11 @@
                     </div>
                 </div>
 
-                <!-- Lá»£i nhuáº­n rÃ²ng -->
+                <!-- Lợi nhuận ròng -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p id="ordersDashboardProfitLabel" class="text-sm font-medium text-gray-600">Lá»£i nhuáº­n (LÃ£i rÃ²ng)</p>
+                            <p id="ordersDashboardProfitLabel" class="text-sm font-medium text-gray-600">Lợi nhuận (Lãi ròng)</p>
                             <div id="ordersDashboardProfit" class="skeleton h-10 w-24 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -1141,7 +1141,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover-scale">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <p id="todayOrdersLabel" class="text-sm font-medium text-gray-600">GiÃ¡ trá»‹ TB/Ä‘Æ¡n</p>
+                            <p id="todayOrdersLabel" class="text-sm font-medium text-gray-600">Giá trị TB/đơn</p>
                             <div id="todayOrders" class="skeleton h-10 w-16 rounded mt-2"></div>
                         </div>
                         <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -1155,13 +1155,13 @@
                 </div>
             </div>
 
-            <!-- Thanh thÃ´ng bÃ¡o: Ä‘Æ¡n gá»­i sau + chá»n nhanh export -->
+            <!-- Thanh thông báo: đơn gửi sau + chọn nhanh export -->
             <div id="notificationBar" class="mb-5 hidden">
                 <div class="flex flex-wrap items-center gap-2">
                     <div id="sendLaterUrgentWrap" class="hidden">
                         <button type="button" id="sendLaterUrgentEyeBtn"
                             class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-900 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
-                            title="Hiá»ƒn thá»‹ Ä‘Æ¡n gá»­i sau cáº§n lÃ m trong báº£ng">
+                            title="Hiển thị đơn gửi sau cần làm trong bảng">
                             <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -1171,34 +1171,34 @@
                     <div id="theTenBePanelWrap" class="hidden">
                         <button type="button" id="theTenBePanelBtn"
                             class="inline-flex items-center gap-2 rounded-lg border border-pink-300 bg-pink-50 px-3 py-2.5 text-sm font-medium text-pink-900 shadow-sm transition-all hover:bg-pink-100 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-1"
-                            title="Danh sÃ¡ch tháº» tÃªn cáº§n Ä‘áº·t tiá»‡m báº¡c â€” tÃªn kháº¯c, ngÃ y Ä‘áº·t, mÃ£ Ä‘Æ¡n"
+                            title="Danh sách thẻ tên cần đặt tiệm bạc — tên khắc, ngày đặt, mã đơn"
                             aria-expanded="false">
                             <svg class="h-4 w-4 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                             </svg>
-                            <span class="whitespace-nowrap">Lá»c tháº» tÃªn</span>
+                            <span class="whitespace-nowrap">Lọc thẻ tên</span>
                             <span id="theTenBePanelBadge" style="display:none;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 5px;border-radius:9999px;background:#db2777;color:#fff;font-size:11px;font-weight:700;line-height:1;"></span>
                         </button>
                     </div>
                     <div id="quickSelectOrdersWrap"
                         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
-                        title="Chá»n nhanh sá»‘ lÆ°á»£ng Ä‘Æ¡n hÃ ng trong danh sÃ¡ch Ä‘ang lá»c (Ä‘á»ƒ export)">
-                        <span class="whitespace-nowrap text-sm font-medium text-gray-500">Chá»n nhanh</span>
+                        title="Chọn nhanh số lượng đơn hàng trong danh sách đang lọc (để export)">
+                        <span class="whitespace-nowrap text-sm font-medium text-gray-500">Chọn nhanh</span>
                         <button type="button" data-quick-select="10" onclick="selectQuickOrders(10)"
                             class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-sm font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                            title="Chá»n 10 Ä‘Æ¡n Ä‘áº§u danh sÃ¡ch Ä‘ang lá»c">10 Ä‘Æ¡n</button>
+                            title="Chọn 10 đơn đầu danh sách đang lọc">10 đơn</button>
                         <button type="button" data-quick-select="15" onclick="selectQuickOrders(15)"
                             class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-sm font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                            title="Chá»n 15 Ä‘Æ¡n Ä‘áº§u danh sÃ¡ch Ä‘ang lá»c">15 Ä‘Æ¡n</button>
+                            title="Chọn 15 đơn đầu danh sách đang lọc">15 đơn</button>
                         <button type="button" data-quick-select="20" onclick="selectQuickOrders(20)"
                             class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-sm font-semibold text-gray-700 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                            title="Chá»n 20 Ä‘Æ¡n Ä‘áº§u danh sÃ¡ch Ä‘ang lá»c">20 Ä‘Æ¡n</button>
+                            title="Chọn 20 đơn đầu danh sách đang lọc">20 đơn</button>
                         <span class="mx-0.5 h-5 w-px bg-gray-200" aria-hidden="true"></span>
                         <button type="button" data-quick-select="page" onclick="selectQuickOrders(0, 'page')"
                             class="quick-select-btn whitespace-nowrap rounded-md border border-transparent px-2 py-1 text-sm font-medium text-gray-600 transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                            title="Chá»n táº¥t cáº£ Ä‘Æ¡n trÃªn trang hiá»‡n táº¡i">Cáº£ trang</button>
+                            title="Chọn tất cả đơn trên trang hiện tại">Cả trang</button>
                         <span class="mx-0.5 h-5 w-px bg-gray-200" aria-hidden="true"></span>
-                        <span class="whitespace-nowrap text-sm font-medium text-gray-500">Theo ngÃ y</span>
+                        <span class="whitespace-nowrap text-sm font-medium text-gray-500">Theo ngày</span>
                         <div id="quickSelectDayChips" class="inline-flex flex-wrap items-center gap-1 hidden"></div>
                     </div>
                 </div>
@@ -1209,10 +1209,10 @@
                 <div id="sendLaterUrgentDialog" class="relative z-10 flex max-h-[min(28rem,85vh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-amber-200/90 bg-white shadow-2xl ring-1 ring-black/5"
                     role="dialog" aria-modal="true" aria-labelledby="sendLaterUrgentModalTitle">
                     <div class="flex shrink-0 items-center justify-between gap-3 border-b border-amber-100 bg-gradient-to-r from-amber-50/90 to-orange-50/60 px-4 py-3">
-                        <h2 id="sendLaterUrgentModalTitle" class="text-base font-semibold text-amber-950">ÄÆ¡n gá»­i sau cáº§n lÃ m</h2>
+                        <h2 id="sendLaterUrgentModalTitle" class="text-base font-semibold text-amber-950">Đơn gửi sau cần làm</h2>
                         <button type="button" id="sendLaterUrgentModalClose"
                             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-amber-900/80 transition-colors hover:bg-amber-100 hover:text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-                            aria-label="ÄÃ³ng">
+                            aria-label="Đóng">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1228,10 +1228,10 @@
                     role="dialog" aria-modal="true" aria-labelledby="theTenBePanelModalTitle">
                     <header class="the-ten-be-header">
                         <div class="the-ten-be-header-main">
-                            <h2 id="theTenBePanelModalTitle">Danh sÃ¡ch tháº» tÃªn</h2>
-                            <p id="theTenBePanelSubtitle">Äáº·t tiá»‡m báº¡c â€” Ä‘Æ¡n chÆ°a xá»­ lÃ½ xong</p>
+                            <h2 id="theTenBePanelModalTitle">Danh sách thẻ tên</h2>
+                            <p id="theTenBePanelSubtitle">Đặt tiệm bạc — đơn chưa xử lý xong</p>
                         </div>
-                        <button type="button" id="theTenBePanelModalClose" class="the-ten-be-close" aria-label="ÄÃ³ng">
+                        <button type="button" id="theTenBePanelModalClose" class="the-ten-be-close" aria-label="Đóng">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1245,13 +1245,13 @@
             <!-- Search & Filter -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-col md:flex-row md:items-center gap-4">
-                    <!-- Search â€” scope + Ã´ tÃ¬m -->
+                    <!-- Search — scope + ô tìm -->
                     <div class="flex-1 min-w-0 w-full flex items-stretch gap-2">
                         <div class="relative shrink-0">
                             <button type="button" id="searchScopeBtn"
                                 class="h-full inline-flex items-center gap-1.5 px-3 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium whitespace-nowrap"
-                                title="Chá»n trÆ°á»ng tÃ¬m kiáº¿m" aria-haspopup="listbox" aria-expanded="false">
-                                <span id="searchScopeLabel" class="text-gray-700">Táº¥t cáº£</span>
+                                title="Chọn trường tìm kiếm" aria-haspopup="listbox" aria-expanded="false">
+                                <span id="searchScopeLabel" class="text-gray-700">Tất cả</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1260,14 +1260,14 @@
                         </div>
                         <div class="relative flex-1 min-w-0">
                             <input type="text" id="searchInput"
-                                placeholder="MÃ£ Ä‘Æ¡n, KH, SÄT, CTV, sáº£n pháº©m, lÆ°u Ã½ Ä‘Æ¡n / lÆ°u Ã½ tá»«ng SP..."
+                                placeholder="Mã đơn, KH, SĐT, CTV, sản phẩm, lưu ý đơn / lưu ý từng SP..."
                                 class="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-primary focus:border-transparent text-sm">
                             <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <button type="button" id="searchInputClearBtn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" title="XÃ³a Ã´ tÃ¬m" aria-label="XÃ³a Ã´ tÃ¬m kiáº¿m">
+                            <button type="button" id="searchInputClearBtn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" title="Xóa ô tìm" aria-label="Xóa ô tìm kiếm">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -1283,37 +1283,37 @@
                             <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" stroke="currentColor" stroke-width="1.5"/>
                             </svg>
-                            <span class="text-gray-700">Æ¯u tiÃªn</span>
+                            <span class="text-gray-700">Ưu tiên</span>
                         </button>
 
                         <!-- Export Priority Orders Button -->
                         <button id="exportPriorityBtn" onclick="exportPriorityOrders()"
                             class="hidden inline-flex items-center gap-1.5 px-3 py-2.5 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-400 transition-all text-sm font-medium text-yellow-800"
-                            title="Export táº¥t cáº£ Ä‘Æ¡n Æ°u tiÃªn ra Excel">
+                            title="Export tất cả đơn ưu tiên ra Excel">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span>Export Æ°u tiÃªn</span>
+                            <span>Export ưu tiên</span>
                             <span id="exportPriorityCount" class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-yellow-500 text-white text-xs font-bold">0</span>
                         </button>
 
-                        <!-- Lá»c Ä‘Æ¡n cÃ³ sáº£n pháº©m chÆ°a cÃ³ cÃ¢n/size -->
+                        <!-- Lọc đơn có sản phẩm chưa có cân/size -->
                         <button type="button" id="missingSizeFilterBtn" onclick="toggleMissingSizeFilter()"
                             class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-300 transition-all text-sm font-medium">
                             <svg class="w-4 h-4 text-gray-500" viewBox="-1 -281 578 578" fill="currentColor" aria-hidden="true">
                                 <path d="M537-82 198 257c-13 12-33 12-45 0L39 144c-12-13-12-33 0-45l34-34 74 73c3 3 8 3 11 0s3-8 0-11L85 53l56-56 51 51c3 3 8 3 11 0 4-3 4-9 0-12l-50-51 50-50 74 73c3 3 8 3 11 0s3-8 0-11l-73-74 51-51 51 51c3 3 8 3 11 0s3-8 0-11l-51-51 57-57 73 74c3 3 8 3 11 0s3-8 0-11l-73-74 34-34c12-12 33-12 45 0l113 113c13 13 13 33 0 46zM68 48 28 87c-19 19-19 49 0 68l113 113c19 19 49 19 68 0L549-71c18-19 18-49 0-68L435-252c-18-19-49-19-67 0C78 37 139-24 68 48z"/>
                             </svg>
-                            <span class="text-gray-700">ChÆ°a cÃ³ size</span>
+                            <span class="text-gray-700">Chưa có size</span>
                             <span id="missingSizeCountBadge" style="display:none;margin-left:2px;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 5px;border-radius:9999px;background:#f59e0b;color:#fff;font-size:11px;font-weight:700;line-height:1;"></span>
                         </button>
 
-                        <!-- Lá»c Ä‘Æ¡n: DM 21, tÃªn/lÆ°u Ã½ SP hoáº·c lÆ°u Ã½ Ä‘Æ¡n cÃ³ "tháº» tÃªn" / "tháº»" -->
+                        <!-- Lọc đơn: DM 21, tên/lưu ý SP hoặc lưu ý đơn có "thẻ tên" / "thẻ" -->
                         <button type="button" id="theTenBeFilterBtn" onclick="toggleTheTenBeFilter()"
                             class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-pink-50 hover:border-pink-300 transition-all text-sm font-medium">
                             <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                             </svg>
-                            <span class="text-gray-700">Tháº» tÃªn bÃ©</span>
+                            <span class="text-gray-700">Thẻ tên bé</span>
                         </button>
 
                         <button type="button" id="hasNotesFilterBtn" onclick="toggleHasNotesFilter()"
@@ -1321,14 +1321,14 @@
                             <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                             </svg>
-                            <span class="text-gray-700">CÃ³ lÆ°u Ã½</span>
+                            <span class="text-gray-700">Có lưu ý</span>
                         </button>
                         
                         <!-- Status Filter -->
                         <div class="relative">
                             <button id="statusFilterBtn" onclick="toggleStatusFilter(event)" 
                                 class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-                                <span id="statusFilterLabel" class="text-gray-700">ChÆ°a gá»­i hÃ ng</span>
+                                <span id="statusFilterLabel" class="text-gray-700">Chưa gửi hàng</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1342,7 +1342,7 @@
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <span id="paymentFilterLabel" class="text-gray-700">Táº¥t cáº£ thanh toÃ¡n</span>
+                                <span id="paymentFilterLabel" class="text-gray-700">Tất cả thanh toán</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1356,7 +1356,7 @@
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
-                                <span id="customerSourceFilterLabel" class="text-gray-700">Táº¥t cáº£ nguá»“n</span>
+                                <span id="customerSourceFilterLabel" class="text-gray-700">Tất cả nguồn</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1370,7 +1370,7 @@
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <span id="ctvFilterLabel" class="text-gray-700">Táº¥t cáº£ Ä‘Æ¡n</span>
+                                <span id="ctvFilterLabel" class="text-gray-700">Tất cả đơn</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1384,7 +1384,7 @@
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span id="dateFilterLabel" class="text-gray-700">Táº¥t cáº£</span>
+                                <span id="dateFilterLabel" class="text-gray-700">Tất cả</span>
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -1407,7 +1407,7 @@
             <div id="ordersTableSection" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <!-- Table Header -->
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900">Danh SÃ¡ch ÄÆ¡n HÃ ng</h2>
+                    <h2 class="text-lg font-semibold text-gray-900">Danh Sách Đơn Hàng</h2>
                 </div>
 
                 <!-- Loading State -->
@@ -1431,7 +1431,7 @@
                                     </svg>
                                 </div>
                                 <span class="font-semibold text-sm">
-                                    <span id="selectedCount">0</span> Ä‘Æ¡n
+                                    <span id="selectedCount">0</span> đơn
                                 </span>
                             </div>
                             
@@ -1439,34 +1439,34 @@
                             <div class="flex items-center gap-2">
                                 <button onclick="showBulkStatusMenu(event)" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Sá»­a tráº¡ng thÃ¡i hÃ ng loáº¡t">
+                                    title="Sửa trạng thái hàng loạt">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    <span class="text-sm">Sá»­a tráº¡ng thÃ¡i</span>
+                                    <span class="text-sm">Sửa trạng thái</span>
                                 </button>
                                 
                                 <button onclick="bulkTogglePriority(true)" 
                                     class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
-                                    title="ÄÃ¡nh dáº¥u Æ°u tiÃªn">
+                                    title="Đánh dấu ưu tiên">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    <span class="text-sm">Æ¯u tiÃªn</span>
+                                    <span class="text-sm">Ưu tiên</span>
                                 </button>
                                 
                                 <button onclick="bulkTogglePriority(false)" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Bá» Ä‘Ã¡nh dáº¥u Æ°u tiÃªn">
+                                    title="Bỏ đánh dấu ưu tiên">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    <span class="text-sm">Bá» Æ°u tiÃªn</span>
+                                    <span class="text-sm">Bỏ ưu tiên</span>
                                 </button>
                                 
                                 <button onclick="bulkExport()" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Export Ä‘Æ¡n hÃ ng Ä‘Ã£ chá»n">
+                                    title="Export đơn hàng đã chọn">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
@@ -1475,25 +1475,25 @@
                                 
                                 <button onclick="showExportHistoryModal()" 
                                     class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Xem lá»‹ch sá»­ export">
+                                    title="Xem lịch sử export">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span class="text-sm">Lá»‹ch sá»­</span>
+                                    <span class="text-sm">Lịch sử</span>
                                 </button>
                                 
                                 <button onclick="bulkDelete()" 
                                     class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
-                                    title="XÃ³a Ä‘Æ¡n hÃ ng Ä‘Ã£ chá»n">
+                                    title="Xóa đơn hàng đã chọn">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    <span class="text-sm">XÃ³a</span>
+                                    <span class="text-sm">Xóa</span>
                                 </button>
                                 
                                 <button onclick="clearSelection()" 
                                     class="w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center justify-center hover:scale-105"
-                                    title="Bá» chá»n táº¥t cáº£">
+                                    title="Bỏ chọn tất cả">
                                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -1505,7 +1505,7 @@
 
                 <!-- Table Content -->
                 <div id="tableContent" class="hidden min-w-0">
-                    <!-- overflow-y-hidden: trÃ¡nh overflow-x-auto kÃ©o theo overflow-y:auto (2 scrollbar dá»c: báº£ng + trÃ¬nh duyá»‡t) -->
+                    <!-- overflow-y-hidden: tránh overflow-x-auto kéo theo overflow-y:auto (2 scrollbar dọc: bảng + trình duyệt) -->
                     <div class="min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain">
                         <table class="w-full">
                             <thead class="bg-gray-50 border-b border-gray-200">
@@ -1521,20 +1521,20 @@
                                     </th>
                                     <th
                                         class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        MÃ£ Ä‘Æ¡n</th>
+                                        Mã đơn</th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                         style="min-width:280px;max-width:380px;">
-                                        KhÃ¡ch &amp; giao hÃ ng</th>
+                                        Khách &amp; giao hàng</th>
                                     <th
                                         class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                         style="min-width:400px;width:38%;">
-                                        Sáº£n pháº©m</th>
+                                        Sản phẩm</th>
                                     <th
                                         class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <button onclick="toggleAmountSort()"
                                             class="flex items-center gap-2 mx-auto hover:text-admin-primary transition-colors group">
-                                            <span>GiÃ¡ trá»‹</span>
+                                            <span>Giá trị</span>
                                             <svg id="amountSortIcon"
                                                 class="w-4 h-4 text-gray-400 group-hover:text-admin-primary transition-colors"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1545,13 +1545,13 @@
                                     </th>
                                     <th
                                         class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        LÃ£i rÃ²ng
+                                        Lãi ròng
                                     </th>
                                     <th
                                         class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         <button onclick="toggleDateSort()"
                                             class="flex items-center gap-2 mx-auto hover:text-admin-primary transition-colors group">
-                                            <span>NgÃ y Ä‘áº·t</span>
+                                            <span>Ngày đặt</span>
                                             <svg id="dateSortIcon"
                                                 class="w-4 h-4 text-admin-primary group-hover:text-admin-primary transition-colors"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1562,7 +1562,7 @@
                                     </th>
                                     <th
                                         class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Thao tÃ¡c</th>
+                                        Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody id="ordersTableBody" class="bg-white divide-y divide-gray-200">
@@ -1582,14 +1582,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">ChÆ°a cÃ³ Ä‘Æ¡n hÃ ng</h3>
-                    <p class="text-gray-500">Danh sÃ¡ch Ä‘Æ¡n hÃ ng sáº½ hiá»ƒn thá»‹ á»Ÿ Ä‘Ã¢y</p>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có đơn hàng</h3>
+                    <p class="text-gray-500">Danh sách đơn hàng sẽ hiển thị ở đây</p>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal xÃ¡c nháº­n export Ä‘Æ¡n Ä‘Ã£ gá»­i hÃ ng -->
+    <!-- Modal xác nhận export đơn đã gửi hàng -->
     <div id="shippedOrdersConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn"
          onclick="if (event.target === this) closeShippedOrdersConfirmModal()">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slideUp" onclick="event.stopPropagation()">
@@ -1603,13 +1603,13 @@
                             </svg>
                         </div>
                         <div class="min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900">XÃ¡c nháº­n Export</h3>
-                            <p class="text-sm text-gray-500">CÃ³ Ä‘Æ¡n hÃ ng Ä‘Ã£ gá»­i</p>
+                            <h3 class="text-lg font-bold text-gray-900">Xác nhận Export</h3>
+                            <p class="text-sm text-gray-500">Có đơn hàng đã gửi</p>
                         </div>
                     </div>
                     <button type="button" onclick="closeShippedOrdersConfirmModal()"
                         class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-                        aria-label="ÄÃ³ng">
+                        aria-label="Đóng">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -1620,11 +1620,11 @@
             <!-- Body -->
             <div class="px-6 py-5">
                 <p class="text-gray-700 mb-4 text-base">
-                    <span class="font-semibold text-yellow-600" id="shippedOrdersCount">0</span> Ä‘Æ¡n hÃ ng Ä‘Ã£ á»Ÿ tráº¡ng thÃ¡i 
-                    <span class="font-semibold text-green-600">"ÄÃ£ gá»­i hÃ ng"</span>.
+                    <span class="font-semibold text-yellow-600" id="shippedOrdersCount">0</span> đơn hàng đã ở trạng thái 
+                    <span class="font-semibold text-green-600">"Đã gửi hàng"</span>.
                 </p>
                 <p class="text-gray-600">
-                    Báº¡n cÃ³ muá»‘n tiáº¿p tá»¥c export táº¥t cáº£ cÃ¡c Ä‘Æ¡n Ä‘Ã£ chá»n khÃ´ng?
+                    Bạn có muốn tiếp tục export tất cả các đơn đã chọn không?
                 </p>
             </div>
 
@@ -1632,11 +1632,11 @@
             <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3">
                 <button onclick="skipShippedOrders()" 
                     class="flex-[2] px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap">
-                    Bá» qua cÃ¡c Ä‘Æ¡n Ä‘Ã£ gá»­i
+                    Bỏ qua các đơn đã gửi
                 </button>
                 <button onclick="continueExportAll()" 
                     class="flex-1 px-4 py-2.5 bg-gradient-to-r from-admin-primary to-admin-secondary text-white rounded-xl font-medium hover:shadow-lg transition-all whitespace-nowrap">
-                    Tiáº¿p tá»¥c
+                    Tiếp tục
                 </button>
             </div>
         </div>
@@ -1651,14 +1651,14 @@
 
             <div class="qs-top">
                 <div class="qs-top-row">
-                    <h2 id="qsModalTitle" class="qs-head-title">Thá»‘ng kÃª nhanh</h2>
-                    <button type="button" onclick="closeQuickStatsModal()" class="qs-close" aria-label="ÄÃ³ng">
+                    <h2 id="qsModalTitle" class="qs-head-title">Thống kê nhanh</h2>
+                    <button type="button" onclick="closeQuickStatsModal()" class="qs-close" aria-label="Đóng">
                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
                 <div class="qs-tabs">
-                    <button type="button" id="qsTab_today" onclick="switchQuickPeriod('today')" class="qs-tab qs-tab--active">HÃ´m nay</button>
-                    <button type="button" id="qsTab_yesterday" onclick="switchQuickPeriod('yesterday')" class="qs-tab">HÃ´m qua</button>
+                    <button type="button" id="qsTab_today" onclick="switchQuickPeriod('today')" class="qs-tab qs-tab--active">Hôm nay</button>
+                    <button type="button" id="qsTab_yesterday" onclick="switchQuickPeriod('yesterday')" class="qs-tab">Hôm qua</button>
                 </div>
             </div>
 
@@ -1666,45 +1666,45 @@
                 <div class="qs-hero-card">
                     <div class="qs-hero-col">
                         <span class="qs-lbl">Doanh thu</span>
-                        <p id="qsRevenue" class="qs-val qs-hero-num">â€”</p>
+                        <p id="qsRevenue" class="qs-val qs-hero-num">—</p>
                         <div id="qsRevenueChange" aria-live="polite"></div>
                     </div>
                     <div class="qs-hero-divider" aria-hidden="true"></div>
                     <div class="qs-hero-col">
-                        <span class="qs-lbl">Lá»£i nhuáº­n thá»±c</span>
-                        <p id="qsNetProfit" class="qs-val qs-hero-num qs-hero-num--accent">â€”</p>
-                        <p class="qs-hero-sub">QC <span id="qsAdSpend">â€”</span> Â· <span id="qsAvgProfitPerOrder">â€”</span>/Ä‘Æ¡n</p>
+                        <span class="qs-lbl">Lợi nhuận thực</span>
+                        <p id="qsNetProfit" class="qs-val qs-hero-num qs-hero-num--accent">—</p>
+                        <p class="qs-hero-sub">QC <span id="qsAdSpend">—</span> · <span id="qsAvgProfitPerOrder">—</span>/đơn</p>
                     </div>
                 </div>
 
                 <div class="qs-stat-bar">
                     <div class="qs-stat-item">
-                        <span class="qs-lbl">ÄÆ¡n</span>
-                        <span id="qsOrders" class="qs-val">â€”</span>
+                        <span class="qs-lbl">Đơn</span>
+                        <span id="qsOrders" class="qs-val">—</span>
                     </div>
                     <div class="qs-stat-item">
                         <span class="qs-lbl">SP</span>
-                        <span id="qsProducts" class="qs-val">â€”</span>
+                        <span id="qsProducts" class="qs-val">—</span>
                     </div>
                     <div class="qs-stat-item">
-                        <span class="qs-lbl">Tá»· suáº¥t</span>
-                        <span id="qsMargin" class="qs-val">â€”</span>
+                        <span class="qs-lbl">Tỷ suất</span>
+                        <span id="qsMargin" class="qs-val">—</span>
                     </div>
                     <div class="qs-stat-item">
-                        <span class="qs-lbl">LN gá»™p</span>
-                        <span id="qsProfit" class="qs-val">â€”</span>
+                        <span class="qs-lbl">LN gộp</span>
+                        <span id="qsProfit" class="qs-val">—</span>
                     </div>
                 </div>
 
                 <div class="qs-detail-card">
                     <div class="qs-detail-line">
-                        <span>Chi phÃ­</span>
-                        <span id="qsCost" class="qs-val">â€”</span>
+                        <span>Chi phí</span>
+                        <span id="qsCost" class="qs-val">—</span>
                     </div>
                 </div>
 
                 <div class="qs-sources-head">
-                    <span class="qs-section-title">Nguá»“n khÃ¡ch</span>
+                    <span class="qs-section-title">Nguồn khách</span>
                 </div>
                 <div class="qs-sources-card">
                     <div id="qsCustomerSources"></div>
@@ -1712,13 +1712,13 @@
             </div>
 
             <footer class="qs-foot">
-                <p class="qs-foot-note">LN thá»±c = LN gá»™p âˆ’ QC Â· <a href="settings.html">Äá»•i ngÃ¢n sÃ¡ch</a></p>
-                <a href="profit-report.html" class="qs-foot-link">Chi tiáº¿t â†’</a>
+                <p class="qs-foot-note">LN thực = LN gộp − QC · <a href="settings.html">Đổi ngân sách</a></p>
+                <a href="profit-report.html" class="qs-foot-link">Chi tiết →</a>
             </footer>
         </div>
     </div>
 
-    <!-- Má»™t bundle Ä‘Ã£ minify â€” build: npm run build:admin-js (sau khi sá»­a JS Ä‘Æ¡n hÃ ng) -->
+    <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
     <script defer src="../assets/js/admin-orders.bundle.min.js?v=163"></script>
 </body>
 
