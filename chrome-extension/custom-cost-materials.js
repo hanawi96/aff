@@ -380,10 +380,6 @@
     modal.addEventListener('click', onModalClick);
     modal.addEventListener('input', onModalInput);
     modal.addEventListener('change', onModalInput);
-    modal.addEventListener('focusin', (e) => {
-      if (!active || !e.target.matches('[data-mat-product-search]')) return;
-      renderProductResults(e.target.value || '');
-    });
     modal.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
