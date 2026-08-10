@@ -558,6 +558,18 @@ export async function dismissPendingUnsaved(data, env, corsHeaders) {
 
 const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products, is_priority';
 
+/** Size/cân cho preview strip extension — số thuần → thêm kg. */
+function formatShippingPreviewSize(value) {
+    if (value == null) return '';
+    let str = String(value).trim();
+    if (!str) return '';
+    const lower = str.toLowerCase();
+    if (lower === 'chưa có' || lower === 'chua co' || lower === 'chua có') return '';
+    str = str.replace(/\s+/g, '');
+    if (/^\d+(\.\d+)?$/.test(str)) return `${str}kg`;
+    return str;
+}
+
 function formatShippingStatusOrder(row) {
     if (!row) return null;
     let preview = '';
@@ -568,7 +580,8 @@ function formatShippingStatusOrder(row) {
             preview = items.slice(0, 2).map((p) => {
                 const name = p?.name || p?.product_name || 'SP';
                 const qty = parseInt(p?.quantity, 10) || 1;
-                return `${name} ×${qty}`;
+                const size = formatShippingPreviewSize(p?.size ?? p?.weight);
+                return size ? `${name} · ${size} ×${qty}` : `${name} ×${qty}`;
             }).join(', ');
             if (items.length > 2) preview += ` (+${items.length - 2})`;
         }

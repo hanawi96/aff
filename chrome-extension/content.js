@@ -658,9 +658,15 @@ function createSidebar() {
               <input type="text" id="manual-product-name" placeholder="Tên sản phẩm" class="shopvd-edit-input">
               <div class="shopvd-edit-row shopvd-edit-row-prices">
                 <input type="number" id="manual-product-price" placeholder="Giá bán" min="0" step="1000" class="shopvd-edit-input">
-                <input type="number" id="manual-product-cost" placeholder="Giá vốn" min="0" step="1" class="shopvd-edit-input">
+                <div class="shopvd-cost-with-mat">
+                  <input type="number" id="manual-product-cost" placeholder="Giá vốn" min="0" step="1" class="shopvd-edit-input">
+                  <button type="button" id="open-manual-materials-btn" class="shopvd-cost-mat-btn" title="Chọn nguyên liệu tính giá vốn" aria-label="Chọn nguyên liệu">
+                    <span class="shopvd-cost-mat-btn-label">NL</span>
+                  </button>
+                </div>
                 <input type="text" id="manual-product-weight" placeholder="Cân nặng" class="shopvd-edit-input">
               </div>
+              <p class="shopvd-cost-mat-hint" id="manual-product-cost-hint" hidden></p>
               <div class="shopvd-edit-row shopvd-edit-row-meta shopvd-edit-row-meta-manual">
                 <div class="shopvd-manual-qty-stepper">
                   <button type="button" id="manual-product-qty-minus" class="shopvd-manual-qty-btn" aria-label="Giảm số lượng">−</button>
@@ -6770,6 +6776,34 @@ function getValidCartProducts() {
   });
 }
 
+/** Mở modal chọn nguyên liệu → điền giá vốn vào input target */
+async function openMaterialsCostPicker(costInput, options = {}) {
+  const picker = globalThis.ShopvdMaterialsCostPicker;
+  if (!picker || typeof picker.open !== 'function') {
+    showStatus('⚠️ Module nguyên liệu chưa sẵn sàng. Reload extension.', 'warning');
+    return;
+  }
+  if (!costInput) {
+    showStatus('⚠️ Không tìm thấy ô giá vốn', 'warning');
+    return;
+  }
+  if (!allProductsCache.length) {
+    try { await loadProducts(); } catch (_) { /* vẫn mở modal chọn NL */ }
+  }
+  picker.open({
+    apiBase: API_BASE_URL,
+    costInput,
+    host: document.getElementById('shopvd-sidebar') || document.body,
+    showStatus,
+    products: allProductsCache,
+    ensureProducts: async () => {
+      if (!allProductsCache.length) await loadProducts();
+      return allProductsCache;
+    },
+    onApplied: options.onApplied
+  });
+}
+
 function validateProductCostVsPrice(price, costPrice) {
   const priceNum = parseInt(price, 10) || 0;
   const costNum = parseInt(costPrice, 10) || 0;
@@ -7230,7 +7264,13 @@ function renderProducts() {
         <input type="text" placeholder="Tên sản phẩm" value="${escapeHtml(product.name)}" data-field="name" class="shopvd-edit-input">
         <div class="shopvd-edit-row shopvd-edit-row-prices">
           <input type="number" placeholder="Giá bán" value="${product.price}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
-          <input type="number" placeholder="Giá vốn" value="${product.cost_price || 0}" data-field="cost_price" min="0" step="1" class="shopvd-edit-input">
+          <div class="shopvd-cost-with-mat">
+            <input type="number" placeholder="Giá vốn" value="${product.cost_price || 0}" data-field="cost_price" min="0" step="1" class="shopvd-edit-input">
+            ${!product.product_id ? `
+            <button type="button" class="shopvd-cost-mat-btn" data-action="pick-materials" title="Chọn nguyên liệu tính giá vốn" aria-label="Chọn nguyên liệu">
+              <span class="shopvd-cost-mat-btn-label">NL</span>
+            </button>` : ''}
+          </div>
           <input type="number" placeholder="SL" value="${product.quantity}" data-field="quantity" min="1" class="shopvd-edit-input">
         </div>
         ${skipsWeight
@@ -7271,6 +7311,18 @@ function renderProducts() {
           // Focus first input
           editForm.querySelector('input')?.focus();
         }
+      });
+    }
+
+    // Chọn NL → điền giá vốn (chỉ SP tùy chỉnh)
+    const pickMatBtn = row.querySelector('[data-action="pick-materials"]');
+    if (pickMatBtn) {
+      pickMatBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const editForm = row.querySelector(`[data-edit-form="${productId}"]`);
+        const costInput = editForm?.querySelector('input[data-field="cost_price"]');
+        openMaterialsCostPicker(costInput);
       });
     }
     
@@ -9149,6 +9201,18 @@ function setupEventListeners() {
   document.getElementById('manual-product-qty-minus')?.addEventListener('click', () => stepManualQty(-1));
   document.getElementById('manual-product-qty-plus')?.addEventListener('click', () => stepManualQty(1));
 
+  document.getElementById('open-manual-materials-btn')?.addEventListener('click', () => {
+    const costInput = document.getElementById('manual-product-cost');
+    openMaterialsCostPicker(costInput, {
+      onApplied: ({ total, count }) => {
+        const hint = document.getElementById('manual-product-cost-hint');
+        if (!hint) return;
+        hint.hidden = false;
+        hint.textContent = `💎 ${count} nguyên liệu · ${formatPrice(total)} đ`;
+      }
+    });
+  });
+
   // Submit manual product
   document.getElementById('add-manual-product-submit')?.addEventListener('click', () => {
     const name = document.getElementById('manual-product-name').value.trim();
@@ -9188,6 +9252,11 @@ function setupEventListeners() {
     document.getElementById('manual-product-quantity').value = '1';
     document.getElementById('manual-product-weight').value = '';
     document.getElementById('manual-product-notes').value = '';
+    const costHint = document.getElementById('manual-product-cost-hint');
+    if (costHint) {
+      costHint.hidden = true;
+      costHint.textContent = '';
+    }
     document.getElementById('manual-product-name')?.focus();
 
     showStatus('✅ Đã thêm sản phẩm!', 'success');

@@ -52,6 +52,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-address.js',
     'public/assets/js/orders/orders-quick-add.js',
     'public/assets/js/orders/orders-product-edit.js',
+    'public/assets/js/orders/orders-materials-cost-picker.js',
     'public/assets/js/orders/orders-custom-product-modal.js',
     'public/assets/js/orders/orders-timezone-utils.js',
     'public/assets/js/orders/orders-send-later-reminder.js',
