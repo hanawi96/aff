@@ -604,12 +604,16 @@ input.shopvd-cost-flash,
 
 @media (max-width: 640px) {
   .shopvd-mat-modal {
-    padding: 10px;
-    align-items: flex-end;
+    padding: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px));
+    align-items: stretch;
   }
   .shopvd-mat-panel {
-    max-height: 92vh;
-    border-radius: 16px 16px 12px 12px;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    height: calc(100dvh - 8px - env(safe-area-inset-bottom, 0px));
+    border-radius: 14px;
   }
   .shopvd-mat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
