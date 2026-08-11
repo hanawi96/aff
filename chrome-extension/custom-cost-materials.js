@@ -206,6 +206,7 @@
       if (selectedProduct) {
         active.selectedProduct = selectedProduct;
         updateSelectedProductChip();
+        fillNameFromSelectedProduct(selectedProduct);
       }
       renderBody();
       if (announce) {
@@ -259,6 +260,18 @@
     }
     chip.classList.remove('hidden');
     labelEl.textContent = p.name || `SP #${p.id}`;
+  }
+
+  /** Điền tên SP gốc vào ô tên SP tùy chỉnh (nếu có truyền nameInput) */
+  function fillNameFromSelectedProduct(product) {
+    const input = active?.nameInput;
+    if (!input || !product) return;
+    const name = String(product.name || '').trim();
+    if (!name) return;
+    input.value = name;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    active.onNameFilled?.(name, product);
   }
 
   function hideProductResults() {
@@ -618,13 +631,25 @@
    *   costInput: HTMLInputElement,
    *   host?: HTMLElement,
    *   onApplied?: Function,
+   *   onNameFilled?: Function,
    *   showStatus?: Function,
    *   products?: any[],
-   *   ensureProducts?: () => Promise<any[]>
+   *   ensureProducts?: () => Promise<any[]>,
+   *   nameInput?: HTMLInputElement|null
    * }} opts
    */
   async function open(opts) {
-    const { apiBase, costInput, host, onApplied, showStatus, products, ensureProducts } = opts || {};
+    const {
+      apiBase,
+      costInput,
+      host,
+      onApplied,
+      onNameFilled,
+      showStatus,
+      products,
+      ensureProducts,
+      nameInput
+    } = opts || {};
     if (!apiBase || !costInput) return;
 
     const modal = ensureModalShell(host || document.getElementById('shopvd-sidebar') || document.body);
@@ -640,7 +665,9 @@
     active = {
       apiBase,
       costInput,
+      nameInput: nameInput || null,
       onApplied,
+      onNameFilled,
       showStatus,
       materials: [],
       selected: new Map(),

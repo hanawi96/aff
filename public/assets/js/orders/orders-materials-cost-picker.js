@@ -206,6 +206,7 @@
       if (selectedProduct) {
         active.selectedProduct = selectedProduct;
         updateSelectedProductChip();
+        fillNameFromSelectedProduct(selectedProduct);
       }
       renderBody();
       if (announce) {
@@ -259,6 +260,18 @@
     }
     chip.classList.remove('hidden');
     labelEl.textContent = p.name || `SP #${p.id}`;
+  }
+
+  /** Điền tên SP gốc vào ô tên SP tùy chỉnh (nếu có truyền nameInput) */
+  function fillNameFromSelectedProduct(product) {
+    const input = active?.nameInput;
+    if (!input || !product) return;
+    const name = String(product.name || '').trim();
+    if (!name) return;
+    input.value = name;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    active.onNameFilled?.(name, product);
   }
 
   function hideProductResults() {
@@ -658,11 +671,13 @@
       host,
       onApplied,
       onCostApplied,
+      onNameFilled,
       formatCost,
       showStatus,
       products,
       ensureProducts,
-      hintEl
+      hintEl,
+      nameInput
     } = opts || {};
     if (!apiBase || !costInput) return;
 
@@ -679,8 +694,10 @@
     active = {
       apiBase,
       costInput,
+      nameInput: nameInput || null,
       onApplied,
       onCostApplied,
+      onNameFilled,
       formatCost,
       showStatus,
       hintEl: hintEl || null,
@@ -782,14 +799,27 @@
       return [];
     });
 
+    let nameInput = options.nameInput || null;
+    if (typeof nameInput === 'string') {
+      nameInput = document.getElementById(nameInput);
+    }
+    if (!nameInput) {
+      nameInput = document.getElementById('modalCustomProductNameInput')
+        || document.getElementById('orderEditCustomNameInput')
+        || document.getElementById('custName')
+        || null;
+    }
+
     global.OrdersMaterialsCostPicker.open({
       apiBase,
       costInput,
+      nameInput,
       products: products || [],
       ensureProducts,
       formatCost: options.formatCost || defaultFormatCost,
       onCostApplied: options.onCostApplied,
       onApplied: options.onApplied,
+      onNameFilled: options.onNameFilled,
       hintEl: options.hintEl || null,
       showStatus: options.showStatus || notify
     });

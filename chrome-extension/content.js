@@ -6790,9 +6790,13 @@ async function openMaterialsCostPicker(costInput, options = {}) {
   if (!allProductsCache.length) {
     try { await loadProducts(); } catch (_) { /* vẫn mở modal chọn NL */ }
   }
+  const nameInput = options.nameInput
+    || document.getElementById('manual-product-name')
+    || null;
   picker.open({
     apiBase: API_BASE_URL,
     costInput,
+    nameInput,
     host: document.getElementById('shopvd-sidebar') || document.body,
     showStatus,
     products: allProductsCache,
@@ -6800,7 +6804,8 @@ async function openMaterialsCostPicker(costInput, options = {}) {
       if (!allProductsCache.length) await loadProducts();
       return allProductsCache;
     },
-    onApplied: options.onApplied
+    onApplied: options.onApplied,
+    onNameFilled: options.onNameFilled
   });
 }
 
@@ -6955,13 +6960,33 @@ function formatWeightSize(value) {
   return str;
 }
 
-/** elastic | adjustable | other — lấy từ item hoặc catalog cache */
+/**
+ * SP tùy chỉnh: tên có "co giãn" → elastic; còn lại → adjustable (dây rút).
+ * Chỉ dùng khi không có product_id catalog.
+ */
+function inferCustomBraceletTypeFromName(name) {
+  const raw = String(name || '').toLowerCase();
+  const ascii = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (raw.includes('co giãn') || ascii.includes('co gian') || ascii.includes('cogian')) {
+    return 'elastic';
+  }
+  return 'adjustable';
+}
+
+/** elastic | adjustable | other — lấy từ item, catalog, hoặc suy luận từ tên (SP tùy chỉnh) */
 function resolveBraceletType(product) {
+  const catalog = resolveCatalogProductForCartItem(product);
+  const isCustom = !product?.product_id && !catalog;
+
+  // SP tùy chỉnh: luôn suy từ tên (để đổi tên "… co giãn" cập nhật đúng note tin xác nhận)
+  if (isCustom) {
+    return inferCustomBraceletTypeFromName(product?.name);
+  }
+
   const fromItem = String(product?.bracelet_type || '').toLowerCase().trim();
   if (fromItem === 'elastic' || fromItem === 'adjustable' || fromItem === 'other') {
     return fromItem;
   }
-  const catalog = resolveCatalogProductForCartItem(product);
   const fromCatalog = String(catalog?.bracelet_type || '').toLowerCase().trim();
   if (fromCatalog === 'elastic' || fromCatalog === 'adjustable' || fromCatalog === 'other') {
     return fromCatalog;
@@ -7154,7 +7179,9 @@ function addProductRow(name = '', price = '', quantity = 1, productId = null, co
     notes: normalizedNotes,
     category_id: categoryId,
     category_ids: categoryIds,
-    bracelet_type: cachedProduct?.bracelet_type || null,
+    bracelet_type: productId
+      ? (cachedProduct?.bracelet_type || null)
+      : inferCustomBraceletTypeFromName(name),
   });
   renderProducts();
   calculateTotal();
@@ -7314,7 +7341,7 @@ function renderProducts() {
       });
     }
 
-    // Chọn NL → điền giá vốn (chỉ SP tùy chỉnh)
+    // Chọn NL → điền giá vốn + tên SP gốc (chỉ SP tùy chỉnh)
     const pickMatBtn = row.querySelector('[data-action="pick-materials"]');
     if (pickMatBtn) {
       pickMatBtn.addEventListener('click', (e) => {
@@ -7322,7 +7349,8 @@ function renderProducts() {
         e.stopPropagation();
         const editForm = row.querySelector(`[data-edit-form="${productId}"]`);
         const costInput = editForm?.querySelector('input[data-field="cost_price"]');
-        openMaterialsCostPicker(costInput);
+        const nameInput = editForm?.querySelector('input[data-field="name"]');
+        openMaterialsCostPicker(costInput, { nameInput });
       });
     }
     
@@ -7379,6 +7407,11 @@ function renderProducts() {
           if (skipsWeight) {
             product.weight = '';
             delete product.size;
+          }
+
+          // SP tùy chỉnh: cập nhật loại vòng theo tên (có/không chữ "co giãn")
+          if (!product.product_id) {
+            product.bracelet_type = inferCustomBraceletTypeFromName(product.name);
           }
 
           const costError = validateProductCostVsPrice(product.price, product.cost_price);
