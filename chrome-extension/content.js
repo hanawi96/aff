@@ -6997,7 +6997,7 @@ function resolveBraceletType(product) {
 /**
  * Size trong tin xác nhận:
  * - adjustable + Nkg → "Nkg (có thể nới rộng đeo đến N+10kg)"
- * - elastic → "Nkg (có gửi thêm dây + hạt để xỏ thêm nếu cần)"
+ * - elastic / SP tùy chỉnh có "co giãn" → "Nkg (Có gửi thêm dây + hạt dâu)"
  */
 function formatConfirmSizeWithBraceletNote(weightRaw, braceletType) {
   const weight = formatWeightSize(weightRaw);
@@ -7005,7 +7005,7 @@ function formatConfirmSizeWithBraceletNote(weightRaw, braceletType) {
   const type = String(braceletType || '').toLowerCase().trim();
 
   if (type === 'elastic') {
-    return `${weight} (có gửi thêm dây + hạt để xỏ thêm nếu cần)`;
+    return `${weight} (Có gửi thêm dây + hạt dâu)`;
   }
 
   if (type === 'adjustable') {
