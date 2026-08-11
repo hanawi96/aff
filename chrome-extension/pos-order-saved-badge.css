@@ -1,0 +1,21 @@
+/* Badge "Đã lưu" cạnh SĐT trên Pancake POS order table */
+.shopvd-pos-saved-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: #166534;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+}

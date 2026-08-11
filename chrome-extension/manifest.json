@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ShopVD Order Helper",
-  "version": "1.5.54",
+  "version": "1.5.56",
   "description": "Tạo đơn hàng nhanh từ pancake.vn sang ShopVD",
   "permissions": [
     "storage",
@@ -10,6 +10,7 @@
   "host_permissions": [
     "https://pancake.vn/vongdautambyvui",
     "https://pancake.vn/vongdautambyvui/*",
+    "https://pos.pancake.vn/*",
     "https://chat.zalo.me/*",
     "https://shopvd.store/*",
     "https://ctv-api.yendev96.workers.dev/*"
@@ -35,6 +36,19 @@
         "sidebar.css"
       ],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://pos.pancake.vn/*"
+      ],
+      "js": [
+        "fetch-bridge.js",
+        "pos-order-saved-badge.js"
+      ],
+      "css": [
+        "pos-order-saved-badge.css"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "action": {

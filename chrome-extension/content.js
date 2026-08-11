@@ -11220,9 +11220,8 @@ function updateUnsavedBadgeUI() {
     return `
       <div class="shopvd-unsaved-item${isCurrent ? ' is-current' : ''}" data-draft-key="${escapeHtml(d.key)}" data-channel="${escapeHtml(channel)}">
         <div class="shopvd-unsaved-item-main">
-          <div class="shopvd-unsaved-item-title-row">
-            <div class="shopvd-unsaved-item-title">${title}</div>
-            ${unsavedChannelBadgeHtml(channel)}
+          <div class="shopvd-unsaved-item-title">
+            <span class="shopvd-unsaved-item-name">${title}</span>${unsavedChannelBadgeHtml(channel)}
           </div>
           <div class="shopvd-unsaved-phone-row">
             <span class="shopvd-unsaved-phone">${phone}</span>

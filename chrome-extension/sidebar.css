@@ -839,23 +839,23 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   gap: 4px;
 }
 
-.shopvd-unsaved-item-title-row {
-  display: flex;
+.shopvd-unsaved-item-title {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
   min-width: 0;
-}
-
-.shopvd-unsaved-item-title {
   font-size: 13px;
   font-weight: 700;
   color: #9a3412;
-  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.shopvd-unsaved-item-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.25;
-  min-width: 0;
-  flex: 1;
+  white-space: nowrap;
 }
 
 .shopvd-unsaved-channel {
