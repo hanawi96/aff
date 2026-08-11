@@ -285,7 +285,7 @@ function createSidebar() {
       <div id="shopvd-unsaved-panel" class="shopvd-unsaved-panel hidden" aria-live="polite">
         <div class="shopvd-unsaved-panel-head">
           <strong>Đơn chưa lưu</strong>
-          <span class="shopvd-unsaved-panel-hint">SĐT từ Pancake · chưa có đơn Chưa gửi hàng</span>
+          <span class="shopvd-unsaved-panel-hint">Pancake / Zalo · chưa có đơn Chưa gửi hàng</span>
         </div>
         <div id="shopvd-unsaved-list" class="shopvd-unsaved-list"></div>
       </div>
@@ -3959,7 +3959,20 @@ async function fetchCustomerDbState(phone, { signal } = {}) {
   return data;
 }
 
-/** Xóa draft chưa lưu nếu SĐT đã có đơn trên DB (dọn đơn ảo / stale). */
+/** Check nhẹ theo đúng evaluatePhoneSavedState (server). */
+async function fetchPhoneSavedState(phone, intentAt = null, { signal } = {}) {
+  let url = `${API_BASE_URL}/?action=checkPhoneSavedState&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`;
+  if (intentAt != null && Number(intentAt) > 0) {
+    url += `&intentAt=${encodeURIComponent(String(intentAt))}`;
+  }
+  const response = await shopvdFetch(url, signal ? { signal } : undefined);
+  return response.json();
+}
+
+/**
+ * Dọn draft stale theo quy tắc "đã lưu" (unshipped / grace / intent),
+ * không dùng isNew (đã từng có đơn) — tránh chặn reorder.
+ */
 async function reconcileUnsavedDraftsWithDb(phones = null) {
   const targets = (phones || [...shopvdDraftMap.keys()])
     .map(normalizeDraftPhone)
@@ -3968,16 +3981,23 @@ async function reconcileUnsavedDraftsWithDb(phones = null) {
   if (!targets.length) return;
 
   let changed = false;
-  for (const phone of targets) {
-    try {
-      const data = await fetchCustomerDbState(phone);
-      if (data?.success && !data.isNew) {
-        markPhoneAsOrdered(phone);
-        changed = true;
-      } else {
-      }
-    } catch (err) {
-    }
+  const CONCURRENCY = 3;
+  for (let i = 0; i < targets.length; i += CONCURRENCY) {
+    const chunk = targets.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(async (phone) => {
+      try {
+        const draft = shopvdDraftMap.get(phone);
+        const intentAt = draft?.intentAt || null;
+        const data = await fetchPhoneSavedState(phone, intentAt);
+        if (data?.success && data.saved) {
+          markPhoneAsOrdered(phone, {
+            reason: data.reason,
+            shippedAt: data.matchedOrder?.shippedAt,
+          });
+          changed = true;
+        }
+      } catch (_) { /* ignore */ }
+    }));
   }
   if (changed) scheduleUnsavedDraftUi(40);
 }
@@ -5196,6 +5216,33 @@ function buildAddressHintFromMessageText(text) {
   return normalizeDetectedAddressText(joined);
 }
 
+/** Lấy mốc thời gian tin (ms) từ DOM nếu có — không bịa Date.now() (tránh false intent_after_ship). */
+function extractMessageIntentAtMs(el) {
+  if (!el || typeof el !== 'object') return null;
+  const nodes = [el, el.closest?.('[data-time],[data-timestamp],[data-created-at],time')].filter(Boolean);
+  const timeEl = el.querySelector?.('time,[data-time],[data-timestamp],.message-time,.msg-time');
+  if (timeEl) nodes.push(timeEl);
+
+  for (const node of nodes) {
+    const attrs = [
+      node.getAttribute?.('data-time'),
+      node.getAttribute?.('data-timestamp'),
+      node.getAttribute?.('data-created-at'),
+      node.getAttribute?.('datetime'),
+      node.getAttribute?.('title'),
+      node.dateTime,
+    ];
+    for (const raw of attrs) {
+      if (raw == null || raw === '') continue;
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 1e9) return n < 1e12 ? n * 1000 : n;
+      const parsed = Date.parse(String(raw));
+      if (Number.isFinite(parsed) && parsed > 1e12) return parsed;
+    }
+  }
+  return null;
+}
+
 /**
  * Tìm intent đặt hàng mới nhất trong chat đang mở.
  * Dạng 1: SĐT + địa chỉ cùng 1 tin (.phone-tag + text địa chỉ).
@@ -5237,7 +5284,13 @@ function findLatestOrderIntentInOpenChat() {
       const address = extractAddressTextFromMessageBubble(root)
         || normalizeDetectedAddressText(buildAddressHintFromMessageText(extractTextFromMessageBubble(root)));
       if (isValidDraftPhone(phone) && isUsableDetectedAddress(address)) {
-        return { phone, address, root, mode: 'same-bubble' };
+        return {
+          phone,
+          address,
+          root,
+          mode: 'same-bubble',
+          intentAt: extractMessageIntentAtMs(root),
+        };
       }
     }
 
@@ -5246,12 +5299,16 @@ function findLatestOrderIntentInOpenChat() {
     if (isValidDraftPhone(phoneHere) && !isUsableDetectedAddress(extractAddressTextFromMessageBubble(root))) {
       const nearby = findNearbyAddress(i, true);
       if (nearby) {
+        const intentAt = extractMessageIntentAtMs(nearby.addressRoot)
+          || extractMessageIntentAtMs(root)
+          || null;
         return {
           phone: phoneHere,
           address: nearby.address,
           root,
           addressRoot: nearby.addressRoot,
           mode: 'split',
+          intentAt,
         };
       }
     }
@@ -5359,6 +5416,7 @@ function scanChatForUnsavedOrderIntent() {
     return true;
   }
 
+  const intentAt = intent.intentAt || null;
   const existing = shopvdDraftMap.get(phone);
   if (existing) {
     // Bổ sung địa chỉ nếu draft cũ thiếu / ngắn hơn
@@ -5369,6 +5427,7 @@ function scanChatForUnsavedOrderIntent() {
         name: existing.name || extractPancakeCustomerName() || '',
         phone,
         address,
+        intentAt: intentAt || existing.intentAt || null,
       }, 'auto-detect');
     }
     shopvdAutoDetectDone.set(conversationKey, phone);
@@ -5385,6 +5444,7 @@ function scanChatForUnsavedOrderIntent() {
     provinceName: '',
     wardId: '',
     wardName: '',
+    intentAt,
   }, 'auto-detect');
 
   if (ok || isPhoneKnownOrdered(phone)) {
@@ -10407,7 +10467,11 @@ async function loadShippingFees() {
 const SHOPVD_DRAFT_STORAGE_KEY = 'shopvdUnsavedDrafts';
 const SHOPVD_DRAFT_MAX = 40;
 const SHOPVD_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Đồng bộ POST_SHIP_GRACE_MS phía server — hết hạn knownOrdered cho recent_ship */
+const SHOPVD_POST_SHIP_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 const SHOPVD_PENDING_SYNC_MS = 450;
+/** Giữ draft form local chưa kịp lên server khi pull */
+const SHOPVD_LOCAL_DRAFT_KEEP_MS = 120000;
 const SHOPVD_PENDING_PULL_MS = 45_000;
 
 let shopvdDraftMap = new Map(); // key = phone
@@ -10424,28 +10488,43 @@ let shopvdLeavingUnsavedKey = '';
 let shopvdPendingPullInFlight = false;
 let shopvdPendingPushInFlight = false;
 let shopvdLastBadgeFingerprint = '';
-/** SĐT đã có đơn thật — không auto-detect / không tạo pending lại */
-const shopvdKnownOrderedPhones = new Set();
+/** phone → expiresAt (ms). Infinity = giữ hết phiên (còn đơn chờ gửi / vừa tạo đơn). */
+const shopvdKnownOrderedPhones = new Map();
 /** SĐT user đã bấm × — không auto-detect tạo lại trong phiên */
 const shopvdDismissedPhones = new Set();
+/** SĐT đang chờ / đang push lên server — merge pull không xóa */
+const shopvdPendingPushPhones = new Set();
 /** conversationKey → phone đã scan thành công (tránh quét lặp) */
 const shopvdAutoDetectDone = new Map();
 
-function markPhoneAsOrdered(phone) {
+function markPhoneAsOrdered(phone, meta = {}) {
   const p = normalizeDraftPhone(phone);
   if (!isValidDraftPhone(p)) return;
-  shopvdKnownOrderedPhones.add(p);
+  let until = Number.POSITIVE_INFINITY;
+  const reason = String(meta.reason || '');
+  const shippedAt = Number(meta.shippedAt || meta.matchedOrder?.shippedAt || 0);
+  if ((reason === 'recent_ship' || reason === 'stale_intent') && shippedAt > 0) {
+    until = shippedAt + SHOPVD_POST_SHIP_GRACE_MS;
+  }
+  shopvdKnownOrderedPhones.set(p, until);
   shopvdDismissedPhones.delete(p);
+  shopvdPendingPushPhones.delete(p);
   if (shopvdDraftMap.has(p)) {
     shopvdDraftMap.delete(p);
     schedulePersistDrafts(80);
   }
 }
 
+function clearPhoneKnownOrdered(phone) {
+  const p = normalizeDraftPhone(phone);
+  if (p) shopvdKnownOrderedPhones.delete(p);
+}
+
 function markPhoneAsDismissed(phone) {
   const p = normalizeDraftPhone(phone);
   if (!isValidDraftPhone(p)) return;
   shopvdDismissedPhones.add(p);
+  shopvdPendingPushPhones.delete(p);
   if (shopvdDraftMap.has(p)) {
     shopvdDraftMap.delete(p);
     schedulePersistDrafts(80);
@@ -10453,7 +10532,14 @@ function markPhoneAsDismissed(phone) {
 }
 
 function isPhoneKnownOrdered(phone) {
-  return shopvdKnownOrderedPhones.has(normalizeDraftPhone(phone));
+  const p = normalizeDraftPhone(phone);
+  if (!shopvdKnownOrderedPhones.has(p)) return false;
+  const until = shopvdKnownOrderedPhones.get(p);
+  if (Number.isFinite(until) && Date.now() >= until) {
+    shopvdKnownOrderedPhones.delete(p);
+    return false;
+  }
+  return true;
 }
 
 function isPhoneDismissed(phone) {
@@ -10469,9 +10555,9 @@ function normalizeDraftPhone(phone) {
   return sanitizePhoneDigits(phone || '');
 }
 
-function isCustomerSnapshotWorthy(snap) {
+function isCustomerSnapshotWorthy(snap, { ignoreKnownOrdered = false } = {}) {
   if (!snap || !isValidDraftPhone(snap.phone)) return false;
-  if (isPhoneKnownOrdered(snap.phone)) return false;
+  if (!ignoreKnownOrdered && isPhoneKnownOrdered(snap.phone)) return false;
   if (snap.provinceId && snap.wardId) {
     return !isJunkPendingAddress(snap.address, snap.source);
   }
@@ -10600,10 +10686,12 @@ function persistDraftsNow() {
 
 function applyServerPendingItems(items) {
   const next = new Map();
+  const now = Date.now();
   (items || []).forEach((item) => {
     const phone = normalizeDraftPhone(item.phone || item.customer_phone);
     if (!isValidDraftPhone(phone)) return;
     if (isPhoneKnownOrdered(phone)) return;
+    if (isPhoneDismissed(phone)) return;
     const draft = {
       key: phone,
       phone,
@@ -10617,16 +10705,44 @@ function applyServerPendingItems(items) {
       street: item.street || '',
       address: item.address || '',
       source: item.source || 'extension',
-      updatedAt: item.updatedAt || Date.now(),
+      updatedAt: item.updatedAt || now,
+      intentAt: item.intentAt || item.updatedAt || null,
+      channel: item.channel || resolveUnsavedDraftChannel({
+        conversationKey: item.conversationKey || '',
+        source: item.source || 'extension',
+        channel: item.channel,
+      }),
     };
     if (!isDraftEligibleForUnsavedList(draft)) return;
     next.set(phone, draft);
   });
 
-  // Phones that were local but not on server → likely already ordered / dismissed
-  for (const [phone] of shopvdDraftMap) {
-    if (!next.has(phone) && !shopvdPendingPushInFlight) {
-      // Keep only if still pushing; otherwise drop (server is truth)
+  // Merge: giữ draft local đang push / form mới hơn server (tránh mất khi pull)
+  for (const [phone, local] of shopvdDraftMap) {
+    if (!isValidDraftPhone(phone) || isPhoneKnownOrdered(phone) || isPhoneDismissed(phone)) continue;
+    if (next.has(phone)) {
+      const server = next.get(phone);
+      const localNewer = (local.updatedAt || 0) > (server.updatedAt || 0) + 50;
+      if (localNewer || (local.intentAt && !server.intentAt)) {
+        next.set(phone, {
+          ...server,
+          ...local,
+          serverId: server.serverId || local.serverId,
+          phone,
+          key: phone,
+          intentAt: local.intentAt || server.intentAt || null,
+        });
+      }
+      continue;
+    }
+    const age = now - (local.updatedAt || 0);
+    const keepLocal = shopvdPendingPushPhones.has(phone)
+      || (local.source !== 'auto-detect' && age >= 0 && age < SHOPVD_LOCAL_DRAFT_KEEP_MS);
+    if (keepLocal && isDraftEligibleForUnsavedList(local)) {
+      next.set(phone, local);
+      if (!shopvdPendingPushPhones.has(phone)) {
+        schedulePushPendingToServer(local, 300);
+      }
     }
   }
 
@@ -10671,15 +10787,22 @@ function schedulePullPendingFromServer(delayMs = 0) {
 
 async function pushPendingToServer(draft) {
   if (!draft || !isValidDraftPhone(draft.phone)) return null;
-  if (isPhoneKnownOrdered(draft.phone)) {
+  const phoneKey = normalizeDraftPhone(draft.phone);
+  // Auto-detect: tôn trọng knownOrdered. Form/grab vẫn hỏi server (reorder trong phiên).
+  if (isPhoneKnownOrdered(draft.phone) && draft.source === 'auto-detect') {
     shopvdDraftMap.delete(draftMapKey(draft.phone));
+    shopvdPendingPushPhones.delete(phoneKey);
     schedulePersistDrafts(80);
     scheduleUnsavedDraftUi();
     return { alreadyOrdered: true };
   }
 
+  shopvdPendingPushPhones.add(phoneKey);
   shopvdPendingPushInFlight = true;
   try {
+    const intentAt = draft.intentAt != null && Number(draft.intentAt) > 0
+      ? Number(draft.intentAt)
+      : null;
     const res = await shopvdFetch(`${API_BASE_URL}/api/order/pending-unsaved/upsert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -10694,11 +10817,15 @@ async function pushPendingToServer(draft) {
         wardName: draft.wardName || '',
         street: draft.street || '',
         source: draft.source || 'extension',
+        intentAt,
       }),
     });
     const data = await res.json();
     if (data?.alreadyOrdered) {
-      markPhoneAsOrdered(draft.phone);
+      markPhoneAsOrdered(draft.phone, {
+        reason: data.reason,
+        shippedAt: data.matchedOrder?.shippedAt,
+      });
       scheduleUnsavedDraftUi();
       return data;
     }
@@ -10717,22 +10844,20 @@ async function pushPendingToServer(draft) {
     }
     if (data?.success && data.pending) {
       const phone = normalizeDraftPhone(data.pending.phone);
-      if (isPhoneKnownOrdered(phone)) {
-        shopvdDraftMap.delete(phone);
+      clearPhoneKnownOrdered(phone);
+      const prev = shopvdDraftMap.get(phone) || draft;
+      const merged = {
+        ...prev,
+        ...draft,
+        phone,
+        serverId: data.pending.id,
+        updatedAt: data.pending.updatedAt || Date.now(),
+        intentAt: draft.intentAt || prev.intentAt || data.pending.updatedAt || null,
+      };
+      if (isDraftEligibleForUnsavedList(merged)) {
+        shopvdDraftMap.set(phone, merged);
       } else {
-        const prev = shopvdDraftMap.get(phone) || draft;
-        const merged = {
-          ...prev,
-          ...draft,
-          phone,
-          serverId: data.pending.id,
-          updatedAt: data.pending.updatedAt || Date.now(),
-        };
-        if (isDraftEligibleForUnsavedList(merged)) {
-          shopvdDraftMap.set(phone, merged);
-        } else {
-          shopvdDraftMap.delete(phone);
-        }
+        shopvdDraftMap.delete(phone);
       }
       schedulePersistDrafts(80);
       scheduleUnsavedDraftUi();
@@ -10743,10 +10868,14 @@ async function pushPendingToServer(draft) {
     return null;
   } finally {
     shopvdPendingPushInFlight = false;
+    shopvdPendingPushPhones.delete(phoneKey);
   }
 }
 
 function schedulePushPendingToServer(draft, delayMs = SHOPVD_PENDING_SYNC_MS) {
+  if (draft?.phone && isValidDraftPhone(draft.phone)) {
+    shopvdPendingPushPhones.add(normalizeDraftPhone(draft.phone));
+  }
   clearTimeout(shopvdDraftServerTimer);
   shopvdDraftServerTimer = setTimeout(() => {
     pushPendingToServer(draft);
@@ -10813,6 +10942,31 @@ function getUnsavedDraftCount() {
   return getUnsavedDraftEntries().length;
 }
 
+/** Kênh tạo draft: zalo | pancake | unknown */
+function detectCurrentUnsavedChannel() {
+  return isZaloPage() ? 'zalo' : 'pancake';
+}
+
+function resolveUnsavedDraftChannel(draft) {
+  const ch = String(draft?.channel || '').toLowerCase();
+  if (ch === 'zalo' || ch === 'pancake') return ch;
+  const key = String(draft?.conversationKey || '').trim();
+  if (/^zalo:/i.test(key)) return 'zalo';
+  if (isPancakePersistableConversationKey(key)) return 'pancake';
+  if (String(draft?.source || '') === 'pancake-api') return 'pancake';
+  return 'unknown';
+}
+
+function unsavedChannelBadgeHtml(channel) {
+  if (channel === 'zalo') {
+    return '<span class="shopvd-unsaved-channel shopvd-unsaved-channel--zalo" title="Từ Zalo">Zalo</span>';
+  }
+  if (channel === 'pancake') {
+    return '<span class="shopvd-unsaved-channel shopvd-unsaved-channel--pancake" title="Từ Pancake">Pancake</span>';
+  }
+  return '<span class="shopvd-unsaved-channel shopvd-unsaved-channel--unknown" title="Không rõ nguồn">?</span>';
+}
+
 function getUnsavedDraftEntries() {
   pruneExpiredDrafts();
   pruneInvalidDraftsFromMap();
@@ -10821,14 +10975,18 @@ function getUnsavedDraftEntries() {
     .map((draft) => ({
       key: draft.phone,
       ...draft,
+      channel: resolveUnsavedDraftChannel(draft),
     }))
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 function upsertUnsavedDraft(conversationKey, snapshot, source = 'form') {
-  if (!isCustomerSnapshotWorthy(snapshot)) return false;
+  // Form/grab: cho hỏi lại server dù đã markOrdered trong phiên (reorder sau ship)
+  const allowRecheck = source !== 'auto-detect';
+  if (!isCustomerSnapshotWorthy(snapshot, { ignoreKnownOrdered: allowRecheck })) return false;
   const phone = normalizeDraftPhone(snapshot.phone);
-  if (!phone || isPhoneKnownOrdered(phone)) return false;
+  if (!phone) return false;
+  if (source === 'auto-detect' && isPhoneKnownOrdered(phone)) return false;
 
   // Bấm × rồi: auto-detect không tạo lại; grab/form vẫn được
   if (source === 'auto-detect' && isPhoneDismissed(phone)) return false;
@@ -10838,12 +10996,23 @@ function upsertUnsavedDraft(conversationKey, snapshot, source = 'form') {
   }
 
   const prev = shopvdDraftMap.get(phone);
+  // Form/grab: thao tác live → intent = now (đủ chứng minh đơn mới sau ship)
+  // Auto-detect: chỉ gửi intentAt khi đọc được từ DOM (không bịa now)
+  let intentAt = null;
+  if (source === 'auto-detect') {
+    const raw = Number(snapshot.intentAt || prev?.intentAt || 0);
+    intentAt = Number.isFinite(raw) && raw > 0 ? raw : null;
+  } else {
+    intentAt = Date.now();
+  }
+
   if (
     prev
     && prev.phone === phone
     && prev.address === (snapshot.address || '')
     && prev.conversationKey === (conversationKey || prev.conversationKey || '')
     && prev.serverId
+    && (source === 'auto-detect' ? prev.intentAt === intentAt : true)
   ) {
     return true;
   }
@@ -10862,11 +11031,16 @@ function upsertUnsavedDraft(conversationKey, snapshot, source = 'form') {
     street: snapshot.street || '',
     address: snapshot.address || '',
     source,
+    intentAt,
+    channel: snapshot.channel
+      || prev?.channel
+      || resolveUnsavedDraftChannel({ conversationKey: conversationKey || prev?.conversationKey || '', source })
+      || detectCurrentUnsavedChannel(),
     updatedAt: Date.now(),
   };
 
-  // auto-detect: chỉ hiện badge sau khi server xác nhận chưa có đơn (tránh nhấp nháy)
-  if (source === 'auto-detect') {
+  // auto-detect / đang knownOrdered: chỉ hiện badge sau khi server xác nhận pending
+  if (source === 'auto-detect' || isPhoneKnownOrdered(phone)) {
     schedulePushPendingToServer(draft, 200);
     return true;
   }
@@ -11009,7 +11183,7 @@ function updateUnsavedBadgeUI() {
 
   const entries = getUnsavedDraftEntries().filter((d) => !isPhoneKnownOrdered(d.phone));
   const count = entries.length;
-  const fingerprint = `${count}|${entries.map((d) => d.phone).join(',')}|${shopvdUnsavedPanelOpen ? 1 : 0}`;
+  const fingerprint = `${count}|${entries.map((d) => `${d.phone}:${d.channel || '?'}`).join(',')}|${shopvdUnsavedPanelOpen ? 1 : 0}`;
   if (fingerprint === shopvdLastBadgeFingerprint && countEl.textContent === String(count)) {
     return;
   }
@@ -11040,12 +11214,16 @@ function updateUnsavedBadgeUI() {
     const phone = escapeHtml(d.phone || '');
     const addr = escapeHtml((d.address || [d.street, d.wardName, d.provinceName].filter(Boolean).join(', ')).slice(0, 72));
     const time = escapeHtml(formatDraftRelativeTime(d.updatedAt));
+    const channel = resolveUnsavedDraftChannel(d);
     const isCurrent = (d.conversationKey && d.conversationKey === currentKey)
       || d.phone === normalizeDraftPhone(document.getElementById('customer-phone')?.value || '');
     return `
-      <div class="shopvd-unsaved-item${isCurrent ? ' is-current' : ''}" data-draft-key="${escapeHtml(d.key)}">
+      <div class="shopvd-unsaved-item${isCurrent ? ' is-current' : ''}" data-draft-key="${escapeHtml(d.key)}" data-channel="${escapeHtml(channel)}">
         <div class="shopvd-unsaved-item-main">
-          <div class="shopvd-unsaved-item-title">${title}</div>
+          <div class="shopvd-unsaved-item-title-row">
+            <div class="shopvd-unsaved-item-title">${title}</div>
+            ${unsavedChannelBadgeHtml(channel)}
+          </div>
           <div class="shopvd-unsaved-phone-row">
             <span class="shopvd-unsaved-phone">${phone}</span>
             <button type="button" class="shopvd-unsaved-copy-btn" data-phone="${phone}" title="Copy SĐT" aria-label="Copy số điện thoại ${phone}">

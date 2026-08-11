@@ -29,7 +29,11 @@ import {
     getOrderById 
 } from '../services/orders/order-queries.js';
 
-import { listPendingUnsaved, getCustomerShippingStatus } from '../services/orders/pending-unsaved-service.js';
+import {
+    listPendingUnsaved,
+    getCustomerShippingStatus,
+    checkPhoneSavedForUnsaved,
+} from '../services/orders/pending-unsaved-service.js';
 import {
     handleSyncPancakeUnsaved,
     handleGetPancakeConversationPhone,
@@ -213,6 +217,19 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getPendingUnsavedOrders':
             return await listPendingUnsaved(env, corsHeaders);
+
+        case 'checkPhoneSavedState': {
+            const savedPhone = url.searchParams.get('phone');
+            if (!savedPhone || savedPhone.trim() === '') {
+                return jsonResponse({ success: false, error: 'Phone parameter is missing or empty' }, 400, corsHeaders);
+            }
+            return await checkPhoneSavedForUnsaved(
+                savedPhone.trim(),
+                env,
+                corsHeaders,
+                url.searchParams.get('intentAt')
+            );
+        }
 
         case 'getPancakeConvPhones':
             return await listConvPhones(env, corsHeaders, {

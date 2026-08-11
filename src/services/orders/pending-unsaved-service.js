@@ -466,6 +466,7 @@ export async function upsertPendingUnsaved(data, env, corsHeaders) {
             dismissed: result.dismissed || false,
             pending: result.pending || null,
             matchedOrder: result.matchedOrder || null,
+            reason: result.reason || null,
             reused: result.reused || false,
         }, 200, corsHeaders);
     } catch (error) {
@@ -502,7 +503,9 @@ export async function listPendingUnsaved(env, corsHeaders) {
             }
 
             const { unshippedOrder, lastShippedOrder } = await loadPhoneOrderState(env, phone);
-            const savedState = evaluatePhoneSavedState(unshippedOrder, lastShippedOrder, null, now);
+            // Open row đã upsert sau ship ⇒ updated_at > shipped_at ≈ intent_after_ship
+            const intentAtMs = Number(row.updated_at_unix) || null;
+            const savedState = evaluatePhoneSavedState(unshippedOrder, lastShippedOrder, intentAtMs, now);
             if (savedState.saved) {
                 await resolvePendingAsOrdered(env, row, savedState.matchedOrder, now);
                 continue;
@@ -598,6 +601,48 @@ function formatShippingStatusOrder(row) {
         is_priority: Number(row.is_priority) === 1 ? 1 : 0,
         products_preview: preview
     };
+}
+
+/**
+ * Check nhẹ: SĐT có đang ở trạng thái "đã lưu" theo evaluatePhoneSavedState không.
+ * Dùng reconcile draft extension — không ghi DB.
+ */
+export async function checkPhoneSavedForUnsaved(phone, env, corsHeaders, intentAtRaw = null) {
+    try {
+        const normalized = normalizeOrderPhone(phone);
+        if (!isValidPendingPhone(normalized)) {
+            return jsonResponse({ success: false, error: 'SĐT không hợp lệ' }, 400, corsHeaders);
+        }
+
+        let intentAtMs = null;
+        if (intentAtRaw != null && intentAtRaw !== '') {
+            const n = Number(intentAtRaw);
+            if (Number.isFinite(n) && n > 0) {
+                intentAtMs = n < 1e12 ? n * 1000 : n;
+            }
+        }
+
+        const { unshippedOrder, lastShippedOrder } = await loadPhoneOrderState(env, normalized);
+        const savedState = evaluatePhoneSavedState(unshippedOrder, lastShippedOrder, intentAtMs, Date.now());
+        const matched = savedState.matchedOrder;
+
+        return jsonResponse({
+            success: true,
+            phone: normalized,
+            saved: savedState.saved,
+            reason: savedState.reason,
+            matchedOrder: matched ? {
+                id: matched.id,
+                orderId: matched.order_id,
+                createdAt: matched.created_at_unix,
+                shippedAt: matched.shipped_at_unix || null,
+                status: matched.status,
+            } : null,
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('[pending-unsaved] checkPhoneSaved error:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
 }
 
 /** Tra cứu nhanh trạng thái gửi hàng theo SĐT — tối đa 2 query, dùng cho extension Pancake. */
