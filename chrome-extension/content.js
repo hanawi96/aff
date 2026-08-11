@@ -8283,7 +8283,8 @@ function buildOrderConfirmText() {
   const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10) || 0;
   const discountAmount = parseInt(document.getElementById('discount-amount')?.value || 0, 10) || 0;
   const productsTotal = getCartProductsTotal();
-  const total = Math.max(0, productsTotal + shippingFee - discountAmount);
+  const isMakeup = Boolean(document.getElementById('is-makeup')?.checked);
+  const total = isMakeup ? 0 : Math.max(0, productsTotal + shippingFee - discountAmount);
   const isFreeShip = Boolean(document.getElementById('free-shipping')?.checked) || shippingFee === 0;
 
   const missing = [];
@@ -8309,21 +8310,25 @@ function buildOrderConfirmText() {
     return parts.join('  ·  ');
   });
 
-  // VD 1 SP:  Tổng tiền: 85.000đ ( gồm 69.000đ + 16.000đ ship)
-  // VD nhiều SP: Tổng tiền: 159.000đ ( gồm 100.000đ + 59.000đ + 16.000đ ship)
-  const amountParts = products.map((p) => {
-    const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
-    return `${formatPrice(lineTotal)}đ`;
-  });
-  if (discountAmount > 0) {
-    amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
-  }
   let totalLine;
-  if (isFreeShip) {
-    totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
+  if (isMakeup) {
+    totalLine = 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)';
   } else {
-    amountParts.push(`${formatPrice(shippingFee)}đ ship`);
-    totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
+    // VD 1 SP:  Tổng tiền: 85.000đ ( gồm 69.000đ + 16.000đ ship)
+    // VD nhiều SP: Tổng tiền: 159.000đ ( gồm 100.000đ + 59.000đ + 16.000đ ship)
+    const amountParts = products.map((p) => {
+      const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
+      return `${formatPrice(lineTotal)}đ`;
+    });
+    if (discountAmount > 0) {
+      amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
+    }
+    if (isFreeShip) {
+      totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
+    } else {
+      amountParts.push(`${formatPrice(shippingFee)}đ ship`);
+      totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
+    }
   }
 
   // Chuyển khoản / cọc — khách cần biết rõ khi xác nhận
@@ -8331,7 +8336,9 @@ function buildOrderConfirmText() {
     || normalizeFormPaymentMethod(document.getElementById('payment-method')?.value);
   const depositAmount = parseInt(document.getElementById('deposit-amount')?.value || 0, 10) || 0;
   const paymentLines = [];
-  if (payMode === 'bank_transfer') {
+  if (isMakeup) {
+    paymentLines.push('- Thanh toán: Đơn gửi bù (không thu COD)');
+  } else if (payMode === 'bank_transfer') {
     paymentLines.push('- Thanh toán: Đã chuyển khoản');
   } else if (payMode === 'deposit' || depositAmount > 0) {
     const deposit = Math.max(0, depositAmount);
@@ -8387,10 +8394,13 @@ function buildOrderConfirmTextFromOrder(order) {
     (sum, p) => sum + (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1),
     0
   );
+  const isMakeup = Number(order.is_makeup ?? order.isMakeup) === 1;
   const totalFromOrder = parseOrderMoneyValue(order.total_amount);
-  const total = totalFromOrder > 0
-    ? totalFromOrder
-    : Math.max(0, productsTotal + shippingFee - discountAmount);
+  const total = isMakeup
+    ? 0
+    : (totalFromOrder > 0
+      ? totalFromOrder
+      : Math.max(0, productsTotal + shippingFee - discountAmount));
   const isFreeShip = shippingFee === 0;
 
   const missing = [];
@@ -8416,26 +8426,31 @@ function buildOrderConfirmTextFromOrder(order) {
     return parts.join('  ·  ');
   });
 
-  const amountParts = products.map((p) => {
-    const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
-    return `${formatPrice(lineTotal)}đ`;
-  });
-  if (discountAmount > 0) {
-    amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
-  }
-
   let totalLine;
-  if (isFreeShip) {
-    totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
+  if (isMakeup) {
+    totalLine = 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)';
   } else {
-    amountParts.push(`${formatPrice(shippingFee)}đ ship`);
-    totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
+    const amountParts = products.map((p) => {
+      const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
+      return `${formatPrice(lineTotal)}đ`;
+    });
+    if (discountAmount > 0) {
+      amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
+    }
+    if (isFreeShip) {
+      totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
+    } else {
+      amountParts.push(`${formatPrice(shippingFee)}đ ship`);
+      totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
+    }
   }
 
   const depositAmount = Math.max(0, parseOrderMoneyValue(order.deposit_amount ?? order.depositAmount));
   const pm = normalizeFormPaymentMethod(order.payment_method ?? order.paymentMethod);
   const paymentLines = [];
-  if (pm === 'bank_transfer' && depositAmount <= 0) {
+  if (isMakeup) {
+    paymentLines.push('- Thanh toán: Đơn gửi bù (không thu COD)');
+  } else if (pm === 'bank_transfer' && depositAmount <= 0) {
     paymentLines.push('- Thanh toán: Đã chuyển khoản');
   } else if (depositAmount > 0) {
     const remaining = Math.max(0, total - depositAmount);
