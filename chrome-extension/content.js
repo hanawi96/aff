@@ -7057,16 +7057,12 @@ function resolveBraceletType(product) {
 /**
  * Size trong tin xác nhận:
  * - adjustable + Nkg → "Nkg (có thể nới rộng đeo đến N+10kg)"
- * - elastic / SP tùy chỉnh có "co giãn" → "Nkg (Có gửi thêm dây + hạt dâu)"
+ * - elastic / co giãn → chỉ hiện size (không ghi chú gửi thêm dây/hạt)
  */
 function formatConfirmSizeWithBraceletNote(weightRaw, braceletType) {
   const weight = formatWeightSize(weightRaw);
   if (!weight) return '';
   const type = String(braceletType || '').toLowerCase().trim();
-
-  if (type === 'elastic') {
-    return `${weight} (Có gửi thêm dây + hạt dâu)`;
-  }
 
   if (type === 'adjustable') {
     const m = weight.match(/^(\d+(?:\.\d+)?)kg$/i);
@@ -8272,6 +8268,47 @@ async function copyOrderSuccessId() {
   setTimeout(() => idBtn?.classList.remove('is-copied'), 900);
 }
 
+/**
+ * Dòng tổng tiền trong tin xác nhận.
+ * Có giảm: 1.200.000đ (1.500.000đ - 300.000đ mã giảm giá)
+ * Có ship:  … (1.500.000đ + 16.000đ ship - 300.000đ mã giảm giá)
+ */
+function formatOrderConfirmTotalLine({
+  products = [],
+  productsTotal = 0,
+  shippingFee = 0,
+  discountAmount = 0,
+  discountCode = '',
+  isFreeShip = false,
+  total = 0,
+} = {}) {
+  const code = String(discountCode || '').trim();
+  const discountPart = discountAmount > 0
+    ? (code
+      ? `${formatPrice(discountAmount)}đ mã giảm giá ${code}`
+      : `${formatPrice(discountAmount)}đ mã giảm giá`)
+    : '';
+
+  if (discountAmount > 0) {
+    const subtotal = `${formatPrice(productsTotal)}đ`;
+    if (isFreeShip) {
+      return `Tổng tiền: ${formatPrice(total)}đ (${subtotal} - ${discountPart} · Miễn phí vận chuyển)`;
+    }
+    return `Tổng tiền: ${formatPrice(total)}đ (${subtotal} + ${formatPrice(shippingFee)}đ ship - ${discountPart})`;
+  }
+
+  const amountParts = products.map((p) => {
+    const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
+    return `${formatPrice(lineTotal)}đ`;
+  });
+
+  if (isFreeShip) {
+    return `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
+  }
+  amountParts.push(`${formatPrice(shippingFee)}đ ship`);
+  return `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
+}
+
 /** Build tin nhắn xác nhận đơn gửi khách — đọc form hiện tại. */
 function buildOrderConfirmText() {
   updateFullAddress();
@@ -8282,6 +8319,9 @@ function buildOrderConfirmText() {
   const products = getValidCartProducts();
   const shippingFee = parseInt(document.getElementById('shipping-fee')?.value || 0, 10) || 0;
   const discountAmount = parseInt(document.getElementById('discount-amount')?.value || 0, 10) || 0;
+  const discountCode = document.getElementById('discount-code')?.value.trim()
+    || document.getElementById('discount-code-quick')?.value.trim()
+    || '';
   const productsTotal = getCartProductsTotal();
   const isMakeup = Boolean(document.getElementById('is-makeup')?.checked);
   const total = isMakeup ? 0 : Math.max(0, productsTotal + shippingFee - discountAmount);
@@ -8310,26 +8350,17 @@ function buildOrderConfirmText() {
     return parts.join('  ·  ');
   });
 
-  let totalLine;
-  if (isMakeup) {
-    totalLine = 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)';
-  } else {
-    // VD 1 SP:  Tổng tiền: 85.000đ ( gồm 69.000đ + 16.000đ ship)
-    // VD nhiều SP: Tổng tiền: 159.000đ ( gồm 100.000đ + 59.000đ + 16.000đ ship)
-    const amountParts = products.map((p) => {
-      const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
-      return `${formatPrice(lineTotal)}đ`;
+  const totalLine = isMakeup
+    ? 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)'
+    : formatOrderConfirmTotalLine({
+      products,
+      productsTotal,
+      shippingFee,
+      discountAmount,
+      discountCode,
+      isFreeShip,
+      total,
     });
-    if (discountAmount > 0) {
-      amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
-    }
-    if (isFreeShip) {
-      totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
-    } else {
-      amountParts.push(`${formatPrice(shippingFee)}đ ship`);
-      totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
-    }
-  }
 
   // Chuyển khoản / cọc — khách cần biết rõ khi xác nhận
   const payMode = document.querySelector('.shopvd-payment-btn.active')?.getAttribute('data-payment')
@@ -8390,6 +8421,7 @@ function buildOrderConfirmTextFromOrder(order) {
   const products = parseOrderProductsForExtension(order);
   const shippingFee = Math.max(0, parseOrderMoneyValue(order.shipping_fee));
   const discountAmount = Math.max(0, parseOrderMoneyValue(order.discount_amount));
+  const discountCode = String(order.discount_code || order.discountCode || '').trim();
   const productsTotal = products.reduce(
     (sum, p) => sum + (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1),
     0
@@ -8426,24 +8458,17 @@ function buildOrderConfirmTextFromOrder(order) {
     return parts.join('  ·  ');
   });
 
-  let totalLine;
-  if (isMakeup) {
-    totalLine = 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)';
-  } else {
-    const amountParts = products.map((p) => {
-      const lineTotal = (parseInt(p.price, 10) || 0) * Math.max(1, parseInt(p.quantity, 10) || 1);
-      return `${formatPrice(lineTotal)}đ`;
+  const totalLine = isMakeup
+    ? 'Tổng tiền: 0đ (Đơn gửi bù — không thu tiền)'
+    : formatOrderConfirmTotalLine({
+      products,
+      productsTotal,
+      shippingFee,
+      discountAmount,
+      discountCode,
+      isFreeShip,
+      total,
     });
-    if (discountAmount > 0) {
-      amountParts.push(`giảm ${formatPrice(discountAmount)}đ`);
-    }
-    if (isFreeShip) {
-      totalLine = `Tổng tiền: ${formatPrice(total)}đ (Miễn phí vận chuyển)`;
-    } else {
-      amountParts.push(`${formatPrice(shippingFee)}đ ship`);
-      totalLine = `Tổng tiền: ${formatPrice(total)}đ ( gồm ${amountParts.join(' + ')})`;
-    }
-  }
 
   const depositAmount = Math.max(0, parseOrderMoneyValue(order.deposit_amount ?? order.depositAmount));
   const pm = normalizeFormPaymentMethod(order.payment_method ?? order.paymentMethod);
