@@ -283,6 +283,10 @@ function syncStatusFilterWithSearchInput() {
  * @param {boolean} [preservePage=false] - true: giữ trang hiện tại (hợp lệ sau khi đổi trạng thái 1 đơn, refilter)
  */
 function filterOrdersData(preservePage = false) {
+    console.log('[DEBUG] filterOrdersData called — preservePage:', preservePage, '| allOrdersData.length:', allOrdersData.length, '| filteredOrdersData.length BEFORE:', filteredOrdersData.length);
+    if (preservePage) {
+        console.log('[DEBUG] first item in allOrdersData:', JSON.stringify(allOrdersData[0]));
+    }
     syncStatusFilterWithSearchInput();
     normalizeDesktopStatusFilterHidden();
 
@@ -422,6 +426,8 @@ function filterOrdersData(preservePage = false) {
 
         return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate;
     });
+
+    console.log('[DEBUG] filterOrdersData — filteredOrdersData.length:', filteredOrdersData.length, '| first item:', JSON.stringify(filteredOrdersData[0]));
 
     // Apply sorting
     applySorting();

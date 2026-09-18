@@ -1233,25 +1233,60 @@ export async function toggleInvoiceExportStatus(data, env, corsHeaders) {
             return jsonResponse({ success: false, error: 'Thiếu orderId' }, 400, corsHeaders);
         }
 
-        // Check order exists
-        const order = await env.DB.prepare(`SELECT id FROM orders WHERE id = ?`).bind(orderId).first();
+        // Check order exists and get current state
+        const order = await env.DB.prepare(`
+            SELECT id,
+                   COALESCE(manual_invoice_exported, 0) AS manual_invoice_exported,
+                   COALESCE(invoice_exported_at, 0) AS invoice_exported_at
+            FROM orders WHERE id = ?
+        `).bind(orderId).first();
         if (!order) {
             return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
         }
 
-        // Toggle: if isExported explicitly set → use it; otherwise flip current value
-        let newValue;
+        const currentManual = order.manual_invoice_exported;
+        const currentExportedAt = order.invoice_exported_at;
+
+        // ── Phương án C: Toggle logic ──────────────────────────────────────
+        // Đơn được coi là "đã xuất HĐĐT" khi:
+        //   - manual_invoice_exported = 1  (đánh dấu thủ công)  HOẶC
+        //   - invoice_exported_at > 0     (đã xuất qua hệ thống)
+        //
+        // Bỏ đánh dấu: chỉ cho phép nếu invoice_exported_at = 0
+        //               (đơn đã xuất qua hệ thống thì không thể bỏ)
+        // Đánh dấu thủ công: luôn cho phép.
+        // ────────────────────────────────────────────────────────────────────
+
+        let newManualValue;
         if (data.isExported !== undefined && data.isExported !== null) {
-            newValue = data.isExported ? 1 : 0;
+            if (data.isExported) {
+                newManualValue = 1; // Đánh dấu thủ công: luôn cho phép
+            } else {
+                if (currentExportedAt > 0) {
+                    return jsonResponse({
+                        success: false,
+                        error: 'Không thể bỏ đánh dấu: đơn này đã được xuất HĐĐT qua hệ thống và không thể bỏ.'
+                    }, 409, corsHeaders);
+                }
+                newManualValue = 0;
+            }
         } else {
-            // Flip current manual value
-            const current = await env.DB.prepare(
-                `SELECT COALESCE(manual_invoice_exported, 0) as val FROM orders WHERE id = ?`
-            ).bind(orderId).first();
-            newValue = (current?.val || 0) === 1 ? 0 : 1;
+            if (currentManual === 1) {
+                if (currentExportedAt > 0) {
+                    return jsonResponse({
+                        success: false,
+                        error: 'Không thể bỏ đánh dấu: đơn này đã được xuất HĐĐT qua hệ thống và không thể bỏ.'
+                    }, 409, corsHeaders);
+                }
+                newManualValue = 0;
+            } else {
+                newManualValue = 1;
+            }
         }
 
-        await env.DB.prepare(`UPDATE orders SET manual_invoice_exported = ? WHERE id = ?`).bind(newValue, orderId).run();
+        await env.DB.prepare(`
+            UPDATE orders SET manual_invoice_exported = ? WHERE id = ?
+        `).bind(newManualValue, orderId).run();
 
         // Tính invoice_exported_count + lấy thông tin file HDDT gần nhất (để badge hiển thị đúng)
         // count = manual (0 hoặc 1) + số lần xuất HDDT (file đã tải) cho đơn này
@@ -1261,6 +1296,7 @@ export async function toggleInvoiceExportStatus(data, env, corsHeaders) {
                  + (SELECT COUNT(*) FROM export_history eh
                     WHERE eh.type='invoice' AND eh.status='downloaded'
                       AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?))) AS invoice_exported_count,
+                COALESCE(o.invoice_exported_at, 0) AS invoice_exported_at,
                 (SELECT eh.id
                    FROM export_history eh
                    WHERE eh.type='invoice' AND eh.status='downloaded'
@@ -1281,12 +1317,13 @@ export async function toggleInvoiceExportStatus(data, env, corsHeaders) {
 
         return jsonResponse({
             success: true,
-            isExported: newValue === 1,
+            isExported: data.isExported,
             invoice_exported_count: row.invoice_exported_count || 0,
+            invoice_exported_at: row.invoice_exported_at || 0,
             last_invoice_export_id: row.last_invoice_export_id || null,
             last_invoice_export_file_name: row.last_invoice_export_file_name || null,
             last_invoice_downloaded_at: row.last_invoice_downloaded_at || null,
-            message: newValue === 1 ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu xuất HĐĐT'
+            message: newManualValue === 1 ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu xuất HĐĐT'
         }, 200, corsHeaders);
 
     } catch (error) {

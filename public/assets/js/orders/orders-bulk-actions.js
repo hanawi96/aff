@@ -425,8 +425,12 @@ async function proceedBulkExportFlow(selectedOrders) {
 }
 
 /**
- * Phát hiện trong danh sách chọn có đơn đã được xuất HĐ trước đó (đã tải về).
- * Trả về mảng đơn đã xuất + map theo id để tra nhanh.
+ * Phát hiện trong danh sách chọn có đơn đã được xuất HĐ trước đó.
+ * ── Phương án C ───────────────────────────────────────────────────────────
+ * Đơn đã xuất HĐ khi:
+ *   - manual_invoice_exported = 1  (đánh dấu thủ công)  HOẶC
+ *   - invoice_exported_at > 0     (đã xuất qua hệ thống)
+ * ───────────────────────────────────────────────────────────────────────────
  * @param {Array} selectedOrders
  * @returns {{ duplicates: Array, duplicateIds: Set }}
  */
@@ -434,7 +438,9 @@ function detectInvoicedDuplicates(selectedOrders) {
     const duplicates = [];
     const duplicateIds = new Set();
     for (const o of selectedOrders || []) {
-        if (Number(o.invoice_exported_count || 0) > 0) {
+        const manualFlag = Number(o.manual_invoice_exported || 0);
+        const exportedAt = Number(o.invoice_exported_at || 0);
+        if (manualFlag === 1 || exportedAt > 0) {
             duplicates.push(o);
             duplicateIds.add(Number(o.id));
         }

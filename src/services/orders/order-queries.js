@@ -128,10 +128,7 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
                    orders.created_at_unix, orders.shipped_at_unix, orders.planned_send_at_unix,
                    orders.customer_source,
                    ctv.commission_rate as ctv_commission_rate,
-                   0 AS invoice_exported_count,
-                   NULL AS last_invoice_export_id,
-                   NULL AS last_invoice_export_file_name,
-                   NULL AS last_invoice_downloaded_at
+                   COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
                ORDER BY orders.created_at_unix DESC
@@ -151,7 +148,8 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
                    (SELECT eh2.file_name FROM export_history eh2
                        WHERE eh2.type='invoice' AND eh2.status='downloaded'
                          AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name
+                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
+                   COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
                LEFT JOIN order_items oi ON oi.order_id = orders.id

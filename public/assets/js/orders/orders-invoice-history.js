@@ -475,7 +475,10 @@ async function downloadAndUpdateInvoice(invoiceId) {
                 // Patch local order data: set manual_invoice_exported = 1
                 if (result.orderIds && result.orderIds.length > 0) {
                     for (const orderId of result.orderIds) {
-                        updateOrderData(Number(orderId), { manual_invoice_exported: 1 });
+                        updateOrderData(Number(orderId), {
+                            invoice_exported_at: Date.now(),
+                            manual_invoice_exported: 1
+                        });
                     }
                     // Re-render table so badge changes from red → green
                     if (typeof filterOrdersData === 'function') {
@@ -582,9 +585,12 @@ async function bulkMergeInvoices() {
         requestAnimationFrame(() => {
             XLSX.writeFile(wb, filename);
             setTimeout(async () => {
-                // Patch all merged orders to manual_invoice_exported = 1
+                // Patch all merged orders to invoice_exported_at
                 for (const order of data.orders) {
-                    updateOrderData(Number(order.id), { manual_invoice_exported: 1 });
+                    updateOrderData(Number(order.id), {
+                        invoice_exported_at: Date.now(),
+                        manual_invoice_exported: 1
+                    });
                 }
                 if (typeof filterOrdersData === 'function') {
                     filterOrdersData(false);
@@ -629,7 +635,10 @@ async function bulkDownloadInvoices() {
                 // Patch order badges in local data
                 if (result.orderIds) {
                     for (const orderId of result.orderIds) {
-                        updateOrderData(Number(orderId), { manual_invoice_exported: 1 });
+                        updateOrderData(Number(orderId), {
+                            invoice_exported_at: Date.now(),
+                            manual_invoice_exported: 1
+                        });
                     }
                 }
                 ok++;

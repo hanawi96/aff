@@ -107,6 +107,8 @@ function renderOrdersTable(options = {}) {
         tbody.appendChild(row);
     });
 
+    console.log('[DEBUG] renderOrdersTable done — pageData.length:', pageData.length, '| pageData[0]:', JSON.stringify(pageData[0]));
+
     // Render pagination
     renderPagination(totalPages);
 
@@ -140,7 +142,9 @@ function syncOrderTableSelection() {
  * @returns {string} HTML string (rỗng nếu đơn chưa xuất HĐ)
  */
 function getInvoiceExportedBadge(order) {
+    console.log('[DEBUG] getInvoiceExportedBadge — orderId:', order.id, '| manual:', order.manual_invoice_exported, '| invoiceExportedAt:', order.invoice_exported_at, '| count:', order.invoice_exported_count);
     const manualFlag = Number(order.manual_invoice_exported || 0);
+    const invoiceExportedAt = Number(order.invoice_exported_at || 0);
     const count = Number(order.invoice_exported_count || 0);
     const fileName = order.last_invoice_export_file_name || '';
     const exportId = Number(order.last_invoice_export_id || 0);
@@ -153,8 +157,40 @@ function getInvoiceExportedBadge(order) {
         timeLabel = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    // ── Phương án C: Ưu tiên xuất qua hệ thống ─────────────────────────────
+    // Trạng thái "đã xuất":
+    //   1. invoice_exported_at > 0  → đã xuất qua hệ thống  (KHÔNG cho bỏ đánh dấu)
+    //   2. manual_invoice_exported = 1 → đánh dấu thủ công (CHO bỏ đánh dấu, nếu chưa xuất system)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (invoiceExportedAt > 0) {
+        // Đã xuất qua hệ thống → badge xanh cố định, KHÔNG có nút bỏ
+        const tooltipLines = [
+            count > 0 ? `Đã xuất hóa đơn điện tử${count > 1 ? ` (${count} lần)` : ''}` : 'Đã xuất HĐĐT qua hệ thống',
+            fileName ? `File: ${fileName}` : null,
+            timeLabel ? `Tải lúc: ${timeLabel}` : null,
+            '',
+            'Bấm để mở danh sách HĐĐT'
+        ].filter(Boolean).join('\n');
+        const titleAttr = escapeHtml(tooltipLines);
+        const labelText = count > 1 ? `Đã xuất HĐ ×${count}` : 'Đã xuất HĐ';
+
+        return `
+            <button type="button"
+                onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId})"
+                title="${titleAttr}"
+                data-invoice-exported="1"
+                data-last-export-id="${exportId}"
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
+                <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                ${escapeHtml(labelText)}
+            </button>`;
+    }
+
     if (manualFlag === 1) {
-        // Đơn đã được đánh dấu xuất HĐĐT (thủ công) → badge xanh
+        // Đơn đã được đánh dấu xuất HĐĐT thủ công → badge xanh + nút bỏ
         const tooltipLines = [
             count > 0 ? `Đã xuất hóa đơn điện tử${count > 1 ? ` (${count} lần)` : ''}` : 'Đã đánh dấu xuất HĐĐT thủ công',
             fileName ? `File: ${fileName}` : null,
@@ -229,6 +265,12 @@ function openToggleInvoiceModal(orderId, currentIsExported, orderCode) {
     const modal = document.getElementById('toggleInvoiceModal');
     if (!modal) return;
 
+    // Guard: không mở modal nếu đang xử lý đơn khác
+    const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');
+    if (confirmBtn && confirmBtn.disabled) {
+        return; // Đang xử lý, bỏ qua click mới
+    }
+
     // Lưu state để confirm handler dùng
     modal.dataset.orderId = String(orderId);
     modal.dataset.newIsExported = newIsExported ? '1' : '0';
@@ -239,7 +281,6 @@ function openToggleInvoiceModal(orderId, currentIsExported, orderCode) {
     const orderCodeEl = document.getElementById('toggleInvoiceOrderCode');
     const iconEl = document.getElementById('toggleInvoiceIcon');
     const iconSvg = iconEl?.querySelector('svg');
-    const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');
 
     if (newIsExported) {
         if (titleEl) titleEl.textContent = 'Xác nhận đã xuất HĐĐT';
@@ -287,10 +328,14 @@ async function confirmToggleInvoiceStatus() {
     if (!orderId) return;
 
     const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Đang xử lý...';
-    }
+    // Guard: chặn double-call
+    if (!confirmBtn || confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Đang xử lý...';
+
+    // Reset modal state NGAY LẬP TỨC để sẵn sàng cho lần toggle tiếp theo
+    modal.dataset.orderId = '';
+    modal.dataset.newIsExported = '';
 
     try {
         const response = await fetch(`${CONFIG.API_URL}?action=toggleInvoiceExportStatus`, {
@@ -309,21 +354,64 @@ async function confirmToggleInvoiceStatus() {
         // Cập nhật local data với đầy đủ thông tin invoice từ server (chính xác)
         // allOrdersData là biến module-level (let, không phải window.allOrdersData)
         const idx = allOrdersData?.findIndex(o => Number(o.id) === orderId);
+        console.log('[DEBUG] confirmToggleInvoiceStatus:', {
+            orderId,
+            newIsExported,
+            idx,
+            allOrdersData_length: allOrdersData?.length,
+            filteredOrdersData_length: filteredOrdersData?.length,
+            allOrdersData_idx_ref: idx >= 0 ? allOrdersData[idx] : null,
+            filteredOrdersData_idx_ref: idx >= 0 ? filteredOrdersData[idx] : null,
+            'filteredOrdersData === allOrdersData': filteredOrdersData === allOrdersData,
+        });
         if (idx >= 0 && allOrdersData[idx]) {
+            console.log('[DEBUG] BEFORE update allOrdersData[idx]:', JSON.stringify(allOrdersData[idx]));
             allOrdersData[idx].invoice_exported_count = data.invoice_exported_count || 0;
+            allOrdersData[idx].invoice_exported_at = data.invoice_exported_at || 0;
             allOrdersData[idx].last_invoice_export_id = data.last_invoice_export_id ?? null;
             allOrdersData[idx].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
             allOrdersData[idx].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
             // Cập nhật cả manual flag để badge phân biệt được đơn bị bỏ đánh dấu thủ công
             allOrdersData[idx].manual_invoice_exported = newIsExported ? 1 : 0;
+            console.log('[DEBUG] AFTER update allOrdersData[idx]:', JSON.stringify(allOrdersData[idx]));
+        }
+
+        // Sync filteredOrdersData[idx] để đảm bảo badge cập nhật ngay trên bảng hiện tại.
+        // Lưu ý: idx trong allOrdersData KHÔNG tương ứng với idx trong filteredOrdersData
+        // (filtered chỉ có 14 phần tử trong khi allOrdersData có 1000). Phải findIndex riêng.
+        const idxF = filteredOrdersData.findIndex(o => Number(o.id) === orderId);
+        console.log('[DEBUG] idxF in filteredOrdersData:', idxF, '| filteredOrdersData[idxF]:', idxF >= 0 ? JSON.stringify(filteredOrdersData[idxF]) : null);
+        if (idxF >= 0) {
+            console.log('[DEBUG] BEFORE update filteredOrdersData[idxF]:', JSON.stringify(filteredOrdersData[idxF]));
+            console.log('[DEBUG] same object?', filteredOrdersData[idxF] === allOrdersData[idx]);
+            filteredOrdersData[idxF].invoice_exported_count = data.invoice_exported_count || 0;
+            filteredOrdersData[idxF].invoice_exported_at = data.invoice_exported_at || 0;
+            filteredOrdersData[idxF].last_invoice_export_id = data.last_invoice_export_id ?? null;
+            filteredOrdersData[idxF].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+            filteredOrdersData[idxF].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+            filteredOrdersData[idxF].manual_invoice_exported = newIsExported ? 1 : 0;
+            console.log('[DEBUG] AFTER update filteredOrdersData[idxF]:', JSON.stringify(filteredOrdersData[idxF]));
+        } else {
+            console.log('[DEBUG] orderId', orderId, 'NOT found in filteredOrdersData — filteredOrdersData has', filteredOrdersData.length, 'items');
         }
 
         showToast(data.message || (newIsExported ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu'), 'success');
         closeToggleInvoiceModal();
 
+        // Reset button state để toggle tiếp theo hoạt động
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Xác nhận';
+
+        // Cập nhật cache để reload trang không hiển thị trạng thái cũ
+        if (typeof _writeOrdersCache === 'function') {
+            _writeOrdersCache(allOrdersData);
+        }
+
         // Re-render bảng để badge per-order cập nhật
         if (typeof filterOrdersData === 'function') {
+            console.log('[DEBUG] calling filterOrdersData(true) — filteredOrdersData BEFORE:', filteredOrdersData.length, 'first item:', JSON.stringify(filteredOrdersData[0]));
             filterOrdersData(true);
+            console.log('[DEBUG] filteredOrdersData AFTER filterOrdersData:', filteredOrdersData.length, 'first item:', JSON.stringify(filteredOrdersData[0]));
         }
 
         // Re-render badge HDDT trên toolbar (số pending file)
@@ -337,6 +425,9 @@ async function confirmToggleInvoiceStatus() {
             confirmBtn.disabled = false;
             confirmBtn.textContent = newIsExported ? 'Xác nhận đã xuất' : 'Xác nhận bỏ';
         }
+        // Restore modal state để user có thể thử lại
+        modal.dataset.orderId = String(orderId);
+        modal.dataset.newIsExported = newIsExported ? '1' : '0';
     }
 }
 

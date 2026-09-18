@@ -384,10 +384,23 @@ export async function mergeInvoiceExports(exportIds, env) {
 }
 
 /**
- * Mark an invoice export as downloaded and set manual_invoice_exported=1 for all orders in it.
+ * Mark an invoice export as downloaded and set invoice_exported_at for eligible orders.
+ *
+ * ── Phương án C ──────────────────────────────────────────────────────────────
+ * Chỉ cập nhật invoice_exported_at cho đơn ĐỒNG THỜI thỏa:
+ *   1. invoice_exported_at IS NULL / = 0  (chưa xuất qua hệ thống lần nào)
+ *   2. manual_invoice_exported = 0         (chưa đánh dấu thủ công)
+ *
+ * Đơn đã đánh dấu thủ công (manual_invoice_exported=1) → KHÔNG cập nhật gì.
+ * Đơn đã xuất qua hệ thống rồi (invoice_exported_at > 0) → KHÔNG cập nhật gì.
+ *
+ * manual_invoice_exported vẫn được set = 1 khi xuất qua hệ thống
+ * (để badge hiển thị đúng, nhưng điều kiện ở trên đã bảo vệ không trùng lần 2).
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * @param {number} exportId
  * @param {object} env
- * @returns {object} { success, updatedCount }
+ * @returns {object} { success, updatedCount, orderIds }
  */
 export async function markInvoiceExportDownloaded(exportId, env) {
     if (!exportId) {
@@ -413,22 +426,39 @@ export async function markInvoiceExportDownloaded(exportId, env) {
         WHERE id = ? AND type = 'invoice'
     `).bind(now, now, exportId).run();
 
-    // Update each order's manual_invoice_exported flag
+    // Update each eligible order's invoice_exported_at and manual_invoice_exported flag
+    // Eligibility: NOT already exported via system AND NOT manually marked
     let updatedCount = 0;
+    let skippedCount = 0;
     for (const orderId of orderIds) {
         try {
             const res = await env.DB.prepare(`
-                UPDATE orders SET manual_invoice_exported = 1 WHERE id = ? AND manual_invoice_exported = 0
-            `).bind(orderId).run();
-            if (res.meta?.changes > 0) updatedCount++;
+                UPDATE orders
+                SET invoice_exported_at = ?,
+                    manual_invoice_exported = 1
+                WHERE id = ?
+                  AND (invoice_exported_at IS NULL OR invoice_exported_at = 0)
+                  AND COALESCE(manual_invoice_exported, 0) = 0
+            `).bind(now, orderId).run();
+            if (res.meta?.changes > 0) {
+                updatedCount++;
+            } else {
+                skippedCount++;
+            }
         } catch (err) {
-            console.error(`Error updating manual_invoice_exported for order ${orderId}:`, err);
+            console.error(`Error updating invoice_exported_at for order ${orderId}:`, err);
+            skippedCount++;
         }
+    }
+
+    if (skippedCount > 0) {
+        console.log(`[markInvoiceExportDownloaded] ${skippedCount}/${orderIds.length} orders skipped (already exported or manually marked)`);
     }
 
     return {
         success: true,
         updatedCount,
+        skippedCount,
         orderIds
     };
 }
