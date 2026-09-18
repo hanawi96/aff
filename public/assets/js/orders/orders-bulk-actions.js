@@ -425,6 +425,241 @@ async function proceedBulkExportFlow(selectedOrders) {
 }
 
 /**
+ * Phát hiện trong danh sách chọn có đơn đã được xuất HĐ trước đó (đã tải về).
+ * Trả về mảng đơn đã xuất + map theo id để tra nhanh.
+ * @param {Array} selectedOrders
+ * @returns {{ duplicates: Array, duplicateIds: Set }}
+ */
+function detectInvoicedDuplicates(selectedOrders) {
+    const duplicates = [];
+    const duplicateIds = new Set();
+    for (const o of selectedOrders || []) {
+        if (Number(o.invoice_exported_count || 0) > 0) {
+            duplicates.push(o);
+            duplicateIds.add(Number(o.id));
+        }
+    }
+    return { duplicates, duplicateIds };
+}
+
+/**
+ * Modal cảnh báo xuất trùng HĐĐT — hiển thị trước khi tạo file.
+ * @param {Array} duplicates — các đơn đã xuất HĐ trước đó
+ * @param {number} totalSelected — tổng số đơn đang chọn
+ * @param {function(string)} onResolve — callback với 'skip' | 'all' | 'cancel'
+ */
+function showInvoiceDuplicateWarningModal(duplicates, totalSelected, onResolve) {
+    const modalId = 'invoiceDuplicateWarningModal';
+    document.getElementById(modalId)?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = modalId;
+    overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+
+    const dupCount = duplicates.length;
+    const skipCount = totalSelected - dupCount;
+
+    // Gom theo file để hiển thị gọn — mỗi đơn đã xuất nằm trong 1 file gần nhất
+    const fileGroups = new Map();
+    for (const o of duplicates) {
+        const fid = Number(o.last_invoice_export_id || 0);
+        const fname = o.last_invoice_export_file_name || '(không rõ file)';
+        if (!fileGroups.has(fid)) fileGroups.set(fid, { fileName: fname, orders: [] });
+        fileGroups.get(fid).orders.push(o);
+    }
+
+    const fileLines = Array.from(fileGroups.values()).slice(0, 5).map((g) => {
+        const codes = g.orders.slice(0, 6).map((o) => escapeHtml(String(o.order_id || o.id))).join(', ');
+        const more = g.orders.length > 6 ? ` … (+${g.orders.length - 6})` : '';
+        return `
+            <li class="text-sm text-gray-800 border-b border-gray-100 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+                <div class="font-mono text-xs text-emerald-700 mb-1 truncate" title="${escapeHtml(g.fileName)}">${escapeHtml(g.fileName)}</div>
+                <div class="text-gray-700"><span class="font-semibold">${g.orders.length} đơn:</span> ${codes}${more}</div>
+            </li>`;
+    }).join('');
+    const moreFiles = fileGroups.size > 5 ? `<li class="text-xs text-gray-500 italic">… và ${fileGroups.size - 5} file khác</li>` : '';
+
+    overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-amber-200 overflow-hidden" role="dialog" aria-modal="true">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Phát hiện đơn đã xuất hóa đơn
+                </h3>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-700 mb-3">
+                    Trong <strong>${totalSelected}</strong> đơn đang chọn có <strong class="text-amber-700">${dupCount} đơn đã được xuất HĐĐT trước đó</strong>${skipCount > 0 ? ` (còn ${skipCount} đơn mới)` : ''}.
+                    Xuất lại có thể tạo hóa đơn trùng.
+                </p>
+                <ul class="max-h-60 overflow-y-auto space-y-0 pr-1 list-none pl-0">${fileLines}${moreFiles}</ul>
+
+                <p class="text-sm font-medium text-gray-900 mt-4">Bạn muốn xử lý thế nào?</p>
+                <div class="flex flex-wrap gap-2 justify-end mt-5">
+                    <button type="button" data-act="cancel" class="inv-dup-cancel px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium">Hủy</button>
+                    <button type="button" data-act="all" class="inv-dup-all px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium" title="Vẫn xuất tất cả ${totalSelected} đơn">Xuất lại cả ${totalSelected} đơn</button>
+                    <button type="button" data-act="skip" class="inv-dup-skip px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm" title="Bỏ qua ${dupCount} đơn đã xuất, chỉ xuất ${skipCount} đơn mới">Bỏ qua đã xuất · Xuất ${skipCount} mới</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const close = () => overlay.remove();
+    const resolve = (action) => {
+        close();
+        onResolve(action);
+    };
+
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => resolve('cancel'));
+    overlay.querySelector('[data-act="all"]').addEventListener('click', () => resolve('all'));
+    overlay.querySelector('[data-act="skip"]').addEventListener('click', () => resolve('skip'));
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) resolve('cancel');
+    });
+
+    document.body.appendChild(overlay);
+}
+
+/**
+ * Bulk Export Invoice - Export selected orders to E-Invoice Excel format (MauUploadHD.xlsx)
+ * Saves to R2 and opens invoice history modal.
+ *
+ * Flow chống xuất trùng:
+ *  - Nếu có đơn đã xuất HĐ trước đó → hiện modal cảnh báo
+ *    · Mặc định chọn "Bỏ qua đơn đã xuất" → chỉ xuất các đơn mới
+ *    · Có thể chọn "Xuất lại tất cả" nếu chắc chắn
+ *    · Hoặc "Hủy"
+ *
+ * Toast flow: hiện "đang tạo" → ẩn ngay khi xong → hiện "thành công" mới (mượt, không chồng).
+ */
+async function bulkExportInvoice() {
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    const TOAST_ID = 'invoice-creating';
+
+    // Helper: ẩn toast creating (không throw nếu đã ẩn)
+    const hideCreatingToast = () => {
+        try { toastManager.removeById(TOAST_ID); } catch (_) { /* noop */ }
+    };
+
+    try {
+        if (typeof XLSX === 'undefined') {
+            await loadXLSXLibrary();
+        }
+
+        const selectedOrders = allOrdersData.filter((o) => selectedOrderIds.has(o.id));
+        if (selectedOrders.length === 0) {
+            showToast('Không tìm thấy dữ liệu các đơn đã chọn', 'warning');
+            return;
+        }
+
+        // ===== Chống xuất trùng HĐĐT =====
+        const { duplicates, duplicateIds } = detectInvoicedDuplicates(selectedOrders);
+        let ordersToExport = selectedOrders;
+        let skippedDuplicates = 0;
+
+        if (duplicates.length > 0) {
+            const action = await new Promise((resolve) => {
+                showInvoiceDuplicateWarningModal(duplicates, selectedOrders.length, resolve);
+            });
+            if (action === 'cancel') {
+                return; // User hủy
+            }
+            if (action === 'skip') {
+                ordersToExport = selectedOrders.filter((o) => !duplicateIds.has(Number(o.id)));
+                skippedDuplicates = duplicates.length;
+                if (ordersToExport.length === 0) {
+                    showToast('Tất cả đơn đã chọn đều đã được xuất HĐ trước đó. Không có gì để xuất.', 'warning', 4000);
+                    return;
+                }
+                showToast(`Bỏ qua ${skippedDuplicates} đơn đã xuất, xuất ${ordersToExport.length} đơn mới`, 'info', 3000);
+            }
+            // 'all' → xuất lại tất cả
+        }
+
+        // Toast "đang tạo" với id cố định — sẽ bị ẩn ngay khi xong
+        showToast('Đang tạo file hóa đơn điện tử...', 'info', 0, TOAST_ID);
+
+        // Tạo buffer Excel (đồng bộ, nhanh vì đã có data trong RAM)
+        const { buffer, filename, rowCount } = createInvoiceExcelBuffer(ordersToExport);
+
+        // Convert sang base64 theo chunk (không block UI) rồi upload
+        const base64 = await _uint8ArrayToBase64(buffer);
+        const orderIds = ordersToExport.map((o) => o.id);
+
+        const response = await fetch(`${CONFIG.API_URL}?action=saveInvoiceExport`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fileName: filename,
+                fileData: base64,
+                orderIds,
+                orderCount: ordersToExport.length,
+                invoiceRowCount: rowCount,
+            }),
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Không thể lưu file hóa đơn điện tử');
+        }
+
+        // Ẩn toast "đang tạo" ngay, rồi hiện toast thành công mới (animation mượt)
+        hideCreatingToast();
+        const skippedNote = skippedDuplicates > 0 ? ` (bỏ qua ${skippedDuplicates} đơn đã xuất)` : '';
+        showToast(
+            `✅ Đã xuất hóa đơn điện tử (${ordersToExport.length} đơn, ${rowCount} dòng)${skippedNote}. Tải từ danh sách bên dưới.`,
+            'success',
+            4000,
+        );
+
+        // Clear selection
+        clearSelection();
+
+        // Refresh badge + mở modal DS HDDT (chạy song song, không await tuần tự)
+        invoiceHistoryCache = null;
+        updateInvoiceHistoryBadge();
+        showInvoiceHistoryModal();
+    } catch (err) {
+        console.error('Error exporting e-invoice:', err);
+        hideCreatingToast();
+        showToast('Lỗi xuất hóa đơn: ' + (err && err.message ? err.message : err), 'error', 5000);
+    }
+}
+
+/**
+ * Convert Uint8Array to base64 in chunks (non-blocking).
+ * @param {Uint8Array} buffer
+ * @returns {Promise<string>}
+ */
+async function _uint8ArrayToBase64(buffer) {
+    const chunkSize = 8192;
+    let binary = '';
+    let offset = 0;
+
+    return new Promise((resolve) => {
+        function processChunk() {
+            const end = Math.min(offset + chunkSize, buffer.length);
+            for (let i = offset; i < end; i++) {
+                binary += String.fromCharCode(buffer[i]);
+            }
+            offset = end;
+            if (offset < buffer.length) {
+                setTimeout(processChunk, 0);
+            } else {
+                resolve(btoa(binary));
+            }
+        }
+        processChunk();
+    });
+}
+
+/**
  * Bulk Export - Export selected orders to SPX Excel format
  */
 async function bulkExport() {
@@ -543,7 +778,7 @@ async function skipShippedOrders() {
 }
 
 /**
- * Perform the actual export
+ * Perform the actual export (SPX + HĐĐT đồng thời)
  */
 async function performExport(orders) {
     showToast('Đang tạo file Excel...', 'info');
@@ -557,21 +792,72 @@ async function performExport(orders) {
         }
     }
 
-    const result = await exportToSPXExcelAndSave(orders);
-    
-    if (result.success) {
-        showToast(`✅ Đã tạo file export - ${result.filename}`, 'success');
-        
-        // Clear selection
-        clearSelection();
-        
-        // Invalidate cache and update badge
-        exportHistoryCache = null;
-        await updateExportHistoryBadge();
-        
-        // Show export history modal
-        showExportHistoryModal();
+    // --- 1. Export SPX ---
+    const spxResult = await exportToSPXExcelAndSave(orders);
+
+    // --- 2. Export HĐĐT đồng thời ---
+    let invoiceResult = null;
+    try {
+        if (typeof XLSX === 'undefined') {
+            await loadXLSXLibrary();
+        }
+
+        const { duplicates, duplicateIds } = detectInvoicedDuplicates(orders);
+        let invoiceOrders = orders;
+
+        if (duplicates.length > 0) {
+            // Tự động bỏ qua đơn đã xuất HĐ trước đó (không hỏi modal)
+            invoiceOrders = orders.filter(o => !duplicateIds.has(Number(o.id)));
+            if (invoiceOrders.length === 0) {
+                console.log('[performExport] Tất cả đơn đã xuất HĐ trước, bỏ qua export HĐĐT.');
+            }
+        }
+
+        if (invoiceOrders.length > 0) {
+            const { buffer, filename, rowCount } = createInvoiceExcelBuffer(invoiceOrders);
+            const base64 = await _uint8ArrayToBase64(buffer);
+            const orderIds = invoiceOrders.map(o => o.id);
+
+            const resp = await fetch(`${CONFIG.API_URL}?action=saveInvoiceExport`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: filename,
+                    fileData: base64,
+                    orderIds,
+                    orderCount: invoiceOrders.length,
+                    invoiceRowCount: rowCount,
+                }),
+            });
+            const data = await resp.json();
+            if (data.success) {
+                invoiceResult = { filename, orderCount: invoiceOrders.length, rowCount };
+            } else {
+                console.warn('[performExport] Lưu HĐĐT thất bại:', data.error);
+            }
+        }
+    } catch (err) {
+        console.warn('[performExport] Export HĐĐT lỗi (không ảnh hưởng SPX):', err);
     }
+
+    // --- 3. Hiển thị kết quả ---
+    let message = `✅ Đã tạo file export - ${spxResult.filename}`;
+    if (invoiceResult) {
+        message += `\n✅ Đã tạo file HĐĐT (${invoiceResult.orderCount} đơn, ${invoiceResult.rowCount} dòng)`;
+    }
+    showToast(message, 'success');
+
+    // Clear selection
+    clearSelection();
+
+    // Invalidate cache and update badges
+    exportHistoryCache = null;
+    invoiceHistoryCache = null;
+    await updateExportHistoryBadge();
+    updateInvoiceHistoryBadge();
+
+    // Show export history modal
+    showExportHistoryModal();
 }
 
 /**

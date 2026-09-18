@@ -133,6 +133,213 @@ function syncOrderTableSelection() {
     }
 }
 
+/**
+ * Render badge "Đã xuất HĐ" nếu đơn đã nằm trong file HĐĐT đã tải về.
+ * Click → mở modal DS HDDT và highlight đúng file.
+ * @param {object} order
+ * @returns {string} HTML string (rỗng nếu đơn chưa xuất HĐ)
+ */
+function getInvoiceExportedBadge(order) {
+    const manualFlag = Number(order.manual_invoice_exported || 0);
+    const count = Number(order.invoice_exported_count || 0);
+    const fileName = order.last_invoice_export_file_name || '';
+    const exportId = Number(order.last_invoice_export_id || 0);
+    const ts = Number(order.last_invoice_downloaded_at || 0);
+
+    let timeLabel = '';
+    if (ts > 0) {
+        const d = new Date(ts);
+        const pad = (n) => String(n).padStart(2, '0');
+        timeLabel = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    if (manualFlag === 1) {
+        // Đơn đã được đánh dấu xuất HĐĐT (thủ công) → badge xanh
+        const tooltipLines = [
+            count > 0 ? `Đã xuất hóa đơn điện tử${count > 1 ? ` (${count} lần)` : ''}` : 'Đã đánh dấu xuất HĐĐT thủ công',
+            fileName ? `File: ${fileName}` : null,
+            timeLabel ? `Tải lúc: ${timeLabel}` : null,
+            '',
+            'Bấm để mở danh sách HĐĐT'
+        ].filter(Boolean).join('\n');
+        const titleAttr = escapeHtml(tooltipLines);
+        const labelText = count > 1 ? `Đã xuất HĐ ×${count}` : 'Đã xuất HĐ';
+
+        return `
+            <div class="inline-flex items-center gap-0.5">
+                <button type="button"
+                    onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId})"
+                    title="${titleAttr}"
+                    data-invoice-exported="1"
+                    data-last-export-id="${exportId}"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
+                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    ${escapeHtml(labelText)}
+                </button>
+                <button type="button"
+                    onclick="event.stopPropagation(); openToggleInvoiceModal(${order.id}, true, '${escapeHtml(order.order_id || '')}')"
+                    title="Bỏ đánh dấu xuất HĐĐT"
+                    class="inline-flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0">
+                    <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>`;
+    }
+
+    // Chưa đánh dấu xuất HĐĐT → badge đỏ
+    return `
+        <button type="button"
+            onclick="event.stopPropagation(); openToggleInvoiceModal(${order.id}, false, '${escapeHtml(order.order_id || '')}')"
+            title="Bấm để đánh dấu đã xuất hóa đơn điện tử"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-red-500 border border-red-400 bg-red-50 cursor-pointer hover:bg-red-100 hover:border-red-500 hover:text-red-700 transition-colors">
+            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Chưa xuất HDDT
+        </button>`;
+}
+
+/**
+ * Mở modal DS HDDT và highlight đúng file.
+ * @param {number} exportId
+ */
+async function openInvoiceHistoryForExport(exportId) {
+    if (!exportId) {
+        await showInvoiceHistoryModal();
+        return;
+    }
+    await showInvoiceHistoryModal({ highlightExportId: exportId });
+}
+
+// ============================================
+// TOGGLE INVOICE EXPORT STATUS (manual)
+// ============================================
+
+/**
+ * Mở modal xác nhận đổi trạng thái xuất HĐĐT cho 1 đơn.
+ * @param {number} orderId
+ * @param {boolean} currentIsExported - trạng thái hiện tại (true = đã xuất, false = chưa)
+ * @param {string} orderCode - mã đơn hiển thị
+ */
+function openToggleInvoiceModal(orderId, currentIsExported, orderCode) {
+    const newIsExported = !currentIsExported;
+    const modal = document.getElementById('toggleInvoiceModal');
+    if (!modal) return;
+
+    // Lưu state để confirm handler dùng
+    modal.dataset.orderId = String(orderId);
+    modal.dataset.newIsExported = newIsExported ? '1' : '0';
+
+    const titleEl = document.getElementById('toggleInvoiceTitle');
+    const subtitleEl = document.getElementById('toggleInvoiceSubtitle');
+    const messageEl = document.getElementById('toggleInvoiceMessage');
+    const orderCodeEl = document.getElementById('toggleInvoiceOrderCode');
+    const iconEl = document.getElementById('toggleInvoiceIcon');
+    const iconSvg = iconEl?.querySelector('svg');
+    const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');
+
+    if (newIsExported) {
+        if (titleEl) titleEl.textContent = 'Xác nhận đã xuất HĐĐT';
+        if (subtitleEl) subtitleEl.textContent = 'Đánh dấu thủ công';
+        if (messageEl) messageEl.textContent = 'Bạn có chắc muốn đánh dấu đơn này là đã xuất hóa đơn điện tử?';
+        if (orderCodeEl) orderCodeEl.textContent = 'Đơn: ' + (orderCode || `#${orderId}`);
+        if (iconEl) {
+            iconEl.className = 'w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0';
+            if (iconSvg) iconSvg.classList.add('text-emerald-600');
+            iconSvg?.classList.remove('text-red-600');
+        }
+        if (confirmBtn) {
+            confirmBtn.textContent = 'Xác nhận đã xuất';
+            confirmBtn.className = 'flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors';
+        }
+    } else {
+        if (titleEl) titleEl.textContent = 'Xác nhận bỏ đã xuất HĐĐT';
+        if (subtitleEl) subtitleEl.textContent = 'Bỏ đánh dấu thủ công';
+        if (messageEl) messageEl.textContent = 'Bạn có chắc muốn bỏ đánh dấu đơn này là đã xuất hóa đơn điện tử?';
+        if (orderCodeEl) orderCodeEl.textContent = 'Đơn: ' + (orderCode || `#${orderId}`);
+        if (iconEl) {
+            iconEl.className = 'w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0';
+            if (iconSvg) iconSvg.classList.add('text-red-600');
+            iconSvg?.classList.remove('text-emerald-600');
+        }
+        if (confirmBtn) {
+            confirmBtn.textContent = 'Xác nhận bỏ';
+            confirmBtn.className = 'flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors';
+        }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeToggleInvoiceModal() {
+    const modal = document.getElementById('toggleInvoiceModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function confirmToggleInvoiceStatus() {
+    const modal = document.getElementById('toggleInvoiceModal');
+    if (!modal) return;
+    const orderId = parseInt(modal.dataset.orderId || '0');
+    const newIsExported = modal.dataset.newIsExported === '1';
+    if (!orderId) return;
+
+    const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Đang xử lý...';
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}?action=toggleInvoiceExportStatus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'toggleInvoiceExportStatus',
+                orderId: orderId,
+                isExported: newIsExported
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Lỗi API');
+
+        // Cập nhật local data với đầy đủ thông tin invoice từ server (chính xác)
+        // allOrdersData là biến module-level (let, không phải window.allOrdersData)
+        const idx = allOrdersData?.findIndex(o => Number(o.id) === orderId);
+        if (idx >= 0 && allOrdersData[idx]) {
+            allOrdersData[idx].invoice_exported_count = data.invoice_exported_count || 0;
+            allOrdersData[idx].last_invoice_export_id = data.last_invoice_export_id ?? null;
+            allOrdersData[idx].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+            allOrdersData[idx].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+            // Cập nhật cả manual flag để badge phân biệt được đơn bị bỏ đánh dấu thủ công
+            allOrdersData[idx].manual_invoice_exported = newIsExported ? 1 : 0;
+        }
+
+        showToast(data.message || (newIsExported ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu'), 'success');
+        closeToggleInvoiceModal();
+
+        // Re-render bảng để badge per-order cập nhật
+        if (typeof filterOrdersData === 'function') {
+            filterOrdersData(true);
+        }
+
+        // Re-render badge HDDT trên toolbar (số pending file)
+        if (typeof updateInvoiceHistoryBadge === 'function') {
+            updateInvoiceHistoryBadge();
+        }
+    } catch (err) {
+        console.error('Toggle invoice error:', err);
+        showToast('Lỗi: ' + (err.message || err), 'error');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = newIsExported ? 'Xác nhận đã xuất' : 'Xác nhận bỏ';
+        }
+    }
+}
+
 // ============================================
 // CREATE ORDER ROW
 // ============================================
@@ -241,6 +448,8 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
             </div>`;
     }
 
+    const invoiceBadge = getInvoiceExportedBadge(order);
+
     tdOrderId.innerHTML = `
         <div class="flex flex-col gap-2 items-center">
             <div class="flex items-center gap-2">
@@ -253,6 +462,7 @@ function createOrderRow(order, index, pageIndex, totalPageItems, options = {}) {
                 </button>
             </div>
             ${getStatusBadge(order.status, order.id, order.order_id, order)}
+            ${invoiceBadge}
             ${shippedTimeBlock}
         </div>
     `;

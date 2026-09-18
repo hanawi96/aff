@@ -1223,5 +1223,78 @@ export async function toggleOrderPriority(data, env, corsHeaders) {
 }
 
 // ============================================
+// TOGGLE INVOICE EXPORT STATUS (manual)
+// ============================================
+
+export async function toggleInvoiceExportStatus(data, env, corsHeaders) {
+    try {
+        const orderId = parseInt(data.orderId);
+        if (!orderId) {
+            return jsonResponse({ success: false, error: 'Thiếu orderId' }, 400, corsHeaders);
+        }
+
+        // Check order exists
+        const order = await env.DB.prepare(`SELECT id FROM orders WHERE id = ?`).bind(orderId).first();
+        if (!order) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        // Toggle: if isExported explicitly set → use it; otherwise flip current value
+        let newValue;
+        if (data.isExported !== undefined && data.isExported !== null) {
+            newValue = data.isExported ? 1 : 0;
+        } else {
+            // Flip current manual value
+            const current = await env.DB.prepare(
+                `SELECT COALESCE(manual_invoice_exported, 0) as val FROM orders WHERE id = ?`
+            ).bind(orderId).first();
+            newValue = (current?.val || 0) === 1 ? 0 : 1;
+        }
+
+        await env.DB.prepare(`UPDATE orders SET manual_invoice_exported = ? WHERE id = ?`).bind(newValue, orderId).run();
+
+        // Tính invoice_exported_count + lấy thông tin file HDDT gần nhất (để badge hiển thị đúng)
+        // count = manual (0 hoặc 1) + số lần xuất HDDT (file đã tải) cho đơn này
+        const row = await env.DB.prepare(`
+            SELECT
+                (CASE WHEN COALESCE(o.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END
+                 + (SELECT COUNT(*) FROM export_history eh
+                    WHERE eh.type='invoice' AND eh.status='downloaded'
+                      AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?))) AS invoice_exported_count,
+                (SELECT eh.id
+                   FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
+                (SELECT eh.file_name
+                   FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
+                (SELECT eh.downloaded_at
+                   FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_downloaded_at
+            FROM orders o WHERE o.id = ?
+        `).bind(orderId, orderId, orderId, orderId, orderId).first();
+
+        return jsonResponse({
+            success: true,
+            isExported: newValue === 1,
+            invoice_exported_count: row.invoice_exported_count || 0,
+            last_invoice_export_id: row.last_invoice_export_id || null,
+            last_invoice_export_file_name: row.last_invoice_export_file_name || null,
+            last_invoice_downloaded_at: row.last_invoice_downloaded_at || null,
+            message: newValue === 1 ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu xuất HĐĐT'
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('Error toggling invoice export status:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+// ============================================
 // END OF ORDER SERVICE
 // ============================================

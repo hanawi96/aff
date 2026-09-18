@@ -110,6 +110,14 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
         // giảm) → giảm payload đáng kể. Khi mở SỬA đơn, mobile gọi getOrderById để lấy full.
         // (Lưu ý: vẫn GIỮ address gộp, commission, commission_rate, referral_code, shipping_fee
         //  vì chi tiết + tìm kiếm + tính lại hoa hồng ở chi tiết có dùng.)
+        // Thông tin HĐĐT đã xuất (chỉ tính các file đã tải về = status='downloaded'):
+        //   - invoice_exported_count         : số file HĐ đã bao gồm đơn này và đã tải
+        //   - last_invoice_export_id         : id file gần nhất (để click badge mở đúng file)
+        //   - last_invoice_export_file_name  : tên file gần nhất (hiển thị tooltip)
+        //   - last_invoice_downloaded_at     : mốc thời gian tải (sắp xếp/tooltip)
+        // order_ids được lưu dạng JSON array → json_each để khớp với orders.id.
+        // Dùng subquery tương quan cho file_name/export_id (1 row / đơn) thay vì JOIN
+        // để tránh phá GROUP BY hiện tại và đảm bảo đúng "gần nhất".
         const sql = lite
             ? `SELECT
                    orders.id, orders.order_id, orders.customer_name, orders.customer_phone,
@@ -119,18 +127,38 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
                    orders.referral_code, orders.is_priority, orders.is_makeup,
                    orders.created_at_unix, orders.shipped_at_unix, orders.planned_send_at_unix,
                    orders.customer_source,
-                   ctv.commission_rate as ctv_commission_rate
+                   ctv.commission_rate as ctv_commission_rate,
+                   0 AS invoice_exported_count,
+                   NULL AS last_invoice_export_id,
+                   NULL AS last_invoice_export_file_name,
+                   NULL AS last_invoice_downloaded_at
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
                ORDER BY orders.created_at_unix DESC
                LIMIT ?`
-            : `SELECT 
+            : `SELECT
                    orders.*,
                    ctv.commission_rate as ctv_commission_rate,
-                   COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost
+                   COALESCE(SUM(oi.product_cost * oi.quantity), 0) as product_cost,
+                   -- Đếm file HĐĐT đã tải từ export_history + manual_invoice_exported (nếu đã tick thủ công)
+                   (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
+                   + COUNT(DISTINCT CASE WHEN eh.type='invoice' AND eh.status='downloaded' THEN eh.id END) AS invoice_exported_count,
+                   MAX(CASE WHEN eh.type='invoice' AND eh.status='downloaded' THEN eh.downloaded_at ELSE 0 END) AS last_invoice_downloaded_at,
+                   (SELECT eh2.id FROM export_history eh2
+                       WHERE eh2.type='invoice' AND eh2.status='downloaded'
+                         AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
+                   (SELECT eh2.file_name FROM export_history eh2
+                       WHERE eh2.type='invoice' AND eh2.status='downloaded'
+                         AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
                LEFT JOIN order_items oi ON oi.order_id = orders.id
+               LEFT JOIN export_history eh
+                   ON eh.type='invoice'
+                  AND eh.status='downloaded'
+                  AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
                GROUP BY orders.id
                ORDER BY orders.created_at_unix DESC
                LIMIT ?`;

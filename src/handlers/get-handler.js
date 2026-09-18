@@ -93,7 +93,8 @@ import {
 // Export History
 import { 
     getExportHistory, 
-    downloadExport 
+    downloadExport,
+    getInvoiceExportHistory
 } from '../services/orders/export-service.js';
 
 // Discounts
@@ -627,6 +628,9 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getExportHistory':
             return await getExportHistory(env).then(data => jsonResponse(data, 200, corsHeaders));
+
+        case 'getInvoiceExportHistory':
+            return await getInvoiceExportHistory(env).then(data => jsonResponse(data, 200, corsHeaders));
 
         case 'downloadExport':
             const exportId = url.searchParams.get('id');

@@ -212,6 +212,17 @@ class ToastManager {
     }
 
     /**
+     * Xóa toast theo id ngay lập tức (dùng để thay thế toast "đang xử lý" → "kết quả")
+     */
+    removeById(id) {
+        if (!id) return false;
+        const toast = this.toasts.find(t => t.id === id);
+        if (!toast) return false;
+        this.remove(toast);
+        return true;
+    }
+
+    /**
      * Giới hạn số lượng toast hiển thị
      */
     limitToasts() {

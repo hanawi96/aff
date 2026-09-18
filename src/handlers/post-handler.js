@@ -47,7 +47,8 @@ import {
     updateCustomerSource,
     deleteOrder,
     updateOrderStatus,
-    toggleOrderPriority
+    toggleOrderPriority,
+    toggleInvoiceExportStatus
 } from '../services/orders/order-service.js';
 import { updateOrderProducts } from '../services/orders/order-items.js';
 
@@ -130,7 +131,10 @@ import {
     saveExport, 
     markExportDownloaded, 
     deleteExport,
-    mergeExports
+    mergeExports,
+    saveInvoiceExport,
+    markInvoiceExportDownloaded,
+    mergeInvoiceExports
 } from '../services/orders/export-service.js';
 
 // Settings
@@ -325,6 +329,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateOrderStatus(data, env, corsHeaders);
         case 'toggleOrderPriority':
             return await toggleOrderPriority(data, env, corsHeaders);
+        case 'toggleInvoiceExportStatus':
+            return await toggleInvoiceExportStatus(data, env, corsHeaders);
         case 'deleteOrder':
             return await deleteOrder(data, env, corsHeaders);
         case 'getProfitReport':
@@ -409,12 +415,18 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
         
         case 'saveExport':
             return await saveExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'saveInvoiceExport':
+            return await saveInvoiceExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'markExportDownloaded':
             return await markExportDownloaded(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'markInvoiceExportDownloaded':
+            return await markInvoiceExportDownloaded(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'deleteExport':
             return await deleteExport(data.exportId, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'mergeExports':
             return await mergeExports(data.exportIds, env).then(result => jsonResponse(result, 200, corsHeaders));
+        case 'mergeInvoiceExports':
+            return await mergeInvoiceExports(data.exportIds, env).then(result => jsonResponse(result, 200, corsHeaders));
         
         // Categories
         case 'reorderCategories':
