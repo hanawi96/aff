@@ -1360,6 +1360,20 @@
                             </button>
                         </div>
 
+                        <!-- Invoice Status Filter -->
+                        <div class="relative">
+                            <button id="invoiceStatusFilterBtn" onclick="toggleInvoiceStatusFilter(event)" 
+                                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span id="invoiceStatusFilterLabel" class="text-gray-700">Tất cả HĐĐT</span>
+                                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
                         <!-- Payment Method Filter -->
                         <div class="relative">
                             <button id="paymentFilterBtn" onclick="togglePaymentFilter(event)" 
@@ -1418,6 +1432,7 @@
 
                         <!-- Hidden inputs to store values -->
                         <input type="hidden" id="statusFilter" value="pending">
+                        <input type="hidden" id="invoiceStatusFilter" value="all">
                         <input type="hidden" id="paymentFilter" value="all">
                         <input type="hidden" id="customerSourceFilter" value="all">
                         <input type="hidden" id="ctvFilter" value="all">
@@ -1902,7 +1917,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=175"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=177"></script>
     
     <!-- Patch: Add missing bulkToggleInvoiceStatus function -->
     <script>

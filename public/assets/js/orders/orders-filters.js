@@ -296,6 +296,7 @@ function filterOrdersData(preservePage = false) {
     const searchScope = getSearchScope();
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
+    const invoiceStatusFilter = document.getElementById('invoiceStatusFilter')?.value || 'all';
     const paymentFilter = document.getElementById('paymentFilter')?.value || 'all';
     const customerSourceFilter = document.getElementById('customerSourceFilter')?.value || 'all';
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
@@ -424,7 +425,17 @@ function filterOrdersData(preservePage = false) {
             }
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate;
+        // Invoice status filter (OPTIMIZED: truy cập trực tiếp thuộc tính, O(1))
+        let matchesInvoiceStatus = true;
+        if (invoiceStatusFilter === 'exported') {
+            // Đã xuất = invoice_exported_at > 0 HOẶC manual_invoice_exported === 1
+            matchesInvoiceStatus = (order.invoice_exported_at > 0) || (order.manual_invoice_exported === 1);
+        } else if (invoiceStatusFilter === 'not_exported') {
+            // Chưa xuất = CẢ HAI đều = 0
+            matchesInvoiceStatus = !(order.invoice_exported_at > 0) && !(order.manual_invoice_exported === 1);
+        }
+
+        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate && matchesInvoiceStatus;
     });
 
     console.log('[DEBUG] filterOrdersData — filteredOrdersData.length:', filteredOrdersData.length, '| first item:', JSON.stringify(filteredOrdersData[0]));
@@ -745,6 +756,67 @@ function toggleStatusFilter(event) {
     `).join('');
 
     attachOrderFilterDropdown(menu, button, wrap);
+}
+
+/**
+ * Toggle invoice status filter dropdown
+ */
+function toggleInvoiceStatusFilter(event) {
+    event.stopPropagation();
+
+    closeOrderFilterDropdownMenus('invoiceStatusFilterMenu');
+
+    // Close if already open
+    const existingMenu = document.getElementById('invoiceStatusFilterMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const statuses = [
+        { value: 'all', label: 'Tất cả HĐĐT', icon: '📄' },
+        { value: 'exported', label: 'Đã xuất HĐĐT', icon: '✅' },
+        { value: 'not_exported', label: 'Chưa xuất HĐĐT', icon: '⏳' }
+    ];
+
+    const currentValue = document.getElementById('invoiceStatusFilter')?.value || 'all';
+    const button = event.currentTarget;
+    const wrap = button.parentElement;
+
+    const menu = document.createElement('div');
+    menu.id = 'invoiceStatusFilterMenu';
+    menu.className = 'bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px]';
+    menu.innerHTML = statuses.map(s => `
+        <button 
+            type="button"
+            onclick="selectInvoiceStatusFilter('${s.value}', '${s.label}')"
+            class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
+        >
+            <span class="text-lg flex-shrink-0">${s.icon}</span>
+            <span class="text-base text-gray-700 flex-1">${s.label}</span>
+            ${s.value === currentValue ? `
+                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            ` : ''}
+        </button>
+    `).join('');
+
+    attachOrderFilterDropdown(menu, button, wrap);
+}
+
+/**
+ * Select invoice status filter value
+ */
+function selectInvoiceStatusFilter(value, label) {
+    const filterInput = document.getElementById('invoiceStatusFilter');
+    const labelSpan = document.getElementById('invoiceStatusFilterLabel');
+    
+    if (filterInput) filterInput.value = value;
+    if (labelSpan) labelSpan.textContent = label;
+    
+    document.getElementById('invoiceStatusFilterMenu')?.remove();
+    filterOrdersData();
 }
 
 /**

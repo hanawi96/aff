@@ -94,3 +94,19 @@ const outFile = path.join(root, 'public/assets/js/admin-orders.bundle.min.js');
 fs.writeFileSync(outFile, result.code, 'utf8');
 const kb = (Buffer.byteLength(result.code, 'utf8') / 1024).toFixed(1);
 console.log(`OK: ${outFile} (${kb} KiB)`);
+
+// Auto-increment version in index.html
+const indexPath = path.join(root, 'public/admin/index.html');
+let indexContent = fs.readFileSync(indexPath, 'utf8');
+const versionRegex = /admin-orders\.bundle\.min\.js\?v=(\d+)/;
+const match = indexContent.match(versionRegex);
+
+if (match) {
+    const currentVersion = parseInt(match[1], 10);
+    const newVersion = currentVersion + 1;
+    indexContent = indexContent.replace(versionRegex, `admin-orders.bundle.min.js?v=${newVersion}`);
+    fs.writeFileSync(indexPath, indexContent, 'utf8');
+    console.log(`✓ Version updated: v=${currentVersion} → v=${newVersion}`);
+} else {
+    console.warn('⚠ Could not find version string in index.html');
+}

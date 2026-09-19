@@ -140,7 +140,7 @@ function createInvoiceExcelWorkbook(orders) {
             const row = createBlankInvoiceRow();
             row['MaHD'] = currentMaHD;
             row['NgayHoaDon'] = orderDate;
-            row['TenDonVi'] = 'Pancake/001096033681';
+            row['TenDonVi'] = '';
             row['TenNguoiMua'] = String(order.customer_name || '').trim();
             row['DiaChiKhachHang'] = buildFullAddress(order);
             row['MaHangHoa'] = String(order.id || order.order_id || 'SP');
@@ -156,7 +156,7 @@ function createInvoiceExcelWorkbook(orders) {
                 const row = createBlankInvoiceRow();
                 row['MaHD'] = currentMaHD;
                 row['NgayHoaDon'] = orderDate;
-                row['TenDonVi'] = 'Pancake/001096033681';
+                row['TenDonVi'] = '';
                 row['TenNguoiMua'] = String(order.customer_name || '').trim();
                 row['DiaChiKhachHang'] = buildFullAddress(order);
                 row['MaHangHoa'] = String(p.product_id || 'SP');
