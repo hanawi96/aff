@@ -988,6 +988,10 @@ async function bulkUpdateStatus(newStatus, statusLabel) {
                     if (Object.prototype.hasOwnProperty.call(data, 'shipped_at_unix')) {
                         patch.shipped_at_unix = data.shipped_at_unix;
                     }
+                    // Cập nhật trạng thái ưu tiên từ backend (đã gửi hàng → tự động bỏ ưu tiên)
+                    if (Object.prototype.hasOwnProperty.call(data, 'is_priority')) {
+                        patch.is_priority = data.is_priority;
+                    }
                     updateOrderData(orderId, patch);
                 } else {
                     failCount++;
@@ -1085,8 +1089,15 @@ async function confirmBulkToggleInvoiceStatus() {
         const toMark = []; // Đơn sẽ được đánh dấu
         const toUnmark = []; // Đơn sẽ bị bỏ đánh dấu
         const skipped = []; // Đơn đã xuất qua hệ thống (không thay đổi)
+        const pendingSkipped = []; // Đơn "Chờ gửi hàng" (không cho phép)
         
         for (const order of selectedOrders) {
+            // Bỏ qua đơn "Chờ gửi hàng"
+            if (order.status === 'pending') {
+                pendingSkipped.push(order);
+                continue;
+            }
+            
             const manualFlag = Number(order.manual_invoice_exported || 0);
             const systemExported = Number(order.invoice_exported_at || 0);
             
@@ -1105,7 +1116,15 @@ async function confirmBulkToggleInvoiceStatus() {
         const totalActions = toMark.length + toUnmark.length;
         
         if (totalActions === 0) {
-            showToast(`Tất cả ${skipped.length} đơn đã xuất qua hệ thống. Không có gì để thay đổi.`, 'info', 3000, TOAST_ID);
+            let message = '';
+            if (pendingSkipped.length > 0 && skipped.length > 0) {
+                message = `${pendingSkipped.length} đơn "Chờ gửi hàng" và ${skipped.length} đơn đã xuất qua hệ thống. Không có gì để thay đổi.`;
+            } else if (pendingSkipped.length > 0) {
+                message = `Tất cả ${pendingSkipped.length} đơn đang "Chờ gửi hàng". Không thể đánh dấu HĐĐT.`;
+            } else {
+                message = `Tất cả ${skipped.length} đơn đã xuất qua hệ thống. Không có gì để thay đổi.`;
+            }
+            showToast(message, 'info', 3000, TOAST_ID);
             closeBulkToggleInvoiceModal();
             confirmBtn.disabled = false;
             confirmBtn.textContent = 'Xác nhận toggle';
@@ -1182,6 +1201,7 @@ async function confirmBulkToggleInvoiceStatus() {
             if (toMark.length > 0) message += ` (${toMark.length} đánh dấu)`;
             if (toUnmark.length > 0) message += ` (${toUnmark.length} bỏ đánh dấu)`;
             if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
+            if (pendingSkipped.length > 0) message += ` · Bỏ qua ${pendingSkipped.length} đơn chờ gửi hàng`;
             showToast(message, 'success', 4000, TOAST_ID);
         } else {
             message = `⚠️ Thành công ${successCount}, thất bại ${failCount}`;

@@ -143,6 +143,12 @@ function syncOrderTableSelection() {
  */
 function getInvoiceExportedBadge(order) {
     console.log('[DEBUG] getInvoiceExportedBadge — orderId:', order.id, '| manual:', order.manual_invoice_exported, '| invoiceExportedAt:', order.invoice_exported_at, '| count:', order.invoice_exported_count);
+    
+    // Không hiển thị badge HĐĐT cho đơn "Chờ gửi hàng"
+    if (order.status === 'pending') {
+        return '';
+    }
+
     const manualFlag = Number(order.manual_invoice_exported || 0);
     const invoiceExportedAt = Number(order.invoice_exported_at || 0);
     const count = Number(order.invoice_exported_count || 0);
@@ -264,6 +270,13 @@ function openToggleInvoiceModal(orderId, currentIsExported, orderCode) {
     const newIsExported = !currentIsExported;
     const modal = document.getElementById('toggleInvoiceModal');
     if (!modal) return;
+
+    // Guard: Không cho phép toggle HĐĐT cho đơn "Chờ gửi hàng"
+    const order = allOrdersData.find(o => o.id === orderId);
+    if (order && order.status === 'pending') {
+        showToast('Không thể đánh dấu HĐĐT cho đơn "Chờ gửi hàng"', 'warning');
+        return;
+    }
 
     // Guard: không mở modal nếu đang xử lý đơn khác
     const confirmBtn = document.getElementById('toggleInvoiceConfirmBtn');

@@ -1120,6 +1120,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
         const nowMs = Date.now();
         // Từ chờ xử lý / đang xử lý / gửi sau → shipped: luôn ghi mốc gửi = now (tránh shipped_at cũ còn sót khi chưa NULL hết).
         // Các lần shipped khác: giữ COALESCE. pending/processing/cancelled: xóa mốc gửi.
+        // Khi chuyển sang "Đã gửi hàng": tự động BỎ đánh dấu ưu tiên (is_priority = 0)
         const row = await env.DB.prepare(`
             UPDATE orders
             SET status = ?1,
@@ -1132,9 +1133,13 @@ export async function updateOrderStatus(data, env, corsHeaders) {
                 planned_send_at_unix = CASE
                     WHEN status = 'send_later' AND ?1 <> 'send_later' THEN NULL
                     ELSE planned_send_at_unix
+                END,
+                is_priority = CASE
+                    WHEN ?1 = 'shipped' THEN 0
+                    ELSE is_priority
                 END
             WHERE id = ?3
-            RETURNING shipped_at_unix
+            RETURNING shipped_at_unix, is_priority
         `).bind(data.status, nowMs, data.orderId).first();
 
         if (!row) {
@@ -1149,7 +1154,8 @@ export async function updateOrderStatus(data, env, corsHeaders) {
         return jsonResponse({
             success: true,
             message: 'Đã cập nhật trạng thái đơn hàng',
-            shipped_at_unix: row.shipped_at_unix ?? null
+            shipped_at_unix: row.shipped_at_unix ?? null,
+            is_priority: row.is_priority ?? 0
         }, 200, corsHeaders);
 
     } catch (error) {
