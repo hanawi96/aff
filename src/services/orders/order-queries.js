@@ -128,6 +128,7 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
                    orders.created_at_unix, orders.shipped_at_unix, orders.planned_send_at_unix,
                    orders.customer_source,
                    ctv.commission_rate as ctv_commission_rate,
+                   COALESCE(orders.manual_invoice_exported, 0) AS manual_invoice_exported,
                    COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code

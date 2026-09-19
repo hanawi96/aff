@@ -128,7 +128,8 @@ function createInvoiceExcelWorkbook(orders) {
 
     orders.forEach(order => {
         const products = parseInvoiceOrderProducts(order.products);
-        const orderDate = formatInvoiceDateDDMMYYYY(order.created_at_unix || order.created_at || order.order_date);
+        // Ngày hóa đơn = ngày export file (hôm nay), không phải ngày đặt hàng
+        const orderDate = formatInvoiceDateDDMMYYYY(Date.now());
         const isBank = order.payment_method === 'bank_transfer' ||
             (typeof isOrderBankPayment === 'function' && isOrderBankPayment(order.payment_method));
         const paymentMethod = isBank ? 'CK' : 'TM';

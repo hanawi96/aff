@@ -1498,6 +1498,15 @@
                                     <span class="text-sm">Export</span>
                                 </button>
                                 
+                                <button onclick="bulkToggleInvoiceStatus()" 
+                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
+                                    title="Đánh dấu / Bỏ đánh dấu đã xuất HĐĐT">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-sm">Toggle HĐĐT</span>
+                                </button>
+
                                 <button onclick="bulkExportInvoice()" 
                                     class="px-4 py-2 bg-emerald-500/80 hover:bg-emerald-500 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-md"
                                     title="Export hóa đơn điện tử (MauUploadHD)">
@@ -1723,6 +1732,99 @@
         </div>
     </div>
 
+    <!-- Modal xác nhận toggle HĐĐT hàng loạt -->
+    <div id="bulkToggleInvoiceModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fadeIn"
+         style="background:rgba(15,23,42,.5);backdrop-filter:blur(4px)"
+         onclick="if(event.target===this)closeBulkToggleInvoiceModal()">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slideUp border border-gray-200 overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Header đơn giản: nền trắng, chỉ accent màu ở icon -->
+            <div class="px-6 pt-5 pb-4 border-b border-gray-100">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-base font-semibold text-gray-900 leading-tight">Toggle HĐĐT hàng loạt</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Đánh dấu thủ công</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeBulkToggleInvoiceModal()"
+                        class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+                        aria-label="Đóng">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Body -->
+            <div class="px-6 py-5">
+                <!-- Số đơn đang thao tác -->
+                <div class="mb-4 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    <p class="text-sm text-gray-700">
+                        Bạn đang thao tác với <span id="bulkToggleInvoiceCount" class="font-bold text-gray-900">0</span> đơn hàng. Hệ thống sẽ tự động phát hiện trạng thái hiện tại và toggle (đánh dấu / bỏ đánh dấu) cho từng đơn.
+                    </p>
+                </div>
+                
+                <!-- 3 trạng thái: layout gọn, icon tròn nhỏ bên trái -->
+                <div class="space-y-2 mb-4">
+                    <div class="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-100 rounded-lg">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-700">Đơn <strong class="text-emerald-700">chưa đánh dấu</strong> → đánh dấu <strong>đã xuất HĐĐT</strong></p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 px-3 py-2.5 bg-red-50 border border-red-100 rounded-lg">
+                        <div class="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-700">Đơn <strong class="text-red-700">đã đánh dấu</strong> (thủ công) → <strong>bỏ đánh dấu</strong></p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div class="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-700">Đơn <strong class="text-gray-700">đã xuất qua hệ thống</strong> → <strong>không thay đổi</strong></p>
+                    </div>
+                </div>
+                
+                <!-- Lưu ý gọn -->
+                <div class="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        Thao tác này chỉ <strong>đánh dấu thủ công</strong>, không tạo file HĐĐT. Đơn đã xuất qua hệ thống không bị ảnh hưởng.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer: button "Hủy" và "Xác nhận" đối lập rõ ràng -->
+            <div class="px-6 py-4 border-t border-gray-100 flex gap-3 bg-white">
+                <button onclick="closeBulkToggleInvoiceModal()"
+                    class="flex-1 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors">
+                    Hủy
+                </button>
+                <button id="bulkToggleInvoiceConfirmBtn" onclick="confirmBulkToggleInvoiceStatus()"
+                    class="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm">
+                    Xác nhận toggle
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Stats Modal -->
     <div id="quickStatsModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
          style="background:rgba(15,23,42,.45);backdrop-filter:blur(6px)"
@@ -1801,6 +1903,188 @@
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
     <script defer src="../assets/js/admin-orders.bundle.min.js?v=175"></script>
+    
+    <!-- Patch: Add missing bulkToggleInvoiceStatus function -->
+    <script>
+        /**
+         * Open modal xác nhận toggle HĐĐT hàng loạt
+         */
+        function bulkToggleInvoiceStatus() {
+            if (selectedOrderIds.size === 0) {
+                showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+                return;
+            }
+
+            const modal = document.getElementById('bulkToggleInvoiceModal');
+            const countEl = document.getElementById('bulkToggleInvoiceCount');
+            
+            if (!modal) {
+                console.error('Modal bulkToggleInvoiceModal not found');
+                return;
+            }
+            
+            if (countEl) {
+                countEl.textContent = selectedOrderIds.size;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        /**
+         * Close modal toggle HĐĐT hàng loạt
+         */
+        function closeBulkToggleInvoiceModal() {
+            const modal = document.getElementById('bulkToggleInvoiceModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Xác nhận toggle HĐĐT hàng loạt
+         */
+        async function confirmBulkToggleInvoiceStatus() {
+            const modal = document.getElementById('bulkToggleInvoiceModal');
+            const confirmBtn = document.getElementById('bulkToggleInvoiceConfirmBtn');
+            
+            if (!confirmBtn || confirmBtn.disabled) return;
+            
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Đang xử lý...';
+            
+            const TOAST_ID = 'bulk-toggle-invoice';
+            
+            try {
+                const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(Number(o.id)));
+                
+                if (selectedOrders.length === 0) {
+                    showToast('Không tìm thấy dữ liệu các đơn đã chọn', 'warning');
+                    closeBulkToggleInvoiceModal();
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Xác nhận toggle';
+                    return;
+                }
+                
+                // Phân loại đơn
+                const toMark = [];
+                const toUnmark = [];
+                const skipped = [];
+                
+                for (const order of selectedOrders) {
+                    const manualFlag = Number(order.manual_invoice_exported || 0);
+                    const systemExported = Number(order.invoice_exported_at || 0);
+                    
+                    if (systemExported > 0) {
+                        skipped.push(order);
+                    } else if (manualFlag === 1) {
+                        toUnmark.push(order);
+                    } else {
+                        toMark.push(order);
+                    }
+                }
+                
+                const totalActions = toMark.length + toUnmark.length;
+                
+                if (totalActions === 0) {
+                    showToast(`Tất cả ${skipped.length} đơn đã xuất qua hệ thống. Không có gì để thay đổi.`, 'info', 3000, TOAST_ID);
+                    closeBulkToggleInvoiceModal();
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Xác nhận toggle';
+                    return;
+                }
+                
+                showToast(`Đang toggle ${totalActions} đơn...`, 'info', 0, TOAST_ID);
+                
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const order of [...toMark, ...toUnmark]) {
+                    const shouldMark = toMark.includes(order);
+                    
+                    try {
+                        const response = await fetch(`${CONFIG.API_URL}?action=toggleInvoiceExportStatus`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'toggleInvoiceExportStatus',
+                                orderId: Number(order.id),
+                                isExported: shouldMark
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            successCount++;
+                            
+                            const idx = allOrdersData.findIndex(o => Number(o.id) === Number(order.id));
+                            if (idx >= 0) {
+                                allOrdersData[idx].invoice_exported_count = data.invoice_exported_count || 0;
+                                allOrdersData[idx].invoice_exported_at = data.invoice_exported_at || 0;
+                                allOrdersData[idx].last_invoice_export_id = data.last_invoice_export_id ?? null;
+                                allOrdersData[idx].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+                                allOrdersData[idx].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+                                allOrdersData[idx].manual_invoice_exported = shouldMark ? 1 : 0;
+                            }
+                            
+                            const idxF = filteredOrdersData.findIndex(o => Number(o.id) === Number(order.id));
+                            if (idxF >= 0) {
+                                filteredOrdersData[idxF].invoice_exported_count = data.invoice_exported_count || 0;
+                                filteredOrdersData[idxF].invoice_exported_at = data.invoice_exported_at || 0;
+                                filteredOrdersData[idxF].last_invoice_export_id = data.last_invoice_export_id ?? null;
+                                filteredOrdersData[idxF].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+                                filteredOrdersData[idxF].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+                                filteredOrdersData[idxF].manual_invoice_exported = shouldMark ? 1 : 0;
+                            }
+                        } else {
+                            failCount++;
+                            console.error(`Failed to toggle order ${order.id}:`, data.error);
+                        }
+                    } catch (err) {
+                        failCount++;
+                        console.error(`Error toggling order ${order.id}:`, err);
+                    }
+                }
+                
+                closeBulkToggleInvoiceModal();
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Xác nhận toggle';
+                
+                let message = '';
+                if (failCount === 0) {
+                    message = `✅ Đã toggle ${successCount} đơn`;
+                    if (toMark.length > 0) message += ` (${toMark.length} đánh dấu)`;
+                    if (toUnmark.length > 0) message += ` (${toUnmark.length} bỏ đánh dấu)`;
+                    if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
+                    showToast(message, 'success', 4000, TOAST_ID);
+                } else {
+                    message = `⚠️ Thành công ${successCount}, thất bại ${failCount}`;
+                    if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
+                    showToast(message, 'warning', 5000, TOAST_ID);
+                }
+                
+                clearSelection();
+                
+                if (typeof _writeOrdersCache === 'function') {
+                    _writeOrdersCache(allOrdersData);
+                }
+                
+                if (typeof filterOrdersData === 'function') {
+                    filterOrdersData(true);
+                }
+                
+                if (typeof updateInvoiceHistoryBadge === 'function') {
+                    updateInvoiceHistoryBadge();
+                }
+            } catch (err) {
+                console.error('Bulk toggle invoice error:', err);
+                showToast('Lỗi: ' + (err.message || err), 'error', 5000, TOAST_ID);
+                
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Xác nhận toggle';
+            }
+        }
+    </script>
 </body>
 
 </html>

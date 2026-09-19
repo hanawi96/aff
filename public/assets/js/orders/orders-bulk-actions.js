@@ -1015,6 +1015,207 @@ async function bulkUpdateStatus(newStatus, statusLabel) {
 }
 
 // ============================================
+// BULK INVOICE TOGGLE
+// ============================================
+
+/**
+ * Open modal xác nhận toggle HĐĐT hàng loạt
+ */
+function bulkToggleInvoiceStatus() {
+    if (selectedOrderIds.size === 0) {
+        showToast('Vui lòng chọn ít nhất một đơn hàng', 'warning');
+        return;
+    }
+
+    const modal = document.getElementById('bulkToggleInvoiceModal');
+    const countEl = document.getElementById('bulkToggleInvoiceCount');
+    
+    if (!modal) {
+        console.error('Modal bulkToggleInvoiceModal not found');
+        return;
+    }
+    
+    if (countEl) {
+        countEl.textContent = selectedOrderIds.size;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Close modal toggle HĐĐT hàng loạt
+ */
+function closeBulkToggleInvoiceModal() {
+    const modal = document.getElementById('bulkToggleInvoiceModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Xác nhận toggle HĐĐT hàng loạt
+ * Logic thông minh:
+ * - Đơn chưa đánh dấu (manual_invoice_exported=0 và invoice_exported_at=0) → đánh dấu
+ * - Đơn đã đánh dấu thủ công (manual_invoice_exported=1 và invoice_exported_at=0) → bỏ đánh dấu
+ * - Đơn đã xuất qua hệ thống (invoice_exported_at>0) → bỏ qua (không thay đổi)
+ */
+async function confirmBulkToggleInvoiceStatus() {
+    const modal = document.getElementById('bulkToggleInvoiceModal');
+    const confirmBtn = document.getElementById('bulkToggleInvoiceConfirmBtn');
+    
+    if (!confirmBtn || confirmBtn.disabled) return;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Đang xử lý...';
+    
+    const TOAST_ID = 'bulk-toggle-invoice';
+    
+    try {
+        const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(Number(o.id)));
+        
+        if (selectedOrders.length === 0) {
+            showToast('Không tìm thấy dữ liệu các đơn đã chọn', 'warning');
+            closeBulkToggleInvoiceModal();
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Xác nhận toggle';
+            return;
+        }
+        
+        // Phân loại đơn
+        const toMark = []; // Đơn sẽ được đánh dấu
+        const toUnmark = []; // Đơn sẽ bị bỏ đánh dấu
+        const skipped = []; // Đơn đã xuất qua hệ thống (không thay đổi)
+        
+        for (const order of selectedOrders) {
+            const manualFlag = Number(order.manual_invoice_exported || 0);
+            const systemExported = Number(order.invoice_exported_at || 0);
+            
+            if (systemExported > 0) {
+                // Đã xuất qua hệ thống → bỏ qua
+                skipped.push(order);
+            } else if (manualFlag === 1) {
+                // Đã đánh dấu thủ công → bỏ đánh dấu
+                toUnmark.push(order);
+            } else {
+                // Chưa đánh dấu → đánh dấu
+                toMark.push(order);
+            }
+        }
+        
+        const totalActions = toMark.length + toUnmark.length;
+        
+        if (totalActions === 0) {
+            showToast(`Tất cả ${skipped.length} đơn đã xuất qua hệ thống. Không có gì để thay đổi.`, 'info', 3000, TOAST_ID);
+            closeBulkToggleInvoiceModal();
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Xác nhận toggle';
+            return;
+        }
+        
+        showToast(`Đang toggle ${totalActions} đơn...`, 'info', 0, TOAST_ID);
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        // Xử lý từng đơn
+        for (const order of [...toMark, ...toUnmark]) {
+            const shouldMark = toMark.includes(order);
+            
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=toggleInvoiceExportStatus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'toggleInvoiceExportStatus',
+                        orderId: Number(order.id),
+                        isExported: shouldMark
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successCount++;
+                    
+                    // Cập nhật local data
+                    const idx = allOrdersData.findIndex(o => Number(o.id) === Number(order.id));
+                    if (idx >= 0) {
+                        allOrdersData[idx].invoice_exported_count = data.invoice_exported_count || 0;
+                        allOrdersData[idx].invoice_exported_at = data.invoice_exported_at || 0;
+                        allOrdersData[idx].last_invoice_export_id = data.last_invoice_export_id ?? null;
+                        allOrdersData[idx].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+                        allOrdersData[idx].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+                        allOrdersData[idx].manual_invoice_exported = shouldMark ? 1 : 0;
+                    }
+                    
+                    // Cập nhật filteredOrdersData
+                    const idxF = filteredOrdersData.findIndex(o => Number(o.id) === Number(order.id));
+                    if (idxF >= 0) {
+                        filteredOrdersData[idxF].invoice_exported_count = data.invoice_exported_count || 0;
+                        filteredOrdersData[idxF].invoice_exported_at = data.invoice_exported_at || 0;
+                        filteredOrdersData[idxF].last_invoice_export_id = data.last_invoice_export_id ?? null;
+                        filteredOrdersData[idxF].last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
+                        filteredOrdersData[idxF].last_invoice_downloaded_at = data.last_invoice_downloaded_at ?? null;
+                        filteredOrdersData[idxF].manual_invoice_exported = shouldMark ? 1 : 0;
+                    }
+                } else {
+                    failCount++;
+                    console.error(`Failed to toggle order ${order.id}:`, data.error);
+                }
+            } catch (err) {
+                failCount++;
+                console.error(`Error toggling order ${order.id}:`, err);
+            }
+        }
+        
+        // Đóng modal
+        closeBulkToggleInvoiceModal();
+        
+        // Reset button
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Xác nhận toggle';
+        
+        // Hiển thị kết quả
+        let message = '';
+        if (failCount === 0) {
+            message = `✅ Đã toggle ${successCount} đơn`;
+            if (toMark.length > 0) message += ` (${toMark.length} đánh dấu)`;
+            if (toUnmark.length > 0) message += ` (${toUnmark.length} bỏ đánh dấu)`;
+            if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
+            showToast(message, 'success', 4000, TOAST_ID);
+        } else {
+            message = `⚠️ Thành công ${successCount}, thất bại ${failCount}`;
+            if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
+            showToast(message, 'warning', 5000, TOAST_ID);
+        }
+        
+        // Clear selection
+        clearSelection();
+        
+        // Cập nhật cache
+        if (typeof _writeOrdersCache === 'function') {
+            _writeOrdersCache(allOrdersData);
+        }
+        
+        // Re-render bảng
+        if (typeof filterOrdersData === 'function') {
+            filterOrdersData(true);
+        }
+        
+        // Re-render badge HDDT
+        if (typeof updateInvoiceHistoryBadge === 'function') {
+            updateInvoiceHistoryBadge();
+        }
+    } catch (err) {
+        console.error('Bulk toggle invoice error:', err);
+        showToast('Lỗi: ' + (err.message || err), 'error', 5000, TOAST_ID);
+        
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Xác nhận toggle';
+    }
+}
+
+// ============================================
 // BULK DELETE
 // ============================================
 

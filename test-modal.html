@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modal Toggle HĐĐT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">Test Modal Toggle HĐĐT</h1>
+        
+        <button onclick="testShowModal()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+            Test: Hiện Modal
+        </button>
+        
+        <div class="mt-4 p-4 bg-gray-50 rounded">
+            <h2 class="font-semibold mb-2">Console Log:</h2>
+            <pre id="log" class="text-xs"></pre>
+        </div>
+    </div>
+
+    <!-- Modal from index.html -->
+    <div id="bulkToggleInvoiceModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fadeIn"
+         style="background:rgba(15,23,42,.45);backdrop-filter:blur(4px)"
+         onclick="if(event.target===this)closeBulkToggleInvoiceModal()">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slideUp" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-bold text-gray-900">Toggle HĐĐT hàng loạt</h3>
+                            <p class="text-sm text-gray-500">Đánh dấu thủ công</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeBulkToggleInvoiceModal()"
+                        class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <p class="text-sm text-gray-700 mb-4">
+                    Bạn đang thao tác với <span id="bulkToggleInvoiceCount" class="font-bold text-teal-600">5</span> đơn hàng
+                </p>
+                <div class="text-sm text-gray-600">
+                    <p>✅ Đơn chưa đánh dấu → sẽ được đánh dấu đã xuất HĐĐT</p>
+                    <p>❌ Đơn đã đánh dấu (thủ công) → sẽ bị bỏ đánh dấu</p>
+                    <p>🛡️ Đơn đã xuất qua hệ thống → không thay đổi</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex gap-3">
+                <button onclick="closeBulkToggleInvoiceModal()"
+                    class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">
+                    Hủy
+                </button>
+                <button onclick="log('Confirmed!')"
+                    class="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium hover:bg-teal-700">
+                    Xác nhận toggle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        const selectedOrderIds = new Set([1, 2, 3, 4, 5]); // Mock data
+        
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${msg}\n`;
+            console.log(msg);
+        }
+        
+        function testShowModal() {
+            log('testShowModal() called');
+            bulkToggleInvoiceStatus();
+        }
+        
+        function bulkToggleInvoiceStatus() {
+            log('bulkToggleInvoiceStatus() called');
+            log('selectedOrderIds.size = ' + selectedOrderIds.size);
+            
+            if (selectedOrderIds.size === 0) {
+                log('ERROR: No orders selected');
+                return;
+            }
+
+            const modal = document.getElementById('bulkToggleInvoiceModal');
+            const countEl = document.getElementById('bulkToggleInvoiceCount');
+            
+            log('modal element: ' + (modal ? 'found' : 'NOT FOUND'));
+            log('countEl element: ' + (countEl ? 'found' : 'NOT FOUND'));
+            
+            if (!modal) {
+                log('ERROR: Modal element not found!');
+                return;
+            }
+            
+            if (countEl) {
+                countEl.textContent = selectedOrderIds.size;
+                log('Set count to: ' + selectedOrderIds.size);
+            }
+            
+            log('Removing "hidden" class...');
+            modal.classList.remove('hidden');
+            log('Modal classes after remove: ' + modal.className);
+            log('Modal should be visible now!');
+        }
+        
+        function closeBulkToggleInvoiceModal() {
+            log('closeBulkToggleInvoiceModal() called');
+            const modal = document.getElementById('bulkToggleInvoiceModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                log('Modal hidden');
+            }
+        }
+        
+        log('Test page loaded. Click button to test modal.');
+    </script>
+</body>
+</html>
