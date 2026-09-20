@@ -142,11 +142,11 @@ export function renderProducts(products, containerId) {
         // Container not ready yet - silently return
         return;
     }
-    
+
     if (products.length === 0) {
         container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">Không tìm thấy sản phẩm nào.</p>';
         return;
     }
-    
+
     container.innerHTML = products.map(createProductCard).join('');
 }

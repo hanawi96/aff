@@ -3665,11 +3665,291 @@ body {
     background: #fafafa;
     display: block;
     padding: 1rem;
+    border-radius: 6px;
 }
 
 .image-preview-image-wrapper {
     position: relative;
     cursor: pointer;
+}
+
+/* ============================================
+   IMAGE CAROUSEL SLIDER
+   Professional, smooth, touch-friendly carousel
+   ============================================ */
+
+.image-carousel-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #fafafa;
+    border-radius: 12px 12px 0 0;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
+}
+
+.image-carousel-track {
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+}
+
+.image-carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    position: relative;
+}
+
+.image-carousel-slide img {
+    width: 100%;
+    height: auto;
+    max-height: 450px;
+    object-fit: contain;
+    display: block;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 6px;
+}
+
+/* Carousel Arrows */
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    z-index: 10;
+}
+
+.carousel-arrow svg {
+    width: 20px;
+    height: 20px;
+    color: #333;
+}
+
+.carousel-arrow:hover {
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.carousel-arrow-prev {
+    left: 12px;
+}
+
+.carousel-arrow-next {
+    right: 12px;
+}
+
+/* Show arrows on hover for desktop */
+@media (hover: hover) {
+    .image-carousel-container:hover .carousel-arrow {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Always show arrows on mobile */
+@media (max-width: 768px) {
+    .carousel-arrow {
+        opacity: 0.85;
+        visibility: visible;
+        width: 38px;
+        height: 38px;
+    }
+    
+    .carousel-arrow-prev {
+        left: 8px;
+    }
+    
+    .carousel-arrow-next {
+        right: 8px;
+    }
+}
+
+/* Carousel Dots */
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.02), transparent);
+}
+
+.carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: #d1d5db;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.carousel-dot::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+}
+
+.carousel-dot:hover {
+    background: #9ca3af;
+    transform: scale(1.2);
+}
+
+.carousel-dot.active {
+    background: linear-gradient(135deg, #e76f51, #f4a261);
+    width: 24px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(231, 111, 81, 0.4);
+}
+
+/* Carousel Counter */
+.carousel-counter {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 16px;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-carousel-container:hover .carousel-counter {
+    opacity: 1;
+}
+
+/* Zoom Hint - Carousel specific */
+.carousel-zoom-hint {
+    position: absolute;
+    bottom: 60px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+}
+
+.carousel-zoom-hint.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.carousel-zoom-hint svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Process Badge */
+.carousel-process-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #e76f51, #f4a261);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(231, 111, 81, 0.4);
+    z-index: 10;
+    animation: slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.carousel-process-badge.show {
+    display: flex;
+}
+
+.carousel-process-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Swipe indicator animation */
+@keyframes swipeHint {
+    0%, 100% { opacity: 0.6; transform: translateX(0); }
+    50% { opacity: 1; transform: translateX(8px); }
+}
+
+.swipe-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 0.75rem;
+    opacity: 0;
+    animation: fadeInUp 0.5s ease 0.5s forwards;
+    pointer-events: none;
+}
+
+.swipe-hint svg {
+    width: 16px;
+    height: 16px;
+    animation: swipeHint 2s ease-in-out infinite;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 /* Product Pricing Section - Handmade Style */
@@ -3981,7 +4261,7 @@ body {
     border: 1px solid #ffe5df;
     border-radius: 12px;
     margin-bottom: 0.75rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: #2c3e50;
 }
 
@@ -4006,7 +4286,7 @@ body {
     border: 1.5px solid #86efac;
     border-radius: 12px;
     margin-bottom: 0.75rem;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.6;
     color: #166534;
 }
@@ -4033,7 +4313,7 @@ body {
     border: 1.5px solid #fbbf24;
     border-radius: 12px;
     margin-bottom: 0.75rem;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.6;
     color: #78350f;
 }
@@ -4060,7 +4340,7 @@ body {
     border: 1.5px solid #a78bfa;
     border-radius: 12px;
     margin-bottom: 0.75rem;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.6;
     color: #4c1d95;
 }
@@ -4085,7 +4365,7 @@ body {
     padding: 0.875rem 1rem;
     border-radius: 12px;
     margin-bottom: 1.25rem;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.6;
 }
 
@@ -4135,7 +4415,7 @@ body {
     border: 1.5px solid #38bdf8;
     border-radius: 12px;
     margin-top: 1.25rem;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.6;
     color: #075985;
 }
@@ -4178,7 +4458,7 @@ body {
     margin-bottom: 0.875rem;
     color: #e76f51;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .materials-header svg {
@@ -4201,7 +4481,7 @@ body {
     background: white;
     border: 1px solid #e5e5e5;
     border-radius: 16px;
-    font-size: 0.8125rem;
+    font-size: 1rem;
     color: #2c3e50;
     transition: all 0.2s ease;
 }
@@ -4234,6 +4514,18 @@ body {
     padding: 1.5rem;
     color: #95a5a6;
     font-size: 0.875rem;
+}
+
+.materials-note {
+    margin: 0.75rem 0 0;
+    padding: 0.625rem 0.75rem;
+    background: #fff8f6;
+    border-left: 3px solid #e76f51;
+    border-radius: 4px;
+    color: #6b5a52;
+    font-size: 1rem;
+    line-height: 1.45;
+    font-style: italic;
 }
 
 /* ============================================
@@ -4546,7 +4838,7 @@ body {
     }
 
     .product-gender-info {
-        font-size: 0.8125rem;
+        font-size: 0.875rem;
         padding: 0.5rem 0.875rem;
         margin-bottom: 0.625rem;
     }
@@ -4621,7 +4913,7 @@ body {
     }
 
     .materials-header {
-        font-size: 0.8125rem;
+        font-size: 0.875rem;
     }
 
     .image-preview-actions {
@@ -7568,7 +7860,7 @@ body {
     border: 1px solid #e5e7eb;
     border-radius: 14px;
     color: #111827;
-    font-size: 0.875rem;
+    font-size: 1rem;
     line-height: 1.55;
 }
 

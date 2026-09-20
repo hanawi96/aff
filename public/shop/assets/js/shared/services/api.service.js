@@ -91,7 +91,7 @@ class ApiService {
     async get(endpoint, params = {}) {
         const url = new URL(`${this.baseURL}${endpoint}`);
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-        
+
         try {
             const response = await fetch(url);
             if (!response.ok) {
@@ -194,7 +194,7 @@ class ApiService {
                 hasMore: Boolean(data.hasMore)
             };
         } catch (err) {
-            console.warn('getProductsPage request failed:', err?.message || err);
+            console.warn('📦 getProductsPage failed, falling back to client pagination:', err?.message || err);
             this._shopUseClientPagination = true;
             return await fallbackFromFullCatalog();
         }

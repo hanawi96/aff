@@ -23,6 +23,31 @@ const debounce = (func, wait) => {
 };
 
 // ============================================
+// IMAGE CAROUSEL STATE
+// ============================================
+
+const _carouselState = {
+    images: [],
+    currentIndex: 0,
+    isDragging: false,
+    startX: 0,
+    currentX: 0,
+    dragOffset: 0,
+    track: null,
+    isInitialized: false
+};
+
+// Process image labels for carousel
+const _processImageLabels = [
+    'Chọn nguyên liệu',
+    'Bóc dâu tằm',
+    'Phơi khô',
+    'Mài nhỏ cành',
+    'Mài mịn viền',
+    'Xỏ vòng'
+];
+
+// ============================================
 // PRODUCT DETAIL MODAL - Main Entry Point
 // Opens modal from any trigger (card click, URL, etc.)
 // ============================================
@@ -125,68 +150,446 @@ function _buildCleanUrl() {
  */
 async function _openProductDetailModal(product, priceData) {
     const modal = document.getElementById('imagePreviewModal');
-    const img = document.getElementById('imagePreviewImg');
     const title = document.getElementById('imagePreviewTitle');
     const headerTitle = document.getElementById('imagePreviewHeaderTitle');
     const materialsContainer = document.getElementById('imagePreviewMaterials');
-    const imageWrapper = document.getElementById('imagePreviewImageWrapper');
     const productDetailSection = document.getElementById('productDetailSection');
-    const zoomHint = document.querySelector('.image-zoom-hint');
 
-    if (!modal || !img) return;
+    if (!modal) return;
 
     // Cleanup previous event listeners
     eventManager.remove('imagePreview');
     eventManager.removeController('imagePreviewEsc');
     eventManager.removeController('imagePreviewClick');
+    eventManager.remove('imageCarousel');
 
     // --- SETUP MODAL CONTENT ---
 
-    // 1. Set image
-    img.src = product.image_url || CONFIG.DEFAULT_IMAGE;
-    img.alt = product.name;
-    img.loading = 'eager';
+    // 1. Build carousel with product image + process images
+    _buildImageCarousel(product);
 
     // 2. Set titles
     const displayName = product.name || 'Sản phẩm';
     if (title) title.textContent = displayName;
     if (headerTitle) headerTitle.textContent = displayName;
 
-    // 3. Show zoom hint (now means "Xem chi tiết" more than zoom)
-    if (zoomHint) {
-        zoomHint.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-            </svg>
-            <span>Chạm để phóng to</span>
-        `;
-    }
-
-    // 4. Update pricing
+    // 3. Update pricing
     _updatePricingDisplay(priceData);
 
-    // 5. Show product detail info (categories, stock, SKU)
+    // 4. Show product detail info (categories, stock, SKU)
     _updateProductDetailSection(product);
 
-    // 6. Show modal FIRST (before async operations)
+    // 5. Show modal FIRST (before async operations)
     modal.classList.add('active');
     modal.dataset.productId = product.id;
     document.body.style.overflow = 'hidden'; // Prevent background scroll
 
-    // 7. Setup mobile fullscreen viewer
-    _setupFullscreenImageViewer(imageWrapper, product.image_url || CONFIG.DEFAULT_IMAGE, product.name);
+    // 6. Setup carousel events (touch, click, keyboard)
+    _setupCarouselEvents();
 
-    // 8. Setup action buttons
+    // 7. Setup action buttons
     _setupPreviewButtons(product.id);
 
-    // 9. Add share button to header
+    // 8. Add share button to header
     _setupShareButton(product);
 
-    // 10. Load materials async
+    // 9. Load materials async
     if (product.id) {
         await _loadProductMaterials(product.id, materialsContainer);
     } else {
         materialsContainer.innerHTML = '';
+    }
+}
+
+/**
+ * Build the image carousel with product image + process images
+ */
+function _buildImageCarousel(product) {
+    const track = document.getElementById('imageCarouselTrack');
+    const dotsContainer = document.getElementById('carouselDots');
+    const totalCount = document.getElementById('carouselTotalCount');
+    const currentIdx = document.getElementById('carouselCurrentIdx');
+    if (!track) return;
+
+    // Build images array - product image first, then process images
+    const productImage = product.image_url || CONFIG.DEFAULT_IMAGE;
+    const images = [
+        {
+            url: productImage,
+            alt: product.name,
+            label: 'Sản phẩm',
+            type: 'product',
+            index: 0
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/1.webp',
+            alt: 'Chọn nguyên liệu',
+            label: 'Chọn nguyên liệu',
+            type: 'process',
+            index: 1
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/2.webp',
+            alt: 'Bóc dâu tằm',
+            label: 'Bóc dâu tằm',
+            type: 'process',
+            index: 2
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/3.webp',
+            alt: 'Phơi khô',
+            label: 'Phơi khô',
+            type: 'process',
+            index: 3
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/4.webp',
+            alt: 'Mài nhỏ cành',
+            label: 'Mài nhỏ cành',
+            type: 'process',
+            index: 4
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/5.webp',
+            alt: 'Mài mịn viền',
+            label: 'Mài mịn viền',
+            type: 'process',
+            index: 5
+        },
+        {
+            url: '/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp',
+            alt: 'Xỏ vòng - Thành phẩm',
+            label: 'Xỏ vòng - Thành phẩm',
+            type: 'process',
+            index: 6
+        }
+    ];
+
+    _carouselState.images = images;
+    _carouselState.currentIndex = 0;
+
+    // Build slides HTML
+    track.innerHTML = images.map((img, idx) => `
+        <div class="image-carousel-slide" data-index="${idx}" data-type="${img.type}">
+            <img src="${img.url}"
+                 alt="${img.alt}"
+                 data-image-url="${img.url}"
+                 data-image-name="${img.alt}"
+                 loading="${idx === 0 ? 'eager' : 'lazy'}"
+                 onerror="if(this.dataset.fallback){return}this.dataset.fallback='1';this.src='${CONFIG.DEFAULT_IMAGE}'">
+        </div>
+    `).join('');
+
+    // Build dots
+    if (dotsContainer) {
+        dotsContainer.innerHTML = images.map((_, idx) => `
+            <button class="carousel-dot ${idx === 0 ? 'active' : ''}"
+                    data-dot-index="${idx}"
+                    aria-label="Chuyển đến ảnh ${idx + 1}"></button>
+        `).join('');
+    }
+
+    // Update counter
+    if (totalCount) totalCount.textContent = images.length;
+    if (currentIdx) currentIdx.textContent = 1;
+
+    // Update state reference
+    _carouselState.track = track;
+
+    // Reset transform
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
+    // Force reflow then re-enable transition
+    void track.offsetWidth;
+    track.style.transition = '';
+
+    // Initial UI update
+    _updateCarouselUI(0);
+}
+
+/**
+ * Setup carousel events - touch swipe, click navigation, keyboard, fullscreen
+ */
+function _setupCarouselEvents() {
+    const container = document.getElementById('imageCarouselContainer');
+    const prevBtn = document.getElementById('carouselPrevBtn');
+    const nextBtn = document.getElementById('carouselNextBtn');
+    const dotsContainer = document.getElementById('carouselDots');
+
+    if (!container) return;
+
+    // Arrow buttons
+    if (prevBtn) {
+        eventManager.add('imageCarousel', prevBtn, 'click', (e) => {
+            e.stopPropagation();
+            _goToSlide(_carouselState.currentIndex - 1);
+        });
+    }
+
+    if (nextBtn) {
+        eventManager.add('imageCarousel', nextBtn, 'click', (e) => {
+            e.stopPropagation();
+            _goToSlide(_carouselState.currentIndex + 1);
+        });
+    }
+
+    // Dot clicks
+    if (dotsContainer) {
+        eventManager.add('imageCarousel', dotsContainer, 'click', (e) => {
+            const dot = e.target.closest('.carousel-dot');
+            if (!dot) return;
+            const idx = parseInt(dot.dataset.dotIndex, 10);
+            if (!isNaN(idx)) _goToSlide(idx);
+        });
+    }
+
+    // Touch swipe events
+    _setupTouchSwipe(container);
+
+    // Click to fullscreen (only on current image)
+    eventManager.add('imageCarousel', container, 'click', (e) => {
+        // Don't open fullscreen if clicking arrows or dots
+        if (e.target.closest('.carousel-arrow') || e.target.closest('.carousel-dot')) return;
+
+        const currentImg = container.querySelector(`.image-carousel-slide[data-index="${_carouselState.currentIndex}"] img`);
+        if (currentImg) {
+            _openFullscreenImage(currentImg.dataset.imageUrl, currentImg.dataset.imageName);
+        }
+    });
+}
+
+/**
+ * Setup touch swipe gestures for the carousel
+ */
+function _setupTouchSwipe(container) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    eventManager.add('imageCarousel', container, 'touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        currentX = startX;
+        isDragging = true;
+        container.style.transition = 'none';
+
+        if (_carouselState.track) {
+            _carouselState.track.style.transition = 'none';
+        }
+    }, { passive: true });
+
+    eventManager.add('imageCarousel', container, 'touchmove', (e) => {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+
+        // Apply transform with drag offset
+        if (_carouselState.track && _carouselState.images.length > 0) {
+            const slideWidth = container.offsetWidth || 1;
+            const baseOffset = -_carouselState.currentIndex * slideWidth;
+            const offset = Math.max(
+                -slideWidth * 0.3,
+                Math.min(slideWidth * 0.3, diff)
+            );
+            _carouselState.track.style.transform = `translateX(${baseOffset + offset}px)`;
+            _carouselState.dragOffset = offset;
+        }
+    }, { passive: true });
+
+    eventManager.add('imageCarousel', container, 'touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        const diff = currentX - startX;
+        const threshold = 50; // Min drag distance to trigger slide change
+
+        if (_carouselState.track) {
+            // Re-enable transition for smooth snap
+            _carouselState.track.style.transition = '';
+            _carouselState.dragOffset = 0;
+
+            if (Math.abs(diff) > threshold) {
+                if (diff > 0) {
+                    _goToSlide(_carouselState.currentIndex - 1);
+                } else {
+                    _goToSlide(_carouselState.currentIndex + 1);
+                }
+            } else {
+                // Snap back to current
+                _goToSlide(_carouselState.currentIndex);
+            }
+        }
+    }, { passive: true });
+
+    // Mouse drag for desktop testing
+    let mouseStartX = 0;
+    let mouseCurrentX = 0;
+    let isMouseDragging = false;
+
+    eventManager.add('imageCarousel', container, 'mousedown', (e) => {
+        // Only left click, ignore if clicking arrows/dots
+        if (e.button !== 0) return;
+        if (e.target.closest('.carousel-arrow') || e.target.closest('.carousel-dot')) return;
+
+        mouseStartX = e.clientX;
+        mouseCurrentX = mouseStartX;
+        isMouseDragging = true;
+        container.style.cursor = 'grabbing';
+
+        if (_carouselState.track) {
+            _carouselState.track.style.transition = 'none';
+        }
+
+        e.preventDefault();
+    });
+
+    eventManager.add('imageCarousel', document, 'mousemove', (e) => {
+        if (!isMouseDragging) return;
+        mouseCurrentX = e.clientX;
+        const diff = mouseCurrentX - mouseStartX;
+
+        if (_carouselState.track && _carouselState.images.length > 0) {
+            const slideWidth = container.offsetWidth || 1;
+            const baseOffset = -_carouselState.currentIndex * slideWidth;
+            const offset = Math.max(
+                -slideWidth * 0.3,
+                Math.min(slideWidth * 0.3, diff)
+            );
+            _carouselState.track.style.transform = `translateX(${baseOffset + offset}px)`;
+        }
+    });
+
+    eventManager.add('imageCarousel', document, 'mouseup', () => {
+        if (!isMouseDragging) return;
+        isMouseDragging = false;
+        container.style.cursor = '';
+
+        const diff = mouseCurrentX - mouseStartX;
+        const threshold = 50;
+
+        if (_carouselState.track) {
+            _carouselState.track.style.transition = '';
+        }
+
+        if (Math.abs(diff) > threshold) {
+            if (diff > 0) {
+                _goToSlide(_carouselState.currentIndex - 1);
+            } else {
+                _goToSlide(_carouselState.currentIndex + 1);
+            }
+        } else {
+            _goToSlide(_carouselState.currentIndex);
+        }
+    });
+
+    // Keyboard navigation (when modal is open)
+    const modal = document.getElementById('imagePreviewModal');
+    if (modal) {
+        const keyHandler = (e) => {
+            if (!modal.classList.contains('active')) return;
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                _goToSlide(_carouselState.currentIndex - 1);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                _goToSlide(_carouselState.currentIndex + 1);
+            }
+        };
+
+        eventManager.add('imageCarousel', document, 'keydown', keyHandler);
+    }
+}
+
+/**
+ * Go to a specific slide index
+ */
+function _goToSlide(index) {
+    const total = _carouselState.images.length;
+    if (total === 0) return;
+
+    // Clamp index
+    if (index < 0) index = 0;
+    if (index >= total) index = total - 1;
+
+    _carouselState.currentIndex = index;
+
+    const track = _carouselState.track;
+    const container = document.getElementById('imageCarouselContainer');
+    if (!track || !container) return;
+
+    const slideWidth = container.offsetWidth || 1;
+    track.style.transform = `translateX(-${index * slideWidth}px)`;
+
+    // Update UI (dots, counter, badges)
+    _updateCarouselUI(index);
+}
+
+/**
+ * Update carousel UI (dots, counter, badges)
+ */
+function _updateCarouselUI(index) {
+    const currentImg = _carouselState.images[index];
+    if (!currentImg) return;
+
+    // Update dots
+    const dots = document.querySelectorAll('.carousel-dot');
+    dots.forEach((dot, idx) => {
+        if (idx === index) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+
+    // Update counter
+    const currentIdxEl = document.getElementById('carouselCurrentIdx');
+    if (currentIdxEl) currentIdxEl.textContent = index + 1;
+
+    // Show/hide zoom hint (only for product image - first slide)
+    const zoomHint = document.querySelector('.carousel-zoom-hint');
+    if (zoomHint) {
+        if (currentImg.type === 'product') {
+            zoomHint.classList.add('show');
+        } else {
+            zoomHint.classList.remove('show');
+        }
+    }
+
+    // Show/hide process badge (only for process images)
+    const processBadge = document.getElementById('carouselProcessBadge');
+    const processLabel = document.getElementById('carouselProcessLabel');
+    if (processBadge) {
+        if (currentImg.type === 'process') {
+            processBadge.classList.add('show');
+            if (processLabel) processLabel.textContent = `Quy trình ${index}/6: ${currentImg.label}`;
+        } else {
+            processBadge.classList.remove('show');
+        }
+    }
+
+    // Show/hide arrows on first/last slide
+    const prevBtn = document.getElementById('carouselPrevBtn');
+    const nextBtn = document.getElementById('carouselNextBtn');
+    const total = _carouselState.images.length;
+
+    if (prevBtn) {
+        if (index === 0) {
+            prevBtn.style.opacity = '0.4';
+            prevBtn.style.pointerEvents = 'none';
+        } else {
+            prevBtn.style.opacity = '';
+            prevBtn.style.pointerEvents = '';
+        }
+    }
+
+    if (nextBtn) {
+        if (index === total - 1) {
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.pointerEvents = 'none';
+        } else {
+            nextBtn.style.opacity = '';
+            nextBtn.style.pointerEvents = '';
+        }
     }
 }
 
@@ -381,8 +784,17 @@ window.closeImagePreview = function(fromPopstate = false) {
     eventManager.remove('previewButtons');
     eventManager.remove('fullscreenClick');
     eventManager.remove('shareButton');
+    eventManager.remove('imageCarousel');
+    eventManager.remove('quyTrinhClick');
+    eventManager.remove('benefitsClick');
     eventManager.removeController('imagePreviewEsc');
     eventManager.removeController('imagePreviewClick');
+
+    // Reset carousel state
+    _carouselState.currentIndex = 0;
+    _carouselState.dragOffset = 0;
+    _carouselState.images = [];
+    _carouselState.isDragging = false;
 
     // Sync URL back to clean URL (only if opening from product param)
     const url = new URL(window.location.href);
@@ -393,6 +805,32 @@ window.closeImagePreview = function(fromPopstate = false) {
         }
     }
 };
+
+// Handle window resize to keep carousel position correct
+let _carouselResizeHandler = null;
+function _setupCarouselResize() {
+    if (_carouselResizeHandler) {
+        window.removeEventListener('resize', _carouselResizeHandler);
+    }
+
+    let resizeTimer;
+    _carouselResizeHandler = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const modal = document.getElementById('imagePreviewModal');
+            if (modal && modal.classList.contains('active')) {
+                _goToSlide(_carouselState.currentIndex);
+            }
+        }, 150);
+    };
+
+    window.addEventListener('resize', _carouselResizeHandler, { passive: true });
+}
+
+// Initialize resize handler once
+if (typeof window !== 'undefined') {
+    _setupCarouselResize();
+}
 
 /**
  * Handle browser back/forward button.
@@ -690,6 +1128,13 @@ function _renderMaterials(materials, container) {
     });
 
     fragment.appendChild(list);
+
+    // Lưu ý về số lượng nguyên liệu
+    const note = document.createElement('p');
+    note.className = 'materials-note';
+    note.textContent = 'Số lượng nguyên liệu đôi khi sẽ có thay đổi, khác biệt với trong ảnh tùy theo cân nặng bé';
+    fragment.appendChild(note);
+
     container.innerHTML = '';
     container.appendChild(fragment);
 }

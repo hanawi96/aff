@@ -2127,15 +2127,46 @@
             
             <!-- Scrollable Content Area (like cart-items) -->
             <div class="image-preview-scroll-area">
-                <!-- Image Container with Zoom Hint -->
-                <div class="image-preview-image-wrapper" id="imagePreviewImageWrapper">
-                    <img id="imagePreviewImg" src="" alt="">
-                    <div class="image-zoom-hint">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8.25 10.875a2.625 2.625 0 1 1 5.25 0 2.625 2.625 0 0 1-5.25 0Z" />
-                            <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.125 4.5a4.125 4.125 0 1 0 2.338 7.524l2.007 2.006a.75.75 0 1 0 1.06-1.06l-2.006-2.007a4.125 4.125 0 0 0-3.399-6.463Z" clip-rule="evenodd" />
+                <!-- Image Carousel Slider -->
+                <div class="image-carousel-container" id="imageCarouselContainer">
+                    <div class="image-carousel-track" id="imageCarouselTrack">
+                        <!-- Images will be populated by JavaScript -->
+                    </div>
+                    
+                    <!-- Dot Indicators -->
+                    <div class="carousel-dots" id="carouselDots"></div>
+                    
+                    <!-- Navigation Arrows -->
+                    <button class="carousel-arrow carousel-arrow-prev" id="carouselPrevBtn" aria-label="Ảnh trước">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <button class="carousel-arrow carousel-arrow-next" id="carouselNextBtn" aria-label="Ảnh sau">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Image Counter Badge -->
+                    <div class="carousel-counter" id="carouselCounter">
+                        <span id="carouselCurrentIdx">1</span> / <span id="carouselTotalCount">7</span>
+                    </div>
+                    
+                    <!-- Zoom Hint (shows on first image - product) -->
+                    <div class="image-zoom-hint carousel-zoom-hint">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                         </svg>
                         <span>Chạm để phóng to</span>
+                    </div>
+                    
+                    <!-- Process Badge (shows on process images) -->
+                    <div class="carousel-process-badge" id="carouselProcessBadge">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.92 3.15c.18.14.22.42.09.6l-7.14 9.79a.47.47 0 0 1-.59.11c-.35-.23-.8-.4-1.34-.48a3.27 3.27 0 0 1-.88-.29 3.12 3.12 0 0 1-.74-.56 3.1 3.1 0 0 1-.55-.75 3.27 3.27 0 0 1-.29-.88c-.08-.54-.25-.99-.48-1.34a.47.47 0 0 1 .11-.59l9.79-7.14c.18-.13.46-.09.6.09l.07.08Zm-8.38 12.12a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+                        </svg>
+                        <span id="carouselProcessLabel">Quy trình thủ công</span>
                     </div>
                 </div>
                 
@@ -2166,7 +2197,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                             <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
                         </svg>
-                        <span>Phù hợp: <strong>Cả Nam và Nữ</strong></span>
+                        <span>Phù hợp: <strong>Cả bé trai và bé gái</strong></span>
                     </div>
                     
                     <!-- Commitment Badge -->

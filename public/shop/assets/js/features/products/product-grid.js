@@ -325,7 +325,7 @@ export class ProductGrid {
     render() {
         const productsToShow = this.filteredProducts.slice(0, this.displayedCount);
         renderProducts(productsToShow, this.containerId);
-        
+
         // Update load more button
         this.updateLoadMoreButton();
     }
