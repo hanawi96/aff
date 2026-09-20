@@ -4838,7 +4838,7 @@ body {
     }
 
     .product-gender-info {
-        font-size: 0.875rem;
+        font-size: 1rem;
         padding: 0.5rem 0.875rem;
         margin-bottom: 0.625rem;
     }
@@ -4913,7 +4913,7 @@ body {
     }
 
     .materials-header {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .image-preview-actions {
@@ -4924,7 +4924,7 @@ body {
 
     .material-tag {
         padding: 0.35rem 0.65rem;
-        font-size: 0.75rem;
+        font-size: 1rem;
     }
 
     .materials-list {
@@ -7937,7 +7937,7 @@ body {
 .materials-header {
     margin-bottom: 0.65rem;
     font-weight: 800;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: #111827;
 }
 
