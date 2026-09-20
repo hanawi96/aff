@@ -1,60 +1,51 @@
-<!-- Header -->
-<header class="bg-white shadow-md sticky top-0 z-50">
+<!-- Header - Handmade Style -->
+<header class="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b-2 border-primary/20">
     <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between h-20">
-            <!-- Logo -->
-            <div class="flex items-center space-x-3">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.875rem; height: 1.875rem; display: inline-block;" class="text-primary">
-                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
-                    <path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" />
-                    <path d="M12 7.875a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" />
-                </svg>
-                <span class="text-2xl font-display font-bold text-gray-800">Vòng Đầu Tam</span>
-            </div>
+        <div class="flex items-center justify-between h-16 md:h-20">
+            <!-- Logo - Handwritten Style -->
+            <a href="/shop/index.html" class="flex items-center space-x-2">
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1.5rem; height: 1.5rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-accent absolute -top-1 -right-1" style="width: 0.75rem; height: 0.75rem;"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-handwritten text-xl md:text-2xl text-primary leading-none">Vòng dâu tằm by Ánh</span>
+                    <span class="text-xs text-gray-500 font-medium">Handmade với yêu thương</span>
+                </div>
+            </a>
             
-            <!-- Navigation -->
-            <nav class="hidden lg:flex items-center space-x-8">
-                <a href="/shop/index.html" class="text-gray-700 hover:text-primary transition font-medium">Trang chủ</a>
-                <a href="#products" class="text-gray-700 hover:text-primary transition font-medium">Sản phẩm</a>
-                <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="flash-bolt-icon" style="width: 1rem; height: 1rem; display: inline-block; margin-right: 0.25rem;"><path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clip-rule="evenodd" /></svg> Flash Sale
-                </a>
-                <a href="#about" class="text-gray-700 hover:text-primary transition font-medium">Về chúng tôi</a>
-                <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium">Liên hệ</a>
+            <!-- Navigation - Desktop -->
+            <nav class="hidden lg:flex items-center space-x-6">
+                <a href="/shop/index.html" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
+                <a href="/shop/index.html#products" class="text-gray-700 hover:text-primary transition font-medium text-sm">Sản phẩm</a>
+                <a href="/shop/index.html#process" class="text-gray-700 hover:text-primary transition font-medium text-sm">Quy trình</a>
+                <a href="/shop/index.html#reviews" class="text-gray-700 hover:text-primary transition font-medium text-sm">Lời mẹ chia sẻ</a>
+                <a href="/shop/index.html#faq" class="text-gray-700 hover:text-primary transition font-medium text-sm">Câu hỏi</a>
             </nav>
             
             <!-- Actions -->
-            <div class="flex items-center space-x-4">
-                <button class="hidden md:block text-gray-600 hover:text-primary transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
-                        <path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                <button class="relative text-gray-600 hover:text-primary transition" id="cartBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
+            <div class="flex items-center space-x-2">
+                <button class="relative text-gray-700 hover:text-primary transition p-2" id="cartBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;">
                         <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" />
                     </svg>
-                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" id="cartCount">0</span>
+                    <span class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md" id="cartCount">0</span>
                 </button>
-                <button class="lg:hidden text-gray-600 hover:text-primary transition" id="menuBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem; display: inline-block;">
-                        <path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
-                    </svg>
+                <button class="lg:hidden text-gray-600 hover:text-primary transition p-2" id="menuBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;"><path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>
                 </button>
             </div>
         </div>
     </div>
     
     <!-- Mobile Menu -->
-    <div class="lg:hidden hidden bg-white border-t" id="mobileMenu">
-        <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3">
+    <div class="lg:hidden hidden bg-white border-t border-primary/20" id="mobileMenu">
+        <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3 items-center text-center">
             <a href="/shop/index.html" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
-            <a href="#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
-            <a href="#flash-sale" class="text-red-600 hover:text-red-700 transition font-medium py-2 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="flash-bolt-icon" style="width: 1rem; height: 1rem; display: inline-block; margin-right: 0.25rem;"><path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clip-rule="evenodd" /></svg> Flash Sale
-            </a>
-            <a href="#about" class="text-gray-700 hover:text-primary transition font-medium py-2">Về chúng tôi</a>
-            <a href="#contact" class="text-gray-700 hover:text-primary transition font-medium py-2">Liên hệ</a>
+            <a href="/shop/index.html#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
+            <a href="/shop/index.html#process" class="text-gray-700 hover:text-primary transition font-medium py-2">Quy trình</a>
+            <a href="/shop/index.html#reviews" class="text-gray-700 hover:text-primary transition font-medium py-2">Lời mẹ chia sẻ</a>
+            <a href="/shop/index.html#faq" class="text-gray-700 hover:text-primary transition font-medium py-2">Câu hỏi</a>
         </nav>
     </div>
 </header>
