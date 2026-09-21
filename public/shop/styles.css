@@ -886,12 +886,12 @@ body {
 
 .category-chip-badge {
     position: absolute;
-    top: -8px;
+    top: -13px;
     left: 50%;
     transform: translateX(-50%);
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 1rem;
+    font-size: 14px;
     font-weight: 700;
     line-height: 1;
     color: #92400e;
@@ -1219,7 +1219,7 @@ body {
 }
 
 .rating-count {
-    font-size: 1rem;
+    font-size: 14px;
     color: var(--text-light);
     font-weight: 500;
 }
@@ -1265,7 +1265,7 @@ body {
 }
 
 .price-save-info {
-    font-size: 1rem;
+    font-size: 13px;
     color: #27ae60;
     font-weight: 600;
     display: flex;

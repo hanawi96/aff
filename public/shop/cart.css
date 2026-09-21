@@ -4711,7 +4711,6 @@ body {
     
     .image-preview-content img {
         max-height: 450px;
-        padding: 1.25rem;
     }
 }
 
@@ -4723,7 +4722,6 @@ body {
     
     .image-preview-content img {
         max-height: 500px;
-        padding: 1.5rem;
     }
 }
 
