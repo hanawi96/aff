@@ -3664,8 +3664,8 @@ body {
     object-fit: contain;
     background: #fafafa;
     display: block;
-    padding: 1rem;
-    border-radius: 6px;
+    padding: 10px;
+    border-radius: 10px;
 }
 
 .image-preview-image-wrapper {
@@ -3706,7 +3706,6 @@ body {
     max-height: 450px;
     object-fit: contain;
     display: block;
-    padding: 1rem;
     background: #fafafa;
     border-radius: 6px;
 }
@@ -3773,11 +3772,11 @@ body {
     }
     
     .carousel-arrow-prev {
-        left: 8px;
+        left: 25px;
     }
     
     .carousel-arrow-next {
-        right: 8px;
+        right: 25px;
     }
 }
 
@@ -3787,7 +3786,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 8px;
-    padding: 12px 0;
+    padding: 0 0 12px 0;
     background: linear-gradient(to top, rgba(0,0,0,0.02), transparent);
 }
 
@@ -3825,8 +3824,8 @@ body {
 /* Carousel Counter */
 .carousel-counter {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 25px;
+    right: 30px;
     background: rgba(0, 0, 0, 0.6);
     color: white;
     font-size: 0.75rem;
@@ -4038,7 +4037,7 @@ body {
 
 .image-zoom-hint {
     position: absolute;
-    bottom: 1.5rem;
+    bottom: 2.5rem;
     right: 1.5rem;
     display: none;
     align-items: center;
@@ -4767,7 +4766,6 @@ body {
 
     .image-preview-content img {
         max-height: 350px;
-        padding: 1rem;
     }
 
     .image-zoom-hint {
