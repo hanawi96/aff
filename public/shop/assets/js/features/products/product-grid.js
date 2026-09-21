@@ -191,14 +191,6 @@ export class ProductGrid {
                 // Bán chạy: Sắp xếp theo số lượng đã bán (purchases)
                 this.filteredProducts.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
                 break;
-            case 'favorite':
-                // Yêu thích: Sắp xếp theo số lượt yêu thích (favorites_count)
-                this.filteredProducts.sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0));
-                break;
-            case 'new':
-                // Mới nhất: Sắp xếp theo ID giảm dần
-                this.filteredProducts.sort((a, b) => (b.id || 0) - (a.id || 0));
-                break;
         }
         
         console.log(`📊 Applied "${this.currentFilter}" sort to ${this.filteredProducts.length} search results`);
@@ -231,14 +223,6 @@ export class ProductGrid {
             case 'best-selling':
                 this.filteredProducts = [...sourceProducts]
                     .sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
-                break;
-            case 'favorite':
-                this.filteredProducts = [...sourceProducts]
-                    .sort((a, b) => (b.favorites_count || 0) - (a.favorites_count || 0));
-                break;
-            case 'new':
-                this.filteredProducts = [...sourceProducts]
-                    .sort((a, b) => (b.id || 0) - (a.id || 0));
                 break;
             case 'popular':
                 this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);

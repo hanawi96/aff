@@ -1079,9 +1079,7 @@ export class HomePage {
         if (!this.productGrid) return 'mặc định';
         
         const filterMap = {
-            'best-selling': 'bán chạy',
-            'favorite': 'yêu thích',
-            'new': 'mới nhất'
+            'best-selling': 'bán chạy'
         };
         
         return filterMap[this.productGrid.currentFilter] || 'mặc định';
