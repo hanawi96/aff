@@ -168,7 +168,7 @@ body {
     right: 0;
     background: var(--accent-color);
     color: var(--white);
-    font-size: 0.7rem;
+    font-size: 1rem;
     padding: 0.15rem 0.4rem;
     border-radius: 10px;
     font-weight: 600;
@@ -372,7 +372,7 @@ body {
 
 .timer-label {
     display: block;
-    font-size: 0.7rem;
+    font-size: 1rem;
     margin-top: 0.25rem;
     font-weight: 600;
     color: #666;
@@ -533,7 +533,7 @@ body {
     background: linear-gradient(135deg, #e76f51, #e74c3c);
     color: white;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1rem;
     padding: 0.4rem 0.9rem;
     border-radius: 25px;
     box-shadow: 0 3px 10px rgba(231, 111, 81, 0.4);
@@ -549,7 +549,7 @@ body {
 }
 
 .flash-sale-card .product-name {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-dark);
     line-height: 1.4;
@@ -587,14 +587,14 @@ body {
     color: white;
     padding: 0.25rem 0.6rem;
     border-radius: 15px;
-    font-size: 0.75rem;
+    font-size: 1rem;
     font-weight: 700;
     white-space: nowrap;
     box-shadow: 0 2px 6px rgba(231, 111, 81, 0.3);
 }
 
 .original-price {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #999;
     text-decoration: line-through;
     font-weight: 500;
@@ -611,7 +611,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -659,7 +659,7 @@ body {
     border: none;
     border-radius: 25px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -686,7 +686,7 @@ body {
 }
 
 .flash-buy-btn i {
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 @keyframes shimmer {
@@ -806,7 +806,7 @@ body {
 }
 
 .category-count {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: var(--text-light);
     display: flex;
     align-items: center;
@@ -815,7 +815,7 @@ body {
 }
 
 .category-count i {
-    font-size: 0.75rem;
+    font-size: 1rem;
 }
 
 /* Category Chips - Handmade Style */
@@ -837,7 +837,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: #666;
     white-space: nowrap;
     flex-shrink: 0;
@@ -861,7 +861,7 @@ body {
 }
 
 .category-chip-icon {
-    font-size: 0.9rem;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -877,7 +877,7 @@ body {
 }
 
 .category-chip-name {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -888,7 +888,7 @@ body {
     transform: translateX(-50%);
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 0.68rem;
+    font-size: 1rem;
     font-weight: 700;
     line-height: 1;
     color: #92400e;
@@ -906,20 +906,20 @@ body {
     
     .category-chip {
         padding: 0.625rem 1rem;
-        font-size: 0.875rem;
+        font-size: 1rem;
         gap: 0.4rem;
     }
     
     .category-chip-icon {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
     
     .category-chip-name {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .category-chip-badge {
-        font-size: 0.62rem;
+        font-size: 1rem;
         top: -7px;
         left: 50%;
         transform: translateX(-50%);
@@ -938,7 +938,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #666;
     white-space: nowrap;
     flex-shrink: 0;
@@ -968,7 +968,7 @@ body {
 @media (max-width: 768px) {
     .preference-chip {
         padding: 0.55rem 0.95rem;
-        font-size: 0.85rem;
+        font-size: 1rem;
         gap: 0.4rem;
     }
 }
@@ -1016,7 +1016,7 @@ body {
     border-radius: 25px;
     background: var(--white);
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .products-grid {
@@ -1080,7 +1080,7 @@ body {
     color: var(--white);
     padding: 0.4rem 0.9rem;
     border-radius: 25px;
-    font-size: 0.75rem;
+    font-size: 1rem;
     font-weight: 700;
     z-index: 2;
     line-height: 1.2;
@@ -1147,52 +1147,6 @@ body {
     opacity: 0.85;
 }
 
-.product-favorites-section {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    opacity: 1;
-    transition: var(--transition);
-}
-
-.product-favorites-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(244, 162, 97, 0.3);
-    cursor: pointer;
-    padding: 0.3rem 0.55rem;
-    border-radius: 20px;
-    transition: var(--transition);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    font-size: 0.7rem;
-    color: var(--text-dark);
-    font-weight: 700;
-    height: 26px;
-    line-height: 1.2;
-}
-
-.product-favorites-btn.pulse {
-    animation: pulse 0.3s ease-in-out;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-.product-favorites-btn.favorited {
-    background: linear-gradient(135deg, #e76f51, #e74c3c);
-    color: white;
-    border-color: #e76f51;
-}
-
 .product-action-btn {
     width: 40px;
     height: 40px;
@@ -1256,13 +1210,13 @@ body {
 }
 
 .rating-score {
-    font-size: 0.875rem;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-dark);
 }
 
 .rating-count {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: var(--text-light);
     font-weight: 500;
 }
@@ -1273,7 +1227,7 @@ body {
     padding: 0.15rem 0.5rem;
     background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
     color: #4a4a4a;
-    font-size: 0.65rem;
+    font-size: 1rem;
     font-weight: 700;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(192, 192, 192, 0.3);
@@ -1301,14 +1255,14 @@ body {
 }
 
 .original-price {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: #95a5a6;
     text-decoration: line-through;
     font-weight: 500;
 }
 
 .price-save-info {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: #27ae60;
     font-weight: 600;
     display: flex;
@@ -1321,7 +1275,7 @@ body {
 }
 
 .price-save-info i {
-    font-size: 0.7rem;
+    font-size: 1rem;
 }
 
 .load-more {
@@ -1443,7 +1397,7 @@ body {
 }
 
 .benefit-desc-new {
-    font-size: 0.9375rem;
+    font-size: 1rem;
     color: #6b7280;
     line-height: 1.65;
     margin: 0;
@@ -1526,7 +1480,7 @@ body {
     }
 
     .benefit-desc-new {
-        font-size: 0.9rem;
+        font-size: 1rem;
         line-height: 1.62;
     }
 }
@@ -1537,11 +1491,11 @@ body {
     }
 
     .benefit-title-new {
-        font-size: 0.9375rem;
+        font-size: 1rem;
     }
 
     .benefit-desc-new {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 }
 
@@ -1688,14 +1642,14 @@ body {
 }
 
 .highlight-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-dark);
     margin-bottom: 0.25rem;
 }
 
 .highlight-text {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: var(--text-light);
     line-height: 1.4;
 }
@@ -1731,7 +1685,7 @@ body {
     }
 
     .artisan-story {
-        font-size: 0.975rem;
+        font-size: 1rem;
         line-height: 1.7;
     }
 
@@ -2041,7 +1995,7 @@ body {
     }
     
     .timer-label {
-        font-size: 0.65rem;
+        font-size: 1rem;
     }
     
     .timer-separator {
@@ -2091,7 +2045,7 @@ body {
     .flash-sale-badge {
         top: 10px;
         left: 10px;
-        font-size: 0.75rem;
+        font-size: 1rem;
         padding: 0.3rem 0.7rem;
         border-radius: 20px;
     }
@@ -2102,7 +2056,7 @@ body {
     }
     
     .flash-sale-card .product-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
         min-height: 2.3rem;
         line-height: 1.3;
     }
@@ -2117,13 +2071,13 @@ body {
     }
     
     .save-badge {
-        font-size: 0.7rem;
+        font-size: 1rem;
         padding: 0.2rem 0.5rem;
         border-radius: 12px;
     }
     
     .original-price {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
     
     /* Stock Section - Mobile */
@@ -2132,7 +2086,7 @@ body {
     }
     
     .stock-info-row {
-        font-size: 0.7rem;
+        font-size: 1rem;
     }
     
     .stock-bar {
@@ -2142,12 +2096,12 @@ body {
     /* Buy Button - Mobile */
     .flash-buy-btn {
         padding: 0.7rem;
-        font-size: 0.75rem;
+        font-size: 1rem;
         border-radius: 20px;
     }
     
     .flash-buy-btn i {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     /* Regular Products Grid - Mobile */
@@ -2168,7 +2122,7 @@ body {
     }
     
     .product-name {
-        font-size: 0.9rem;
+        font-size: 1rem;
         margin-bottom: 0;
         line-height: 1.3;
     }
@@ -2178,17 +2132,17 @@ body {
     }
     
     .silver-mini-badge {
-        font-size: 0.6rem;
+        font-size: 12px;
         padding: 0.125rem 0.4rem;
     }
     
     .stars {
-        font-size: 0.75rem;
+        font-size: 1rem;
         gap: 1px;
     }
     
     .rating-count {
-        font-size: 0.75rem;
+        font-size: 12px;
     }
     
     .product-price-wrapper {
@@ -2205,17 +2159,17 @@ body {
     }
     
     .original-price {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .price-save-info {
-        font-size: 0.7rem;
+        font-size: 11px;
         padding: 0.2rem 0.5rem;
     }
     
     /* Product Badges - Mobile */
     .product-badge {
-        font-size: 0.65rem;
+        font-size: 10px;
         padding: 0.3rem 0.6rem;
         border-radius: 15px;
         height: 24px;
@@ -2235,19 +2189,6 @@ body {
     .product-badge.silver-guarantee {
         left: auto;
         right: 10px;
-    }
-    
-    /* Favorites Button - Mobile */
-    .product-favorites-section {
-        top: 10px;
-        right: 10px;
-    }
-    
-    .product-favorites-btn {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.7rem;
-        height: 24px;
-        gap: 0.25rem;
     }
     
     .product-badge.handmade {
@@ -2273,27 +2214,6 @@ body {
         font-size: 1.8rem;
     }
     
-    /* Favorites Section - Mobile */
-    .product-favorites-section {
-        top: auto !important;
-        bottom: 8px !important;
-        right: 8px !important;
-    }
-    
-    .product-favorites-btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.7rem;
-        border-radius: 12px;
-        gap: 0.15rem;
-    }
-    
-    .product-favorites-btn i {
-        font-size: 0.7rem;
-    }
-    
-    .favorites-count {
-        font-size: 0.65rem;
-    }
 }
 
 
@@ -2316,33 +2236,9 @@ body {
         min-width: 55px;
     }
     
-    .favorites-count {
-        font-size: 0.7rem;
-    }
-    
     /* Favorites Section - Extra Small Mobile */
-    .product-favorites-section {
-        bottom: 6px !important;
-        right: 6px !important;
-    }
     
-    .product-favorites-btn {
-        padding: 0.2rem 0.35rem;
-        font-size: 0.65rem;
-        border-radius: 10px;
-        gap: 0.1rem;
-    }
-    
-    .product-favorites-btn i {
-        font-size: 0.65rem;
-    }
-    
-    .favorites-count {
-        font-size: 0.6rem;
-    
-        border-radius: 12px;
-        gap: 0.15rem;
-    }
+    /* Product Badge Adjustments */
 
 
     
@@ -2363,7 +2259,7 @@ body {
     .carousel-btn {
         width: 36px;
         height: 36px;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .carousel-dots {
@@ -2376,7 +2272,7 @@ body {
     }
     
     .flash-sale-card .product-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
         min-height: 2.3rem;
     }
     
@@ -2385,16 +2281,16 @@ body {
     }
     
     .save-badge {
-        font-size: 0.65rem;
+        font-size: 1rem;
         padding: 0.15rem 0.4rem;
     }
     
     .original-price {
-        font-size: 0.75rem;
+        font-size: 1rem;
     }
     
     .stock-info-row {
-        font-size: 0.7rem;
+        font-size: 1rem;
     }
     
     .stock-bar {
@@ -2403,12 +2299,12 @@ body {
     
     .flash-buy-btn {
         padding: 0.6rem;
-        font-size: 0.75rem;
+        font-size: 1rem;
         gap: 0.35rem;
     }
     
     .flash-buy-btn i {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
 }
 
@@ -2604,14 +2500,14 @@ body {
 }
 
 .guarantee-title {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #2e7d32;
     line-height: 1.3;
 }
 
 .guarantee-subtitle {
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 500;
     color: #43a047;
     line-height: 1.2;
@@ -2626,7 +2522,7 @@ body {
 }
 
 .total-label-main {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: #666;
     font-weight: 500;
     text-transform: uppercase;
@@ -2655,7 +2551,7 @@ body {
 }
 
 .total-label {
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: #27ae60;
     font-weight: 600;
     white-space: nowrap;
@@ -2669,7 +2565,7 @@ body {
     color: white;
     border: none;
     border-radius: 12px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     cursor: pointer;
@@ -2807,7 +2703,7 @@ body {
 
 .toggle-icon {
     color: #666;
-    font-size: 0.85rem;
+    font-size: 1rem;
     transition: transform 0.3s ease;
 }
 
@@ -2848,13 +2744,13 @@ body {
 }
 
 .order-item-name {
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #333;
     font-weight: 500;
 }
 
 .order-item-qty {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #666;
     background: #e8f4f8;
     padding: 0.125rem 0.5rem;
@@ -2878,7 +2774,7 @@ body {
     border: 1px solid #e5e7eb;
     border-radius: 999px;
     padding: 0.25rem 0.6rem;
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 650;
     color: #111827;
     max-width: 100%;
@@ -2891,7 +2787,7 @@ body {
     border-radius: 0;
     color: #6b7280;
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 1rem;
 }
 
 .order-item-actions {
@@ -2901,7 +2797,7 @@ body {
 }
 
 .order-item-price {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
 }
@@ -2943,7 +2839,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #155724;
 }
@@ -2969,7 +2865,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
     color: #666;
 }
@@ -3040,7 +2936,7 @@ body {
 .order-summary-section .summary-row.payment-note-simple .payment-label {
     color: #27ae60;
     font-weight: 700;
-    font-size: 0.875rem;
+    font-size: 1rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3062,7 +2958,7 @@ body {
 .order-summary-section .summary-row.payment-row.payment-note .payment-label {
     color: #2e7d32;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 1rem;
     width: 100%;
     text-align: center;
 }
@@ -3074,7 +2970,7 @@ body {
 .order-summary-section .summary-row.payment-row .payment-label {
     color: #1a1a1a;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -3096,7 +2992,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 0;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 .order-summary-row.total {
@@ -3157,7 +3053,7 @@ body {
 .order-summary-row.payment-row.payment-note .payment-label {
     color: #2e7d32;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 1rem;
     width: 100%;
     text-align: center;
 }
@@ -3169,7 +3065,7 @@ body {
 .payment-label {
     color: #1a1a1a;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .payment-label i {
@@ -3208,7 +3104,7 @@ body {
 }
 
 .summary-compact-label {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
 }
@@ -3229,7 +3125,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #666;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -3311,7 +3207,7 @@ body {
 }
 
 .checkout-product-original-price {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
     color: #999;
     text-decoration: line-through;
@@ -3325,7 +3221,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.5rem;
@@ -3350,7 +3246,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #856404;
 }
 
@@ -3377,7 +3273,7 @@ body {
     background: white;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     cursor: pointer;
@@ -3414,7 +3310,7 @@ body {
 }
 
 .weight-preset-btn .weight-range {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
 }
 
@@ -3460,7 +3356,7 @@ body {
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -3492,7 +3388,7 @@ body {
     color: #e74c3c;
     border: 1px solid #e74c3c;
     border-radius: 6px;
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -3643,14 +3539,14 @@ body {
 }
 
 .payment-method-name {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.25rem;
 }
 
 .payment-method-desc {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #666;
 }
 
@@ -3664,11 +3560,11 @@ body {
     }
     
     .payment-method-name {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .payment-method-desc {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
 }
 
@@ -3724,7 +3620,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.925rem;
+    font-size: 1rem;
     padding: 0.75rem;
     background: transparent;
     border-radius: 10px;
@@ -3762,7 +3658,7 @@ body {
     cursor: pointer;
     transition: var(--transition);
     color: var(--primary);
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -3779,7 +3675,7 @@ body {
     padding: 0.875rem;
     background: var(--white);
     border-radius: 10px;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--text-light);
     display: flex;
     align-items: flex-start;
@@ -3822,7 +3718,7 @@ body {
     align-items: center;
     justify-content: center;
     margin: 0 auto 0.5rem;
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: #94a3b8;
     background: #f8fafc;
     animation: qrPulse 1.2s ease-in-out infinite;
@@ -3834,7 +3730,7 @@ body {
 }
 
 .bank-qr-hint {
-    font-size: 0.72rem;
+    font-size: 1rem;
     color: #64748b;
     margin: 0;
     font-weight: 500;
@@ -3880,7 +3776,7 @@ body {
     gap: 0.5rem;
     padding: 0.5rem 0;
     color: var(--secondary);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     margin-top: 0.5rem;
     animation: fadeInShake 0.5s ease;
@@ -3959,14 +3855,14 @@ body {
 }
 
 .bank-payment-confirmed-notice .notice-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #14532d;
     margin-bottom: 0.2rem;
 }
 
 .bank-payment-confirmed-notice .notice-subtitle {
-    font-size: 0.8125rem;
+    font-size: 1rem;
     color: #166534;
     opacity: 0.9;
     font-weight: 500;
@@ -3994,7 +3890,7 @@ body {
     border: none;
     border-radius: 8px;
     color: #27ae60;
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
@@ -4037,7 +3933,7 @@ body {
     gap: 0.5rem;
     color: #27ae60;
     font-weight: 700;
-    font-size: 0.925rem;
+    font-size: 1rem;
 }
 
 .order-payment-status .status-value {
@@ -4146,7 +4042,7 @@ body {
 .order-detail-row.payment-note-simple .order-detail-label {
     color: #27ae60;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4244,7 +4140,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .checkout-summary-row.total {
@@ -4309,7 +4205,7 @@ body {
     }
     
     .order-details-title {
-        font-size: 0.975rem;
+        font-size: 1rem;
     }
     
     .order-details-content {
@@ -4321,16 +4217,16 @@ body {
     }
     
     .order-item-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .order-item-qty {
-        font-size: 0.8rem;
+        font-size: 1rem;
         padding: 0.1rem 0.4rem;
     }
     
     .order-item-price {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .order-discount-info {
@@ -4338,7 +4234,7 @@ body {
     }
     
     .order-discount-badge {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
     
     .flash-actions {
@@ -4395,7 +4291,7 @@ body {
     }
     
     .order-details-title {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .order-details-content {
@@ -4407,16 +4303,16 @@ body {
     }
     
     .order-item-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .order-item-qty {
-        font-size: 0.8rem;
+        font-size: 1rem;
         padding: 0.1rem 0.4rem;
     }
     
     .order-item-price {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .checkout-summary-compact {
@@ -4425,7 +4321,7 @@ body {
     }
     
     .summary-compact-label {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
     
     .summary-compact-total {
@@ -4435,12 +4331,12 @@ body {
     .summary-expand-btn {
         width: 26px;
         height: 26px;
-        font-size: 0.75rem;
+        font-size: 1rem;
     }
     
     .checkout-submit-btn {
         padding: 0.75rem;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .checkout-submit-section {
@@ -4461,12 +4357,12 @@ body {
     }
     
     .guarantee-title {
-        font-size: 0.8rem;
+        font-size: 1rem;
         line-height: 1.2;
     }
     
     .guarantee-subtitle {
-        font-size: 0.7rem;
+        font-size: 1rem;
         line-height: 1.2;
     }
     
@@ -4477,7 +4373,7 @@ body {
     .checkout-submit-btn {
         width: auto !important;
         
-        font-size: 0.95rem !important;
+        font-size: 1rem !important;
         border-radius: 10px !important;
         white-space: nowrap;
         flex-shrink: 0;
@@ -4490,7 +4386,7 @@ body {
     }
     
     .checkout-product-name {
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
     
     .checkout-product-price {
@@ -4498,7 +4394,7 @@ body {
     }
     
     .checkout-product-original-price {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .cross-sell-item {
@@ -4511,11 +4407,11 @@ body {
     }
     
     .cross-sell-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .cross-sell-price {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 }
 
@@ -4543,7 +4439,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: white;
     border-radius: 25px;
@@ -4607,7 +4503,7 @@ body {
 }
 
 .cross-sell-name {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.25rem;
@@ -4645,7 +4541,7 @@ body {
     border: none;
     background: white;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: #e74c3c;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -4669,7 +4565,7 @@ body {
 .cross-sell-qty-value-compact {
     min-width: 24px;
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
 }
@@ -4684,7 +4580,7 @@ body {
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -4711,7 +4607,7 @@ body {
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -4735,17 +4631,17 @@ body {
     }
     
     .cross-sell-name {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .cross-sell-price {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .cross-sell-qty-btn-compact {
         width: 26px;
         height: 26px;
-        font-size: 0.7rem;
+        font-size: 1rem;
     }
     
     .cross-sell-qty-value-compact {
@@ -4756,7 +4652,7 @@ body {
     .cross-sell-add-btn-compact,
     .cross-sell-remove-btn-compact {
         padding: 5px 10px;
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
 }
 
@@ -4812,7 +4708,7 @@ body {
     padding: 12px 20px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -4837,7 +4733,7 @@ body {
         top: 10px;
         right: 10px;
         left: 10px;
-        font-size: 0.85rem;
+        font-size: 1rem;
         padding: 10px 16px;
     }
 }
@@ -4863,13 +4759,13 @@ body {
 }
 
 .address-display-label {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #666;
     margin-bottom: 0.25rem;
 }
 
 .address-display-text {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     line-height: 1.4;
@@ -5005,25 +4901,25 @@ body {
 }
 
 .discount-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.25rem;
 }
 
 .discount-desc {
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #666;
     margin-bottom: 0.25rem;
 }
 
 .discount-condition {
-    font-size: 0.8rem;
+    font-size: 1rem;
     color: #999;
 }
 
 .discount-expiry {
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: #999;
     margin-top: 0.25rem;
 }
@@ -5034,7 +4930,7 @@ body {
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -5085,7 +4981,7 @@ body {
     padding-right: 110px;
     border: 3px dashed rgba(102, 187, 106, 0.7) !important;
     border-radius: 28px !important;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: background 0.3s ease, box-shadow 0.3s ease;
     font-family: 'Quicksand', sans-serif;
     font-weight: 600;
@@ -5149,7 +5045,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    font-size: 0.8rem;
+    font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 95px;
@@ -5175,7 +5071,7 @@ body {
 }
 
 .codes-title-quick {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: #2c3e50;
     margin-bottom: 0.875rem;
     font-weight: 700;
@@ -5196,7 +5092,7 @@ body {
     background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
     border-left: 3px solid #f4a261;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #5a4a3a;
     line-height: 1.5;
 }
@@ -5213,7 +5109,7 @@ body {
     padding: 0.875rem 1rem;
     background: linear-gradient(135deg, #ffffff, #fff9f5);
     border-radius: 12px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     border: 2px solid rgba(244, 162, 97, 0.15);
     transition: all 0.3s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -5269,11 +5165,11 @@ body {
 
 .code-desc-quick {
     color: #666;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 .code-savings-quick {
-    font-size: 0.75rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-top: 0.25rem;
     color: #27ae60;
@@ -5288,7 +5184,7 @@ body {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 700;
     padding: 0.5rem 1rem;
     border-radius: 8px;
@@ -5335,7 +5231,7 @@ body {
     border: none;
     color: #f4a261;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -5354,7 +5250,7 @@ body {
     margin-top: 0.5rem;
     padding: 0.75rem 1rem;
     border-radius: 10px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
     display: none;
 }
@@ -5391,7 +5287,7 @@ body {
 }
 
 .discount-applied-text {
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #e74c3c;
 }
@@ -5406,7 +5302,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #e74c3c;
     transition: all 0.2s ease;
 }
@@ -5447,7 +5343,7 @@ body {
     }
     
     .discount-input-wrapper .checkout-form-input {
-        font-size: 0.875rem;
+        font-size: 1rem;
         padding: 0.875rem 1rem !important;
         padding-right: 100px !important;
         border-radius: 24px !important;
@@ -5455,7 +5351,7 @@ body {
     
     .discount-action-btn {
         padding: 0.625rem 0.875rem;
-        font-size: 0.75rem;
+        font-size: 1rem;
         border-radius: 18px !important;
         margin: 0;
         gap: 0.375rem;
@@ -5468,7 +5364,7 @@ body {
     }
     
     .codes-title-quick {
-        font-size: 0.9rem;
+        font-size: 1rem;
         margin-bottom: 0.75rem;
     }
     
@@ -5478,7 +5374,7 @@ body {
     
     .code-item-quick {
         padding: 0.625rem;
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .code-item-quick:hover {
@@ -5486,16 +5382,16 @@ body {
     }
     
     .code-name-quick {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .code-desc-quick {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
     
     .code-apply-btn-quick {
         padding: 0.5rem 0.875rem;
-        font-size: 0.8rem;
+        font-size: 1rem;
         box-shadow: 0 2px 6px rgba(244, 162, 97, 0.25);
     }
     
@@ -5504,10 +5400,10 @@ body {
     }
     
     .btn-view-codes {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     .discount-result-quick {
-        font-size: 0.8rem;
+        font-size: 1rem;
     }
 }
 
@@ -5854,7 +5750,7 @@ body {
     border-radius: 12px;
     margin-bottom: 1.25rem;
     color: #e65100;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -5872,7 +5768,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #2c3e50;
     margin-bottom: 0.75rem;
@@ -5894,7 +5790,7 @@ body {
     background: white;
     border: 2px solid rgba(244, 162, 97, 0.2);
     border-radius: 10px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #2c3e50;
     cursor: pointer;
@@ -5990,7 +5886,7 @@ body {
 
 .baby-surcharge-confirm-subtitle {
     color: #6b7280;
-    font-size: 0.9rem;
+    font-size: 1rem;
     margin-top: 0.1rem;
 }
 
@@ -6048,7 +5944,7 @@ body {
 
 .baby-surcharge-confirm-label {
     color: #6b7280;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .baby-surcharge-confirm-value {
@@ -6067,14 +5963,14 @@ body {
 
 .baby-surcharge-confirm-question {
     color: #6b7280;
-    font-size: 0.98rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: 0.75rem;
 }
 
 .baby-surcharge-confirm-note {
     color: #6b7280;
-    font-size: 0.92rem;
+    font-size: 1rem;
     line-height: 1.6;
     background: rgba(245, 158, 11, 0.06);
     border: 1px solid rgba(245, 158, 11, 0.14);
@@ -6204,7 +6100,7 @@ body {
 }
 
 .surcharge-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #e65100;
     margin-bottom: 0.5rem;
@@ -6220,7 +6116,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #5d4037;
 }
 
@@ -6549,7 +6445,7 @@ body {
     margin-bottom: 1rem;
     color: #555;
     line-height: 1.8;
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .success-message-note {
@@ -6562,12 +6458,12 @@ body {
     border-left: 3px solid #f4a261;
     border-radius: 8px;
     margin-top: 1rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .success-message-note i {
     color: #e74c3c;
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .success-message-note em {
@@ -6596,7 +6492,7 @@ body {
 }
 
 .success-order-label {
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #666;
     font-weight: 500;
 }
@@ -6617,7 +6513,7 @@ body {
     padding: 0.875rem 1.5rem;
     border: none;
     border-radius: 12px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -6695,24 +6591,24 @@ body {
     }
     
     .success-modal-message {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
     
     .success-message-main {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
     
     .success-message-sub {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
     
     .success-message-note {
-        font-size: 0.875rem;
+        font-size: 1rem;
         padding: 0.65rem 0.85rem;
     }
     
     .success-modal-btn {
-        font-size: 0.875rem;
+        font-size: 1rem;
         padding: 0.75rem 1.25rem;
     }
 }

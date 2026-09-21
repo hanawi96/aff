@@ -138,7 +138,7 @@ body {
     border: 2px solid #f4a261;
     border-radius: 50px;
     background: white;
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-family: 'Quicksand', sans-serif;
     font-weight: 500;
     color: #333;
@@ -318,7 +318,7 @@ body {
     flex: 1;
     font-weight: 600;
     color: #333;
-    font-size: 0.9375rem;
+    font-size: 1rem;
 }
 
 .search-results-text span {
@@ -361,7 +361,7 @@ body {
     }
     
     .search-results-text {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
     
     .search-results-clear {
@@ -499,7 +499,7 @@ body {
     padding: 0;
     margin: 0;
     color: #666;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     line-height: 2;
 }
 
@@ -562,11 +562,11 @@ body {
     }
     
     .empty-state-text {
-        font-size: 0.9375rem;
+        font-size: 1rem;
     }
     
     .empty-state-subtitle {
-        font-size: 0.9375rem;
+        font-size: 1rem;
     }
     
     .empty-state-suggestions {
@@ -574,16 +574,16 @@ body {
     }
     
     .suggestions-title {
-        font-size: 0.9375rem;
+        font-size: 1rem;
     }
     
     .suggestions-list {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
     
     .empty-state-button {
         padding: 0.75rem 1.5rem;
-        font-size: 0.9375rem;
+        font-size: 1rem;
     }
 }
 
@@ -687,7 +687,7 @@ body {
 }
 
 .benefit-desc {
-    font-size: 0.95rem;
+    font-size: 1rem;
     line-height: 1.7;
     color: #6b7280;
     text-align: center;
@@ -728,7 +728,7 @@ body {
     }
 
     .benefit-desc {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 }
 
@@ -823,7 +823,7 @@ body {
 }
 
 .flash-sale-title-enhanced p {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: #7f8c8d;
     font-weight: 500;
 }
@@ -881,7 +881,7 @@ body {
     padding: 0.4rem 0.75rem;
     border-radius: 20px;
     font-weight: 800;
-    font-size: 0.875rem;
+    font-size: 1rem;
     box-shadow: 0 2px 8px rgba(231, 111, 81, 0.3);
     z-index: 2;
 }
@@ -895,7 +895,7 @@ body {
     padding: 0.3rem 0.6rem;
     border-radius: 20px;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -910,7 +910,7 @@ body {
 }
 
 .flash-product-name-enhanced {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #2c3e50;
     line-height: 1.4;
@@ -937,7 +937,7 @@ body {
 }
 
 .flash-original-price-enhanced {
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: #999;
     text-decoration: line-through;
 }
@@ -953,7 +953,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -1014,7 +1014,7 @@ body {
     border: none;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
     letter-spacing: 0.3px;
@@ -1041,7 +1041,7 @@ body {
     align-items: center;
     gap: 0.75rem;
     color: #2c3e50;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -1077,7 +1077,7 @@ body {
 
 .live-text {
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 1rem;
     letter-spacing: 0.5px;
     color: #27ae60;
 }
@@ -1091,7 +1091,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     color: #2c3e50;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(233, 196, 106, 0.1));
     padding: 0.5rem 1rem;
@@ -1179,11 +1179,11 @@ body {
     }
 
     .flash-badge-text {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .flash-badge-timer {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .flash-sale-title-enhanced h3 {
@@ -1251,7 +1251,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #666;
     box-shadow: 0 2px 8px rgba(244, 162, 97, 0.1);
 }
@@ -1272,19 +1272,19 @@ body {
 }
 
 .filter-chip i {
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 /* Mobile adjustments */
 @media (max-width: 640px) {
     .filter-chip {
         padding: 0.5rem 0.5rem;
-        font-size: 0.85rem;
+        font-size: 14px;
         gap: 0.4rem;
     }
     
     .filter-chip i {
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
 }
 
@@ -1368,7 +1368,7 @@ body {
 .faq-accordion-answer p {
     color: #666;
     line-height: 1.8;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 /* Mobile Responsive */
@@ -1389,7 +1389,7 @@ body {
     }
 
     .faq-accordion-text {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .faq-accordion-item.active .faq-accordion-answer {
