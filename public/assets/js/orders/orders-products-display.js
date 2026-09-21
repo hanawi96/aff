@@ -39,6 +39,19 @@ function buildOrderProductMetaChip(iconHtml, textHtml, tone = 'default') {
     return `<span class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass}" style="font-size:12px">${iconHtml}<span class="leading-none">${textHtml}</span></span>`;
 }
 
+function buildEditableMetaChip(iconHtml, textHtml, tone = 'default', orderId, index, field, value) {
+    const toneClasses = {
+        warn: 'text-amber-700 bg-amber-50 border-amber-100 hover:bg-amber-100',
+        weight: 'text-blue-700 bg-blue-50 border-blue-100 hover:bg-blue-100',
+        price: 'text-indigo-700 bg-indigo-50 border-indigo-100 hover:bg-indigo-100',
+        default: 'text-gray-600 bg-gray-50 border-gray-100 hover:bg-gray-100',
+    };
+    const toneClass = toneClasses[tone] || toneClasses.default;
+    const chipId = `chip_${field}_${orderId}_${index}`;
+    const escapedValue = String(value || '').replace(/'/g, "\\'");
+    return `<span id="${chipId}" class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${toneClass} cursor-pointer transition-colors" style="font-size:12px" title="Bấm để sửa ${field === 'weight' ? 'cân nặng' : field === 'price' ? 'giá' : field}" onclick="startInlineEdit('${chipId}', ${orderId}, ${index}, '${field}', '${escapedValue}')">${iconHtml}<span class="leading-none">${textHtml}</span></span>`;
+}
+
 // Format products display with beautiful badges
 function formatProductsDisplay(productsText, orderId, orderCode, orderNotes = null) {
     if (!productsText || productsText.trim() === '') {
@@ -182,32 +195,35 @@ function createProductItemHtml(product, orderId, orderCode, index) {
 
     if (!skipsWeight) {
         if (weight) {
-            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(weight)), 'weight'));
+            metaChips.push(buildEditableMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(weight)), 'weight', orderId, index, 'weight', weight));
         }
         if (size && sizeNorm(size) !== sizeNorm(weight)) {
-            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(size)), 'weight'));
+            metaChips.push(buildEditableMetaChip(ORDER_PRODUCT_ICON_SIZE, escapeHtml(formatWeightSize(size)), 'weight', orderId, index, 'size', size));
         }
         if (!weight && !size && trackMissingSize) {
-            metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_SIZE, '<span class="font-medium">Chưa có</span>', 'warn'));
+            metaChips.push(buildEditableMetaChip(ORDER_PRODUCT_ICON_SIZE, '<span class="font-medium">Chưa có</span>', 'warn', orderId, index, 'weight', ''));
         }
     }
     if (priceNum > 0) {
-        metaChips.push(buildOrderProductMetaChip(ORDER_PRODUCT_ICON_CURRENCY, escapeHtml(formatCurrency(priceNum * parsedQuantity)), 'price'));
+        metaChips.push(buildEditableMetaChip(ORDER_PRODUCT_ICON_CURRENCY, escapeHtml(formatCurrency(priceNum * parsedQuantity)), 'price', orderId, index, 'price', priceNum));
     }
 
     const productId = `product_${orderId}_${index}`;
+    const qtyId = `qty_${orderId}_${index}`;
     const isMissingWeight = !skipsWeight && trackMissingSize && !weight && !size;
     const itemBorder = isMissingWeight ? 'border-amber-200 bg-amber-50/50' : 'border-purple-100 bg-purple-50/40';
 
     return `
-        <div class="relative ${itemBorder} rounded-lg border px-2.5 py-2 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm transition-all group">
+        <div class="relative ${itemBorder} rounded-lg border px-2.5 py-2 hover:border-purple-200 hover:bg-purple-50/60 hover:shadow-sm transition-all group" data-product-item="${orderId}-${index}">
             <div class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-start gap-1.5 min-w-0">
-                        <span id="${productId}" class="font-semibold text-gray-900 break-words leading-snug flex-1 min-w-0" style="font-size:14px" title="${escapeHtml(productName)}">
+                        <span id="${productId}" class="font-semibold text-gray-900 break-words leading-snug flex-1 min-w-0 cursor-pointer hover:text-purple-700 transition-colors" style="font-size:14px" title="${escapeHtml(productName)} (Bấm để sửa)" 
+                              onclick="startInlineEdit('${productId}', ${orderId}, ${index}, 'name', '${escapeHtml(productName).replace(/'/g, "\\'")}')">
                             ${escapeHtml(productName)}
                         </span>
-                        <span class="inline-flex items-center justify-center rounded bg-purple-100 text-purple-700 font-semibold tabular-nums shrink-0 px-1.5 py-0.5 leading-none" style="font-size:11px">×${parsedQuantity}</span>
+                        <span id="${qtyId}" class="inline-flex items-center justify-center rounded bg-purple-100 text-purple-700 font-semibold tabular-nums shrink-0 px-1.5 py-0.5 leading-none cursor-pointer hover:bg-purple-200 transition-colors" style="font-size:11px" title="Bấm để sửa số lượng"
+                              onclick="startInlineEdit('${qtyId}', ${orderId}, ${index}, 'quantity', ${parsedQuantity})">×${parsedQuantity}</span>
                     </div>
 
                     ${metaChips.length ? `
@@ -267,5 +283,308 @@ function toggleProducts(uniqueId) {
         // Đổi text về ban đầu
         const count = hiddenContainer.children.length;
         text.textContent = `+${count} sản phẩm khác`;
+    }
+}
+
+// ============================================
+// INLINE EDIT FOR PRODUCT FIELDS
+// ============================================
+
+let currentInlineEdit = null;
+
+/**
+ * Start inline edit for a product field
+ * @param {string} elementId - ID of the element being edited
+ * @param {number} orderId - Order ID
+ * @param {number} productIndex - Product index in products array
+ * @param {string} field - Field name: 'name', 'quantity', 'price', 'weight'
+ * @param {string|number} currentValue - Current value
+ */
+function startInlineEdit(elementId, orderId, productIndex, field, currentValue) {
+    // Cancel any existing edit
+    if (currentInlineEdit) {
+        cancelInlineEdit();
+    }
+
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const originalHTML = element.innerHTML;
+    const originalText = element.textContent || '';
+    
+    // Store edit context
+    currentInlineEdit = {
+        elementId,
+        orderId,
+        productIndex,
+        field,
+        originalHTML,
+        originalText,
+        originalValue: currentValue,
+        element
+    };
+
+    // Create input based on field type
+    let input;
+    const isQuantity = field === 'quantity';
+    const isPrice = field === 'price';
+    const isWeight = field === 'weight';
+    const isName = field === 'name';
+
+    if (isQuantity) {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.step = '1';
+        input.value = currentValue || 1;
+        input.className = 'inline-flex items-center justify-center rounded bg-purple-200 text-purple-900 font-semibold tabular-nums px-1.5 py-0.5 leading-none border-2 border-purple-400 focus:border-purple-600 focus:outline-none';
+        input.style.fontSize = '11px';
+        input.style.width = '50px';
+    } else if (isPrice) {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = formatVnIntegerString(currentValue) || '';
+        input.placeholder = 'Giá';
+        input.className = 'inline-flex items-center gap-1 rounded-md border-2 px-1.5 py-0.5 text-indigo-900 bg-indigo-100 border-indigo-400 focus:border-indigo-600 focus:outline-none font-medium tabular-nums';
+        input.style.fontSize = '12px';
+        input.style.width = '100px';
+        
+        // Format as Vietnamese number on input
+        input.addEventListener('input', function() {
+            const digits = this.value.replace(/\D/g, '');
+            if (digits) {
+                const num = parseInt(digits, 10);
+                this.value = new Intl.NumberFormat('vi-VN').format(num);
+            }
+        });
+    } else if (isWeight) {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue || '';
+        input.placeholder = 'Cân nặng';
+        input.className = 'inline-flex items-center gap-1 rounded-md border-2 px-1.5 py-0.5 text-blue-900 bg-blue-100 border-blue-400 focus:border-blue-600 focus:outline-none font-medium';
+        input.style.fontSize = '12px';
+        input.style.width = '80px';
+    } else if (isName) {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue || '';
+        input.placeholder = 'Tên sản phẩm';
+        input.className = 'font-semibold text-gray-900 bg-purple-50 border-2 border-purple-400 rounded px-2 py-1 focus:border-purple-600 focus:outline-none w-full';
+        input.style.fontSize = '14px';
+    }
+
+    input.setAttribute('aria-label', `Sửa ${field}`);
+    input.autocomplete = 'off';
+
+    // Replace element content with input
+    element.innerHTML = '';
+    element.appendChild(input);
+    
+    // Remove cursor pointer and hover effects temporarily
+    element.style.cursor = 'default';
+    element.onclick = null;
+
+    // Focus and select
+    input.focus();
+    if (input.setSelectionRange && typeof input.setSelectionRange === 'function') {
+        setTimeout(() => {
+            try {
+                input.setSelectionRange(0, input.value.length);
+            } catch (e) { /* ignore */ }
+        }, 10);
+    } else {
+        input.select();
+    }
+
+    // Event handlers
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            commitInlineEdit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            cancelInlineEdit();
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        // Small delay to allow click on other elements
+        setTimeout(() => {
+            if (currentInlineEdit && currentInlineEdit.elementId === elementId) {
+                commitInlineEdit();
+            }
+        }, 150);
+    });
+}
+
+/**
+ * Cancel inline edit and restore original content
+ */
+function cancelInlineEdit() {
+    if (!currentInlineEdit) return;
+
+    const { element, originalHTML } = currentInlineEdit;
+    if (element) {
+        element.innerHTML = originalHTML;
+        element.style.cursor = '';
+    }
+
+    currentInlineEdit = null;
+}
+
+/**
+ * Commit inline edit and save to database
+ */
+async function commitInlineEdit() {
+    if (!currentInlineEdit) return;
+
+    const { elementId, orderId, productIndex, field, element, originalValue, originalHTML } = currentInlineEdit;
+    const input = element.querySelector('input');
+    if (!input) {
+        cancelInlineEdit();
+        return;
+    }
+
+    let newValue = input.value.trim();
+
+    // Validate based on field
+    if (field === 'name') {
+        if (!newValue) {
+            showToast('Tên sản phẩm không được trống', 'warning');
+            input.focus();
+            return;
+        }
+    } else if (field === 'quantity') {
+        const qty = parseInt(newValue, 10);
+        if (isNaN(qty) || qty < 1) {
+            showToast('Số lượng phải >= 1', 'warning');
+            input.focus();
+            return;
+        }
+        newValue = qty;
+    } else if (field === 'price') {
+        const priceNum = parsePrice(newValue);
+        if (isNaN(priceNum) || priceNum < 0) {
+            showToast('Giá không hợp lệ', 'warning');
+            input.focus();
+            return;
+        }
+        newValue = priceNum;
+    } else if (field === 'weight') {
+        newValue = formatWeightSize(newValue);
+        if (!newValue) {
+            showToast('Cân nặng không hợp lệ', 'warning');
+            input.focus();
+            return;
+        }
+    }
+
+    // Check if changed
+    if (String(newValue) === String(originalValue)) {
+        cancelInlineEdit();
+        return;
+    }
+
+    // Clear current edit state before async operation
+    const editData = { ...currentInlineEdit };
+    currentInlineEdit = null;
+
+    // Show loading
+    element.innerHTML = `
+        <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-gray-600">Đang lưu...</span>
+        </div>
+    `;
+
+    try {
+        // Find order
+        const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) {
+            throw new Error('Không tìm thấy đơn hàng');
+        }
+
+        const order = allOrdersData[orderIndex];
+        let products = [];
+
+        // Parse products
+        try {
+            products = JSON.parse(order.products);
+        } catch (e) {
+            const lines = order.products.split(/[,\n]/).map(l => l.trim()).filter(Boolean);
+            products = lines.map(line => {
+                const m = line.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+                return m ? { name: m[1].trim(), quantity: parseInt(m[2]) } : { name: line, quantity: 1 };
+            });
+        }
+
+        // Validate index
+        if (productIndex < 0 || productIndex >= products.length) {
+            throw new Error('Không tìm thấy sản phẩm');
+        }
+
+        let product = products[productIndex];
+        if (typeof product === 'string') {
+            const m = product.match(/^(.+?)\s*[xX×]\s*(\d+)$/);
+            product = m ? { name: m[1].trim(), quantity: parseInt(m[2]) } : { name: product, quantity: 1 };
+            products[productIndex] = product;
+        }
+
+        // Update field
+        if (field === 'name') {
+            product.name = newValue;
+        } else if (field === 'quantity') {
+            product.quantity = newValue;
+        } else if (field === 'price') {
+            product.price = newValue;
+        } else if (field === 'weight') {
+            product.weight = newValue;
+            delete product.size; // Remove size if weight is set
+        }
+
+        // Convert to JSON
+        const updatedProductsJson = JSON.stringify(products);
+
+        // Save to API
+        const response = await fetch(`${CONFIG.API_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'updateOrderProducts',
+                orderId: orderId,
+                products: updatedProductsJson
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update local data
+            const updates = { products: updatedProductsJson };
+            if (data.total_amount !== undefined) updates.total_amount = data.total_amount;
+            if (data.product_cost !== undefined) updates.product_cost = data.product_cost;
+            if (data.commission !== undefined) updates.commission = data.commission;
+
+            updateOrderData(orderId, updates);
+
+            // Re-render table to reflect all changes
+            renderOrdersTable();
+
+            const fieldLabel = field === 'name' ? 'tên' : 
+                             field === 'quantity' ? 'số lượng' : 
+                             field === 'price' ? 'giá' : 'cân nặng';
+            showToast(`Đã cập nhật ${fieldLabel}`, 'success', 1800);
+        } else {
+            throw new Error(data.error || 'Không thể cập nhật');
+        }
+
+    } catch (error) {
+        console.error('Error in commitInlineEdit:', error);
+        element.innerHTML = originalHTML;
+        element.style.cursor = '';
+        showToast('Không thể cập nhật: ' + error.message, 'error');
     }
 }

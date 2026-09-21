@@ -4060,6 +4060,40 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   flex-shrink: 0;
 }
 
+/* Inline Edit Styles */
+.shopvd-inline-editable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.shopvd-inline-editable:hover {
+  opacity: 0.75;
+}
+
+.shopvd-product-title.shopvd-inline-editable:hover {
+  color: #7c3aed;
+}
+
+.shopvd-meta-item.shopvd-inline-editable:hover {
+  transform: scale(1.05);
+}
+
+.shopvd-product-qty-badge.shopvd-inline-editable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.shopvd-product-total.shopvd-inline-editable:hover {
+  color: #7c3aed;
+  transform: scale(1.02);
+}
+
+.shopvd-meta-item-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
 /* Edit Form */
 .shopvd-product-edit-form {
   margin-top: 12px;

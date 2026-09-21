@@ -7315,7 +7315,7 @@ function renderProducts() {
         </div>
         <div class="shopvd-product-info">
           <div class="shopvd-product-title-row">
-            <h4 class="shopvd-product-title">${escapeHtml(product.name)}</h4>
+            <h4 class="shopvd-product-title shopvd-inline-editable" data-inline-field="name" data-product-id="${product.id}" title="Bấm để sửa tên">${escapeHtml(product.name)}</h4>
             <div class="shopvd-product-actions">
               <button type="button" class="shopvd-action-btn shopvd-action-edit" data-action="edit" title="Sửa">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -7333,11 +7333,11 @@ function renderProducts() {
           </div>
           <div class="shopvd-product-bottom-row">
             <div class="shopvd-product-meta">
-              ${product.weight ? `<span class="shopvd-meta-item">● ${escapeHtml(formatWeightSize(product.weight))}</span>` : ''}
-              <span class="shopvd-product-qty-badge">×${product.quantity}</span>
+              <span class="shopvd-meta-item shopvd-inline-editable${product.weight ? '' : ' shopvd-meta-item-empty'}" data-inline-field="weight" data-product-id="${product.id}" title="Bấm để sửa cân nặng">● ${product.weight ? escapeHtml(formatWeightSize(product.weight)) : 'Chưa có'}</span>
+              <span class="shopvd-product-qty-badge shopvd-inline-editable" data-inline-field="quantity" data-product-id="${product.id}" title="Bấm để sửa số lượng">×${product.quantity}</span>
               ${product.notes ? `<span class="shopvd-meta-item shopvd-meta-notes"><svg class="shopvd-meta-notes-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>${escapeHtml(product.notes)}</span>` : ''}
             </div>
-            <div class="shopvd-product-total">${formatPrice(totalPrice)} đ</div>
+            <div class="shopvd-product-total shopvd-inline-editable" data-inline-field="price" data-product-id="${product.id}" title="Bấm để sửa giá bán">${formatPrice(totalPrice)} đ</div>
           </div>
         </div>
       </div>
@@ -7503,6 +7503,155 @@ function renderProducts() {
         }
       });
     }
+  });
+
+  // Inline edit handlers for name, weight, quantity, price
+  container.querySelectorAll('.shopvd-inline-editable').forEach(el => {
+    el.addEventListener('click', function(e) {
+      if (el.querySelector('input')) return; // Already editing
+      
+      const field = el.getAttribute('data-inline-field');
+      const productId = parseInt(el.getAttribute('data-product-id'));
+      const product = productsData.find(p => p.id === productId);
+      
+      if (!product) return;
+      
+      const originalText = el.textContent.trim();
+      let currentValue;
+      
+      if (field === 'name') {
+        currentValue = product.name;
+      } else if (field === 'weight') {
+        currentValue = product.weight || '';
+      } else if (field === 'quantity') {
+        currentValue = product.quantity;
+      } else if (field === 'price') {
+        currentValue = product.price;
+      }
+      
+      // Create input
+      let input;
+      if (field === 'quantity') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.step = '1';
+        input.value = currentValue;
+        input.style.cssText = 'width: 50px; padding: 2px 6px; border: 2px solid #9333ea; border-radius: 4px; font-weight: 600; font-size: 13px; text-align: center; background: white;';
+      } else if (field === 'price') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.step = '1000';
+        input.value = currentValue;
+        input.style.cssText = 'width: 90px; padding: 2px 6px; border: 2px solid #9333ea; border-radius: 4px; font-weight: 600; font-size: 13px; text-align: right; background: white;';
+      } else if (field === 'weight') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        input.placeholder = 'VD: 5kg';
+        input.style.cssText = 'width: 80px; padding: 2px 6px; border: 2px solid #9333ea; border-radius: 4px; font-size: 12px; background: white;';
+      } else if (field === 'name') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        input.style.cssText = 'width: 100%; padding: 4px 8px; border: 2px solid #9333ea; border-radius: 6px; font-weight: 600; font-size: 14px; background: white;';
+      }
+      
+      // Store original content
+      const originalHTML = el.innerHTML;
+      
+      // Replace content with input
+      el.innerHTML = '';
+      el.appendChild(input);
+      el.style.cursor = 'default';
+      
+      // Focus and select
+      input.focus();
+      input.select();
+      
+      // Guard chống double-commit (Enter rồi blur cùng bắn, hoặc blur bắn 2 lần)
+      let isDone = false;
+
+      // Save function
+      const save = () => {
+        if (isDone) return;
+
+        let newValue = input.value.trim();
+        let hasChanged = false;
+        
+        if (field === 'name') {
+          if (!newValue) {
+            showStatus('⚠️ Tên sản phẩm không được trống', 'warning');
+            input.focus();
+            return;
+          }
+          if (newValue !== product.name) {
+            product.name = newValue;
+            hasChanged = true;
+          }
+        } else if (field === 'weight') {
+          const formatted = formatWeightSize(newValue);
+          if (formatted !== product.weight) {
+            product.weight = formatted;
+            delete product.size;
+            hasChanged = true;
+          }
+        } else if (field === 'quantity') {
+          const qty = Math.max(1, parseInt(newValue, 10) || 1);
+          if (qty !== product.quantity) {
+            product.quantity = qty;
+            hasChanged = true;
+          }
+        } else if (field === 'price') {
+          const price = parseInt(newValue, 10) || 0;
+          if (price !== product.price) {
+            product.price = price;
+            hasChanged = true;
+          }
+        }
+
+        isDone = true;
+        
+        if (hasChanged) {
+          renderProducts();
+          calculateTotal();
+          autoUpdateFreeshipCheckbox();
+          showStatus('✅ Đã lưu!', 'success');
+          setTimeout(() => {
+            const statusEl = document.getElementById('shopvd-status');
+            if (statusEl) statusEl.classList.add('hidden');
+          }, 1500);
+        } else {
+          el.innerHTML = originalHTML;
+          el.style.cursor = '';
+        }
+      };
+      
+      // Cancel function
+      const cancel = () => {
+        if (isDone) return;
+        isDone = true;
+        el.innerHTML = originalHTML;
+        el.style.cursor = '';
+      };
+      
+      // Event handlers
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          save();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancel();
+        }
+      });
+      
+      input.addEventListener('blur', () => {
+        // Delay nhỏ để không conflict với Enter/click khác đang xử lý
+        setTimeout(save, 150);
+      });
+    });
   });
 
   updateOrderCartUI();
