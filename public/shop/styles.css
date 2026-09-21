@@ -2132,7 +2132,7 @@ body {
     }
     
     .silver-mini-badge {
-        font-size: 12px;
+        font-size: 0.6rem;
         padding: 0.125rem 0.4rem;
     }
     
@@ -2286,7 +2286,7 @@ body {
     }
     
     .original-price {
-        font-size: 1rem;
+        font-size: 0.85rem;
     }
     
     .stock-info-row {
