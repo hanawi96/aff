@@ -15,9 +15,8 @@
     'thành phố cần thơ',
     'thành phố huế',
   ];
-  const SEARCH_LIMIT = 10;
+  const SEARCH_LIMIT = 15;
   const SEARCH_MIN_LEN = 2;
-  const SEARCH_MIN_SCORE = 50;
   const SEARCH_DEBOUNCE_MS = 140;
   const WARD_DROPDOWN_LIMIT = 40;
   const ADMIN_TOKEN_RE = /\b(phuong|xa|thi\s*tran|thi\s*xa|quan|huyen|tinh|thanh\s*pho|tp\.?)\b/g;
@@ -276,18 +275,42 @@
     return null;
   }
 
-  /** Token ngắn (<=2) chỉ khớp nguyên từ; token dài hơn cho phép prefix từ. */
-  function fieldHasToken(field, token) {
-    const words = String(field || '').split(' ').filter(Boolean);
-    if (!token) return false;
-    if (token.length <= 2) return words.includes(token);
-    return words.some((w) => w === token || w.startsWith(token));
+  /**
+   * Chấm điểm 1 token trên 1 field.
+   * Trả về điểm 0..1 theo mức khớp tốt nhất:
+   *   1.00 = field bằng đúng token (field chỉ 1 từ = token)
+   *   0.90 = có từ trong field bằng đúng token
+   *   0.65 = có từ bắt đầu bằng token (prefix >= 2 ký tự)
+   *   0.40 = token xuất hiện substring trong field
+   *   0.00 = không khớp
+   */
+  function scoreTokenOnField(field, token) {
+    if (!token) return 0;
+    const words = field.words;
+    if (!words.length) return 0;
+
+    if (words.length === 1 && words[0] === token) return 1;
+    if (words.includes(token)) return 0.9;
+
+    if (token.length >= 2) {
+      for (const w of words) {
+        if (w.length > token.length && w.startsWith(token)) return 0.65;
+      }
+    }
+
+    if (field.text.includes(token)) return 0.4;
+
+    return 0;
   }
 
-  function fieldHasAllTokens(field, tokens) {
-    return tokens.every((t) => fieldHasToken(field, t));
+  function toFieldIndex(text) {
+    return { text, words: text.split(' ').filter(Boolean) };
   }
 
+  /**
+   * Thuật toán tìm kiếm: chấm điểm từng token trên 3 field (ward/district/province),
+   * cộng dồn theo trọng số, không loại bỏ sớm. Cho phép thiếu token (gõ tắt) miễn coverage đủ.
+   */
   function searchLegacyAddresses(query) {
     if (!tree?.searchRecords?.length) return [];
     const cleaned = cleanSearchQuery(query);
@@ -298,43 +321,55 @@
 
     const scored = [];
     for (const rec of tree.searchRecords) {
-      if (!fieldHasAllTokens(rec.haystack, tokens)) continue;
+      if (!rec._wardIdx) {
+        rec._wardIdx = toFieldIndex(rec.wardShort);
+        rec._distIdx = toFieldIndex(rec.districtShort);
+        rec._provIdx = toFieldIndex(rec.provinceShort);
+      }
 
-      const allInWard = fieldHasAllTokens(rec.wardShort, tokens);
-      const allInDist = fieldHasAllTokens(rec.districtShort, tokens);
-      const wardHit = tokens.some((t) => fieldHasToken(rec.wardShort, t));
-      const distHit = tokens.some((t) => fieldHasToken(rec.districtShort, t));
-      const provHit = tokens.some((t) => fieldHasToken(rec.provinceShort, t));
-      const exactWard = rec.wardShort === cleaned;
-      const exactDist = rec.districtShort === cleaned;
-      // Query kiểu "xã + huyện" (>=3 token) mới nhận split đa cấp; tránh "trang"+"viet"/"ha"+"noi" ghép nhầm
-      const splitStrong = wardHit && distHit && tokens.length >= 3;
+      let wardTotal = 0;
+      let distTotal = 0;
+      let provTotal = 0;
+      let matchedTokens = 0;
 
-      if (!(exactWard || exactDist || allInWard || allInDist || splitStrong)) continue;
+      for (const t of tokens) {
+        const wScore = scoreTokenOnField(rec._wardIdx, t);
+        const dScore = scoreTokenOnField(rec._distIdx, t);
+        const pScore = scoreTokenOnField(rec._provIdx, t);
 
-      let score = 0;
-      if (exactWard) score += 100;
-      else if (allInWard) score += 72;
-      else if (wardHit) score += 20;
+        wardTotal += wScore;
+        distTotal += dScore;
+        provTotal += pScore;
 
-      if (exactDist) score += 85;
-      else if (allInDist) score += 58;
-      else if (distHit) score += 18;
+        if (wScore > 0 || dScore > 0 || pScore > 0) matchedTokens += 1;
+      }
 
-      if (rec.provinceShort === cleaned) score += 12;
-      else if (provHit) score += 6;
+      const coverage = matchedTokens / tokens.length;
+      const minMatched = tokens.length <= 2 ? tokens.length : tokens.length - 1;
+      if (matchedTokens === 0 || matchedTokens < minMatched || coverage < 0.5) continue;
 
-      if (splitStrong) score += 55;
-      if (allInWard && provHit) score += 16;
-      if (allInDist && provHit) score += 12;
-      if ((' ' + rec.haystack + ' ').includes(' ' + cleaned + ' ')) score += 25;
+      // Score tổng: ưu tiên ward (×10) > district (×6) > province (×3)
+      let totalScore = wardTotal * 10 + distTotal * 6 + provTotal * 3;
 
-      if (score < SEARCH_MIN_SCORE) continue;
-      scored.push({ rec, score });
+      // Bonus: query liền mạch
+      const joined = tokens.join(' ');
+      if (rec._wardIdx.text.includes(joined)) totalScore += 15;
+      else if (rec._distIdx.text.includes(joined)) totalScore += 8;
+
+      // Bonus: exact match toàn bộ query
+      if (rec.wardShort === cleaned) totalScore += 50;
+      else if (rec.districtShort === cleaned) totalScore += 35;
+
+      // Penalty: không khớp gì ở ward và district (chỉ province)
+      if (wardTotal === 0 && distTotal === 0) totalScore *= 0.3;
+
+      scored.push({ rec, score: totalScore, coverage, wardTotal, distTotal });
     }
 
+    // Sắp xếp: score (giảm dần) → coverage (giảm dần) → alphabet
     scored.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
+      if (b.coverage !== a.coverage) return b.coverage - a.coverage;
       return a.rec.ward.localeCompare(b.rec.ward, 'vi', { sensitivity: 'base' });
     });
 
