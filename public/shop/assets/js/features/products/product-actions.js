@@ -120,14 +120,7 @@ export class ProductActions {
         console.log('   Cart item price:', cartItem.price);
         console.log('   Cart item surcharge:', cartItem.weightSurcharge);
         
-        // Add badges
-        if (product.is_handmade === 1) {
-            cartItem.badges.push('Thủ công 100%');
-        }
-        if (product.is_chemical_free === 1) {
-            cartItem.badges.push('Không hóa chất');
-        }
-        
+        // Badges removed per user request
         cartService.addItem(cartItem, 1);
         this.updateCartUI();
     }

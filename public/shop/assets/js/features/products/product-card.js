@@ -36,8 +36,9 @@ export function createProductCard(product) {
         (cat.id === 24 || cat.category_id === 24)
     );
     
-    const hasHandmadeBadge = !isBiCharmBac && (product.is_handmade === 1 || product.tags?.includes('handmade'));
-    const hasChemicalFreeBadge = !isBiCharmBac && (product.is_chemical_free === 1 || product.tags?.includes('chemical-free'));
+    // Badges are hidden - Thủ công 100% and Không hóa chất removed per user request
+    const hasHandmadeBadge = false;
+    const hasChemicalFreeBadge = false;
     const hasSilverBadge = isBiCharmBac; // Show "Cam kết bạc thật" badge for Bi, charm bạc category
     
     // Check if product should show "bạc thật" mini badge next to rating
