@@ -30,8 +30,9 @@ class App {
             // Detect current page
             const page = this.detectPage();
             
-            // Load common partials (header, footer, modals) for all pages except cart
-            if (page !== 'cart') {
+            // Trang chủ đã có header/footer sẵn. Chỉ tải partial khi trang còn placeholder,
+            // nếu không 4 request này chặn luôn lệnh lấy sản phẩm.
+            if (page !== 'cart' && document.getElementById('header-placeholder')) {
                 await loadCommonPartials();
             }
             
